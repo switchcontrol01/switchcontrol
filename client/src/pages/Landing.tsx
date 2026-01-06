@@ -331,7 +331,7 @@ function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { prefersReducedMotion } = useMotion();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -341,8 +341,9 @@ function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    window.location.href = '/api/logout';
+  const handleLogout = async () => {
+    await logout();
+    window.location.href = '/';
   };
 
   return (

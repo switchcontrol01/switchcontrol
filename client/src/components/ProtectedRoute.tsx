@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -10,22 +10,22 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [, navigate] = useLocation();
   const [isChecking, setIsChecking] = useState(true);
 
-  const { data: user, isLoading, isError } = useQuery({
-    queryKey: ['/api/auth/me'],
+  const { data: user, isLoading } = useQuery({
+    queryKey: ['/api/me'],
     queryFn: async () => {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/me');
       if (!res.ok) return null;
       return res.json();
     },
     retry: false,
-    staleTime: 1000 * 30, // 30 seconds - balance security and performance
+    staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
-        navigate('/login', { replace: true });
+        navigate('/', { replace: true });
       }
       setIsChecking(false);
     }
@@ -50,17 +50,29 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 }
 
 export function useAuth() {
+  const queryClient = useQueryClient();
+  
   const { data: user, isLoading, refetch } = useQuery({
-    queryKey: ['/api/auth/me'],
+    queryKey: ['/api/me'],
     queryFn: async () => {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch('/api/me');
       if (!res.ok) return null;
       return res.json();
     },
     retry: false,
-    staleTime: 1000 * 30, // 30 seconds - balance security and performance
+    staleTime: 1000 * 30,
     refetchOnWindowFocus: true,
   });
 
-  return { user, isLoading, isAuthenticated: !!user, refetch };
+  const logout = async () => {
+    try {
+      await fetch('/auth/logout', { method: 'POST' });
+      queryClient.setQueryData(['/api/me'], null);
+      queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  return { user, isLoading, isAuthenticated: !!user, refetch, logout };
 }
