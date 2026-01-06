@@ -134,7 +134,7 @@ function AnimatedProgressBar({
           }, delay);
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
     );
 
     if (ref.current) {
@@ -247,7 +247,7 @@ function CountingNumber({
           requestAnimationFrame(animate);
         }
       },
-      { threshold: 0.5 }
+      { threshold: 0.3, rootMargin: "0px 0px -10% 0px" }
     );
 
     if (ref.current) {
@@ -284,7 +284,7 @@ function StatCard({
           setTimeout(() => setHasShimmered(true), index * 100);
         }
       },
-      { threshold: 0.3 }
+      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
     );
 
     if (ref.current) {
@@ -310,7 +310,7 @@ function StatCard({
       initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
       whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      viewport={{ once: true }}
+      viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
       whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
     >
       {hasShimmered && !prefersReducedMotion && (
@@ -539,7 +539,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
       initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
       whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
       transition={{ duration: 0.4, delay: index * 0.05 }}
-      viewport={{ once: true }}
+      viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
     >
       <button
         className="w-full py-5 flex items-center justify-between text-left group"

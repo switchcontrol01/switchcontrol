@@ -26,7 +26,7 @@ export default function AnimateIn({ children, delay = 0, className = "" }: Anima
           observer.disconnect();
         }
       },
-      { threshold: 0.15 }
+      { threshold: 0.15, rootMargin: "0px 0px -10% 0px" }
     );
 
     observer.observe(el);
