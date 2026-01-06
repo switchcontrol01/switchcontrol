@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { GlassCard } from "@/components/ui/glass-card";
 import {
   Dialog,
   DialogContent,
@@ -21,12 +22,12 @@ interface TweakCardProps {
 
 const RiskBadge = ({ level }: { level: RiskLevel }) => {
   const colors = {
-    Safe: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-    Moderate: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-    Risky: "bg-red-500/10 text-red-400 border-red-500/20",
+    Safe: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(52,211,153,0.1)]",
+    Moderate: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20 shadow-[0_0_10px_rgba(250,204,21,0.1)]",
+    Risky: "bg-red-500/10 text-red-400 border-red-500/20 shadow-[0_0_10px_rgba(248,113,113,0.1)]",
   };
   return (
-    <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded border uppercase tracking-wider", colors[level])}>
+    <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider transition-all", colors[level])}>
       {level}
     </span>
   );
@@ -39,7 +40,7 @@ const LevelBadge = ({ level }: { level: TweakLevel }) => {
     Experimental: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   };
   return (
-    <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded border uppercase tracking-wider", colors[level])}>
+    <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", colors[level])}>
       {level === "Recommended" && <ShieldCheck className="inline-block size-3 mr-1 -mt-0.5" />}
       {level}
     </span>
@@ -48,19 +49,22 @@ const LevelBadge = ({ level }: { level: TweakLevel }) => {
 
 export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   return (
-    <div className={cn(
-      "group flex items-center justify-between p-4 rounded-xl border transition-all duration-200",
-      isEnabled 
-        ? "bg-primary/5 border-primary/20 shadow-[0_0_15px_-5px_hsl(var(--primary)/0.1)]" 
-        : "bg-card/40 border-border/40 hover:bg-card/60 hover:border-border/80"
-    )}>
+    <GlassCard 
+      className={cn(
+        "group flex items-center justify-between p-4 transition-all duration-300",
+        isEnabled 
+          ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.15)]" 
+          : "hover:bg-white/5"
+      )}
+      hoverEffect={true}
+    >
       <div className="flex items-start gap-4 flex-1">
-        <div className="flex-1 space-y-1">
+        <div className="flex-1 space-y-2">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className={cn("font-medium text-sm", isEnabled ? "text-primary-foreground" : "text-foreground")}>
+            <h3 className={cn("font-medium text-sm transition-colors", isEnabled ? "text-primary-foreground" : "text-foreground group-hover:text-white")}>
               {tweak.title}
             </h3>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
               <LevelBadge level={tweak.level} />
               <RiskBadge level={tweak.risk} />
               {tweak.requiresAgent && (
@@ -70,18 +74,18 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               )}
             </div>
           </div>
-          <p className="text-xs text-muted-foreground line-clamp-1">{tweak.description}</p>
+          <p className="text-xs text-muted-foreground line-clamp-1 group-hover:text-muted-foreground/80 transition-colors">{tweak.description}</p>
         </div>
       </div>
 
       <div className="flex items-center gap-4 pl-4">
         <Dialog>
           <DialogTrigger asChild>
-            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button variant="ghost" size="icon" className="size-8 text-muted-foreground hover:text-foreground hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full">
               <Info className="size-4" />
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="border-white/10 bg-black/80 backdrop-blur-xl">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {tweak.title}
@@ -109,7 +113,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               </div>
 
               {tweak.requiresReboot && (
-                <div className="flex items-center gap-2 p-3 rounded bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs">
+                <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs">
                   <AlertTriangle className="size-4" />
                   This tweak requires a system restart to take full effect.
                 </div>
@@ -121,9 +125,9 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
         <Switch 
           checked={isEnabled} 
           onCheckedChange={onToggle} 
-          className="data-[state=checked]:bg-primary"
+          className="data-[state=checked]:bg-primary shadow-lg"
         />
       </div>
-    </div>
+    </GlassCard>
   );
 }

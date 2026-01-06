@@ -123,8 +123,8 @@
 body {
   @apply font-sans antialiased bg-background text-foreground;
   background-image: 
-    radial-gradient(circle at 50% 0%, hsl(270 70% 60% / 0.05), transparent 40%),
-    radial-gradient(circle at 80% 10%, hsl(320 80% 60% / 0.03), transparent 30%);
+    radial-gradient(circle at 50% 0%, hsl(270 70% 60% / 0.08), transparent 40%),
+    radial-gradient(circle at 80% 10%, hsl(320 80% 60% / 0.05), transparent 30%);
   background-attachment: fixed;
 }
 
@@ -145,4 +145,21 @@ body {
 /* Utility classes for data text */
 .font-data {
   @apply font-mono tracking-tight;
+}
+
+/* Custom Animations */
+@keyframes glow-pulse {
+  0% { box-shadow: 0 0 5px hsl(var(--primary) / 0.2); }
+  50% { box-shadow: 0 0 20px hsl(var(--primary) / 0.5); }
+  100% { box-shadow: 0 0 5px hsl(var(--primary) / 0.2); }
+}
+
+.animate-glow {
+  animation: glow-pulse 3s infinite;
+}
+
+/* Noise overlay */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+  pointer-events: none;
 }
