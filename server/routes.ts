@@ -193,6 +193,41 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/telemetry", async (req, res) => {
+    try {
+      const fluctuate = (base: number, range: number) => 
+        parseFloat((base + (Math.random() * range * 2 - range)).toFixed(1));
+      
+      res.json({
+        temps: {
+          cpu: fluctuate(65, 8),
+          gpu: fluctuate(58, 10),
+          mobo: fluctuate(42, 3)
+        },
+        ram: {
+          totalGB: 32,
+          usedGB: fluctuate(12.5, 2)
+        },
+        ssds: [
+          { 
+            name: "C:", 
+            totalGB: 512, 
+            usedGB: fluctuate(285, 5),
+            status: Math.random() > 0.7 ? "Active" : "Idle"
+          },
+          { 
+            name: "D:", 
+            totalGB: 1024, 
+            usedGB: fluctuate(620, 10),
+            status: Math.random() > 0.8 ? "Active" : "Idle"
+          }
+        ]
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch telemetry" });
+    }
+  });
+
   app.post("/api/clear-ram", async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();

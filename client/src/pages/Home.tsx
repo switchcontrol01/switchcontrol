@@ -1,21 +1,34 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
+import { LiveGraph } from "@/components/dashboard/LiveGraph";
+import { StorageCards } from "@/components/dashboard/StorageCards";
 import { useStore } from "@/lib/store";
 import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 
+interface TelemetryData {
+  temps: { cpu: number; gpu: number; mobo: number };
+  ram: { totalGB: number; usedGB: number };
+  ssds: Array<{ name: string; totalGB: number; usedGB: number; status: string }>;
+}
+
 export default function Home() {
   const { stats, account, clearRam, runAIScan, latestAIScan } = useStore();
   const [scanning, setScanning] = useState(false);
+  const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const { prefersReducedMotion } = useMotion();
+  
+  const handleTelemetryUpdate = useCallback((data: TelemetryData) => {
+    setSsdData(data.ssds);
+  }, []);
   
   const ramPercent = (stats.usedRamGb / stats.totalRamGb) * 100;
   const diskPercent = (stats.diskUsedGb / stats.diskTotalGb) * 100;
@@ -118,6 +131,12 @@ export default function Home() {
             </motion.div>
           </motion.div>
         </div>
+
+        {/* Live Graph */}
+        <LiveGraph onTelemetryUpdate={handleTelemetryUpdate} />
+
+        {/* Storage Section */}
+        <StorageCards ssds={ssdData} />
 
         {/* Bottom Section */}
         <motion.div 
