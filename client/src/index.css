@@ -212,6 +212,15 @@ body {
   }
 }
 
+@keyframes heroFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-hero-float {
+  animation: heroFloat 6s ease-in-out infinite;
+}
+
 .animate-blob-1 {
   animation: blobFloat1 25s ease-in-out infinite;
 }
@@ -283,7 +292,8 @@ body {
   .animate-blob-3,
   .animate-gradient-shift,
   .animate-shimmer,
-  .animate-cta-pulse {
+  .animate-cta-pulse,
+  .animate-hero-float {
     animation: none;
   }
   

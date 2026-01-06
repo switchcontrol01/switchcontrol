@@ -17,7 +17,7 @@ import {
   LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, useMotion } from "@/lib/motion";
+import { motion, useMotion, Reveal } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 
@@ -610,7 +610,10 @@ export default function Landing() {
               </motion.div>
               
               <motion.h1
-                className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6"
+                className={cn(
+                  "text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6",
+                  !prefersReducedMotion && "animate-hero-float"
+                )}
                 initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
                 animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
                 transition={{ duration: 0.5, delay: 0.1 }}
@@ -690,32 +693,19 @@ export default function Landing() {
 
         <section id="features" className="py-24 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div 
-              className="text-center mb-16"
-              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
+            <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Everything You Need to Dominate
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 Comprehensive optimization tools designed for competitive gamers who demand the best performance.
               </p>
-            </motion.div>
+            </Reveal>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {FEATURES.map((feature, i) => (
-                <motion.div
-                  key={feature.title}
-                  initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                  whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
-                  viewport={{ once: true }}
-                  whileHover={!prefersReducedMotion ? { y: -6, scale: 1.02 } : undefined}
-                >
-                  <Card className="animated-border bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 h-full group rounded-xl overflow-hidden">
+                <Reveal key={feature.title} delay={i * 0.1}>
+                  <Card className="animated-border bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 h-full group rounded-xl overflow-hidden hover:-translate-y-1.5 hover:scale-[1.02]">
                     <CardContent className="p-6 relative z-10">
                       <div className="size-12 rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:shadow-lg group-hover:shadow-primary/20 flex items-center justify-center mb-4 transition-all duration-300">
                         <feature.icon className="size-6 text-primary group-hover:scale-110 transition-transform duration-300" />
@@ -724,7 +714,7 @@ export default function Landing() {
                       <p className="text-sm text-muted-foreground group-hover:text-muted-foreground/80 transition-colors">{feature.description}</p>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -732,30 +722,18 @@ export default function Landing() {
 
         <section className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div 
-              className="text-center mb-16"
-              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
+            <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Real Results, Real Improvements
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 See the difference SwitchControl makes with before and after optimization comparisons.
               </p>
-            </motion.div>
+            </Reveal>
             
             <div className="grid md:grid-cols-3 gap-6">
-              <motion.div
-                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                transition={{ duration: 0.4 }}
-                viewport={{ once: true }}
-                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
-              >
-                <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
+              <Reveal>
+                <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
                   <CardContent className="p-6">
                     <h3 className="font-semibold text-white mb-4">Ping Stability</h3>
                     <div className="space-y-4">
@@ -776,16 +754,10 @@ export default function Landing() {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </Reveal>
 
-              <motion.div
-                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                transition={{ duration: 0.4, delay: 0.1 }}
-                viewport={{ once: true }}
-                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
-              >
-                <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
+              <Reveal delay={0.1}>
+                <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
                   <CardContent className="p-6">
                     <h3 className="font-semibold text-white mb-4">Input Delay</h3>
                     <div className="space-y-4">
@@ -806,16 +778,10 @@ export default function Landing() {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </Reveal>
 
-              <motion.div
-                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                viewport={{ once: true }}
-                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
-              >
-                <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
+              <Reveal delay={0.2}>
+                <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
                   <CardContent className="p-6">
                     <h3 className="font-semibold text-white mb-4">1% Low FPS</h3>
                     <div className="space-y-4">
@@ -836,39 +802,26 @@ export default function Landing() {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </Reveal>
             </div>
           </div>
         </section>
 
         <section className="py-24 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div 
-              className="text-center mb-16"
-              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
+            <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Loved by Competitive Gamers
               </h2>
               <p className="text-muted-foreground">
                 Join thousands of players who've optimized their gameplay.
               </p>
-            </motion.div>
+            </Reveal>
             
             <div className="grid md:grid-cols-3 gap-6">
               {TESTIMONIALS.map((testimonial, i) => (
-                <motion.div
-                  key={testimonial.name}
-                  initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                  whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
-                  viewport={{ once: true }}
-                  whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
-                >
-                  <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
+                <Reveal key={testimonial.name} delay={i * 0.1}>
+                  <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
                     <CardContent className="p-6">
                       <div className="flex gap-1 mb-4">
                         {Array.from({ length: testimonial.rating }).map((_, i) => (
@@ -884,7 +837,7 @@ export default function Landing() {
                       </div>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -892,30 +845,18 @@ export default function Landing() {
 
         <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div 
-              className="text-center mb-16"
-              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
+            <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Simple, One-Time Pricing
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 No subscriptions. Pay once, get premium features forever.
               </p>
-            </motion.div>
+            </Reveal>
             
             <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
-              <motion.div
-                initial={!prefersReducedMotion ? { opacity: 0, x: -20 } : undefined}
-                whileInView={!prefersReducedMotion ? { opacity: 1, x: 0 } : undefined}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
-              >
-                <Card className="bg-white/5 border-white/10 hover:border-white/20 transition-all h-full">
+              <Reveal direction="left">
+                <Card className="bg-white/5 border-white/10 hover:border-white/20 hover:-translate-y-1 transition-all h-full">
                   <CardContent className="p-8">
                     <h3 className="text-xl font-bold text-white mb-2">Free</h3>
                     <div className="text-3xl font-bold text-white mb-4">$0 <span className="text-sm font-normal text-muted-foreground">forever</span></div>
@@ -925,49 +866,32 @@ export default function Landing() {
                     </Link>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </Reveal>
 
-              <motion.div
-                initial={!prefersReducedMotion ? { opacity: 0, x: 20 } : undefined}
-                whileInView={!prefersReducedMotion ? { opacity: 1, x: 0 } : undefined}
-                transition={{ duration: 0.5 }}
-                viewport={{ once: true }}
-                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
-              >
-                <Card className="bg-gradient-to-b from-primary/20 to-primary/5 border-primary/40 hover:border-primary/60 transition-all h-full relative overflow-hidden">
+              <Reveal direction="right">
+                <Card className="bg-gradient-to-b from-primary/20 to-primary/5 border-primary/40 hover:border-primary/60 hover:-translate-y-1 transition-all h-full relative overflow-hidden">
                   <div className="absolute top-0 right-0 bg-primary text-xs font-medium px-3 py-1 rounded-bl-lg">Best Value</div>
                   <CardContent className="p-8">
                     <h3 className="text-xl font-bold text-white mb-2">Premium</h3>
                     <div className="text-3xl font-bold text-white mb-4">$50 <span className="text-sm font-normal text-muted-foreground">one-time</span></div>
                     <p className="text-muted-foreground text-sm mb-6">Lifetime access to all features</p>
                     <Link href="/pricing">
-                      <motion.div
-                        whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
-                        whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
-                      >
-                        <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30">Get Premium</Button>
-                      </motion.div>
+                      <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-transform">Get Premium</Button>
                     </Link>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </Reveal>
             </div>
           </div>
         </section>
 
         <section id="faq" className="py-24 relative">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div 
-              className="text-center mb-12"
-              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
+            <Reveal className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Frequently Asked Questions
               </h2>
-            </motion.div>
+            </Reveal>
             
             <div className="divide-y divide-white/10">
               {FAQ_ITEMS.map((item, i) => (
@@ -979,12 +903,7 @@ export default function Landing() {
 
         <section className="py-24 relative">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <motion.div
-              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-              transition={{ duration: 0.5 }}
-              viewport={{ once: true }}
-            >
+            <Reveal>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Ready to Optimize Your Gaming?
               </h2>
@@ -992,18 +911,12 @@ export default function Landing() {
                 Join thousands of competitive gamers who trust SwitchControl for their system optimization needs.
               </p>
               <Link href="/login">
-                <motion.div
-                  whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
-                  whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
-                  className="inline-block"
-                >
-                  <Button size="lg" className="text-base px-10 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 transition-shadow">
-                    Get Started Free
-                    <ArrowRight className="ml-2 size-4" />
-                  </Button>
-                </motion.div>
+                <Button size="lg" className="text-base px-10 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 hover:scale-[1.03] active:scale-[0.97] transition-all">
+                  Get Started Free
+                  <ArrowRight className="ml-2 size-4" />
+                </Button>
               </Link>
-            </motion.div>
+            </Reveal>
           </div>
         </section>
       </main>

@@ -1,5 +1,6 @@
 import { motion, AnimatePresence, Variants, useReducedMotion } from "framer-motion";
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 const MotionContext = createContext({ prefersReducedMotion: false, hasLoaded: false });
 
@@ -141,5 +142,77 @@ export const pillIndicator: Variants = {
   initial: { opacity: 0 },
   animate: { opacity: 1 },
 };
+
+interface RevealProps {
+  children: ReactNode;
+  className?: string;
+  delay?: number;
+  duration?: number;
+  direction?: 'up' | 'down' | 'left' | 'right';
+  distance?: number;
+}
+
+export function Reveal({ 
+  children, 
+  className,
+  delay = 0,
+  duration = 0.5,
+  direction = 'up',
+  distance = 24
+}: RevealProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [isVisible, setIsVisible] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => {
+    if (prefersReducedMotion) {
+      setIsVisible(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -50px 0px' }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [prefersReducedMotion]);
+
+  const getTransform = () => {
+    if (prefersReducedMotion || isVisible) return 'translate(0, 0)';
+    switch (direction) {
+      case 'up': return `translateY(${distance}px)`;
+      case 'down': return `translateY(-${distance}px)`;
+      case 'left': return `translateX(${distance}px)`;
+      case 'right': return `translateX(-${distance}px)`;
+      default: return `translateY(${distance}px)`;
+    }
+  };
+
+  return (
+    <div
+      ref={ref}
+      className={cn(className)}
+      style={{
+        opacity: prefersReducedMotion ? 1 : isVisible ? 1 : 0,
+        transform: getTransform(),
+        transition: prefersReducedMotion 
+          ? 'none' 
+          : `opacity ${duration}s ease-out ${delay}s, transform ${duration}s ease-out ${delay}s`,
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export { motion, AnimatePresence };
