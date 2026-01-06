@@ -53,7 +53,7 @@ export default function Login() {
 
   useEffect(() => {
     if (user && !isLoading) {
-      navigate('/app', { replace: true });
+      navigate('/', { replace: true });
     }
   }, [user, isLoading, navigate]);
 

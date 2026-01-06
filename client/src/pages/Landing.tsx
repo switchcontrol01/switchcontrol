@@ -12,11 +12,14 @@ import {
   Star,
   ArrowRight,
   Menu,
-  X
+  X,
+  Download,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
+import { useAuth } from "@/components/ProtectedRoute";
 
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
@@ -325,6 +328,7 @@ function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const { prefersReducedMotion } = useMotion();
+  const { user, isLoading } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -333,6 +337,10 @@ function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleLogout = () => {
+    window.location.href = '/api/logout';
+  };
 
   return (
     <motion.header 
@@ -372,21 +380,50 @@ function Header() {
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
-            <Link href="/login">
-              <Button variant="ghost" className="text-sm">
-                Log in
-              </Button>
-            </Link>
-            <Link href="/login">
-              <motion.div
-                whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
-                whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
-              >
-                <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow">
-                  Get Started
+            {isLoading ? (
+              <div className="w-20 h-8 bg-white/5 rounded animate-pulse" />
+            ) : user ? (
+              <>
+                <Link href="/download">
+                  <motion.div
+                    whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
+                    whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
+                  >
+                    <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow">
+                      <Download className="size-4 mr-2" />
+                      Download
+                    </Button>
+                  </motion.div>
+                </Link>
+                <Button 
+                  variant="ghost" 
+                  className="text-sm text-muted-foreground hover:text-white"
+                  onClick={handleLogout}
+                  data-testid="button-logout"
+                >
+                  <LogOut className="size-4 mr-2" />
+                  Log out
                 </Button>
-              </motion.div>
-            </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost" className="text-sm">
+                    Log in
+                  </Button>
+                </Link>
+                <Link href="/login">
+                  <motion.div
+                    whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
+                    whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
+                  >
+                    <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow">
+                      Get Started
+                    </Button>
+                  </motion.div>
+                </Link>
+              </>
+            )}
           </div>
 
           <button 
@@ -416,12 +453,33 @@ function Header() {
               </a>
             ))}
             <div className="pt-4 border-t border-white/10 space-y-2">
-              <Link href="/login">
-                <Button variant="outline" className="w-full">Log in</Button>
-              </Link>
-              <Link href="/login">
-                <Button className="w-full bg-primary">Get Started</Button>
-              </Link>
+              {user ? (
+                <>
+                  <Link href="/download">
+                    <Button className="w-full bg-primary">
+                      <Download className="size-4 mr-2" />
+                      Download
+                    </Button>
+                  </Link>
+                  <Button 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="size-4 mr-2" />
+                    Log out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <Button variant="outline" className="w-full">Log in</Button>
+                  </Link>
+                  <Link href="/login">
+                    <Button className="w-full bg-primary">Get Started</Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </motion.div>
