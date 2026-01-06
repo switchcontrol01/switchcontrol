@@ -93,36 +93,35 @@ export function Sidebar() {
               transition={shouldAnimate ? { delay: index * 0.03, duration: 0.3 } : undefined}
               whileHover={shouldAnimate ? { x: 4 } : undefined}
             >
-              <Link href={item.href}>
-                <a
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden",
-                    isActive 
-                      ? "text-white shadow-lg shadow-black/20" 
-                      : "text-muted-foreground hover:text-white hover:bg-white/5"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"
-                      layoutId={shouldAnimate ? "activeIndicator" : undefined}
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
-                  {isActive && (
-                    <motion.div 
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_10px_hsl(var(--primary))]"
-                      layoutId={shouldAnimate ? "activePill" : undefined}
-                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                    />
-                  )}
-                  
-                  <item.icon className={cn(
-                    "size-4 transition-all duration-200 z-10", 
-                    isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
-                  )} />
-                  <span className={cn("z-10 transition-transform duration-200", isActive && "translate-x-0.5")}>{item.label}</span>
-                </a>
+              <Link
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                  isActive 
+                    ? "text-white shadow-lg shadow-black/20" 
+                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"
+                    layoutId={shouldAnimate ? "activeIndicator" : undefined}
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+                {isActive && (
+                  <motion.div 
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_10px_hsl(var(--primary))]"
+                    layoutId={shouldAnimate ? "activePill" : undefined}
+                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                  />
+                )}
+                
+                <item.icon className={cn(
+                  "size-4 transition-all duration-200 z-10", 
+                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
+                )} />
+                <span className={cn("z-10 transition-transform duration-200", isActive && "translate-x-0.5")}>{item.label}</span>
               </Link>
             </NavItem>
           );

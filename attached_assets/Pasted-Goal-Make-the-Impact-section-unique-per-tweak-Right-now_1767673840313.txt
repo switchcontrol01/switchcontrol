@@ -1,0 +1,219 @@
+Goal: Make the “Impact” section unique per tweak. Right now every tweak shows the same generic impact text (“Improved system responsiveness…”) which is wrong.
+
+Scope:
+- Tweaks page only
+- Update the tweak definitions/source-of-truth (likely shared/schema.ts or a tweaks data file) so each tweak has:
+  - description: string (1 sentence, specific)
+  - impact: string[] (2-4 bullet points, unique, realistic)
+  - safety: existing badge stays
+- The UI should render impact bullets from each tweak’s impact array.
+
+Implementation:
+1) Find where tweak metadata is defined (id/title/category/description/impact/safety/recommended).
+2) Replace any shared/default impact list with per-tweak impact lists.
+3) Ensure the details/tooltip/modal reads tweak.impact and maps it to bullet points.
+4) Keep each impact bullet short and specific. No repeated boilerplate across tweaks.
+5) If a tweak is “Moderate” or “Experimental”, include a downside/side-effect bullet.
+
+Now update impacts + refine descriptions for the following tweaks (use these exact values):
+
+- Disable Hibernation
+  description: Disables hibernate and removes hiberfil.sys to free disk space.
+  impact:
+    - Frees disk space roughly equal to installed RAM
+    - Hibernate option removed from power menu and laptop lid actions
+    - Faster shutdown storage footprint with no hibernate file writes
+
+- Disable Maintenance
+  description: Disables scheduled automatic maintenance tasks that run in the background.
+  impact:
+    - Reduces background CPU/disk spikes from maintenance schedules
+    - Less unexpected activity while gaming or recording
+    - Some maintenance tasks (like cleanup/diagnostics) may not run automatically
+
+- Disable Hyper-V
+  description: Turns off Microsoft Hyper-V and related virtualization components.
+  impact:
+    - Can reduce virtualization overhead and background services
+    - Improves compatibility with some anti-cheat and performance tweaks
+    - Disables VMs, WSL2 virtualization features, and some sandbox functions
+
+- Optimize Memory Settings
+  description: Applies memory manager tuning aimed at lower latency and steadier frametimes.
+  impact:
+    - May reduce stutters caused by memory trimming/management behavior
+    - Can improve frametime consistency in CPU bound scenarios
+    - Risk: overly aggressive settings can reduce stability on some systems
+
+- Disable Page Combining
+  description: Disables Windows memory page combining (memory deduplication).
+  impact:
+    - Reduces CPU work spent merging identical memory pages
+    - Can lower micro-stutter during heavy multitasking
+    - Slightly higher RAM usage in exchange for lower background CPU activity
+
+- Disable SysMain/Superfetch
+  description: Disables SysMain preloading and predictive caching behavior.
+  impact:
+    - Reduces background disk usage and service activity
+    - Can improve consistency on fast NVMe systems by removing prefetch noise
+    - May slightly slow app launch times after cold boot on some PCs
+
+- Disable Telemetry
+  description: Reduces Windows diagnostic data collection and related scheduled tasks.
+  impact:
+    - Fewer background telemetry tasks and data uploads
+    - Slight reduction in background CPU/network activity
+    - Some Windows feedback/diagnostics features may be limited
+
+- Disable Copilot
+  description: Disables Windows Copilot integration and entry points.
+  impact:
+    - Removes Copilot UI and background integration hooks
+    - Reduces distractions and potential background activity
+    - Does not affect core Windows functionality
+
+- Disable Search Highlights
+  description: Disables online search highlight content and suggested web cards.
+  impact:
+    - Removes extra web content from search UI
+    - Reduces background fetches related to highlights
+    - Cleaner, faster-feeling search experience
+
+- Tune Priority (Win32PrioritySeparation)
+  description: Adjusts foreground vs background scheduling preference for snappier input response.
+  impact:
+    - Can improve responsiveness of the active game/app
+    - May reduce background task priority while gaming
+    - Risk: heavy background workloads can feel slower (streams/encodes/downloads)
+
+- Disable Desktop Composition (DWM)
+  description: Legacy tweak targeting Desktop Window Manager behavior (not recommended on modern Windows).
+  impact:
+    - Can cause visual glitches or broken transparency effects
+    - May reduce GPU composition overhead in rare legacy scenarios
+    - Risk: can worsen stability or performance on Windows 10/11 (Experimental)
+
+- Disable Bluetooth
+  description: Stops Bluetooth services and disables Bluetooth device support.
+  impact:
+    - Reduces background services and device polling
+    - Removes Bluetooth input/audio support while enabled
+    - Can help avoid interference if you only use wired peripherals
+
+- Remove Xbox Game Bar
+  description: Disables Xbox Game Bar overlays and background capture hooks.
+  impact:
+    - Removes overlay and background recording components
+    - Can reduce random overlay-related stutters or input delay
+    - Disables Win+G and built-in capture features
+
+- Disable Fax & Printer
+  description: Disables printing-related services including spooler components.
+  impact:
+    - Reduces background services if you never print
+    - Removes printer discovery and print queue functionality
+    - Can slightly reduce service overhead on clean gaming builds
+
+- Hide Recent Files
+  description: Clears and disables “Recent files” style history in Quick Access.
+  impact:
+    - Reduces Explorer history tracking
+    - Cleaner privacy and less file activity logging
+    - No performance risk, purely UI/privacy focused
+
+- Disable Energy Logging
+  description: Reduces power diagnostics and event logging related to energy usage.
+  impact:
+    - Fewer power diagnostic logs and background writes
+    - Slight reduction in event logging overhead
+    - May reduce data available for battery/power troubleshooting
+
+- Disable Background Apps
+  description: Prevents Store apps and some UWP apps from running in the background.
+  impact:
+    - Reduces background CPU/network usage from apps you are not using
+    - Can improve idle stability and reduce random spikes
+    - Some apps won’t update/refresh in the background until opened
+
+- Disable Notifications
+  description: Suppresses Windows toast notifications and notification sounds.
+  impact:
+    - Removes popups that can interrupt aim/recording
+    - Reduces notification-related background triggers
+    - You may miss important system/security notifications
+
+- Disable Large System Cache
+  description: Changes caching behavior to prioritize programs over file cache behavior.
+  impact:
+    - Can reduce file cache pressure in some workloads
+    - May improve responsiveness in certain memory-heavy scenarios
+    - Risk: can reduce file caching efficiency depending on usage
+
+- Disable Prefetch
+  description: Disables Prefetch behavior that tries to speed up app launches using disk patterns.
+  impact:
+    - Reduces disk I/O related to prefetch data generation
+    - Can improve consistency on NVMe systems by removing background prefetch writes
+    - May slightly slow some app launch times after cold boot
+
+- Disable Storage Sense
+  description: Disables automatic storage cleanup and file deletion routines.
+  impact:
+    - Prevents automatic deletion of temporary files and recycle cleanup
+    - More predictable storage behavior for creators and gamers
+    - You must manually manage disk cleanup
+
+- Disable NVIDIA Telemetry
+  description: Disables NVIDIA telemetry and analytics scheduled tasks/services.
+  impact:
+    - Reduces NVIDIA background telemetry tasks
+    - Slight reduction in background CPU/disk activity
+    - No effect on GPU performance features themselves
+
+- Disable Cortana
+  description: Disables legacy Cortana components and entry points.
+  impact:
+    - Removes old assistant background components
+    - Reduces legacy search/assistant hooks
+    - No downside for most Windows 11 users
+
+- Enable Gaming Mode
+  description: Enables Windows Game Mode prioritization for games.
+  impact:
+    - Prioritizes the game process and reduces background update interference
+    - Can improve consistency during gameplay on some systems
+    - May not help in every title, but usually low risk
+
+- Timer Resolution (0.5ms)
+  description: Requests a lower system timer resolution to improve timing precision.
+  impact:
+    - Can reduce input latency in some scenarios
+    - May improve frametime consistency in some games
+    - Risk: increases power usage and can raise CPU wakeups (Agent Required)
+
+- Enable Preemption
+  description: Adjusts GPU scheduling behavior for smoother context switching (varies by driver).
+  impact:
+    - Can improve responsiveness during GPU context switching
+    - May reduce hitching when overlays or capture tools are active
+    - Risk: effect depends heavily on GPU/driver and may do nothing
+
+- Disable Wi-Fi
+  description: Disables WLAN services and Wi-Fi network support.
+  impact:
+    - Removes Wi-Fi to ensure only Ethernet is used
+    - Reduces wireless scanning/background network polling
+    - No Wi-Fi connectivity until re-enabled
+
+- Disable Xbox Services
+  description: Disables Xbox related background services and tasks.
+  impact:
+    - Reduces background tasks tied to Xbox features
+    - Can reduce Game Bar, Xbox app, and related service activity
+    - Xbox login/game services may break for Microsoft Store titles
+
+After implementing, verify:
+- Hover > info panel shows each tweak’s unique impact bullets.
+- No two tweaks share the exact same impact list.
+- X close behavior remains functional.

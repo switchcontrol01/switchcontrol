@@ -2,8 +2,8 @@ import { useState, useCallback, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Info, AlertTriangle, ShieldCheck, X } from "lucide-react";
-import { Tweak, RiskLevel, TweakLevel } from "@/lib/mock-data";
+import { Info, AlertTriangle, ShieldCheck, X, Cpu, MonitorSpeaker, HardDrive, Wifi, Timer, AlertCircle } from "lucide-react";
+import { Tweak, RiskLevel, TweakLevel, TweakExpected, ImpactLevel } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
 
@@ -37,6 +37,49 @@ const LevelBadge = ({ level }: { level: TweakLevel }) => {
       {level === "Recommended" && <ShieldCheck className="inline-block size-3 mr-1 -mt-0.5" />}
       {level}
     </span>
+  );
+};
+
+const ImpactPill = ({ label, value }: { label: string; value: ImpactLevel }) => {
+  if (value === "None") return null;
+  
+  const colors = {
+    Low: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    Medium: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
+    High: "bg-red-500/10 text-red-400 border-red-500/20",
+  };
+  
+  return (
+    <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded border", colors[value])}>
+      {label}: {value}
+    </span>
+  );
+};
+
+const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
+  const entries: [string, ImpactLevel | undefined][] = [
+    ["CPU", expected.cpu],
+    ["GPU", expected.gpu],
+    ["RAM", expected.ram],
+    ["Disk", expected.disk],
+    ["Network", expected.network],
+    ["Latency", expected.latency],
+    ["Risk", expected.stabilityRisk],
+  ];
+  
+  const activeEntries = entries.filter(([, v]) => v && v !== "None");
+  
+  if (activeEntries.length === 0) return null;
+  
+  return (
+    <div className="space-y-2">
+      <h4 className="text-sm font-medium text-white">Expected Change</h4>
+      <div className="flex flex-wrap gap-1.5">
+        {activeEntries.map(([label, value]) => (
+          <ImpactPill key={label} label={label} value={value!} />
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -179,14 +222,16 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                     <p className="text-sm text-muted-foreground">{tweak.description}</p>
                   </div>
                   
+                  <ExpectedChange expected={tweak.expected} />
+                  
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-white">Impact</h4>
                     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
-                      <li>Improved system responsiveness</li>
-                      <li>Reduced background resource usage</li>
-                      {tweak.risk === "Risky" && (
-                        <li className="text-red-400">May cause system instability if not configured correctly</li>
-                      )}
+                      {tweak.impact.map((item, index) => (
+                        <li key={index} className={item.toLowerCase().includes("risk") ? "text-yellow-400" : undefined}>
+                          {item}
+                        </li>
+                      ))}
                     </ul>
                   </div>
 

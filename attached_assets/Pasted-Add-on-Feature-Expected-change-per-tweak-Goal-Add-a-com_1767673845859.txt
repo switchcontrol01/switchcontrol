@@ -1,0 +1,115 @@
+Add-on Feature: “Expected change” per tweak
+
+Goal:
+Add a compact “Expected change” row in the tweak info panel (and optionally on the card) that quickly tells the user what the tweak usually affects.
+
+Data model:
+For each tweak, add:
+- expected: {
+    cpu?: "None" | "Low" | "Medium" | "High",
+    gpu?: "None" | "Low" | "Medium" | "High",
+    ram?: "None" | "Low" | "Medium" | "High",
+    disk?: "None" | "Low" | "Medium" | "High",
+    network?: "None" | "Low" | "Medium" | "High",
+    latency?: "None" | "Low" | "Medium" | "High",
+    stabilityRisk?: "None" | "Low" | "Medium" | "High"
+  }
+
+UI changes:
+1) In the info panel/modal that shows Safety / Description / Impact, add a new section between Description and Impact:
+   Title: “Expected change”
+   Render as small pill tags: CPU: Low, RAM: Medium, Disk: Low, Network: None, Latency: Low, Risk: Medium
+2) Keep it consistent with your existing badge/pill styling.
+3) If a field is missing, don’t show it.
+4) Ensure values are not hardcoded and come from tweak.expected.
+
+Populate expected values for the tweaks we already defined:
+
+- Disable Hibernation
+  expected: { disk:"High", ram:"None", cpu:"None", gpu:"None", network:"None", latency:"None", stabilityRisk:"Low" }
+
+- Disable Maintenance
+  expected: { cpu:"Low", disk:"Low", ram:"None", gpu:"None", network:"None", latency:"Low", stabilityRisk:"Low" }
+
+- Disable Hyper-V
+  expected: { cpu:"Low", ram:"Low", gpu:"None", disk:"None", network:"None", latency:"Low", stabilityRisk:"Medium" }
+
+- Optimize Memory Settings
+  expected: { ram:"Medium", cpu:"Low", latency:"Medium", disk:"None", network:"None", gpu:"None", stabilityRisk:"Medium" }
+
+- Disable Page Combining
+  expected: { cpu:"Low", ram:"Low", latency:"Low", disk:"None", network:"None", gpu:"None", stabilityRisk:"Low" }
+
+- Disable SysMain/Superfetch
+  expected: { disk:"Medium", cpu:"Low", ram:"Low", latency:"Low", gpu:"None", network:"None", stabilityRisk:"Low" }
+
+- Disable Telemetry
+  expected: { cpu:"Low", network:"Low", disk:"Low", ram:"None", gpu:"None", latency:"None", stabilityRisk:"Low" }
+
+- Disable Copilot
+  expected: { cpu:"Low", ram:"Low", disk:"None", network:"None", gpu:"None", latency:"None", stabilityRisk:"Low" }
+
+- Disable Search Highlights
+  expected: { network:"Low", cpu:"Low", disk:"None", ram:"None", gpu:"None", latency:"None", stabilityRisk:"Low" }
+
+- Tune Priority (Win32PrioritySeparation)
+  expected: { latency:"Medium", cpu:"None", gpu:"None", ram:"None", disk:"None", network:"None", stabilityRisk:"Medium" }
+
+- Disable Desktop Composition (DWM) [Experimental]
+  expected: { gpu:"Medium", latency:"Low", cpu:"Low", ram:"None", disk:"None", network:"None", stabilityRisk:"High" }
+
+- Disable Bluetooth
+  expected: { cpu:"Low", network:"None", disk:"None", ram:"None", gpu:"None", latency:"Low", stabilityRisk:"Low" }
+
+- Remove Xbox Game Bar
+  expected: { cpu:"Low", gpu:"Low", ram:"Low", latency:"Low", disk:"None", network:"None", stabilityRisk:"Low" }
+
+- Disable Fax & Printer
+  expected: { cpu:"Low", ram:"None", disk:"None", gpu:"None", network:"None", latency:"None", stabilityRisk:"Medium" }
+
+- Hide Recent Files
+  expected: { disk:"Low", cpu:"None", ram:"None", gpu:"None", network:"None", latency:"None", stabilityRisk:"None" }
+
+- Disable Energy Logging
+  expected: { disk:"Low", cpu:"Low", ram:"None", gpu:"None", network:"None", latency:"None", stabilityRisk:"Low" }
+
+- Disable Background Apps
+  expected: { cpu:"Low", ram:"Low", network:"Low", disk:"Low", gpu:"None", latency:"Low", stabilityRisk:"Low" }
+
+- Disable Notifications
+  expected: { cpu:"None", ram:"None", disk:"None", network:"None", gpu:"None", latency:"Low", stabilityRisk:"Low" }
+
+- Disable Large System Cache
+  expected: { ram:"Medium", disk:"Low", cpu:"Low", latency:"Low", gpu:"None", network:"None", stabilityRisk:"Medium" }
+
+- Disable Prefetch
+  expected: { disk:"Medium", cpu:"Low", ram:"None", gpu:"None", network:"None", latency:"Low", stabilityRisk:"Low" }
+
+- Disable Storage Sense
+  expected: { disk:"None", cpu:"None", ram:"None", gpu:"None", network:"None", latency:"None", stabilityRisk:"Low" }
+
+- Disable NVIDIA Telemetry
+  expected: { cpu:"Low", disk:"Low", ram:"None", gpu:"None", network:"None", latency:"None", stabilityRisk:"Low" }
+
+- Disable Cortana
+  expected: { cpu:"Low", ram:"Low", network:"None", disk:"None", gpu:"None", latency:"None", stabilityRisk:"Low" }
+
+- Enable Gaming Mode
+  expected: { latency:"Low", cpu:"Low", gpu:"None", ram:"None", disk:"None", network:"None", stabilityRisk:"Low" }
+
+- Timer Resolution (0.5ms) [Agent Required]
+  expected: { latency:"High", cpu:"Low", gpu:"None", ram:"None", disk:"None", network:"None", stabilityRisk:"Medium" }
+
+- Enable Preemption
+  expected: { gpu:"Low", latency:"Low", cpu:"None", ram:"None", disk:"None", network:"None", stabilityRisk:"Medium" }
+
+- Disable Wi-Fi
+  expected: { network:"High", cpu:"Low", disk:"None", ram:"None", gpu:"None", latency:"None", stabilityRisk:"Low" }
+
+- Disable Xbox Services
+  expected: { cpu:"Low", ram:"Low", network:"Low", disk:"None", gpu:"None", latency:"Low", stabilityRisk:"Medium" }
+
+Acceptance checks:
+- “Expected change” shows unique pills per tweak.
+- No hardcoded generic values.
+- Works for all tweaks shown in the list and any future tweaks that get expected fields.
