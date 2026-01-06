@@ -1,9 +1,7 @@
-import { useEffect } from "react";
-import { Link, useLocation } from "wouter";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Loader2 } from "lucide-react";
-import { useAuth } from "@/components/ProtectedRoute";
+import { ArrowLeft } from "lucide-react";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
