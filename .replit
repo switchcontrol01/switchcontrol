@@ -41,3 +41,8 @@ waitForPort = 5000
 [agent]
 mockupState = "FULLSTACK"
 integrations = ["javascript_database:1.0.0", "javascript_log_in_with_replit:2.0.0", "stripe:2.0.0"]
+
+[userenv]
+
+[userenv.shared]
+GOOGLE_REDIRECT_URI = "https://dc84e65c-c0b5-47cf-9123-30d63e00b4a1-00-14z9kzr8j6hz5.kirk.replit.dev/auth/google/callback"
