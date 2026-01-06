@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import Tweaks from "@/pages/Tweaks";
 import History from "@/pages/History";
 import Settings from "@/pages/Settings";
+import PowerPlan from "@/pages/PowerPlan";
 import Placeholder from "@/pages/Placeholder";
 
 function Router() {
@@ -19,9 +20,7 @@ function Router() {
       <Route path="/settings" component={Settings} />
       
       {/* Placeholders */}
-      <Route path="/power-plan">
-        <Placeholder title="Power Plan" />
-      </Route>
+      <Route path="/power-plan" component={PowerPlan} />
       <Route path="/app-booster">
         <Placeholder title="App Booster" />
       </Route>
