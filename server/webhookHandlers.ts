@@ -26,10 +26,12 @@ export class WebhookHandlers {
         
         let updated = false;
 
+        const now = new Date();
+        
         if (userId) {
           const result = await db
             .update(users)
-            .set({ isPremium: true, updatedAt: new Date() })
+            .set({ isPremium: true, premiumActivatedAt: now, updatedAt: now })
             .where(eq(users.id, userId))
             .returning();
           
@@ -42,7 +44,7 @@ export class WebhookHandlers {
         if (!updated && customerId) {
           const result = await db
             .update(users)
-            .set({ isPremium: true, updatedAt: new Date() })
+            .set({ isPremium: true, premiumActivatedAt: now, updatedAt: now })
             .where(eq(users.stripeCustomerId, customerId))
             .returning();
           
