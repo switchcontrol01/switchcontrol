@@ -17,6 +17,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, sidebarSlide, useMotion } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
+import { BrandLogo } from "@/components/BrandLogo";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -64,19 +65,8 @@ export function Sidebar() {
       className="fixed left-0 top-0 h-full w-64 bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border flex flex-col z-50 shadow-2xl"
       {...sidebarProps}
     >
-      <div className="p-6 flex items-center gap-3">
-        <motion.div 
-          className="relative size-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20 group overflow-hidden"
-          whileHover={shouldAnimate ? { scale: 1.05 } : undefined}
-          whileTap={shouldAnimate ? { scale: 0.95 } : undefined}
-        >
-          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-          S
-        </motion.div>
-        <div className="flex flex-col">
-          <span className="font-bold text-lg tracking-tight text-white bg-gradient-to-br from-white to-white/60 bg-clip-text">SwitchControl</span>
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Optimization</span>
-        </div>
+      <div className="p-6">
+        <BrandLogo linkTo="/app" />
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">

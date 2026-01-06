@@ -20,6 +20,8 @@ import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
+import { BrandLogo } from "@/components/BrandLogo";
+import { brand } from "@/config/brand";
 
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
@@ -356,16 +358,7 @@ function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <motion.div 
-              className="size-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary/30"
-              whileHover={!prefersReducedMotion ? { scale: 1.05 } : undefined}
-              whileTap={!prefersReducedMotion ? { scale: 0.95 } : undefined}
-            >
-              S
-            </motion.div>
-            <span className="font-bold text-lg text-white">SwitchControl</span>
-          </Link>
+          <BrandLogo iconSize="md" />
 
           <nav className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map(link => (
@@ -494,12 +487,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="size-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-sm">
-                S
-              </div>
-              <span className="font-bold text-white">SwitchControl</span>
-            </div>
+            <BrandLogo className="mb-4" />
             <p className="text-sm text-muted-foreground">
               Professional gaming optimization for competitive players.
             </p>
@@ -532,7 +520,7 @@ function Footer() {
         </div>
         
         <div className="mt-8 pt-8 border-t border-white/5 text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} SwitchControl. All rights reserved.
+          © {new Date().getFullYear()} {brand.name}. All rights reserved.
         </div>
       </div>
     </footer>

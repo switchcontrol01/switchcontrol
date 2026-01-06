@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Download, Shield, CheckCircle, Monitor, Clock } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
+import { brand } from "@/config/brand";
 
 export default function DownloadPage() {
   const { user } = useAuth();
@@ -26,7 +27,7 @@ export default function DownloadPage() {
                 <Download className="size-8" />
               </div>
             </div>
-            <CardTitle className="text-2xl text-white">Download SwitchControl</CardTitle>
+            <CardTitle className="text-2xl text-white">Download {brand.name}</CardTitle>
             <CardDescription>
               Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Get the desktop app to start optimizing.
             </CardDescription>

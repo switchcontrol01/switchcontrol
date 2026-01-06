@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
+import { brand } from "@/config/brand";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -65,11 +66,13 @@ export default function Login() {
         <Card className="w-full max-w-md bg-black/50 border-white/10 backdrop-blur-xl">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="size-12 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-primary/30">
-                S
-              </div>
+              <img 
+                src={brand.icon} 
+                alt={`${brand.name} logo`}
+                className="size-12 rounded-xl shadow-lg shadow-primary/30"
+              />
             </div>
-            <CardTitle className="text-2xl text-white">Welcome to SwitchControl</CardTitle>
+            <CardTitle className="text-2xl text-white">Welcome to {brand.name}</CardTitle>
             <CardDescription>Sign in to access your optimization dashboard</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
