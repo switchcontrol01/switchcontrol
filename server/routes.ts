@@ -1,16 +1,223 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { z } from "zod";
+import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
+  
+  await setupAuth(app);
+  registerAuthRoutes(app);
 
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      res.json(settings);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch settings" });
+    }
+  });
+
+  app.patch("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      const updated = await storage.updateSettings(settings.id, req.body);
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update settings" });
+    }
+  });
+
+  app.get("/api/tweaks", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      const tweaks = await storage.getTweaks(settings.id);
+      const tweaksMap: Record<string, boolean> = {};
+      tweaks.forEach(t => { tweaksMap[t.tweakId] = t.enabled; });
+      res.json(tweaksMap);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch tweaks" });
+    }
+  });
+
+  app.post("/api/tweaks/:tweakId", async (req, res) => {
+    try {
+      const { tweakId } = req.params;
+      const { enabled, tweakTitle } = req.body;
+      
+      const settings = await storage.getOrCreateSettings();
+      const tweak = await storage.setTweak(settings.id, tweakId, enabled);
+      
+      const currentCount = settings.tweaksApplied || 0;
+      const newCount = enabled ? currentCount + 1 : Math.max(0, currentCount - 1);
+      await storage.updateSettings(settings.id, { 
+        tweaksApplied: newCount,
+        lastScan: new Date()
+      });
+      
+      await storage.addHistory({
+        settingsId: settings.id,
+        action: `${enabled ? 'Enabled' : 'Disabled'} ${tweakTitle || tweakId}`,
+        page: 'Tweaks',
+        result: 'Simulated apply',
+      });
+      
+      res.json(tweak);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update tweak" });
+    }
+  });
+
+  app.post("/api/tweaks/reset", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      await storage.resetTweaks(settings.id);
+      await storage.updateSettings(settings.id, { 
+        tweaksApplied: 0,
+        lastScan: new Date()
+      });
+      await storage.addHistory({
+        settingsId: settings.id,
+        action: 'Reset all tweaks',
+        page: 'Tweaks',
+        result: 'All tweaks disabled',
+      });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to reset tweaks" });
+    }
+  });
+
+  app.post("/api/tweaks/apply-recommended", async (req, res) => {
+    try {
+      const { tweakIds } = req.body;
+      const settings = await storage.getOrCreateSettings();
+      
+      for (const tweakId of tweakIds) {
+        await storage.setTweak(settings.id, tweakId, true);
+      }
+      
+      await storage.updateSettings(settings.id, { 
+        tweaksApplied: tweakIds.length,
+        lastScan: new Date()
+      });
+      
+      await storage.addHistory({
+        settingsId: settings.id,
+        action: 'Apply Recommended',
+        page: 'Tweaks',
+        result: `Enabled ${tweakIds.length} tweaks`,
+      });
+      
+      res.json({ success: true, count: tweakIds.length });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to apply recommended" });
+    }
+  });
+
+  app.get("/api/history", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      const history = await storage.getHistory(settings.id);
+      res.json(history);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch history" });
+    }
+  });
+
+  app.delete("/api/history", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      await storage.clearHistory(settings.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear history" });
+    }
+  });
+
+  app.post("/api/history", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      const entry = await storage.addHistory({
+        settingsId: settings.id,
+        ...req.body
+      });
+      res.json(entry);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to add history entry" });
+    }
+  });
+
+  app.get("/api/ai-scan", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      const scan = await storage.getLatestAIScan(settings.id);
+      res.json(scan || null);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch AI scan" });
+    }
+  });
+
+  app.post("/api/ai-scan", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      
+      const recommendations = [
+        { id: "1", action: "Reduce background process priority", tag: "Safe" },
+        { id: "2", action: "Optimize kernel memory management", tag: "Advanced" },
+        { id: "3", action: "Disable unused driver hooks", tag: "Requires local agent" }
+      ];
+      
+      const scan = await storage.addAIScan({
+        settingsId: settings.id,
+        summary: "Your system is good, but these 3 changes could help consistency.",
+        recommendations,
+      });
+      
+      await storage.updateSettings(settings.id, { lastScan: new Date() });
+      
+      await storage.addHistory({
+        settingsId: settings.id,
+        action: 'AI Scan',
+        page: 'Dashboard',
+        result: 'Scan complete',
+        notes: 'Generated 3 recommendations',
+      });
+      
+      res.json(scan);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to run AI scan" });
+    }
+  });
+
+  app.post("/api/clear-ram", async (req, res) => {
+    try {
+      const settings = await storage.getOrCreateSettings();
+      const currentRam = settings.usedRamGb || 9.5;
+      const freedAmount = Math.random() * 2 + 1;
+      const newRam = Math.max(3.0, currentRam - freedAmount);
+      
+      await storage.updateSettings(settings.id, { 
+        usedRamGb: parseFloat(newRam.toFixed(1)),
+        cleanersRun: (settings.cleanersRun || 0) + 1,
+        lastScan: new Date()
+      });
+      
+      await storage.addHistory({
+        settingsId: settings.id,
+        action: 'Clear RAM',
+        page: 'Dashboard',
+        result: `Freed ${freedAmount.toFixed(1)} GB`,
+      });
+      
+      res.json({ usedRamGb: parseFloat(newRam.toFixed(1)), freed: freedAmount.toFixed(1) });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to clear RAM" });
+    }
+  });
 
   return httpServer;
 }
