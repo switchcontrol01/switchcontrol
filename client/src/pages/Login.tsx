@@ -38,15 +38,6 @@ function DiscordIcon({ className }: { className?: string }) {
 }
 
 export default function Login() {
-  const { user, isLoading } = useAuth();
-  const [, navigate] = useLocation();
-
-  useEffect(() => {
-    if (user && !isLoading) {
-      navigate('/', { replace: true });
-    }
-  }, [user, isLoading, navigate]);
-
   const handleGoogleLogin = () => {
     window.location.href = '/api/login';
   };
@@ -54,21 +45,6 @@ export default function Login() {
   const handleDiscordLogin = () => {
     window.location.href = '/api/login';
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="size-8 text-primary animate-spin" />
-          <p className="text-muted-foreground text-sm">Checking authentication...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (user) {
-    return null;
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col">

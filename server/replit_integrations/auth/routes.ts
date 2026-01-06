@@ -33,6 +33,7 @@ export function registerAuthRoutes(app: Express): void {
 
   // Alias for /api/auth/me at /api/me for convenience
   app.get("/api/me", async (req: any, res) => {
+    console.log(`[AUTH] /api/me hit - authenticated: ${req.isAuthenticated?.()}`);
     try {
       if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.claims?.sub) {
         return res.json(null);
