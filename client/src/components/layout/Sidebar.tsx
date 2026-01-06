@@ -35,7 +35,7 @@ function TikTokIcon({ className }: { className?: string }) {
 }
 
 const NAV_ITEMS = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/" },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
   { label: "Tweaks", icon: Settings, href: "/tweaks" },
   { label: "Power Plan", icon: Zap, href: "/power-plan" },
   { label: "App Booster", icon: Rocket, href: "/app-booster" },

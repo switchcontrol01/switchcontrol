@@ -5,13 +5,16 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider, AnimatePresence, motion, pageTransition, useMotion } from "@/lib/motion";
 import NotFound from "@/pages/not-found";
-import Home from "@/pages/Home";
+import Landing from "@/pages/Landing";
+import Dashboard from "@/pages/Home";
 import Tweaks from "@/pages/Tweaks";
 import History from "@/pages/History";
 import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
 import NetworkTweaks from "@/pages/NetworkTweaks";
 import Placeholder from "@/pages/Placeholder";
+import Login from "@/pages/Login";
+import Pricing from "@/pages/Pricing";
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -41,12 +44,18 @@ function Router() {
   return (
     <AnimatedRoute>
       <Switch>
-        <Route path="/" component={Home} />
+        {/* Marketing Pages */}
+        <Route path="/" component={Landing} />
+        <Route path="/login" component={Login} />
+        <Route path="/pricing" component={Pricing} />
+        
+        {/* Dashboard (authenticated) */}
+        <Route path="/dashboard" component={Dashboard} />
         <Route path="/tweaks" component={Tweaks} />
         <Route path="/history" component={History} />
         <Route path="/settings" component={Settings} />
         
-        {/* Placeholders */}
+        {/* App Features */}
         <Route path="/power-plan" component={PowerPlan} />
         <Route path="/app-booster">
           <Placeholder title="App Booster" />
