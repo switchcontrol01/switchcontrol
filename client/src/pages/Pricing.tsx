@@ -162,7 +162,7 @@ export default function Pricing() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden page-enter">
+    <div className="min-h-screen bg-black relative page-enter">
       {/* Animated gradient background */}
       <div 
         className="fixed inset-0 opacity-40"
