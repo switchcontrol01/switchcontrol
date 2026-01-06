@@ -30,4 +30,19 @@ export function registerAuthRoutes(app: Express): void {
       res.json(null);
     }
   });
+
+  // Alias for /api/auth/me at /api/me for convenience
+  app.get("/api/me", async (req: any, res) => {
+    try {
+      if (!req.isAuthenticated || !req.isAuthenticated() || !req.user?.claims?.sub) {
+        return res.json(null);
+      }
+      const userId = req.user.claims.sub;
+      const user = await authStorage.getUser(userId);
+      res.json(user || null);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.json(null);
+    }
+  });
 }
