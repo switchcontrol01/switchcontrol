@@ -10,10 +10,12 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 
 export default function Home() {
   const { stats, account, clearRam, runAIScan, latestAIScan } = useStore();
   const [scanning, setScanning] = useState(false);
+  const { prefersReducedMotion } = useMotion();
   
   const ramPercent = (stats.usedRamGb / stats.totalRamGb) * 100;
   const diskPercent = (stats.diskUsedGb / stats.diskTotalGb) * 100;
@@ -63,51 +65,70 @@ export default function Home() {
             Activity Monitor
           </h2>
           
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <StatCard
-              title="Memory"
-              value={stats.usedRamGb.toFixed(1)}
-              total={stats.totalRamGb}
-              unit="GB"
-              icon={MemoryStick}
-              progress={ramPercent}
-              actionLabel="Clear RAM"
-              onAction={clearRam}
-              className="border-primary/20 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.2)]"
-            />
+          <motion.div 
+            className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
+            variants={!prefersReducedMotion ? staggerContainer : undefined}
+            initial={!prefersReducedMotion ? "initial" : undefined}
+            animate={!prefersReducedMotion ? "animate" : undefined}
+          >
+            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+              <StatCard
+                title="Memory"
+                value={stats.usedRamGb.toFixed(1)}
+                total={stats.totalRamGb}
+                unit="GB"
+                icon={MemoryStick}
+                progress={ramPercent}
+                actionLabel="Clear RAM"
+                onAction={clearRam}
+                className="border-primary/20 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.2)]"
+              />
+            </motion.div>
             
-            <StatCard
-              title="CPU"
-              value={stats.cpuName}
-              icon={Cpu}
-              subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
-              className="border-blue-500/20 shadow-[0_0_20px_-10px_hsl(210_100%_50%/0.1)]"
-            />
+            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+              <StatCard
+                title="CPU"
+                value={stats.cpuName}
+                icon={Cpu}
+                subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
+                className="border-blue-500/20 shadow-[0_0_20px_-10px_hsl(210_100%_50%/0.1)]"
+              />
+            </motion.div>
             
-            <StatCard
-              title="GPU"
-              value={stats.gpuName}
-              icon={Activity}
-              subtext={`${stats.vramGb} GB VRAM`}
-              className="border-red-500/20 shadow-[0_0_20px_-10px_hsl(0_100%_50%/0.1)]"
-            />
+            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+              <StatCard
+                title="GPU"
+                value={stats.gpuName}
+                icon={Activity}
+                subtext={`${stats.vramGb} GB VRAM`}
+                className="border-red-500/20 shadow-[0_0_20px_-10px_hsl(0_100%_50%/0.1)]"
+              />
+            </motion.div>
             
-            <StatCard
-              title="Disk (C:)"
-              value={stats.diskUsedGb}
-              total={stats.diskTotalGb}
-              unit="GB"
-              icon={HardDrive}
-              progress={diskPercent}
-              subtext={stats.diskName}
-            />
-          </div>
+            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+              <StatCard
+                title="Disk (C:)"
+                value={stats.diskUsedGb}
+                total={stats.diskTotalGb}
+                unit="GB"
+                icon={HardDrive}
+                progress={diskPercent}
+                subtext={stats.diskName}
+              />
+            </motion.div>
+          </motion.div>
         </div>
 
         {/* Bottom Section */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <motion.div 
+          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          variants={!prefersReducedMotion ? staggerContainer : undefined}
+          initial={!prefersReducedMotion ? "initial" : undefined}
+          animate={!prefersReducedMotion ? "animate" : undefined}
+        >
           {/* Account Status Card - Updated */}
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 overflow-hidden relative group">
+          <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+            <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 overflow-hidden relative group h-full">
             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-medium flex items-center gap-2">
@@ -155,9 +176,11 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* AI Advisor Card - New */}
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group">
+          <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+            <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full">
             <div className="absolute top-0 right-0 p-3">
                <Sparkles className="size-4 text-primary animate-pulse" />
             </div>
@@ -209,9 +232,11 @@ export default function Home() {
               </div>
             </CardContent>
           </Card>
+          </motion.div>
 
           {/* App Booster Placeholder */}
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 flex flex-col items-center justify-center p-6 text-center space-y-4">
+          <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+            <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 flex flex-col items-center justify-center p-6 text-center space-y-4 h-full">
             <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
               <Rocket className="size-6 text-primary" />
             </div>
@@ -227,7 +252,8 @@ export default function Home() {
               </Button>
             </Link>
           </Card>
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </AppLayout>
   );

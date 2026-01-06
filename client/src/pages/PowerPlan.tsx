@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
+import { motion, AnimatePresence, modalBackdrop, modalContent, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { 
   Zap, 
   Leaf, 
@@ -163,6 +164,8 @@ function savePowerPlanState(state: { activeProfile: ProfileId; overrides: Record
 }
 
 function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () => void }) {
+  const { prefersReducedMotion } = useMotion();
+  
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -173,20 +176,32 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
 
   return (
     <>
-      <div 
+      <motion.div 
         className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm pointer-events-auto"
         onClick={onClose}
+        variants={modalBackdrop}
+        initial="initial"
+        animate="animate"
+        exit="exit"
       />
-      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md pointer-events-auto">
+      <motion.div 
+        className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md pointer-events-auto"
+        variants={modalContent}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
         <div className="relative bg-black/90 border border-white/10 rounded-lg p-6 shadow-2xl backdrop-blur-xl">
-          <button
+          <motion.button
             type="button"
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
             className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity cursor-pointer"
             data-testid="button-close-info-modal"
+            whileHover={!prefersReducedMotion ? { scale: 1.1 } : undefined}
+            whileTap={!prefersReducedMotion ? { scale: 0.9 } : undefined}
           >
             <X className="h-5 w-5 text-white" />
-          </button>
+          </motion.button>
           <div className="space-y-1.5 pr-8">
             <h2 className="text-lg font-semibold text-white flex items-center gap-2">
               {toggle.name}
@@ -206,7 +221,7 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
             )}
           </div>
         </div>
-      </div>
+      </motion.div>
     </>
   );
 }
@@ -705,7 +720,9 @@ export default function PowerPlan() {
         </Tabs>
       </div>
 
-      {infoToggle && <InfoModal toggle={infoToggle} onClose={() => setInfoToggle(null)} />}
+      <AnimatePresence>
+        {infoToggle && <InfoModal toggle={infoToggle} onClose={() => setInfoToggle(null)} />}
+      </AnimatePresence>
     </AppLayout>
   );
 }

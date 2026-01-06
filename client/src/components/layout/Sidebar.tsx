@@ -15,6 +15,7 @@ import {
   Terminal
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { motion, sidebarSlide, useMotion } from "@/lib/motion";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -48,54 +49,85 @@ const NAV_ITEMS = [
 
 export function Sidebar() {
   const [location] = useLocation();
+  const { prefersReducedMotion, hasLoaded } = useMotion();
+  const shouldAnimate = !prefersReducedMotion;
+
+  const SidebarWrapper = shouldAnimate ? motion.aside : "aside";
+  const sidebarProps = shouldAnimate && !hasLoaded ? {
+    variants: sidebarSlide,
+    initial: "initial",
+    animate: "animate",
+  } : {};
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border flex flex-col z-50 shadow-2xl">
-      {/* Brand */}
+    <SidebarWrapper 
+      className="fixed left-0 top-0 h-full w-64 bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border flex flex-col z-50 shadow-2xl"
+      {...sidebarProps}
+    >
       <div className="p-6 flex items-center gap-3">
-        <div className="relative size-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20 group overflow-hidden">
-           <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+        <motion.div 
+          className="relative size-8 rounded-lg bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold shadow-lg shadow-primary/20 group overflow-hidden"
+          whileHover={shouldAnimate ? { scale: 1.05 } : undefined}
+          whileTap={shouldAnimate ? { scale: 0.95 } : undefined}
+        >
+          <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
           S
-        </div>
+        </motion.div>
         <div className="flex flex-col">
           <span className="font-bold text-lg tracking-tight text-white bg-gradient-to-br from-white to-white/60 bg-clip-text">SwitchControl</span>
           <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Optimization</span>
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
-        {NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.map((item, index) => {
           const isActive = location === item.href;
+          const NavItem = shouldAnimate ? motion.div : "div";
+          
           return (
-            <Link key={item.href} href={item.href}>
-              <a
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 group relative overflow-hidden",
-                  isActive 
-                    ? "text-white shadow-lg shadow-black/20" 
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
-                )}
-              >
-                {isActive && (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent opacity-100 transition-opacity duration-300" />
-                    <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_10px_hsl(var(--primary))] animate-in slide-in-from-left-2 duration-300" />
-                  </>
-                )}
-                
-                <item.icon className={cn(
-                  "size-4 transition-all duration-300 z-10", 
-                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
-                )} />
-                <span className={cn("z-10 transition-transform duration-300", isActive && "translate-x-0.5")}>{item.label}</span>
-              </a>
-            </Link>
+            <NavItem
+              key={item.href}
+              initial={shouldAnimate && !hasLoaded ? { opacity: 0, x: -20 } : undefined}
+              animate={shouldAnimate && !hasLoaded ? { opacity: 1, x: 0 } : undefined}
+              transition={shouldAnimate ? { delay: index * 0.03, duration: 0.3 } : undefined}
+              whileHover={shouldAnimate ? { x: 4 } : undefined}
+            >
+              <Link href={item.href}>
+                <a
+                  className={cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                    isActive 
+                      ? "text-white shadow-lg shadow-black/20" 
+                      : "text-muted-foreground hover:text-white hover:bg-white/5"
+                  )}
+                >
+                  {isActive && (
+                    <motion.div
+                      className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"
+                      layoutId={shouldAnimate ? "activeIndicator" : undefined}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  {isActive && (
+                    <motion.div 
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_10px_hsl(var(--primary))]"
+                      layoutId={shouldAnimate ? "activePill" : undefined}
+                      transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                    />
+                  )}
+                  
+                  <item.icon className={cn(
+                    "size-4 transition-all duration-200 z-10", 
+                    isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
+                  )} />
+                  <span className={cn("z-10 transition-transform duration-200", isActive && "translate-x-0.5")}>{item.label}</span>
+                </a>
+              </Link>
+            </NavItem>
           );
         })}
       </nav>
 
-      {/* Footer */}
       <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/5 backdrop-blur-sm">
         <div className="flex items-center gap-3 px-2 group cursor-default">
           <div className="size-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 ring-1 ring-white/10 flex items-center justify-center text-xs font-mono text-zinc-400 shadow-inner transition-transform duration-300 group-hover:scale-105">
@@ -111,15 +143,17 @@ export function Sidebar() {
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <a
+                <motion.a
                   href="https://discord.gg/switchcontrol"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-[#5865F2] hover:bg-[#5865F2]/10 transition-all duration-200"
                   data-testid="sidebar-link-discord"
+                  whileHover={shouldAnimate ? { scale: 1.1 } : undefined}
+                  whileTap={shouldAnimate ? { scale: 0.9 } : undefined}
                 >
                   <DiscordIcon className="size-3.5" />
-                </a>
+                </motion.a>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 Join our Discord
@@ -127,15 +161,17 @@ export function Sidebar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <a
+                <motion.a
                   href="https://tiktok.com/@switchcontrol"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-pink-500 hover:bg-pink-500/10 transition-all duration-200"
                   data-testid="sidebar-link-tiktok"
+                  whileHover={shouldAnimate ? { scale: 1.1 } : undefined}
+                  whileTap={shouldAnimate ? { scale: 0.9 } : undefined}
                 >
                   <TikTokIcon className="size-3.5" />
-                </a>
+                </motion.a>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 Follow on TikTok
@@ -144,6 +180,6 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-    </aside>
+    </SidebarWrapper>
   );
 }
