@@ -20,6 +20,7 @@ import {
 import { motion, useMotion } from "@/lib/motion";
 import { useQuery } from "@tanstack/react-query";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
+import { useAuth } from "@/components/ProtectedRoute";
 
 const FREE_FEATURES = [
   "Basic system tweaks",
@@ -113,6 +114,7 @@ export default function Pricing() {
   const { prefersReducedMotion } = useMotion();
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   const { data: premiumStatus } = useQuery({
     queryKey: ['/api/user/premium-status'],
@@ -122,9 +124,17 @@ export default function Pricing() {
     }
   });
 
+  const handleGetStarted = () => {
+    if (user) {
+      window.location.href = "/download";
+    } else {
+      window.location.href = "/login?next=/download";
+    }
+  };
+
   const handlePurchase = async () => {
     if (!premiumStatus?.authenticated) {
-      navigate('/login');
+      navigate('/login?next=/download');
       return;
     }
 
@@ -210,11 +220,14 @@ export default function Pricing() {
             <ArrowLeft className="size-4" />
             Back to home
           </Link>
-          <Link href="/login">
-            <Button variant="outline" size="sm" className="border-white/20">
-              {premiumStatus?.authenticated ? 'Dashboard' : 'Log in'}
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="border-white/20"
+            onClick={handleGetStarted}
+          >
+            {user ? 'Download' : 'Log in'}
+          </Button>
         </div>
       </header>
 
@@ -262,14 +275,13 @@ export default function Pricing() {
                   ))}
                 </ul>
                 
-                <Link href="/login">
-                  <Button 
-                    className="w-full bg-white/10 hover:bg-white/20"
-                    data-testid="button-select-free"
-                  >
-                    Get Started
-                  </Button>
-                </Link>
+                <Button 
+                  className="w-full bg-white/10 hover:bg-white/20"
+                  data-testid="button-select-free"
+                  onClick={handleGetStarted}
+                >
+                  Get Started
+                </Button>
               </CardContent>
             </Card>
           </motion.div>

@@ -1,4 +1,4 @@
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft } from "lucide-react";
@@ -29,6 +29,12 @@ function GoogleIcon({ className }: { className?: string }) {
 }
 
 export default function Login() {
+  const searchString = useSearch();
+  const params = new URLSearchParams(searchString);
+  const rawNext = params.get('next') || '/download';
+  const next = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/download';
+  const authUrl = `/auth/google?next=${encodeURIComponent(next)}`;
+  
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
@@ -59,7 +65,7 @@ export default function Login() {
                 Sign in securely with your Google account
               </p>
               
-              <a href="/auth/google" className="block">
+              <a href={authUrl} className="block">
                 <Button 
                   className="w-full bg-white hover:bg-gray-100 text-gray-900 h-14 text-base font-medium"
                   data-testid="button-login-google"
