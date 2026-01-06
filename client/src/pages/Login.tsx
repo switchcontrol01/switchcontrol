@@ -39,11 +39,15 @@ function DiscordIcon({ className }: { className?: string }) {
 
 export default function Login() {
   const handleGoogleLogin = () => {
-    window.location.href = '/api/login';
+    window.location.href = '/api/login?provider=google';
   };
 
   const handleDiscordLogin = () => {
-    window.location.href = '/api/login';
+    window.location.href = '/api/login?provider=discord';
+  };
+
+  const handleEmailLogin = () => {
+    window.location.href = '/api/login?provider=email';
   };
 
   return (
@@ -106,7 +110,7 @@ export default function Login() {
 
             <Button 
               className="w-full bg-primary hover:bg-primary/90 h-12 text-base font-medium"
-              onClick={handleGoogleLogin}
+              onClick={handleEmailLogin}
               data-testid="button-login-email"
             >
               Email & Password

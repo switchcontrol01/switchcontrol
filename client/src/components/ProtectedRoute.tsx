@@ -18,7 +18,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
       return res.json();
     },
     retry: false,
-    staleTime: 0,
+    staleTime: 1000 * 30, // 30 seconds - balance security and performance
     refetchOnWindowFocus: true,
   });
 
@@ -58,7 +58,7 @@ export function useAuth() {
       return res.json();
     },
     retry: false,
-    staleTime: 0,
+    staleTime: 1000 * 30, // 30 seconds - balance security and performance
     refetchOnWindowFocus: true,
   });
 
