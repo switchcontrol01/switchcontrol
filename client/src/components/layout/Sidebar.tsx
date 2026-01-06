@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, sidebarSlide, useMotion } from "@/lib/motion";
+import { SOCIAL_LINKS } from "@/config/socialLinks";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -144,7 +145,7 @@ export function Sidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.a
-                  href="https://discord.gg/switchcontrol"
+                  href={SOCIAL_LINKS.discord}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-[#5865F2] hover:bg-[#5865F2]/10 transition-all duration-200"
@@ -162,7 +163,7 @@ export function Sidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.a
-                  href="https://tiktok.com/@switchcontrol"
+                  href={SOCIAL_LINKS.tiktok}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-pink-500 hover:bg-pink-500/10 transition-all duration-200"

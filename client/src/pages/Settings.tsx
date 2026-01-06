@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Settings as SettingsIcon, Save, RotateCcw, FolderOpen, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { SOCIAL_LINKS } from "@/config/socialLinks";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -135,7 +136,7 @@ export default function Settings() {
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2">
                 <a
-                  href="https://discord.gg/switchcontrol"
+                  href={SOCIAL_LINKS.discord}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid="link-discord"
@@ -156,7 +157,7 @@ export default function Settings() {
                   </GlassCard>
                 </a>
                 <a
-                  href="https://tiktok.com/@switchcontrol"
+                  href={SOCIAL_LINKS.tiktok}
                   target="_blank"
                   rel="noopener noreferrer"
                   data-testid="link-tiktok"
