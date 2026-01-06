@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion } from "@/lib/motion";
+import { SOCIAL_LINKS } from "@/config/socialLinks";
 
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
@@ -326,7 +327,7 @@ function Footer() {
             <h4 className="font-semibold text-white mb-4 text-sm">Support</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li><a href="mailto:support@switchcontrol.org" className="hover:text-white transition-colors">Contact</a></li>
-              <li><a href="https://discord.gg/switchcontrol" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Discord</a></li>
+              <li><a href={SOCIAL_LINKS.discord} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Discord</a></li>
             </ul>
           </div>
         </div>

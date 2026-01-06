@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motion, useMotion } from "@/lib/motion";
 import { useQuery } from "@tanstack/react-query";
+import { SOCIAL_LINKS } from "@/config/socialLinks";
 
 const FREE_FEATURES = [
   "Basic system tweaks",
@@ -406,7 +407,7 @@ export default function Pricing() {
         >
           <p className="text-muted-foreground mb-4">Still have questions?</p>
           <a 
-            href="https://discord.gg/switchcontrol" 
+            href={SOCIAL_LINKS.discord}
             target="_blank" 
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors"
