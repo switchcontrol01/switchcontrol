@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider, AnimatePresence, motion, pageTransition, useMotion } from "@/lib/motion";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Home";
@@ -46,36 +47,82 @@ function Router() {
   return (
     <AnimatedRoute>
       <Switch>
-        {/* Marketing Pages */}
+        {/* Marketing Pages (public) */}
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
         
-        {/* Dashboard (authenticated) */}
-        <Route path="/dashboard" component={Dashboard} />
-        <Route path="/tweaks" component={Tweaks} />
-        <Route path="/history" component={History} />
-        <Route path="/settings" component={Settings} />
+        {/* Protected App Routes */}
+        <Route path="/app">
+          <ProtectedRoute>
+            <Dashboard />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/tweaks">
+          <ProtectedRoute>
+            <Tweaks />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/history">
+          <ProtectedRoute>
+            <History />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/settings">
+          <ProtectedRoute>
+            <Settings />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/power-plan">
+          <ProtectedRoute>
+            <PowerPlan />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/network">
+          <ProtectedRoute>
+            <NetworkTweaks />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/app-booster">
+          <ProtectedRoute>
+            <Placeholder title="App Booster" />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/focus">
+          <ProtectedRoute>
+            <Placeholder title="Focus Mode" />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/cleaner">
+          <ProtectedRoute>
+            <Placeholder title="System Cleaner" />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/debloat">
+          <ProtectedRoute>
+            <Placeholder title="Debloater" />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/startup">
+          <ProtectedRoute>
+            <Placeholder title="Startup Apps" />
+          </ProtectedRoute>
+        </Route>
         
-        {/* App Features */}
-        <Route path="/power-plan" component={PowerPlan} />
-        <Route path="/app-booster">
-          <Placeholder title="App Booster" />
+        {/* Legacy routes - redirect to new paths */}
+        <Route path="/dashboard">
+          {() => {
+            window.location.href = '/app';
+            return null;
+          }}
         </Route>
-        <Route path="/focus">
-          <Placeholder title="Focus Mode" />
-        </Route>
-        <Route path="/network" component={NetworkTweaks} />
-        <Route path="/cleaner">
-          <Placeholder title="System Cleaner" />
-        </Route>
-        <Route path="/debloat">
-          <Placeholder title="Debloater" />
-        </Route>
-        <Route path="/startup">
-          <Placeholder title="Startup Apps" />
+        <Route path="/tweaks">
+          {() => {
+            window.location.href = '/app/tweaks';
+            return null;
+          }}
         </Route>
         
         <Route component={NotFound} />

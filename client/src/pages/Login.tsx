@@ -1,11 +1,9 @@
-import { useState } from "react";
-import { Link } from "wouter";
+import { useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Mail, Lock, User } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useAuth } from "@/components/ProtectedRoute";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -30,39 +28,53 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
+function ReplitIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 32 32" className={className}>
+      <path
+        fill="currentColor"
+        d="M7 5.5C7 4.67157 7.67157 4 8.5 4H15.5C16.3284 4 17 4.67157 17 5.5V12H8.5C7.67157 12 7 11.3284 7 10.5V5.5Z"
+      />
+      <path
+        fill="currentColor"
+        d="M17 12H25.5C26.3284 12 27 12.6716 27 13.5V18.5C27 19.3284 26.3284 20 25.5 20H17V12Z"
+      />
+      <path
+        fill="currentColor"
+        d="M7 21.5C7 20.6716 7.67157 20 8.5 20H17V26.5C17 27.3284 16.3284 28 15.5 28H8.5C7.67157 28 7 27.3284 7 26.5V21.5Z"
+      />
+    </svg>
+  );
+}
+
 export default function Login() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
+  const { user, isLoading } = useAuth();
+  const [, navigate] = useLocation();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      window.location.href = "/dashboard";
-    }, 1000);
+  useEffect(() => {
+    if (user && !isLoading) {
+      navigate('/app', { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  const handleLogin = () => {
+    window.location.href = '/api/login';
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      window.location.href = "/dashboard";
-    }, 1000);
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="size-8 text-primary animate-spin" />
+          <p className="text-muted-foreground text-sm">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      window.location.href = "/dashboard";
-    }, 1000);
-  };
+  if (user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col">
@@ -86,165 +98,34 @@ export default function Login() {
             <CardTitle className="text-2xl text-white">Welcome to SwitchControl</CardTitle>
             <CardDescription>Sign in to access your optimization dashboard</CardDescription>
           </CardHeader>
-          <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-white/5">
-                <TabsTrigger value="login" data-testid="tab-login">Log In</TabsTrigger>
-                <TabsTrigger value="register" data-testid="tab-register">Sign Up</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="login" className="space-y-4 mt-4">
-                <Button 
-                  variant="outline" 
-                  className="w-full border-white/20 hover:bg-white/5"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                  data-testid="button-google-login"
-                >
-                  <GoogleIcon className="size-5 mr-2" />
-                  Continue with Google
-                </Button>
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/10" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-black px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
+          <CardContent className="space-y-4">
+            <Button 
+              className="w-full bg-primary hover:bg-primary/90 h-12 text-base"
+              onClick={handleLogin}
+              data-testid="button-login"
+            >
+              <ReplitIcon className="size-5 mr-2" />
+              Continue with Replit
+            </Button>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t border-white/10" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-black px-2 text-muted-foreground">Secure authentication</span>
+              </div>
+            </div>
 
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email" className="text-white">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                      <Input
-                        id="login-email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10"
-                        required
-                        data-testid="input-login-email"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password" className="text-white">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                      <Input
-                        id="login-password"
-                        type="password"
-                        placeholder="••••••••"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10"
-                        required
-                        data-testid="input-login-password"
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-primary hover:bg-primary/90"
-                    disabled={isLoading}
-                    data-testid="button-login"
-                  >
-                    {isLoading ? "Signing in..." : "Sign In"}
-                  </Button>
-                </form>
-              </TabsContent>
-              
-              <TabsContent value="register" className="space-y-4 mt-4">
-                <Button 
-                  variant="outline" 
-                  className="w-full border-white/20 hover:bg-white/5"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                  data-testid="button-google-register"
-                >
-                  <GoogleIcon className="size-5 mr-2" />
-                  Continue with Google
-                </Button>
-                
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/10" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-black px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
-
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="register-name" className="text-white">Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                      <Input
-                        id="register-name"
-                        type="text"
-                        placeholder="Your name"
-                        value={registerName}
-                        onChange={(e) => setRegisterName(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10"
-                        required
-                        data-testid="input-register-name"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email" className="text-white">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                      <Input
-                        id="register-email"
-                        type="email"
-                        placeholder="you@example.com"
-                        value={registerEmail}
-                        onChange={(e) => setRegisterEmail(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10"
-                        required
-                        data-testid="input-register-email"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password" className="text-white">Password</Label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                      <Input
-                        id="register-password"
-                        type="password"
-                        placeholder="Create a password"
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                        className="pl-10 bg-white/5 border-white/10"
-                        required
-                        data-testid="input-register-password"
-                      />
-                    </div>
-                  </div>
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-primary hover:bg-primary/90"
-                    disabled={isLoading}
-                    data-testid="button-register"
-                  >
-                    {isLoading ? "Creating account..." : "Create Account"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+            <p className="text-xs text-center text-muted-foreground">
+              We use Replit's secure authentication. Your data is protected and never shared.
+            </p>
             
             <p className="text-xs text-muted-foreground text-center mt-6">
               By continuing, you agree to our{" "}
-              <a href="/terms" className="text-primary hover:underline">Terms of Service</a>
+              <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
               {" "}and{" "}
-              <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a>.
+              <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
             </p>
           </CardContent>
         </Card>

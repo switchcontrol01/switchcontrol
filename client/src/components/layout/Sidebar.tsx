@@ -35,16 +35,16 @@ function TikTokIcon({ className }: { className?: string }) {
 }
 
 const NAV_ITEMS = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Tweaks", icon: Settings, href: "/tweaks" },
-  { label: "Power Plan", icon: Zap, href: "/power-plan" },
-  { label: "App Booster", icon: Rocket, href: "/app-booster" },
-  { label: "Focus Mode", icon: Moon, href: "/focus" },
-  { label: "Network Tweaks", icon: Wifi, href: "/network" },
-  { label: "Cleaner", icon: Trash2, href: "/cleaner" },
-  { label: "Debloat", icon: ShieldCheck, href: "/debloat" },
-  { label: "Startup", icon: List, href: "/startup" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/app" },
+  { label: "Tweaks", icon: Settings, href: "/app/tweaks" },
+  { label: "Power Plan", icon: Zap, href: "/app/power-plan" },
+  { label: "App Booster", icon: Rocket, href: "/app/app-booster" },
+  { label: "Focus Mode", icon: Moon, href: "/app/focus" },
+  { label: "Network Tweaks", icon: Wifi, href: "/app/network" },
+  { label: "Cleaner", icon: Trash2, href: "/app/cleaner" },
+  { label: "Debloat", icon: ShieldCheck, href: "/app/debloat" },
+  { label: "Startup", icon: List, href: "/app/startup" },
+  { label: "Settings", icon: Settings, href: "/app/settings" },
 ];
 
 export function Sidebar() {

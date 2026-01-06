@@ -1,0 +1,71 @@
+TASK: Make the website root "/" show the marketing landing page, NOT the tweak dashboard. Move the tweak/dashboard UI to "/app" and require login to access "/app". After login, redirect users to "/app". Also fix the issue where clicking "Log in" sends users back to the landing page instead of the app.
+
+REPO CONTEXT:
+- There is a "client" (React) and "server" (Express) folder.
+- Routes likely live in client/src/App.tsx (or client/src/main.tsx) and server/routes.ts.
+- This is a single-page app (SPA) build using Vite.
+
+REQUIREMENTS:
+1) Frontend routing
+- Ensure React Router has these routes:
+  - "/" -> Landing page component (marketing home)
+  - "/login" -> Login page component
+  - "/app" -> Dashboard/Tweaks page component (the current tweak homepage)
+  - Unknown routes -> redirect to "/"
+- If the dashboard currently renders at "/", change it to "/app".
+- Update nav buttons:
+  - "Get Started" and "Log in" should go to "/login"
+  - After successful login, redirect to "/app"
+
+2) Auth guard
+- Create a simple ProtectedRoute component that checks if the user is authenticated.
+- Authentication check:
+  - Prefer checking a server session endpoint GET /api/auth/me returning { user: ... } when logged in
+  - If that does not exist yet, temporarily use a client-side flag like localStorage "sc_authed" = "true" set after login succeeds.
+- If not authenticated, visiting "/app" redirects to "/login".
+
+3) Server SPA fallback
+- Ensure Express serves the built React app (client/dist/index.html) for ALL non-API GET routes (including "/", "/login", "/app") so deep links work.
+- IMPORTANT: The SPA fallback must be defined AFTER all "/api" routes so API routes still work.
+
+IMPLEMENTATION STEPS (DO THESE):
+A) Find the React Router file (client/src/App.tsx or wherever <Routes> is).
+- Implement the route table:
+  - "/" renders Landing page
+  - "/login" renders Login page
+  - "/app" renders ProtectedRoute(Dashboard)
+  - "*" navigates to "/"
+
+B) Create client/src/components/ProtectedRoute.tsx (or similar)
+- On mount, check auth:
+  - First try fetch("/api/auth/me") and treat 200 with a user as authed
+  - Else fallback to localStorage "sc_authed"
+- If not authed, return <Navigate to="/login" replace />
+- If authed, render children
+
+C) Update login flow
+- In login page component:
+  - When login succeeds, set localStorage "sc_authed" = "true" (temporary fallback)
+  - navigate("/app")
+- Make sure clicking login buttons does NOT link to "/" anymore.
+
+D) Fix server fallback
+- In server/routes.ts (or server/index.ts), add/confirm:
+  - app.use("/api", apiRouter) first
+  - then SPA fallback:
+    app.get("*", (req,res)=>res.sendFile(path.join(clientDist,"index.html")))
+- Ensure clientDist points to "client/dist" (or correct build output).
+- Do not override "/" with a server redirect to the dashboard.
+
+E) Verify
+- Visiting https://switchcontrol.org shows landing page
+- Visiting https://switchcontrol.org/login shows login page
+- Visiting https://switchcontrol.org/app redirects to /login if not logged in
+- After logging in, user lands on /app
+
+DELIVERABLE:
+- Make the changes directly in the codebase.
+- List the exact files edited and what was changed in each.
+- Run the app and confirm the routes work.
+
+START NOW.

@@ -56,13 +56,13 @@ export default function Home() {
             <p className="text-muted-foreground mt-1">System status is optimal. Optimization consistency prioritized.</p>
           </div>
           <div className="flex items-center gap-3">
-             <Link href="/history">
+             <Link href="/app/history">
                <Button variant="outline" className="gap-2 hidden sm:flex">
                  <Activity className="size-4" />
                  View Logs
                </Button>
              </Link>
-             <Link href="/tweaks">
+             <Link href="/app/tweaks">
                <Button className="gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-white border-0">
                  <Zap className="size-4" />
                  Optimize Now
