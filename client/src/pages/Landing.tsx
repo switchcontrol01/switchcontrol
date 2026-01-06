@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,7 +10,6 @@ import {
   ChevronDown, 
   ChevronUp,
   Star,
-  Check,
   ArrowRight,
   Menu,
   X
@@ -94,7 +93,7 @@ const FAQ_ITEMS = [
   },
   {
     question: "What's your refund policy?",
-    answer: "We offer a 7-day money-back guarantee, no questions asked. If SwitchControl doesn't work for you, just contact support and we'll process your refund immediately."
+    answer: "All sales are final unless required by law."
   },
   {
     question: "Do I need to keep the app running while gaming?",
@@ -102,17 +101,119 @@ const FAQ_ITEMS = [
   }
 ];
 
-function Header() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+function AnimatedProgressBar({ 
+  targetWidth, 
+  color, 
+  delay = 0 
+}: { 
+  targetWidth: string; 
+  color: 'red' | 'green'; 
+  delay?: number;
+}) {
+  const { prefersReducedMotion } = useMotion();
+  const [width, setWidth] = useState(prefersReducedMotion ? targetWidth : '0%');
+  const ref = useRef<HTMLDivElement>(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (prefersReducedMotion || hasAnimated.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          setTimeout(() => {
+            setWidth(targetWidth);
+          }, delay);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [targetWidth, delay, prefersReducedMotion]);
+
+  const bgColor = color === 'red' ? 'bg-red-500' : 'bg-emerald-500';
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5">
+    <div ref={ref} className="h-2 bg-white/10 rounded-full overflow-hidden">
+      <div 
+        className={cn(
+          "h-full rounded-full transition-all duration-1000 ease-out",
+          bgColor
+        )}
+        style={{ width }}
+      />
+    </div>
+  );
+}
+
+function GlowBlobs() {
+  const { prefersReducedMotion } = useMotion();
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div 
+        className={cn(
+          "absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px]",
+          !prefersReducedMotion && "animate-pulse"
+        )}
+        style={{ animationDuration: '8s' }}
+      />
+      <div 
+        className={cn(
+          "absolute top-1/3 right-0 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[100px]",
+          !prefersReducedMotion && "animate-pulse"
+        )}
+        style={{ animationDuration: '10s', animationDelay: '2s' }}
+      />
+      <div 
+        className={cn(
+          "absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink-600/10 rounded-full blur-[80px]",
+          !prefersReducedMotion && "animate-pulse"
+        )}
+        style={{ animationDuration: '12s', animationDelay: '4s' }}
+      />
+    </div>
+  );
+}
+
+function GrainOverlay() {
+  return (
+    <div 
+      className="fixed inset-0 pointer-events-none z-50 opacity-[0.015]"
+      style={{
+        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+      }}
+    />
+  );
+}
+
+function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { prefersReducedMotion } = useMotion();
+
+  return (
+    <motion.header 
+      className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5"
+      initial={!prefersReducedMotion ? { y: -100, opacity: 0 } : undefined}
+      animate={!prefersReducedMotion ? { y: 0, opacity: 1 } : undefined}
+      transition={{ duration: 0.5 }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
-            <div className="size-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary/20">
+            <motion.div 
+              className="size-8 rounded-lg bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-primary/30"
+              whileHover={!prefersReducedMotion ? { scale: 1.05 } : undefined}
+              whileTap={!prefersReducedMotion ? { scale: 0.95 } : undefined}
+            >
               S
-            </div>
+            </motion.div>
             <span className="font-bold text-lg text-white">SwitchControl</span>
           </Link>
 
@@ -135,9 +236,14 @@ function Header() {
               </Button>
             </Link>
             <Link href="/login">
-              <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
-                Get Started
-              </Button>
+              <motion.div
+                whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
+                whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
+              >
+                <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow">
+                  Get Started
+                </Button>
+              </motion.div>
             </Link>
           </div>
 
@@ -151,7 +257,11 @@ function Header() {
       </div>
 
       {mobileMenuOpen && (
-        <div className="md:hidden bg-black/95 border-b border-white/5">
+        <motion.div 
+          className="md:hidden bg-black/95 border-b border-white/5"
+          initial={!prefersReducedMotion ? { opacity: 0, y: -10 } : undefined}
+          animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+        >
           <div className="px-4 py-4 space-y-4">
             {NAV_LINKS.map(link => (
               <a 
@@ -172,15 +282,15 @@ function Header() {
               </Link>
             </div>
           </div>
-        </div>
+        </motion.div>
       )}
-    </header>
+    </motion.header>
   );
 }
 
 function Footer() {
   return (
-    <footer className="border-t border-white/5 bg-black/50">
+    <footer className="border-t border-white/5 bg-black/50 relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
@@ -207,15 +317,15 @@ function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4 text-sm">Legal</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="/terms" className="hover:text-white transition-colors">Terms of Service</a></li>
-              <li><a href="/privacy" className="hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
             </ul>
           </div>
           
           <div>
             <h4 className="font-semibold text-white mb-4 text-sm">Support</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="/contact" className="hover:text-white transition-colors">Contact</a></li>
+              <li><a href="mailto:support@switchcontrol.org" className="hover:text-white transition-colors">Contact</a></li>
               <li><a href="https://discord.gg/switchcontrol" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Discord</a></li>
             </ul>
           </div>
@@ -229,11 +339,18 @@ function Footer() {
   );
 }
 
-function FAQItem({ question, answer }: { question: string; answer: string }) {
+function FAQItem({ question, answer, index }: { question: string; answer: string; index: number }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { prefersReducedMotion } = useMotion();
   
   return (
-    <div className="border-b border-white/10">
+    <motion.div 
+      className="border-b border-white/10"
+      initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+      whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
+      viewport={{ once: true }}
+    >
       <button
         className="w-full py-5 flex items-center justify-between text-left group"
         onClick={() => setIsOpen(!isOpen)}
@@ -242,18 +359,27 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
         <span className="font-medium text-white group-hover:text-primary transition-colors pr-4">
           {question}
         </span>
-        {isOpen ? (
-          <ChevronUp className="size-5 text-muted-foreground shrink-0" />
-        ) : (
+        <motion.div
+          animate={!prefersReducedMotion ? { rotate: isOpen ? 180 : 0 } : undefined}
+          transition={{ duration: 0.2 }}
+        >
           <ChevronDown className="size-5 text-muted-foreground shrink-0" />
-        )}
+        </motion.div>
       </button>
-      {isOpen && (
+      <motion.div
+        initial={false}
+        animate={!prefersReducedMotion ? { 
+          height: isOpen ? 'auto' : 0,
+          opacity: isOpen ? 1 : 0
+        } : undefined}
+        transition={{ duration: 0.3 }}
+        className="overflow-hidden"
+      >
         <div className="pb-5 text-muted-foreground text-sm leading-relaxed">
           {answer}
         </div>
-      )}
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -261,13 +387,14 @@ export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black">
+    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black relative">
+      <GlowBlobs />
+      <GrainOverlay />
       <Header />
       
-      <main className="pt-16">
-        {/* Hero Section */}
+      <main className="pt-16 relative z-10">
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/30 via-purple-600/10 to-transparent pointer-events-none" />
           <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMDIwMjAiIGZpbGwtb3BhY2l0eT0iMC40Ij48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZ2LTRoLTJ2NGgyek0zNiAyMHYtNGgtMnY0aDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20 pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40 relative">
@@ -311,23 +438,32 @@ export default function Landing() {
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
                 <Link href="/login">
-                  <Button size="lg" className="text-base px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30">
-                    Try Free
-                    <ArrowRight className="ml-2 size-4" />
-                  </Button>
+                  <motion.div
+                    whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
+                    whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
+                  >
+                    <Button size="lg" className="text-base px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 transition-shadow">
+                      Try Free
+                      <ArrowRight className="ml-2 size-4" />
+                    </Button>
+                  </motion.div>
                 </Link>
-                <a href="#pricing">
-                  <Button size="lg" variant="outline" className="text-base px-8 border-white/20 hover:bg-white/5">
-                    See Pricing
-                  </Button>
-                </a>
+                <Link href="/pricing">
+                  <motion.div
+                    whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
+                    whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
+                  >
+                    <Button size="lg" variant="outline" className="text-base px-8 border-white/20 hover:bg-white/5 hover:border-white/30 transition-colors">
+                      See Pricing
+                    </Button>
+                  </motion.div>
+                </Link>
               </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Stats Section */}
-        <section className="py-16 border-y border-white/5 bg-black/30">
+        <section className="py-16 border-y border-white/5 bg-black/30 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {STATS.map((stat, i) => (
@@ -355,17 +491,22 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-24">
+        <section id="features" className="py-24 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <motion.div 
+              className="text-center mb-16"
+              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Everything You Need to Dominate
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 Comprehensive optimization tools designed for competitive gamers who demand the best performance.
               </p>
-            </div>
+            </motion.div>
             
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {FEATURES.map((feature, i) => (
@@ -375,10 +516,11 @@ export default function Landing() {
                   whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
                   transition={{ duration: 0.4, delay: i * 0.1 }}
                   viewport={{ once: true }}
+                  whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
                 >
-                  <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-colors h-full">
+                  <Card className="bg-white/5 border-white/10 hover:border-primary/40 hover:bg-white/[0.07] transition-all duration-300 h-full group">
                     <CardContent className="p-6">
-                      <div className="size-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
+                      <div className="size-12 rounded-lg bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center mb-4 transition-colors">
                         <feature.icon className="size-6 text-primary" />
                       </div>
                       <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
@@ -391,111 +533,133 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Before/After Section */}
-        <section className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent">
+        <section className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <motion.div 
+              className="text-center mb-16"
+              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Real Results, Real Improvements
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
                 See the difference SwitchControl makes with before and after optimization comparisons.
               </p>
-            </div>
+            </motion.div>
             
             <div className="grid md:grid-cols-3 gap-6">
-              <Card className="bg-white/5 border-white/10 overflow-hidden">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-white mb-4">Ping Stability</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Before</span>
-                        <span className="text-red-400">±18ms jitter</span>
+              <motion.div
+                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+                whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+                transition={{ duration: 0.4 }}
+                viewport={{ once: true }}
+                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
+              >
+                <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-white mb-4">Ping Stability</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Before</span>
+                          <span className="text-red-400">±18ms jitter</span>
+                        </div>
+                        <AnimatedProgressBar targetWidth="70%" color="red" delay={0} />
                       </div>
-                      <div className="h-2 bg-red-500/20 rounded-full overflow-hidden">
-                        <div className="h-full w-[70%] bg-red-500 rounded-full" />
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">After</span>
+                          <span className="text-emerald-400">±4ms jitter</span>
+                        </div>
+                        <AnimatedProgressBar targetWidth="25%" color="green" delay={200} />
                       </div>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">After</span>
-                        <span className="text-emerald-400">±4ms jitter</span>
-                      </div>
-                      <div className="h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                        <div className="h-full w-[25%] bg-emerald-500 rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card className="bg-white/5 border-white/10 overflow-hidden">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-white mb-4">Input Delay</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Before</span>
-                        <span className="text-red-400">~24ms</span>
+              <motion.div
+                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+                whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+                transition={{ duration: 0.4, delay: 0.1 }}
+                viewport={{ once: true }}
+                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
+              >
+                <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-white mb-4">Input Delay</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Before</span>
+                          <span className="text-red-400">~24ms</span>
+                        </div>
+                        <AnimatedProgressBar targetWidth="80%" color="red" delay={100} />
                       </div>
-                      <div className="h-2 bg-red-500/20 rounded-full overflow-hidden">
-                        <div className="h-full w-[80%] bg-red-500 rounded-full" />
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">After</span>
+                          <span className="text-emerald-400">~16ms</span>
+                        </div>
+                        <AnimatedProgressBar targetWidth="55%" color="green" delay={300} />
                       </div>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">After</span>
-                        <span className="text-emerald-400">~16ms</span>
-                      </div>
-                      <div className="h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                        <div className="h-full w-[55%] bg-emerald-500 rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card className="bg-white/5 border-white/10 overflow-hidden">
-                <CardContent className="p-6">
-                  <h3 className="font-semibold text-white mb-4">1% Low FPS</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">Before</span>
-                        <span className="text-red-400">98 FPS</span>
+              <motion.div
+                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+                whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                viewport={{ once: true }}
+                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
+              >
+                <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
+                  <CardContent className="p-6">
+                    <h3 className="font-semibold text-white mb-4">1% Low FPS</h3>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">Before</span>
+                          <span className="text-red-400">98 FPS</span>
+                        </div>
+                        <AnimatedProgressBar targetWidth="50%" color="red" delay={200} />
                       </div>
-                      <div className="h-2 bg-red-500/20 rounded-full overflow-hidden">
-                        <div className="h-full w-[50%] bg-red-500 rounded-full" />
+                      <div>
+                        <div className="flex justify-between text-sm mb-2">
+                          <span className="text-muted-foreground">After</span>
+                          <span className="text-emerald-400">142 FPS</span>
+                        </div>
+                        <AnimatedProgressBar targetWidth="75%" color="green" delay={400} />
                       </div>
                     </div>
-                    <div>
-                      <div className="flex justify-between text-sm mb-1">
-                        <span className="text-muted-foreground">After</span>
-                        <span className="text-emerald-400">142 FPS</span>
-                      </div>
-                      <div className="h-2 bg-emerald-500/20 rounded-full overflow-hidden">
-                        <div className="h-full w-[75%] bg-emerald-500 rounded-full" />
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
           </div>
         </section>
 
-        {/* Testimonials Section */}
-        <section className="py-24">
+        <section className="py-24 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <motion.div 
+              className="text-center mb-16"
+              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Loved by Competitive Gamers
               </h2>
               <p className="text-muted-foreground">
                 Join thousands of players who've optimized their gameplay.
               </p>
-            </div>
+            </motion.div>
             
             <div className="grid md:grid-cols-3 gap-6">
               {TESTIMONIALS.map((testimonial, i) => (
@@ -505,8 +669,9 @@ export default function Landing() {
                   whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
                   transition={{ duration: 0.4, delay: i * 0.1 }}
                   viewport={{ once: true }}
+                  whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
                 >
-                  <Card className="bg-white/5 border-white/10 h-full">
+                  <Card className="bg-white/5 border-white/10 hover:border-primary/30 transition-all h-full">
                     <CardContent className="p-6">
                       <div className="flex gap-1 mb-4">
                         {Array.from({ length: testimonial.rating }).map((_, i) => (
@@ -528,132 +693,124 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent">
+        <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <motion.div 
+              className="text-center mb-16"
+              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Simple, Transparent Pricing
+                Simple, One-Time Pricing
               </h2>
-              <p className="text-muted-foreground">
-                Start free, upgrade when you're ready.
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                No subscriptions. Pay once, get premium features forever.
               </p>
-            </div>
+            </motion.div>
             
-            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-              <Card className="bg-white/5 border-white/10">
-                <CardContent className="p-8">
-                  <h3 className="text-xl font-bold text-white mb-2">Free</h3>
-                  <div className="text-3xl font-bold text-white mb-1">$0</div>
-                  <p className="text-muted-foreground text-sm mb-6">Forever free</p>
-                  
-                  <ul className="space-y-3 mb-8">
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      Basic system tweaks
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      Network optimization
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      Community support
-                    </li>
-                  </ul>
-                  
-                  <Link href="/login">
-                    <Button variant="outline" className="w-full border-white/20">
-                      Get Started
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+            <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+              <motion.div
+                initial={!prefersReducedMotion ? { opacity: 0, x: -20 } : undefined}
+                whileInView={!prefersReducedMotion ? { opacity: 1, x: 0 } : undefined}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
+              >
+                <Card className="bg-white/5 border-white/10 hover:border-white/20 transition-all h-full">
+                  <CardContent className="p-8">
+                    <h3 className="text-xl font-bold text-white mb-2">Free</h3>
+                    <div className="text-3xl font-bold text-white mb-4">$0 <span className="text-sm font-normal text-muted-foreground">forever</span></div>
+                    <p className="text-muted-foreground text-sm mb-6">Essential optimization tools</p>
+                    <Link href="/login">
+                      <Button variant="outline" className="w-full border-white/20">Get Started</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </motion.div>
 
-              <Card className="bg-gradient-to-b from-primary/20 to-primary/5 border-primary/30 relative overflow-hidden">
-                <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-bl-lg">
-                  Popular
-                </div>
-                <CardContent className="p-8">
-                  <h3 className="text-xl font-bold text-white mb-2">Premium</h3>
-                  <div className="text-3xl font-bold text-white mb-1">
-                    $9.99<span className="text-lg font-normal text-muted-foreground">/mo</span>
-                  </div>
-                  <p className="text-muted-foreground text-sm mb-6">Billed monthly</p>
-                  
-                  <ul className="space-y-3 mb-8">
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      Everything in Free
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      Advanced tweaks & scripts
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      AI-powered recommendations
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      Priority support
-                    </li>
-                    <li className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Check className="size-4 text-emerald-400" />
-                      Early access to new features
-                    </li>
-                  </ul>
-                  
-                  <Link href="/login">
-                    <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30">
-                      Start Free Trial
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              <motion.div
+                initial={!prefersReducedMotion ? { opacity: 0, x: 20 } : undefined}
+                whileInView={!prefersReducedMotion ? { opacity: 1, x: 0 } : undefined}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
+              >
+                <Card className="bg-gradient-to-b from-primary/20 to-primary/5 border-primary/40 hover:border-primary/60 transition-all h-full relative overflow-hidden">
+                  <div className="absolute top-0 right-0 bg-primary text-xs font-medium px-3 py-1 rounded-bl-lg">Best Value</div>
+                  <CardContent className="p-8">
+                    <h3 className="text-xl font-bold text-white mb-2">Premium</h3>
+                    <div className="text-3xl font-bold text-white mb-4">$50 <span className="text-sm font-normal text-muted-foreground">one-time</span></div>
+                    <p className="text-muted-foreground text-sm mb-6">Lifetime access to all features</p>
+                    <Link href="/pricing">
+                      <motion.div
+                        whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
+                        whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
+                      >
+                        <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30">Get Premium</Button>
+                      </motion.div>
+                    </Link>
+                  </CardContent>
+                </Card>
+              </motion.div>
             </div>
           </div>
         </section>
 
-        {/* FAQ Section */}
-        <section id="faq" className="py-24">
+        <section id="faq" className="py-24 relative">
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <motion.div 
+              className="text-center mb-12"
+              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
                 Frequently Asked Questions
               </h2>
-              <p className="text-muted-foreground">
-                Got questions? We've got answers.
-              </p>
-            </div>
+            </motion.div>
             
             <div className="divide-y divide-white/10">
-              {FAQ_ITEMS.map((item) => (
-                <FAQItem key={item.question} question={item.question} answer={item.answer} />
+              {FAQ_ITEMS.map((item, i) => (
+                <FAQItem key={item.question} question={item.question} answer={item.answer} index={i} />
               ))}
             </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-24 bg-gradient-to-b from-primary/10 to-transparent">
+        <section className="py-24 relative">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-              Ready to Level Up Your Game?
-            </h2>
-            <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Join thousands of competitive gamers who've already optimized their systems with SwitchControl.
-            </p>
-            <Link href="/login">
-              <Button size="lg" className="text-base px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30">
-                Get Started Free
-                <ArrowRight className="ml-2 size-4" />
-              </Button>
-            </Link>
+            <motion.div
+              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+              transition={{ duration: 0.5 }}
+              viewport={{ once: true }}
+            >
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Ready to Optimize Your Gaming?
+              </h2>
+              <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
+                Join thousands of competitive gamers who trust SwitchControl for their system optimization needs.
+              </p>
+              <Link href="/login">
+                <motion.div
+                  whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
+                  whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
+                  className="inline-block"
+                >
+                  <Button size="lg" className="text-base px-10 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 transition-shadow">
+                    Get Started Free
+                    <ArrowRight className="ml-2 size-4" />
+                  </Button>
+                </motion.div>
+              </Link>
+            </motion.div>
           </div>
         </section>
       </main>
-
+      
       <Footer />
     </div>
   );

@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -251,6 +252,87 @@ export async function registerRoutes(
       res.json({ usedRamGb: parseFloat(newRam.toFixed(1)), freed: freedAmount.toFixed(1) });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear RAM" });
+    }
+  });
+
+  app.get("/api/stripe/publishable-key", async (req, res) => {
+    try {
+      const publishableKey = await getStripePublishableKey();
+      res.json({ publishableKey });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get Stripe key" });
+    }
+  });
+
+  app.post("/api/stripe/create-checkout-session", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const dbUser = await storage.getUser(user.id);
+      if (!dbUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (dbUser.isPremium) {
+        return res.status(400).json({ error: "You already have Premium" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+
+      let customerId = dbUser.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: dbUser.email || undefined,
+          metadata: { userId: dbUser.id },
+        });
+        customerId = customer.id;
+        await storage.updateUserStripeInfo(dbUser.id, { stripeCustomerId: customerId });
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        payment_method_types: ['card'],
+        line_items: [{
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'SwitchControl Premium (Lifetime)',
+              description: 'One-time payment for lifetime access to all premium features',
+            },
+            unit_amount: 5000,
+          },
+          quantity: 1,
+        }],
+        mode: 'payment',
+        success_url: `${baseUrl}/dashboard?payment=success`,
+        cancel_url: `${baseUrl}/pricing?payment=cancelled`,
+        metadata: {
+          userId: dbUser.id,
+        },
+      });
+
+      res.json({ url: session.url });
+    } catch (error: any) {
+      console.error("Checkout session error:", error);
+      res.status(500).json({ error: error.message || "Failed to create checkout session" });
+    }
+  });
+
+  app.get("/api/user/premium-status", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        return res.json({ isPremium: false, authenticated: false });
+      }
+
+      const dbUser = await storage.getUser(user.id);
+      res.json({ isPremium: dbUser?.isPremium || false, authenticated: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get premium status" });
     }
   });
 

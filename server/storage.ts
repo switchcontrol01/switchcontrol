@@ -3,6 +3,7 @@ import {
   appliedTweaks, 
   historyEntries, 
   aiScans,
+  users,
   type UserSettings, 
   type InsertUserSettings,
   type AppliedTweak,
@@ -10,7 +11,8 @@ import {
   type HistoryEntry,
   type InsertHistoryEntry,
   type AIScan,
-  type InsertAIScan
+  type InsertAIScan,
+  type User
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -29,6 +31,11 @@ export interface IStorage {
   
   getLatestAIScan(settingsId: string): Promise<AIScan | undefined>;
   addAIScan(scan: InsertAIScan): Promise<AIScan>;
+
+  getUser(id: string): Promise<User | undefined>;
+  getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
+  updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; isPremium?: boolean }): Promise<User>;
+  setUserPremium(userId: string, isPremium: boolean): Promise<User>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -110,6 +117,34 @@ export class DatabaseStorage implements IStorage {
   async addAIScan(scan: InsertAIScan): Promise<AIScan> {
     const [created] = await db.insert(aiScans).values(scan).returning();
     return created;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId));
+    return user;
+  }
+
+  async updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; isPremium?: boolean }): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async setUserPremium(userId: string, isPremium: boolean): Promise<User> {
+    const [updated] = await db
+      .update(users)
+      .set({ isPremium, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
   }
 }
 

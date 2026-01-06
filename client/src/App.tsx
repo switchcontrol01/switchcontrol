@@ -15,6 +15,8 @@ import NetworkTweaks from "@/pages/NetworkTweaks";
 import Placeholder from "@/pages/Placeholder";
 import Login from "@/pages/Login";
 import Pricing from "@/pages/Pricing";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -48,6 +50,8 @@ function Router() {
         <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/privacy" component={Privacy} />
         
         {/* Dashboard (authenticated) */}
         <Route path="/dashboard" component={Dashboard} />
