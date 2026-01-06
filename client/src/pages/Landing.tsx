@@ -23,6 +23,7 @@ import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 import { BrandLogo } from "@/components/BrandLogo";
 import { brand } from "@/config/brand";
+import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
@@ -576,6 +577,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
 export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   const { user, isLoading } = useAuth();
+  useRevealOnScroll();
   
   const handleAuthAwareClick = (e: MouseEvent) => {
     if (user) {
@@ -586,7 +588,7 @@ export default function Landing() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black relative">
+    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black relative page-enter">
       <GlowBlobs />
       <GrainOverlay />
       <Header />
@@ -656,7 +658,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="py-16 border-y border-white/5 bg-black/30 relative">
+        <section className="py-16 border-y border-white/5 bg-black/30 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <AnimateIn>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
@@ -671,7 +673,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="features" className="py-24 relative">
+        <section id="features" className="py-24 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -700,7 +702,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative">
+        <section className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -787,7 +789,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="py-24 relative">
+        <section className="py-24 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -823,7 +825,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative">
+        <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -870,7 +872,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="faq" className="py-24 relative">
+        <section id="faq" className="py-24 relative" data-reveal>
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-12">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -886,7 +888,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="py-24 relative">
+        <section className="py-24 relative" data-reveal>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <Reveal>
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">

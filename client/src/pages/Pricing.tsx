@@ -21,6 +21,7 @@ import { motion, useMotion } from "@/lib/motion";
 import { useQuery } from "@tanstack/react-query";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
+import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 
 const FREE_FEATURES = [
   "Basic system tweaks",
@@ -115,6 +116,7 @@ export default function Pricing() {
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  useRevealOnScroll();
 
   const { data: premiumStatus } = useQuery({
     queryKey: ['/api/user/premium-status'],
@@ -160,7 +162,7 @@ export default function Pricing() {
   };
 
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-black relative overflow-hidden page-enter">
       {/* Animated gradient background */}
       <div 
         className="fixed inset-0 opacity-40"
@@ -251,7 +253,7 @@ export default function Pricing() {
         </motion.div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto" data-reveal>
           <motion.div
             initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
             animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}

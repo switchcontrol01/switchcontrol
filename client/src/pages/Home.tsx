@@ -13,6 +13,7 @@ import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
+import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 
 interface TelemetryData {
   temps: { cpu: number; gpu: number; mobo: number };
@@ -25,6 +26,7 @@ export default function Home() {
   const [scanning, setScanning] = useState(false);
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const { prefersReducedMotion } = useMotion();
+  useRevealOnScroll();
   
   const handleTelemetryUpdate = useCallback((data: TelemetryData) => {
     setSsdData(data.ssds);
