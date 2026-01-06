@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { MOCK_STATS, SystemStats, TWEAKS_DATA } from './mock-data';
+import { MOCK_STATS, SystemStats, TWEAKS_DATA, AIScanResult } from './mock-data';
 
 export type AccountTier = 'Free' | 'Premium';
 
@@ -13,23 +13,35 @@ export interface HistoryItem {
   notes?: string;
 }
 
+export interface AccountStats {
+  tweaksApplied: number;
+  servicesDisabled: number;
+  cleanersRun: number;
+  startupAppsDisabled: number;
+  lastScan: string | null;
+}
+
 interface AppState {
   stats: SystemStats;
   account: {
     tier: AccountTier;
     email: string;
     licenseStatus: 'Active' | 'Inactive';
+    stats: AccountStats;
   };
   tweaks: Record<string, boolean>; // id -> enabled
   history: HistoryItem[];
+  latestAIScan: AIScanResult | null;
   
   // Actions
   toggleTweak: (id: string) => void;
-  applyAction: (actionName: string, page: string, result?: string) => void;
+  applyAction: (actionName: string, page: string, result?: string, notes?: string) => void;
   clearRam: () => void;
   resetData: () => void;
   setStats: (stats: Partial<SystemStats>) => void;
   enableRecommended: () => void;
+  runAIScan: () => Promise<void>;
+  updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
 }
 
 export const useStore = create<AppState>()(
@@ -40,9 +52,17 @@ export const useStore = create<AppState>()(
         tier: 'Premium',
         email: 'user@example.com',
         licenseStatus: 'Active',
+        stats: {
+          tweaksApplied: 12,
+          servicesDisabled: 8,
+          cleanersRun: 4,
+          startupAppsDisabled: 6,
+          lastScan: new Date().toISOString(),
+        }
       },
       tweaks: {},
       history: [],
+      latestAIScan: null,
 
       toggleTweak: (id) => {
         const { tweaks } = get();
@@ -56,6 +76,7 @@ export const useStore = create<AppState>()(
           }
         }));
 
+        get().updateCounter('tweaksApplied', isEnabled ? 1 : -1);
         get().applyAction(
           `${isEnabled ? 'Enabled' : 'Disabled'} ${tweak?.title || id}`,
           'Tweaks',
@@ -63,7 +84,7 @@ export const useStore = create<AppState>()(
         );
       },
 
-      applyAction: (action, page, result = 'Success') => {
+      applyAction: (action, page, result = 'Success', notes) => {
         set((state) => ({
           history: [
             {
@@ -72,15 +93,28 @@ export const useStore = create<AppState>()(
               action,
               page,
               result,
+              notes,
             },
             ...state.history,
           ]
         }));
       },
 
+      updateCounter: (key, increment = 1) => {
+        set((state) => ({
+          account: {
+            ...state.account,
+            stats: {
+              ...state.account.stats,
+              [key]: Math.max(0, state.account.stats[key] + increment),
+              lastScan: new Date().toISOString()
+            }
+          }
+        }));
+      },
+
       clearRam: () => {
         const { stats } = get();
-        // Simulate reduction but never below 3.0GB
         const newUsed = Math.max(3.0, stats.usedRamGb - (Math.random() * 2 + 1));
         
         set((state) => ({
@@ -90,6 +124,7 @@ export const useStore = create<AppState>()(
           }
         }));
         
+        get().updateCounter('cleanersRun', 1);
         get().applyAction('Clear RAM', 'Dashboard', `Freed ${(stats.usedRamGb - newUsed).toFixed(1)} GB`);
       },
       
@@ -100,13 +135,34 @@ export const useStore = create<AppState>()(
           
         set((state) => {
           const newTweaks = { ...state.tweaks };
+          let count = 0;
           recommendedIds.forEach(id => {
-            newTweaks[id] = true;
+            if (!newTweaks[id]) {
+              newTweaks[id] = true;
+              count++;
+            }
           });
           return { tweaks: newTweaks };
         });
         
-        get().applyAction('Apply Recommended', 'Tweaks', `Enabled ${recommendedIds.length} tweaks`);
+        const newlyEnabled = recommendedIds.length;
+        get().updateCounter('tweaksApplied', newlyEnabled);
+        get().applyAction('Apply Recommended', 'Tweaks', `Enabled ${newlyEnabled} tweaks`);
+      },
+
+      runAIScan: async () => {
+        await new Promise(r => setTimeout(r, 1500));
+        const results: AIScanResult = {
+          timestamp: new Date().toISOString(),
+          summary: "Your system is good, but these 3 changes could help consistency.",
+          recommendations: [
+            { id: "1", action: "Reduce background process priority", tag: "Safe" },
+            { id: "2", action: "Optimize kernel memory management", tag: "Advanced" },
+            { id: "3", action: "Disable unused driver hooks", tag: "Requires local agent" }
+          ]
+        };
+        set({ latestAIScan: results });
+        get().applyAction('AI Scan', 'Dashboard', 'Scan complete', 'Generated 3 recommendations');
       },
 
       setStats: (newStats) => set((state) => ({ stats: { ...state.stats, ...newStats } })),
@@ -114,7 +170,18 @@ export const useStore = create<AppState>()(
       resetData: () => set({
         tweaks: {},
         history: [],
-        stats: MOCK_STATS
+        stats: MOCK_STATS,
+        latestAIScan: null,
+        account: {
+          ...get().account,
+          stats: {
+            tweaksApplied: 0,
+            servicesDisabled: 0,
+            cleanersRun: 0,
+            startupAppsDisabled: 0,
+            lastScan: null,
+          }
+        }
       }),
     }),
     {
@@ -122,8 +189,9 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({ 
         tweaks: state.tweaks, 
         history: state.history,
-        account: state.account 
-      }), // Only persist these
+        account: state.account,
+        latestAIScan: state.latestAIScan
+      }),
     }
   )
 );

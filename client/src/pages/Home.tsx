@@ -1,17 +1,33 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { useStore } from "@/lib/store";
-import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket } from "lucide-react";
+import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "wouter";
+import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
+import { format } from "date-fns";
+import { TWEAKS_DATA } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 
 export default function Home() {
-  const { stats, account, clearRam } = useStore();
+  const { stats, account, clearRam, runAIScan, latestAIScan } = useStore();
+  const [scanning, setScanning] = useState(false);
   
-  // Calculate percentages
   const ramPercent = (stats.usedRamGb / stats.totalRamGb) * 100;
   const diskPercent = (stats.diskUsedGb / stats.diskTotalGb) * 100;
+
+  const handleAIScan = async () => {
+    setScanning(true);
+    await runAIScan();
+    setScanning(false);
+  };
+
+  const totalTweaks = TWEAKS_DATA.length;
+  const totalServices = 142;
+  const totalCleaners = 50;
+  const totalStartup = 24;
 
   return (
     <AppLayout>
@@ -22,7 +38,7 @@ export default function Home() {
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
               Good afternoon, SwitchTech <span className="text-2xl">👑</span>
             </h1>
-            <p className="text-muted-foreground mt-1">System status is optimal. 3 tweaks active.</p>
+            <p className="text-muted-foreground mt-1">System status is optimal. Optimization consistency prioritized.</p>
           </div>
           <div className="flex items-center gap-3">
              <Link href="/history">
@@ -89,37 +105,113 @@ export default function Home() {
         </div>
 
         {/* Bottom Section */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {/* Account Status */}
-          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50">
-            <CardHeader className="pb-2">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {/* Account Status Card - Updated */}
+          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 overflow-hidden relative group">
+            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            <CardHeader className="pb-4">
               <CardTitle className="text-base font-medium flex items-center gap-2">
                 <Shield className="size-4 text-emerald-400" />
-                Account Status
+                System Health
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-sm text-muted-foreground">Plan</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                  {account.tier} Active
-                </span>
+            <CardContent className="space-y-5">
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Tweaks applied</span>
+                    <span className="text-white font-mono">{account.stats.tweaksApplied} / {totalTweaks}</span>
+                  </div>
+                  <Progress value={(account.stats.tweaksApplied / totalTweaks) * 100} className="h-1" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Services disabled</span>
+                    <span className="text-white font-mono">{account.stats.servicesDisabled} / {totalServices}</span>
+                  </div>
+                  <Progress value={(account.stats.servicesDisabled / totalServices) * 100} className="h-1" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Cleaners run</span>
+                    <span className="text-white font-mono">{account.stats.cleanersRun} / {totalCleaners}</span>
+                  </div>
+                  <Progress value={(account.stats.cleanersRun / totalCleaners) * 100} className="h-1" />
+                </div>
+                <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs font-medium">
+                    <span className="text-muted-foreground">Startup apps disabled</span>
+                    <span className="text-white font-mono">{account.stats.startupAppsDisabled} / {totalStartup}</span>
+                  </div>
+                  <Progress value={(account.stats.startupAppsDisabled / totalStartup) * 100} className="h-1" />
+                </div>
               </div>
-              <div className="space-y-1 text-sm text-muted-foreground">
-                <div className="flex justify-between">
-                  <span>Tweaks Applied</span>
-                  <span className="text-white font-mono">12</span>
+              
+              <div className="pt-2 border-t border-border/50 flex items-center justify-between">
+                 <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Last Scan</span>
+                 <span className="text-[10px] font-mono text-emerald-400">
+                   {account.stats.lastScan ? format(new Date(account.stats.lastScan), "MMM d, HH:mm") : "Never"}
+                 </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* AI Advisor Card - New */}
+          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-3">
+               <Sparkles className="size-4 text-primary animate-pulse" />
+            </div>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-medium">AI Advisor</CardTitle>
+              <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!latestAIScan && !scanning ? (
+                <div className="py-6 text-center space-y-4">
+                  <p className="text-xs text-muted-foreground px-4">Run an AI scan to get personalized optimization recommendations.</p>
+                  <Button onClick={handleAIScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
+                    Run AI Scan
+                  </Button>
                 </div>
-                <div className="flex justify-between">
-                  <span>Last Scan</span>
-                  <span className="text-white font-mono">Just now</span>
+              ) : scanning ? (
+                <div className="py-8 flex flex-col items-center justify-center space-y-3">
+                  <Loader2 className="size-6 text-primary animate-spin" />
+                  <span className="text-xs text-muted-foreground animate-pulse">Analyzing system state...</span>
                 </div>
+              ) : latestAIScan && (
+                <div className="space-y-3 animate-in fade-in duration-500">
+                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/10">
+                    <p className="text-[11px] leading-relaxed text-white/90">{latestAIScan.summary}</p>
+                  </div>
+                  <div className="space-y-1.5">
+                    {latestAIScan.recommendations.map((rec) => (
+                      <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors">
+                        <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
+                        <span className={cn(
+                          "text-[9px] font-bold uppercase px-1 rounded",
+                          rec.tag === "Safe" ? "text-emerald-400" : 
+                          rec.tag === "Advanced" ? "text-blue-400" : "text-amber-400"
+                        )}>
+                          {rec.tag === "Safe" ? "Safe" : rec.tag === "Advanced" ? "Adv" : "Agent"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <Button onClick={handleAIScan} variant="ghost" size="sm" className="w-full text-[10px] h-7 hover:bg-white/5">
+                    Rescan System
+                  </Button>
+                </div>
+              )}
+              
+              <div className="pt-2 border-t border-border/50 flex items-center gap-1.5 opacity-40">
+                <Info className="size-2.5" />
+                <span className="text-[9px]">Recommendations are simulated until agent is installed.</span>
               </div>
             </CardContent>
           </Card>
 
           {/* App Booster Placeholder */}
-          <Card className="col-span-1 lg:col-span-2 bg-gradient-to-br from-card to-card/50 border-border/50 flex flex-col items-center justify-center p-6 text-center space-y-4">
+          <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 flex flex-col items-center justify-center p-6 text-center space-y-4">
             <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
               <Rocket className="size-6 text-primary" />
             </div>
@@ -130,7 +222,7 @@ export default function Home() {
               </p>
             </div>
             <Link href="/app-booster">
-              <Button variant="outline" className="border-dashed">
+              <Button variant="outline" className="border-dashed h-8 text-xs">
                 Configure App Booster
               </Button>
             </Link>

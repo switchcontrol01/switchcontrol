@@ -102,3 +102,15 @@ export const MOCK_STATS: SystemStats = {
   diskTotalGb: 2048,
   vramGb: 16
 };
+
+export interface AIRecommendation {
+  id: string;
+  action: string;
+  tag: "Safe" | "Advanced" | "Requires local agent";
+}
+
+export interface AIScanResult {
+  timestamp: string;
+  summary: string;
+  recommendations: AIRecommendation[];
+}

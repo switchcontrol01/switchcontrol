@@ -1,0 +1,53 @@
+Update SwitchControl UI and dashboard content. Keep current routes and pages. Frontend only, no server/shared schema changes.
+
+GOALS (Dashboard)
+1) Upgrade the Account Status card:
+- Show these stats in a clean list with “x / y” style and small progress bars:
+  - Tweaks applied: X / TotalTweaks
+  - Services disabled: X / TotalServices
+  - Cleaners run: X / TotalCleaners
+  - Startup apps disabled: X / TotalStartupApps
+  - Last scan: timestamp
+- The numbers can be simulated and stored in localStorage.
+- Each simulated action (toggle tweak, run cleaner, boost now, scan) updates these counters and writes a history log entry.
+
+2) Add an “AI Advisor” card on Dashboard:
+- Button: “Run AI Scan”
+- When clicked, simulate a scan (loading state for 1.5s) then generate:
+  - A short summary (“Your system is good, but these 3 changes could help consistency.”)
+  - 3-5 recommended actions with tags: Safe / Advanced / Requires local agent
+- Store the results as the latest AI scan in localStorage and log it in History.
+- IMPORTANT: Add disclaimer text: “Recommendations are simulated until local agent is installed.”
+
+3) Add a “View Logs” button on the Dashboard that routes to a Logs/History page (if it exists). If no History page exists, create a simple one:
+- Table or list of last 50 events: time, action, page, result, notes
+- Buttons: Export JSON, Clear history
+
+GOALS (Tweaks Page UI)
+4) Redesign Tweaks page layout to match VTRL style:
+- Add top search bar: “Search tweaks…”
+- Add category filter chips: Performance, Latency, Visuals, Services, Aesthetics
+- Display tweaks in a 2-column grid on desktop (2x2 style), 1 column on mobile
+- Each tweak card includes:
+  - Name
+  - Description
+  - Tag pill: Recommended / Advanced / Experimental
+  - Small “Requires local agent” badge if system-level
+  - Toggle switch with smooth animation
+- Add a small “Apply selected” style action area at top right:
+  - “Apply Safe” (simulated)
+  - “Reset page” (simulated)
+
+DATA + STATE RULES
+- Use localStorage for:
+  - account tier + account stats counters
+  - applied tweaks states
+  - ai scan results
+  - history log
+- Every action must write to history log and update counters.
+- No claims about boosting FPS. Use “optimize consistency” and “recommended configuration”.
+- Do not attempt real Windows modifications. If a tweak implies registry/services/power plan/network, label it “Requires local agent”.
+
+DO NOT TOUCH (for now)
+- Power Plan, App Booster, Focus Mode, Network Tweaks, Network Scripts, Cleaner, Debloat, Startup pages can remain as placeholders. We will tackle these later.
+- Do not modify backend/server code or shared schema. Frontend only.
