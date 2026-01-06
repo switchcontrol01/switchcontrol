@@ -9,8 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogClose,
 } from "@/components/ui/dialog";
-import { Info, AlertTriangle, ShieldCheck, Zap } from "lucide-react";
+import { Info, AlertTriangle, ShieldCheck, Zap, X } from "lucide-react";
 import { Tweak, RiskLevel, TweakLevel } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -86,6 +87,10 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
             </Button>
           </DialogTrigger>
           <DialogContent className="border-white/10 bg-black/80 backdrop-blur-xl">
+            <DialogClose className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </DialogClose>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 {tweak.title}
