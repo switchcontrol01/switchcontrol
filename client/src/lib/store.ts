@@ -44,6 +44,14 @@ interface AppState {
   updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
 }
 
+const DEFAULT_ACCOUNT_STATS: AccountStats = {
+  tweaksApplied: 12,
+  servicesDisabled: 8,
+  cleanersRun: 4,
+  startupAppsDisabled: 6,
+  lastScan: new Date().toISOString(),
+};
+
 export const useStore = create<AppState>()(
   persist(
     (set, get) => ({
@@ -52,13 +60,7 @@ export const useStore = create<AppState>()(
         tier: 'Premium',
         email: 'user@example.com',
         licenseStatus: 'Active',
-        stats: {
-          tweaksApplied: 12,
-          servicesDisabled: 8,
-          cleanersRun: 4,
-          startupAppsDisabled: 6,
-          lastScan: new Date().toISOString(),
-        }
+        stats: DEFAULT_ACCOUNT_STATS
       },
       tweaks: {},
       history: [],
@@ -101,16 +103,19 @@ export const useStore = create<AppState>()(
       },
 
       updateCounter: (key, increment = 1) => {
-        set((state) => ({
-          account: {
-            ...state.account,
-            stats: {
-              ...state.account.stats,
-              [key]: Math.max(0, state.account.stats[key] + increment),
-              lastScan: new Date().toISOString()
+        set((state) => {
+          const currentStats = state.account.stats || DEFAULT_ACCOUNT_STATS;
+          return {
+            account: {
+              ...state.account,
+              stats: {
+                ...currentStats,
+                [key]: Math.max(0, currentStats[key] + increment),
+                lastScan: new Date().toISOString()
+              }
             }
-          }
-        }));
+          };
+        });
       },
 
       clearRam: () => {
@@ -192,6 +197,7 @@ export const useStore = create<AppState>()(
         account: state.account,
         latestAIScan: state.latestAIScan
       }),
+      version: 1, // Force update if structure changes
     }
   )
 );
