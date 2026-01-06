@@ -15,11 +15,14 @@ export const sessions = pgTable(
 
 // User storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
+// Identity is stored as (provider, providerUserId) - email is optional.
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
+  provider: varchar("provider").notNull().default("replit"), // replit, google, discord, github, etc.
+  providerUserId: varchar("provider_user_id"), // User ID from the provider
+  email: varchar("email"), // Optional - not all providers require email
   passwordHash: varchar("password_hash"),
-  googleId: varchar("google_id"),
+  googleId: varchar("google_id"), // Legacy field for backwards compatibility
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
