@@ -41,7 +41,6 @@ const NAV_ITEMS = [
   { label: "App Booster", icon: Rocket, href: "/app-booster" },
   { label: "Focus Mode", icon: Moon, href: "/focus" },
   { label: "Network Tweaks", icon: Wifi, href: "/network" },
-  { label: "Network Scripts", icon: Terminal, href: "/scripts" },
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },
   { label: "Debloat", icon: ShieldCheck, href: "/debloat" },
   { label: "Startup", icon: List, href: "/startup" },

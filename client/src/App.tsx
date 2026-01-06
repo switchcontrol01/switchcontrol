@@ -10,6 +10,7 @@ import Tweaks from "@/pages/Tweaks";
 import History from "@/pages/History";
 import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
+import NetworkTweaks from "@/pages/NetworkTweaks";
 import Placeholder from "@/pages/Placeholder";
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
@@ -53,12 +54,7 @@ function Router() {
         <Route path="/focus">
           <Placeholder title="Focus Mode" />
         </Route>
-        <Route path="/network">
-          <Placeholder title="Network Tweaks" />
-        </Route>
-        <Route path="/scripts">
-          <Placeholder title="Network Scripts" />
-        </Route>
+        <Route path="/network" component={NetworkTweaks} />
         <Route path="/cleaner">
           <Placeholder title="System Cleaner" />
         </Route>
