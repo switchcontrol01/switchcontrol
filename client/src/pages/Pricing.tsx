@@ -177,7 +177,7 @@ export default function Pricing() {
                   ) : premiumStatus?.isPremium ? (
                     'Already Premium'
                   ) : (
-                    'Get Premium - $50'
+                    'Get Premium -50'
                   )}
                 </Button>
               </CardContent>
