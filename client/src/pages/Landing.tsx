@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
-import { AnimateIn } from "@/components/AnimateIn";
+import AnimateIn from "@/components/AnimateIn";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -588,13 +588,13 @@ export default function Landing() {
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40 relative">
             <div className="text-center max-w-4xl mx-auto">
-              <AnimateIn triggerOnMount delay={0}>
+              <AnimateIn delay={0}>
                 <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
                   Trusted by 10,000+ competitive gamers
                 </span>
               </AnimateIn>
               
-              <AnimateIn triggerOnMount delay={120}>
+              <AnimateIn delay={150}>
                 <h1
                   className={cn(
                     "text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6",
@@ -608,14 +608,14 @@ export default function Landing() {
                 </h1>
               </AnimateIn>
               
-              <AnimateIn triggerOnMount delay={240}>
+              <AnimateIn delay={300}>
                 <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
                   Professional-grade Windows optimization for competitive gaming. 
                   Lower latency, smoother frames, better consistency.
                 </p>
               </AnimateIn>
               
-              <AnimateIn triggerOnMount delay={360}>
+              <AnimateIn delay={450}>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                   <Link href="/login">
                     <Button 
