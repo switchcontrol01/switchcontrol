@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, type MouseEvent } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -575,6 +575,15 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
 
 export default function Landing() {
   const { prefersReducedMotion } = useMotion();
+  const { user, isLoading } = useAuth();
+  
+  const handleAuthAwareClick = (e: MouseEvent) => {
+    if (user) {
+      window.location.href = "/download";
+    } else {
+      window.location.href = "/auth/google";
+    }
+  };
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black relative">
@@ -618,19 +627,19 @@ export default function Landing() {
               
               <AnimateIn delay={450}>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <Link href="/login">
-                    <Button 
-                      size="lg" 
-                      className={cn(
-                        "text-base px-8 bg-primary hover:bg-primary/90 transition-all duration-300",
-                        "hover:shadow-[0_0_40px_hsl(270_70%_60%/0.5)] hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.97]",
-                        !prefersReducedMotion && "animate-cta-pulse"
-                      )}
-                    >
-                      Try Free
-                      <ArrowRight className="ml-2 size-4" />
-                    </Button>
-                  </Link>
+                  <Button 
+                    size="lg" 
+                    className={cn(
+                      "text-base px-8 bg-primary hover:bg-primary/90 transition-all duration-300",
+                      "hover:shadow-[0_0_40px_hsl(270_70%_60%/0.5)] hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.97]",
+                      !prefersReducedMotion && "animate-cta-pulse"
+                    )}
+                    onClick={handleAuthAwareClick}
+                    data-testid="button-try-free"
+                  >
+                    Try Free
+                    <ArrowRight className="ml-2 size-4" />
+                  </Button>
                   <Link href="/pricing">
                     <Button 
                       size="lg" 
@@ -832,9 +841,14 @@ export default function Landing() {
                     <h3 className="text-xl font-bold text-white mb-2">Free</h3>
                     <div className="text-3xl font-bold text-white mb-4">$0 <span className="text-sm font-normal text-muted-foreground">forever</span></div>
                     <p className="text-muted-foreground text-sm mb-6">Essential optimization tools</p>
-                    <Link href="/login">
-                      <Button variant="outline" className="w-full border-white/20">Get Started</Button>
-                    </Link>
+                    <Button 
+                      variant="outline" 
+                      className="w-full border-white/20"
+                      onClick={handleAuthAwareClick}
+                      data-testid="button-get-started-pricing"
+                    >
+                      Get Started
+                    </Button>
                   </CardContent>
                 </Card>
               </Reveal>
@@ -881,12 +895,15 @@ export default function Landing() {
               <p className="text-muted-foreground mb-8 max-w-2xl mx-auto">
                 Join thousands of competitive gamers who trust SwitchControl for their system optimization needs.
               </p>
-              <Link href="/login">
-                <Button size="lg" className="text-base px-10 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 hover:scale-[1.03] active:scale-[0.97] transition-all">
-                  Get Started Free
-                  <ArrowRight className="ml-2 size-4" />
-                </Button>
-              </Link>
+              <Button 
+                size="lg" 
+                className="text-base px-10 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 hover:scale-[1.03] active:scale-[0.97] transition-all"
+                onClick={handleAuthAwareClick}
+                data-testid="button-get-started-free"
+              >
+                Get Started Free
+                <ArrowRight className="ml-2 size-4" />
+              </Button>
             </Reveal>
           </div>
         </section>
