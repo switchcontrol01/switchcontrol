@@ -4,35 +4,49 @@ import { cn } from '@/lib/utils';
 
 interface BrandLogoProps {
   showWordmark?: boolean;
-  iconSize?: 'sm' | 'md' | 'lg';
+  size?: 'sm' | 'md' | 'lg';
   className?: string;
   linkTo?: string;
 }
 
-const iconSizes = {
-  sm: 'size-6',
-  md: 'size-8',
-  lg: 'size-10',
+const sizeConfig = {
+  sm: {
+    icon: 'w-8 h-8',
+    wordmark: 'h-5 w-[110px]',
+    gap: 'gap-2',
+  },
+  md: {
+    icon: 'w-9 h-9',
+    wordmark: 'h-6 w-[140px]',
+    gap: 'gap-2.5',
+  },
+  lg: {
+    icon: 'w-10 h-10',
+    wordmark: 'h-7 w-[160px]',
+    gap: 'gap-3',
+  },
 };
 
 export function BrandLogo({ 
   showWordmark = true, 
-  iconSize = 'md',
+  size = 'md',
   className,
   linkTo = '/'
 }: BrandLogoProps) {
+  const config = sizeConfig[size];
+  
   const content = (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex items-center', config.gap, className)}>
       <img 
         src={brand.icon} 
         alt={`${brand.name} logo`}
-        className={cn(iconSizes[iconSize], 'rounded-lg object-contain')}
+        className={cn(config.icon, 'rounded-lg object-contain flex-shrink-0')}
       />
       {showWordmark && (
         <img 
           src={brand.wordmark} 
           alt={brand.name}
-          className="h-5 object-contain"
+          className={cn(config.wordmark, 'object-contain')}
         />
       )}
     </div>

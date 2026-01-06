@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
+import { AnimateIn } from "@/components/AnimateIn";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -358,7 +359,7 @@ function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <BrandLogo iconSize="md" />
+          <BrandLogo size="lg" />
 
           <nav className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map(link => (
@@ -487,7 +488,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
-            <BrandLogo className="mb-4" />
+            <BrandLogo size="md" className="mb-4" />
             <p className="text-sm text-muted-foreground">
               Professional gaming optimization for competitive players.
             </p>
@@ -587,95 +588,76 @@ export default function Landing() {
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40 relative">
             <div className="text-center max-w-4xl mx-auto">
-              <motion.div
-                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                transition={{ duration: 0.5 }}
-              >
+              <AnimateIn triggerOnMount delay={0}>
                 <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
                   Trusted by 10,000+ competitive gamers
                 </span>
-              </motion.div>
+              </AnimateIn>
               
-              <motion.h1
-                className={cn(
-                  "text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6",
-                  !prefersReducedMotion && "animate-hero-float"
-                )}
-                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                transition={{ duration: 0.5, delay: 0.1 }}
-              >
-                Unlock Your PC's{" "}
-                <span className="bg-gradient-to-r from-primary via-purple-400 to-pink-500 bg-clip-text text-transparent">
-                  True Potential
-                </span>
-              </motion.h1>
+              <AnimateIn triggerOnMount delay={120}>
+                <h1
+                  className={cn(
+                    "text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6",
+                    !prefersReducedMotion && "animate-hero-float"
+                  )}
+                >
+                  Unlock Your PC's{" "}
+                  <span className="bg-gradient-to-r from-primary via-purple-400 to-pink-500 bg-clip-text text-transparent">
+                    True Potential
+                  </span>
+                </h1>
+              </AnimateIn>
               
-              <motion.p
-                className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto"
-                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                transition={{ duration: 0.5, delay: 0.2 }}
-              >
-                Professional-grade Windows optimization for competitive gaming. 
-                Lower latency, smoother frames, better consistency.
-              </motion.p>
+              <AnimateIn triggerOnMount delay={240}>
+                <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                  Professional-grade Windows optimization for competitive gaming. 
+                  Lower latency, smoother frames, better consistency.
+                </p>
+              </AnimateIn>
               
-              <motion.div
-                className="flex flex-col sm:flex-row items-center justify-center gap-4"
-                initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                transition={{ duration: 0.5, delay: 0.3 }}
-              >
-                <Link href="/login">
-                  <motion.div
-                    whileHover={!prefersReducedMotion ? { scale: 1.03, y: -2 } : undefined}
-                    whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
-                  >
+              <AnimateIn triggerOnMount delay={360}>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link href="/login">
                     <Button 
                       size="lg" 
                       className={cn(
                         "text-base px-8 bg-primary hover:bg-primary/90 transition-all duration-300",
-                        "hover:shadow-[0_0_40px_hsl(270_70%_60%/0.5)]",
+                        "hover:shadow-[0_0_40px_hsl(270_70%_60%/0.5)] hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.97]",
                         !prefersReducedMotion && "animate-cta-pulse"
                       )}
                     >
                       Try Free
                       <ArrowRight className="ml-2 size-4" />
                     </Button>
-                  </motion.div>
-                </Link>
-                <Link href="/pricing">
-                  <motion.div
-                    whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
-                    whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
-                  >
+                  </Link>
+                  <Link href="/pricing">
                     <Button 
                       size="lg" 
                       variant="outline" 
-                      className="text-base px-8 border-white/20 hover:bg-white/5 hover:border-white/40 transition-all duration-300 relative group"
+                      className="text-base px-8 border-white/20 hover:bg-white/5 hover:border-white/40 transition-all duration-300 relative group hover:scale-[1.03] active:scale-[0.97]"
                     >
                       <span className="relative z-10">See Pricing</span>
                       <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-white/50 group-hover:w-[calc(100%-2rem)] transition-all duration-300" />
                     </Button>
-                  </motion.div>
-                </Link>
-              </motion.div>
+                  </Link>
+                </div>
+              </AnimateIn>
             </div>
           </div>
         </section>
 
         <section className="py-16 border-y border-white/5 bg-black/30 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-              {STATS.map((stat, i) => (
-                <StatCard key={stat.label} stat={stat} index={i} />
-              ))}
-            </div>
-            <p className="text-center text-xs text-muted-foreground mt-8">
-              *Based on internal testing. Results may vary depending on hardware and configuration.
-            </p>
+            <AnimateIn>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+                {STATS.map((stat, i) => (
+                  <StatCard key={stat.label} stat={stat} index={i} />
+                ))}
+              </div>
+              <p className="text-center text-xs text-muted-foreground mt-8">
+                *Based on internal testing. Results may vary depending on hardware and configuration.
+              </p>
+            </AnimateIn>
           </div>
         </section>
 

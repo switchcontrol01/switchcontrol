@@ -66,7 +66,7 @@ export function Sidebar() {
       {...sidebarProps}
     >
       <div className="p-6">
-        <BrandLogo linkTo="/app" />
+        <BrandLogo size="lg" linkTo="/app" />
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
