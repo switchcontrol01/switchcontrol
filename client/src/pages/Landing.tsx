@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -157,27 +157,24 @@ function GlowBlobs() {
   const { prefersReducedMotion } = useMotion();
   
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="fixed inset-0 overflow-hidden pointer-events-none">
       <div 
         className={cn(
-          "absolute top-0 left-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px]",
-          !prefersReducedMotion && "animate-pulse"
+          "absolute -top-32 left-1/4 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[150px]",
+          !prefersReducedMotion && "animate-blob-1"
         )}
-        style={{ animationDuration: '8s' }}
       />
       <div 
         className={cn(
-          "absolute top-1/3 right-0 w-[500px] h-[500px] bg-purple-600/15 rounded-full blur-[100px]",
-          !prefersReducedMotion && "animate-pulse"
+          "absolute top-1/4 -right-32 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[120px]",
+          !prefersReducedMotion && "animate-blob-2"
         )}
-        style={{ animationDuration: '10s', animationDelay: '2s' }}
       />
       <div 
         className={cn(
-          "absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink-600/10 rounded-full blur-[80px]",
-          !prefersReducedMotion && "animate-pulse"
+          "absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[100px]",
+          !prefersReducedMotion && "animate-blob-3"
         )}
-        style={{ animationDuration: '12s', animationDelay: '4s' }}
       />
     </div>
   );
@@ -186,7 +183,7 @@ function GlowBlobs() {
 function GrainOverlay() {
   return (
     <div 
-      className="fixed inset-0 pointer-events-none z-50 opacity-[0.015]"
+      className="fixed inset-0 pointer-events-none z-50 opacity-[0.02]"
       style={{
         backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
       }}
@@ -194,13 +191,157 @@ function GrainOverlay() {
   );
 }
 
+function CountingNumber({ 
+  value, 
+  prefix = '', 
+  suffix = '' 
+}: { 
+  value: string; 
+  prefix?: string; 
+  suffix?: string;
+}) {
+  const { prefersReducedMotion } = useMotion();
+  const numericValue = parseInt(value.replace(/[^\d]/g, ''), 10);
+  const [displayValue, setDisplayValue] = useState(prefersReducedMotion ? numericValue.toString() : '0');
+  const ref = useRef<HTMLSpanElement>(null);
+  const hasAnimated = useRef(false);
+
+  useEffect(() => {
+    if (prefersReducedMotion || hasAnimated.current) {
+      setDisplayValue(numericValue.toString());
+      return;
+    }
+
+    if (isNaN(numericValue)) {
+      setDisplayValue(value);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasAnimated.current) {
+          hasAnimated.current = true;
+          const duration = 1500;
+          const startTime = performance.now();
+
+          const animate = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = Math.round(numericValue * eased);
+            setDisplayValue(current.toString());
+            
+            if (progress < 1) {
+              requestAnimationFrame(animate);
+            } else {
+              setDisplayValue(numericValue.toString());
+            }
+          };
+          
+          requestAnimationFrame(animate);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [value, numericValue, prefersReducedMotion]);
+
+  return (
+    <span ref={ref}>
+      {prefix}{displayValue}{suffix}
+    </span>
+  );
+}
+
+function StatCard({ 
+  stat, 
+  index 
+}: { 
+  stat: typeof STATS[0]; 
+  index: number;
+}) {
+  const { prefersReducedMotion } = useMotion();
+  const [hasShimmered, setHasShimmered] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasShimmered) {
+          setTimeout(() => setHasShimmered(true), index * 100);
+        }
+      },
+      { threshold: 0.3 }
+    );
+
+    if (ref.current) {
+      observer.observe(ref.current);
+    }
+
+    return () => observer.disconnect();
+  }, [index, hasShimmered, prefersReducedMotion]);
+
+  const isNegative = stat.value.startsWith("-");
+  const numericPart = stat.value.replace(/[^\d]/g, '');
+  const prefix = stat.value.startsWith("-") ? "-" : "+";
+  const suffix = stat.value.includes("%") ? "%" : stat.value.includes("ms") ? "ms" : "";
+
+  return (
+    <motion.div
+      ref={ref}
+      className={cn(
+        "text-center relative overflow-hidden rounded-xl p-4 border border-white/5 bg-white/[0.02]",
+        "hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300",
+        "group cursor-default"
+      )}
+      initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
+      whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+      transition={{ duration: 0.4, delay: index * 0.1 }}
+      viewport={{ once: true }}
+      whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
+    >
+      {hasShimmered && !prefersReducedMotion && (
+        <div className="absolute inset-0 animate-shimmer pointer-events-none" />
+      )}
+      <div className={cn(
+        "text-3xl md:text-4xl font-bold mb-2 transition-all duration-300",
+        isNegative ? "text-emerald-400 group-hover:text-emerald-300" : "text-primary group-hover:text-purple-400"
+      )}>
+        <CountingNumber value={numericPart} prefix={prefix} suffix={suffix} />
+      </div>
+      <div className="text-sm text-muted-foreground">{stat.label}</div>
+    </motion.div>
+  );
+}
+
 function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const { prefersReducedMotion } = useMotion();
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   return (
     <motion.header 
-      className="fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5"
+      className={cn(
+        "fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300",
+        scrolled 
+          ? "bg-black/90 backdrop-blur-xl border-white/10 shadow-lg shadow-black/20" 
+          : "bg-black/60 backdrop-blur-md border-white/5"
+      )}
       initial={!prefersReducedMotion ? { y: -100, opacity: 0 } : undefined}
       animate={!prefersReducedMotion ? { y: 0, opacity: 1 } : undefined}
       transition={{ duration: 0.5 }}
@@ -440,10 +581,17 @@ export default function Landing() {
               >
                 <Link href="/login">
                   <motion.div
-                    whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
+                    whileHover={!prefersReducedMotion ? { scale: 1.03, y: -2 } : undefined}
                     whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
                   >
-                    <Button size="lg" className="text-base px-8 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 transition-shadow">
+                    <Button 
+                      size="lg" 
+                      className={cn(
+                        "text-base px-8 bg-primary hover:bg-primary/90 transition-all duration-300",
+                        "hover:shadow-[0_0_40px_hsl(270_70%_60%/0.5)]",
+                        !prefersReducedMotion && "animate-cta-pulse"
+                      )}
+                    >
                       Try Free
                       <ArrowRight className="ml-2 size-4" />
                     </Button>
@@ -454,8 +602,13 @@ export default function Landing() {
                     whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
                     whileTap={!prefersReducedMotion ? { scale: 0.97 } : undefined}
                   >
-                    <Button size="lg" variant="outline" className="text-base px-8 border-white/20 hover:bg-white/5 hover:border-white/30 transition-colors">
-                      See Pricing
+                    <Button 
+                      size="lg" 
+                      variant="outline" 
+                      className="text-base px-8 border-white/20 hover:bg-white/5 hover:border-white/40 transition-all duration-300 relative group"
+                    >
+                      <span className="relative z-10">See Pricing</span>
+                      <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-white/50 group-hover:w-[calc(100%-2rem)] transition-all duration-300" />
                     </Button>
                   </motion.div>
                 </Link>
@@ -466,24 +619,9 @@ export default function Landing() {
 
         <section className="py-16 border-y border-white/5 bg-black/30 relative">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
               {STATS.map((stat, i) => (
-                <motion.div
-                  key={stat.label}
-                  className="text-center"
-                  initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-                  whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                  transition={{ duration: 0.4, delay: i * 0.1 }}
-                  viewport={{ once: true }}
-                >
-                  <div className={cn(
-                    "text-3xl md:text-4xl font-bold mb-2",
-                    stat.value.startsWith("-") ? "text-emerald-400" : "text-primary"
-                  )}>
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </motion.div>
+                <StatCard key={stat.label} stat={stat} index={i} />
               ))}
             </div>
             <p className="text-center text-xs text-muted-foreground mt-8">
@@ -517,15 +655,15 @@ export default function Landing() {
                   whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
                   transition={{ duration: 0.4, delay: i * 0.1 }}
                   viewport={{ once: true }}
-                  whileHover={!prefersReducedMotion ? { y: -4 } : undefined}
+                  whileHover={!prefersReducedMotion ? { y: -6, scale: 1.02 } : undefined}
                 >
-                  <Card className="bg-white/5 border-white/10 hover:border-primary/40 hover:bg-white/[0.07] transition-all duration-300 h-full group">
-                    <CardContent className="p-6">
-                      <div className="size-12 rounded-lg bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center mb-4 transition-colors">
-                        <feature.icon className="size-6 text-primary" />
+                  <Card className="animated-border bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 h-full group rounded-xl overflow-hidden">
+                    <CardContent className="p-6 relative z-10">
+                      <div className="size-12 rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:shadow-lg group-hover:shadow-primary/20 flex items-center justify-center mb-4 transition-all duration-300">
+                        <feature.icon className="size-6 text-primary group-hover:scale-110 transition-transform duration-300" />
                       </div>
-                      <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
-                      <p className="text-sm text-muted-foreground">{feature.description}</p>
+                      <h3 className="font-semibold text-white mb-2 group-hover:text-white transition-colors">{feature.title}</h3>
+                      <p className="text-sm text-muted-foreground group-hover:text-muted-foreground/80 transition-colors">{feature.description}</p>
                     </CardContent>
                   </Card>
                 </motion.div>
