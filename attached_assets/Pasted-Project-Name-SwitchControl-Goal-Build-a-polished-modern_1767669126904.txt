@@ -1,0 +1,70 @@
+Project Name: SwitchControl
+
+Goal
+Build a polished, modern UI prototype of a Windows gaming optimizer inspired by the VTRL layout. This is UI-first with mock data and simulated actions. Do NOT implement real Windows registry edits, service changes, power plan changes, or networking changes in this build. Any action that would require Windows admin access must be clearly labeled “Requires local agent (Windows app)”. The purpose is to create a professional dashboard, navigation, state handling, scan history logging, and a clean component structure.
+
+Platform / Stack
+Build as a full-stack web app that runs on Replit.
+Preferred: Next.js (React) + TypeScript + Tailwind CSS.
+Use Next.js API routes for mock data.
+Persist user settings, account tier, and history using localStorage first (database can be added later).
+Design desktop-first and then make it responsive.
+
+UI Style (match screenshots)
+- Dark theme background with purple/pink accent highlights
+- Rounded cards, soft shadows, subtle borders
+- Minimalist gamer aesthetic
+- Clean typography, strong spacing
+- Smooth hover states, no heavy animations
+
+App Layout
+- Fixed left sidebar navigation
+- Main content panel on the right
+- Top greeting on dashboard: “Good afternoon, SwitchTech 👑”
+- Left sidebar includes a small “SwitchControl” brand area + an account badge (Free/Premium)
+- Include a small version label in sidebar footer: “SwitchControl v0.1”
+
+Sidebar Navigation Items (with icons if easy)
+- Home (Dashboard)
+- Tweaks
+- Power Plan
+- App Booster
+- Focus Mode
+- Network Tweaks
+- Network Scripts
+- Cleaner
+- Debloat
+- Startup
+- Settings
+
+Core Data Types (TypeScript)
+- SystemStats: totalRamGb, usedRamGb, cpuName, cpuCores, cpuThreads, gpuName, vramGb, diskName, diskUsedGb, diskTotalGb, lastScanAt
+- Account: tier (Free|Premium), email (optional mock), licenseStatus (Active|Inactive)
+- HistoryItem: id, timestamp, page, action, result, notes
+
+Backend / Mock API
+Create API routes:
+- GET /api/stats -> returns SystemStats mock (use realistic numbers)
+- GET /api/account -> returns Account mock
+- POST /api/action -> accepts { actionType, payload } and returns updated stats + a HistoryItem
+All “actions” are simulated and must only update mock state and history.
+
+Global Requirements
+- Maintain a Scan History log for all actions (including simulated actions)
+- Provide an “Export History” button (JSON download)
+- Add “Requires local agent (Windows app)” labels near any real system-level items
+- Never claim FPS is being boosted in the web app. Use wording like “recommended configuration” and “simulated apply”.
+
+Pages and Requirements
+
+1) Home (Dashboard)
+Top greeting: “Good afternoon, SwitchTech 👑”
+Section title: “Activity monitor”
+
+Top row cards (VTRL-like):
+A) Memory card
+- Show text like “9.8 GB / 31.6 GB used” (or 9.5 / 32)
+- Show a progress bar
+- On right side: button “Clear RAM”
+- On click: simulate RAM “cleanup” by reducing usedRamGb slightly but never below 3.0 GB
+- Show a small

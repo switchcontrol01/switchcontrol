@@ -1,0 +1,136 @@
+Add-on requirements for SwitchControl (build on the existing app you generated)
+
+Goal
+Expand the Tweaks section to be far more comprehensive and structured than competitors, while keeping this build UI-only with simulated toggles and scan history logging. No real Windows changes. Add strong organization, search, filters, risk labels, and “Requires local Windows agent” tags.
+
+Tweaks Page Upgrade
+1) Add a top bar with:
+- Search input: “Type to search for tweaks”
+- Filter chips: All, Recommended, Advanced, Experimental, Privacy, Latency, GPU, Network, Debloat, Services, Visuals
+- Sort dropdown: Default, A-Z, Risk (low to high)
+
+2) Add grouping by category with collapsible sections:
+- System and Power
+- Memory and Storage
+- Privacy and Telemetry
+- Gaming and Latency
+- Input (Keyboard and Mouse)
+- GPU and Graphics
+- Services and Background
+- Windows UX and Visuals
+- Debloat and Apps
+
+3) Each tweak should render as a card row like the reference screenshots:
+- Title
+- One-line description
+- Badge: Recommended / Advanced / Experimental
+- Badge: Safe / Moderate / Risky
+- Tag: Requires local Windows agent
+- Toggle switch ON/OFF
+- Optional small “info” button opening a modal with:
+  - What it does
+  - Expected impact (FPS, 1% lows, latency, privacy, boot time)
+  - Risks
+  - Revert notes
+
+4) Every toggle change must:
+- Update UI state (simulated)
+- Add an entry to Scan History with timestamp, tweak name, ON/OFF, and a result message like “Simulated apply”
+- Persist to localStorage so the toggles remain after refresh
+
+Data model updates
+- Add a “tweaks” store in localStorage keyed by tweak id
+- History entries should include: category, tweakId, beforeValue, afterValue
+
+Tweak list to include (as simulated items)
+Create these tweaks in the correct categories with realistic descriptions, badges, and risk levels.
+If something is high risk or can break features, mark it Risky + Experimental and show a warning in the info modal.
+
+System and Power
+- Disable Hibernation
+- Disable Fast Startup (Risky/Experimental)
+- Disable Energy Logging (Advanced)
+- Disable Maintenance (Recommended)
+- Disable Background Apps (Recommended)
+- Disable Core Isolation (Risky/Experimental, security warning)
+- Disable VBS (Risky/Experimental, security warning)
+- Disable Hyper-V / Virtualization (Advanced, requires reboot note)
+- Disable P-States (Risky/Experimental)
+- Disable Power Gating (Risky/Experimental)
+- Disable Power Energy Savings (Advanced)
+- Disable Notifications (Recommended)
+- Disable Touch Features (Recommended)
+- Disable Accessibility Features (Advanced)
+- Disable Transparency (Recommended)
+- Optimize Visual Effects (Recommended)
+
+Memory and Storage
+- Optimize Memory Settings (Recommended)
+- Disable Large System Cache (Advanced)
+- Disable Page Combining (Advanced)
+- Disable Paging Executive (Advanced)
+- Disable Prefetch (Advanced)
+- Disable Superfetch / SysMain (Advanced)
+- Optimize FSUTIL (Advanced)
+- Optimize I/O Operations (Advanced)
+- Optimize Write Caching (Advanced)
+- Disable Storage Sense (Recommended)
+
+Privacy and Telemetry
+- Disable Telemetry (Advanced)
+- Disable NVIDIA Telemetry (Advanced)
+- Disable Copilot (Recommended)
+- Disable Cortana (Recommended)
+- Disable Search Highlights (Recommended)
+- Disable Search Suggestions (Recommended)
+- Disable Synchronization Service (Advanced)
+- Disable Insider Program (Advanced)
+- Remove OneDrive (Advanced)
+Important: Do NOT add “Block Windows Updates” as a feature. Instead add:
+- “Update Guidance” (Recommended) with info modal explaining best-practice settings, not disabling updates.
+
+Gaming and Latency
+- Enable Gaming Mode (Recommended)
+- Tune Priority (Advanced)
+- Improve Affinities (Advanced)
+- Optimize IRQ Priority (Risky/Experimental)
+- Optimize Boot Configuration (Advanced, reboot required)
+- Disable Coalescing (Risky/Experimental)
+- Disable Synthetic Timers (Risky/Experimental)
+- Latency Tolerance (Advanced)
+- Timer Resolution (Advanced)
+- Disable System Responsiveness (Risky/Experimental)
+- CSRSS tuning (Advanced, show caution)
+- Disable Driver Services (Risky/Experimental)
+- Optimize SVC Split Threshold (Advanced)
+
+Input (Keyboard and Mouse)
+- Keyboard Tune (Advanced)
+- Mouse Tune (Advanced)
+- Optimize Mouse (Advanced)
+
+GPU and Graphics
+- Disable Desktop Composition (Experimental; note modern Windows behavior)
+- Disable HDCP (Risky/Experimental)
+- Enable Preemption (Advanced)
+- DirectX Tweaks (Advanced)
+- AMD GPU Tweaks (Advanced)
+- Disable GPU Checks (Experimental)
+
+Network and Connectivity
+- Disable Bluetooth (Recommended, with warning)
+- Disable Wi-Fi (Recommended, with warning)
+
+Debloat and Apps
+- Remove Xbox Game Bar (Recommended)
+- Disable Xbox Services (Advanced)
+- Disable HomeGroup Services (Advanced)
+- Disable Fax and Printer Services (Advanced)
+
+Windows UX and Visuals
+- Enable Compact Explorer (Recommended)
+- Hide Recent Files (Recommended)
+- Optimize Explorer (Advanced)
+
+Implementation notes
+- Create a single source of truth array of tweak objects: id, title, category...
