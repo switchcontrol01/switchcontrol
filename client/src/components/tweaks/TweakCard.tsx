@@ -127,13 +127,18 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
             aria-modal="true"
             data-testid={`modal-tweak-${tweak.id}`}
           >
-            <div className="bg-black/90 border border-white/10 rounded-lg p-6 shadow-2xl backdrop-blur-xl">
+            <div className="relative bg-black/90 border border-white/10 rounded-lg p-6 shadow-2xl backdrop-blur-xl">
               <button
-                onClick={closeModal}
-                className="absolute right-4 top-4 z-[60] rounded-sm p-1 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring"
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setOpen(false);
+                }}
+                className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
                 data-testid="button-close-modal"
               >
-                <X className="h-4 w-4 text-white" />
+                <X className="h-5 w-5 text-white" />
                 <span className="sr-only">Close</span>
               </button>
               
