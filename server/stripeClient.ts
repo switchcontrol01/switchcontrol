@@ -1,5 +1,8 @@
 import Stripe from 'stripe';
 
+console.log("Stripe key prefix:", process.env.STRIPE_SECRET_KEY?.slice(0, 7));
+console.log("Has STRIPE_LIVE_KEY:", Boolean(process.env.STRIPE_LIVE_KEY));
+
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export function getStripeClient(): Stripe {
