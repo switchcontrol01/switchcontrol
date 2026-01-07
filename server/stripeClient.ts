@@ -1,5 +1,6 @@
 import Stripe from 'stripe';
 
+// Force env reload on each startup
 let stripeClient: Stripe | null = null;
 
 export function getStripeClient(): Stripe {
