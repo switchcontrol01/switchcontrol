@@ -353,6 +353,8 @@ export default function Pricing() {
                     </>
                   ) : me?.isPremium ? (
                     'Purchased'
+                  ) : !me?.loggedIn ? (
+                    'Log in to purchase'
                   ) : (
                     'Get Premium - $50'
                   )}

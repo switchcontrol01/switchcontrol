@@ -254,6 +254,29 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/me", async (req, res) => {
+    try {
+      const user = (req as any).user;
+      if (!user) {
+        return res.json({ loggedIn: false });
+      }
+
+      const dbUser = await storage.getUser(user.id);
+      if (!dbUser) {
+        return res.json({ loggedIn: false });
+      }
+
+      res.json({
+        loggedIn: true,
+        id: dbUser.id,
+        email: dbUser.email,
+        isPremium: dbUser.isPremium || false,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get user info" });
+    }
+  });
+
   app.get("/api/stripe/publishable-key", async (req, res) => {
     try {
       const publishableKey = await getStripePublishableKey();
@@ -347,7 +370,7 @@ export async function registerRoutes(
       const userId = session.client_reference_id || session.metadata?.userId;
       
       if (!userId) {
-        return res.status(400).json({ ok: false, error: "no_user_id" });
+        return res.status(400).json({ ok: false, error: "missing_user_mapping" });
       }
 
       const dbUser = await storage.getUser(userId);

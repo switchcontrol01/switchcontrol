@@ -25,6 +25,7 @@ export default function Success() {
     fetch("/api/stripe/confirm", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ session_id: sessionId }),
     })
       .then((res) => res.json())
