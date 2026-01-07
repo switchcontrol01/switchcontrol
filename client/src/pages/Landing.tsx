@@ -61,26 +61,6 @@ const STATS = [
   { label: "1% Low FPS Gain", value: "+22%", change: "lows" },
 ];
 
-const TESTIMONIALS = [
-  {
-    name: "Alex M.",
-    role: "Competitive Valorant Player",
-    content: "Finally something that actually works. My input delay dropped noticeably and my 1% lows are way more stable.",
-    rating: 5
-  },
-  {
-    name: "Jordan K.",
-    role: "Fortnite Creator",
-    content: "I've tried every optimizer out there. SwitchControl is the only one I trust to not break my system.",
-    rating: 5
-  },
-  {
-    name: "Mike R.",
-    role: "Warzone Streamer",
-    content: "The network tweaks alone were worth it. My ping is more consistent and I'm not getting those random spikes anymore.",
-    rating: 5
-  }
-];
 
 const FAQ_ITEMS = [
   {
@@ -516,7 +496,7 @@ function Footer() {
           <div>
             <h4 className="font-semibold text-white mb-4 text-sm">Support</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><a href="mailto:support@switchcontrol.org" className="hover:text-white transition-colors">Contact</a></li>
+              <li><a href="mailto:switchcontrol67@gmail.com" className="hover:text-white transition-colors">Contact</a></li>
               <li><a href={SOCIAL_LINKS.discord} target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">Discord</a></li>
             </ul>
           </div>
@@ -601,8 +581,9 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40 relative">
             <div className="text-center max-w-4xl mx-auto">
               <AnimateIn delay={0}>
-                <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
-                  Trusted by 10,000+ competitive gamers
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
+                  <Star className="size-3 fill-primary text-primary" />
+                  Early Access Release
                 </span>
               </AnimateIn>
               
@@ -791,37 +772,23 @@ export default function Landing() {
 
         <section className="py-24 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <Reveal className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-                Loved by Competitive Gamers
-              </h2>
-              <p className="text-muted-foreground">
-                Join thousands of players who've optimized their gameplay.
-              </p>
+            <Reveal className="text-center">
+              <Card className="bg-white/5 border-white/10 max-w-2xl mx-auto">
+                <CardContent className="p-8 md:p-12">
+                  <div className="flex justify-center gap-1 mb-6">
+                    <Star className="size-5 text-primary fill-primary" />
+                    <Star className="size-5 text-primary fill-primary" />
+                    <Star className="size-5 text-primary fill-primary" />
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                    Early Access Release
+                  </h2>
+                  <p className="text-muted-foreground leading-relaxed">
+                    SwitchControl is currently in early access. Features are actively being improved based on real user feedback.
+                  </p>
+                </CardContent>
+              </Card>
             </Reveal>
-            
-            <div className="grid md:grid-cols-3 gap-6">
-              {TESTIMONIALS.map((testimonial, i) => (
-                <Reveal key={testimonial.name} delay={i * 0.1}>
-                  <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
-                    <CardContent className="p-6">
-                      <div className="flex gap-1 mb-4">
-                        {Array.from({ length: testimonial.rating }).map((_, i) => (
-                          <Star key={i} className="size-4 fill-yellow-400 text-yellow-400" />
-                        ))}
-                      </div>
-                      <p className="text-muted-foreground mb-4 text-sm leading-relaxed">
-                        "{testimonial.content}"
-                      </p>
-                      <div>
-                        <div className="font-medium text-white">{testimonial.name}</div>
-                        <div className="text-xs text-muted-foreground">{testimonial.role}</div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Reveal>
-              ))}
-            </div>
           </div>
         </section>
 

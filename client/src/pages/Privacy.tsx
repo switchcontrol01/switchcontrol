@@ -103,8 +103,8 @@ export default function Privacy() {
             <h2 className="text-xl font-semibold text-white mb-3">10. Contact</h2>
             <p className="text-muted-foreground leading-relaxed">
               For privacy questions or data requests, contact us at{" "}
-              <a href="mailto:privacy@switchcontrol.org" className="text-primary hover:underline">
-                privacy@switchcontrol.org
+              <a href="mailto:switchcontrol67@gmail.com" className="text-primary hover:underline">
+                switchcontrol67@gmail.com
               </a>
             </p>
           </section>
