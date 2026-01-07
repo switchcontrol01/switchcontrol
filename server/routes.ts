@@ -254,29 +254,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/me", async (req, res) => {
-    try {
-      const user = (req as any).user;
-      if (!user) {
-        return res.json({ loggedIn: false });
-      }
-
-      const dbUser = await storage.getUser(user.id);
-      if (!dbUser) {
-        return res.json({ loggedIn: false });
-      }
-
-      res.json({
-        loggedIn: true,
-        id: dbUser.id,
-        email: dbUser.email,
-        isPremium: dbUser.isPremium || false,
-      });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get user info" });
-    }
-  });
-
   app.get("/api/stripe/publishable-key", async (req, res) => {
     try {
       const publishableKey = await getStripePublishableKey();

@@ -13,7 +13,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { data: user, isLoading } = useQuery({
     queryKey: ['/api/me'],
     queryFn: async () => {
-      const res = await fetch('/api/me');
+      const res = await fetch('/api/me', { credentials: 'include' });
       if (!res.ok) return null;
       return res.json();
     },
@@ -55,7 +55,7 @@ export function useAuth() {
   const { data: user, isLoading, refetch } = useQuery({
     queryKey: ['/api/me'],
     queryFn: async () => {
-      const res = await fetch('/api/me');
+      const res = await fetch('/api/me', { credentials: 'include' });
       if (!res.ok) return null;
       return res.json();
     },
@@ -66,9 +66,10 @@ export function useAuth() {
 
   const logout = async () => {
     try {
-      await fetch('/auth/logout', { method: 'POST' });
+      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
       queryClient.setQueryData(['/api/me'], null);
       queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+      window.location.href = '/';
     } catch (error) {
       console.error('Logout failed:', error);
     }

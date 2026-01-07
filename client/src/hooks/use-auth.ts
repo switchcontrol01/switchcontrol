@@ -1,47 +1,55 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { User } from "@shared/models/auth";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
-async function fetchUser(): Promise<User | null> {
-  const response = await fetch("/api/auth/user", {
+interface AuthUser {
+  loggedIn: boolean;
+  id?: string;
+  email?: string | null;
+  name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  avatar?: string | null;
+  isPremium?: boolean;
+}
+
+async function fetchUser(): Promise<AuthUser> {
+  const response = await fetch("/api/me", {
     credentials: "include",
   });
 
-  if (response.status === 401) {
-    return null;
-  }
-
   if (!response.ok) {
-    throw new Error(`${response.status}: ${response.statusText}`);
+    return { loggedIn: false };
   }
 
   return response.json();
 }
 
-async function logout(): Promise<void> {
-  window.location.href = "/api/logout";
-}
-
 export function useAuth() {
   const queryClient = useQueryClient();
-  const { data: user, isLoading } = useQuery<User | null>({
-    queryKey: ["/api/auth/user"],
+  const { data: user, isLoading, refetch } = useQuery<AuthUser>({
+    queryKey: ["/api/me"],
     queryFn: fetchUser,
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 30,
+    refetchOnWindowFocus: true,
   });
 
-  const logoutMutation = useMutation({
-    mutationFn: logout,
-    onSuccess: () => {
-      queryClient.setQueryData(["/api/auth/user"], null);
-    },
-  });
+  const logout = async () => {
+    try {
+      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+      queryClient.setQueryData(['/api/me'], { loggedIn: false });
+      queryClient.invalidateQueries({ queryKey: ['/api/me'] });
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
 
   return {
-    user,
+    user: user?.loggedIn ? user : null,
     isLoading,
-    isAuthenticated: !!user,
-    logout: logoutMutation.mutate,
-    isLoggingOut: logoutMutation.isPending,
+    isAuthenticated: user?.loggedIn ?? false,
+    isPremium: user?.isPremium ?? false,
+    logout,
+    refetch,
   };
 }
