@@ -5,6 +5,10 @@ console.log("Has STRIPE_LIVE_KEY:", Boolean(process.env.STRIPE_LIVE_KEY));
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+export function isTestMode(): boolean {
+  return process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ?? false;
+}
+
 export function getStripeClient(): Stripe {
   return stripe;
 }

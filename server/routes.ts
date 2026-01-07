@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { setupGoogleAuth } from "./auth/google";
-import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
+import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -281,20 +281,11 @@ export async function registerRoutes(
 
       const stripe = await getUncachableStripeClient();
       const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
-
-      let customerId = dbUser.stripeCustomerId;
-      if (!customerId) {
-        const customer = await stripe.customers.create({
-          email: dbUser.email || undefined,
-          metadata: { userId: dbUser.id },
-        });
-        customerId = customer.id;
-        await storage.updateUserStripeInfo(dbUser.id, { stripeCustomerId: customerId });
-      }
+      const testMode = isTestMode();
 
       console.log("Checkout - Stripe key prefix:", process.env.STRIPE_SECRET_KEY?.slice(0, 7));
       console.log("Checkout - Stripe price prefix:", process.env.STRIPE_PRICE_ID?.slice(0, 6));
-      console.log("Checkout - Has STRIPE_LIVE_KEY:", Boolean(process.env.STRIPE_LIVE_KEY));
+      console.log("Checkout - Test mode:", testMode);
       
       const priceId = process.env.STRIPE_PRICE_ID;
       
@@ -303,8 +294,7 @@ export async function registerRoutes(
         return res.status(500).json({ error: "Stripe not configured properly" });
       }
 
-      const session = await stripe.checkout.sessions.create({
-        customer: customerId,
+      const sessionConfig: any = {
         payment_method_types: ['card'],
         line_items: [{
           price: priceId,
@@ -316,7 +306,22 @@ export async function registerRoutes(
         metadata: {
           userId: dbUser.id,
         },
-      });
+      };
+
+      if (!testMode) {
+        let customerId = dbUser.stripeCustomerId;
+        if (!customerId) {
+          const customer = await stripe.customers.create({
+            email: dbUser.email || undefined,
+            metadata: { userId: dbUser.id },
+          });
+          customerId = customer.id;
+          await storage.updateUserStripeInfo(dbUser.id, { stripeCustomerId: customerId });
+        }
+        sessionConfig.customer = customerId;
+      }
+
+      const session = await stripe.checkout.sessions.create(sessionConfig);
 
       res.json({ url: session.url });
     } catch (error: any) {
