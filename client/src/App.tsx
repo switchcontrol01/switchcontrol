@@ -19,6 +19,7 @@ import Pricing from "@/pages/Pricing";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import Download from "@/pages/Download";
+import PremiumSuccess from "@/pages/PremiumSuccess";
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -54,6 +55,13 @@ function Router() {
         <Route path="/pricing" component={Pricing} />
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
+        
+        {/* Premium Success Page (protected) */}
+        <Route path="/premium/success">
+          <ProtectedRoute>
+            <PremiumSuccess />
+          </ProtectedRoute>
+        </Route>
         
         {/* Protected Download Page */}
         <Route path="/download">

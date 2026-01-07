@@ -1,0 +1,142 @@
+TASK: Fix LIVE Stripe checkout + fix login redirect behavior
+
+GOALS:
+1) “Get Premium” must open LIVE Stripe Checkout using the LIVE price ID.
+2) After login, users should land on the homepage (landing page) while logged in.
+3) Users should ONLY be redirected to the download page after a successful purchase or when they manually click Download.
+
+====================================================
+PART 1: STRIPE (LIVE MODE) FIX
+====================================================
+
+LIVE Stripe IDs (confirmed):
+- LIVE Product ID: prod_TkG1AEMJPPtYfG
+- LIVE Price ID (USE THIS): price_1Sm1VmBzGFRKe47siDjqZyGH
+
+IMPORTANT RULES:
+- NEVER charge using product ID.
+- ALWAYS charge using price ID.
+- Backend MUST use sk_live_ key only.
+- Frontend must NOT contain any Stripe secret keys.
+
+----------------------------------------------------
+1) Environment Variables (Replit Secrets)
+----------------------------------------------------
+Set these exactly:
+
+STRIPE_SECRET_KEY = sk_live_**************
+STRIPE_PRICE_ID = price_1Sm1VmBzGFRKe47siDjqZyGH
+APP_URL = https://<published-app-url>.replit.app
+
+----------------------------------------------------
+2) Backend: Create Checkout Session
+----------------------------------------------------
+Find or create:
+POST /api/stripe/create-checkout-session
+
+Implementation requirements:
+- Initialize Stripe with process.env.STRIPE_SECRET_KEY
+- Create checkout session with:
+  mode: "payment"
+  line_items:
+    - price: process.env.STRIPE_PRICE_ID
+      quantity: 1
+  success_url: `${process.env.APP_URL}/premium/success?session_id={CHECKOUT_SESSION_ID}`
+  cancel_url: `${process.env.APP_URL}/pricing`
+
+Add logging:
+- console.log("Stripe checkout requested")
+- console.log("Using price:", process.env.STRIPE_PRICE_ID)
+- console.log("Key mode:", process.env.STRIPE_SECRET_KEY.startsWith("sk_live_") ? "LIVE" : "NOT LIVE")
+
+Error handling:
+- If Stripe fails, return HTTP 500 with:
+  { error: "Stripe checkout failed", details: err.message }
+
+----------------------------------------------------
+3) Frontend: Get Premium Button (Pricing.tsx)
+----------------------------------------------------
+On “Get Premium” click:
+- Disable button while loading
+- fetch("/api/stripe/create-checkout-session", { method: "POST", credentials: "include" })
+- If response contains url → window.location.href = url
+- If error → show visible toast
+- NO silent failures
+
+====================================================
+PART 2: LOGIN REDIRECT FIX
+====================================================
+
+CURRENT PROBLEM:
+After login, users are automatically redirected to the Download page.
+
+DESIRED BEHAVIOR:
+- After login → redirect to homepage (landing page) while logged in
+- Download page should only be accessible when:
+  a) User clicks Download manually
+  b) User has Premium OR free download permission
+
+----------------------------------------------------
+4) Fix Login Redirect Logic
+----------------------------------------------------
+
+Search for:
+- login redirect logic
+- auth callback
+- onAuthSuccess
+- useEffect checking user session
+- router.push("/download") or navigate("/download")
+
+REMOVE or CHANGE:
+❌ Any automatic redirect to "/download" on login
+
+REPLACE WITH:
+✔ Default redirect to "/"
+
+Example logic:
+- After successful login:
+  router.push("/")
+  OR
+  navigate("/")
+
+----------------------------------------------------
+5) Protect Download Page Instead
+----------------------------------------------------
+
+On the Download page:
+- Check if user is logged in
+- If NOT logged in → redirect to "/login"
+- If logged in but NOT premium → show upgrade message
+- If logged in AND premium → allow download
+
+DO NOT redirect to download globally after login.
+
+----------------------------------------------------
+6) Premium Success Handling
+----------------------------------------------------
+
+On:
+`/premium/success`
+
+- Verify session (optional webhook later)
+- Mark user as premium in database
+- Redirect to:
+  `/download`
+
+This is the ONLY place that should auto-redirect to download.
+
+====================================================
+FINAL CHECKLIST
+====================================================
+
+Before publishing:
+- Stripe checkout opens LIVE (no test banner)
+- Login sends user to homepage
+- Download page is gated correctly
+- Premium success redirects to download
+- No automatic redirects to download on login
+
+DELIVERABLE:
+- Apply fixes
+- Republish
+- Confirm behavior matches goals

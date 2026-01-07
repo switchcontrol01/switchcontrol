@@ -292,23 +292,25 @@ export async function registerRoutes(
         await storage.updateUserStripeInfo(dbUser.id, { stripeCustomerId: customerId });
       }
 
+      const priceId = process.env.STRIPE_PRICE_ID;
+      console.log("Stripe checkout requested");
+      console.log("Using price:", priceId);
+      
+      if (!priceId) {
+        console.error("STRIPE_PRICE_ID not configured");
+        return res.status(500).json({ error: "Stripe not configured properly" });
+      }
+
       const session = await stripe.checkout.sessions.create({
         customer: customerId,
         payment_method_types: ['card'],
         line_items: [{
-          price_data: {
-            currency: 'usd',
-            product_data: {
-              name: 'SwitchControl Premium (Lifetime)',
-              description: 'One-time payment for lifetime access to all premium features',
-            },
-            unit_amount: 5000,
-          },
+          price: priceId,
           quantity: 1,
         }],
         mode: 'payment',
-        success_url: `${baseUrl}/download?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${baseUrl}/pricing?checkout=cancel`,
+        success_url: `${baseUrl}/premium/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${baseUrl}/pricing`,
         metadata: {
           userId: dbUser.id,
         },

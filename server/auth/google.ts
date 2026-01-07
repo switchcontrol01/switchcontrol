@@ -186,8 +186,8 @@ export function setupGoogleAuth(app: Express): void {
         message: "Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables",
       });
     }
-    const rawNext = typeof req.query.next === 'string' ? req.query.next : '/download';
-    const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/download';
+    const rawNext = typeof req.query.next === 'string' ? req.query.next : '/';
+    const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
     (req.session as any).returnTo = nextUrl;
     console.log("[AUTH] Starting Google OAuth flow, returnTo:", nextUrl);
     passport.authenticate("google", {
@@ -206,7 +206,7 @@ export function setupGoogleAuth(app: Express): void {
       })(req, res, next);
     },
     (req, res) => {
-      const returnTo = (req.session as any).returnTo || '/download';
+      const returnTo = (req.session as any).returnTo || '/';
       delete (req.session as any).returnTo;
       console.log("[AUTH] Google OAuth callback successful, redirecting to:", returnTo);
       res.redirect(returnTo);
