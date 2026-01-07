@@ -108,11 +108,13 @@ export function setupGoogleAuth(app: Express): void {
       store: sessionStore,
       resave: false,
       saveUninitialized: false,
+      name: "switchcontrol.sid",
       cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: sessionTtl,
+        path: "/",
       },
     })
   );
@@ -225,11 +227,26 @@ export function setupGoogleAuth(app: Express): void {
         if (sessionErr) {
           console.error("[AUTH] Session destroy error:", sessionErr);
         }
-        res.clearCookie("connect.sid");
+        res.clearCookie("switchcontrol.sid", { path: "/" });
         res.status(204).end();
       });
     });
   });
+
+  if (process.env.NODE_ENV !== "production") {
+    app.get("/api/debug/auth", (req, res) => {
+      const cookies = req.headers.cookie || "";
+      const cookieNames = cookies.split(";").map(c => c.trim().split("=")[0]).filter(Boolean);
+      res.json({
+        host: req.headers.host,
+        origin: req.headers.origin,
+        cookieNames,
+        isAuthenticated: req.isAuthenticated(),
+        hasUser: !!req.user,
+        userId: req.user?.id || null,
+      });
+    });
+  }
 
   app.get("/api/me", async (req, res) => {
     if (req.isAuthenticated() && req.user) {
