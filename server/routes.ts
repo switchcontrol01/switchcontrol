@@ -307,7 +307,7 @@ export async function registerRoutes(
           quantity: 1,
         }],
         mode: 'payment',
-        success_url: `${baseUrl}/download?checkout=success`,
+        success_url: `${baseUrl}/download?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/pricing?checkout=cancel`,
         metadata: {
           userId: dbUser.id,
@@ -332,6 +332,30 @@ export async function registerRoutes(
       res.json({ isPremium: dbUser?.isPremium || false, authenticated: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to get premium status" });
+    }
+  });
+
+  app.get("/api/stripe/session", async (req, res) => {
+    try {
+      const { session_id } = req.query;
+      if (!session_id || typeof session_id !== 'string') {
+        return res.status(400).json({ error: "session_id is required" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+
+      res.json({
+        id: session.id,
+        payment_status: session.payment_status,
+        status: session.status,
+        customer_email: session.customer_details?.email,
+        amount_total: session.amount_total,
+        currency: session.currency,
+      });
+    } catch (error: any) {
+      console.error("Session retrieval error:", error);
+      res.status(500).json({ error: error.message || "Failed to retrieve session" });
     }
   });
 
