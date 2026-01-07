@@ -22,6 +22,7 @@ import { useQuery } from "@tanstack/react-query";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
+import { useToast } from "@/hooks/use-toast";
 
 const FREE_FEATURES = [
   "Basic system tweaks",
@@ -116,12 +117,15 @@ export default function Pricing() {
   const [, navigate] = useLocation();
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
+  const { toast } = useToast();
   useRevealOnScroll();
 
   const { data: premiumStatus } = useQuery({
     queryKey: ['/api/user/premium-status'],
     queryFn: async () => {
-      const res = await fetch('/api/user/premium-status');
+      const res = await fetch('/api/user/premium-status', {
+        credentials: 'include',
+      });
       return res.json();
     }
   });
@@ -135,27 +139,48 @@ export default function Pricing() {
   };
 
   const handlePurchase = async () => {
+    console.log("Premium button clicked", { user, premiumStatus });
+    
     if (!premiumStatus?.authenticated) {
-      navigate('/login?next=/download');
+      console.log("Not authenticated, redirecting to login");
+      window.location.href = '/login?next=/pricing';
       return;
     }
 
     if (premiumStatus?.isPremium) {
+      console.log("Already premium");
       return;
     }
 
     setIsLoading(true);
     try {
+      console.log("Creating checkout session...");
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
       });
+      
       const data = await res.json();
-      if (data.url) {
-        window.location.href = data.url;
+      console.log("Checkout response:", data);
+      
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to create checkout session');
       }
-    } catch (error) {
+      
+      if (data.url) {
+        console.log("Redirecting to Stripe:", data.url);
+        window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL received');
+      }
+    } catch (error: any) {
       console.error('Checkout error:', error);
+      toast({
+        title: "Checkout Error",
+        description: error.message || "Failed to start checkout. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setIsLoading(false);
     }
