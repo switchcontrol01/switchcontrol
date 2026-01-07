@@ -793,6 +793,7 @@ export default function Landing() {
         </section>
 
         <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative" data-reveal>
+          <div id="pricing-top"></div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
