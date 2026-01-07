@@ -1,4 +1,4 @@
-import { getStripeSync } from './stripeClient';
+import { getStripeClient, getWebhookSecret } from './stripeClient';
 import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
@@ -14,8 +14,17 @@ export class WebhookHandlers {
       );
     }
 
-    const sync = await getStripeSync();
-    const event = await sync.processWebhook(payload, signature);
+    const stripe = getStripeClient();
+    const webhookSecret = getWebhookSecret();
+    
+    let event;
+    
+    if (webhookSecret) {
+      event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+    } else {
+      console.warn('STRIPE_WEBHOOK_SECRET not configured, parsing event without verification');
+      event = JSON.parse(payload.toString());
+    }
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as any;

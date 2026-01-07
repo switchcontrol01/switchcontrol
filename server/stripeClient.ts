@@ -1,6 +1,5 @@
 import Stripe from 'stripe';
 
-// Use STRIPE_LIVE_KEY to bypass caching issues with old STRIPE_SECRET_KEY
 let stripeClient: Stripe | null = null;
 
 export function getStripeClient(): Stripe {
@@ -45,28 +44,6 @@ export async function getStripeSecretKey(): Promise<string> {
   return secretKey;
 }
 
-let stripeSync: any = null;
-
-export async function getStripeSync() {
-  if (!stripeSync) {
-    const { StripeSync } = await import('stripe-replit-sync');
-    const secretKey = process.env.STRIPE_LIVE_KEY;
-    
-    if (!secretKey) {
-      throw new Error('STRIPE_LIVE_KEY is not configured');
-    }
-    
-    const keyPrefix = secretKey.substring(0, 12);
-    const keySuffix = secretKey.substring(secretKey.length - 4);
-    console.log(`StripeSync using key: ${keyPrefix}...${keySuffix}`);
-
-    stripeSync = new StripeSync({
-      poolConfig: {
-        connectionString: process.env.DATABASE_URL!,
-        max: 2,
-      },
-      stripeSecretKey: secretKey,
-    });
-  }
-  return stripeSync;
+export function getWebhookSecret(): string | undefined {
+  return process.env.STRIPE_WEBHOOK_SECRET;
 }
