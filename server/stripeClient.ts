@@ -1,14 +1,14 @@
 import Stripe from 'stripe';
 
-// Force env reload on each startup
+// Use STRIPE_LIVE_KEY to bypass caching issues with old STRIPE_SECRET_KEY
 let stripeClient: Stripe | null = null;
 
 export function getStripeClient(): Stripe {
   if (!stripeClient) {
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const secretKey = process.env.STRIPE_LIVE_KEY;
     
     if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY is not configured in environment secrets');
+      throw new Error('STRIPE_LIVE_KEY is not configured in environment secrets');
     }
     
     const keyPrefix = secretKey.substring(0, 12);
@@ -38,9 +38,9 @@ export function getStripePublishableKey(): string {
 }
 
 export async function getStripeSecretKey(): Promise<string> {
-  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const secretKey = process.env.STRIPE_LIVE_KEY;
   if (!secretKey) {
-    throw new Error('STRIPE_SECRET_KEY is not configured');
+    throw new Error('STRIPE_LIVE_KEY is not configured');
   }
   return secretKey;
 }
@@ -50,10 +50,10 @@ let stripeSync: any = null;
 export async function getStripeSync() {
   if (!stripeSync) {
     const { StripeSync } = await import('stripe-replit-sync');
-    const secretKey = process.env.STRIPE_SECRET_KEY;
+    const secretKey = process.env.STRIPE_LIVE_KEY;
     
     if (!secretKey) {
-      throw new Error('STRIPE_SECRET_KEY is not configured');
+      throw new Error('STRIPE_LIVE_KEY is not configured');
     }
     
     const keyPrefix = secretKey.substring(0, 12);
