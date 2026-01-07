@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -119,6 +119,10 @@ export default function Pricing() {
   const { user } = useAuth();
   const { toast } = useToast();
   useRevealOnScroll();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   const { data: premiumStatus } = useQuery({
     queryKey: ['/api/user/premium-status'],

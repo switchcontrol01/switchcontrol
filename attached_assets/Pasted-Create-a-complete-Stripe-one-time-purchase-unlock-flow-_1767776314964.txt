@@ -1,0 +1,79 @@
+Create a complete Stripe one time purchase unlock flow.
+
+A) Use published domain URLs for Checkout redirect
+1) Find the backend endpoint that creates the Checkout Session using stripe.checkout.sessions.create.
+2) Set success_url and cancel_url to the PUBLISHED domain (not preview):
+   success_url: https://<PUBLISHED_DOMAIN>/success?session_id={CHECKOUT_SESSION_ID}
+   cancel_url: https://<PUBLISHED_DOMAIN>/pricing
+3) Add mapping info to the Checkout Session so we can link payment to a user:
+   - If we have a logged-in user id, set:
+     client_reference_id: user.id
+   - Also set metadata when possible:
+     metadata: { userId: user.id, email: user.email }
+
+B) Add a /success page that does NOT require login
+1) Create a public frontend route: /success
+2) Do not protect it with auth middleware.
+3) On load:
+   - Read session_id from the query string
+   - Call POST /api/stripe/confirm with { session_id }
+4) Show UI states:
+   - “Confirming payment…” while loading
+   - “Payment confirmed. Premium unlocked.” on success
+   - If error, show a friendly message and a button back to pricing
+5) Add buttons:
+   - “Go to app”
+   - “Go to pricing”
+
+C) Add server side confirm endpoint and unlock user
+1) Create POST /api/stripe/confirm
+   Body: { session_id: string }
+2) Server logic:
+   - stripe.checkout.sessions.retrieve(session_id)
+   - If payment_status !== "paid", return 400 { ok:false, error:"not_paid" }
+3) Determine userId:
+   - First try checkoutSession.client_reference_id
+   - Else try checkoutSession.metadata.userId
+4) Update DB:
+   - Ensure User table/collection includes: id, isPremium boolean (default false)
+   - Use the project’s existing DB/ORM. If none exists, add sqlite with a simple persistence layer.
+   - Set user.isPremium = true for that userId
+5) Return: { ok:true }
+
+D) Add /api/me endpoint so UI can show Purchased
+1) Create GET /api/me
+2) If user logged in return:
+   { loggedIn:true, id:user.id, email:user.email, isPremium:user.isPremium }
+3) Else return:
+   { loggedIn:false, isPremium:false }
+
+E) Update pricing page UI
+1) On pricing page, call GET /api/me.
+2) If isPremium true:
+   - Change Premium button text to “Purchased”
+   - Disable the button
+   - Grey it out slightly and remove click handler
+3) Add server side guard:
+   - In the checkout create endpoint, if user.isPremium true, return 400 { error:"already_premium" }
+
+F) Make sure everything uses env vars only
+Backend must ONLY use:
+- process.env.STRIPE_SECRET_KEY
+- process.env.STRIPE_PRICE_ID
+Remove any other Stripe connector/sync usage.
+
+G) After changes
+1) Restart server and republish.
+2) Test on the PUBLISHED site:
+   - Click Get Premium
+   - Complete a TEST payment
+   - Land on /success
+   - Confirm unlock
+   - Go back to /pricing and verify it shows “Purchased”
+
+Important logging rule:
+Do not log full keys. Only log prefixes like sk_test or sk_live.
+
+Notes to avoid getting stuck:
+- The “You’re all done here” Stripe screen happens if you refresh an old session. Always click checkout again to generate a new session.
+- /success must be public because cookies can be missing after redirect. Confirmation must rely on session_id and server-side mapping via client_reference_id or metadata.
