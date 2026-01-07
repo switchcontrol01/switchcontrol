@@ -4,13 +4,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowLeft, Download, Shield, CheckCircle, Monitor, Clock } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
 import { brand } from "@/config/brand";
+import { motion, useMotion } from "@/lib/motion";
 
 export default function DownloadPage() {
   const { user } = useAuth();
+  const { prefersReducedMotion } = useMotion();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
+      
+      <style>{`
+        @keyframes logoFloat {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes glowPulse {
+          0%, 100% { 
+            filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.5)) drop-shadow(0 0 24px rgba(139, 92, 246, 0.3));
+          }
+          50% { 
+            filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.7)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.5));
+          }
+        }
+        .logo-animate {
+          animation: logoFloat 3s ease-in-out infinite, glowPulse 2.5s ease-in-out infinite;
+        }
+        .logo-animate:hover {
+          transform: scale(1.03);
+          filter: drop-shadow(0 0 24px rgba(139, 92, 246, 0.8)) drop-shadow(0 0 48px rgba(139, 92, 246, 0.6));
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .logo-animate {
+            animation: none;
+          }
+        }
+      `}</style>
       
       <header className="relative z-10 p-4">
         <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors">
@@ -23,8 +52,17 @@ export default function DownloadPage() {
         <Card className="w-full max-w-lg bg-black/50 border-white/10 backdrop-blur-xl">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <div className="size-16 rounded-xl bg-gradient-to-br from-primary to-purple-600 flex items-center justify-center text-white shadow-lg shadow-primary/30">
-                <Download className="size-8" />
+              <div className="relative">
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-purple-600/30 blur-2xl scale-150 opacity-60" />
+                <motion.img 
+                  src="/brand/switchcontrol-logo.png" 
+                  alt="SwitchControl logo"
+                  className={`relative size-20 md:size-24 rounded-2xl transition-all duration-300 ${prefersReducedMotion ? '' : 'logo-animate'}`}
+                  initial={!prefersReducedMotion ? { opacity: 0, scale: 0.9 } : undefined}
+                  animate={!prefersReducedMotion ? { opacity: 1, scale: 1 } : undefined}
+                  transition={{ duration: 0.4 }}
+                  whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
+                />
               </div>
             </div>
             <CardTitle className="text-2xl text-white">Download {brand.name}</CardTitle>
