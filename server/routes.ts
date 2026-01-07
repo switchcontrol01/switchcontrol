@@ -292,9 +292,10 @@ export async function registerRoutes(
         await storage.updateUserStripeInfo(dbUser.id, { stripeCustomerId: customerId });
       }
 
+      console.log("Stripe key prefix:", process.env.STRIPE_SECRET_KEY?.slice(0, 7));
+      console.log("Stripe price id:", process.env.STRIPE_PRICE_ID);
+      
       const priceId = process.env.STRIPE_PRICE_ID;
-      console.log("Stripe checkout requested");
-      console.log("Using price:", priceId);
       
       if (!priceId) {
         console.error("STRIPE_PRICE_ID not configured");

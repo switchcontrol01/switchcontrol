@@ -1,31 +1,13 @@
 import Stripe from 'stripe';
 
-let stripeClient: Stripe | null = null;
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export function getStripeClient(): Stripe {
-  if (!stripeClient) {
-    const secretKey = process.env.STRIPE_LIVE_KEY;
-    
-    if (!secretKey) {
-      throw new Error('STRIPE_LIVE_KEY is not configured in environment secrets');
-    }
-    
-    const keyPrefix = secretKey.substring(0, 12);
-    const keySuffix = secretKey.substring(secretKey.length - 4);
-    console.log(`Stripe key loaded: ${keyPrefix}...${keySuffix}`);
-    
-    if (!secretKey.startsWith('sk_live_')) {
-      console.warn('WARNING: Stripe key does not appear to be a LIVE key');
-    }
-    
-    stripeClient = new Stripe(secretKey);
-  }
-  
-  return stripeClient;
+  return stripe;
 }
 
 export async function getUncachableStripeClient(): Promise<Stripe> {
-  return getStripeClient();
+  return stripe;
 }
 
 export function getStripePublishableKey(): string {
@@ -37,9 +19,9 @@ export function getStripePublishableKey(): string {
 }
 
 export async function getStripeSecretKey(): Promise<string> {
-  const secretKey = process.env.STRIPE_LIVE_KEY;
+  const secretKey = process.env.STRIPE_SECRET_KEY;
   if (!secretKey) {
-    throw new Error('STRIPE_LIVE_KEY is not configured');
+    throw new Error('STRIPE_SECRET_KEY is not configured');
   }
   return secretKey;
 }
