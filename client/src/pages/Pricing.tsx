@@ -18,7 +18,6 @@ import {
   MessageCircle
 } from "lucide-react";
 import { motion, useMotion } from "@/lib/motion";
-import { useQuery } from "@tanstack/react-query";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
@@ -115,8 +114,8 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 export default function Pricing() {
   const { prefersReducedMotion } = useMotion();
   const [, navigate] = useLocation();
-  const [isLoading, setIsLoading] = useState(false);
-  const { user } = useAuth();
+  const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
+  const { user, isAuthenticated, isPremium } = useAuth();
   const { toast } = useToast();
   useRevealOnScroll();
 
@@ -124,18 +123,8 @@ export default function Pricing() {
     window.scrollTo(0, 0);
   }, []);
 
-  const { data: me } = useQuery({
-    queryKey: ['/api/me'],
-    queryFn: async () => {
-      const res = await fetch('/api/me', {
-        credentials: 'include',
-      });
-      return res.json();
-    }
-  });
-
   const handleGetStarted = () => {
-    if (user) {
+    if (isAuthenticated) {
       window.location.href = "/download";
     } else {
       window.location.href = "/login?next=/download";
@@ -143,16 +132,16 @@ export default function Pricing() {
   };
 
   const handlePurchase = async () => {
-    if (!me?.loggedIn) {
+    if (!isAuthenticated) {
       window.location.href = '/login?next=/pricing';
       return;
     }
 
-    if (me?.isPremium) {
+    if (isPremium) {
       return;
     }
 
-    setIsLoading(true);
+    setIsCheckoutLoading(true);
     try {
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
@@ -179,7 +168,7 @@ export default function Pricing() {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsCheckoutLoading(false);
     }
   };
 
@@ -341,19 +330,19 @@ export default function Pricing() {
                 </ul>
                 
                 <Button 
-                  className={`w-full shadow-lg shadow-primary/30 ${me?.isPremium ? 'bg-zinc-600 hover:bg-zinc-600 cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary/90'}`}
-                  onClick={me?.isPremium ? undefined : handlePurchase}
-                  disabled={isLoading || me?.isPremium}
+                  className={`w-full shadow-lg shadow-primary/30 ${isPremium ? 'bg-zinc-600 hover:bg-zinc-600 cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary/90'}`}
+                  onClick={isPremium ? undefined : handlePurchase}
+                  disabled={isCheckoutLoading || isPremium}
                   data-testid="button-select-premium"
                 >
-                  {isLoading ? (
+                  {isCheckoutLoading ? (
                     <>
                       <Loader2 className="size-4 mr-2 animate-spin" />
                       Processing...
                     </>
-                  ) : me?.isPremium ? (
+                  ) : isPremium ? (
                     'Purchased'
-                  ) : !me?.loggedIn ? (
+                  ) : !isAuthenticated ? (
                     'Log in to purchase'
                   ) : (
                     'Get Premium - $50'

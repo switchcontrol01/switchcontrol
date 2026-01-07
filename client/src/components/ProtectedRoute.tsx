@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -9,27 +9,16 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const [, navigate] = useLocation();
   const [isChecking, setIsChecking] = useState(true);
-
-  const { data: user, isLoading } = useQuery({
-    queryKey: ['/api/me'],
-    queryFn: async () => {
-      const res = await fetch('/api/me', { credentials: 'include' });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    retry: false,
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: true,
-  });
+  const { user, isLoading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (!isLoading) {
-      if (!user) {
+      if (!isAuthenticated) {
         navigate('/', { replace: true });
       }
       setIsChecking(false);
     }
-  }, [user, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading || isChecking) {
     return (
@@ -42,38 +31,11 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!isAuthenticated) {
     return null;
   }
 
   return <>{children}</>;
 }
 
-export function useAuth() {
-  const queryClient = useQueryClient();
-  
-  const { data: user, isLoading, refetch } = useQuery({
-    queryKey: ['/api/me'],
-    queryFn: async () => {
-      const res = await fetch('/api/me', { credentials: 'include' });
-      if (!res.ok) return null;
-      return res.json();
-    },
-    retry: false,
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: true,
-  });
-
-  const logout = async () => {
-    try {
-      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-      queryClient.setQueryData(['/api/me'], null);
-      queryClient.invalidateQueries({ queryKey: ['/api/me'] });
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
-
-  return { user, isLoading, isAuthenticated: !!user, refetch, logout };
-}
+export { useAuth } from "@/hooks/use-auth";
