@@ -6,6 +6,7 @@ import type { Express, RequestHandler } from "express";
 import { db } from "../db";
 import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
+import { storage } from "../storage";
 
 declare global {
   namespace Express {
@@ -230,34 +231,38 @@ export function setupGoogleAuth(app: Express): void {
     });
   });
 
-  app.get("/api/me", (req, res) => {
+  app.get("/api/me", async (req, res) => {
     if (req.isAuthenticated() && req.user) {
+      const dbUser = await storage.getUser(req.user.id);
       return res.json({
+        loggedIn: true,
         id: req.user.id,
         email: req.user.email,
         name: [req.user.firstName, req.user.lastName].filter(Boolean).join(" ") || null,
         firstName: req.user.firstName,
         lastName: req.user.lastName,
         avatar: req.user.profileImageUrl,
-        isPremium: req.user.isPremium,
+        isPremium: dbUser?.isPremium || false,
       });
     }
-    return res.json(null);
+    return res.json({ loggedIn: false, isPremium: false });
   });
 
-  app.get("/api/auth/me", (req, res) => {
+  app.get("/api/auth/me", async (req, res) => {
     if (req.isAuthenticated() && req.user) {
+      const dbUser = await storage.getUser(req.user.id);
       return res.json({
+        loggedIn: true,
         id: req.user.id,
         email: req.user.email,
         name: [req.user.firstName, req.user.lastName].filter(Boolean).join(" ") || null,
         firstName: req.user.firstName,
         lastName: req.user.lastName,
         avatar: req.user.profileImageUrl,
-        isPremium: req.user.isPremium,
+        isPremium: dbUser?.isPremium || false,
       });
     }
-    return res.json(null);
+    return res.json({ loggedIn: false, isPremium: false });
   });
 }
 

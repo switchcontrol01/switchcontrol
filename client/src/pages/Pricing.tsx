@@ -124,10 +124,10 @@ export default function Pricing() {
     window.scrollTo(0, 0);
   }, []);
 
-  const { data: premiumStatus } = useQuery({
-    queryKey: ['/api/user/premium-status'],
+  const { data: me } = useQuery({
+    queryKey: ['/api/me'],
     queryFn: async () => {
-      const res = await fetch('/api/user/premium-status', {
+      const res = await fetch('/api/me', {
         credentials: 'include',
       });
       return res.json();
@@ -143,22 +143,17 @@ export default function Pricing() {
   };
 
   const handlePurchase = async () => {
-    console.log("Premium button clicked", { user, premiumStatus });
-    
-    if (!premiumStatus?.authenticated) {
-      console.log("Not authenticated, redirecting to login");
+    if (!me?.loggedIn) {
       window.location.href = '/login?next=/pricing';
       return;
     }
 
-    if (premiumStatus?.isPremium) {
-      console.log("Already premium");
+    if (me?.isPremium) {
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log("Creating checkout session...");
       const res = await fetch('/api/stripe/create-checkout-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,14 +161,12 @@ export default function Pricing() {
       });
       
       const data = await res.json();
-      console.log("Checkout response:", data);
       
       if (!res.ok) {
         throw new Error(data.error || 'Failed to create checkout session');
       }
       
       if (data.url) {
-        console.log("Redirecting to Stripe:", data.url);
         window.location.href = data.url;
       } else {
         throw new Error('No checkout URL received');
@@ -348,9 +341,9 @@ export default function Pricing() {
                 </ul>
                 
                 <Button 
-                  className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30"
-                  onClick={handlePurchase}
-                  disabled={isLoading || premiumStatus?.isPremium}
+                  className={`w-full shadow-lg shadow-primary/30 ${me?.isPremium ? 'bg-zinc-600 hover:bg-zinc-600 cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary/90'}`}
+                  onClick={me?.isPremium ? undefined : handlePurchase}
+                  disabled={isLoading || me?.isPremium}
                   data-testid="button-select-premium"
                 >
                   {isLoading ? (
@@ -358,8 +351,8 @@ export default function Pricing() {
                       <Loader2 className="size-4 mr-2 animate-spin" />
                       Processing...
                     </>
-                  ) : premiumStatus?.isPremium ? (
-                    'Already Premium'
+                  ) : me?.isPremium ? (
+                    'Purchased'
                   ) : (
                     'Get Premium - $50'
                   )}

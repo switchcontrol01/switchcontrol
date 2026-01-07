@@ -276,16 +276,14 @@ export async function registerRoutes(
       }
 
       if (dbUser.isPremium) {
-        return res.status(400).json({ error: "You already have Premium" });
+        return res.status(400).json({ error: "already_premium" });
       }
 
       const stripe = await getUncachableStripeClient();
-      const baseUrl = `https://${process.env.REPLIT_DOMAINS?.split(',')[0]}`;
+      const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
+      const publishedDomain = domains.find(d => d.endsWith('.replit.app')) || domains[0];
+      const baseUrl = `https://${publishedDomain}`;
       const testMode = isTestMode();
-
-      console.log("Checkout - Stripe key prefix:", process.env.STRIPE_SECRET_KEY?.slice(0, 7));
-      console.log("Checkout - Stripe price prefix:", process.env.STRIPE_PRICE_ID?.slice(0, 6));
-      console.log("Checkout - Test mode:", testMode);
       
       const priceId = process.env.STRIPE_PRICE_ID;
       
@@ -301,10 +299,12 @@ export async function registerRoutes(
           quantity: 1,
         }],
         mode: 'payment',
-        success_url: `${baseUrl}/premium/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/pricing`,
+        client_reference_id: dbUser.id,
         metadata: {
           userId: dbUser.id,
+          email: dbUser.email || '',
         },
       };
 
@@ -327,6 +327,42 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Checkout session error:", error);
       res.status(500).json({ error: error.message || "Failed to create checkout session" });
+    }
+  });
+
+  app.post("/api/stripe/confirm", async (req, res) => {
+    try {
+      const { session_id } = req.body;
+      if (!session_id) {
+        return res.status(400).json({ ok: false, error: "session_id required" });
+      }
+
+      const stripe = await getUncachableStripeClient();
+      const session = await stripe.checkout.sessions.retrieve(session_id);
+
+      if (session.payment_status !== 'paid') {
+        return res.status(400).json({ ok: false, error: "not_paid" });
+      }
+
+      const userId = session.client_reference_id || session.metadata?.userId;
+      
+      if (!userId) {
+        return res.status(400).json({ ok: false, error: "no_user_id" });
+      }
+
+      const dbUser = await storage.getUser(userId);
+      if (!dbUser) {
+        return res.status(404).json({ ok: false, error: "user_not_found" });
+      }
+
+      if (!dbUser.isPremium) {
+        await storage.setUserPremium(userId, true);
+      }
+
+      res.json({ ok: true });
+    } catch (error: any) {
+      console.error("Confirm error:", error);
+      res.status(500).json({ ok: false, error: error.message || "Failed to confirm payment" });
     }
   });
 
