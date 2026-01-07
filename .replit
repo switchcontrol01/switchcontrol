@@ -46,4 +46,4 @@ integrations = ["javascript_database:1.0.0", "javascript_log_in_with_replit:2.0.
 
 [userenv.shared]
 GOOGLE_REDIRECT_URI = "/auth/google/callback"
-STRIPE_PRICE_ID = "price_1Sm1VmBzGFRKe47siDjqZyGH"
+STRIPE_PRICE_ID = "price_1SmlVmBzGFRke47siDjqZygH"
