@@ -9,14 +9,25 @@ type Options = {
 
 export function useRevealOnScroll({
   selector = "[data-reveal]",
-  rootMargin = "0px 0px -10% 0px",
-  threshold = 0.1,
+  rootMargin = "50px 0px 0px 0px",
+  threshold = 0.05,
   once = true,
 }: Options = {}) {
   useEffect(() => {
     const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
     if (!els.length) return;
 
+    // CRITICAL FIX: Check if elements are already in viewport on mount
+    // This fixes desktop where content is visible immediately on load
+    els.forEach((el) => {
+      const rect = el.getBoundingClientRect();
+      const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+      if (inViewport) {
+        el.classList.add("is-visible");
+      }
+    });
+
+    // Then set up observer for elements not yet visible
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
@@ -31,7 +42,11 @@ export function useRevealOnScroll({
       { rootMargin, threshold }
     );
 
-    els.forEach((el) => io.observe(el));
+    els.forEach((el) => {
+      if (!el.classList.contains("is-visible")) {
+        io.observe(el);
+      }
+    });
     return () => io.disconnect();
   }, [selector, rootMargin, threshold, once]);
 }

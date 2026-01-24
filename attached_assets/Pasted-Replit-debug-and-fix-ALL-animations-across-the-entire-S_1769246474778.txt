@@ -1,0 +1,58 @@
+Replit, debug and fix ALL animations across the entire SwitchControl site. Right now mobile has working fade ins and motion, but desktop does not. This is not acceptable. I need you to manually verify every animation works on BOTH desktop and mobile.
+
+Goals:
+
+Every fade in, slide in, hover, and motion effect must work on desktop and mobile.
+
+Desktop must not be missing animations that exist on mobile.
+
+Animations must be smooth (no lag, no 1 FPS contours).
+
+Do not remove animations. Fix them properly.
+
+What’s broken:
+
+Hero section on desktop: “New release 2026”, “Unlock Your PC’s True Potential”, subtitle, and buttons do NOT animate in. Mobile does.
+
+Background contour lines: on desktop they are extremely slow/laggy or not animating properly. Mobile feels fine. Fix the contour animation performance and ensure it animates on desktop too.
+
+What you must do:
+A) Find the root cause
+
+Check if animations are conditionally disabled on desktop via breakpoints, feature detection, prefers-reduced-motion, requestAnimationFrame logic, or IntersectionObserver not firing.
+
+Check for CSS that only applies under mobile breakpoints.
+
+Check hydration issues or animations only running client-side and failing on desktop.
+
+Check any “isMobile” logic that blocks animations on desktop.
+
+B) Make animations consistent
+
+Use the same animation system for both desktop and mobile (do not maintain two different paths).
+
+Ensure animations trigger on load and on scroll consistently across viewport sizes.
+
+C) Performance fix for contours
+
+The contour animation must be GPU-friendly.
+
+Avoid heavy blur filters or expensive repaints on desktop.
+
+Use transform/opacity instead of layout-changing properties.
+
+Throttle or reduce complexity if needed, but keep it animated and visually premium.
+
+D) Manual verification required
+
+Test in desktop Chrome + Firefox at 1920x1080 and 1440x900.
+
+Test mobile viewport sizes (iPhone style).
+
+Confirm: hero text animates in, contour animates smoothly, and all other animations across sections also work.
+
+Only then publish.
+
+Deliverable:
+
+A short checklist in your response confirming each animation group works on desktop + mobile after your fix.

@@ -191,9 +191,32 @@ export function Reveal({
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
   const { prefersReducedMotion } = useMotion();
+  const hasChecked = useRef(false);
 
   useEffect(() => {
-    // Always use IntersectionObserver for scroll reveal
+    if (hasChecked.current) return;
+    hasChecked.current = true;
+
+    const el = ref.current;
+    if (!el) {
+      setIsVisible(true);
+      return;
+    }
+
+    // CRITICAL FIX: Check if element is already in viewport on mount
+    const rect = el.getBoundingClientRect();
+    const inViewport = (
+      rect.top < window.innerHeight &&
+      rect.bottom > 0
+    );
+
+    if (inViewport) {
+      // Already visible, animate in
+      setIsVisible(true);
+      return;
+    }
+
+    // Use IntersectionObserver for scroll reveal
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -202,15 +225,12 @@ export function Reveal({
         }
       },
       { 
-        threshold: 0.1, 
-        rootMargin: "0px 0px -5% 0px" // Slightly less aggressive margin
+        threshold: 0.05, 
+        rootMargin: "50px 0px 0px 0px"
       }
     );
 
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
+    observer.observe(el);
     return () => observer.disconnect();
   }, []);
 

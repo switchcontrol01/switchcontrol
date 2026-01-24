@@ -109,6 +109,19 @@ function AnimatedProgressBar({
   useEffect(() => {
     if (prefersReducedMotion || hasAnimated.current) return;
 
+    const el = ref.current;
+    if (!el) return;
+
+    // Check if already in viewport on mount
+    const rect = el.getBoundingClientRect();
+    const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+    
+    if (inViewport) {
+      hasAnimated.current = true;
+      setTimeout(() => setWidth(targetWidth), delay);
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated.current) {
@@ -118,13 +131,10 @@ function AnimatedProgressBar({
           }, delay);
         }
       },
-      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
+      { threshold: 0.1, rootMargin: "50px 0px 0px 0px" }
     );
 
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
+    observer.observe(el);
     return () => observer.disconnect();
   }, [targetWidth, delay, prefersReducedMotion]);
 
@@ -196,36 +206,50 @@ function CountingNumber({
       return;
     }
 
+    const el = ref.current;
+    if (!el) return;
+
+    const startCountingAnimation = () => {
+      hasAnimated.current = true;
+      const duration = 1500;
+      const startTime = performance.now();
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(numericValue * eased);
+        setDisplayValue(current.toString());
+        
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          setDisplayValue(numericValue.toString());
+        }
+      };
+      
+      requestAnimationFrame(animate);
+    };
+
+    // Check if already in viewport on mount
+    const rect = el.getBoundingClientRect();
+    const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+    
+    if (inViewport) {
+      startCountingAnimation();
+      return;
+    }
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated.current) {
-          hasAnimated.current = true;
-          const duration = 1500;
-          const startTime = performance.now();
-
-          const animate = (currentTime: number) => {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3);
-            const current = Math.round(numericValue * eased);
-            setDisplayValue(current.toString());
-            
-            if (progress < 1) {
-              requestAnimationFrame(animate);
-            } else {
-              setDisplayValue(numericValue.toString());
-            }
-          };
-          
-          requestAnimationFrame(animate);
+          startCountingAnimation();
         }
       },
-      { threshold: 0.3, rootMargin: "0px 0px -10% 0px" }
+      { threshold: 0.1, rootMargin: "50px 0px 0px 0px" }
     );
 
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
+    observer.observe(el);
 
     return () => observer.disconnect();
   }, [value, numericValue, prefersReducedMotion]);
@@ -249,20 +273,31 @@ function StatCard({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Always run animations on both desktop and mobile
+    if (hasShimmered) return;
+
+    const el = ref.current;
+    if (!el) return;
+
+    // Check if already in viewport on mount
+    const rect = el.getBoundingClientRect();
+    const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+    
+    if (inViewport) {
+      setTimeout(() => setHasShimmered(true), index * 100);
+      return;
+    }
+
+    // Use observer for scroll reveal
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasShimmered) {
           setTimeout(() => setHasShimmered(true), index * 100);
         }
       },
-      { threshold: 0.2, rootMargin: "0px 0px -5% 0px" }
+      { threshold: 0.1, rootMargin: "50px 0px 0px 0px" }
     );
 
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
+    observer.observe(el);
     return () => observer.disconnect();
   }, [index, hasShimmered]);
 
