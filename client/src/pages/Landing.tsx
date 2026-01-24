@@ -210,6 +210,7 @@ function CountingNumber({
     if (!el) return;
 
     const startCountingAnimation = () => {
+      if (hasAnimated.current) return;
       hasAnimated.current = true;
       const duration = 1500;
       const startTime = performance.now();
@@ -231,27 +232,36 @@ function CountingNumber({
       requestAnimationFrame(animate);
     };
 
-    // Check if already in viewport on mount
-    const rect = el.getBoundingClientRect();
-    const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
-    
-    if (inViewport) {
-      startCountingAnimation();
-      return;
-    }
-
+    // Use IntersectionObserver to detect when element enters viewport
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasAnimated.current) {
-          startCountingAnimation();
+          // Small delay to let AnimateIn finish its fade-in
+          setTimeout(startCountingAnimation, 100);
+          observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: "50px 0px 0px 0px" }
+      { threshold: 0.1, rootMargin: "100px 0px 0px 0px" }
     );
 
     observer.observe(el);
 
-    return () => observer.disconnect();
+    // CRITICAL FIX for desktop: Fallback timer
+    // If IntersectionObserver doesn't fire (element already visible), 
+    // check again after a short delay when parent AnimateIn has finished
+    const fallbackTimer = setTimeout(() => {
+      if (hasAnimated.current) return;
+      const rect = el.getBoundingClientRect();
+      const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+      if (inViewport) {
+        startCountingAnimation();
+      }
+    }, 800); // Wait for AnimateIn transition (700ms) + buffer
+
+    return () => {
+      observer.disconnect();
+      clearTimeout(fallbackTimer);
+    };
   }, [value, numericValue, prefersReducedMotion]);
 
   return (
