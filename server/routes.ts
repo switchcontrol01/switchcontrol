@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { setupGoogleAuth } from "./auth/google";
+import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
 
 export async function registerRoutes(
@@ -11,6 +12,7 @@ export async function registerRoutes(
 ): Promise<Server> {
   
   setupGoogleAuth(app);
+  setupDiscordAuth(app);
 
   app.get("/api/settings", async (req, res) => {
     try {
