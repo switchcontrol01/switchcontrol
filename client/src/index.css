@@ -165,21 +165,6 @@ body {
 }
 
 /* Drifting blob animations */
-/* Particle animation */
-@keyframes particleFloat {
-  0%, 100% { 
-    transform: translateY(0);
-    opacity: 0.1;
-  }
-  50% { 
-    transform: translateY(-20px);
-    opacity: 0.35;
-  }
-}
-
-.animate-particle {
-  animation: particleFloat 6s ease-in-out infinite;
-}
 
 /* Wave contour line animations - GPU optimized */
 @keyframes waveMove1 {
@@ -327,6 +312,87 @@ body {
 
 .animate-blob-3 {
   animation: blobFloat3 20s ease-in-out infinite;
+}
+
+/* Contour parallax animations - slow drifting motion */
+@keyframes contourDrift1 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(40px, 8px, 0); }
+  50% { transform: translate3d(10px, -5px, 0); }
+  75% { transform: translate3d(-30px, 10px, 0); }
+}
+
+@keyframes contourDrift2 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(-35px, 12px, 0); }
+  66% { transform: translate3d(45px, -8px, 0); }
+}
+
+@keyframes contourDrift3 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(25px, 6px, 0); }
+}
+
+@keyframes contourDrift4 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  40% { transform: translate3d(-20px, -10px, 0); }
+  80% { transform: translate3d(30px, 5px, 0); }
+}
+
+.animate-contour-1 {
+  animation: contourDrift1 20s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-contour-2 {
+  animation: contourDrift2 25s ease-in-out infinite;
+  animation-delay: 2s;
+  will-change: transform;
+}
+
+.animate-contour-3 {
+  animation: contourDrift3 18s ease-in-out infinite;
+  animation-delay: 4s;
+  will-change: transform;
+}
+
+.animate-contour-4 {
+  animation: contourDrift4 22s ease-in-out infinite;
+  animation-delay: 1s;
+  will-change: transform;
+}
+
+/* Particle floating animation */
+@keyframes particleFloat {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  50% {
+    transform: translate3d(var(--drift-x, 10px), -30px, 0);
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(calc(var(--drift-x, 10px) * -0.5), 30px, 0);
+    opacity: 0;
+  }
+}
+
+@keyframes particleTwinkle {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.4; }
+}
+
+.animate-particle {
+  animation: 
+    particleFloat var(--particle-speed, 20s) ease-in-out infinite,
+    particleTwinkle 4s ease-in-out infinite;
+  will-change: transform, opacity;
 }
 
 .animate-gradient-shift {
@@ -560,7 +626,14 @@ body {
   }
   
   .animate-particle {
-    animation-duration: 12s;
+    animation-duration: 40s;
+  }
+  
+  .animate-contour-1,
+  .animate-contour-2,
+  .animate-contour-3,
+  .animate-contour-4 {
+    animation-duration: 50s;
   }
   
   .animate-pulse-slow {
