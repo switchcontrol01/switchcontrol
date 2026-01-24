@@ -1,0 +1,89 @@
+We have a major bug:
+
+All animations (scroll fade, scroll reveal, transitions, motion effects) work on MOBILE but DO NOT work on DESKTOP.
+Desktop feels static and dead.
+
+Goal:
+Animations must work on BOTH desktop and mobile.
+
+✅ Diagnose + Fix Checklist
+
+Check if animations are disabled on desktop due to accessibility settings
+
+Detect if prefers-reduced-motion: reduce is being applied.
+
+If yes, do NOT fully disable animations, only reduce them slightly.
+
+Make sure desktop users still see motion unless they explicitly want no motion.
+
+Check breakpoints / conditional logic
+
+Search the code for any conditions like:
+
+isMobile
+
+window.innerWidth
+
+matchMedia
+
+if (mobile) enableAnimations
+
+Remove or adjust it so desktop also triggers animations.
+
+Check IntersectionObserver / scroll triggers
+
+If scroll animations depend on IntersectionObserver:
+
+Confirm the observer is created on desktop too.
+
+Confirm elements have correct ref and are not display:none or opacity:0 forever.
+
+Confirm threshold and rootMargin settings work for desktop.
+
+Add debug logs temporarily to confirm events fire on desktop.
+
+Check Framer Motion / animation library behavior
+
+Ensure motion components are mounted and not skipped on desktop.
+
+Ensure initial, animate, whileInView, and viewport settings are correct.
+
+If using whileInView, ensure viewport={{ once: true, amount: 0.2 }} or similar works on desktop.
+
+Check CSS issues
+
+Make sure desktop CSS isn’t overriding animations with:
+
+transition: none
+
+animation: none
+
+opacity: 1 !important
+
+transform: none !important
+
+Make sure elements aren’t stuck due to overflow: hidden on the wrong parent.
+
+Make sure animations run at 60fps and feel premium
+
+Add smooth easing
+
+Add staggered reveal on sections
+
+Add subtle parallax background motion on desktop too (not only mobile)
+
+✅ After fixing, confirm on desktop:
+
+Hero section has motion on load
+
+Scroll-down reveals work
+
+Cards fade/slide in on scroll
+
+Buttons have hover animations
+
+Background has subtle animated motion
+
+Deliverable:
+
+Tell me exactly what caused desktop to not animate, and what you changed to fix it.

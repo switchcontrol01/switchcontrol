@@ -449,33 +449,49 @@ body {
   filter: drop-shadow(0 0 8px hsl(270 70% 60% / 0.5));
 }
 
-/* Reduce motion preferences */
+/* Reduce motion preferences - REDUCE animations, don't eliminate them */
 @media (prefers-reduced-motion: reduce) {
   .animate-blob-1,
   .animate-blob-2,
-  .animate-blob-3,
-  .animate-gradient-shift,
-  .animate-shimmer,
+  .animate-blob-3 {
+    animation-duration: 60s; /* Slow down instead of removing */
+  }
+  
+  .animate-gradient-shift {
+    animation-duration: 20s;
+  }
+  
   .animate-cta-pulse,
   .animate-hero-float,
   .animate-float,
   .pulse-ring {
-    animation: none;
+    animation-duration: 6s; /* Slower, calmer animations */
+  }
+  
+  .animate-shimmer {
+    animation: none; /* This one can be removed as it's decorative */
   }
   
   .btn-shine::after,
   .premium-btn::before {
-    display: none;
+    animation-duration: 1s;
   }
   
-  .tilt-card:hover,
-  .premium-btn:hover,
+  .tilt-card:hover {
+    transform: translateY(-2px); /* Reduced but still present */
+  }
+  
+  .premium-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 5px 20px -5px hsl(270 70% 60% / 0.3);
+  }
+  
   .icon-hover:hover {
-    transform: none;
+    transform: scale(1.05); /* Reduced scale */
   }
   
   .animated-border::before {
-    animation: none;
+    animation-duration: 6s;
   }
   
   [data-reveal] {

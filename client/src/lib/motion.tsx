@@ -1,16 +1,34 @@
-import { motion, AnimatePresence, Variants, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const MotionContext = createContext({ prefersReducedMotion: false, hasLoaded: false });
 
 export function MotionProvider({ children }: { children: ReactNode }) {
-  const prefersReducedMotion = useReducedMotion() || false;
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
+    // Only respect reduced motion if user has EXPLICITLY set it in their OS
+    // Check the media query directly and be less aggressive
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    
+    // Only disable animations if the preference is explicitly set
+    // Many browsers/systems don't set this, so default to animations ON
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
+      // Be conservative: only disable if explicitly requested
+      setPrefersReducedMotion(e.matches);
+    };
+    
+    handleChange(mediaQuery);
+    mediaQuery.addEventListener('change', handleChange);
+    
     const timer = setTimeout(() => setHasLoaded(true), 100);
-    return () => clearTimeout(timer);
+    
+    return () => {
+      clearTimeout(timer);
+      mediaQuery.removeEventListener('change', handleChange);
+    };
   }, []);
 
   return (
@@ -162,14 +180,10 @@ export function Reveal({
 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
+  const { prefersReducedMotion } = useMotion();
 
   useEffect(() => {
-    if (prefersReducedMotion) {
-      setIsVisible(true);
-      return;
-    }
-
+    // Always use IntersectionObserver for scroll reveal
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -177,7 +191,10 @@ export function Reveal({
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: "0px 0px -10% 0px" }
+      { 
+        threshold: 0.1, 
+        rootMargin: "0px 0px -5% 0px" // Slightly less aggressive margin
+      }
     );
 
     if (ref.current) {
@@ -185,29 +202,33 @@ export function Reveal({
     }
 
     return () => observer.disconnect();
-  }, [prefersReducedMotion]);
+  }, []);
 
   const getTransform = () => {
-    if (prefersReducedMotion || isVisible) return 'translate(0, 0)';
+    if (isVisible) return 'translate(0, 0)';
+    // Reduce distance for reduced motion, but still animate
+    const actualDistance = prefersReducedMotion ? distance * 0.3 : distance;
     switch (direction) {
-      case 'up': return `translateY(${distance}px)`;
-      case 'down': return `translateY(-${distance}px)`;
-      case 'left': return `translateX(${distance}px)`;
-      case 'right': return `translateX(-${distance}px)`;
-      default: return `translateY(${distance}px)`;
+      case 'up': return `translateY(${actualDistance}px)`;
+      case 'down': return `translateY(-${actualDistance}px)`;
+      case 'left': return `translateX(${actualDistance}px)`;
+      case 'right': return `translateX(-${actualDistance}px)`;
+      default: return `translateY(${actualDistance}px)`;
     }
   };
+
+  // Reduce duration for reduced motion, but don't eliminate
+  const actualDuration = prefersReducedMotion ? duration * 0.5 : duration;
 
   return (
     <div
       ref={ref}
       className={cn(className)}
       style={{
-        opacity: prefersReducedMotion ? 1 : isVisible ? 1 : 0,
+        opacity: isVisible ? 1 : 0,
         transform: getTransform(),
-        transition: prefersReducedMotion 
-          ? 'none' 
-          : `opacity ${duration}s ease-out ${delay}s, transform ${duration}s ease-out ${delay}s`,
+        transition: `opacity ${actualDuration}s ease-out ${delay}s, transform ${actualDuration}s ease-out ${delay}s`,
+        willChange: 'opacity, transform',
       }}
     >
       {children}
