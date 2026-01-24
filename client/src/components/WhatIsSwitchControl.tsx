@@ -74,14 +74,19 @@ export function WhatIsSwitchControl() {
             <div className="relative p-6 md:p-10">
               {/* Header */}
               <div className="text-center mb-6">
-                <img 
-                  src="/switchcontrol-wordmark.png" 
-                  alt="SwitchControl"
-                  className="h-8 md:h-10 object-contain mx-auto mb-4"
-                  style={{ 
-                    filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))',
-                  }}
-                />
+                <div className="flex items-baseline justify-center gap-2 md:gap-3 flex-wrap mb-4">
+                  <span className="text-2xl md:text-3xl font-bold text-white">
+                    What is
+                  </span>
+                  <img 
+                    src="/switchcontrol-wordmark.png" 
+                    alt="SwitchControl"
+                    className="h-7 md:h-9 object-contain"
+                    style={{ 
+                      filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))',
+                    }}
+                  />
+                </div>
                 <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto mb-2">
                   SwitchControl is a competitive performance control panel for Windows.
                 </p>
