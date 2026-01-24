@@ -314,6 +314,92 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Interactive button glow effect */
+@keyframes buttonShine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(200%) rotate(45deg); }
+}
+
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%) rotate(45deg);
+}
+
+.btn-shine:hover::after {
+  animation: buttonShine 0.6s ease forwards;
+}
+
+/* Glassmorphism card style */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(139, 92, 246, 0.3);
+}
+
+/* Neon glow text */
+.neon-text {
+  text-shadow: 
+    0 0 5px hsl(270 70% 60% / 0.5),
+    0 0 10px hsl(270 70% 60% / 0.3),
+    0 0 20px hsl(270 70% 60% / 0.2);
+}
+
+/* Premium gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(270 70% 60%), hsl(320 80% 60%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Floating animation for cards */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Pulsing ring animation */
+@keyframes pulseRing {
+  0% { 
+    box-shadow: 0 0 0 0 hsl(270 70% 60% / 0.4);
+  }
+  70% { 
+    box-shadow: 0 0 0 10px hsl(270 70% 60% / 0);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 hsl(270 70% 60% / 0);
+  }
+}
+
+.pulse-ring {
+  animation: pulseRing 2s infinite;
+}
+
 /* Reduce motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .animate-blob-1,
@@ -322,8 +408,14 @@ body {
   .animate-gradient-shift,
   .animate-shimmer,
   .animate-cta-pulse,
-  .animate-hero-float {
+  .animate-hero-float,
+  .animate-float,
+  .pulse-ring {
     animation: none;
+  }
+  
+  .btn-shine::after {
+    display: none;
   }
   
   .animated-border::before {

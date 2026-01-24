@@ -87,27 +87,42 @@ const FAQ_ITEMS = [
 
 function FAQItem({ question, answer }: { question: string; answer: string }) {
   const [isOpen, setIsOpen] = useState(false);
+  const { prefersReducedMotion } = useMotion();
   
   return (
-    <div className="border border-white/10 rounded-lg overflow-hidden">
+    <motion.div 
+      className="border border-white/10 rounded-lg overflow-hidden backdrop-blur-sm"
+      initial={false}
+      animate={{ backgroundColor: isOpen ? 'rgba(139, 92, 246, 0.05)' : 'rgba(255, 255, 255, 0.02)' }}
+      transition={{ duration: 0.2 }}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors"
         data-testid={`faq-${question.slice(0, 20).replace(/\s/g, '-').toLowerCase()}`}
       >
         <span className="font-medium text-white pr-4">{question}</span>
-        {isOpen ? (
-          <ChevronUp className="size-5 text-muted-foreground shrink-0" />
-        ) : (
+        <motion.div
+          animate={!prefersReducedMotion ? { rotate: isOpen ? 180 : 0 } : undefined}
+          transition={{ duration: 0.2 }}
+        >
           <ChevronDown className="size-5 text-muted-foreground shrink-0" />
-        )}
+        </motion.div>
       </button>
-      {isOpen && (
-        <div className="px-4 pb-4 text-sm text-muted-foreground">
+      <motion.div
+        initial={false}
+        animate={!prefersReducedMotion ? { 
+          height: isOpen ? 'auto' : 0,
+          opacity: isOpen ? 1 : 0
+        } : { height: isOpen ? 'auto' : 0 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="overflow-hidden"
+      >
+        <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed">
           {answer}
         </div>
-      )}
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -330,7 +345,7 @@ export default function Pricing() {
                 </ul>
                 
                 <Button 
-                  className={`w-full shadow-lg shadow-primary/30 ${isPremium ? 'bg-zinc-600 hover:bg-zinc-600 cursor-not-allowed opacity-70' : 'bg-primary hover:bg-primary/90'}`}
+                  className={`w-full shadow-lg transition-all duration-300 ${isPremium ? 'bg-emerald-600 hover:bg-emerald-600 cursor-default' : 'bg-primary hover:bg-primary/90 shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]'}`}
                   onClick={isPremium ? undefined : handlePurchase}
                   disabled={isCheckoutLoading || isPremium}
                   data-testid="button-select-premium"
@@ -341,7 +356,10 @@ export default function Pricing() {
                       Processing...
                     </>
                   ) : isPremium ? (
-                    'Purchased'
+                    <>
+                      <Check className="size-4 mr-2" />
+                      Purchased
+                    </>
                   ) : !isAuthenticated ? (
                     'Log in to purchase'
                   ) : (

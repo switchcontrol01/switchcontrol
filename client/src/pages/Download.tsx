@@ -109,13 +109,28 @@ export default function DownloadPage() {
             </p>
 
             <div className="pt-4 border-t border-white/10">
-              <h4 className="text-sm font-medium text-white mb-2">Installation Instructions</h4>
-              <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-                <li>Download the installer</li>
-                <li>Run SwitchControlSetup.exe</li>
-                <li>Follow the installation wizard</li>
-                <li>Launch and sign in with your account</li>
-              </ol>
+              <h4 className="text-sm font-medium text-white mb-4">Installation Steps</h4>
+              <div className="grid grid-cols-4 gap-2">
+                {[
+                  { step: 1, label: "Download", icon: Download },
+                  { step: 2, label: "Install", icon: Monitor },
+                  { step: 3, label: "Launch", icon: Shield },
+                  { step: 4, label: "Optimize", icon: CheckCircle }
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.step}
+                    className="text-center p-2 rounded-lg bg-white/5 border border-white/10"
+                    initial={!prefersReducedMotion ? { opacity: 0, y: 10 } : undefined}
+                    animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+                    transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
+                    whileHover={!prefersReducedMotion ? { scale: 1.05, borderColor: 'rgba(139, 92, 246, 0.5)' } : undefined}
+                  >
+                    <item.icon className="size-5 mx-auto mb-1 text-primary" />
+                    <p className="text-xs font-medium text-white">{item.step}</p>
+                    <p className="text-[10px] text-muted-foreground">{item.label}</p>
+                  </motion.div>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>

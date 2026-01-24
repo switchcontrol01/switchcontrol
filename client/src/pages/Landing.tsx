@@ -19,6 +19,8 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
+import { ComparisonSlider, ScrollIndicator } from "@/components/ComparisonSlider";
+import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -583,7 +585,7 @@ export default function Landing() {
               <AnimateIn delay={0}>
                 <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
                   <Star className="size-3 fill-primary text-primary" />
-                  Early Access Release
+                  New release 2026
                 </span>
               </AnimateIn>
               
@@ -635,6 +637,12 @@ export default function Landing() {
                   </Link>
                 </div>
               </AnimateIn>
+              
+              <AnimateIn delay={600}>
+                <div className="mt-12">
+                  <ScrollIndicator />
+                </div>
+              </AnimateIn>
             </div>
           </div>
         </section>
@@ -665,7 +673,7 @@ export default function Landing() {
               </p>
             </Reveal>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
               {FEATURES.map((feature, i) => (
                 <Reveal key={feature.title} delay={i * 0.1}>
                   <Card className="animated-border bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 h-full group rounded-xl overflow-hidden hover:-translate-y-1.5 hover:scale-[1.02]">
@@ -680,6 +688,15 @@ export default function Landing() {
                 </Reveal>
               ))}
             </div>
+            
+            <Reveal className="text-center mb-8">
+              <h3 className="text-2xl font-bold text-white mb-4">Explore All Modules</h3>
+              <p className="text-muted-foreground max-w-xl mx-auto">
+                Click on any module to see what it does. Each tool is designed for maximum impact.
+              </p>
+            </Reveal>
+            
+            <ModuleShowcase />
           </div>
         </section>
 
@@ -690,82 +707,41 @@ export default function Landing() {
                 Real Results, Real Improvements
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                See the difference SwitchControl makes with before and after optimization comparisons.
+                Drag the sliders to compare before and after optimization results.
               </p>
             </Reveal>
             
-            <div className="grid md:grid-cols-3 gap-6">
-              <Reveal>
-                <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-white mb-4">Ping Stability</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">Before</span>
-                          <span className="text-red-400">±18ms jitter</span>
-                        </div>
-                        <AnimatedProgressBar targetWidth="70%" color="red" delay={0} />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">After</span>
-                          <span className="text-emerald-400">±4ms jitter</span>
-                        </div>
-                        <AnimatedProgressBar targetWidth="25%" color="green" delay={200} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Reveal>
-
-              <Reveal delay={0.1}>
-                <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-white mb-4">Input Delay</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">Before</span>
-                          <span className="text-red-400">~24ms</span>
-                        </div>
-                        <AnimatedProgressBar targetWidth="80%" color="red" delay={100} />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">After</span>
-                          <span className="text-emerald-400">~16ms</span>
-                        </div>
-                        <AnimatedProgressBar targetWidth="55%" color="green" delay={300} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Reveal>
-
-              <Reveal delay={0.2}>
-                <Card className="bg-white/5 border-white/10 hover:border-primary/30 hover:-translate-y-1 transition-all h-full">
-                  <CardContent className="p-6">
-                    <h3 className="font-semibold text-white mb-4">1% Low FPS</h3>
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">Before</span>
-                          <span className="text-red-400">98 FPS</span>
-                        </div>
-                        <AnimatedProgressBar targetWidth="50%" color="red" delay={200} />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-sm mb-2">
-                          <span className="text-muted-foreground">After</span>
-                          <span className="text-emerald-400">142 FPS</span>
-                        </div>
-                        <AnimatedProgressBar targetWidth="75%" color="green" delay={400} />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </Reveal>
+            <div className="grid md:grid-cols-3 gap-8">
+              <ComparisonSlider
+                title="FPS Performance"
+                beforeLabel="Stock Windows"
+                afterLabel="SwitchControl"
+                beforeValue="98"
+                afterValue="142"
+                unit=" FPS"
+                beforeSubtext="1% Low FPS"
+                afterSubtext="1% Low FPS"
+              />
+              <ComparisonSlider
+                title="Input Delay"
+                beforeLabel="Stock Windows"
+                afterLabel="SwitchControl"
+                beforeValue="24"
+                afterValue="16"
+                unit="ms"
+                beforeSubtext="Average delay"
+                afterSubtext="Average delay"
+              />
+              <ComparisonSlider
+                title="Network Latency"
+                beforeLabel="Stock Windows"
+                afterLabel="SwitchControl"
+                beforeValue="±18"
+                afterValue="±4"
+                unit="ms"
+                beforeSubtext="Jitter variance"
+                afterSubtext="Jitter variance"
+              />
             </div>
           </div>
         </section>
@@ -781,10 +757,10 @@ export default function Landing() {
                     <Star className="size-5 text-primary fill-primary" />
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                    Early Access Release
+                    New Release 2026
                   </h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    SwitchControl is currently in early access. Features are actively being improved based on real user feedback.
+                    SwitchControl is our latest release with enhanced optimization features. We're actively improving based on real user feedback.
                   </p>
                 </CardContent>
               </Card>
