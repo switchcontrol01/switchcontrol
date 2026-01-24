@@ -55,13 +55,17 @@ export default function DownloadPage() {
               <div className="relative">
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-purple-600/30 blur-2xl scale-150 opacity-60" />
                 <motion.img 
-                  src="/brand/switchcontrol-logo.png" 
-                  alt="SwitchControl logo"
-                  className={`relative size-20 md:size-24 rounded-2xl transition-all duration-300 ${prefersReducedMotion ? '' : 'logo-animate'}`}
+                  src="/switchcontrol-logo.png" 
+                  alt="SwitchControl"
+                  className={`relative w-[60px] h-[60px] md:w-[80px] md:h-[80px] rounded-2xl transition-all duration-300 object-contain ${prefersReducedMotion ? '' : 'logo-animate'}`}
                   initial={!prefersReducedMotion ? { opacity: 0, scale: 0.9 } : undefined}
                   animate={!prefersReducedMotion ? { opacity: 1, scale: 1 } : undefined}
                   transition={{ duration: 0.4 }}
                   whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
                 />
               </div>
             </div>
