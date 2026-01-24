@@ -73,24 +73,32 @@ export function WhatIsSwitchControl() {
             {/* Content */}
             <div className="relative p-6 md:p-10">
               {/* Header */}
-              <div className="text-center mb-6">
-                <div className="flex items-baseline justify-center gap-2 md:gap-3 flex-wrap mb-4">
-                  <span className="text-2xl md:text-3xl font-bold text-white">
-                    What is
-                  </span>
-                  <img 
-                    src="/switchcontrol-wordmark.png" 
-                    alt="SwitchControl"
-                    className="h-7 md:h-9 object-contain"
-                    style={{ 
-                      filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.3))',
-                    }}
-                  />
+              <div className="mb-6">
+                <div className="flex items-center justify-center mb-4">
+                  <div className="inline-flex items-center gap-3 md:gap-4">
+                    <span 
+                      className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-white to-zinc-300 bg-clip-text text-transparent"
+                      style={{ 
+                        filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))',
+                        lineHeight: 1,
+                      }}
+                    >
+                      What is
+                    </span>
+                    <img 
+                      src="/switchcontrol-wordmark.png" 
+                      alt="SwitchControl"
+                      className="h-8 md:h-10 lg:h-11 object-contain"
+                      style={{ 
+                        filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.35))',
+                      }}
+                    />
+                  </div>
                 </div>
-                <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto mb-2">
+                <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto text-center mb-2">
                   SwitchControl is a competitive performance control panel for Windows.
                 </p>
-                <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
+                <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto text-center">
                   It helps reduce input delay, stabilize frame pacing, and improve network consistency by applying safe, reversible system optimizations.
                 </p>
               </div>
