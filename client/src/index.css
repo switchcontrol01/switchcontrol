@@ -400,6 +400,55 @@ body {
   animation: pulseRing 2s infinite;
 }
 
+/* Premium card with 3D tilt effect */
+.tilt-card {
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.tilt-card:hover {
+  transform: perspective(1000px) rotateX(2deg) rotateY(-2deg) translateY(-4px);
+}
+
+/* Premium button styles */
+.premium-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+}
+
+.premium-btn:hover::before {
+  transform: translateX(100%);
+}
+
+.premium-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px -10px hsl(270 70% 60% / 0.5);
+}
+
+.premium-btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Icon hover animation */
+.icon-hover {
+  transition: all 0.3s ease;
+}
+
+.icon-hover:hover {
+  transform: scale(1.1) rotate(5deg);
+  filter: drop-shadow(0 0 8px hsl(270 70% 60% / 0.5));
+}
+
 /* Reduce motion preferences */
 @media (prefers-reduced-motion: reduce) {
   .animate-blob-1,
@@ -414,8 +463,15 @@ body {
     animation: none;
   }
   
-  .btn-shine::after {
+  .btn-shine::after,
+  .premium-btn::before {
     display: none;
+  }
+  
+  .tilt-card:hover,
+  .premium-btn:hover,
+  .icon-hover:hover {
+    transform: none;
   }
   
   .animated-border::before {

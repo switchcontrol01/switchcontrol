@@ -19,7 +19,8 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
-import { ComparisonSlider, ScrollIndicator } from "@/components/ComparisonSlider";
+import { ComparisonSlider } from "@/components/ComparisonSlider";
+import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
@@ -577,8 +578,7 @@ export default function Landing() {
       
       <main className="pt-16 relative z-10">
         <section className="relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/30 via-purple-600/10 to-transparent pointer-events-none" />
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiMyMDIwMjAiIGZpbGwtb3BhY2l0eT0iMC40Ij48cGF0aCBkPSJNMzYgMzRoLTJ2LTRoMnY0em0wLTZ2LTRoLTJ2NGgyek0zNiAyMHYtNGgtMnY0aDJ6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20 pointer-events-none" />
+          <HeroBackground />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40 relative">
             <div className="text-center max-w-4xl mx-auto">
@@ -615,8 +615,7 @@ export default function Landing() {
                   <Button 
                     size="lg" 
                     className={cn(
-                      "text-base px-8 bg-primary hover:bg-primary/90 transition-all duration-300",
-                      "hover:shadow-[0_0_40px_hsl(270_70%_60%/0.5)] hover:scale-[1.03] hover:-translate-y-0.5 active:scale-[0.97]",
+                      "text-base px-8 bg-primary hover:bg-primary/90 premium-btn",
                       !prefersReducedMotion && "animate-cta-pulse"
                     )}
                     onClick={handleAuthAwareClick}
@@ -635,12 +634,6 @@ export default function Landing() {
                       <span className="absolute bottom-2 left-1/2 -translate-x-1/2 w-0 h-0.5 bg-white/50 group-hover:w-[calc(100%-2rem)] transition-all duration-300" />
                     </Button>
                   </Link>
-                </div>
-              </AnimateIn>
-              
-              <AnimateIn delay={600}>
-                <div className="mt-12">
-                  <ScrollIndicator />
                 </div>
               </AnimateIn>
             </div>
@@ -676,10 +669,10 @@ export default function Landing() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
               {FEATURES.map((feature, i) => (
                 <Reveal key={feature.title} delay={i * 0.1}>
-                  <Card className="animated-border bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 h-full group rounded-xl overflow-hidden hover:-translate-y-1.5 hover:scale-[1.02]">
+                  <Card className="animated-border tilt-card bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 h-full group rounded-xl overflow-hidden">
                     <CardContent className="p-6 relative z-10">
                       <div className="size-12 rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:shadow-lg group-hover:shadow-primary/20 flex items-center justify-center mb-4 transition-all duration-300">
-                        <feature.icon className="size-6 text-primary group-hover:scale-110 transition-transform duration-300" />
+                        <feature.icon className="size-6 text-primary icon-hover" />
                       </div>
                       <h3 className="font-semibold text-white mb-2 group-hover:text-white transition-colors">{feature.title}</h3>
                       <p className="text-sm text-muted-foreground group-hover:text-muted-foreground/80 transition-colors">{feature.description}</p>
