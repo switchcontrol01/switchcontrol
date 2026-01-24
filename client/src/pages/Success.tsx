@@ -62,9 +62,9 @@ export default function Success() {
       `}</style>
 
       <motion.div
-        initial={!prefersReducedMotion ? { opacity: 0, scale: 0.95 } : undefined}
-        animate={!prefersReducedMotion ? { opacity: 1, scale: 1 } : undefined}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity: 0, scale: prefersReducedMotion ? 0.98 : 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
         className="relative z-10 w-full max-w-md"
       >
         <Card className="bg-white/5 border-white/10 backdrop-blur-sm">

@@ -103,19 +103,19 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
       >
         <span className="font-medium text-white pr-4">{question}</span>
         <motion.div
-          animate={!prefersReducedMotion ? { rotate: isOpen ? 180 : 0 } : undefined}
-          transition={{ duration: 0.2 }}
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
         >
           <ChevronDown className="size-5 text-muted-foreground shrink-0" />
         </motion.div>
       </button>
       <motion.div
         initial={false}
-        animate={!prefersReducedMotion ? { 
+        animate={{ 
           height: isOpen ? 'auto' : 0,
           opacity: isOpen ? 1 : 0
-        } : { height: isOpen ? 'auto' : 0 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
+        }}
+        transition={{ duration: prefersReducedMotion ? 0.15 : 0.3, ease: "easeInOut" }}
         className="overflow-hidden"
       >
         <div className="px-4 pb-4 text-sm text-muted-foreground leading-relaxed">
@@ -263,9 +263,9 @@ export default function Pricing() {
         <div id="pricing-top"></div>
         <motion.div 
           className="text-center mb-16"
-          initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-          animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.25 : 0.5 }}
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
             <Zap className="size-3" />
@@ -282,9 +282,9 @@ export default function Pricing() {
         {/* Pricing Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto" data-reveal>
           <motion.div
-            initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-            animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-            transition={{ duration: 0.4, delay: 0.1 }}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
           >
             <Card className="bg-white/5 border-white/10 h-full backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-white/5">
               <CardContent className="p-8">
@@ -316,9 +316,9 @@ export default function Pricing() {
           </motion.div>
 
           <motion.div
-            initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-            animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-            transition={{ duration: 0.4, delay: 0.2 }}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.2 }}
           >
             <Card className="relative overflow-hidden bg-gradient-to-b from-primary/20 to-primary/5 border-primary/30 h-full backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/20"
               style={{ boxShadow: '0 0 60px -15px rgba(139, 92, 246, 0.3)' }}
@@ -374,9 +374,9 @@ export default function Pricing() {
         {/* Trust Row */}
         <motion.div 
           className="mt-12 flex flex-wrap justify-center gap-6 md:gap-12"
-          initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-          animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.4, delay: 0.3 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.3 }}
         >
           {TRUST_ITEMS.map((item) => (
             <div key={item.label} className="flex items-center gap-2 text-muted-foreground">
@@ -389,9 +389,9 @@ export default function Pricing() {
         {/* Free vs Premium Comparison */}
         <motion.div 
           className="mt-20 max-w-4xl mx-auto"
-          initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-          animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.4, delay: 0.4 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.4 }}
         >
           <h2 className="text-2xl font-semibold text-white text-center mb-8">Free vs Premium</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -432,9 +432,9 @@ export default function Pricing() {
         {/* FAQ Section */}
         <motion.div 
           className="mt-20 max-w-3xl mx-auto"
-          initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-          animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.4, delay: 0.5 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.5 }}
         >
           <h2 className="text-2xl font-semibold text-white text-center mb-8">Frequently Asked Questions</h2>
           <div className="space-y-3">
@@ -447,9 +447,9 @@ export default function Pricing() {
         {/* Support CTA */}
         <motion.div 
           className="mt-16 text-center"
-          initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-          animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-          transition={{ duration: 0.4, delay: 0.6 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.6 }}
         >
           <p className="text-muted-foreground mb-4">Still have questions?</p>
           <a 

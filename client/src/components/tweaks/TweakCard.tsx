@@ -111,8 +111,8 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   return (
     <>
       <motion.div
-        whileHover={!prefersReducedMotion ? { scale: 1.01, y: -2 } : undefined}
-        transition={{ duration: 0.2 }}
+        whileHover={{ scale: prefersReducedMotion ? 1.005 : 1.01, y: prefersReducedMotion ? -1 : -2 }}
+        transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
       >
         <GlassCard 
           className={cn(
@@ -145,8 +145,8 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
 
           <div className="flex items-center gap-4 pl-4">
             <motion.div
-              whileHover={!prefersReducedMotion ? { scale: 1.1 } : undefined}
-              whileTap={!prefersReducedMotion ? { scale: 0.9 } : undefined}
+              whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
+              whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
             >
               <Button 
                 variant="ghost" 
@@ -201,8 +201,8 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                   }}
                   className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
                   data-testid="button-close-modal"
-                  whileHover={!prefersReducedMotion ? { scale: 1.1 } : undefined}
-                  whileTap={!prefersReducedMotion ? { scale: 0.9 } : undefined}
+                  whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
+                  whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
                 >
                   <X className="h-5 w-5 text-white" />
                   <span className="sr-only">Close</span>

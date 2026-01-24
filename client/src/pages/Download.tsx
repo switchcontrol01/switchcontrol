@@ -36,7 +36,7 @@ export default function DownloadPage() {
         }
         @media (prefers-reduced-motion: reduce) {
           .logo-animate {
-            animation: none;
+            animation: logoFloat 8s ease-in-out infinite, glowPulse 6s ease-in-out infinite;
           }
         }
       `}</style>
@@ -57,11 +57,11 @@ export default function DownloadPage() {
                 <motion.img 
                   src="/switchcontrol-logo.png" 
                   alt="SwitchControl"
-                  className={`relative w-[60px] h-[60px] md:w-[80px] md:h-[80px] rounded-2xl transition-all duration-300 object-contain ${prefersReducedMotion ? '' : 'logo-animate'}`}
-                  initial={!prefersReducedMotion ? { opacity: 0, scale: 0.9 } : undefined}
-                  animate={!prefersReducedMotion ? { opacity: 1, scale: 1 } : undefined}
-                  transition={{ duration: 0.4 }}
-                  whileHover={!prefersReducedMotion ? { scale: 1.03 } : undefined}
+                  className="relative w-[60px] h-[60px] md:w-[80px] md:h-[80px] rounded-2xl transition-all duration-300 object-contain logo-animate"
+                  initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
+                  whileHover={{ scale: prefersReducedMotion ? 1.01 : 1.03 }}
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
@@ -129,10 +129,10 @@ export default function DownloadPage() {
                   <motion.div
                     key={item.step}
                     className="text-center p-2 rounded-lg bg-white/5 border border-white/10"
-                    initial={!prefersReducedMotion ? { opacity: 0, y: 10 } : undefined}
-                    animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-                    transition={{ delay: 0.5 + index * 0.1, duration: 0.3 }}
-                    whileHover={!prefersReducedMotion ? { scale: 1.05, borderColor: 'rgba(139, 92, 246, 0.5)' } : undefined}
+                    initial={{ opacity: 0, y: prefersReducedMotion ? 5 : 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 + index * 0.1, duration: prefersReducedMotion ? 0.15 : 0.3 }}
+                    whileHover={{ scale: prefersReducedMotion ? 1.02 : 1.05, borderColor: 'rgba(139, 92, 246, 0.5)' }}
                   >
                     <item.icon className="size-5 mx-auto mb-1 text-primary" />
                     <p className="text-xs font-medium text-white">{item.step}</p>

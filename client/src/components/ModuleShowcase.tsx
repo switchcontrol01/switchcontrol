@@ -117,9 +117,9 @@ export function ModuleShowcase() {
           return (
             <motion.div
               key={module.id}
-              initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-              whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-              transition={{ delay: index * 0.05, duration: 0.3 }}
+              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05, duration: prefersReducedMotion ? 0.15 : 0.3 }}
               viewport={{ once: true }}
             >
               <button
@@ -152,10 +152,10 @@ export function ModuleShowcase() {
         {activeModule && (
           <motion.div
             key={activeModule.id}
-            initial={!prefersReducedMotion ? { opacity: 0, y: 20, height: 0 } : undefined}
-            animate={!prefersReducedMotion ? { opacity: 1, y: 0, height: 'auto' } : undefined}
-            exit={!prefersReducedMotion ? { opacity: 0, y: -10, height: 0 } : undefined}
-            transition={{ duration: 0.3 }}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: prefersReducedMotion ? -5 : -10, height: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
           >
             <Card className={cn("bg-gradient-to-br border-white/10 overflow-hidden", activeModule.color)}>
               <CardContent className="p-6">
@@ -185,9 +185,9 @@ export function ModuleShowcase() {
                   {activeModule.preview.map((item, i) => (
                     <motion.div
                       key={item}
-                      initial={!prefersReducedMotion ? { opacity: 0, scale: 0.9 } : undefined}
-                      animate={!prefersReducedMotion ? { opacity: 1, scale: 1 } : undefined}
-                      transition={{ delay: i * 0.1 }}
+                      initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: i * (prefersReducedMotion ? 0.05 : 0.1) }}
                     >
                       <Badge variant="outline" className="bg-white/10 border-white/20 text-white/90">
                         {item}
@@ -198,9 +198,9 @@ export function ModuleShowcase() {
                 
                 <motion.div
                   className="mt-4 pt-4 border-t border-white/10"
-                  initial={!prefersReducedMotion ? { opacity: 0 } : undefined}
-                  animate={!prefersReducedMotion ? { opacity: 1 } : undefined}
-                  transition={{ delay: 0.3 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: prefersReducedMotion ? 0.15 : 0.3 }}
                 >
                   <p className="text-xs text-white/50 flex items-center gap-1">
                     <ArrowRight className="size-3" />

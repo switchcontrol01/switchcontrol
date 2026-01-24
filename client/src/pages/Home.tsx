@@ -82,11 +82,16 @@ export default function Home() {
           
           <motion.div 
             className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-            variants={!prefersReducedMotion ? staggerContainer : undefined}
-            initial={!prefersReducedMotion ? "initial" : undefined}
-            animate={!prefersReducedMotion ? "animate" : undefined}
+            variants={staggerContainer}
+            initial="initial"
+            animate="animate"
           >
-            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+            <motion.div 
+              variants={staggerItem}
+              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
+            >
               <StatCard
                 title="Memory"
                 value={stats.usedRamGb.toFixed(1)}
@@ -100,7 +105,12 @@ export default function Home() {
               />
             </motion.div>
             
-            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+            <motion.div 
+              variants={staggerItem}
+              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
+            >
               <StatCard
                 title="CPU"
                 value={stats.cpuName}
@@ -110,7 +120,12 @@ export default function Home() {
               />
             </motion.div>
             
-            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+            <motion.div 
+              variants={staggerItem}
+              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.2 }}
+            >
               <StatCard
                 title="GPU"
                 value={stats.gpuName}
@@ -120,7 +135,12 @@ export default function Home() {
               />
             </motion.div>
             
-            <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+            <motion.div 
+              variants={staggerItem}
+              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.3 }}
+            >
               <StatCard
                 title="Disk (C:)"
                 value={stats.diskUsedGb}
@@ -143,12 +163,17 @@ export default function Home() {
         {/* Bottom Section */}
         <motion.div 
           className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-          variants={!prefersReducedMotion ? staggerContainer : undefined}
-          initial={!prefersReducedMotion ? "initial" : undefined}
-          animate={!prefersReducedMotion ? "animate" : undefined}
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
         >
           {/* Account Status Card - Updated */}
-          <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+          <motion.div 
+            variants={staggerItem}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
+          >
             <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 overflow-hidden relative group h-full">
             <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
             <CardHeader className="pb-4">
@@ -200,7 +225,12 @@ export default function Home() {
           </motion.div>
 
           {/* AI Advisor Card - New */}
-          <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+          <motion.div 
+            variants={staggerItem}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
+          >
             <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full">
             <div className="absolute top-0 right-0 p-3">
                <Sparkles className="size-4 text-primary animate-pulse" />
@@ -256,7 +286,12 @@ export default function Home() {
           </motion.div>
 
           {/* App Booster Placeholder */}
-          <motion.div variants={!prefersReducedMotion ? staggerItem : undefined}>
+          <motion.div 
+            variants={staggerItem}
+            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.2 }}
+          >
             <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 flex flex-col items-center justify-center p-6 text-center space-y-4 h-full">
             <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
               <Rocket className="size-6 text-primary" />

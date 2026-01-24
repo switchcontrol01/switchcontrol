@@ -144,27 +144,16 @@ function AnimatedProgressBar({
 }
 
 function GlowBlobs() {
-  const { prefersReducedMotion } = useMotion();
-  
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
       <div 
-        className={cn(
-          "absolute -top-32 left-1/4 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[150px]",
-          !prefersReducedMotion && "animate-blob-1"
-        )}
+        className="absolute -top-32 left-1/4 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[150px] animate-blob-1"
       />
       <div 
-        className={cn(
-          "absolute top-1/4 -right-32 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[120px]",
-          !prefersReducedMotion && "animate-blob-2"
-        )}
+        className="absolute top-1/4 -right-32 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[120px] animate-blob-2"
       />
       <div 
-        className={cn(
-          "absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[100px]",
-          !prefersReducedMotion && "animate-blob-3"
-        )}
+        className="absolute -bottom-32 -left-32 w-[500px] h-[500px] bg-cyan-600/10 rounded-full blur-[100px] animate-blob-3"
       />
     </div>
   );
@@ -260,15 +249,14 @@ function StatCard({
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
-    
+    // Always run animations on both desktop and mobile
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !hasShimmered) {
           setTimeout(() => setHasShimmered(true), index * 100);
         }
       },
-      { threshold: 0.2, rootMargin: "0px 0px -10% 0px" }
+      { threshold: 0.2, rootMargin: "0px 0px -5% 0px" }
     );
 
     if (ref.current) {
@@ -276,7 +264,7 @@ function StatCard({
     }
 
     return () => observer.disconnect();
-  }, [index, hasShimmered, prefersReducedMotion]);
+  }, [index, hasShimmered]);
 
   const isNegative = stat.value.startsWith("-");
   const numericPart = stat.value.replace(/[^\d]/g, '');
@@ -287,17 +275,19 @@ function StatCard({
     <motion.div
       ref={ref}
       className={cn(
-        "text-center relative overflow-hidden rounded-xl p-4 border border-white/5 bg-white/[0.02]",
-        "hover:border-white/10 hover:bg-white/[0.04] transition-all duration-300",
-        "group cursor-default"
+        "text-center relative overflow-hidden rounded-xl p-5",
+        "bg-white/[0.03] backdrop-blur-md border border-white/10",
+        "hover:border-primary/30 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-primary/10",
+        "transition-all duration-300 group cursor-default"
       )}
-      initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-      whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
-      viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
-      whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
+      viewport={{ once: true, amount: 0.2 }}
+      whileHover={{ scale: 1.03, y: -2 }}
     >
-      {hasShimmered && !prefersReducedMotion && (
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      {hasShimmered && (
         <div className="absolute inset-0 animate-shimmer pointer-events-none" />
       )}
       <div className={cn(
@@ -333,13 +323,13 @@ function Header() {
   return (
     <motion.header 
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300",
+        "fixed top-0 left-0 right-0 z-50 border-b transition-all duration-500",
         scrolled 
-          ? "bg-black/90 backdrop-blur-xl border-white/10 shadow-lg shadow-black/20" 
-          : "bg-black/60 backdrop-blur-md border-white/5"
+          ? "bg-gradient-to-r from-black/95 via-zinc-900/95 to-black/95 backdrop-blur-xl border-primary/20 shadow-lg shadow-primary/10" 
+          : "bg-gradient-to-r from-black/70 via-zinc-900/60 to-black/70 backdrop-blur-lg border-white/5"
       )}
-      initial={!prefersReducedMotion ? { y: -100, opacity: 0 } : undefined}
-      animate={!prefersReducedMotion ? { y: 0, opacity: 1 } : undefined}
+      initial={{ y: -100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -365,8 +355,8 @@ function Header() {
               <>
                 <Link href="/download">
                   <motion.div
-                    whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
-                    whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
+                    whileHover={{ scale: prefersReducedMotion ? 1.01 : 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow">
                       <Download className="size-4 mr-2" />
@@ -393,8 +383,8 @@ function Header() {
                 </Link>
                 <Link href="/login">
                   <motion.div
-                    whileHover={!prefersReducedMotion ? { scale: 1.02 } : undefined}
-                    whileTap={!prefersReducedMotion ? { scale: 0.98 } : undefined}
+                    whileHover={{ scale: prefersReducedMotion ? 1.01 : 1.02 }}
+                    whileTap={{ scale: 0.98 }}
                   >
                     <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow">
                       Get Started
@@ -417,8 +407,8 @@ function Header() {
       {mobileMenuOpen && (
         <motion.div 
           className="md:hidden bg-black/95 border-b border-white/5"
-          initial={!prefersReducedMotion ? { opacity: 0, y: -10 } : undefined}
-          animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
+          initial={{ opacity: 0, y: prefersReducedMotion ? -5 : -10 }}
+          animate={{ opacity: 1, y: 0 }}
         >
           <div className="px-4 py-4 space-y-4">
             {NAV_LINKS.map(link => (
@@ -520,10 +510,10 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
   return (
     <motion.div 
       className="border-b border-white/10"
-      initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-      whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-      transition={{ duration: 0.4, delay: index * 0.05 }}
-      viewport={{ once: true, amount: 0.2, margin: "0px 0px -10% 0px" }}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: index * 0.05 }}
+      viewport={{ once: true, amount: 0.2 }}
     >
       <button
         className="w-full py-5 flex items-center justify-between text-left group"
@@ -534,19 +524,19 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
           {question}
         </span>
         <motion.div
-          animate={!prefersReducedMotion ? { rotate: isOpen ? 180 : 0 } : undefined}
-          transition={{ duration: 0.2 }}
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
         >
           <ChevronDown className="size-5 text-muted-foreground shrink-0" />
         </motion.div>
       </button>
       <motion.div
         initial={false}
-        animate={!prefersReducedMotion ? { 
+        animate={{ 
           height: isOpen ? 'auto' : 0,
           opacity: isOpen ? 1 : 0
-        } : undefined}
-        transition={{ duration: 0.3 }}
+        }}
+        transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
         className="overflow-hidden"
       >
         <div className="pb-5 text-muted-foreground text-sm leading-relaxed">

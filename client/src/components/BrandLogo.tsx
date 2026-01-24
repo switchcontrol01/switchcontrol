@@ -12,23 +12,23 @@ interface BrandLogoProps {
 
 const sizeConfig = {
   sm: {
-    icon: 'w-10 h-10 md:w-11 md:h-11',
-    wordmark: 'h-5 w-[110px] md:h-6 md:w-[130px]',
-    gap: 'gap-2.5',
+    icon: 'w-10 h-10 md:w-12 md:h-12',
+    wordmark: 'h-6 w-[140px] md:h-8 md:w-[180px]',
+    gap: 'gap-3',
   },
   md: {
-    icon: 'w-11 h-11 md:w-[52px] md:h-[52px]',
-    wordmark: 'h-6 w-[130px] md:h-7 md:w-[150px]',
+    icon: 'w-12 h-12 md:w-14 md:h-14',
+    wordmark: 'h-8 w-[180px] md:h-10 md:w-[220px]',
     gap: 'gap-3',
   },
   lg: {
-    icon: 'w-12 h-12 md:w-[60px] md:h-[60px]',
-    wordmark: 'h-7 w-[150px] md:h-8 md:w-[180px]',
-    gap: 'gap-3',
+    icon: 'w-14 h-14 md:w-16 md:h-16',
+    wordmark: 'h-10 w-[220px] md:h-12 md:w-[280px]',
+    gap: 'gap-4',
   },
   xl: {
-    icon: 'w-14 h-14 md:w-16 md:h-16',
-    wordmark: 'h-8 w-[170px] md:h-9 md:w-[200px]',
+    icon: 'w-16 h-16 md:w-20 md:h-20',
+    wordmark: 'h-12 w-[280px] md:h-14 md:w-[340px]',
     gap: 'gap-4',
   },
 };

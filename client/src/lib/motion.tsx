@@ -25,6 +25,16 @@ export function MotionProvider({ children }: { children: ReactNode }) {
     
     const timer = setTimeout(() => setHasLoaded(true), 100);
     
+    // Debug check for animation blocking - log to console in development
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[SwitchControl Animation Debug]', {
+        prefersReducedMotion: mediaQuery.matches,
+        viewport: { width: window.innerWidth, height: window.innerHeight },
+        isMobile: window.innerWidth < 768,
+        userAgent: navigator.userAgent
+      });
+    }
+    
     return () => {
       clearTimeout(timer);
       mediaQuery.removeEventListener('change', handleChange);

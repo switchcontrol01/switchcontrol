@@ -51,9 +51,9 @@ export function ComparisonSlider({
 
   return (
     <motion.div
-      initial={!prefersReducedMotion ? { opacity: 0, y: 20 } : undefined}
-      whileInView={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      transition={{ duration: prefersReducedMotion ? 0.3 : 0.5 }}
       viewport={{ once: true }}
       className="relative"
     >
@@ -152,9 +152,9 @@ export function ScrollIndicator() {
   return (
     <motion.button
       className="flex flex-col items-center gap-2 cursor-pointer bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 rounded-full p-2"
-      initial={!prefersReducedMotion ? { opacity: 0, y: -10 } : undefined}
-      animate={!prefersReducedMotion ? { opacity: 1, y: 0 } : undefined}
-      transition={{ delay: 1, duration: 0.5 }}
+      initial={{ opacity: 0, y: prefersReducedMotion ? -5 : -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 1, duration: prefersReducedMotion ? 0.3 : 0.5 }}
       onClick={handleScroll}
       onKeyDown={handleKeyDown}
       aria-label="Scroll down to explore features"
@@ -162,13 +162,13 @@ export function ScrollIndicator() {
     >
       <span className="text-xs text-muted-foreground">Scroll to explore</span>
       <motion.div
-        animate={!prefersReducedMotion ? { y: [0, 8, 0] } : undefined}
-        transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+        animate={{ y: prefersReducedMotion ? [0, 4, 0] : [0, 8, 0] }}
+        transition={{ duration: prefersReducedMotion ? 2.5 : 1.5, repeat: Infinity, ease: "easeInOut" }}
         className="w-6 h-10 rounded-full border-2 border-white/20 flex justify-center pt-2"
       >
         <motion.div
-          animate={!prefersReducedMotion ? { opacity: [1, 0.3, 1] } : undefined}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ opacity: prefersReducedMotion ? [1, 0.6, 1] : [1, 0.3, 1] }}
+          transition={{ duration: prefersReducedMotion ? 2.5 : 1.5, repeat: Infinity, ease: "easeInOut" }}
           className="w-1 h-2 rounded-full bg-white/50"
         />
       </motion.div>

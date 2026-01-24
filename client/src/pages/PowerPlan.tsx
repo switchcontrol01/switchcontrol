@@ -197,8 +197,8 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
             onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
             className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity cursor-pointer"
             data-testid="button-close-info-modal"
-            whileHover={!prefersReducedMotion ? { scale: 1.1 } : undefined}
-            whileTap={!prefersReducedMotion ? { scale: 0.9 } : undefined}
+            whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
+            whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
           >
             <X className="h-5 w-5 text-white" />
           </motion.button>
