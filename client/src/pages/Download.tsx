@@ -65,6 +65,11 @@ export default function DownloadPage() {
                 />
               </div>
             </div>
+            <div className="flex items-center justify-center gap-2 mb-1">
+              <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+                New Release 2026
+              </span>
+            </div>
             <CardTitle className="text-2xl text-white">Download {brand.name}</CardTitle>
             <CardDescription>
               Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Get the desktop app to start optimizing.
