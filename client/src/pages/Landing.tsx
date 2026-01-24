@@ -183,20 +183,20 @@ function GrainOverlay() {
 function CountingNumber({ 
   value, 
   prefix = '', 
-  suffix = '' 
+  suffix = '',
+  startDelay = 0
 }: { 
   value: string; 
   prefix?: string; 
   suffix?: string;
+  startDelay?: number;
 }) {
   const { prefersReducedMotion } = useMotion();
   const numericValue = parseInt(value.replace(/[^\d]/g, ''), 10);
   const [displayValue, setDisplayValue] = useState('0');
-  const ref = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
-    // Already animated, skip
     if (hasAnimated.current) {
       setDisplayValue(numericValue.toString());
       return;
@@ -207,16 +207,12 @@ function CountingNumber({
       return;
     }
 
-    const el = ref.current;
-    if (!el) return;
-
-    const startCountingAnimation = () => {
+    // Wait for parent's fade-in animation to complete, then start counting
+    const timer = setTimeout(() => {
       if (hasAnimated.current) return;
       hasAnimated.current = true;
-      console.log('[DEBUG] Stats animation started for value:', numericValue);
       
-      // Reduced motion = faster animation, but still animated
-      const duration = prefersReducedMotion ? 600 : 1500;
+      const duration = prefersReducedMotion ? 600 : 1200;
       const startTime = performance.now();
 
       const animate = (currentTime: number) => {
@@ -234,51 +230,13 @@ function CountingNumber({
       };
       
       requestAnimationFrame(animate);
-    };
+    }, startDelay);
 
-    // Use IntersectionObserver to detect when element enters viewport
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        console.log('[DEBUG] IntersectionObserver fired, isIntersecting:', entry.isIntersecting);
-        if (entry.isIntersecting && !hasAnimated.current) {
-          startCountingAnimation();
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.05, rootMargin: "200px 0px 0px 0px" }
-    );
-
-    observer.observe(el);
-
-    // CRITICAL FIX for desktop: Multiple fallback checks
-    // The parent AnimateIn may delay visibility, so we check multiple times
-    const checkAndAnimate = () => {
-      if (hasAnimated.current) return;
-      const rect = el.getBoundingClientRect();
-      const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
-      console.log('[DEBUG] Fallback check - inViewport:', inViewport, 'rect.top:', rect.top);
-      if (inViewport) {
-        startCountingAnimation();
-      }
-    };
-
-    // Check at multiple intervals to catch when element becomes visible
-    const fallback1 = setTimeout(checkAndAnimate, 100);
-    const fallback2 = setTimeout(checkAndAnimate, 500);
-    const fallback3 = setTimeout(checkAndAnimate, 1000);
-    const fallback4 = setTimeout(checkAndAnimate, 1500);
-
-    return () => {
-      observer.disconnect();
-      clearTimeout(fallback1);
-      clearTimeout(fallback2);
-      clearTimeout(fallback3);
-      clearTimeout(fallback4);
-    };
-  }, [value, numericValue, prefersReducedMotion]);
+    return () => clearTimeout(timer);
+  }, [value, numericValue, prefersReducedMotion, startDelay]);
 
   return (
-    <span ref={ref}>
+    <span>
       {prefix}{displayValue}{suffix}
     </span>
   );
@@ -357,7 +315,12 @@ function StatCard({
         "relative text-4xl md:text-5xl font-bold mb-3 transition-all duration-300",
         isNegative ? "text-emerald-400 group-hover:text-emerald-300" : "text-primary group-hover:text-purple-400"
       )}>
-        <CountingNumber value={numericPart} prefix={prefix} suffix={suffix} />
+        <CountingNumber 
+          value={numericPart} 
+          prefix={prefix} 
+          suffix={suffix} 
+          startDelay={(index * 100) + 500} 
+        />
       </div>
       <div className="relative text-sm md:text-base text-muted-foreground group-hover:text-white/70 transition-colors">{stat.label}</div>
     </motion.div>
@@ -695,16 +658,14 @@ export default function Landing() {
 
         <section className="py-16 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <AnimateIn>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
-                {STATS.map((stat, i) => (
-                  <StatCard key={stat.label} stat={stat} index={i} />
-                ))}
-              </div>
-              <p className="text-center text-xs text-muted-foreground mt-8">
-                *Based on internal testing. Results may vary depending on hardware and configuration.
-              </p>
-            </AnimateIn>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
+              {STATS.map((stat, i) => (
+                <StatCard key={stat.label} stat={stat} index={i} />
+              ))}
+            </div>
+            <p className="text-center text-xs text-muted-foreground mt-8">
+              *Based on internal testing. Results may vary depending on hardware and configuration.
+            </p>
           </div>
         </section>
 
