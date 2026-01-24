@@ -4,6 +4,8 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { getStripeClient } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
+import fs from "fs";
+import path from "path";
 
 const app = express();
 const httpServer = createServer(app);
@@ -102,6 +104,21 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
+
+  // Serve sitemap.xml from root public folder (works in both dev and prod)
+  const rootPublicPath = path.resolve(process.cwd(), "public");
+  app.get("/sitemap.xml", (_req, res) => {
+    const sitemapPath = path.join(rootPublicPath, "sitemap.xml");
+    if (fs.existsSync(sitemapPath)) {
+      res.setHeader("Content-Type", "application/xml");
+      res.sendFile(sitemapPath);
+    } else {
+      res.status(404).send("Sitemap not found");
+    }
+  });
+  
+  // Serve static assets from root public folder
+  app.use(express.static(rootPublicPath));
 
   if (process.env.NODE_ENV === "production") {
     serveStatic(app);
