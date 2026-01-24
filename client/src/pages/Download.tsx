@@ -55,9 +55,9 @@ export default function DownloadPage() {
               <div className="relative">
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-purple-600/30 blur-2xl scale-150 opacity-60" />
                 <motion.img 
-                  src="/switchcontrol-logo.png" 
+                  src="/switchcontrol-logo.png?v=2"
                   alt="SwitchControl"
-                  className="relative w-[60px] h-[60px] md:w-[80px] md:h-[80px] rounded-2xl transition-all duration-300 object-contain logo-animate"
+                  className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl transition-all duration-300 object-contain logo-animate"
                   initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
