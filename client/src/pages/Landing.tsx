@@ -596,7 +596,7 @@ export default function Landing() {
     if (user) {
       window.location.href = "/download";
     } else {
-      window.location.href = "/auth/google";
+      window.location.href = "/login?next=/download";
     }
   };
   
