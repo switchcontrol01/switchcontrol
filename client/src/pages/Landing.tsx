@@ -191,12 +191,13 @@ function CountingNumber({
 }) {
   const { prefersReducedMotion } = useMotion();
   const numericValue = parseInt(value.replace(/[^\d]/g, ''), 10);
-  const [displayValue, setDisplayValue] = useState(prefersReducedMotion ? numericValue.toString() : '0');
+  const [displayValue, setDisplayValue] = useState('0');
   const ref = useRef<HTMLSpanElement>(null);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
-    if (prefersReducedMotion || hasAnimated.current) {
+    // Already animated, skip
+    if (hasAnimated.current) {
       setDisplayValue(numericValue.toString());
       return;
     }
@@ -212,7 +213,10 @@ function CountingNumber({
     const startCountingAnimation = () => {
       if (hasAnimated.current) return;
       hasAnimated.current = true;
-      const duration = 1500;
+      console.log('[DEBUG] Stats animation started for value:', numericValue);
+      
+      // Reduced motion = faster animation, but still animated
+      const duration = prefersReducedMotion ? 600 : 1500;
       const startTime = performance.now();
 
       const animate = (currentTime: number) => {
@@ -235,32 +239,41 @@ function CountingNumber({
     // Use IntersectionObserver to detect when element enters viewport
     const observer = new IntersectionObserver(
       ([entry]) => {
+        console.log('[DEBUG] IntersectionObserver fired, isIntersecting:', entry.isIntersecting);
         if (entry.isIntersecting && !hasAnimated.current) {
-          // Small delay to let AnimateIn finish its fade-in
-          setTimeout(startCountingAnimation, 100);
+          startCountingAnimation();
           observer.disconnect();
         }
       },
-      { threshold: 0.1, rootMargin: "100px 0px 0px 0px" }
+      { threshold: 0.05, rootMargin: "200px 0px 0px 0px" }
     );
 
     observer.observe(el);
 
-    // CRITICAL FIX for desktop: Fallback timer
-    // If IntersectionObserver doesn't fire (element already visible), 
-    // check again after a short delay when parent AnimateIn has finished
-    const fallbackTimer = setTimeout(() => {
+    // CRITICAL FIX for desktop: Multiple fallback checks
+    // The parent AnimateIn may delay visibility, so we check multiple times
+    const checkAndAnimate = () => {
       if (hasAnimated.current) return;
       const rect = el.getBoundingClientRect();
       const inViewport = rect.top < window.innerHeight && rect.bottom > 0;
+      console.log('[DEBUG] Fallback check - inViewport:', inViewport, 'rect.top:', rect.top);
       if (inViewport) {
         startCountingAnimation();
       }
-    }, 800); // Wait for AnimateIn transition (700ms) + buffer
+    };
+
+    // Check at multiple intervals to catch when element becomes visible
+    const fallback1 = setTimeout(checkAndAnimate, 100);
+    const fallback2 = setTimeout(checkAndAnimate, 500);
+    const fallback3 = setTimeout(checkAndAnimate, 1000);
+    const fallback4 = setTimeout(checkAndAnimate, 1500);
 
     return () => {
       observer.disconnect();
-      clearTimeout(fallbackTimer);
+      clearTimeout(fallback1);
+      clearTimeout(fallback2);
+      clearTimeout(fallback3);
+      clearTimeout(fallback4);
     };
   }, [value, numericValue, prefersReducedMotion]);
 
