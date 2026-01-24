@@ -14,6 +14,10 @@ import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
 import NetworkTweaks from "@/pages/NetworkTweaks";
 import Placeholder from "@/pages/Placeholder";
+import SystemCleaner from "@/pages/SystemCleaner";
+import Debloater from "@/pages/Debloater";
+import StartupApps from "@/pages/StartupApps";
+import FocusMode from "@/pages/FocusMode";
 import Login from "@/pages/Login";
 import Pricing from "@/pages/Pricing";
 import Terms from "@/pages/Terms";
@@ -110,22 +114,22 @@ function Router() {
         </Route>
         <Route path="/app/focus">
           <ProtectedRoute>
-            <Placeholder title="Focus Mode" />
+            <FocusMode />
           </ProtectedRoute>
         </Route>
         <Route path="/app/cleaner">
           <ProtectedRoute>
-            <Placeholder title="System Cleaner" />
+            <SystemCleaner />
           </ProtectedRoute>
         </Route>
         <Route path="/app/debloat">
           <ProtectedRoute>
-            <Placeholder title="Debloater" />
+            <Debloater />
           </ProtectedRoute>
         </Route>
         <Route path="/app/startup">
           <ProtectedRoute>
-            <Placeholder title="Startup Apps" />
+            <StartupApps />
           </ProtectedRoute>
         </Route>
         

@@ -1,0 +1,158 @@
+IMPORTANT: Keep every page, route, text, buttons, pricing logic, login logic, Stripe logic, and existing content EXACTLY the same. Do NOT remove or rewrite existing information. This is a redesign only.
+GOAL
+Redesign SwitchControl.org into a premium, interactive, motion-heavy, Awwwards/Dribbble-level website while keeping all current pages, content, and functionality unchanged.
+The site must feel like a million-dollar SaaS product:
+interactive
+visually premium
+motion-rich
+modern dark theme
+fully mobile responsive
+smooth on desktop and mobile
+HARD RULES (DO NOT BREAK)
+Keep ALL existing pages/routes:
+/ (home/landing)
+/pricing
+/download
+/dashboard (or app)
+/tweaks
+any other existing pages
+DO NOT delete or rename any route.
+Keep ALL existing information and page content:
+headings, descriptions, feature lists, pricing details, FAQ, terms, privacy, support info
+Do NOT change the meaning or remove anything.
+Keep ALL existing functionality:
+login/auth
+premium logic
+Stripe checkout
+purchased state
+download gating
+graphs (even if demo)
+buttons must still work
+Only redesign visuals + add animations + interactivity.
+Add the label “New release 2026” somewhere clean and premium on the landing page (small badge, not spammy).
+DESIGN THEME
+Use: Clean modern dark (minimal, professional)
+Not gamer neon.
+Visual style:
+dark background with animated gradient accents
+glassmorphism cards (subtle blur + transparency)
+soft glow highlights (not overdone)
+premium typography hierarchy
+subtle grain/noise texture overlay for depth
+consistent spacing and layout grid
+ANIMATION + INTERACTIVITY REQUIREMENTS
+Use Framer Motion for animations.Use IntersectionObserver for scroll reveal effects. Add smooth page transitions between routes. These and they must work on windows and mobile.  
+Animations must work on:
+desktop Chrome/Edge/Firefox
+mobile Safari/Chrome
+No animation should lag or break scrolling.
+GLOBAL INTERACTIONS (ALL PAGES)
+Apply these across the entire site:
+buttons: hover glow + slight scale + smooth easing
+cards: hover lift + soft glow border + subtle tilt effect
+navigation: animated underline/active state
+section reveals: fade + slide + blur-in on scroll
+micro interactions everywhere but keep it classy
+Add “scroll reveal” for all major sections on every page.
+HOME / LANDING PAGE (KEEP SAME CONTENT, REDESIGN IT)
+Keep all existing landing page text and sections, but redesign them into an interactive scroll story:
+HERO SECTION
+Animated logo entrance (0.8s)
+“SwitchControl” headline reveal (word-by-word or letter-by-letter)
+Add small badge text: New release 2026
+Background: animated gradient + subtle particles + soft noise overlay
+Floating stat cards (animated):
+Input Delay
+Ping Stability
+FPS Consistency
+CTA buttons must remain same links/actions:
+Download
+Pricing
+Join Discord / TikTok (if currently present)
+Add scroll indicator animation (“Scroll to explore”)
+INTERACTIVE BEFORE/AFTER SECTION
+Add a draggable comparison slider (interactive) that visually shows:
+“Before” (Stock Windows)
+
+Interactive slider for stock Windows vs SwitchControl for fps (realistic values) "based on testing results will vary"
+
+Another slifer for input delay
+
+Another slider for latency Windows.
+
+
+
+“After” (SwitchControl Optimized)
+Use demo values if needed but do NOT claim fake real user data. This must be interactive and smooth.
+FEATURE MODULE SHOWCASE (INTERACTIVE)
+Keep the same modules and info but present them as clickable cards:
+Tweaks
+Power Plan
+Network Tweaks
+App Booster
+Focus Mode
+Cleaner
+Debloater
+Startup Apps
+Settings
+When user clicks a module card:
+expand panel with details (use existing text)
+show small animated preview UI inside the card
+LIVE GRAPHS (KEEP CURRENT, MAKE THEM PREMIUM)
+Keep the existing graphs and system dashboard preview, but:
+animate the charts smoothly
+add glow and depth
+add subtle pulsing line movement
+label demo graphs clearly as “Preview / Demo” if they are simulated
+PRICING PAGE (KEEP SAME INFO, REDESIGN + FIX UX)
+Keep the same pricing content and logic, but redesign it premium:
+premium pricing card with glass + glow
+animated entrance on page load
+FAQ accordion with smooth open/close animation
+improve spacing, typography, trust design
+IMPORTANT: If user isPremium true:
+show button text: Purchased
+disable it
+grey it slightly
+add a checkmark icon
+remove click handler
+If user is NOT premium:
+button remains active and works exactly the same
+Also fix scroll bug: When clicking “Get Premium”, it must go to the top of the checkout flow and not jump to bottom of the page.
+DOWNLOAD PAGE (KEEP SAME INFO, REDESIGN HARD)
+Keep all existing download page content and logic, but redesign it to feel extremely premium:
+Replace any default download icon with the uploaded SwitchControl logo
+Logo must be large, centered, and animated:
+floating effect
+soft glow pulse
+subtle light sweep
+Download button should feel premium and interactive
+Add animated steps:
+Download
+Install
+Launch
+Optimize
+Keep download gating logic (only show download when logged in if that’s current behavior)
+NAVBAR + FOOTER (ALL PAGES)
+Increase logo size
+Increase SwitchControl text size
+Ensure branding is consistent on every page
+Keep existing links and routes
+Add subtle animation to navbar on scroll (shrink + blur)
+Footer:
+Keep existing content
+Add social icons with hover animation
+PERFORMANCE RULES
+Keep animations smooth (60fps target)
+Avoid heavy video backgrounds
+Avoid huge JS bundles
+Use optimized motion settings
+Ensure mobile performance is good
+DELIVERABLES
+After changes, output:
+Which files were changed
+What animations were added
+Confirm all pages + content + functionality remained the same
+Confirm “New release 2026” badge was added on landing page
+Confirm animations work on desktop AND mobile
+
