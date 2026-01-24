@@ -279,12 +279,42 @@ body {
 }
 
 @keyframes heroFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -8px, 0); }
+}
+
+@keyframes heroFloatSlow {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -5px, 0); }
+}
+
+@keyframes pillFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -4px, 0); }
 }
 
 .animate-hero-float {
   animation: heroFloat 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-hero-float-slow {
+  animation: heroFloatSlow 7s ease-in-out infinite;
+  animation-delay: 0.3s;
+  will-change: transform;
+}
+
+.animate-pill-float {
+  animation: pillFloat 5s ease-in-out infinite;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-hero-float,
+  .animate-hero-float-slow,
+  .animate-pill-float {
+    animation-duration: 12s;
+  }
 }
 
 .animate-blob-1 {

@@ -26,21 +26,35 @@ export function ComparisonSlider({
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const rectCache = useRef<DOMRect | null>(null);
   const rafRef = useRef<number | null>(null);
   const { prefersReducedMotion } = useMotion();
 
-  // Throttled move handler using requestAnimationFrame for smooth 60fps on mobile
+  // Cache rect on drag start for performance
+  const handleStart = useCallback(() => {
+    setIsDragging(true);
+    if (containerRef.current) {
+      rectCache.current = containerRef.current.getBoundingClientRect();
+    }
+  }, []);
+
+  const handleEnd = useCallback(() => {
+    setIsDragging(false);
+    rectCache.current = null;
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
+
+  // Throttled move handler using cached rect and RAF
   const handleMove = useCallback((clientX: number) => {
-    if (!containerRef.current) return;
+    const rect = rectCache.current;
+    if (!rect) return;
     
     if (rafRef.current !== null) return;
     
     rafRef.current = requestAnimationFrame(() => {
-      if (!containerRef.current) {
-        rafRef.current = null;
-        return;
-      }
-      const rect = containerRef.current.getBoundingClientRect();
       const x = clientX - rect.left;
       const percentage = Math.max(5, Math.min(95, (x / rect.width) * 100));
       setSliderPosition(percentage);
@@ -55,18 +69,8 @@ export function ComparisonSlider({
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging) return;
-    e.preventDefault(); // Prevent scroll while dragging
     handleMove(e.touches[0].clientX);
   }, [isDragging, handleMove]);
-
-  const handleStart = useCallback(() => setIsDragging(true), []);
-  const handleEnd = useCallback(() => {
-    setIsDragging(false);
-    if (rafRef.current !== null) {
-      cancelAnimationFrame(rafRef.current);
-      rafRef.current = null;
-    }
-  }, []);
 
   return (
     <motion.div
@@ -85,6 +89,7 @@ export function ComparisonSlider({
           "border border-white/10 bg-gradient-to-r from-red-500/10 to-emerald-500/10",
           isDragging && "ring-2 ring-primary/50"
         )}
+        style={{ touchAction: 'pan-y', contain: 'layout style' }}
         role="slider"
         aria-label={`${title} comparison slider`}
         aria-valuemin={0}
@@ -109,7 +114,10 @@ export function ComparisonSlider({
       >
         <div 
           className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-red-500/20 to-red-500/10"
-          style={{ clipPath: `inset(0 ${100 - sliderPosition}% 0 0)` }}
+          style={{ 
+            clipPath: `inset(0 ${100 - sliderPosition}% 0 0)`,
+            willChange: isDragging ? 'clip-path' : 'auto'
+          }}
         >
           <div className="text-center p-4">
             <p className="text-xs text-red-300 mb-1">{beforeLabel}</p>
@@ -120,7 +128,10 @@ export function ComparisonSlider({
 
         <div 
           className="absolute inset-0 flex items-center justify-center bg-gradient-to-r from-emerald-500/10 to-emerald-500/20"
-          style={{ clipPath: `inset(0 0 0 ${sliderPosition}%)` }}
+          style={{ 
+            clipPath: `inset(0 0 0 ${sliderPosition}%)`,
+            willChange: isDragging ? 'clip-path' : 'auto'
+          }}
         >
           <div className="text-center p-4">
             <p className="text-xs text-emerald-300 mb-1">{afterLabel}</p>
@@ -131,14 +142,19 @@ export function ComparisonSlider({
 
         <div 
           className="absolute top-0 bottom-0 w-1 bg-white/80 shadow-lg shadow-white/30 z-10"
-          style={{ left: `${sliderPosition}%`, transform: 'translateX(-50%)' }}
+          style={{ 
+            left: `${sliderPosition}%`, 
+            transform: 'translateX(-50%)',
+            willChange: isDragging ? 'left' : 'auto'
+          }}
         >
           <div className={cn(
             "absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
             "w-8 h-8 rounded-full bg-white shadow-lg flex items-center justify-center",
-            "transition-transform",
             isDragging && "scale-110"
-          )}>
+          )}
+          style={{ transition: isDragging ? 'none' : 'transform 0.15s ease-out' }}
+          >
             <div className="flex gap-0.5">
               <div className="w-0.5 h-3 bg-gray-400 rounded-full" />
               <div className="w-0.5 h-3 bg-gray-400 rounded-full" />

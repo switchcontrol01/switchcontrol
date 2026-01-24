@@ -21,6 +21,7 @@ import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
 import { ComparisonSlider } from "@/components/ComparisonSlider";
 import { HeroBackground } from "@/components/HeroBackground";
+import { PageBackground } from "@/components/PageBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
@@ -193,7 +194,7 @@ function CountingNumber({
 }) {
   const { prefersReducedMotion } = useMotion();
   const numericValue = parseInt(value.replace(/[^\d]/g, ''), 10);
-  const [displayValue, setDisplayValue] = useState('0');
+  const [displayValue, setDisplayValue] = useState<string | null>(null);
   const hasAnimated = useRef(false);
 
   useEffect(() => {
@@ -211,6 +212,9 @@ function CountingNumber({
     const timer = setTimeout(() => {
       if (hasAnimated.current) return;
       hasAnimated.current = true;
+      
+      // Start from 0 when animation begins (not before)
+      setDisplayValue('0');
       
       const duration = prefersReducedMotion ? 600 : 1200;
       const startTime = performance.now();
@@ -234,6 +238,11 @@ function CountingNumber({
 
     return () => clearTimeout(timer);
   }, [value, numericValue, prefersReducedMotion, startDelay]);
+
+  // Show empty until animation starts (prevents "0" flash)
+  if (displayValue === null) {
+    return <span style={{ visibility: 'hidden' }}>{prefix}0{suffix}</span>;
+  }
 
   return (
     <span>
@@ -588,6 +597,7 @@ export default function Landing() {
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black relative page-enter">
+      <PageBackground />
       <GlowBlobs />
       <GrainOverlay />
       <Header />
@@ -599,19 +609,14 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40 relative">
             <div className="text-center max-w-4xl mx-auto">
               <AnimateIn delay={0}>
-                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6 animate-pill-float">
                   <Star className="size-3 fill-primary text-primary" />
                   New release 2026
                 </span>
               </AnimateIn>
               
               <AnimateIn delay={150}>
-                <h1
-                  className={cn(
-                    "text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6",
-                    !prefersReducedMotion && "animate-hero-float"
-                  )}
-                >
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 animate-hero-float">
                   Unlock Your PC's{" "}
                   <span className="bg-gradient-to-r from-primary via-purple-400 to-pink-500 bg-clip-text text-transparent">
                     True Potential
@@ -620,7 +625,7 @@ export default function Landing() {
               </AnimateIn>
               
               <AnimateIn delay={300}>
-                <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-hero-float-slow">
                   Professional-grade Windows optimization for competitive gaming. 
                   Lower latency, smoother frames, better consistency.
                 </p>
