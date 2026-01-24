@@ -275,28 +275,33 @@ function StatCard({
     <motion.div
       ref={ref}
       className={cn(
-        "text-center relative overflow-hidden rounded-xl p-5",
-        "bg-white/[0.03] backdrop-blur-md border border-white/10",
-        "hover:border-primary/30 hover:bg-white/[0.06] hover:shadow-lg hover:shadow-primary/10",
-        "transition-all duration-300 group cursor-default"
+        "text-center relative overflow-hidden rounded-2xl p-6 md:p-8",
+        "bg-gradient-to-br from-white/[0.08] to-white/[0.02] backdrop-blur-xl",
+        "border border-white/[0.12] shadow-xl shadow-black/20",
+        "hover:border-primary/40 hover:shadow-2xl hover:shadow-primary/20",
+        "transition-all duration-500 group cursor-default"
       )}
+      style={{
+        boxShadow: '0 0 40px -10px rgba(139, 92, 246, 0.15), inset 0 1px 0 0 rgba(255,255,255,0.05)'
+      }}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: index * 0.1 }}
       viewport={{ once: true, amount: 0.2 }}
-      whileHover={{ scale: 1.03, y: -2 }}
+      whileHover={{ scale: 1.02, y: -4 }}
     >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      <div className="absolute inset-[1px] rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
       {hasShimmered && (
         <div className="absolute inset-0 animate-shimmer pointer-events-none" />
       )}
       <div className={cn(
-        "text-3xl md:text-4xl font-bold mb-2 transition-all duration-300",
+        "relative text-4xl md:text-5xl font-bold mb-3 transition-all duration-300",
         isNegative ? "text-emerald-400 group-hover:text-emerald-300" : "text-primary group-hover:text-purple-400"
       )}>
         <CountingNumber value={numericPart} prefix={prefix} suffix={suffix} />
       </div>
-      <div className="text-sm text-muted-foreground">{stat.label}</div>
+      <div className="relative text-sm md:text-base text-muted-foreground group-hover:text-white/70 transition-colors">{stat.label}</div>
     </motion.div>
   );
 }
@@ -630,10 +635,10 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="py-16 border-y border-white/5 bg-black/30 relative" data-reveal>
+        <section className="py-16 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <AnimateIn>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-8">
                 {STATS.map((stat, i) => (
                   <StatCard key={stat.label} stat={stat} index={i} />
                 ))}

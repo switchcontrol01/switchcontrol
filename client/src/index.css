@@ -165,25 +165,91 @@ body {
 }
 
 /* Drifting blob animations */
+/* Particle animation */
+@keyframes particleFloat {
+  0%, 100% { 
+    transform: translateY(0);
+    opacity: 0.1;
+  }
+  50% { 
+    transform: translateY(-20px);
+    opacity: 0.35;
+  }
+}
+
+.animate-particle {
+  animation: particleFloat 6s ease-in-out infinite;
+}
+
+/* Wave contour line animations - GPU optimized */
+@keyframes waveMove1 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(30px, 8px, 0); }
+  50% { transform: translate3d(0, 0, 0); }
+  75% { transform: translate3d(-30px, -8px, 0); }
+}
+
+@keyframes waveMove2 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  33% { transform: translate3d(-25px, 6px, 0); }
+  66% { transform: translate3d(25px, -6px, 0); }
+}
+
+@keyframes waveMove3 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(20px, 5px, 0); }
+}
+
+.animate-wave-1 {
+  animation: waveMove1 14s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-wave-2 {
+  animation: waveMove2 18s ease-in-out infinite;
+  animation-delay: 0.5s;
+  will-change: transform;
+}
+
+.animate-wave-3 {
+  animation: waveMove3 22s ease-in-out infinite;
+  animation-delay: 1s;
+  will-change: transform;
+}
+
+/* Slow pulse for center glow */
+@keyframes pulseSlow {
+  0%, 100% { 
+    transform: scale(1);
+    opacity: 0.3;
+  }
+  50% { 
+    transform: scale(1.08);
+    opacity: 0.45;
+  }
+}
+
+.animate-pulse-slow {
+  animation: pulseSlow 6s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
 @keyframes blobFloat1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  25% { transform: translate(30px, -20px) scale(1.05); }
-  50% { transform: translate(-20px, 30px) scale(0.95); }
-  75% { transform: translate(-30px, -10px) scale(1.02); }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  25% { transform: translate3d(20px, -15px, 0) scale(1.03); }
+  50% { transform: translate3d(-15px, 20px, 0) scale(0.97); }
+  75% { transform: translate3d(-20px, -10px, 0) scale(1.01); }
 }
 
 @keyframes blobFloat2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-40px, 20px) scale(1.03); }
-  66% { transform: translate(20px, -30px) scale(0.97); }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(-25px, 15px, 0) scale(1.02); }
+  66% { transform: translate3d(15px, -20px, 0) scale(0.98); }
 }
 
 @keyframes blobFloat3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  20% { transform: translate(20px, 25px) scale(1.04); }
-  40% { transform: translate(-25px, 10px) scale(0.96); }
-  60% { transform: translate(15px, -20px) scale(1.02); }
-  80% { transform: translate(-10px, -15px) scale(0.98); }
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(15px, 15px, 0) scale(1.02); }
 }
 
 @keyframes gradientShift {
@@ -454,7 +520,21 @@ body {
   .animate-blob-1,
   .animate-blob-2,
   .animate-blob-3 {
-    animation-duration: 60s; /* Slow down instead of removing */
+    animation-duration: 60s;
+  }
+  
+  .animate-wave-1,
+  .animate-wave-2,
+  .animate-wave-3 {
+    animation-duration: 40s;
+  }
+  
+  .animate-particle {
+    animation-duration: 12s;
+  }
+  
+  .animate-pulse-slow {
+    animation-duration: 12s;
   }
   
   .animate-gradient-shift {
@@ -465,11 +545,11 @@ body {
   .animate-hero-float,
   .animate-float,
   .pulse-ring {
-    animation-duration: 6s; /* Slower, calmer animations */
+    animation-duration: 6s;
   }
   
   .animate-shimmer {
-    animation: none; /* This one can be removed as it's decorative */
+    animation: none;
   }
   
   .btn-shine::after,
@@ -478,7 +558,7 @@ body {
   }
   
   .tilt-card:hover {
-    transform: translateY(-2px); /* Reduced but still present */
+    transform: translateY(-2px);
   }
   
   .premium-btn:hover {
@@ -487,7 +567,7 @@ body {
   }
   
   .icon-hover:hover {
-    transform: scale(1.05); /* Reduced scale */
+    transform: scale(1.05);
   }
   
   .animated-border::before {

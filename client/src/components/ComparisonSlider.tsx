@@ -26,14 +26,26 @@ export function ComparisonSlider({
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const rafRef = useRef<number | null>(null);
   const { prefersReducedMotion } = useMotion();
 
+  // Throttled move handler using requestAnimationFrame for smooth 60fps on mobile
   const handleMove = useCallback((clientX: number) => {
     if (!containerRef.current) return;
-    const rect = containerRef.current.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const percentage = Math.max(5, Math.min(95, (x / rect.width) * 100));
-    setSliderPosition(percentage);
+    
+    if (rafRef.current !== null) return;
+    
+    rafRef.current = requestAnimationFrame(() => {
+      if (!containerRef.current) {
+        rafRef.current = null;
+        return;
+      }
+      const rect = containerRef.current.getBoundingClientRect();
+      const x = clientX - rect.left;
+      const percentage = Math.max(5, Math.min(95, (x / rect.width) * 100));
+      setSliderPosition(percentage);
+      rafRef.current = null;
+    });
   }, []);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
@@ -43,11 +55,18 @@ export function ComparisonSlider({
 
   const handleTouchMove = useCallback((e: React.TouchEvent) => {
     if (!isDragging) return;
+    e.preventDefault(); // Prevent scroll while dragging
     handleMove(e.touches[0].clientX);
   }, [isDragging, handleMove]);
 
   const handleStart = useCallback(() => setIsDragging(true), []);
-  const handleEnd = useCallback(() => setIsDragging(false), []);
+  const handleEnd = useCallback(() => {
+    setIsDragging(false);
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+  }, []);
 
   return (
     <motion.div
