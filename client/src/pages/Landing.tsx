@@ -23,6 +23,7 @@ import { ComparisonSlider } from "@/components/ComparisonSlider";
 import { HeroBackground } from "@/components/HeroBackground";
 import { PageBackground } from "@/components/PageBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
+import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/components/ProtectedRoute";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -779,6 +780,9 @@ export default function Landing() {
             </Reveal>
           </div>
         </section>
+
+        {/* What is SwitchControl explanation */}
+        <WhatIsSwitchControl />
 
         <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative" data-reveal>
           <div id="pricing-top"></div>
