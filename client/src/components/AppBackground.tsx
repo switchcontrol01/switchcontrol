@@ -35,25 +35,25 @@ export function AppBackground() {
   }, []);
 
   const glowBlobs = useMemo<GlowBlob[]>(() => [
-    { id: 'top-left', top: '5%', left: '10%', size: 400, color: 'hsl(270 70% 50%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-1' },
-    { id: 'top-right', top: '10%', right: '5%', size: 350, color: 'hsl(190 70% 50%)', blur: 90, opacity: 0.04, animClass: 'animate-blob-2' },
-    { id: 'mid', top: '45%', left: '50%', size: 500, color: 'hsl(280 60% 45%)', blur: 120, opacity: 0.03, animClass: 'animate-blob-3' },
-    { id: 'bottom', top: '80%', right: '20%', size: 380, color: 'hsl(320 60% 50%)', blur: 100, opacity: 0.04, animClass: 'animate-blob-1' },
+    { id: 'top-left', top: '5%', left: '10%', size: 400, color: 'hsl(270 70% 50%)', blur: 100, opacity: 0.08, animClass: 'animate-blob-1' },
+    { id: 'top-right', top: '10%', right: '5%', size: 350, color: 'hsl(190 70% 50%)', blur: 90, opacity: 0.06, animClass: 'animate-blob-2' },
+    { id: 'mid', top: '45%', left: '50%', size: 500, color: 'hsl(280 60% 45%)', blur: 120, opacity: 0.05, animClass: 'animate-blob-3' },
+    { id: 'bottom', top: '80%', right: '20%', size: 380, color: 'hsl(320 60% 50%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-1' },
   ], []);
 
   const contourLines = useMemo<ContourLine[]>(() => {
     const lines: ContourLine[] = [];
-    const lineCount = isMobile ? 20 : 35;
+    const lineCount = isMobile ? 25 : 40;
     
     for (let i = 0; i < lineCount; i++) {
-      const y = (i + 1) * (100 / (lineCount + 1));
-      const waveOffset = Math.sin(i * 0.3) * 8;
+      const y = (i + 1) * (1000 / (lineCount + 1));
+      const waveOffset = Math.sin(i * 0.3) * 30;
       
       lines.push({
         y: y + waveOffset,
-        amplitude: 15 + Math.sin(i * 0.5) * 12 + Math.cos(i * 0.3) * 8,
-        strokeWidth: 0.3 + (i % 4) * 0.15,
-        opacity: 0.06 + Math.sin(i * 0.4) * 0.03,
+        amplitude: 40 + Math.sin(i * 0.5) * 30 + Math.cos(i * 0.3) * 20,
+        strokeWidth: 0.8 + (i % 4) * 0.3,
+        opacity: 0.15 + Math.sin(i * 0.4) * 0.08,
         gradientId: i % 4 === 0 ? 'app-contour-1' : i % 4 === 1 ? 'app-contour-2' : i % 4 === 2 ? 'app-contour-3' : 'app-contour-4',
         animClass: `animate-contour-${(i % 4) + 1}`,
       });
@@ -68,12 +68,12 @@ export function AppBackground() {
       aria-hidden="true"
     >
       <div 
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-25"
         style={{
           background: `
-            radial-gradient(ellipse 60% 40% at 20% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
-            radial-gradient(ellipse 50% 30% at 80% 70%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
-            radial-gradient(ellipse 70% 50% at 50% 100%, rgba(139, 92, 246, 0.08) 0%, transparent 50%)
+            radial-gradient(ellipse 60% 40% at 20% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 30% at 80% 70%, rgba(6, 182, 212, 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse 70% 50% at 50% 100%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)
           `,
         }}
       />
@@ -81,43 +81,45 @@ export function AppBackground() {
       <svg 
         className="absolute inset-0 w-full h-full" 
         xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 1600 1000"
         preserveAspectRatio="none"
       >
         <defs>
           <linearGradient id="app-contour-1" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-            <stop offset="20%" stopColor="rgba(139, 92, 246, 0.25)" />
-            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.18)" />
-            <stop offset="80%" stopColor="rgba(139, 92, 246, 0.25)" />
+            <stop offset="15%" stopColor="rgba(139, 92, 246, 0.5)" />
+            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.4)" />
+            <stop offset="85%" stopColor="rgba(139, 92, 246, 0.5)" />
             <stop offset="100%" stopColor="rgba(139, 92, 246, 0)" />
           </linearGradient>
           <linearGradient id="app-contour-2" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
-            <stop offset="25%" stopColor="rgba(6, 182, 212, 0.18)" />
-            <stop offset="75%" stopColor="rgba(6, 182, 212, 0.18)" />
+            <stop offset="20%" stopColor="rgba(6, 182, 212, 0.4)" />
+            <stop offset="80%" stopColor="rgba(6, 182, 212, 0.4)" />
             <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
           </linearGradient>
           <linearGradient id="app-contour-3" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(168, 85, 247, 0)" />
-            <stop offset="30%" stopColor="rgba(168, 85, 247, 0.2)" />
-            <stop offset="70%" stopColor="rgba(168, 85, 247, 0.2)" />
+            <stop offset="25%" stopColor="rgba(168, 85, 247, 0.45)" />
+            <stop offset="75%" stopColor="rgba(168, 85, 247, 0.45)" />
             <stop offset="100%" stopColor="rgba(168, 85, 247, 0)" />
           </linearGradient>
           <linearGradient id="app-contour-4" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(236, 72, 153, 0)" />
-            <stop offset="35%" stopColor="rgba(236, 72, 153, 0.15)" />
-            <stop offset="65%" stopColor="rgba(139, 92, 246, 0.12)" />
+            <stop offset="30%" stopColor="rgba(236, 72, 153, 0.35)" />
+            <stop offset="70%" stopColor="rgba(139, 92, 246, 0.3)" />
             <stop offset="100%" stopColor="rgba(236, 72, 153, 0)" />
           </linearGradient>
         </defs>
         
         {contourLines.map((line, i) => {
           const curveVariant = i % 3;
+          const amp = line.amplitude;
           const pathD = curveVariant === 0
-            ? `M-10,${line.y}% Q20,${line.y - line.amplitude * 0.4}% 40,${line.y}% T80,${line.y - line.amplitude * 0.2}% T110,${line.y}%`
+            ? `M-50,${line.y} Q200,${line.y - amp} 500,${line.y} T1000,${line.y - amp * 0.5} T1650,${line.y}`
             : curveVariant === 1
-            ? `M-10,${line.y}% Q30,${line.y + line.amplitude * 0.3}% 55,${line.y}% T85,${line.y + line.amplitude * 0.15}% T110,${line.y}%`
-            : `M-10,${line.y}% Q15,${line.y - line.amplitude * 0.25}% 45,${line.y + line.amplitude * 0.2}% T75,${line.y}% T110,${line.y}%`;
+            ? `M-50,${line.y} Q300,${line.y + amp * 0.8} 700,${line.y} T1200,${line.y + amp * 0.4} T1650,${line.y}`
+            : `M-50,${line.y} Q150,${line.y - amp * 0.6} 550,${line.y + amp * 0.5} T950,${line.y} T1650,${line.y}`;
           
           return (
             <g key={i} className={line.animClass}>
@@ -125,9 +127,8 @@ export function AppBackground() {
                 d={pathD}
                 fill="none"
                 stroke={`url(#${line.gradientId})`}
-                strokeWidth={line.strokeWidth * 4}
-                opacity={line.opacity * 0.4}
-                vectorEffect="non-scaling-stroke"
+                strokeWidth={line.strokeWidth * 3}
+                opacity={line.opacity * 0.5}
               />
               <path
                 d={pathD}
@@ -135,7 +136,6 @@ export function AppBackground() {
                 stroke={`url(#${line.gradientId})`}
                 strokeWidth={line.strokeWidth}
                 opacity={line.opacity}
-                vectorEffect="non-scaling-stroke"
               />
             </g>
           );
