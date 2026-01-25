@@ -91,52 +91,34 @@ const DEFAULT_SETTINGS: GameSettings = {
   affinityLock: false,
 };
 
-function ValorantLogo({ className }: { className?: string }) {
+function FortniteLogo() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12.46 2.29L1.5 16.85c-.34.46.06 1.11.65 1.01l5.76-.97 4.56-14.6zM22.5 16.85L13.31 4.45l-1.97 6.31 5.31 7.27c.2.27.55.4.88.34l4.32-.41c.59-.06.91-.65.65-1.11z"/>
-    </svg>
+    <div className="w-full h-full rounded-lg overflow-hidden" style={{ background: 'linear-gradient(135deg, #00d4ff 0%, #00a8e8 100%)' }}>
+      <svg viewBox="0 0 24 24" className="w-full h-full p-1">
+        <text x="50%" y="55%" dominantBaseline="middle" textAnchor="middle" fill="white" fontSize="16" fontWeight="bold" fontFamily="Arial, sans-serif">F</text>
+      </svg>
+    </div>
   );
 }
 
-function FortniteLogo({ className }: { className?: string }) {
+function MFSLogo() {
   return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M6 2v20h4v-8h6v-4h-6V6h8V2H6z"/>
-    </svg>
-  );
-}
-
-function CS2Logo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
-    </svg>
-  );
-}
-
-function MFSLogo({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
-    </svg>
+    <div className="w-full h-full rounded-lg overflow-hidden flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #87ceeb 0%, #4a90d9 100%)' }}>
+      <svg viewBox="0 0 48 48" className="w-full h-full">
+        <text x="50%" y="35%" dominantBaseline="middle" textAnchor="middle" fill="#0066cc" fontSize="8" fontWeight="bold" fontFamily="Arial, sans-serif">
+          <tspan>MS</tspan><tspan fill="#0099ff">FS</tspan>
+        </text>
+        <text x="50%" y="65%" dominantBaseline="middle" textAnchor="middle" fill="#0066cc" fontSize="10" fontWeight="bold" fontFamily="Arial, sans-serif">2024</text>
+        <path d="M8 32 Q16 28 24 32 T40 32" fill="none" stroke="#0099ff" strokeWidth="2"/>
+        <path d="M10 35 Q18 31 26 35 T42 35" fill="none" stroke="#00ccff" strokeWidth="1.5"/>
+      </svg>
+    </div>
   );
 }
 
 const SAMPLE_GAMES: GameProfile[] = [
   { 
     id: "1", 
-    name: "Valorant", 
-    executable: "VALORANT-Win64-Shipping.exe",
-    icon: "valorant",
-    lastPlayed: "2 hours ago",
-    hoursPlayed: 0,
-    optimized: true,
-    settings: { ...DEFAULT_SETTINGS },
-    boostActive: false
-  },
-  { 
-    id: "2", 
     name: "Fortnite", 
     executable: "FortniteClient-Win64-Shipping.exe",
     icon: "fortnite",
@@ -147,18 +129,7 @@ const SAMPLE_GAMES: GameProfile[] = [
     boostActive: false
   },
   { 
-    id: "3", 
-    name: "Counter-Strike 2", 
-    executable: "cs2.exe",
-    icon: "cs2",
-    lastPlayed: "3 days ago",
-    hoursPlayed: 0,
-    optimized: false,
-    settings: { ...DEFAULT_SETTINGS, cpuPriority: "normal", memoryOptimize: false },
-    boostActive: false
-  },
-  { 
-    id: "4", 
+    id: "2", 
     name: "Microsoft Flight Simulator 2024", 
     executable: "FlightSimulator2024.exe",
     icon: "mfs",
@@ -170,18 +141,14 @@ const SAMPLE_GAMES: GameProfile[] = [
   },
 ];
 
-function GameIcon({ icon, className }: { icon: string; className?: string }) {
+function GameIcon({ icon }: { icon: string }) {
   switch (icon) {
-    case "valorant":
-      return <ValorantLogo className={className} />;
     case "fortnite":
-      return <FortniteLogo className={className} />;
-    case "cs2":
-      return <CS2Logo className={className} />;
+      return <FortniteLogo />;
     case "mfs":
-      return <MFSLogo className={className} />;
+      return <MFSLogo />;
     default:
-      return <Gamepad2 className={className} />;
+      return <Gamepad2 className="w-full h-full" />;
   }
 }
 
@@ -394,8 +361,8 @@ export default function AppBooster() {
                     data-testid={`card-game-${game.id}`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        <GameIcon icon={game.icon} className="w-5 h-5" />
+                      <div className="w-8 h-8">
+                        <GameIcon icon={game.icon} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -423,8 +390,8 @@ export default function AppBooster() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                        <GameIcon icon={selectedGame.icon} className="w-7 h-7" />
+                      <div className="w-12 h-12">
+                        <GameIcon icon={selectedGame.icon} />
                       </div>
                       <div>
                         <CardTitle className="text-xl">{selectedGame.name}</CardTitle>
