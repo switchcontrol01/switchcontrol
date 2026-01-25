@@ -18,6 +18,7 @@ import SystemCleaner from "@/pages/SystemCleaner";
 import Debloater from "@/pages/Debloater";
 import StartupApps from "@/pages/StartupApps";
 import FocusMode from "@/pages/FocusMode";
+import AppBooster from "@/pages/AppBooster";
 import Login from "@/pages/Login";
 import Pricing from "@/pages/Pricing";
 import Terms from "@/pages/Terms";
@@ -109,7 +110,7 @@ function Router() {
         </Route>
         <Route path="/app/app-booster">
           <ProtectedRoute>
-            <Placeholder title="App Booster" />
+            <AppBooster />
           </ProtectedRoute>
         </Route>
         <Route path="/app/focus">
