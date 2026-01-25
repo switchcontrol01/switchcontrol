@@ -1,0 +1,135 @@
+SCRIPT TO SEND REPLIT (PHASE 1 GO AHEAD)
+
+Proceed with Phase 1. I want you to set up the Electron wrapper properly and make the Windows build work first try on my PC.
+
+1) Project structure (must be clean)
+
+Keep my existing website code as the renderer UI
+
+Add Electron in a /desktop or /electron folder OR integrate cleanly without breaking the web build
+
+Make sure the web version still runs normally
+
+2) Electron setup requirements
+
+Use Electron + electron-builder
+
+Create:
+
+main.js (main process)
+
+preload.js (secure bridge)
+
+renderer stays as my current site
+
+Window settings:
+
+smooth animations enabled
+
+GPU acceleration ON
+
+no white flash on launch
+
+set proper min width/height
+
+3) Security (non-negotiable)
+
+contextIsolation: true
+
+nodeIntegration: false
+
+All system actions must be via IPC only (no direct Node in renderer)
+
+4) Deep linking + OAuth redirect support
+
+Add deep link handling so OAuth redirects work inside the desktop app
+
+Support both:
+
+switchcontrol://auth/callback
+
+fallback to a normal HTTPS redirect if needed
+
+Must work without opening a random browser loop
+
+5) Windows installer config (even if not built on Replit)
+
+Configure electron-builder so when I run it on Windows it generates:
+
+.exe installer
+
+desktop shortcut
+
+start menu shortcut
+
+correct app name: SwitchControl
+
+correct icon: my official logo (use .ico for Windows)
+
+output folder: /dist
+
+6) Commands I need on Windows
+
+Add these scripts in package.json:
+
+npm run dev (web dev)
+
+npm run electron:dev (desktop dev)
+
+npm run build (web build)
+
+npm run build:win (Windows installer build)
+
+7) README must be idiot-proof
+
+Create a README with exact steps:
+
+Windows Setup
+
+Install Node.js LTS
+
+Open folder in VS Code
+
+Run npm install
+
+Run npm run electron:dev
+
+Build installer: npm run build:win
+
+Installer output location: show exact path
+
+8) Deliverable checklist (must confirm)
+
+After Phase 1 is done, confirm:
+
+Web version still works
+
+Desktop app runs on Windows after ZIP download
+
+No blank screen
+
+No console errors
+
+OAuth deep link is wired correctly
+
+Windows icon shows properly in taskbar
+
+Do Phase 1 now.
+
+What you do next (on your PC)
+
+When Replit finishes Phase 1:
+
+Download ZIP
+
+Extract
+
+Open folder in VS Code
+
+Run:
+
+npm install
+
+npm run electron:dev
+
+If that opens the desktop app with your UI, you’re winning.

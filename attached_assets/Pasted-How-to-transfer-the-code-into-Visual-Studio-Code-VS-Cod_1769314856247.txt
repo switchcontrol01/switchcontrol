@@ -1,0 +1,116 @@
+How to “transfer the code” into Visual Studio Code (VS Code)
+
+You don’t transfer it. You open the project folder.
+
+Correct steps:
+
+In Replit, download your project as a ZIP
+
+Extract it on your PC (make a folder like SwitchControl-App)
+
+Open VS Code
+
+Click: File → Open Folder
+
+Select your extracted project folder
+
+Open terminal in VS Code and run it locally
+
+That’s it. Now you’re working locally.
+
+The important part: Your app needs a desktop shell
+
+Because a website alone cannot:
+
+run system tweaks safely
+
+access Windows settings
+
+run scripts locally
+
+ship as an installer
+
+So you’ll build:
+✅ Website (already done)
+✅ App UI (same React UI)
+✅ Desktop wrapper (Electron/Tauri)
+✅ Backend logic (Node or Rust)
+✅ Installer (MSI/EXE)
+
+Script to tell Replit (copy/paste)
+
+Use this exactly:
+
+TASK: Convert SwitchControl web dashboard into a Windows desktop app + prepare for VS Code transfer
+
+Export & Local Setup
+
+Ensure the project can be downloaded cleanly from Replit as a ZIP.
+
+Confirm it runs locally with:
+
+npm install
+
+npm run dev
+
+Add a README with exact local setup steps.
+
+App Architecture
+
+Keep the current website UI exactly the same.
+
+Create a desktop app wrapper using Electron (preferred for fastest success).
+
+App should open the same dashboard UI inside the desktop window.
+
+Enable deep linking so login redirects correctly inside the desktop app.
+
+Installer Output
+
+Configure build system to generate a Windows installer:
+
+.exe installer preferred
+
+auto-create desktop shortcut
+
+app icon set to SwitchControl official logo
+
+Output must be easy to upload to switchcontrol.org download page.
+
+Desktop Features Preparation
+
+Prepare a secure backend layer for future features:
+
+system info readouts
+
+startup app toggles
+
+debloat actions
+
+network settings view
+
+No fake “boost” buttons. Everything must be real, safe, reversible.
+
+UI Polish
+
+Keep the premium animations, glow, particles.
+
+Add micro animations on every click:
+
+button press
+
+toggle switch
+
+page transition
+
+Must stay smooth and not lag.
+
+Deliverable
+
+Provide final working desktop build + installer.
+
+Confirm it runs on Windows 10/11.
+
+Confirm login works inside desktop app.
+
+Confirm no console errors.
