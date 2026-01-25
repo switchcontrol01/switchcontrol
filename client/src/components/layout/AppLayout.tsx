@@ -1,6 +1,8 @@
 import { Sidebar } from "./Sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
+import { AppBackground } from "@/components/AppBackground";
+import { SpotlightCursor } from "@/components/SpotlightCursor";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion, hasLoaded } = useMotion();
@@ -9,6 +11,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-x-hidden">
+      <AppBackground />
+      <SpotlightCursor />
       <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />

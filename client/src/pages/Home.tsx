@@ -2,6 +2,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { LiveGraph } from "@/components/dashboard/LiveGraph";
 import { StorageCards } from "@/components/dashboard/StorageCards";
+import { DashboardHeaderParticles } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -49,27 +50,30 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              Good afternoon, SwitchTech <span className="text-2xl">👑</span>
-            </h1>
-            <p className="text-muted-foreground mt-1">System status is optimal. Optimization consistency prioritized.</p>
-          </div>
-          <div className="flex items-center gap-3">
-             <Link href="/app/history">
-               <Button variant="outline" className="gap-2 hidden sm:flex">
-                 <Activity className="size-4" />
-                 View Logs
-               </Button>
-             </Link>
-             <Link href="/app/tweaks">
-               <Button className="gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-white border-0">
-                 <Zap className="size-4" />
-                 Optimize Now
-               </Button>
-             </Link>
+        {/* Header with particles */}
+        <div className="relative">
+          <DashboardHeaderParticles />
+          <div className="flex items-center justify-between relative z-10">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                Good afternoon, SwitchTech <span className="text-2xl">👑</span>
+              </h1>
+              <p className="text-muted-foreground mt-1">System status is optimal. Optimization consistency prioritized.</p>
+            </div>
+            <div className="flex items-center gap-3">
+               <Link href="/app/history">
+                 <Button variant="outline" className="gap-2 hidden sm:flex">
+                   <Activity className="size-4" />
+                   View Logs
+                 </Button>
+               </Link>
+               <Link href="/app/tweaks">
+                 <Button className="gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-white border-0">
+                   <Zap className="size-4" />
+                   Optimize Now
+                 </Button>
+               </Link>
+            </div>
           </div>
         </div>
 

@@ -4,6 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ArrowLeft } from "lucide-react";
 import { brand } from "@/config/brand";
 import AnimateIn from "@/components/AnimateIn";
+import { LoginParticles } from "@/components/LoginParticles";
+import { SpotlightCursor } from "@/components/SpotlightCursor";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -45,8 +47,10 @@ export default function Login() {
   const discordAuthUrl = `/auth/discord?next=${encodeURIComponent(next)}`;
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col">
+    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col relative overflow-hidden">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
+      <LoginParticles />
+      <SpotlightCursor />
       
       <header className="relative z-10 p-4">
         <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors">
