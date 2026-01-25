@@ -395,6 +395,27 @@ body {
   will-change: transform, opacity;
 }
 
+/* Logo float animation - subtle and premium */
+@keyframes logoFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes logoShine {
+  0% { transform: translateX(-100%) skewX(-12deg); }
+  100% { transform: translateX(200%) skewX(-12deg); }
+}
+
+.animate-logo-float {
+  animation: logoFloat 4s ease-in-out infinite;
+  will-change: transform;
+}
+
+.animate-logo-shine {
+  animation: logoShine 4s ease-in-out infinite;
+  animation-delay: 1s;
+}
+
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradientShift 8s ease infinite;
@@ -649,6 +670,14 @@ body {
   .animate-float,
   .pulse-ring {
     animation-duration: 6s;
+  }
+  
+  .animate-logo-float {
+    animation-duration: 8s;
+  }
+  
+  .animate-logo-shine {
+    animation-duration: 8s;
   }
   
   .animate-shimmer {
