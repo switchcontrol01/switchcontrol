@@ -43,17 +43,18 @@ export function AppBackground() {
 
   const contourLines = useMemo<ContourLine[]>(() => {
     const lines: ContourLine[] = [];
-    const lineCount = isMobile ? 8 : 12;
+    const lineCount = isMobile ? 20 : 35;
     
     for (let i = 0; i < lineCount; i++) {
       const y = (i + 1) * (100 / (lineCount + 1));
+      const waveOffset = Math.sin(i * 0.3) * 8;
       
       lines.push({
-        y,
-        amplitude: 20 + Math.sin(i * 0.7) * 15,
-        strokeWidth: 0.4 + (i % 3) * 0.2,
-        opacity: 0.04 + Math.sin(i * 0.5) * 0.02,
-        gradientId: i % 3 === 0 ? 'app-contour-1' : i % 3 === 1 ? 'app-contour-2' : 'app-contour-3',
+        y: y + waveOffset,
+        amplitude: 15 + Math.sin(i * 0.5) * 12 + Math.cos(i * 0.3) * 8,
+        strokeWidth: 0.3 + (i % 4) * 0.15,
+        opacity: 0.06 + Math.sin(i * 0.4) * 0.03,
+        gradientId: i % 4 === 0 ? 'app-contour-1' : i % 4 === 1 ? 'app-contour-2' : i % 4 === 2 ? 'app-contour-3' : 'app-contour-4',
         animClass: `animate-contour-${(i % 4) + 1}`,
       });
     }
@@ -85,44 +86,60 @@ export function AppBackground() {
         <defs>
           <linearGradient id="app-contour-1" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-            <stop offset="30%" stopColor="rgba(139, 92, 246, 0.2)" />
-            <stop offset="70%" stopColor="rgba(139, 92, 246, 0.2)" />
+            <stop offset="20%" stopColor="rgba(139, 92, 246, 0.25)" />
+            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.18)" />
+            <stop offset="80%" stopColor="rgba(139, 92, 246, 0.25)" />
             <stop offset="100%" stopColor="rgba(139, 92, 246, 0)" />
           </linearGradient>
           <linearGradient id="app-contour-2" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(6, 182, 212, 0)" />
-            <stop offset="25%" stopColor="rgba(6, 182, 212, 0.15)" />
-            <stop offset="75%" stopColor="rgba(6, 182, 212, 0.15)" />
+            <stop offset="25%" stopColor="rgba(6, 182, 212, 0.18)" />
+            <stop offset="75%" stopColor="rgba(6, 182, 212, 0.18)" />
             <stop offset="100%" stopColor="rgba(6, 182, 212, 0)" />
           </linearGradient>
           <linearGradient id="app-contour-3" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(168, 85, 247, 0)" />
-            <stop offset="40%" stopColor="rgba(168, 85, 247, 0.12)" />
-            <stop offset="60%" stopColor="rgba(168, 85, 247, 0.12)" />
+            <stop offset="30%" stopColor="rgba(168, 85, 247, 0.2)" />
+            <stop offset="70%" stopColor="rgba(168, 85, 247, 0.2)" />
             <stop offset="100%" stopColor="rgba(168, 85, 247, 0)" />
+          </linearGradient>
+          <linearGradient id="app-contour-4" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="rgba(236, 72, 153, 0)" />
+            <stop offset="35%" stopColor="rgba(236, 72, 153, 0.15)" />
+            <stop offset="65%" stopColor="rgba(139, 92, 246, 0.12)" />
+            <stop offset="100%" stopColor="rgba(236, 72, 153, 0)" />
           </linearGradient>
         </defs>
         
-        {contourLines.map((line, i) => (
-          <g key={i} className={line.animClass}>
-            <path
-              d={`M-10,${line.y}% Q25,${line.y - line.amplitude * 0.3}% 50,${line.y}% T110,${line.y}%`}
-              fill="none"
-              stroke={`url(#${line.gradientId})`}
-              strokeWidth={line.strokeWidth * 3}
-              opacity={line.opacity * 0.5}
-              vectorEffect="non-scaling-stroke"
-            />
-            <path
-              d={`M-10,${line.y}% Q25,${line.y - line.amplitude * 0.3}% 50,${line.y}% T110,${line.y}%`}
-              fill="none"
-              stroke={`url(#${line.gradientId})`}
-              strokeWidth={line.strokeWidth}
-              opacity={line.opacity}
-              vectorEffect="non-scaling-stroke"
-            />
-          </g>
-        ))}
+        {contourLines.map((line, i) => {
+          const curveVariant = i % 3;
+          const pathD = curveVariant === 0
+            ? `M-10,${line.y}% Q20,${line.y - line.amplitude * 0.4}% 40,${line.y}% T80,${line.y - line.amplitude * 0.2}% T110,${line.y}%`
+            : curveVariant === 1
+            ? `M-10,${line.y}% Q30,${line.y + line.amplitude * 0.3}% 55,${line.y}% T85,${line.y + line.amplitude * 0.15}% T110,${line.y}%`
+            : `M-10,${line.y}% Q15,${line.y - line.amplitude * 0.25}% 45,${line.y + line.amplitude * 0.2}% T75,${line.y}% T110,${line.y}%`;
+          
+          return (
+            <g key={i} className={line.animClass}>
+              <path
+                d={pathD}
+                fill="none"
+                stroke={`url(#${line.gradientId})`}
+                strokeWidth={line.strokeWidth * 4}
+                opacity={line.opacity * 0.4}
+                vectorEffect="non-scaling-stroke"
+              />
+              <path
+                d={pathD}
+                fill="none"
+                stroke={`url(#${line.gradientId})`}
+                strokeWidth={line.strokeWidth}
+                opacity={line.opacity}
+                vectorEffect="non-scaling-stroke"
+              />
+            </g>
+          );
+        })}
       </svg>
 
       <div className="absolute inset-0">
