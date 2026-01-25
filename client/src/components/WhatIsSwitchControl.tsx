@@ -75,7 +75,7 @@ export function WhatIsSwitchControl() {
               {/* Header */}
               <div className="mb-6">
                 <div className="flex items-center justify-center mb-4">
-                  <div className="inline-flex items-baseline gap-3 md:gap-4">
+                  <div className="inline-flex items-center gap-3 md:gap-4">
                     <span 
                       className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-white to-zinc-300 bg-clip-text text-transparent"
                       style={{ 
@@ -91,7 +91,7 @@ export function WhatIsSwitchControl() {
                       className="h-8 md:h-10 lg:h-11 object-contain"
                       style={{ 
                         filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.35))',
-                        transform: 'translateY(2px)',
+                        marginTop: '4px',
                       }}
                     />
                   </div>
