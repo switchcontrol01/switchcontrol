@@ -77,10 +77,12 @@ export function WhatIsSwitchControl() {
                 <div className="flex items-center justify-center mb-4">
                   <div className="inline-flex items-center gap-3 md:gap-4">
                     <span 
-                      className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-white to-zinc-300 bg-clip-text text-transparent"
+                      className="text-2xl md:text-3xl lg:text-4xl font-medium italic bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent"
                       style={{ 
-                        filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))',
+                        fontFamily: '"Playfair Display", serif',
+                        filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.15))',
                         lineHeight: 1,
+                        letterSpacing: '0.02em',
                       }}
                     >
                       What is
