@@ -85,23 +85,15 @@ export function WhatIsSwitchControl() {
                     >
                       What is
                     </span>
-                    <div className="relative" style={{ marginTop: '4px' }}>
-                      <img 
-                        src="/switchcontrol-wordmark.png" 
-                        alt="SwitchControl"
-                        className="h-8 md:h-10 lg:h-11 object-contain animate-logo-float"
-                        style={{ 
-                          filter: 'drop-shadow(0 0 12px rgba(139, 92, 246, 0.35))',
-                        }}
-                      />
-                      {/* Shine overlay */}
-                      <div 
-                        className="absolute inset-0 overflow-hidden pointer-events-none rounded"
-                        style={{ mixBlendMode: 'overlay' }}
-                      >
-                        <div className="animate-logo-shine absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12" />
-                      </div>
-                    </div>
+                    <img 
+                      src="/switchcontrol-wordmark.png" 
+                      alt="SwitchControl"
+                      className="h-8 md:h-10 lg:h-11 object-contain animate-logo-float"
+                      style={{ 
+                        filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))',
+                        marginTop: '4px',
+                      }}
+                    />
                   </div>
                 </div>
                 <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto text-center mb-2">
