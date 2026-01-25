@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { getStripeClient } from "./stripeClient";
+import { getStripeClient, isStripeConfigured } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import fs from "fs";
 import path from "path";
@@ -17,6 +17,9 @@ declare module "http" {
 }
 
 async function initStripe() {
+  if (!isStripeConfigured) {
+    return;
+  }
   try {
     const stripe = getStripeClient();
     const account = await stripe.accounts.retrieve();
