@@ -1,7 +1,7 @@
 import passport from "passport";
 import { Strategy as DiscordStrategy } from "passport-discord";
 import type { Express } from "express";
-import { db } from "../db";
+import { db, isNoDbMode } from "../db";
 import { users } from "@shared/models/auth";
 import { eq, or } from "drizzle-orm";
 
@@ -14,6 +14,20 @@ async function findOrCreateDiscordUser(profile: {
   discriminator: string;
   avatar: string | null;
 }): Promise<Express.User> {
+  if (isNoDbMode || !db) {
+    const avatarUrl = profile.avatar 
+      ? `https://cdn.discordapp.com/avatars/${profile.discordId}/${profile.avatar}.png`
+      : null;
+    return {
+      id: `mock-discord-${profile.discordId}`,
+      email: profile.email,
+      firstName: profile.username,
+      lastName: null,
+      profileImageUrl: avatarUrl,
+      isPremium: false,
+    };
+  }
+
   const existingByDiscord = await db
     .select()
     .from(users)

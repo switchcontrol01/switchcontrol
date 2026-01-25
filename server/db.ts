@@ -4,11 +4,14 @@ import * as schema from "@shared/schema";
 
 const { Pool } = pg;
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+export const isNoDbMode = !process.env.DATABASE_URL;
+
+if (isNoDbMode) {
+  console.log("\n========================================");
+  console.log("Running in DEV NO-DB MODE (DATABASE_URL not set)");
+  console.log("Database features are disabled. Using mock data.");
+  console.log("========================================\n");
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle(pool, { schema });
+export const pool = isNoDbMode ? null : new Pool({ connectionString: process.env.DATABASE_URL });
+export const db = isNoDbMode ? null : drizzle(pool!, { schema });

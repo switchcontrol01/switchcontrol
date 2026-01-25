@@ -14,7 +14,7 @@ import {
   type InsertAIScan,
   type User
 } from "@shared/schema";
-import { db } from "./db";
+import { db, isNoDbMode } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
@@ -38,17 +38,117 @@ export interface IStorage {
   setUserPremium(userId: string, isPremium: boolean): Promise<User>;
 }
 
+class MockStorage implements IStorage {
+  private mockSettings: UserSettings = {
+    id: "mock-settings-id",
+    tier: "Premium",
+    email: "demo@example.com",
+    licenseStatus: "Active",
+    tweaksApplied: 0,
+    servicesDisabled: 0,
+    cleanersRun: 0,
+    startupAppsDisabled: 0,
+    usedRamGb: 8.5,
+    lastScan: null,
+  };
+  private mockTweaks: Map<string, AppliedTweak> = new Map();
+  private mockHistory: HistoryEntry[] = [];
+  private mockAiScans: AIScan[] = [];
+
+  async getOrCreateSettings(): Promise<UserSettings> {
+    return this.mockSettings;
+  }
+
+  async updateSettings(id: string, data: Partial<InsertUserSettings>): Promise<UserSettings> {
+    this.mockSettings = { ...this.mockSettings, ...data };
+    return this.mockSettings;
+  }
+
+  async getTweaks(settingsId: string): Promise<AppliedTweak[]> {
+    return Array.from(this.mockTweaks.values());
+  }
+
+  async setTweak(settingsId: string, tweakId: string, enabled: boolean): Promise<AppliedTweak> {
+    const tweak: AppliedTweak = {
+      id: `mock-tweak-${tweakId}`,
+      settingsId,
+      tweakId,
+      enabled,
+    };
+    this.mockTweaks.set(tweakId, tweak);
+    return tweak;
+  }
+
+  async resetTweaks(settingsId: string): Promise<void> {
+    this.mockTweaks.clear();
+  }
+
+  async getHistory(settingsId: string, limit = 50): Promise<HistoryEntry[]> {
+    return this.mockHistory.slice(0, limit);
+  }
+
+  async addHistory(entry: InsertHistoryEntry): Promise<HistoryEntry> {
+    const historyEntry: HistoryEntry = {
+      id: `mock-history-${Date.now()}`,
+      settingsId: entry.settingsId,
+      action: entry.action,
+      page: entry.page,
+      result: entry.result || "Simulated",
+      notes: entry.notes || null,
+      timestamp: new Date(),
+    };
+    this.mockHistory.unshift(historyEntry);
+    return historyEntry;
+  }
+
+  async clearHistory(settingsId: string): Promise<void> {
+    this.mockHistory = [];
+  }
+
+  async getLatestAIScan(settingsId: string): Promise<AIScan | undefined> {
+    return this.mockAiScans[0];
+  }
+
+  async addAIScan(scan: InsertAIScan): Promise<AIScan> {
+    const aiScan: AIScan = {
+      id: `mock-scan-${Date.now()}`,
+      settingsId: scan.settingsId,
+      summary: scan.summary,
+      recommendations: scan.recommendations as any,
+      timestamp: new Date(),
+    };
+    this.mockAiScans.unshift(aiScan);
+    return aiScan;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return undefined;
+  }
+
+  async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
+    return undefined;
+  }
+
+  async updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; isPremium?: boolean }): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async setUserPremium(userId: string, isPremium: boolean): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+}
+
 export class DatabaseStorage implements IStorage {
   async getOrCreateSettings(): Promise<UserSettings> {
-    const [existing] = await db.select().from(userSettings).limit(1);
+    const [existing] = await db!.select().from(userSettings).limit(1);
     if (existing) return existing;
     
-    const [created] = await db.insert(userSettings).values({}).returning();
+    const [created] = await db!.insert(userSettings).values({}).returning();
     return created;
   }
 
   async updateSettings(id: string, data: Partial<InsertUserSettings>): Promise<UserSettings> {
-    const [updated] = await db
+    const [updated] = await db!
       .update(userSettings)
       .set(data)
       .where(eq(userSettings.id, id))
@@ -57,17 +157,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTweaks(settingsId: string): Promise<AppliedTweak[]> {
-    return db.select().from(appliedTweaks).where(eq(appliedTweaks.settingsId, settingsId));
+    return db!.select().from(appliedTweaks).where(eq(appliedTweaks.settingsId, settingsId));
   }
 
   async setTweak(settingsId: string, tweakId: string, enabled: boolean): Promise<AppliedTweak> {
-    const [existing] = await db
+    const [existing] = await db!
       .select()
       .from(appliedTweaks)
       .where(and(eq(appliedTweaks.settingsId, settingsId), eq(appliedTweaks.tweakId, tweakId)));
 
     if (existing) {
-      const [updated] = await db
+      const [updated] = await db!
         .update(appliedTweaks)
         .set({ enabled })
         .where(eq(appliedTweaks.id, existing.id))
@@ -75,7 +175,7 @@ export class DatabaseStorage implements IStorage {
       return updated;
     }
 
-    const [created] = await db
+    const [created] = await db!
       .insert(appliedTweaks)
       .values({ settingsId, tweakId, enabled })
       .returning();
@@ -83,11 +183,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async resetTweaks(settingsId: string): Promise<void> {
-    await db.delete(appliedTweaks).where(eq(appliedTweaks.settingsId, settingsId));
+    await db!.delete(appliedTweaks).where(eq(appliedTweaks.settingsId, settingsId));
   }
 
   async getHistory(settingsId: string, limit = 50): Promise<HistoryEntry[]> {
-    return db
+    return db!
       .select()
       .from(historyEntries)
       .where(eq(historyEntries.settingsId, settingsId))
@@ -96,16 +196,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addHistory(entry: InsertHistoryEntry): Promise<HistoryEntry> {
-    const [created] = await db.insert(historyEntries).values(entry).returning();
+    const [created] = await db!.insert(historyEntries).values(entry).returning();
     return created;
   }
 
   async clearHistory(settingsId: string): Promise<void> {
-    await db.delete(historyEntries).where(eq(historyEntries.settingsId, settingsId));
+    await db!.delete(historyEntries).where(eq(historyEntries.settingsId, settingsId));
   }
 
   async getLatestAIScan(settingsId: string): Promise<AIScan | undefined> {
-    const [scan] = await db
+    const [scan] = await db!
       .select()
       .from(aiScans)
       .where(eq(aiScans.settingsId, settingsId))
@@ -115,22 +215,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async addAIScan(scan: InsertAIScan): Promise<AIScan> {
-    const [created] = await db.insert(aiScans).values(scan).returning();
+    const [created] = await db!.insert(aiScans).values(scan).returning();
     return created;
   }
 
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
+    const [user] = await db!.select().from(users).where(eq(users.id, id));
     return user;
   }
 
   async getUserByStripeCustomerId(customerId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.stripeCustomerId, customerId));
+    const [user] = await db!.select().from(users).where(eq(users.stripeCustomerId, customerId));
     return user;
   }
 
   async updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; isPremium?: boolean }): Promise<User> {
-    const [updated] = await db
+    const [updated] = await db!
       .update(users)
       .set({ ...data, updatedAt: new Date() })
       .where(eq(users.id, userId))
@@ -139,7 +239,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setUserPremium(userId: string, isPremium: boolean): Promise<User> {
-    const [updated] = await db
+    const [updated] = await db!
       .update(users)
       .set({ isPremium, updatedAt: new Date() })
       .where(eq(users.id, userId))
@@ -148,4 +248,4 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+export const storage: IStorage = isNoDbMode ? new MockStorage() : new DatabaseStorage();

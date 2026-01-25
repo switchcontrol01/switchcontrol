@@ -2,8 +2,9 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import type { Express, RequestHandler } from "express";
-import { db } from "../db";
+import { db, isNoDbMode } from "../db";
 import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
 import { storage } from "../storage";
@@ -28,6 +29,17 @@ async function findOrCreateUser(profile: {
   lastName: string | null;
   profileImageUrl: string | null;
 }): Promise<Express.User> {
+  if (isNoDbMode || !db) {
+    return {
+      id: `mock-${profile.googleId}`,
+      email: profile.email,
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      profileImageUrl: profile.profileImageUrl,
+      isPremium: false,
+    };
+  }
+
   const existingUsers = await db
     .select()
     .from(users)
@@ -94,13 +106,24 @@ export function setupGoogleAuth(app: Express): void {
   app.set("trust proxy", 1);
 
   const sessionTtl = 7 * 24 * 60 * 60 * 1000;
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+
+  let sessionStore: session.Store;
+
+  if (isNoDbMode || !process.env.DATABASE_URL) {
+    const MemStore = MemoryStore(session);
+    sessionStore = new MemStore({
+      checkPeriod: sessionTtl,
+    });
+    console.log("[AUTH] Using memory session store (NO-DB mode)");
+  } else {
+    const pgStore = connectPg(session);
+    sessionStore = new pgStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: false,
+      ttl: sessionTtl,
+      tableName: "sessions",
+    });
+  }
 
   app.use(
     session({
@@ -127,6 +150,17 @@ export function setupGoogleAuth(app: Express): void {
   });
 
   passport.deserializeUser(async (id: string, done) => {
+    if (isNoDbMode || !db) {
+      return done(null, {
+        id,
+        email: null,
+        firstName: null,
+        lastName: null,
+        profileImageUrl: null,
+        isPremium: false,
+      });
+    }
+
     try {
       const userRows = await db
         .select()
@@ -244,6 +278,7 @@ export function setupGoogleAuth(app: Express): void {
         isAuthenticated: req.isAuthenticated(),
         hasUser: !!req.user,
         userId: req.user?.id || null,
+        noDbMode: isNoDbMode,
       });
     });
   }
