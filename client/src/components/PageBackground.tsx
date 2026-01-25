@@ -1,16 +1,5 @@
 import { useMemo, useEffect, useState } from 'react';
 
-interface Particle {
-  id: number;
-  x: number;
-  y: number;
-  size: number;
-  opacity: number;
-  speed: number;
-  drift: number;
-  delay: number;
-}
-
 interface GlowBlob {
   id: string;
   top: string;
@@ -33,7 +22,7 @@ interface ContourLine {
 }
 
 export function PageBackground() {
-  const [docHeight, setDocHeight] = useState(4000);
+  const [docHeight, setDocHeight] = useState(3000);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -41,7 +30,7 @@ export function PageBackground() {
       const height = Math.max(
         document.body.scrollHeight,
         document.documentElement.scrollHeight,
-        window.innerHeight * 4
+        window.innerHeight * 3
       );
       setDocHeight(height);
       setIsMobile(window.innerWidth < 768);
@@ -49,44 +38,39 @@ export function PageBackground() {
     
     updateDimensions();
     window.addEventListener('resize', updateDimensions);
-    const observer = new MutationObserver(updateDimensions);
-    observer.observe(document.body, { childList: true, subtree: true });
     
     const timers = [
-      setTimeout(updateDimensions, 500),
-      setTimeout(updateDimensions, 1500),
+      setTimeout(updateDimensions, 300),
+      setTimeout(updateDimensions, 1000),
     ];
     
     return () => {
       window.removeEventListener('resize', updateDimensions);
-      observer.disconnect();
       timers.forEach(clearTimeout);
     };
   }, []);
 
-  // Layer 1: Contour lines - scale with page height
+  // Layer 1: Contour lines - 20 lines spread across page
   const contourLines = useMemo<ContourLine[]>(() => {
     const lines: ContourLine[] = [];
-    const baseCount = Math.floor(docHeight / 120);
-    const lineCount = Math.min(baseCount, isMobile ? 30 : 50);
+    const lineCount = isMobile ? 12 : 20;
     
     for (let i = 0; i < lineCount; i++) {
-      const y = (i + 1) * (docHeight / (lineCount + 1));
-      const waveOffset = Math.sin(i * 0.3) * 15;
+      const y = (i + 0.5) * (100 / lineCount); // percentage-based
       
       lines.push({
-        y: y + waveOffset,
-        amplitude: 40 + Math.sin(i * 0.7) * 25,
-        strokeWidth: 0.8 + (i % 3) * 0.4,
-        opacity: 0.18 + Math.sin(i * 0.5) * 0.08,
-        gradientId: i % 3 === 0 ? 'contour-gradient-1' : i % 3 === 1 ? 'contour-gradient-2' : 'contour-gradient-3',
+        y,
+        amplitude: 8 + Math.sin(i * 0.7) * 5,
+        strokeWidth: 1.5 + (i % 3) * 0.5,
+        opacity: 0.25 + Math.sin(i * 0.5) * 0.1,
+        gradientId: i % 3 === 0 ? 'pg-contour-1' : i % 3 === 1 ? 'pg-contour-2' : 'pg-contour-3',
         animClass: `animate-contour-${(i % 4) + 1}`,
       });
     }
     return lines;
-  }, [docHeight, isMobile]);
+  }, [isMobile]);
 
-  // Layer 2: Glow blobs for depth (6 strategically placed)
+  // Layer 2: Glow blobs
   const glowBlobs = useMemo<GlowBlob[]>(() => [
     { id: 'hero', top: '5%', left: '5%', size: 500, color: 'hsl(270 70% 50%)', blur: 120, opacity: 0.08, animClass: 'animate-blob-1' },
     { id: 'hero-right', top: '8%', right: '10%', size: 400, color: 'hsl(320 70% 50%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-2' },
@@ -96,84 +80,64 @@ export function PageBackground() {
     { id: 'footer', top: '88%', right: '15%', size: 350, color: 'hsl(270 70% 50%)', blur: 80, opacity: 0.04, animClass: 'animate-blob-3' },
   ], []);
 
-  // Layer 3: Particles - reduced on mobile
-  const particles = useMemo<Particle[]>(() => {
-    const particleCount = isMobile ? 35 : 55;
-    const generated: Particle[] = [];
-    
-    for (let i = 0; i < particleCount; i++) {
-      generated.push({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        size: 2 + Math.random() * 2.5,
-        opacity: 0.12 + Math.random() * 0.2,
-        speed: 18 + Math.random() * 15,
-        drift: Math.random() * 30 - 15,
-        delay: Math.random() * 8,
-      });
-    }
-    return generated;
-  }, [isMobile]);
-
   return (
     <div 
       className="absolute inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: -1, height: docHeight }}
+      style={{ zIndex: 0, height: docHeight }}
       aria-hidden="true"
     >
-      {/* Layer 0: Base ambient gradient overlay */}
+      {/* Layer 0: Base ambient gradient */}
       <div 
-        className="absolute inset-0 opacity-25"
+        className="absolute inset-0 opacity-30"
         style={{
           height: docHeight,
           background: `
-            radial-gradient(ellipse 80% 50% at 20% 20%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 80% 60%, rgba(236, 72, 153, 0.08) 0%, transparent 50%),
-            radial-gradient(ellipse 70% 60% at 50% 90%, rgba(139, 92, 246, 0.1) 0%, transparent 50%)
+            radial-gradient(ellipse 80% 50% at 20% 20%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 80% 60%, rgba(236, 72, 153, 0.1) 0%, transparent 50%)
           `,
         }}
       />
 
-      {/* Layer 1: Contour lines - NO blur filter, use opacity + stroke width for glow effect */}
+      {/* Layer 1: Contour lines - percentage based positioning */}
       <svg 
-        className="absolute inset-0 w-full" 
+        className="absolute inset-0 w-full"
         xmlns="http://www.w3.org/2000/svg"
-        viewBox={`0 0 1600 ${docHeight}`}
+        viewBox="0 0 100 100"
         preserveAspectRatio="none"
         style={{ height: docHeight }}
       >
         <defs>
-          <linearGradient id="contour-gradient-1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="pg-contour-1" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-            <stop offset="15%" stopColor="rgba(139, 92, 246, 0.5)" />
-            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.4)" />
-            <stop offset="85%" stopColor="rgba(139, 92, 246, 0.5)" />
+            <stop offset="15%" stopColor="rgba(139, 92, 246, 0.6)" />
+            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.5)" />
+            <stop offset="85%" stopColor="rgba(139, 92, 246, 0.6)" />
             <stop offset="100%" stopColor="rgba(139, 92, 246, 0)" />
           </linearGradient>
-          <linearGradient id="contour-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="pg-contour-2" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(168, 85, 247, 0)" />
-            <stop offset="25%" stopColor="rgba(168, 85, 247, 0.45)" />
-            <stop offset="75%" stopColor="rgba(168, 85, 247, 0.45)" />
+            <stop offset="20%" stopColor="rgba(168, 85, 247, 0.5)" />
+            <stop offset="80%" stopColor="rgba(168, 85, 247, 0.5)" />
             <stop offset="100%" stopColor="rgba(168, 85, 247, 0)" />
           </linearGradient>
-          <linearGradient id="contour-gradient-3" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="pg-contour-3" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(236, 72, 153, 0)" />
-            <stop offset="20%" stopColor="rgba(236, 72, 153, 0.4)" />
-            <stop offset="50%" stopColor="rgba(139, 92, 246, 0.35)" />
-            <stop offset="80%" stopColor="rgba(236, 72, 153, 0.4)" />
+            <stop offset="25%" stopColor="rgba(236, 72, 153, 0.45)" />
+            <stop offset="75%" stopColor="rgba(236, 72, 153, 0.45)" />
             <stop offset="100%" stopColor="rgba(236, 72, 153, 0)" />
           </linearGradient>
         </defs>
         
         {contourLines.map((line, i) => {
-          const curveVariant = i % 3;
           const amp = line.amplitude;
-          const pathD = curveVariant === 0
-            ? `M-50,${line.y} Q300,${line.y - amp} 700,${line.y} T1200,${line.y - amp * 0.5} T1700,${line.y}`
-            : curveVariant === 1
-            ? `M-50,${line.y} Q400,${line.y + amp * 0.7} 800,${line.y} T1300,${line.y + amp * 0.4} T1700,${line.y}`
-            : `M-50,${line.y} Q200,${line.y - amp * 0.5} 600,${line.y + amp * 0.4} T1000,${line.y} T1700,${line.y}`;
+          const y = line.y;
+          const variant = i % 3;
+          
+          const pathD = variant === 0
+            ? `M-5,${y} Q25,${y - amp} 50,${y} T105,${y}`
+            : variant === 1
+            ? `M-5,${y} Q30,${y + amp * 0.8} 60,${y} T105,${y}`
+            : `M-5,${y} Q20,${y - amp * 0.6} 45,${y + amp * 0.5} T105,${y}`;
           
           return (
             <g key={i} className={line.animClass}>
@@ -181,15 +145,9 @@ export function PageBackground() {
                 d={pathD}
                 fill="none"
                 stroke={`url(#${line.gradientId})`}
-                strokeWidth={line.strokeWidth * 5}
-                opacity={line.opacity * 0.5}
-              />
-              <path
-                d={pathD}
-                fill="none"
-                stroke={`url(#${line.gradientId})`}
-                strokeWidth={line.strokeWidth}
+                strokeWidth={line.strokeWidth * 0.15}
                 opacity={line.opacity}
+                vectorEffect="non-scaling-stroke"
               />
             </g>
           );
@@ -201,8 +159,9 @@ export function PageBackground() {
         {glowBlobs.map((blob) => (
           <div
             key={blob.id}
-            className={`absolute rounded-full will-change-transform ${blob.animClass}`}
+            className={blob.animClass}
             style={{
+              position: 'absolute',
               top: blob.top,
               left: blob.left,
               right: blob.right,
@@ -211,29 +170,8 @@ export function PageBackground() {
               background: `radial-gradient(circle, ${blob.color} 0%, transparent 70%)`,
               filter: `blur(${blob.blur}px)`,
               opacity: blob.opacity,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Layer 3: Particle field */}
-      <div 
-        className="absolute inset-0"
-        style={{ height: docHeight }}
-      >
-        {particles.map((particle) => (
-          <div
-            key={particle.id}
-            className="absolute rounded-full animate-particle will-change-transform"
-            style={{
-              left: `${particle.x}%`,
-              top: `${particle.y}%`,
-              width: particle.size,
-              height: particle.size,
-              background: `radial-gradient(circle, rgba(255, 255, 255, ${particle.opacity}) 0%, rgba(139, 92, 246, ${particle.opacity * 0.4}) 50%, transparent 100%)`,
-              animationDuration: `${particle.speed}s`,
-              animationDelay: `${particle.delay}s`,
-              ['--drift-x' as string]: `${particle.drift}px`,
+              borderRadius: '50%',
+              transform: 'translate3d(0,0,0)',
             }}
           />
         ))}
