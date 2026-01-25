@@ -91,7 +91,7 @@ export function WhatIsSwitchControl() {
                       className="h-8 md:h-10 lg:h-11 object-contain animate-logo-float"
                       style={{ 
                         filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))',
-                        marginTop: '4px',
+                        marginTop: '8px',
                       }}
                     />
                   </div>
