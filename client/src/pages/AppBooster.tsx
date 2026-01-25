@@ -91,14 +91,46 @@ const DEFAULT_SETTINGS: GameSettings = {
   affinityLock: false,
 };
 
+function ValorantLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12.46 2.29L1.5 16.85c-.34.46.06 1.11.65 1.01l5.76-.97 4.56-14.6zM22.5 16.85L13.31 4.45l-1.97 6.31 5.31 7.27c.2.27.55.4.88.34l4.32-.41c.59-.06.91-.65.65-1.11z"/>
+    </svg>
+  );
+}
+
+function FortniteLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M6 2v20h4v-8h6v-4h-6V6h8V2H6z"/>
+    </svg>
+  );
+}
+
+function CS2Logo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+    </svg>
+  );
+}
+
+function MFSLogo({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+    </svg>
+  );
+}
+
 const SAMPLE_GAMES: GameProfile[] = [
   { 
     id: "1", 
     name: "Valorant", 
     executable: "VALORANT-Win64-Shipping.exe",
-    icon: "🎯",
+    icon: "valorant",
     lastPlayed: "2 hours ago",
-    hoursPlayed: 847,
+    hoursPlayed: 0,
     optimized: true,
     settings: { ...DEFAULT_SETTINGS },
     boostActive: false
@@ -107,9 +139,9 @@ const SAMPLE_GAMES: GameProfile[] = [
     id: "2", 
     name: "Fortnite", 
     executable: "FortniteClient-Win64-Shipping.exe",
-    icon: "🏝️",
+    icon: "fortnite",
     lastPlayed: "Yesterday",
-    hoursPlayed: 1203,
+    hoursPlayed: 1200,
     optimized: true,
     settings: { ...DEFAULT_SETTINGS },
     boostActive: false
@@ -118,36 +150,40 @@ const SAMPLE_GAMES: GameProfile[] = [
     id: "3", 
     name: "Counter-Strike 2", 
     executable: "cs2.exe",
-    icon: "🔫",
+    icon: "cs2",
     lastPlayed: "3 days ago",
-    hoursPlayed: 2451,
+    hoursPlayed: 0,
     optimized: false,
     settings: { ...DEFAULT_SETTINGS, cpuPriority: "normal", memoryOptimize: false },
     boostActive: false
   },
   { 
     id: "4", 
-    name: "Apex Legends", 
-    executable: "r5apex.exe",
-    icon: "🦅",
+    name: "Microsoft Flight Simulator 2024", 
+    executable: "FlightSimulator2024.exe",
+    icon: "mfs",
     lastPlayed: "1 week ago",
-    hoursPlayed: 623,
+    hoursPlayed: 0,
     optimized: false,
     settings: { ...DEFAULT_SETTINGS, networkPriority: false },
     boostActive: false
   },
-  { 
-    id: "5", 
-    name: "League of Legends", 
-    executable: "League of Legends.exe",
-    icon: "⚔️",
-    lastPlayed: "Today",
-    hoursPlayed: 3210,
-    optimized: true,
-    settings: { ...DEFAULT_SETTINGS },
-    boostActive: true
-  },
 ];
+
+function GameIcon({ icon, className }: { icon: string; className?: string }) {
+  switch (icon) {
+    case "valorant":
+      return <ValorantLogo className={className} />;
+    case "fortnite":
+      return <FortniteLogo className={className} />;
+    case "cs2":
+      return <CS2Logo className={className} />;
+    case "mfs":
+      return <MFSLogo className={className} />;
+    default:
+      return <Gamepad2 className={className} />;
+  }
+}
 
 const IMPACT_COLORS = {
   high: "bg-red-500/20 text-red-400 border-red-500/30",
@@ -358,7 +394,9 @@ export default function AppBooster() {
                     data-testid={`card-game-${game.id}`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{game.icon}</span>
+                      <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+                        <GameIcon icon={game.icon} className="w-5 h-5" />
+                      </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <p className="font-medium truncate">{game.name}</p>
@@ -385,7 +423,9 @@ export default function AppBooster() {
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-4xl">{selectedGame.icon}</span>
+                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                        <GameIcon icon={selectedGame.icon} className="w-7 h-7" />
+                      </div>
                       <div>
                         <CardTitle className="text-xl">{selectedGame.name}</CardTitle>
                         <CardDescription className="flex items-center gap-2 mt-1">
