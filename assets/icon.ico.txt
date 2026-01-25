@@ -1,0 +1,1 @@
+PLACEHOLDER: Replace this file with a proper 256x256 .ico file for the Windows installer

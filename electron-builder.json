@@ -1,0 +1,47 @@
+{
+  "appId": "com.switchcontrol.app",
+  "productName": "SwitchControl",
+  "copyright": "Copyright © 2024 SwitchControl",
+  "directories": {
+    "output": "dist-electron",
+    "buildResources": "assets"
+  },
+  "files": [
+    "dist/public/**/*",
+    "electron/**/*",
+    "assets/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "assets/",
+      "to": "assets/"
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "icon": "assets/icon.ico",
+    "artifactName": "SwitchControl-Setup-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "SwitchControl",
+    "installerIcon": "assets/icon.ico",
+    "uninstallerIcon": "assets/icon.ico",
+    "installerHeaderIcon": "assets/icon.ico"
+  },
+  "protocols": [
+    {
+      "name": "SwitchControl Protocol",
+      "schemes": ["switchcontrol"]
+    }
+  ]
+}

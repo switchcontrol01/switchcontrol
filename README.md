@@ -1,0 +1,204 @@
+# SwitchControl - Gaming Optimization Dashboard
+
+A premium gaming optimization dashboard with a cyberpunk aesthetic. This project includes both a web version and a Windows desktop application.
+
+## Quick Start (Web Version on Replit)
+
+The web version runs automatically on Replit. Just click "Run" and access the dashboard.
+
+---
+
+## Windows Desktop App Setup
+
+### Prerequisites
+
+1. **Node.js LTS** (v18 or v20) - Download from [nodejs.org](https://nodejs.org/)
+2. **Visual Studio Code** - Download from [code.visualstudio.com](https://code.visualstudio.com/)
+3. **Git** (optional) - For version control
+
+### Step 1: Download the Project
+
+1. In Replit, click the three dots menu (⋮) → **Download as ZIP**
+2. Extract the ZIP to a folder, e.g., `C:\Projects\SwitchControl`
+
+### Step 2: Open in VS Code
+
+1. Open Visual Studio Code
+2. Click **File → Open Folder**
+3. Select your extracted `SwitchControl` folder
+4. Open the integrated terminal: **Terminal → New Terminal** (or `Ctrl+``)
+
+### Step 3: Run Setup Script
+
+```bash
+node scripts/setup-electron.js
+```
+
+This updates `package.json` with the Electron configuration and scripts.
+
+### Step 4: Install Dependencies
+
+```bash
+npm install
+```
+
+This will install all required packages including Electron.
+
+### Step 5: Run in Development Mode
+
+**Option A: Web Version Only**
+```bash
+npm run dev
+```
+Then open http://localhost:5000 in your browser.
+
+**Option B: Desktop App (Electron)**
+```bash
+npm run electron:dev
+```
+This starts both the web server and opens the Electron desktop window.
+
+### Step 6: Add Your App Icon (REQUIRED)
+
+Before building, you need to add your Windows icon:
+
+1. Create or export your logo as a 256x256 PNG
+2. Go to [icoconvert.com](https://icoconvert.com/) and convert it to .ico
+3. Save the file as `assets/icon.ico`
+
+**The build will fail without this file!**
+
+### Step 7: Build Windows Installer
+
+```bash
+npm run build:win
+```
+
+**Output location:** `dist-electron/SwitchControl-Setup-1.0.0.exe`
+
+This creates:
+- Windows installer (.exe)
+- Desktop shortcut
+- Start menu shortcut
+- Auto-registered deep link protocol (`switchcontrol://`)
+
+---
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start web development server |
+| `npm run electron:dev` | Start desktop app in dev mode |
+| `npm run build` | Build web version for production |
+| `npm run build:win` | Build Windows installer |
+| `npm run build:portable` | Build portable Windows .exe (no install) |
+
+---
+
+## Project Structure
+
+```
+SwitchControl/
+├── client/                 # React frontend (Vite)
+│   ├── src/
+│   │   ├── components/     # UI components
+│   │   ├── pages/          # Route pages
+│   │   └── lib/            # Utilities
+│   └── index.html
+├── server/                 # Express backend
+│   ├── index.ts
+│   └── routes.ts
+├── electron/               # Desktop app wrapper
+│   ├── main.js             # Main process
+│   └── preload.js          # Secure IPC bridge
+├── assets/                 # App icons
+│   └── icon.ico            # Windows icon
+├── shared/                 # Shared types/schemas
+└── electron-builder.json   # Installer config
+```
+
+---
+
+## Desktop App Features
+
+### Current (Phase 1)
+- Full dashboard UI in desktop window
+- OAuth login support (Google, Discord)
+- Deep linking for auth callbacks
+- GPU acceleration enabled
+- Smooth animations
+
+### Prepared for Future (Phase 2)
+The `preload.js` exposes a secure `switchControl` API ready for:
+- Real system tweaks
+- Startup app management
+- Network optimization
+- RAM clearing
+- Debloat actions
+
+All future features will be safe, reversible, and require explicit user action.
+
+---
+
+## Troubleshooting
+
+### "npm run electron:dev" shows blank screen
+- Make sure the web server started first (check terminal for "serving on port 5000")
+- Try refreshing with `Ctrl+R` in the Electron window
+
+### Build fails on Windows
+- Ensure you have admin rights
+- Run `npm cache clean --force` and try again
+- Check that `assets/icon.ico` exists
+
+### OAuth redirect doesn't work in desktop
+- The deep link protocol is registered during install
+- For dev mode, OAuth will open in default browser
+
+### Missing icon (REQUIRED before building)
+- You MUST place your `icon.ico` file in the `assets/` folder before running `npm run build:win`
+- Minimum size: 256x256 pixels
+- Use a tool like [ICO Convert](https://icoconvert.com/) to create .ico from PNG
+- The build will fail without this file
+
+---
+
+## App Icon
+
+To use your custom icon:
+
+1. Create a 256x256 PNG of your logo
+2. Convert to .ico format at [icoconvert.com](https://icoconvert.com/)
+3. Save as `assets/icon.ico`
+4. Rebuild the installer
+
+---
+
+## Environment Variables
+
+For local development, create a `.env` file:
+
+```env
+DATABASE_URL=your_postgres_connection_string
+SESSION_SECRET=your_session_secret
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+DISCORD_CLIENT_ID=your_discord_client_id
+DISCORD_CLIENT_SECRET=your_discord_client_secret
+STRIPE_SECRET_KEY=your_stripe_key
+```
+
+---
+
+## Support
+
+- Website: [switchcontrol.org](https://switchcontrol.org)
+- Discord: [Join our community](https://discord.gg/esXPgJdk9)
+- Email: switchcontrol67@gmail.com
+
+---
+
+## License
+
+MIT License - See LICENSE file for details.
