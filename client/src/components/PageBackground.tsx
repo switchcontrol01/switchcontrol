@@ -139,6 +139,7 @@ export function PageBackground() {
       <svg 
         className="absolute inset-0 w-full" 
         xmlns="http://www.w3.org/2000/svg"
+        viewBox={`0 0 1600 ${docHeight}`}
         preserveAspectRatio="none"
         style={{ height: docHeight }}
       >
@@ -165,26 +166,34 @@ export function PageBackground() {
           </linearGradient>
         </defs>
         
-        {contourLines.map((line, i) => (
-          <g key={i} className={line.animClass}>
-            {/* Soft glow - thicker stroke, lower opacity */}
-            <path
-              d={`M-100,${line.y} Q${400 + line.amplitude},${line.y - line.amplitude} 800,${line.y} T1600,${line.y} T2400,${line.y} T3200,${line.y}`}
-              fill="none"
-              stroke={`url(#${line.gradientId})`}
-              strokeWidth={line.strokeWidth * 4}
-              opacity={line.opacity * 0.4}
-            />
-            {/* Main line */}
-            <path
-              d={`M-100,${line.y} Q${400 + line.amplitude},${line.y - line.amplitude} 800,${line.y} T1600,${line.y} T2400,${line.y} T3200,${line.y}`}
-              fill="none"
-              stroke={`url(#${line.gradientId})`}
-              strokeWidth={line.strokeWidth}
-              opacity={line.opacity}
-            />
-          </g>
-        ))}
+        {contourLines.map((line, i) => {
+          const curveVariant = i % 3;
+          const amp = line.amplitude;
+          const pathD = curveVariant === 0
+            ? `M-50,${line.y} Q300,${line.y - amp} 700,${line.y} T1200,${line.y - amp * 0.5} T1700,${line.y}`
+            : curveVariant === 1
+            ? `M-50,${line.y} Q400,${line.y + amp * 0.7} 800,${line.y} T1300,${line.y + amp * 0.4} T1700,${line.y}`
+            : `M-50,${line.y} Q200,${line.y - amp * 0.5} 600,${line.y + amp * 0.4} T1000,${line.y} T1700,${line.y}`;
+          
+          return (
+            <g key={i} className={line.animClass}>
+              <path
+                d={pathD}
+                fill="none"
+                stroke={`url(#${line.gradientId})`}
+                strokeWidth={line.strokeWidth * 5}
+                opacity={line.opacity * 0.5}
+              />
+              <path
+                d={pathD}
+                fill="none"
+                stroke={`url(#${line.gradientId})`}
+                strokeWidth={line.strokeWidth}
+                opacity={line.opacity}
+              />
+            </g>
+          );
+        })}
       </svg>
 
       {/* Layer 2: Glow blobs */}
