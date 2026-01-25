@@ -43,17 +43,17 @@ export function AppBackground() {
 
   const contourLines = useMemo<ContourLine[]>(() => {
     const lines: ContourLine[] = [];
-    const lineCount = isMobile ? 25 : 40;
+    const lineCount = isMobile ? 12 : 20;
     
     for (let i = 0; i < lineCount; i++) {
       const y = (i + 1) * (1000 / (lineCount + 1));
-      const waveOffset = Math.sin(i * 0.3) * 30;
+      const waveOffset = Math.sin(i * 0.3) * 25;
       
       lines.push({
         y: y + waveOffset,
-        amplitude: 40 + Math.sin(i * 0.5) * 30 + Math.cos(i * 0.3) * 20,
-        strokeWidth: 0.8 + (i % 4) * 0.3,
-        opacity: 0.15 + Math.sin(i * 0.4) * 0.08,
+        amplitude: 35 + Math.sin(i * 0.5) * 25 + Math.cos(i * 0.3) * 15,
+        strokeWidth: 0.6 + (i % 4) * 0.25,
+        opacity: 0.12 + Math.sin(i * 0.4) * 0.06,
         gradientId: i % 4 === 0 ? 'app-contour-1' : i % 4 === 1 ? 'app-contour-2' : i % 4 === 2 ? 'app-contour-3' : 'app-contour-4',
         animClass: `animate-contour-${(i % 4) + 1}`,
       });

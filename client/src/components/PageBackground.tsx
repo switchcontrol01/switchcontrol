@@ -64,20 +64,21 @@ export function PageBackground() {
     };
   }, []);
 
-  // Layer 1: Contour lines - capped at 25 for performance
+  // Layer 1: Contour lines - scale with page height
   const contourLines = useMemo<ContourLine[]>(() => {
     const lines: ContourLine[] = [];
-    const baseCount = Math.floor(docHeight / 200);
-    const lineCount = Math.min(baseCount, isMobile ? 18 : 25);
+    const baseCount = Math.floor(docHeight / 120);
+    const lineCount = Math.min(baseCount, isMobile ? 30 : 50);
     
     for (let i = 0; i < lineCount; i++) {
       const y = (i + 1) * (docHeight / (lineCount + 1));
+      const waveOffset = Math.sin(i * 0.3) * 15;
       
       lines.push({
-        y,
-        amplitude: 30 + Math.sin(i * 0.7) * 20,
-        strokeWidth: 0.6 + (i % 3) * 0.3,
-        opacity: 0.12 + Math.sin(i * 0.5) * 0.06,
+        y: y + waveOffset,
+        amplitude: 40 + Math.sin(i * 0.7) * 25,
+        strokeWidth: 0.8 + (i % 3) * 0.4,
+        opacity: 0.18 + Math.sin(i * 0.5) * 0.08,
         gradientId: i % 3 === 0 ? 'contour-gradient-1' : i % 3 === 1 ? 'contour-gradient-2' : 'contour-gradient-3',
         animClass: `animate-contour-${(i % 4) + 1}`,
       });
@@ -144,22 +145,22 @@ export function PageBackground() {
         <defs>
           <linearGradient id="contour-gradient-1" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-            <stop offset="20%" stopColor="rgba(139, 92, 246, 0.35)" />
-            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.25)" />
-            <stop offset="80%" stopColor="rgba(139, 92, 246, 0.35)" />
+            <stop offset="15%" stopColor="rgba(139, 92, 246, 0.5)" />
+            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.4)" />
+            <stop offset="85%" stopColor="rgba(139, 92, 246, 0.5)" />
             <stop offset="100%" stopColor="rgba(139, 92, 246, 0)" />
           </linearGradient>
           <linearGradient id="contour-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(168, 85, 247, 0)" />
-            <stop offset="30%" stopColor="rgba(168, 85, 247, 0.25)" />
-            <stop offset="70%" stopColor="rgba(168, 85, 247, 0.25)" />
+            <stop offset="25%" stopColor="rgba(168, 85, 247, 0.45)" />
+            <stop offset="75%" stopColor="rgba(168, 85, 247, 0.45)" />
             <stop offset="100%" stopColor="rgba(168, 85, 247, 0)" />
           </linearGradient>
           <linearGradient id="contour-gradient-3" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="rgba(236, 72, 153, 0)" />
-            <stop offset="25%" stopColor="rgba(236, 72, 153, 0.2)" />
-            <stop offset="50%" stopColor="rgba(139, 92, 246, 0.15)" />
-            <stop offset="75%" stopColor="rgba(236, 72, 153, 0.2)" />
+            <stop offset="20%" stopColor="rgba(236, 72, 153, 0.4)" />
+            <stop offset="50%" stopColor="rgba(139, 92, 246, 0.35)" />
+            <stop offset="80%" stopColor="rgba(236, 72, 153, 0.4)" />
             <stop offset="100%" stopColor="rgba(236, 72, 153, 0)" />
           </linearGradient>
         </defs>
