@@ -464,17 +464,17 @@ export default function NetworkTweaks() {
             No tweaks found matching your search.
           </div>
         )}
-        
-        {!isPremium && (
-          <PremiumPageOverlay 
-            featureName="Network Tweaks" 
-            buttonText="Unlock Network Tweaks"
-            description="Advanced latency and network behavior adjustments are available with SwitchControl Premium."
-          />
-        )}
       </div>
 
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />
+      
+      {!isPremium && (
+        <PremiumPageOverlay 
+          featureName="Network Tweaks is a Premium Feature" 
+          buttonText="Unlock Network Tweaks"
+          description="Advanced latency, TCP/IP, and throughput optimizations are available with SwitchControl Premium."
+        />
+      )}
     </AppLayout>
   );
 }
