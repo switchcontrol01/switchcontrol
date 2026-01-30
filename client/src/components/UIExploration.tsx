@@ -1,14 +1,8 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AnimateIn from './AnimateIn';
-
-import dashboardImg from '@/assets/tour/dashboard.png';
-import networkTweaksImg from '@/assets/tour/network-tweaks.png';
-import powerPlanImg from '@/assets/tour/power-plan.png';
-import tweaksImg from '@/assets/tour/tweaks.png';
-import biosAdvisorImg from '@/assets/tour/bios-advisor.png';
 
 interface TourScreen {
   id: string;
@@ -24,41 +18,64 @@ const TOUR_SCREENS: TourScreen[] = [
     label: 'Dashboard',
     title: 'Dashboard',
     description: 'Real-time system monitoring with CPU, GPU, memory usage, and live performance telemetry.',
-    image: dashboardImg,
+    image: '/tour/dashboard.webp',
   },
   {
     id: 'network',
     label: 'Network',
     title: 'Network Tweaks',
     description: 'Advanced TCP/IP, UDP, and DNS optimizations to minimize latency and reduce jitter.',
-    image: networkTweaksImg,
+    image: '/tour/network-tweaks.webp',
   },
   {
     id: 'powerplan',
     label: 'Power Plan',
     title: 'Power Plan',
     description: 'Precision power profiles with CPU boost, core parking, and frequency scaling controls.',
-    image: powerPlanImg,
+    image: '/tour/power-plan.webp',
   },
   {
     id: 'tweaks',
     label: 'Tweaks',
     title: 'System Tweaks',
     description: '38+ registry and system optimizations categorized by safety level and impact.',
-    image: tweaksImg,
+    image: '/tour/tweaks.webp',
   },
   {
     id: 'bios',
     label: 'BIOS',
     title: 'BIOS Advisor',
     description: 'Firmware-level recommendations for competitive performance optimization.',
-    image: biosAdvisorImg,
+    image: '/tour/bios-advisor.webp',
   },
 ];
+
+const IMAGE_ASPECT_RATIO = 16 / 9;
 
 export function UIExploration() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
+  const loadedImages = useRef<Set<string>>(new Set());
+
+  const prefetchImage = useCallback((src: string) => {
+    if (loadedImages.current.has(src)) return;
+    const img = new Image();
+    img.src = src;
+    img.onload = () => {
+      loadedImages.current.add(src);
+    };
+  }, []);
+
+  useEffect(() => {
+    loadedImages.current.add(TOUR_SCREENS[0].image);
+  }, []);
+
+  useEffect(() => {
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < TOUR_SCREENS.length) {
+      prefetchImage(TOUR_SCREENS[nextIndex].image);
+    }
+  }, [currentIndex, prefetchImage]);
 
   const goToNext = useCallback(() => {
     if (currentIndex < TOUR_SCREENS.length - 1) {
@@ -80,7 +97,7 @@ export function UIExploration() {
 
   const slideVariants = {
     enter: (dir: number) => ({
-      x: dir > 0 ? 100 : -100,
+      x: dir > 0 ? 80 : -80,
       opacity: 0,
     }),
     center: {
@@ -88,7 +105,7 @@ export function UIExploration() {
       opacity: 1,
     },
     exit: (dir: number) => ({
-      x: dir < 0 ? 100 : -100,
+      x: dir < 0 ? 80 : -80,
       opacity: 0,
     }),
   };
@@ -164,7 +181,10 @@ export function UIExploration() {
                 <ChevronLeft className="size-5 md:size-6 text-white" />
               </button>
 
-              <div className="relative w-full max-w-3xl overflow-hidden rounded-xl">
+              <div 
+                className="relative w-full max-w-3xl overflow-hidden rounded-xl bg-black/20"
+                style={{ aspectRatio: IMAGE_ASPECT_RATIO }}
+              >
                 <AnimatePresence mode="wait" custom={direction}>
                   <motion.div
                     key={currentScreen.id}
@@ -173,13 +193,19 @@ export function UIExploration() {
                     initial="enter"
                     animate="center"
                     exit="exit"
-                    transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="w-full"
+                    transition={{ 
+                      duration: 0.35, 
+                      ease: [0.25, 0.1, 0.25, 1],
+                    }}
+                    className="absolute inset-0"
+                    style={{ willChange: 'transform, opacity' }}
                   >
                     <img
                       src={currentScreen.image}
                       alt={currentScreen.title}
-                      className="w-full h-auto rounded-xl"
+                      className="w-full h-full object-cover rounded-xl"
+                      loading={currentIndex === 0 ? "eager" : "lazy"}
+                      decoding="async"
                       draggable={false}
                     />
                   </motion.div>
