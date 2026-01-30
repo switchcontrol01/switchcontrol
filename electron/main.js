@@ -1,7 +1,29 @@
-const { app, BrowserWindow, ipcMain, shell, protocol } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, protocol, globalShortcut } = require('electron');
 const path = require('path');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+
+// Security: Block dangerous shortcuts in production
+function registerProductionShortcuts() {
+  if (isDev) return;
+
+  // Block DevTools shortcuts
+  globalShortcut.register('CommandOrControl+Shift+I', () => {});
+  globalShortcut.register('F12', () => {});
+  
+  // Block zoom shortcuts
+  globalShortcut.register('CommandOrControl+Plus', () => {});
+  globalShortcut.register('CommandOrControl+=', () => {});
+  globalShortcut.register('CommandOrControl+-', () => {});
+  globalShortcut.register('CommandOrControl+0', () => {});
+  globalShortcut.register('CommandOrControl+numadd', () => {});
+  globalShortcut.register('CommandOrControl+numsub', () => {});
+  
+  // Block refresh shortcuts
+  globalShortcut.register('CommandOrControl+R', () => {});
+  globalShortcut.register('F5', () => {});
+  globalShortcut.register('CommandOrControl+Shift+R', () => {});
+}
 
 let mainWindow = null;
 
@@ -162,12 +184,18 @@ if (!setupDeepLinking()) {
 app.whenReady().then(() => {
   setupIPC();
   createWindow();
+  registerProductionShortcuts();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       createWindow();
     }
   });
+});
+
+// Unregister shortcuts on quit
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
 });
 
 app.on('window-all-closed', () => {
@@ -177,16 +205,30 @@ app.on('window-all-closed', () => {
 });
 
 app.on('web-contents-created', (event, contents) => {
+  // Security: Block all external navigation - only allow app URLs
   contents.on('will-navigate', (event, navigationUrl) => {
-    const parsedUrl = new URL(navigationUrl);
-    
-    if (parsedUrl.origin !== 'http://localhost:5000' && !navigationUrl.startsWith('file://')) {
-      if (parsedUrl.hostname !== 'accounts.google.com' && 
-          parsedUrl.hostname !== 'discord.com' &&
-          !parsedUrl.hostname.endsWith('.discord.com')) {
+    try {
+      const parsedUrl = new URL(navigationUrl);
+      
+      // Only allow file:// (production) and localhost:5000 (dev)
+      const isAppUrl = 
+        navigationUrl.startsWith('file://') ||
+        (parsedUrl.hostname === 'localhost' && parsedUrl.port === '5000');
+      
+      if (!isAppUrl) {
         event.preventDefault();
-        shell.openExternal(navigationUrl);
+        // Open external URLs in system browser (including OAuth)
+        if (navigationUrl.startsWith('http://') || navigationUrl.startsWith('https://')) {
+          shell.openExternal(navigationUrl);
+        }
       }
+    } catch (e) {
+      event.preventDefault();
     }
+  });
+
+  // Security: Block window.open popups entirely
+  contents.setWindowOpenHandler(() => {
+    return { action: 'deny' };
   });
 });
