@@ -282,7 +282,7 @@ export default function BiosAdvisor() {
   return (
     <AppLayout>
       <Container 
-        className="space-y-6 p-6 max-w-7xl mx-auto"
+        className={cn("space-y-6 p-6 max-w-7xl mx-auto", !isPremium && "opacity-60 blur-[2px]")}
         {...(!prefersReducedMotion && { variants: staggerContainer, initial: "initial", animate: "animate" })}
       >
         <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
