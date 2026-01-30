@@ -27,6 +27,7 @@ import Download from "@/pages/Download";
 import PremiumSuccess from "@/pages/PremiumSuccess";
 import Success from "@/pages/Success";
 import BiosAdvisor from "@/pages/BiosAdvisor";
+import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -167,6 +168,7 @@ function App() {
         <TooltipProvider>
           <Router />
           <Toaster />
+          <PremiumUnlockAnimation />
         </TooltipProvider>
       </MotionProvider>
     </QueryClientProvider>

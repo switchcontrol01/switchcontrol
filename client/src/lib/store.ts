@@ -57,9 +57,9 @@ export const useStore = create<AppState>()(
     (set, get) => ({
       stats: MOCK_STATS,
       account: {
-        tier: 'Premium',
-        email: 'user@example.com',
-        licenseStatus: 'Active',
+        tier: 'Free',
+        email: '',
+        licenseStatus: 'Inactive',
         stats: DEFAULT_ACCOUNT_STATS
       },
       tweaks: {},
@@ -194,7 +194,6 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({ 
         tweaks: state.tweaks, 
         history: state.history,
-        account: state.account,
         latestAIScan: state.latestAIScan
       }),
       version: 1, // Force update if structure changes
