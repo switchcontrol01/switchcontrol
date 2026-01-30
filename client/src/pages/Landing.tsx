@@ -163,7 +163,7 @@ function GlowBlobs() {
   return (
     <div className="fixed inset-0 overflow-hidden pointer-events-none">
       <div 
-        className="absolute -top-32 left-1/4 w-[700px] h-[700px] bg-primary/20 rounded-full blur-[150px] animate-blob-1"
+        className="absolute -top-32 left-1/4 w-[700px] h-[700px] bg-[hsl(270,60%,55%,0.2)] rounded-full blur-[150px] animate-blob-1"
       />
       <div 
         className="absolute top-1/4 -right-32 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[120px] animate-blob-2"
@@ -327,7 +327,7 @@ function StatCard({
       )}
       <div className={cn(
         "relative text-4xl md:text-5xl font-bold mb-3 transition-all duration-300",
-        isNegative ? "text-emerald-400 group-hover:text-emerald-300" : "text-primary group-hover:text-cyan-300"
+        isNegative ? "text-emerald-400 group-hover:text-emerald-300" : "text-[hsl(190,90%,50%)] group-hover:text-[hsl(190,90%,60%)]"
       )}>
         <CountingNumber 
           value={numericPart} 
@@ -426,7 +426,7 @@ function Header() {
                     whileHover={{ scale: prefersReducedMotion ? 1.01 : 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <Button className="text-sm bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-shadow">
+                    <Button className="text-sm bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold shadow-lg shadow-[hsl(190,90%,50%,0.25)] hover:shadow-[hsl(190,90%,50%,0.4)] transition-shadow">
                       Get Started
                     </Button>
                   </motion.div>
@@ -465,7 +465,7 @@ function Header() {
               {user ? (
                 <>
                   <Link href="/download">
-                    <Button className="w-full bg-primary">
+                    <Button className="w-full bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold">
                       <Download className="size-4 mr-2" />
                       Download
                     </Button>
@@ -485,7 +485,7 @@ function Header() {
                     <Button variant="outline" className="w-full">Log in</Button>
                   </Link>
                   <Link href="/login">
-                    <Button className="w-full bg-primary">Get Started</Button>
+                    <Button className="w-full bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold">Get Started</Button>
                   </Link>
                 </>
               )}
@@ -499,7 +499,7 @@ function Header() {
 
 function Footer() {
   return (
-    <footer className="border-t border-white/5 bg-black/50 relative z-10">
+    <footer className="border-t border-[hsl(270,60%,55%,0.15)] bg-gradient-to-b from-[hsl(260,20%,6%)] to-[hsl(260,18%,4%)] relative z-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
@@ -560,7 +560,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
         onClick={() => setIsOpen(!isOpen)}
         data-testid={`faq-${question.slice(0, 20).toLowerCase().replace(/\s/g, '-')}`}
       >
-        <span className="font-medium text-white group-hover:text-primary transition-colors pr-4">
+        <span className="font-medium text-white group-hover:text-[hsl(270,60%,55%)] transition-colors pr-4">
           {question}
         </span>
         <motion.div
@@ -601,7 +601,7 @@ export default function Landing() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black relative page-enter">
+    <div className="min-h-screen bg-gradient-to-b from-[hsl(260,20%,6%)] via-[hsl(260,18%,8%)] to-[hsl(260,20%,6%)] relative page-enter">
       <PageBackground />
       <GlowBlobs />
       <GrainOverlay />
@@ -614,8 +614,8 @@ export default function Landing() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 md:py-32 lg:py-40 relative">
             <div className="text-center max-w-4xl mx-auto">
               <AnimateIn delay={0}>
-                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6 animate-pill-float">
-                  <Star className="size-3 fill-primary text-primary" />
+                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-[hsl(270,60%,55%,0.15)] border border-[hsl(270,60%,55%,0.3)] text-[hsl(270,65%,65%)] text-xs font-medium mb-6 animate-pill-float">
+                  <Star className="size-3 fill-[hsl(270,60%,55%)] text-[hsl(270,60%,55%)]" />
                   New release 2026
                 </span>
               </AnimateIn>
@@ -623,7 +623,7 @@ export default function Landing() {
               <AnimateIn delay={150}>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 animate-hero-float">
                   Unlock Your PC's{" "}
-                  <span className="bg-gradient-to-r from-primary via-cyan-300 to-teal-400 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-[hsl(270,60%,55%)] via-[hsl(280,65%,65%)] to-[hsl(190,90%,50%)] bg-clip-text text-transparent">
                     True Potential
                   </span>
                 </h1>
@@ -641,7 +641,7 @@ export default function Landing() {
                   <Button 
                     size="lg" 
                     className={cn(
-                      "text-base px-8 bg-primary hover:bg-primary/90 premium-btn",
+                      "text-base px-8 bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold premium-btn",
                       !prefersReducedMotion && "animate-cta-pulse"
                     )}
                     onClick={handleAuthAwareClick}
@@ -693,9 +693,9 @@ export default function Landing() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
               {FEATURES.map((feature, i) => (
                 <Reveal key={feature.title} delay={i * 0.1}>
-                  <Card className="animated-border tilt-card bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07] hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 h-full group rounded-xl overflow-hidden">
+                  <Card className="animated-border tilt-card bg-[hsl(270,60%,55%,0.05)] border-[hsl(270,60%,55%,0.15)] hover:border-[hsl(270,60%,55%,0.4)] hover:bg-[hsl(270,60%,55%,0.08)] hover:shadow-lg hover:shadow-[hsl(270,60%,55%,0.15)] transition-all duration-300 h-full group rounded-xl overflow-hidden">
                     <CardContent className="p-6 relative z-10">
-                      <div className="size-12 rounded-lg bg-primary/10 group-hover:bg-primary/20 group-hover:shadow-lg group-hover:shadow-primary/20 flex items-center justify-center mb-4 transition-all duration-300">
+                      <div className="size-12 rounded-lg bg-[hsl(270,60%,55%,0.15)] group-hover:bg-[hsl(270,60%,55%,0.25)] group-hover:shadow-lg group-hover:shadow-[hsl(270,60%,55%,0.2)] flex items-center justify-center mb-4 transition-all duration-300">
                         <feature.icon className="size-6 text-primary icon-hover" />
                       </div>
                       <h3 className="font-semibold text-white mb-2 group-hover:text-white transition-colors">{feature.title}</h3>
@@ -818,7 +818,7 @@ export default function Landing() {
           </div>
         </section>
 
-        <section className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative" data-reveal>
+        <section className="py-24 bg-gradient-to-b from-transparent via-[hsl(270,60%,55%,0.05)] to-transparent relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
@@ -867,7 +867,7 @@ export default function Landing() {
         <section className="py-24 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center">
-              <Card className="bg-white/5 border-white/10 max-w-2xl mx-auto">
+              <Card className="bg-[hsl(270,60%,55%,0.08)] border-[hsl(270,60%,55%,0.2)] max-w-2xl mx-auto">
                 <CardContent className="p-8 md:p-12">
                   <div className="flex justify-center gap-1 mb-6">
                     <Star className="size-5 text-primary fill-primary" />
@@ -889,7 +889,7 @@ export default function Landing() {
         {/* What is SwitchControl explanation */}
         <WhatIsSwitchControl />
 
-        <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-primary/5 to-transparent relative" data-reveal>
+        <section id="pricing" className="py-24 bg-gradient-to-b from-transparent via-[hsl(270,60%,55%,0.08)] to-transparent relative" data-reveal>
           <div id="pricing-top"></div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center mb-16">
@@ -903,7 +903,7 @@ export default function Landing() {
             
             <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
               <Reveal direction="left">
-                <Card className="bg-white/5 border-white/10 hover:border-white/20 hover:-translate-y-1 transition-all h-full">
+                <Card className="bg-[hsl(270,60%,55%,0.05)] border-[hsl(270,60%,55%,0.15)] hover:border-[hsl(270,60%,55%,0.3)] hover:-translate-y-1 transition-all h-full">
                   <CardContent className="p-8">
                     <h3 className="text-xl font-bold text-white mb-2">Free</h3>
                     <div className="text-3xl font-bold text-white mb-4">$0 <span className="text-sm font-normal text-muted-foreground">forever</span></div>
@@ -921,14 +921,17 @@ export default function Landing() {
               </Reveal>
 
               <Reveal direction="right">
-                <Card className="bg-gradient-to-b from-primary/20 to-primary/5 border-primary/40 hover:border-primary/60 hover:-translate-y-1 transition-all h-full relative overflow-hidden">
-                  <div className="absolute top-0 right-0 bg-primary text-xs font-medium px-3 py-1 rounded-bl-lg">Best Value</div>
+                <Card className="bg-gradient-to-b from-[hsl(270,60%,55%,0.2)] to-[hsl(270,60%,55%,0.05)] border-[hsl(270,60%,55%,0.4)] hover:border-[hsl(270,60%,55%,0.6)] hover:-translate-y-1 transition-all h-full relative overflow-hidden shadow-[0_0_40px_-10px_hsl(270,60%,55%,0.3)]">
+                  <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-medium px-3 py-1 rounded-bl-lg flex items-center gap-1">
+                    <Crown className="size-3" />
+                    Best Value
+                  </div>
                   <CardContent className="p-8">
                     <h3 className="text-xl font-bold text-white mb-2">Premium</h3>
                     <div className="text-3xl font-bold text-white mb-4">$50 <span className="text-sm font-normal text-muted-foreground">one-time</span></div>
                     <p className="text-muted-foreground text-sm mb-6">Lifetime access to all features</p>
                     <Link href="/pricing">
-                      <Button className="w-full bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-transform">Get Premium</Button>
+                      <Button className="w-full bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold shadow-lg shadow-[hsl(190,90%,50%,0.25)] hover:scale-[1.02] active:scale-[0.98] transition-transform">Get Premium</Button>
                     </Link>
                   </CardContent>
                 </Card>
@@ -964,7 +967,7 @@ export default function Landing() {
               </p>
               <Button 
                 size="lg" 
-                className="text-base px-10 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/40 hover:shadow-primary/60 hover:scale-[1.03] active:scale-[0.97] transition-all"
+                className="text-base px-10 bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold shadow-lg shadow-[hsl(190,90%,50%,0.3)] hover:shadow-[hsl(190,90%,50%,0.5)] hover:scale-[1.03] active:scale-[0.97] transition-all"
                 onClick={handleAuthAwareClick}
                 data-testid="button-get-started-free"
               >

@@ -49,7 +49,7 @@ export function DashboardHeaderParticles() {
             top: `${particle.y}%`,
             width: particle.size,
             height: particle.size,
-            background: `radial-gradient(circle, rgba(255, 255, 255, ${particle.opacity}) 0%, rgba(139, 92, 246, ${particle.opacity * 0.3}) 50%, transparent 100%)`,
+            background: `radial-gradient(circle, rgba(255, 255, 255, ${particle.opacity}) 0%, hsl(270 60% 55% / ${particle.opacity * 0.5}) 50%, transparent 100%)`,
             animationDuration: `${particle.speed}s`,
             animationDelay: `${particle.delay}s`,
           }}

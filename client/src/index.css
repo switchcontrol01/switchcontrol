@@ -63,63 +63,70 @@
 :root {
   color-scheme: dark;
   
-  /* Deep dark background */
-  --background: 220 15% 6%;
+  /* Deep dark background with purple undertone */
+  --background: 260 20% 6%;
   --foreground: 210 20% 98%;
 
-  /* Darker cards */
-  --card: 220 15% 10%;
+  /* Cards with subtle purple tint */
+  --card: 260 18% 10%;
   --card-foreground: 210 20% 98%;
 
   /* Popovers */
-  --popover: 220 15% 10%;
+  --popover: 260 18% 10%;
   --popover-foreground: 210 20% 98%;
 
-  /* Primary: Ice Blue / Cyan - Speed, Precision, Control */
-  --primary: 190 90% 50%;
-  --primary-foreground: 220 15% 6%;
+  /* Primary: Purple - Brand identity, premium, intelligence */
+  --primary: 270 60% 55%;
+  --primary-foreground: 210 20% 98%;
 
-  /* Secondary: Muted dark for general UI elements (buttons, badges) */
-  --secondary: 220 15% 22%;
-  --secondary-foreground: 210 20% 98%;
+  /* Secondary: Cyan - Performance, speed, interaction */
+  --secondary: 190 90% 50%;
+  --secondary-foreground: 220 15% 6%;
 
   /* Muted */
-  --muted: 220 15% 20%;
+  --muted: 260 15% 20%;
   --muted-foreground: 215 20% 65%;
 
-  /* Accent: Soft Cyan glow */
-  --accent: 185 80% 45%;
-  --accent-foreground: 210 20% 98%;
+  /* Accent: Cyan for interactive elements */
+  --accent: 190 90% 50%;
+  --accent-foreground: 220 15% 6%;
 
   /* Destructive */
   --destructive: 0 62% 30%;
   --destructive-foreground: 210 20% 98%;
 
-  /* Borders */
-  --border: 220 15% 18%;
-  --input: 220 15% 18%;
-  --ring: 190 90% 50%;
+  /* Borders with purple tint */
+  --border: 260 15% 18%;
+  --input: 260 15% 18%;
+  --ring: 270 60% 55%;
 
-  /* Charts - Cyan dominant, no purple */
+  /* Charts - performance metrics use cyan */
   --chart-1: 190 90% 50%;
   --chart-2: 185 80% 45%;
   --chart-3: 200 85% 55%;
-  --chart-4: 195 75% 40%;
+  --chart-4: 270 60% 55%;
   --chart-5: 43 74% 66%;
 
-  /* Sidebar */
-  --sidebar: 220 15% 8%;
+  /* Sidebar with purple */
+  --sidebar: 260 20% 8%;
   --sidebar-foreground: 240 5% 96%;
-  --sidebar-primary: 190 90% 50%;
-  --sidebar-primary-foreground: 220 15% 6%;
-  --sidebar-accent: 220 15% 18%;
+  --sidebar-primary: 270 60% 55%;
+  --sidebar-primary-foreground: 210 20% 98%;
+  --sidebar-accent: 260 15% 18%;
   --sidebar-accent-foreground: 240 5% 96%;
-  --sidebar-border: 220 15% 18%;
-  --sidebar-ring: 190 90% 50%;
+  --sidebar-border: 260 15% 18%;
+  --sidebar-ring: 270 60% 55%;
 
-  /* AI/Intelligence purple - use for AI advisor, BIOS, premium */
-  --ai-purple: 270 60% 55%;
-  --ai-purple-glow: 270 70% 60%;
+  /* Brand purple - primary brand color everywhere */
+  --brand-purple: 270 60% 55%;
+  --brand-purple-light: 270 65% 65%;
+  --brand-purple-dark: 270 55% 45%;
+  --brand-purple-glow: 270 70% 60%;
+
+  /* Cyan accent - for CTAs and performance only */
+  --cyan-accent: 190 90% 50%;
+  --cyan-accent-light: 185 85% 60%;
+  --cyan-accent-dark: 190 85% 40%;
 
   /* Structural color - hierarchy, clarity, trust */
   /* #E6EAF0 = hsl(216 25% 92%) */
@@ -145,7 +152,7 @@ body {
   overflow: hidden;
 }
 
-/* Slow-moving gradient blobs */
+/* Slow-moving gradient blobs - Purple dominant */
 .bg-blob {
   position: absolute;
   border-radius: 50%;
@@ -157,7 +164,7 @@ body {
 .bg-blob-1 {
   width: 600px;
   height: 600px;
-  background: radial-gradient(circle, hsl(190 90% 50% / 0.15), transparent 70%);
+  background: radial-gradient(circle, hsl(270 60% 55% / 0.2), transparent 70%);
   top: -200px;
   left: 30%;
   animation: blobDrift1 15s ease-in-out infinite;
@@ -166,7 +173,7 @@ body {
 .bg-blob-2 {
   width: 500px;
   height: 500px;
-  background: radial-gradient(circle, hsl(185 80% 45% / 0.1), transparent 70%);
+  background: radial-gradient(circle, hsl(280 55% 50% / 0.15), transparent 70%);
   top: 40%;
   right: -150px;
   animation: blobDrift2 18s ease-in-out infinite;
@@ -175,7 +182,7 @@ body {
 .bg-blob-3 {
   width: 450px;
   height: 450px;
-  background: radial-gradient(circle, hsl(190 90% 50% / 0.08), transparent 70%);
+  background: radial-gradient(circle, hsl(260 50% 45% / 0.12), transparent 70%);
   bottom: 10%;
   left: -100px;
   animation: blobDrift3 20s ease-in-out infinite;
@@ -251,7 +258,18 @@ body {
   animation: glow-pulse 3s infinite;
 }
 
-/* Cyan glow for interactive elements */
+/* Purple brand glow - ambient, slow, everywhere */
+@keyframes purple-glow {
+  0% { box-shadow: 0 0 5px hsl(270 60% 55% / 0.3); }
+  50% { box-shadow: 0 0 25px hsl(270 60% 55% / 0.5), 0 0 40px hsl(270 60% 55% / 0.2); }
+  100% { box-shadow: 0 0 5px hsl(270 60% 55% / 0.3); }
+}
+
+.animate-purple-glow {
+  animation: purple-glow 4s ease-in-out infinite;
+}
+
+/* Cyan glow for interactive elements - reactive, fast */
 @keyframes cyan-glow {
   0% { box-shadow: 0 0 5px hsl(190 90% 50% / 0.3); }
   50% { box-shadow: 0 0 20px hsl(190 90% 50% / 0.5), 0 0 35px hsl(190 90% 50% / 0.2); }
@@ -259,18 +277,23 @@ body {
 }
 
 .animate-cyan-glow {
-  animation: cyan-glow 3s ease-in-out infinite;
+  animation: cyan-glow 2s ease-in-out infinite;
 }
 
-/* AI Purple glow - for AI advisor sections only */
-@keyframes ai-glow {
-  0% { box-shadow: 0 0 5px hsl(270 60% 55% / 0.3); }
-  50% { box-shadow: 0 0 20px hsl(270 60% 55% / 0.5), 0 0 35px hsl(270 60% 55% / 0.2); }
-  100% { box-shadow: 0 0 5px hsl(270 60% 55% / 0.3); }
+/* Purple ambient pulse - slow background effect */
+@keyframes purple-ambient {
+  0%, 100% { 
+    opacity: 0.4;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.6;
+    transform: scale(1.05);
+  }
 }
 
-.animate-ai-glow {
-  animation: ai-glow 4s ease-in-out infinite;
+.animate-purple-ambient {
+  animation: purple-ambient 6s ease-in-out infinite;
 }
 
 /* Noise overlay */

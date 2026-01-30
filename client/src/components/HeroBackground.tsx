@@ -66,31 +66,31 @@ export function HeroBackground() {
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden pointer-events-none">
-      {/* Main gradient - GPU accelerated with will-change - cyan primary */}
+      {/* Main gradient - GPU accelerated with will-change - purple primary */}
       <div 
-        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/20 via-cyan-600/10 to-transparent will-change-transform"
+        className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[hsl(270,60%,55%,0.25)] via-[hsl(280,55%,50%,0.15)] to-transparent will-change-transform"
         style={{
           transform: `translate3d(${(mousePosition.x - 0.5) * parallaxAmount}px, ${(mousePosition.y - 0.5) * parallaxAmount}px, 0)`
         }}
       />
 
-      {/* Simplified blobs with smaller blur - cyan primary */}
-      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-primary/12 blur-[80px] animate-blob-1 will-change-transform" />
-      <div className="absolute top-1/3 right-1/4 w-[350px] h-[350px] rounded-full bg-cyan-400/8 blur-[70px] animate-blob-2 will-change-transform" />
+      {/* Simplified blobs with smaller blur - purple dominant */}
+      <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] rounded-full bg-[hsl(270,60%,55%,0.15)] blur-[80px] animate-blob-1 will-change-transform" />
+      <div className="absolute top-1/3 right-1/4 w-[350px] h-[350px] rounded-full bg-[hsl(280,55%,50%,0.12)] blur-[70px] animate-blob-2 will-change-transform" />
 
-      {/* CSS-animated contour lines instead of Framer Motion */}
+      {/* CSS-animated contour lines instead of Framer Motion - purple gradients */}
       <svg className="absolute inset-0 w-full h-full will-change-transform" xmlns="http://www.w3.org/2000/svg">
         <defs>
-          {/* Cyan wave gradients */}
+          {/* Purple wave gradients */}
           <linearGradient id="wave-gradient-1" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(190 90% 50% / 0.3)" />
-            <stop offset="50%" stopColor="hsl(185 80% 55% / 0.25)" />
-            <stop offset="100%" stopColor="hsl(190 90% 50% / 0.3)" />
+            <stop offset="0%" stopColor="hsl(270 60% 55% / 0.3)" />
+            <stop offset="50%" stopColor="hsl(280 55% 60% / 0.25)" />
+            <stop offset="100%" stopColor="hsl(270 60% 55% / 0.3)" />
           </linearGradient>
           <linearGradient id="wave-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(190 90% 50% / 0.15)" />
-            <stop offset="50%" stopColor="hsl(185 80% 45% / 0.12)" />
-            <stop offset="100%" stopColor="hsl(190 90% 50% / 0.15)" />
+            <stop offset="0%" stopColor="hsl(270 60% 55% / 0.15)" />
+            <stop offset="50%" stopColor="hsl(280 55% 50% / 0.12)" />
+            <stop offset="100%" stopColor="hsl(270 60% 55% / 0.15)" />
           </linearGradient>
         </defs>
         

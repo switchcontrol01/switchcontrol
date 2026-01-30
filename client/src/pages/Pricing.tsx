@@ -199,25 +199,25 @@ export default function Pricing() {
         }}
       />
       
-      {/* Glow blobs */}
+      {/* Glow blobs - Purple dominant */}
       <div 
-        className="fixed top-1/4 -left-32 w-96 h-96 rounded-full opacity-20 blur-[120px] pointer-events-none"
+        className="fixed top-1/4 -left-32 w-96 h-96 rounded-full opacity-25 blur-[120px] pointer-events-none"
         style={{ 
-          background: 'radial-gradient(circle, hsl(190 90% 50%) 0%, transparent 70%)',
+          background: 'radial-gradient(circle, hsl(270 60% 55%) 0%, transparent 70%)',
           animation: prefersReducedMotion ? 'none' : 'blobFloat 20s ease-in-out infinite',
         }}
       />
       <div 
-        className="fixed top-1/2 -right-32 w-80 h-80 rounded-full opacity-15 blur-[100px] pointer-events-none"
+        className="fixed top-1/2 -right-32 w-80 h-80 rounded-full opacity-20 blur-[100px] pointer-events-none"
         style={{ 
-          background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)',
+          background: 'radial-gradient(circle, hsl(280 55% 50%) 0%, transparent 70%)',
           animation: prefersReducedMotion ? 'none' : 'blobFloat 25s ease-in-out infinite reverse',
         }}
       />
       <div 
-        className="fixed bottom-1/4 left-1/3 w-72 h-72 rounded-full opacity-10 blur-[80px] pointer-events-none"
+        className="fixed bottom-1/4 left-1/3 w-72 h-72 rounded-full opacity-15 blur-[80px] pointer-events-none"
         style={{ 
-          background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)',
+          background: 'radial-gradient(circle, hsl(260 50% 45%) 0%, transparent 70%)',
           animation: prefersReducedMotion ? 'none' : 'blobFloat 18s ease-in-out infinite',
         }}
       />
@@ -286,7 +286,7 @@ export default function Pricing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
           >
-            <Card className="bg-white/5 border-white/10 h-full backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-white/5">
+            <Card className="bg-gradient-to-b from-[hsl(270,60%,55%,0.08)] to-[hsl(270,60%,55%,0.03)] border-[hsl(270,60%,55%,0.2)] h-full backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-[hsl(270,60%,55%,0.15)]">
               <CardContent className="p-8">
                 <h3 className="text-2xl font-bold text-white mb-2">Free</h3>
                 <div className="flex items-baseline gap-1 mb-2">
@@ -320,8 +320,8 @@ export default function Pricing() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.2 }}
           >
-            <Card className="relative overflow-hidden bg-gradient-to-b from-primary/20 to-primary/5 border-primary/30 h-full backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/20"
-              style={{ boxShadow: '0 0 60px -15px rgba(139, 92, 246, 0.3)' }}
+            <Card className="relative overflow-hidden bg-gradient-to-b from-[hsl(270,60%,55%,0.25)] to-[hsl(270,60%,55%,0.08)] border-[hsl(270,60%,55%,0.4)] h-full backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-[hsl(270,60%,55%,0.3)]"
+              style={{ boxShadow: '0 0 60px -15px hsl(270 60% 55% / 0.4), 0 0 100px -30px hsl(270 60% 55% / 0.2)' }}
             >
               <div className="absolute top-0 right-0 bg-primary text-primary-foreground text-xs font-medium px-4 py-1.5 rounded-bl-lg flex items-center gap-1.5">
                 <Crown className="size-3" />
@@ -345,7 +345,7 @@ export default function Pricing() {
                 </ul>
                 
                 <Button 
-                  className={`w-full shadow-lg transition-all duration-300 ${isPremium ? 'bg-emerald-600 hover:bg-emerald-600 cursor-default' : 'bg-primary hover:bg-primary/90 shadow-primary/30 hover:scale-[1.02] active:scale-[0.98]'}`}
+                  className={`w-full shadow-lg transition-all duration-300 ${isPremium ? 'bg-emerald-600 hover:bg-emerald-600 cursor-default' : 'bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold shadow-[hsl(190,90%,50%,0.25)] hover:scale-[1.02] active:scale-[0.98]'}`}
                   onClick={isPremium ? undefined : handlePurchase}
                   disabled={isCheckoutLoading || isPremium}
                   data-testid="button-select-premium"

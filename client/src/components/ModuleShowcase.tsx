@@ -24,7 +24,7 @@ const MODULES = [
     icon: Zap,
     description: "38+ system optimizations",
     details: "Registry and system tweaks to reduce latency and improve responsiveness. Each tweak is categorized by impact and risk level.",
-    color: "from-primary/20 to-primary/10",
+    color: "from-[hsl(270,60%,55%,0.2)] to-[hsl(270,60%,55%,0.1)]",
     preview: ["Disable Game DVR", "Optimize MMCSS", "Reduce USB Polling"]
   },
   {
@@ -42,7 +42,7 @@ const MODULES = [
     icon: Wifi,
     description: "TCP/IP, DNS, UDP optimization",
     details: "Network stack optimizations to minimize ping and reduce packet loss. Includes DNS and routing tweaks.",
-    color: "from-cyan-500/20 to-cyan-600/10",
+    color: "from-[hsl(190,90%,50%,0.2)] to-[hsl(190,90%,50%,0.1)]",
     preview: ["Nagle Algorithm", "TCP ACK Frequency", "DNS Cache"]
   },
   {
@@ -127,8 +127,8 @@ export function ModuleShowcase() {
                 className={cn(
                   "w-full p-3 rounded-xl border transition-all duration-300 text-center group",
                   isActive 
-                    ? `bg-gradient-to-br ${module.color} border-primary/50 shadow-lg shadow-primary/20`
-                    : "bg-white/5 border-white/10 hover:border-primary/30 hover:bg-white/[0.07]"
+                    ? `bg-gradient-to-br ${module.color} border-[hsl(270,60%,55%,0.5)] shadow-lg shadow-[hsl(270,60%,55%,0.2)]`
+                    : "bg-[hsl(270,60%,55%,0.03)] border-[hsl(270,60%,55%,0.1)] hover:border-[hsl(270,60%,55%,0.3)] hover:bg-[hsl(270,60%,55%,0.08)]"
                 )}
                 data-testid={`module-${module.id}`}
               >

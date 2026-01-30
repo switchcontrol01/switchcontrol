@@ -55,7 +55,7 @@ export default function Home() {
           <DashboardHeaderParticles />
           <div className="flex items-center justify-between relative z-10">
             <div>
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-[hsl(270,60%,75%)] to-white/60 bg-clip-text text-transparent">
                 Good afternoon, SwitchTech <span className="text-2xl">👑</span>
               </h1>
               <p className="text-muted-foreground mt-1">System status is optimal. Optimization consistency prioritized.</p>
@@ -68,7 +68,7 @@ export default function Home() {
                  </Button>
                </Link>
                <Link href="/app/tweaks">
-                 <Button className="gap-2 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-white border-0">
+                 <Button className="gap-2 shadow-lg shadow-[hsl(190,90%,50%,0.25)] bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold border-0">
                    <Zap className="size-4" />
                    Optimize Now
                  </Button>

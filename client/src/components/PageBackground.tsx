@@ -70,14 +70,14 @@ export function PageBackground() {
     return lines;
   }, [isMobile]);
 
-  // Layer 2: Glow blobs - cyan only for speed/performance aesthetic
+  // Layer 2: Glow blobs - purple dominant for brand presence
   const glowBlobs = useMemo<GlowBlob[]>(() => [
-    { id: 'hero', top: '5%', left: '5%', size: 500, color: 'hsl(190 90% 50%)', blur: 120, opacity: 0.08, animClass: 'animate-blob-1' },
-    { id: 'hero-right', top: '8%', right: '10%', size: 400, color: 'hsl(185 80% 45%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-2' },
-    { id: 'mid-left', top: '35%', left: '15%', size: 450, color: 'hsl(200 85% 55%)', blur: 110, opacity: 0.04, animClass: 'animate-blob-3' },
-    { id: 'mid-right', top: '50%', right: '5%', size: 380, color: 'hsl(190 90% 50%)', blur: 90, opacity: 0.05, animClass: 'animate-blob-1' },
-    { id: 'lower', top: '70%', left: '20%', size: 420, color: 'hsl(185 80% 45%)', blur: 100, opacity: 0.04, animClass: 'animate-blob-2' },
-    { id: 'footer', top: '88%', right: '15%', size: 350, color: 'hsl(190 90% 50%)', blur: 80, opacity: 0.04, animClass: 'animate-blob-3' },
+    { id: 'hero', top: '5%', left: '5%', size: 500, color: 'hsl(270 60% 55%)', blur: 120, opacity: 0.12, animClass: 'animate-blob-1' },
+    { id: 'hero-right', top: '8%', right: '10%', size: 400, color: 'hsl(280 55% 50%)', blur: 100, opacity: 0.10, animClass: 'animate-blob-2' },
+    { id: 'mid-left', top: '35%', left: '15%', size: 450, color: 'hsl(260 50% 45%)', blur: 110, opacity: 0.08, animClass: 'animate-blob-3' },
+    { id: 'mid-right', top: '50%', right: '5%', size: 380, color: 'hsl(270 60% 55%)', blur: 90, opacity: 0.08, animClass: 'animate-blob-1' },
+    { id: 'lower', top: '70%', left: '20%', size: 420, color: 'hsl(280 55% 50%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-2' },
+    { id: 'footer', top: '88%', right: '15%', size: 350, color: 'hsl(270 60% 55%)', blur: 80, opacity: 0.06, animClass: 'animate-blob-3' },
   ], []);
 
   return (
@@ -86,14 +86,14 @@ export function PageBackground() {
       style={{ zIndex: 0, height: docHeight }}
       aria-hidden="true"
     >
-      {/* Layer 0: Base ambient gradient - cyan primary */}
+      {/* Layer 0: Base ambient gradient - purple primary */}
       <div 
-        className="absolute inset-0 opacity-30"
+        className="absolute inset-0 opacity-40"
         style={{
           height: docHeight,
           background: `
-            radial-gradient(ellipse 80% 50% at 20% 20%, hsl(190 90% 50% / 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 80% 60%, hsl(185 80% 45% / 0.08) 0%, transparent 50%)
+            radial-gradient(ellipse 80% 50% at 20% 20%, hsl(270 60% 55% / 0.15) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 80% 60%, hsl(280 55% 50% / 0.10) 0%, transparent 50%)
           `,
         }}
       />
@@ -107,25 +107,25 @@ export function PageBackground() {
         style={{ height: docHeight }}
       >
         <defs>
-          {/* Cyan contour gradients */}
+          {/* Purple contour gradients */}
           <linearGradient id="pg-contour-1" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(190 90% 50% / 0)" />
-            <stop offset="15%" stopColor="hsl(190 90% 50% / 0.5)" />
-            <stop offset="50%" stopColor="hsl(185 80% 55% / 0.4)" />
-            <stop offset="85%" stopColor="hsl(190 90% 50% / 0.5)" />
-            <stop offset="100%" stopColor="hsl(190 90% 50% / 0)" />
+            <stop offset="0%" stopColor="hsl(270 60% 55% / 0)" />
+            <stop offset="15%" stopColor="hsl(270 60% 55% / 0.5)" />
+            <stop offset="50%" stopColor="hsl(280 55% 60% / 0.4)" />
+            <stop offset="85%" stopColor="hsl(270 60% 55% / 0.5)" />
+            <stop offset="100%" stopColor="hsl(270 60% 55% / 0)" />
           </linearGradient>
           <linearGradient id="pg-contour-2" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(185 80% 45% / 0)" />
-            <stop offset="20%" stopColor="hsl(185 80% 45% / 0.4)" />
-            <stop offset="80%" stopColor="hsl(185 80% 45% / 0.4)" />
-            <stop offset="100%" stopColor="hsl(185 80% 45% / 0)" />
+            <stop offset="0%" stopColor="hsl(280 55% 50% / 0)" />
+            <stop offset="20%" stopColor="hsl(280 55% 50% / 0.4)" />
+            <stop offset="80%" stopColor="hsl(280 55% 50% / 0.4)" />
+            <stop offset="100%" stopColor="hsl(280 55% 50% / 0)" />
           </linearGradient>
           <linearGradient id="pg-contour-3" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="hsl(200 85% 55% / 0)" />
-            <stop offset="25%" stopColor="hsl(200 85% 55% / 0.35)" />
-            <stop offset="75%" stopColor="hsl(200 85% 55% / 0.35)" />
-            <stop offset="100%" stopColor="hsl(200 85% 55% / 0)" />
+            <stop offset="0%" stopColor="hsl(260 50% 45% / 0)" />
+            <stop offset="25%" stopColor="hsl(260 50% 45% / 0.35)" />
+            <stop offset="75%" stopColor="hsl(260 50% 45% / 0.35)" />
+            <stop offset="100%" stopColor="hsl(260 50% 45% / 0)" />
           </linearGradient>
         </defs>
         

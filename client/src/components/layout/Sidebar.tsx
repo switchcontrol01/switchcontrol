@@ -73,7 +73,7 @@ export function Sidebar() {
 
   return (
     <SidebarWrapper 
-      className="fixed left-0 top-0 h-full w-64 bg-sidebar/80 backdrop-blur-xl border-r border-sidebar-border flex flex-col z-50 shadow-2xl"
+      className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-[hsl(270,60%,55%,0.08)] via-sidebar/90 to-sidebar/95 backdrop-blur-xl border-r border-[hsl(270,60%,55%,0.15)] flex flex-col z-50 shadow-2xl"
       {...sidebarProps}
     >
       <div className="p-6">
@@ -104,14 +104,14 @@ export function Sidebar() {
               >
                 {isActive && (
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-primary/20 to-transparent"
+                    className="absolute inset-0 bg-gradient-to-r from-[hsl(270,60%,55%,0.25)] to-transparent"
                     layoutId={shouldAnimate ? "activeIndicator" : undefined}
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
                 )}
                 {isActive && (
                   <motion.div 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_10px_hsl(var(--primary))]"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_12px_hsl(270,60%,55%,0.6)]"
                     layoutId={shouldAnimate ? "activePill" : undefined}
                     transition={{ type: "spring", stiffness: 350, damping: 30 }}
                   />
@@ -119,7 +119,7 @@ export function Sidebar() {
                 
                 <item.icon className={cn(
                   "size-4 transition-all duration-200 z-10", 
-                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(190,90%,50%,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
+                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(270,60%,55%,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
                 )} />
                 <span className={cn("z-10 transition-transform duration-200 flex-1", isActive && "translate-x-0.5")}>{item.label}</span>
                 {item.isPremium && (
