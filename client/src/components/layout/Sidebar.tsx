@@ -142,7 +142,7 @@ export function Sidebar() {
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between px-2">
-          <span className="text-[10px] text-muted-foreground font-mono opacity-50">v0.1.0-alpha</span>
+          <span className="text-[10px] text-muted-foreground font-mono opacity-50">v1.0.0 (Early Access)</span>
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>

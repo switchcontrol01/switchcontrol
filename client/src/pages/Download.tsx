@@ -71,7 +71,7 @@ export default function DownloadPage() {
             </div>
             <div className="flex items-center justify-center gap-2 mb-1">
               <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                New Release 2026
+                v1.0.0 (Early Access)
               </span>
             </div>
             <CardTitle className="text-2xl text-white">Download {brand.name}</CardTitle>
@@ -83,31 +83,31 @@ export default function DownloadPage() {
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <CheckCircle className="size-4 text-emerald-400 shrink-0" />
-                <span>Version 1.2.0 - Latest stable release</span>
+                <span>v1.0.0 (Early Access) - Latest build</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Monitor className="size-4 text-primary shrink-0" />
-                <span>Windows 10/11 (64-bit)</span>
+                <span>Windows Installer (.exe) • Windows 10/11 64-bit</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Shield className="size-4 text-blue-400 shrink-0" />
-                <span>Digitally signed & virus-free</span>
+                <span>Digitally signed • No bundled software</span>
               </div>
               <div className="flex items-center gap-3 text-sm text-muted-foreground">
                 <Clock className="size-4 text-amber-400 shrink-0" />
-                <span>~25 MB download size</span>
+                <span>~25 MB • Installs in under 30 seconds</span>
               </div>
             </div>
 
             <Button 
-              className="w-full h-12 text-base bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30"
+              className="w-full h-12 text-base"
               onClick={() => {
                 alert('Download would start here. This is a demo - the actual installer is not yet available.');
               }}
               data-testid="button-download-windows"
             >
               <Download className="size-5 mr-2" />
-              Download for Windows
+              Download SwitchControl_v1.0.0_Setup.exe
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">

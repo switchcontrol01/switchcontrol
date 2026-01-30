@@ -340,6 +340,20 @@ export default function NetworkTweaks() {
           </p>
         </div>
 
+        <GlassCard className="p-4 border-[hsl(270,60%,55%,0.2)] bg-[hsl(270,60%,55%,0.05)]">
+          <div className="flex gap-3">
+            <Info className="size-5 text-[hsl(270,60%,55%)] shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <h3 className="text-sm font-medium text-white">Setting Expectations</h3>
+              <ul className="text-xs text-muted-foreground space-y-1.5">
+                <li>Users with baseline ping of ~40ms or lower may not observe further ping reduction. Instead, improvements typically manifest as reduced jitter, better packet consistency, and smoother network behavior under load.</li>
+                <li>Network tweaks optimize your local network stack—they cannot overcome physical distance to game servers, ISP routing inefficiencies, or upstream congestion.</li>
+                <li>Results vary based on hardware, driver quality, and network conditions. Monitor your experience over multiple sessions before evaluating effectiveness.</li>
+              </ul>
+            </div>
+          </div>
+        </GlassCard>
+
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />

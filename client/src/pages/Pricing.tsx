@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
+import { Helmet } from "react-helmet";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { 
@@ -189,6 +190,9 @@ export default function Pricing() {
 
   return (
     <div className="min-h-screen bg-black relative page-enter">
+      <Helmet>
+        <link rel="canonical" href="https://switchcontrol.org/pricing" />
+      </Helmet>
       {/* Animated gradient background */}
       <div 
         className="fixed inset-0 opacity-40"

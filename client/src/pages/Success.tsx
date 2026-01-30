@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle, Loader2, XCircle, ArrowRight, Home } from "lucide-react";
 import { motion, useMotion } from "@/lib/motion";
+import { useAuth } from "@/hooks/use-auth";
 
 type ConfirmState = "loading" | "success" | "error";
 
 export default function Success() {
   const { prefersReducedMotion } = useMotion();
+  const { refetch } = useAuth();
   const [state, setState] = useState<ConfirmState>("loading");
   const [error, setError] = useState<string>("");
 
@@ -29,8 +31,9 @@ export default function Success() {
       body: JSON.stringify({ session_id: sessionId }),
     })
       .then((res) => res.json())
-      .then((data) => {
+      .then(async (data) => {
         if (data.ok) {
+          await refetch();
           setState("success");
         } else {
           setState("error");
@@ -41,7 +44,7 @@ export default function Success() {
         setState("error");
         setError(err.message || "Network error");
       });
-  }, []);
+  }, [refetch]);
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center p-4">
