@@ -34,7 +34,8 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { PremiumSurface } from "@/components/ui/premium-surface";
-import { AnimatedCrown } from "@/components/ui/animated-crown";
+import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
+import { PremiumModal } from "@/components/PremiumModal";
 
 type ProfileId = "performance" | "balanced" | "efficiency" | "custom";
 
@@ -282,62 +283,9 @@ export default function PowerPlan() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [infoToggle, setInfoToggle] = useState<OverrideToggle | null>(null);
   const [activeTab, setActiveTab] = useState<"profiles" | "custom">("profiles");
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const activeProfile = POWER_PROFILES.find(p => p.id === state.activeProfile);
-
-  if (!isPremium) {
-    return (
-      <AppLayout>
-        <div className="p-8 space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                Power Plan
-              </h1>
-              <AnimatedCrown size="lg" linkTo="/pricing" tooltipText="Premium feature" />
-            </div>
-            <p className="text-muted-foreground">
-              Advanced power management for maximum gaming performance.
-            </p>
-          </div>
-
-          <PremiumSurface variant="container">
-            <div className="text-center space-y-6 max-w-lg mx-auto py-8">
-              <AnimatedCrown size="lg" linkTo="/pricing" className="mx-auto" />
-              
-              <div>
-                <h2 className="text-xl font-semibold text-white mb-2">Premium Power Management</h2>
-                <p className="text-sm text-muted-foreground">
-                  Power Plan management is available exclusively to SwitchControl Premium users. 
-                  Control CPU states, USB power, sleep behavior, and more.
-                </p>
-              </div>
-              
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
-                <h3 className="text-xs font-medium text-white mb-3">What's included:</h3>
-                <ul className="text-xs text-muted-foreground space-y-2">
-                  <li className="flex items-center gap-2"><Zap className="size-3.5 text-amber-400" /> Maximum Performance profile</li>
-                  <li className="flex items-center gap-2"><Cpu className="size-3.5 text-primary" /> CPU boost and parking control</li>
-                  <li className="flex items-center gap-2"><Usb className="size-3.5 text-blue-400" /> USB selective suspend control</li>
-                  <li className="flex items-center gap-2"><Moon className="size-3.5 text-indigo-400" /> Sleep and hibernate optimization</li>
-                </ul>
-              </div>
-              
-              <Link href="/pricing">
-                <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white px-8"
-                >
-                  <Crown className="size-4 mr-2" />
-                  Upgrade to Premium
-                </Button>
-              </Link>
-            </div>
-          </PremiumSurface>
-        </div>
-      </AppLayout>
-    );
-  }
 
   const updateState = useCallback((updates: Partial<{ activeProfile: ProfileId; overrides: Record<string, boolean>; customSettings: CustomSettings }>) => {
     setState((prev: { activeProfile: ProfileId; overrides: Record<string, boolean>; customSettings: CustomSettings }) => {
@@ -409,11 +357,35 @@ export default function PowerPlan() {
 
   return (
     <AppLayout>
-      <div className="space-y-8">
+      <div className="space-y-8 relative">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-            Power Plan
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              Power Plan
+            </h1>
+            {!isPremium && (
+              <motion.div
+                className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-[rgba(124,58,237,0.2)] to-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] cursor-pointer"
+                animate={{
+                  boxShadow: [
+                    "0 0 12px rgba(168,85,247,0.2)",
+                    "0 0 20px rgba(168,85,247,0.35)",
+                    "0 0 12px rgba(168,85,247,0.2)",
+                  ],
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                onClick={() => setShowPremiumModal(true)}
+              >
+                <motion.div
+                  animate={{ opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Crown className="size-4 text-[hsl(270,60%,65%)]" />
+                </motion.div>
+                <span className="text-xs font-medium text-[hsl(270,60%,75%)]">Premium</span>
+              </motion.div>
+            )}
+          </div>
           <p className="text-muted-foreground mt-1">Configure power profiles for optimal gaming performance.</p>
         </div>
 
@@ -782,9 +754,38 @@ export default function PowerPlan() {
         </Tabs>
       </div>
 
+      {!isPremium && (
+        <div 
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-[1px] cursor-pointer"
+          onClick={() => setShowPremiumModal(true)}
+        >
+          <div className="text-center space-y-4 p-6 rounded-2xl bg-black/80 backdrop-blur-md border border-white/10 max-w-sm mx-4">
+            <AnimatedCrown size="lg" onClick={() => setShowPremiumModal(true)} className="mx-auto" />
+            <div>
+              <h3 className="text-lg font-semibold text-white">Power Plan Management</h3>
+              <p className="text-xs text-muted-foreground mt-1">
+                Premium feature – unlock to apply
+              </p>
+            </div>
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPremiumModal(true);
+              }}
+            >
+              <Crown className="size-3 mr-1.5" />
+              Unlock Power Plan
+            </Button>
+          </div>
+        </div>
+      )}
+
       <AnimatePresence>
         {infoToggle && <InfoModal toggle={infoToggle} onClose={() => setInfoToggle(null)} />}
       </AnimatePresence>
+      <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </AppLayout>
   );
 }

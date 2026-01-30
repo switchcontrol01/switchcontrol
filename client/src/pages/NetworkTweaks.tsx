@@ -30,7 +30,8 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { PremiumSurface } from "@/components/ui/premium-surface";
-import { AnimatedCrown } from "@/components/ui/animated-crown";
+import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
+import { PremiumModal } from "@/components/PremiumModal";
 
 const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
   const colors = {
@@ -280,60 +281,7 @@ export default function NetworkTweaks() {
     new Set(NETWORK_CATEGORIES)
   );
   const [selectedTweak, setSelectedTweak] = useState<NetworkTweak | null>(null);
-
-  if (!isPremium) {
-    return (
-      <AppLayout>
-        <div className="p-8 space-y-8">
-          <div className="space-y-2">
-            <div className="flex items-center gap-4">
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-                Network Tweaks
-              </h1>
-              <AnimatedCrown size="lg" linkTo="/pricing" tooltipText="Premium feature" />
-            </div>
-            <p className="text-muted-foreground">
-              Optimize latency, throughput, and stability with network stack tuning.
-            </p>
-          </div>
-
-          <PremiumSurface variant="container">
-            <div className="text-center space-y-6 max-w-lg mx-auto py-8">
-              <AnimatedCrown size="lg" linkTo="/pricing" className="mx-auto" />
-              
-              <div>
-                <h2 className="text-xl font-semibold text-white mb-2">Premium Network Optimization</h2>
-                <p className="text-sm text-muted-foreground">
-                  Network optimization is available exclusively to SwitchControl Premium users. 
-                  Fine-tune TCP/IP, DNS, UDP, and security settings for competitive advantage.
-                </p>
-              </div>
-              
-              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
-                <h3 className="text-xs font-medium text-white mb-3">What's included:</h3>
-                <ul className="text-xs text-muted-foreground space-y-2">
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> SMB and TCP/IP optimization</li>
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> UDP and DNS tuning</li>
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> Security hardening options</li>
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> Latency reduction tweaks</li>
-                </ul>
-              </div>
-              
-              <Link href="/pricing">
-                <Button 
-                  size="lg"
-                  className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white px-8"
-                >
-                  <Crown className="size-4 mr-2" />
-                  Upgrade to Premium
-                </Button>
-              </Link>
-            </div>
-          </PremiumSurface>
-        </div>
-      </AppLayout>
-    );
-  }
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const toggleTweak = useCallback((id: string) => {
     setEnabledTweaks(prev => {
@@ -393,9 +341,33 @@ export default function NetworkTweaks() {
     <AppLayout>
       <div className="p-8 space-y-8">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-            Network Tweaks
-          </h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              Network Tweaks
+            </h1>
+            {!isPremium && (
+              <motion.div
+                className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-[rgba(124,58,237,0.2)] to-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] cursor-pointer"
+                animate={{
+                  boxShadow: [
+                    "0 0 12px rgba(168,85,247,0.2)",
+                    "0 0 20px rgba(168,85,247,0.35)",
+                    "0 0 12px rgba(168,85,247,0.2)",
+                  ],
+                }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                onClick={() => setShowPremiumModal(true)}
+              >
+                <motion.div
+                  animate={{ opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Crown className="size-4 text-[hsl(270,60%,65%)]" />
+                </motion.div>
+                <span className="text-xs font-medium text-[hsl(270,60%,75%)]">Premium</span>
+              </motion.div>
+            )}
+          </div>
           <p className="text-muted-foreground">
             Optimize latency, throughput, and stability. Apply carefully.
           </p>
@@ -514,9 +486,38 @@ export default function NetworkTweaks() {
             No tweaks found matching your search.
           </div>
         )}
+        
+        {!isPremium && (
+          <div 
+            className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-[1px] cursor-pointer"
+            onClick={() => setShowPremiumModal(true)}
+          >
+            <div className="text-center space-y-4 p-6 rounded-2xl bg-black/80 backdrop-blur-md border border-white/10 max-w-sm mx-4">
+              <AnimatedCrown size="lg" onClick={() => setShowPremiumModal(true)} className="mx-auto" />
+              <div>
+                <h3 className="text-lg font-semibold text-white">Network Optimization</h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Premium feature – unlock to apply
+                </p>
+              </div>
+              <Button
+                size="sm"
+                className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPremiumModal(true);
+                }}
+              >
+                <Crown className="size-3 mr-1.5" />
+                Unlock Network Tweaks
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />
+      <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </AppLayout>
   );
 }

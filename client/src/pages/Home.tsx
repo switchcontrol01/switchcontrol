@@ -18,6 +18,143 @@ import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
+import { PremiumModal } from "@/components/PremiumModal";
+
+interface AIAdvisorCardProps {
+  isPremium: boolean;
+  scanning: boolean;
+  latestAIScan: any;
+  onScan: () => void;
+}
+
+function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorCardProps) {
+  const [showModal, setShowModal] = useState(false);
+  
+  const mockRecommendations = [
+    { id: "1", action: "Disable Windows Search indexing for game drives", tag: "Safe" },
+    { id: "2", action: "Enable Hardware-accelerated GPU scheduling", tag: "Safe" },
+    { id: "3", action: "Disable Superfetch for SSD optimization", tag: "Advanced" },
+  ];
+
+  const cardContent = (
+    <Card className={cn(
+      "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full",
+      !isPremium && "opacity-60"
+    )}>
+      <div className="absolute top-0 right-0 p-3 z-20">
+        {isPremium ? (
+          <Sparkles className="size-4 text-primary animate-pulse" />
+        ) : (
+          <AnimatedCrown size="sm" onClick={() => setShowModal(true)} tooltipText="Premium feature" />
+        )}
+      </div>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-medium flex items-center gap-2">
+          AI Advisor
+          {!isPremium && <PremiumBadge className="ml-1" />}
+        </CardTitle>
+        <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
+      </CardHeader>
+      <CardContent className={cn("space-y-4", !isPremium && "blur-[2px]")}>
+        {isPremium ? (
+          <>
+            {!latestAIScan && !scanning ? (
+              <div className="py-6 text-center space-y-4">
+                <p className="text-xs text-muted-foreground px-4">Run an AI scan to get personalized optimization recommendations.</p>
+                <Button onClick={onScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
+                  Run AI Scan
+                </Button>
+              </div>
+            ) : scanning ? (
+              <div className="py-8 flex flex-col items-center justify-center space-y-3">
+                <Loader2 className="size-6 text-primary animate-spin" />
+                <span className="text-xs text-muted-foreground animate-pulse">Analyzing system state...</span>
+              </div>
+            ) : latestAIScan && (
+              <div className="space-y-3 animate-in fade-in duration-500">
+                <div className="p-2.5 rounded-lg bg-white/5 border border-white/10">
+                  <p className="text-[11px] leading-relaxed text-white/90">{latestAIScan.summary}</p>
+                </div>
+                <div className="space-y-1.5">
+                  {latestAIScan.recommendations.map((rec: any) => (
+                    <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors">
+                      <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
+                      <span className={cn(
+                        "text-[9px] font-bold uppercase px-1 rounded",
+                        rec.tag === "Safe" ? "text-emerald-400" : 
+                        rec.tag === "Advanced" ? "text-blue-400" : "text-amber-400"
+                      )}>
+                        {rec.tag === "Safe" ? "Safe" : rec.tag === "Advanced" ? "Adv" : "Agent"}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <Button onClick={onScan} variant="ghost" size="sm" className="w-full text-[10px] h-7 hover:bg-white/5">
+                  Rescan System
+                </Button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="space-y-3">
+            <div className="p-2.5 rounded-lg bg-white/5 border border-white/10">
+              <p className="text-[11px] leading-relaxed text-white/90">System analysis reveals 3 optimization opportunities for improved gaming performance.</p>
+            </div>
+            <div className="space-y-1.5">
+              {mockRecommendations.map((rec) => (
+                <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded">
+                  <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
+                  <span className={cn(
+                    "text-[9px] font-bold uppercase px-1 rounded",
+                    rec.tag === "Safe" ? "text-emerald-400" : "text-blue-400"
+                  )}>
+                    {rec.tag === "Safe" ? "Safe" : "Adv"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        <div className="pt-2 border-t border-border/50 flex items-center gap-1.5 opacity-40">
+          <Info className="size-2.5" />
+          <span className="text-[9px]">Recommendations are simulated until agent is installed.</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  if (!isPremium) {
+    return (
+      <div className="relative h-full">
+        {cardContent}
+        <div 
+          className="absolute inset-0 flex items-center justify-center cursor-pointer z-10"
+          onClick={() => setShowModal(true)}
+        >
+          <div className="text-center space-y-3 p-4 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
+            <AnimatedCrown size="md" onClick={() => setShowModal(true)} className="mx-auto" />
+            <p className="text-xs text-muted-foreground">Premium feature – unlock to apply</p>
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowModal(true);
+              }}
+            >
+              <Crown className="size-3 mr-1.5" />
+              Unlock AI Advisor
+            </Button>
+          </div>
+        </div>
+        <PremiumModal open={showModal} onOpenChange={setShowModal} />
+      </div>
+    );
+  }
+
+  return cardContent;
+}
 
 interface TelemetryData {
   temps: { cpu: number; gpu: number; mobo: number };
@@ -239,84 +376,12 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
           >
-            {!isPremium ? (
-              <PremiumSurface variant="card" className="h-full">
-                <div className="absolute top-3 right-3">
-                  <AnimatedCrown size="sm" linkTo="/pricing" tooltipText="Premium feature" />
-                </div>
-                <div className="space-y-1 mb-4">
-                  <h3 className="text-base font-medium text-white flex items-center gap-2">
-                    AI Advisor
-                  </h3>
-                  <p className="text-[10px] text-muted-foreground">ML-driven consistency analysis</p>
-                </div>
-                <div className="py-4 text-center space-y-4">
-                  <AnimatedCrown size="md" linkTo="/pricing" className="mx-auto" />
-                  <p className="text-xs text-muted-foreground px-2">
-                    AI-driven system analysis and optimization insights. Available with Premium.
-                  </p>
-                  <Link href="/pricing">
-                    <Button size="sm" className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white">
-                      <Crown className="size-3 mr-1" />
-                      Upgrade
-                    </Button>
-                  </Link>
-                </div>
-              </PremiumSurface>
-            ) : (
-              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full">
-                <div className="absolute top-0 right-0 p-3">
-                  <Sparkles className="size-4 text-primary animate-pulse" />
-                </div>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base font-medium">AI Advisor</CardTitle>
-                  <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {!latestAIScan && !scanning ? (
-                <div className="py-6 text-center space-y-4">
-                  <p className="text-xs text-muted-foreground px-4">Run an AI scan to get personalized optimization recommendations.</p>
-                  <Button onClick={handleAIScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
-                    Run AI Scan
-                  </Button>
-                </div>
-              ) : scanning ? (
-                <div className="py-8 flex flex-col items-center justify-center space-y-3">
-                  <Loader2 className="size-6 text-primary animate-spin" />
-                  <span className="text-xs text-muted-foreground animate-pulse">Analyzing system state...</span>
-                </div>
-              ) : latestAIScan && (
-                <div className="space-y-3 animate-in fade-in duration-500">
-                  <div className="p-2.5 rounded-lg bg-white/5 border border-white/10">
-                    <p className="text-[11px] leading-relaxed text-white/90">{latestAIScan.summary}</p>
-                  </div>
-                  <div className="space-y-1.5">
-                    {latestAIScan.recommendations.map((rec) => (
-                      <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors">
-                        <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
-                        <span className={cn(
-                          "text-[9px] font-bold uppercase px-1 rounded",
-                          rec.tag === "Safe" ? "text-emerald-400" : 
-                          rec.tag === "Advanced" ? "text-blue-400" : "text-amber-400"
-                        )}>
-                          {rec.tag === "Safe" ? "Safe" : rec.tag === "Advanced" ? "Adv" : "Agent"}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                  <Button onClick={handleAIScan} variant="ghost" size="sm" className="w-full text-[10px] h-7 hover:bg-white/5">
-                    Rescan System
-                  </Button>
-                </div>
-              )}
-              
-              <div className="pt-2 border-t border-border/50 flex items-center gap-1.5 opacity-40">
-                <Info className="size-2.5" />
-                <span className="text-[9px]">Recommendations are simulated until agent is installed.</span>
-              </div>
-            </CardContent>
-              </Card>
-            )}
+            <AIAdvisorCard 
+              isPremium={isPremium} 
+              scanning={scanning} 
+              latestAIScan={latestAIScan} 
+              onScan={handleAIScan} 
+            />
           </motion.div>
 
           {/* App Booster Placeholder */}

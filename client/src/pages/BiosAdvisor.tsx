@@ -236,70 +236,40 @@ function BiosSettingCard({ setting, index }: { setting: BiosSetting; index: numb
   );
 }
 
-function LockedPreview() {
-  const [showModal, setShowModal] = useState(false);
-  
+function PremiumLockOverlay({ onOpenModal }: { onOpenModal: () => void }) {
   return (
-    <>
-      <div className="p-8 space-y-8">
-        <div className="space-y-2">
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              BIOS Advisor
-            </h1>
-            <AnimatedCrown size="lg" onClick={() => setShowModal(true)} tooltipText="Premium feature" />
-          </div>
-          <p className="text-muted-foreground">
-            Firmware-level intelligence for competitive performance optimization.
+    <div 
+      className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-[1px] cursor-pointer"
+      onClick={onOpenModal}
+    >
+      <div className="text-center space-y-4 p-6 rounded-2xl bg-black/80 backdrop-blur-md border border-white/10 max-w-sm mx-4">
+        <AnimatedCrown size="lg" onClick={onOpenModal} className="mx-auto" />
+        <div>
+          <h3 className="text-lg font-semibold text-white">BIOS Advisor</h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            Premium feature – unlock to apply
           </p>
         </div>
-
-        <PremiumSurface variant="container">
-          <div className="text-center space-y-6 max-w-lg mx-auto py-8">
-            <AnimatedCrown size="lg" onClick={() => setShowModal(true)} className="mx-auto" />
-            
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-2">Premium BIOS Advisor</h2>
-              <p className="text-sm text-muted-foreground">
-                Firmware-level intelligence for latency, stability, and competitive performance.
-                Analyze 30+ BIOS settings that directly impact your gaming experience.
-              </p>
-            </div>
-            
-            <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
-              <h3 className="text-xs font-medium text-white mb-3">What's included:</h3>
-              <ul className="text-xs text-muted-foreground space-y-2">
-                <li className="flex items-center gap-2"><Cpu className="size-3.5 text-primary" /> CPU scheduling & latency analysis</li>
-                <li className="flex items-center gap-2"><Zap className="size-3.5 text-amber-400" /> Power & voltage optimization guidance</li>
-                <li className="flex items-center gap-2"><MemoryStick className="size-3.5 text-blue-400" /> Memory & fabric tuning insights</li>
-                <li className="flex items-center gap-2"><Radio className="size-3.5 text-emerald-400" /> EMI & signal integrity settings</li>
-              </ul>
-            </div>
-            
-            <Button 
-              size="lg"
-              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white px-8"
-              onClick={() => setShowModal(true)}
-            >
-              <Crown className="w-4 h-4 mr-2" />
-              Upgrade to Premium
-            </Button>
-            
-            <p className="text-xs text-muted-foreground">
-              No presets. No risky automation. Full transparency.
-            </p>
-          </div>
-        </PremiumSurface>
+        <Button
+          size="sm"
+          className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenModal();
+          }}
+        >
+          <Crown className="size-3 mr-1.5" />
+          Unlock BIOS Advisor
+        </Button>
       </div>
-      
-      <PremiumModal open={showModal} onOpenChange={setShowModal} />
-    </>
+    </div>
   );
 }
 
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   
   const [activeCategory, setActiveCategory] = useState<BiosCategory>("CPU Scheduling & Latency");
   
@@ -308,14 +278,6 @@ export default function BiosAdvisor() {
   
   const Container = prefersReducedMotion ? "div" : motion.div;
   const Item = prefersReducedMotion ? "div" : motion.div;
-
-  if (!isPremium) {
-    return (
-      <AppLayout>
-        <LockedPreview />
-      </AppLayout>
-    );
-  }
 
   return (
     <AppLayout>
@@ -328,9 +290,32 @@ export default function BiosAdvisor() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-2xl font-bold text-white">BIOS Advisor</h1>
-                <Badge className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] text-white border-0">
-                  <Crown className="w-3 h-3 mr-1" /> Premium
-                </Badge>
+                {isPremium ? (
+                  <Badge className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] text-white border-0">
+                    <Crown className="w-3 h-3 mr-1" /> Premium
+                  </Badge>
+                ) : (
+                  <motion.div
+                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-[rgba(124,58,237,0.2)] to-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] cursor-pointer"
+                    animate={{
+                      boxShadow: [
+                        "0 0 12px rgba(168,85,247,0.2)",
+                        "0 0 20px rgba(168,85,247,0.35)",
+                        "0 0 12px rgba(168,85,247,0.2)",
+                      ],
+                    }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    onClick={() => setShowPremiumModal(true)}
+                  >
+                    <motion.div
+                      animate={{ opacity: [0.8, 1, 0.8] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Crown className="size-4 text-[hsl(270,60%,65%)]" />
+                    </motion.div>
+                    <span className="text-xs font-medium text-[hsl(270,60%,75%)]">Premium</span>
+                  </motion.div>
+                )}
               </div>
               <p className="text-muted-foreground text-sm">
                 Firmware-level analysis for competitive performance optimization
@@ -477,6 +462,9 @@ export default function BiosAdvisor() {
           </GlassCard>
         </Item>
       </Container>
+      
+      {!isPremium && <PremiumLockOverlay onOpenModal={() => setShowPremiumModal(true)} />}
+      <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </AppLayout>
   );
 }
