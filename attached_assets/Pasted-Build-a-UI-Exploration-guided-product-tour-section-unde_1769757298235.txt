@@ -1,0 +1,80 @@
+Build a “UI Exploration” guided product tour section under “What is SwitchControl”
+Create a fully animated, interactive UI Exploration section directly UNDER the “What is SwitchControl” section on the landing page.
+Purpose
+This section visually walks the user through the SwitchControl interface.
+It must feel like a guided product tour, not a carousel or gallery.
+Layout + Structure
+Show one large UI image at a time (centered).
+Right arrow button to go forward.
+Optional left arrow to go back.
+No auto-play. User controlled only.
+Must work identically on desktop and mobile.
+Screens to include (order)
+Use my provided images (exact labels below):
+DASHBOARD
+NETWORK TWEAKS
+POWERPLAN
+TWEAKS PAGE
+BIOS ADVISOR
+Interaction
+Clicking the right arrow transitions to the next screen.
+Clicking the left arrow goes back.
+Disable arrow if at start or end.
+Transition animation requirements
+When moving forward:
+Current image slides slightly left + fades out
+Next image slides in from the right + fades in
+Text updates at the same time as the image
+When moving backward:
+Reverse the direction:
+Current slides slightly right + fades out
+Previous slides in from the left + fades in
+Animation style
+Smooth easing, premium feel
+No bounce, no spring motion
+Duration: 300 to 500ms
+Use hardware accelerated transforms (translate3d, opacity)
+Text behavior per screen
+Each screen must have:
+Short title
+Concise technical description (1 to 2 lines max)
+Text must:
+Fade + subtly slide with the image transition
+Move in the same direction as the image motion
+Stay aligned and stable (no layout shift)
+Step indicator
+Add a subtle, text-based indicator (not dots). Example style:
+Dashboard → Network → Power Plan → Tweaks → BIOS
+Rules:
+Highlight the active step clearly
+Optional minimal progress line under the steps that advances as screens change
+Design rules (strict)
+Dark background consistent with site
+No borders around images
+No drop shadows
+No cards
+Keep everything centered and balanced
+Arrows visible but not dominant
+Performance rules
+No lag
+No layout shift
+Must feel smooth on 60Hz and 144Hz
+Do not trigger animations on hover only
+Do not use generic slider library with dots
+No videos
+No auto rotate
+Assets
+I will provide images and they will be labeled exactly:
+BIOS ADVISOR
+DASHBOARD
+NETWORK TWEAKS
+POWERPLAN
+TWEAKS PAGE
+Implement the section now with placeholder image imports, then swap to my files once I upload them.
+Manual QA required
+Confirm after implementation:
+Click-through works smoothly on desktop and mobile
+Animations do not break scrolling
+No layout shift during transitions
+Arrows are easy to see, not distracting
+Overall feel is premium, not flashy
