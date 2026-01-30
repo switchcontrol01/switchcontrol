@@ -3,8 +3,7 @@ import { Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
-import { PremiumModal } from "@/components/PremiumModal";
+import { useState } from "react";
 
 interface PremiumLockOverlayProps {
   featureName: string;
@@ -23,11 +22,17 @@ export function PremiumLockOverlay({
   children,
   isLocked,
 }: PremiumLockOverlayProps) {
-  const [showModal, setShowModal] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   if (!isLocked) {
     return <>{children}</>;
   }
+
+  const triggerAttentionAnimation = () => {
+    if (isAnimating) return;
+    setIsAnimating(true);
+    setTimeout(() => setIsAnimating(false), 300);
+  };
 
   return (
     <div className={cn("relative", className)}>
@@ -36,10 +41,25 @@ export function PremiumLockOverlay({
       </div>
       
       <div 
-        className="absolute inset-0 flex items-center justify-center cursor-pointer z-10"
-        onClick={() => setShowModal(true)}
+        className="absolute inset-0 flex items-center justify-center z-10"
+        onClick={triggerAttentionAnimation}
       >
-        <div className="text-center space-y-3 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.85)] via-[hsl(270,50%,15%,0.9)] to-[hsl(280,60%,15%,0.85)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4 shadow-[0_0_40px_rgba(168,85,247,0.15)]">
+        <motion.div 
+          className="text-center space-y-3 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.85)] via-[hsl(270,50%,15%,0.9)] to-[hsl(280,60%,15%,0.85)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4"
+          animate={isAnimating ? {
+            scale: [1, 1.03, 1],
+            boxShadow: [
+              "0 0 40px rgba(168,85,247,0.15)",
+              "0 0 60px rgba(168,85,247,0.35)",
+              "0 0 40px rgba(168,85,247,0.15)"
+            ]
+          } : {
+            scale: 1,
+            boxShadow: "0 0 40px rgba(168,85,247,0.15)"
+          }}
+          transition={{ duration: 0.3, ease: "easeOut" }}
+          onClick={(e) => e.stopPropagation()}
+        >
           <motion.div
             className="mx-auto w-14 h-14 rounded-full bg-[rgba(168,85,247,0.15)] flex items-center justify-center"
             animate={{
@@ -75,21 +95,17 @@ export function PremiumLockOverlay({
             )}
           </div>
           
-          <Button
-            size="sm"
-            className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowModal(true);
-            }}
-          >
-            <Crown className="size-3 mr-1.5" />
-            Unlock {featureName}
-          </Button>
-        </div>
+          <Link href="/pricing">
+            <Button
+              size="sm"
+              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+            >
+              <Crown className="size-3 mr-1.5" />
+              Unlock {featureName}
+            </Button>
+          </Link>
+        </motion.div>
       </div>
-      
-      <PremiumModal open={showModal} onOpenChange={setShowModal} />
     </div>
   );
 }
