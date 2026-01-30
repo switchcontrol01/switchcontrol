@@ -24,7 +24,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       webSecurity: true,
     },
-    icon: path.join(__dirname, '../assets/icon.ico'),
+    icon: path.join(__dirname, '../build/icon.ico'),
   });
 
   mainWindow.once('ready-to-show', () => {

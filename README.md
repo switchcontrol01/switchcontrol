@@ -58,23 +58,19 @@ npm run electron:dev
 ```
 This starts both the web server and opens the Electron desktop window.
 
-### Step 6: Add Your App Icon (REQUIRED)
+### Step 6: App Icon (Already Included)
 
-Before building, you need to add your Windows icon:
-
-1. Create or export your logo as a 256x256 PNG
-2. Go to [icoconvert.com](https://icoconvert.com/) and convert it to .ico
-3. Save the file as `assets/icon.ico`
-
-**The build will fail without this file!**
+The Windows icon is already included in the `build/` folder:
+- `build/icon.ico` - Windows installer icon
+- `build/icon.png` - App icon
 
 ### Step 7: Build Windows Installer
 
 ```bash
-npm run build:win
+npm run electron:build
 ```
 
-**Output location:** `dist-electron/SwitchControl-Setup-1.0.0.exe`
+**Output location:** `release/SwitchControl-Setup-1.0.0.exe`
 
 This creates:
 - Windows installer (.exe)
@@ -89,10 +85,11 @@ This creates:
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start web development server |
+| `npm run dev:web` | Start Vite dev server only |
+| `npm run dev:server` | Start Express server only |
 | `npm run electron:dev` | Start desktop app in dev mode |
 | `npm run build` | Build web version for production |
-| `npm run build:win` | Build Windows installer |
-| `npm run build:portable` | Build portable Windows .exe (no install) |
+| `npm run electron:build` | Build Windows installer (.exe) |
 
 ---
 
@@ -112,7 +109,7 @@ SwitchControl/
 ├── electron/               # Desktop app wrapper
 │   ├── main.js             # Main process
 │   └── preload.js          # Secure IPC bridge
-├── assets/                 # App icons
+├── build/                  # App icons
 │   └── icon.ico            # Windows icon
 ├── shared/                 # Shared types/schemas
 └── electron-builder.json   # Installer config
@@ -156,22 +153,20 @@ All future features will be safe, reversible, and require explicit user action.
 - The deep link protocol is registered during install
 - For dev mode, OAuth will open in default browser
 
-### Missing icon (REQUIRED before building)
-- You MUST place your `icon.ico` file in the `assets/` folder before running `npm run build:win`
-- Minimum size: 256x256 pixels
-- Use a tool like [ICO Convert](https://icoconvert.com/) to create .ico from PNG
-- The build will fail without this file
+### Missing icon
+- The icon is already included in `build/icon.ico`
+- If you need to replace it, put your new `icon.ico` in the `build/` folder
 
 ---
 
 ## App Icon
 
-To use your custom icon:
+The app icon is already configured in `build/icon.ico`. To use a custom icon:
 
 1. Create a 256x256 PNG of your logo
 2. Convert to .ico format at [icoconvert.com](https://icoconvert.com/)
-3. Save as `assets/icon.ico`
-4. Rebuild the installer
+3. Replace `build/icon.ico`
+4. Run `npm run electron:build` to rebuild the installer
 
 ---
 
