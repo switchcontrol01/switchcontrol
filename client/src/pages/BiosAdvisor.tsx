@@ -12,6 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/hooks/use-auth";
 import { 
   BIOS_SETTINGS, 
   BIOS_CATEGORIES, 
@@ -298,8 +299,7 @@ function LockedPreview() {
 
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
-  const { account } = useStore();
-  const isPremium = account.tier === "Premium";
+  const { isPremium } = useAuth();
   
   const [activeCategory, setActiveCategory] = useState<BiosCategory>("CPU Scheduling & Latency");
   
