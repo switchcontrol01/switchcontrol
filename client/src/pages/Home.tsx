@@ -18,7 +18,7 @@ import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
-import { PremiumModal } from "@/components/PremiumModal";
+import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 
 interface AIAdvisorCardProps {
   isPremium: boolean;
@@ -28,8 +28,6 @@ interface AIAdvisorCardProps {
 }
 
 function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorCardProps) {
-  const [showModal, setShowModal] = useState(false);
-  
   const mockRecommendations = [
     { id: "1", action: "Disable Windows Search indexing for game drives", tag: "Safe" },
     { id: "2", action: "Enable Hardware-accelerated GPU scheduling", tag: "Safe" },
@@ -39,13 +37,13 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorC
   const cardContent = (
     <Card className={cn(
       "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full",
-      !isPremium && "opacity-60"
+      !isPremium && "opacity-60 blur-[2px]"
     )}>
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
           <Sparkles className="size-4 text-primary animate-pulse" />
         ) : (
-          <AnimatedCrown size="sm" onClick={() => setShowModal(true)} tooltipText="Premium feature" />
+          <AnimatedCrown size="sm" tooltipText="Premium feature" />
         )}
       </div>
       <CardHeader className="pb-3">
@@ -55,7 +53,7 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorC
         </CardTitle>
         <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
       </CardHeader>
-      <CardContent className={cn("space-y-4", !isPremium && "blur-[2px]")}>
+      <CardContent className="space-y-4">
         {isPremium ? (
           <>
             {!latestAIScan && !scanning ? (
@@ -124,36 +122,11 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorC
     </Card>
   );
 
-  if (!isPremium) {
-    return (
-      <div className="relative h-full">
-        {cardContent}
-        <div 
-          className="absolute inset-0 flex items-center justify-center cursor-pointer z-10"
-          onClick={() => setShowModal(true)}
-        >
-          <div className="text-center space-y-3 p-4 rounded-xl bg-gradient-to-br from-[hsl(270,60%,20%,0.85)] via-[hsl(270,50%,15%,0.9)] to-[hsl(280,60%,15%,0.85)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] shadow-[0_0_30px_rgba(168,85,247,0.15)]">
-            <AnimatedCrown size="md" onClick={() => setShowModal(true)} className="mx-auto" />
-            <p className="text-xs text-muted-foreground">Premium feature – unlock to apply</p>
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowModal(true);
-              }}
-            >
-              <Crown className="size-3 mr-1.5" />
-              Unlock AI Advisor
-            </Button>
-          </div>
-        </div>
-        <PremiumModal open={showModal} onOpenChange={setShowModal} />
-      </div>
-    );
-  }
-
-  return cardContent;
+  return (
+    <PremiumCardOverlay featureName="AI Advisor" buttonText="Unlock AI Advisor" isLocked={!isPremium}>
+      {cardContent}
+    </PremiumCardOverlay>
+  );
 }
 
 interface TelemetryData {

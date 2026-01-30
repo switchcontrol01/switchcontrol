@@ -35,7 +35,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
-import { PremiumModal } from "@/components/PremiumModal";
+import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 
 type ProfileId = "performance" | "balanced" | "efficiency" | "custom";
 
@@ -283,7 +283,6 @@ export default function PowerPlan() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [infoToggle, setInfoToggle] = useState<OverrideToggle | null>(null);
   const [activeTab, setActiveTab] = useState<"profiles" | "custom">("profiles");
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
 
   const activeProfile = POWER_PROFILES.find(p => p.id === state.activeProfile);
 
@@ -363,28 +362,7 @@ export default function PowerPlan() {
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
               Power Plan
             </h1>
-            {!isPremium && (
-              <motion.div
-                className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-[rgba(124,58,237,0.2)] to-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] cursor-pointer"
-                animate={{
-                  boxShadow: [
-                    "0 0 12px rgba(168,85,247,0.2)",
-                    "0 0 20px rgba(168,85,247,0.35)",
-                    "0 0 12px rgba(168,85,247,0.2)",
-                  ],
-                }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                onClick={() => setShowPremiumModal(true)}
-              >
-                <motion.div
-                  animate={{ opacity: [0.8, 1, 0.8] }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                >
-                  <Crown className="size-4 text-[hsl(270,60%,65%)]" />
-                </motion.div>
-                <span className="text-xs font-medium text-[hsl(270,60%,75%)]">Premium</span>
-              </motion.div>
-            )}
+            <PremiumHeaderBadge isLocked={!isPremium} />
           </div>
           <p className="text-muted-foreground mt-1">Configure power profiles for optimal gaming performance.</p>
         </div>
@@ -754,38 +732,11 @@ export default function PowerPlan() {
         </Tabs>
       </div>
 
-      {!isPremium && (
-        <div 
-          className="fixed inset-0 z-30 flex items-center justify-center bg-black/30 backdrop-blur-[1px] cursor-pointer"
-          onClick={() => setShowPremiumModal(true)}
-        >
-          <div className="text-center space-y-4 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4 shadow-[0_0_40px_rgba(168,85,247,0.2)]">
-            <AnimatedCrown size="lg" onClick={() => setShowPremiumModal(true)} className="mx-auto" />
-            <div>
-              <h3 className="text-lg font-semibold text-white">Power Plan Management</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                Premium feature – unlock to apply
-              </p>
-            </div>
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowPremiumModal(true);
-              }}
-            >
-              <Crown className="size-3 mr-1.5" />
-              Unlock Power Plan
-            </Button>
-          </div>
-        </div>
-      )}
+      {!isPremium && <PremiumPageOverlay featureName="Power Plan Management" buttonText="Unlock Power Plan" />}
 
       <AnimatePresence>
         {infoToggle && <InfoModal toggle={infoToggle} onClose={() => setInfoToggle(null)} />}
       </AnimatePresence>
-      <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />
     </AppLayout>
   );
 }

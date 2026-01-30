@@ -24,9 +24,8 @@ import {
   DISCLAIMER
 } from "@/lib/bios-advisor-data";
 import { GlassCard } from "@/components/ui/glass-card";
-import { PremiumModal } from "@/components/PremiumModal";
 import { PremiumSurface } from "@/components/ui/premium-surface";
-import { AnimatedCrown } from "@/components/ui/animated-crown";
+import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 
 const CATEGORY_ICONS: Record<BiosCategory, React.ElementType> = {
   "CPU Scheduling & Latency": Cpu,
@@ -236,40 +235,9 @@ function BiosSettingCard({ setting, index }: { setting: BiosSetting; index: numb
   );
 }
 
-function PremiumLockOverlay({ onOpenModal }: { onOpenModal: () => void }) {
-  return (
-    <div 
-      className="fixed inset-0 z-30 flex items-center justify-center bg-black/30 backdrop-blur-[1px] cursor-pointer"
-      onClick={onOpenModal}
-    >
-      <div className="text-center space-y-4 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4 shadow-[0_0_40px_rgba(168,85,247,0.2)]">
-        <AnimatedCrown size="lg" onClick={onOpenModal} className="mx-auto" />
-        <div>
-          <h3 className="text-lg font-semibold text-white">BIOS Advisor</h3>
-          <p className="text-xs text-muted-foreground mt-1">
-            Premium feature – unlock to apply
-          </p>
-        </div>
-        <Button
-          size="sm"
-          className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenModal();
-          }}
-        >
-          <Crown className="size-3 mr-1.5" />
-          Unlock BIOS Advisor
-        </Button>
-      </div>
-    </div>
-  );
-}
-
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
   
   const [activeCategory, setActiveCategory] = useState<BiosCategory>("CPU Scheduling & Latency");
   
@@ -290,32 +258,7 @@ export default function BiosAdvisor() {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <h1 className="text-2xl font-bold text-white">BIOS Advisor</h1>
-                {isPremium ? (
-                  <Badge className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] text-white border-0">
-                    <Crown className="w-3 h-3 mr-1" /> Premium
-                  </Badge>
-                ) : (
-                  <motion.div
-                    className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-[rgba(124,58,237,0.2)] to-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)] cursor-pointer"
-                    animate={{
-                      boxShadow: [
-                        "0 0 12px rgba(168,85,247,0.2)",
-                        "0 0 20px rgba(168,85,247,0.35)",
-                        "0 0 12px rgba(168,85,247,0.2)",
-                      ],
-                    }}
-                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    onClick={() => setShowPremiumModal(true)}
-                  >
-                    <motion.div
-                      animate={{ opacity: [0.8, 1, 0.8] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                      <Crown className="size-4 text-[hsl(270,60%,65%)]" />
-                    </motion.div>
-                    <span className="text-xs font-medium text-[hsl(270,60%,75%)]">Premium</span>
-                  </motion.div>
-                )}
+                <PremiumHeaderBadge isLocked={!isPremium} />
               </div>
               <p className="text-muted-foreground text-sm">
                 Firmware-level analysis for competitive performance optimization
@@ -463,8 +406,7 @@ export default function BiosAdvisor() {
         </Item>
       </Container>
       
-      {!isPremium && <PremiumLockOverlay onOpenModal={() => setShowPremiumModal(true)} />}
-      <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />
+      {!isPremium && <PremiumPageOverlay featureName="BIOS Advisor" buttonText="Unlock BIOS Advisor" />}
     </AppLayout>
   );
 }
