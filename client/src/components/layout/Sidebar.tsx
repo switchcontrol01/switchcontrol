@@ -12,7 +12,9 @@ import {
   Moon,
   List,
   Wifi,
-  Terminal
+  Terminal,
+  Cpu,
+  Crown
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, sidebarSlide, useMotion } from "@/lib/motion";
@@ -35,16 +37,25 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
-const NAV_ITEMS = [
+interface NavItem {
+  label: string;
+  icon: React.ElementType;
+  href: string;
+  isPremium?: boolean;
+  comingSoon?: boolean;
+}
+
+const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/app" },
   { label: "Tweaks", icon: Settings, href: "/app/tweaks" },
   { label: "Power Plan", icon: Zap, href: "/app/power-plan" },
   { label: "App Booster", icon: Rocket, href: "/app/app-booster" },
   { label: "Focus Mode", icon: Moon, href: "/app/focus" },
-  { label: "Network Tweaks", icon: Wifi, href: "/app/network" },
+  { label: "Network Tweaks", icon: Wifi, href: "/app/network", isPremium: true },
   { label: "Cleaner", icon: Trash2, href: "/app/cleaner" },
   { label: "Debloat", icon: ShieldCheck, href: "/app/debloat" },
   { label: "Startup", icon: List, href: "/app/startup" },
+  { label: "BIOS Advisor", icon: Cpu, href: "/app/bios-advisor", isPremium: true },
   { label: "Settings", icon: Settings, href: "/app/settings" },
 ];
 
@@ -108,9 +119,12 @@ export function Sidebar() {
                 
                 <item.icon className={cn(
                   "size-4 transition-all duration-200 z-10", 
-                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
+                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(190,90%,50%,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
                 )} />
-                <span className={cn("z-10 transition-transform duration-200", isActive && "translate-x-0.5")}>{item.label}</span>
+                <span className={cn("z-10 transition-transform duration-200 flex-1", isActive && "translate-x-0.5")}>{item.label}</span>
+                {item.isPremium && (
+                  <Crown className="size-3.5 text-[hsl(270,60%,55%)] z-10 shrink-0" />
+                )}
               </Link>
             </NavItem>
           );

@@ -26,6 +26,7 @@ import Privacy from "@/pages/Privacy";
 import Download from "@/pages/Download";
 import PremiumSuccess from "@/pages/PremiumSuccess";
 import Success from "@/pages/Success";
+import BiosAdvisor from "@/pages/BiosAdvisor";
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -131,6 +132,11 @@ function Router() {
         <Route path="/app/startup">
           <ProtectedRoute>
             <StartupApps />
+          </ProtectedRoute>
+        </Route>
+        <Route path="/app/bios-advisor">
+          <ProtectedRoute>
+            <BiosAdvisor />
           </ProtectedRoute>
         </Route>
         
