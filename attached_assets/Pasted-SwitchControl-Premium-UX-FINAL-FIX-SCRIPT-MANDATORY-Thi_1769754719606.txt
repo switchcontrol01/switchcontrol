@@ -1,0 +1,223 @@
+SwitchControl Premium UX – FINAL FIX SCRIPT (MANDATORY)
+
+This task is polish + bug fixing, not feature work.
+No new UI patterns are allowed. Everything must be consistent, intentional, and deterministic.
+
+1. Premium State Source (Non-Negotiable)
+
+Premium status must come ONLY from /api/me
+
+Never hardcode “Premium”
+
+Never infer from localStorage
+
+Sidebar, header, overlays, and locks must all read from the same source
+
+Required
+
+Sidebar shows Free or Premium correctly
+
+Badge updates instantly after upgrade
+
+No page ever shows Premium unless the account actually owns it
+
+2. Avatar Logic (Auth-Correct)
+
+Google login → use Google profile photo
+
+Discord login → use Discord profile photo
+
+Fallback only if no avatar exists
+
+No initials, no placeholders if an avatar URL is present.
+
+3. ONE Unified Premium Overlay System
+
+There must be exactly one visual system for premium locks.
+
+Create / Use Shared Components Only
+
+PremiumPageOverlay (full-page lock)
+
+PremiumCardOverlay (card-level lock)
+
+PremiumHeaderBadge (animated crown)
+
+Forbidden
+
+Page-specific overlays
+
+Inline black boxes
+
+Custom modal copies per page
+
+4. Visual Style Rules (Strict)
+
+ALL premium overlays must:
+
+Use purple / pink glass style
+
+No black or dark opaque backgrounds
+
+Rounded corners consistent across app
+
+Same spacing, typography, crown size, CTA
+
+Fix explicitly:
+
+AI Advisor overlay → glass style (not black)
+
+BIOS Advisor overlay → glass style (not black)
+
+Tweaks page premium cards → glass style (not black)
+
+5. Power Plan Page – Critical Bug Fix
+Current bug
+
+Clicking the background opens a second modal with:
+
+Broken ❌ button
+
+Non-working exit
+
+Inconsistent layout
+
+Required behavior (this replaces everything):
+Background click
+
+❌ Must NOT open any modal
+
+❌ Must NOT show ❌ close button
+
+❌ Must NOT render “Premium Feature” dialog
+
+Instead:
+
+Trigger a subtle attention animation on the purple premium card:
+
+Scale up slightly (1.02–1.03)
+
+Soft glow pulse
+
+Duration: 200–300ms
+
+Ease: ease-out
+
+Animation is visual-only
+
+No state change
+
+CTA button remains the only clickable action
+
+This applies to Power Plan, Network Tweaks, BIOS Advisor, AI Advisor, Tweaks.
+
+6. Network Tweaks Page – Missing CTA
+Fix required
+
+Network Tweaks MUST show:
+
+“Unlock Network Tweaks” / “Unlock Premium to apply”
+
+Visible CTA button
+
+Blur-only lock is NOT acceptable
+
+User must understand what to do before clicking
+
+Interaction rules
+
+Clicking blurred area → attention animation on purple card
+
+Clicking CTA → upgrade flow
+
+7. Close (❌) Button Policy
+
+❌ Close button must NOT exist on premium lock overlays
+
+Users should not dismiss a lock
+
+Only valid action:
+
+Upgrade
+
+Navigate away
+
+Remove all ❌ buttons from:
+
+Power Plan overlays
+
+Network Tweaks overlays
+
+BIOS Advisor overlays
+
+AI Advisor overlays
+
+8. Unlock Animation (Landing + App)
+Required
+
+Premium unlock animation must play:
+
+On landing page AND
+
+Inside the app UI
+
+Rules
+
+Triggers ONLY on Free → Premium transition
+
+Plays once per upgrade
+
+Never replays on refresh or login
+
+Uses account state, not storage hacks
+
+9. Header & Sidebar Consistency
+
+Power Plan shows animated crown in header
+
+Network Tweaks shows animated crown in header
+
+BIOS Advisor shows animated crown in header
+
+AI Advisor shows animated crown in header
+
+All crowns:
+
+Same animation
+
+Same size
+
+Same component
+
+10. Final Acceptance Checklist (Must Confirm ALL)
+
+Replit must explicitly confirm:
+
+[ ] Sidebar shows correct plan (Free / Premium)
+[ ] Sidebar avatar matches auth provider
+[ ] Power Plan shows animated crown
+[ ] Background click does NOT open modal
+[ ] Background click triggers subtle card attention animation
+[ ] No ❌ close button exists on premium overlays
+[ ] Network Tweaks shows visible unlock CTA
+[ ] Network Tweaks background click does not open modal
+[ ] BIOS Advisor overlay is glass style (not black)
+[ ] AI Advisor overlay is glass style (not black)
+[ ] Tweaks page premium cards are purple, not black
+[ ] All premium pages use shared overlay components
+[ ] Unlock animation appears inside app
+[ ] Unlock animation triggers once per upgrade only
+
+
+If any box cannot be ticked, the task is not complete.
+
+Final Note (Important)
+
+This is not aesthetic preference.
+These are UX correctness and consistency requirements.
+
+Do not ship partial fixes.
+Do not add new patterns.
+Fix exactly what’s listed.
+
+Once this is done, we move on to Electron + desktop integration.
