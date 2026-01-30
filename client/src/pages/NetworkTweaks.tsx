@@ -29,6 +29,8 @@ import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
+import { PremiumSurface } from "@/components/ui/premium-surface";
+import { AnimatedCrown } from "@/components/ui/animated-crown";
 
 const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
   const colors = {
@@ -284,47 +286,50 @@ export default function NetworkTweaks() {
       <AppLayout>
         <div className="p-8 space-y-8">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent flex items-center gap-3">
-              Network Tweaks
-              <span className="text-sm font-medium px-3 py-1 rounded-full border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] text-[hsl(270,60%,70%)] flex items-center gap-1.5">
-                <Crown className="size-4" />
-                Premium
-              </span>
-            </h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                Network Tweaks
+              </h1>
+              <AnimatedCrown size="lg" linkTo="/pricing" tooltipText="Premium feature" />
+            </div>
             <p className="text-muted-foreground">
               Optimize latency, throughput, and stability with network stack tuning.
             </p>
           </div>
 
-          <GlassCard className="p-8 border-[hsl(270,60%,55%,0.2)] bg-[hsl(270,60%,55%,0.05)]">
-            <div className="text-center space-y-6 max-w-md mx-auto">
-              <div className="size-20 rounded-full bg-[hsl(270,60%,55%,0.15)] flex items-center justify-center mx-auto">
-                <Lock className="size-10 text-[hsl(270,60%,55%)]" />
-              </div>
+          <PremiumSurface variant="container">
+            <div className="text-center space-y-6 max-w-lg mx-auto py-8">
+              <AnimatedCrown size="lg" linkTo="/pricing" className="mx-auto" />
+              
               <div>
-                <h2 className="text-xl font-semibold text-white mb-2">Premium Feature</h2>
+                <h2 className="text-xl font-semibold text-white mb-2">Premium Network Optimization</h2>
                 <p className="text-sm text-muted-foreground">
                   Network optimization is available exclusively to SwitchControl Premium users. 
                   Fine-tune TCP/IP, DNS, UDP, and security settings for competitive advantage.
                 </p>
               </div>
-              <div className="p-4 rounded-lg bg-white/5 border border-white/10 text-left">
-                <h3 className="text-xs font-medium text-white mb-2">What's included:</h3>
-                <ul className="text-xs text-muted-foreground space-y-1.5">
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> SMB and TCP/IP optimization</li>
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> UDP and DNS tuning</li>
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> Security hardening options</li>
-                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> Latency reduction tweaks</li>
+              
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
+                <h3 className="text-xs font-medium text-white mb-3">What's included:</h3>
+                <ul className="text-xs text-muted-foreground space-y-2">
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> SMB and TCP/IP optimization</li>
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> UDP and DNS tuning</li>
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> Security hardening options</li>
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3.5 text-emerald-400" /> Latency reduction tweaks</li>
                 </ul>
               </div>
+              
               <Link href="/pricing">
-                <Button className="px-8">
+                <Button 
+                  size="lg"
+                  className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white px-8"
+                >
                   <Crown className="size-4 mr-2" />
                   Upgrade to Premium
                 </Button>
               </Link>
             </div>
-          </GlassCard>
+          </PremiumSurface>
         </div>
       </AppLayout>
     );

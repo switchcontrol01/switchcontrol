@@ -33,6 +33,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
+import { PremiumSurface } from "@/components/ui/premium-surface";
+import { AnimatedCrown } from "@/components/ui/animated-crown";
 
 type ProfileId = "performance" | "balanced" | "efficiency" | "custom";
 
@@ -288,47 +290,50 @@ export default function PowerPlan() {
       <AppLayout>
         <div className="p-8 space-y-8">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent flex items-center gap-3">
-              Power Plan
-              <span className="text-sm font-medium px-3 py-1 rounded-full border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] text-[hsl(270,60%,70%)] flex items-center gap-1.5">
-                <Crown className="size-4" />
-                Premium
-              </span>
-            </h1>
+            <div className="flex items-center gap-4">
+              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+                Power Plan
+              </h1>
+              <AnimatedCrown size="lg" linkTo="/pricing" tooltipText="Premium feature" />
+            </div>
             <p className="text-muted-foreground">
               Advanced power management for maximum gaming performance.
             </p>
           </div>
 
-          <GlassCard className="p-8 border-[hsl(270,60%,55%,0.2)] bg-[hsl(270,60%,55%,0.05)]">
-            <div className="text-center space-y-6 max-w-md mx-auto">
-              <div className="size-20 rounded-full bg-[hsl(270,60%,55%,0.15)] flex items-center justify-center mx-auto">
-                <Lock className="size-10 text-[hsl(270,60%,55%)]" />
-              </div>
+          <PremiumSurface variant="container">
+            <div className="text-center space-y-6 max-w-lg mx-auto py-8">
+              <AnimatedCrown size="lg" linkTo="/pricing" className="mx-auto" />
+              
               <div>
-                <h2 className="text-xl font-semibold text-white mb-2">Premium Feature</h2>
+                <h2 className="text-xl font-semibold text-white mb-2">Premium Power Management</h2>
                 <p className="text-sm text-muted-foreground">
                   Power Plan management is available exclusively to SwitchControl Premium users. 
                   Control CPU states, USB power, sleep behavior, and more.
                 </p>
               </div>
-              <div className="p-4 rounded-lg bg-white/5 border border-white/10 text-left">
-                <h3 className="text-xs font-medium text-white mb-2">What's included:</h3>
-                <ul className="text-xs text-muted-foreground space-y-1.5">
-                  <li className="flex items-center gap-2"><Battery className="size-3 text-emerald-400" /> Maximum Performance profile</li>
-                  <li className="flex items-center gap-2"><Battery className="size-3 text-emerald-400" /> Custom power settings</li>
-                  <li className="flex items-center gap-2"><Battery className="size-3 text-emerald-400" /> CPU boost and parking control</li>
-                  <li className="flex items-center gap-2"><Battery className="size-3 text-emerald-400" /> USB and sleep optimization</li>
+              
+              <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
+                <h3 className="text-xs font-medium text-white mb-3">What's included:</h3>
+                <ul className="text-xs text-muted-foreground space-y-2">
+                  <li className="flex items-center gap-2"><Zap className="size-3.5 text-amber-400" /> Maximum Performance profile</li>
+                  <li className="flex items-center gap-2"><Cpu className="size-3.5 text-primary" /> CPU boost and parking control</li>
+                  <li className="flex items-center gap-2"><Usb className="size-3.5 text-blue-400" /> USB selective suspend control</li>
+                  <li className="flex items-center gap-2"><Moon className="size-3.5 text-indigo-400" /> Sleep and hibernate optimization</li>
                 </ul>
               </div>
+              
               <Link href="/pricing">
-                <Button className="px-8">
+                <Button 
+                  size="lg"
+                  className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white px-8"
+                >
                   <Crown className="size-4 mr-2" />
                   Upgrade to Premium
                 </Button>
               </Link>
             </div>
-          </GlassCard>
+          </PremiumSurface>
         </div>
       </AppLayout>
     );

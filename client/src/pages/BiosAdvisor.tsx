@@ -25,6 +25,8 @@ import {
 } from "@/lib/bios-advisor-data";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PremiumModal } from "@/components/PremiumModal";
+import { PremiumSurface } from "@/components/ui/premium-surface";
+import { AnimatedCrown } from "@/components/ui/animated-crown";
 
 const CATEGORY_ICONS: Record<BiosCategory, React.ElementType> = {
   "CPU Scheduling & Latency": Cpu,
@@ -239,57 +241,55 @@ function LockedPreview() {
   
   return (
     <>
-      <div className="relative min-h-[70vh] flex items-center justify-center">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/50 to-black pointer-events-none" />
-        
-        <div className="absolute inset-0 overflow-hidden opacity-30 blur-sm">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6">
-            {BIOS_SETTINGS.slice(0, 6).map((setting, i) => (
-              <GlassCard key={setting.id} className="p-4 h-32">
-                <div className="animate-pulse space-y-2">
-                  <div className="h-4 bg-white/10 rounded w-3/4" />
-                  <div className="h-3 bg-white/5 rounded w-1/2" />
-                  <div className="h-3 bg-white/5 rounded w-2/3" />
-                </div>
-              </GlassCard>
-            ))}
+      <div className="p-8 space-y-8">
+        <div className="space-y-2">
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              BIOS Advisor
+            </h1>
+            <AnimatedCrown size="lg" onClick={() => setShowModal(true)} tooltipText="Premium feature" />
           </div>
+          <p className="text-muted-foreground">
+            Firmware-level intelligence for competitive performance optimization.
+          </p>
         </div>
-        
-        <motion.div 
-          className="relative z-10 text-center max-w-md mx-auto p-8"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5 }}
-        >
-          <motion.div 
-            className="inline-flex items-center justify-center w-20 h-20 rounded-full mb-6"
-            style={{ background: "linear-gradient(135deg, hsl(270 60% 55%), hsl(280 70% 65%))" }}
-            animate={{ boxShadow: ["0 0 20px hsl(270 60% 55% / 0.3)", "0 0 40px hsl(270 60% 55% / 0.5)", "0 0 20px hsl(270 60% 55% / 0.3)"] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          >
-            <Crown className="w-10 h-10 text-white" />
-          </motion.div>
-          
-          <h2 className="text-2xl font-bold text-white mb-3">Premium BIOS Advisor</h2>
-          <p className="text-muted-foreground mb-6">
-            Firmware-level intelligence for latency, stability, and competitive performance.
-            Analyze 30+ BIOS settings that directly impact your gaming experience.
-          </p>
-          
-          <Button 
-            size="lg"
-            className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-            onClick={() => setShowModal(true)}
-          >
-            <Crown className="w-4 h-4 mr-2" />
-            Upgrade to Premium
-          </Button>
-          
-          <p className="text-xs text-muted-foreground mt-4">
-            No presets. No risky automation. Full transparency.
-          </p>
-        </motion.div>
+
+        <PremiumSurface variant="container">
+          <div className="text-center space-y-6 max-w-lg mx-auto py-8">
+            <AnimatedCrown size="lg" onClick={() => setShowModal(true)} className="mx-auto" />
+            
+            <div>
+              <h2 className="text-xl font-semibold text-white mb-2">Premium BIOS Advisor</h2>
+              <p className="text-sm text-muted-foreground">
+                Firmware-level intelligence for latency, stability, and competitive performance.
+                Analyze 30+ BIOS settings that directly impact your gaming experience.
+              </p>
+            </div>
+            
+            <div className="p-4 rounded-xl bg-white/5 border border-white/10 text-left">
+              <h3 className="text-xs font-medium text-white mb-3">What's included:</h3>
+              <ul className="text-xs text-muted-foreground space-y-2">
+                <li className="flex items-center gap-2"><Cpu className="size-3.5 text-primary" /> CPU scheduling & latency analysis</li>
+                <li className="flex items-center gap-2"><Zap className="size-3.5 text-amber-400" /> Power & voltage optimization guidance</li>
+                <li className="flex items-center gap-2"><MemoryStick className="size-3.5 text-blue-400" /> Memory & fabric tuning insights</li>
+                <li className="flex items-center gap-2"><Radio className="size-3.5 text-emerald-400" /> EMI & signal integrity settings</li>
+              </ul>
+            </div>
+            
+            <Button 
+              size="lg"
+              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white px-8"
+              onClick={() => setShowModal(true)}
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Upgrade to Premium
+            </Button>
+            
+            <p className="text-xs text-muted-foreground">
+              No presets. No risky automation. Full transparency.
+            </p>
+          </div>
+        </PremiumSurface>
       </div>
       
       <PremiumModal open={showModal} onOpenChange={setShowModal} />

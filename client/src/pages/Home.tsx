@@ -16,6 +16,8 @@ import { cn } from "@/lib/utils";
 import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useAuth } from "@/hooks/use-auth";
+import { PremiumSurface } from "@/components/ui/premium-surface";
+import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 
 interface TelemetryData {
   temps: { cpu: number; gpu: number; mobo: number };
@@ -237,45 +239,41 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
           >
-            <Card className={cn(
-              "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full",
-              !isPremium && "cursor-pointer"
-            )}
-            onClick={!isPremium ? () => window.location.href = '/pricing' : undefined}
-            >
-            <div className="absolute top-0 right-0 p-3 flex items-center gap-2">
-               {!isPremium && (
-                 <span className="text-[9px] font-medium px-2 py-0.5 rounded-full border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] text-[hsl(270,60%,70%)] flex items-center gap-1">
-                   <Crown className="size-3" />
-                   Premium
-                 </span>
-               )}
-               <Sparkles className="size-4 text-primary animate-pulse" />
-            </div>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
-                AI Advisor
-                {!isPremium && <Lock className="size-3.5 text-muted-foreground" />}
-              </CardTitle>
-              <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {!isPremium ? (
-                <div className="py-6 text-center space-y-4">
-                  <div className="size-12 rounded-full bg-[hsl(270,60%,55%,0.1)] flex items-center justify-center mx-auto">
-                    <Lock className="size-6 text-[hsl(270,60%,55%)]" />
-                  </div>
-                  <p className="text-xs text-muted-foreground px-4">
-                    AI-driven system analysis and optimization insights. Available with SwitchControl Premium.
+            {!isPremium ? (
+              <PremiumSurface variant="card" className="h-full">
+                <div className="absolute top-3 right-3">
+                  <AnimatedCrown size="sm" linkTo="/pricing" tooltipText="Premium feature" />
+                </div>
+                <div className="space-y-1 mb-4">
+                  <h3 className="text-base font-medium text-white flex items-center gap-2">
+                    AI Advisor
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground">ML-driven consistency analysis</p>
+                </div>
+                <div className="py-4 text-center space-y-4">
+                  <AnimatedCrown size="md" linkTo="/pricing" className="mx-auto" />
+                  <p className="text-xs text-muted-foreground px-2">
+                    AI-driven system analysis and optimization insights. Available with Premium.
                   </p>
                   <Link href="/pricing">
-                    <Button size="sm" className="bg-[hsl(270,60%,55%,0.2)] hover:bg-[hsl(270,60%,55%,0.3)] text-[hsl(270,60%,70%)] border border-[hsl(270,60%,55%,0.3)]">
+                    <Button size="sm" className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white">
                       <Crown className="size-3 mr-1" />
-                      Upgrade to Premium
+                      Upgrade
                     </Button>
                   </Link>
                 </div>
-              ) : !latestAIScan && !scanning ? (
+              </PremiumSurface>
+            ) : (
+              <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full">
+                <div className="absolute top-0 right-0 p-3">
+                  <Sparkles className="size-4 text-primary animate-pulse" />
+                </div>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base font-medium">AI Advisor</CardTitle>
+                  <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {!latestAIScan && !scanning ? (
                 <div className="py-6 text-center space-y-4">
                   <p className="text-xs text-muted-foreground px-4">Run an AI scan to get personalized optimization recommendations.</p>
                   <Button onClick={handleAIScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
@@ -317,7 +315,8 @@ export default function Home() {
                 <span className="text-[9px]">Recommendations are simulated until agent is installed.</span>
               </div>
             </CardContent>
-          </Card>
+              </Card>
+            )}
           </motion.div>
 
           {/* App Booster Placeholder */}

@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
 import { isTweakPremium } from "@/lib/premium-config";
 import { useAuth } from "@/hooks/use-auth";
+import { PremiumBadge } from "@/components/ui/animated-crown";
 
 interface TweakCardProps {
   tweak: Tweak;
@@ -145,12 +146,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                   {tweak.title}
                 </h3>
                 <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                  {isLocked && (
-                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] text-[hsl(270,60%,70%)] flex items-center gap-1">
-                      <Crown className="size-3" />
-                      Premium
-                    </span>
-                  )}
+                  {isLocked && <PremiumBadge className="text-[10px] px-2 py-0.5" />}
                   <LevelBadge level={tweak.level} />
                   <RiskBadge level={tweak.risk} />
                   {tweak.requiresAgent && (
