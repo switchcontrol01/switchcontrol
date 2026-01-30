@@ -346,22 +346,29 @@ export async function registerRoutes(
         return res.status(400).json({ ok: false, error: "not_paid" });
       }
 
-      const userId = session.client_reference_id || session.metadata?.userId;
+      const checkoutUserId = session.client_reference_id || session.metadata?.userId;
+      const loggedInUser = (req as any).user;
       
-      if (!userId) {
+      if (!checkoutUserId) {
         return res.status(400).json({ ok: false, error: "missing_user_mapping" });
       }
 
-      const dbUser = await storage.getUser(userId);
+      if (loggedInUser?.id && loggedInUser.id !== checkoutUserId) {
+        console.error(`[STRIPE] User mismatch: logged in as ${loggedInUser.id}, checkout was for ${checkoutUserId}`);
+        return res.status(403).json({ ok: false, error: "user_mismatch" });
+      }
+
+      const dbUser = await storage.getUser(checkoutUserId);
       if (!dbUser) {
         return res.status(404).json({ ok: false, error: "user_not_found" });
       }
 
       if (!dbUser.isPremium) {
-        await storage.setUserPremium(userId, true);
+        await storage.setUserPremium(checkoutUserId, true);
+        console.log(`[STRIPE] Premium activated for user ${checkoutUserId}`);
       }
 
-      res.json({ ok: true });
+      res.json({ ok: true, userId: checkoutUserId, authenticated: !!loggedInUser?.id });
     } catch (error: any) {
       console.error("Confirm error:", error);
       res.status(500).json({ ok: false, error: error.message || "Failed to confirm payment" });

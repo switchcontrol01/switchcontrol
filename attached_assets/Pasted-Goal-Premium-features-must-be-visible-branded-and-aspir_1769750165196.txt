@@ -1,0 +1,67 @@
+Goal: Premium features must be visible, branded, and aspirational, but blocked for free users.
+1. RESTORE PREMIUM ICONOGRAPHY
+Re-add the crown icon to:
+Power Plan
+BIOS Advisor
+AI Advisor (Dashboard)
+Network Tweaks
+Crown must be:
+Purple gradient (same as BIOS Advisor)
+Animated (slow pulse or glow)
+Hover-reactive (scale 1.05 + glow)
+Icon must be consistent across all premium sections
+2. DO NOT HIDE PREMIUM FEATURES
+Premium features must remain visible in the UI for free users.
+For free users:
+Feature cards remain rendered
+Content is blurred or partially masked
+Toggles are disabled (greyed but visible)
+Crown + “Premium” badge is always shown
+This is critical for conversion.
+3. VISUAL TREATMENT FOR FREE USERS (IMPORTANT)
+For free users only:
+Apply:
+opacity: 0.6
+subtle blur on content (not the title)
+Disable interaction:
+Clicking opens Upgrade modal, not nothing
+Show inline text:
+“Premium feature – unlock to apply”
+Do NOT remove charts, boxes, or layout spacing.
+4. PREMIUM FEATURE BEHAVIOR
+AI Advisor (Dashboard)
+Entire card visible
+Recommendations blurred
+Button shows: “Unlock AI Advisor”
+Clicking opens pricing modal
+Crown icon present and animated
+BIOS Advisor
+Same exact card style as current
+Background must NOT be pure black
+Use gradient card background like BIOS Advisor mockup
+Lock interaction behind premium
+Power Plan
+Restore crown icon (missing right now)
+Keep plan list visible
+Disable apply buttons
+Clicking shows upgrade modal
+Network Tweaks
+Page visible
+Individual advanced tweaks locked
+Add disclaimer text at top:
+“On low or already-optimized latency (≈40ms or below), network tweaks may result in minimal or no measurable improvement.”
+This builds trust.
+5. CONSISTENCY REQUIREMENT
+Premium visual treatment must be identical across all premium tabs:
+Same box style
+Same crown animation
+Same lock behavior
+Same upgrade CTA behavior
+No exceptions.
+6. DO NOT REMOVE PREMIUM UI AGAIN
+Removing premium indicators hurts conversion. Visibility > restriction.
+Premium must feel:
+Present
+Teasing
+Intentional
+Not broken

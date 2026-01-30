@@ -24,26 +24,42 @@ export default function Success() {
       return;
     }
 
-    fetch("/api/stripe/confirm", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify({ session_id: sessionId }),
-    })
-      .then((res) => res.json())
-      .then(async (data) => {
+    const confirmPayment = async () => {
+      try {
+        const response = await fetch("/api/stripe/confirm", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ session_id: sessionId }),
+        });
+        
+        const data = await response.json();
+        
         if (data.ok) {
           await refetch();
+          
+          if (!data.authenticated) {
+            console.log("[SUCCESS] User session not found after payment, will redirect to login");
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await refetch();
+          
           setState("success");
+        } else if (data.error === "user_mismatch") {
+          setState("error");
+          setError("Session mismatch. Please log in with the account you used for checkout.");
         } else {
           setState("error");
           setError(data.error || "Failed to confirm payment");
         }
-      })
-      .catch((err) => {
+      } catch (err: any) {
         setState("error");
         setError(err.message || "Network error");
-      });
+      }
+    };
+
+    confirmPayment();
   }, [refetch]);
 
   return (

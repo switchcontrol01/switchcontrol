@@ -125,6 +125,8 @@ export function setupGoogleAuth(app: Express): void {
     });
   }
 
+  const isProduction = process.env.NODE_ENV === "production";
+  
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "switchcontrol-session-secret",
@@ -134,10 +136,11 @@ export function setupGoogleAuth(app: Express): void {
       name: "switchcontrol.sid",
       cookie: {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
+        secure: isProduction,
         sameSite: "lax",
         maxAge: sessionTtl,
         path: "/",
+        domain: isProduction ? ".switchcontrol.org" : undefined,
       },
     })
   );
@@ -187,7 +190,19 @@ export function setupGoogleAuth(app: Express): void {
   });
 
   if (clientId && clientSecret) {
-    const callbackURL = redirectUri || "/auth/google/callback";
+    const isProduction = process.env.NODE_ENV === "production";
+    const productionDomain = "https://switchcontrol.org";
+    
+    let callbackURL: string;
+    if (redirectUri && redirectUri.startsWith("http")) {
+      callbackURL = redirectUri;
+    } else if (isProduction) {
+      callbackURL = `${productionDomain}/auth/google/callback`;
+    } else {
+      callbackURL = "/auth/google/callback";
+    }
+    
+    console.log("[AUTH] Google OAuth callback URL:", callbackURL);
 
     passport.use(
       new GoogleStrategy(

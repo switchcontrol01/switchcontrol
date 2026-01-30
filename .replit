@@ -46,5 +46,10 @@ integrations = ["javascript_database:1.0.0", "javascript_log_in_with_replit:2.0.
 [userenv]
 
 [userenv.shared]
-GOOGLE_REDIRECT_URI = "/auth/google/callback"
 STRIPE_PRICE_ID = "price_1SmrjQBzGFRke47sVkKhPcaD"
+
+[userenv.production]
+GOOGLE_REDIRECT_URI = "https://switchcontrol.org/auth/google/callback"
+
+[userenv.development]
+GOOGLE_REDIRECT_URI = "/auth/google/callback"
