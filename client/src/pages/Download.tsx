@@ -53,7 +53,7 @@ export default function DownloadPage() {
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="relative">
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-purple-600/30 blur-2xl scale-150 opacity-60" />
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-cyan-600/30 blur-2xl scale-150 opacity-60" />
                 <motion.img 
                   src="/favicon.png"
                   alt="SwitchControl"

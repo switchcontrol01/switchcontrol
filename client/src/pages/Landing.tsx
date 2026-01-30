@@ -323,7 +323,7 @@ function StatCard({
       )}
       <div className={cn(
         "relative text-4xl md:text-5xl font-bold mb-3 transition-all duration-300",
-        isNegative ? "text-emerald-400 group-hover:text-emerald-300" : "text-primary group-hover:text-purple-400"
+        isNegative ? "text-emerald-400 group-hover:text-emerald-300" : "text-primary group-hover:text-cyan-300"
       )}>
         <CountingNumber 
           value={numericPart} 
@@ -619,7 +619,7 @@ export default function Landing() {
               <AnimateIn delay={150}>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 animate-hero-float">
                   Unlock Your PC's{" "}
-                  <span className="bg-gradient-to-r from-primary via-purple-400 to-pink-500 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-primary via-cyan-300 to-teal-400 bg-clip-text text-transparent">
                     True Potential
                   </span>
                 </h1>

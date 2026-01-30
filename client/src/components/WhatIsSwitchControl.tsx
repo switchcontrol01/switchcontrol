@@ -38,7 +38,7 @@ const pillars = [
   { icon: <Zap className="w-5 h-5" />, text: 'Lower input delay and faster response', color: 'text-yellow-400' },
   { icon: <Monitor className="w-5 h-5" />, text: 'More stable FPS and smoother 1% lows', color: 'text-green-400' },
   { icon: <Wifi className="w-5 h-5" />, text: 'Reduced ping spikes and jitter', color: 'text-blue-400' },
-  { icon: <Shield className="w-5 h-5" />, text: 'Cleaner background load while gaming', color: 'text-purple-400' },
+  { icon: <Shield className="w-5 h-5" />, text: 'Cleaner background load while gaming', color: 'text-primary' },
 ];
 
 export function WhatIsSwitchControl() {

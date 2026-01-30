@@ -32,12 +32,12 @@ export function AppBackground() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Layer 2: Glow blobs - subtle ambient lighting
+  // Layer 2: Glow blobs - cyan only for speed/performance aesthetic
   const glowBlobs = useMemo<GlowBlob[]>(() => [
-    { id: 'top-left', top: '5%', left: '5%', size: 450, color: 'hsl(270 70% 50%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-1' },
-    { id: 'top-right', top: '10%', right: '10%', size: 350, color: 'hsl(320 70% 50%)', blur: 80, opacity: 0.05, animClass: 'animate-blob-2' },
-    { id: 'mid', top: '45%', left: '50%', size: 500, color: 'hsl(280 60% 45%)', blur: 120, opacity: 0.05, animClass: 'animate-blob-3' },
-    { id: 'bottom', top: '80%', right: '20%', size: 380, color: 'hsl(320 60% 50%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-1' },
+    { id: 'top-left', top: '5%', left: '5%', size: 450, color: 'hsl(190 90% 50%)', blur: 100, opacity: 0.07, animClass: 'animate-blob-1' },
+    { id: 'top-right', top: '10%', right: '10%', size: 350, color: 'hsl(185 80% 45%)', blur: 80, opacity: 0.05, animClass: 'animate-blob-2' },
+    { id: 'mid', top: '45%', left: '50%', size: 500, color: 'hsl(200 85% 55%)', blur: 120, opacity: 0.04, animClass: 'animate-blob-3' },
+    { id: 'bottom', top: '80%', right: '20%', size: 380, color: 'hsl(190 90% 50%)', blur: 100, opacity: 0.06, animClass: 'animate-blob-1' },
   ], []);
 
   // Layer 1: Contour lines - 20 lines on desktop, 12 on mobile
@@ -66,13 +66,14 @@ export function AppBackground() {
       style={{ zIndex: 0 }}
       aria-hidden="true"
     >
-      {/* Layer 0: Base gradient */}
+      {/* Layer 0: Base gradient - cyan only */}
       <div 
-        className="absolute inset-0 opacity-25"
+        className="absolute inset-0 opacity-30"
         style={{
           background: `
-            radial-gradient(ellipse 70% 50% at 20% 30%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 80% 70%, rgba(236, 72, 153, 0.08) 0%, transparent 50%)
+            radial-gradient(ellipse 70% 50% at 20% 30%, hsl(190 90% 50% / 0.1) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 80% 70%, hsl(185 80% 45% / 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 40% at 50% 80%, hsl(200 85% 55% / 0.05) 0%, transparent 50%)
           `,
         }}
       />
@@ -85,30 +86,32 @@ export function AppBackground() {
         preserveAspectRatio="none"
       >
         <defs>
+          {/* Cyan contour gradients */}
           <linearGradient id="app-contour-1" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-            <stop offset="15%" stopColor="rgba(139, 92, 246, 0.5)" />
-            <stop offset="50%" stopColor="rgba(236, 72, 153, 0.4)" />
-            <stop offset="85%" stopColor="rgba(139, 92, 246, 0.5)" />
-            <stop offset="100%" stopColor="rgba(139, 92, 246, 0)" />
+            <stop offset="0%" stopColor="hsl(190 90% 50% / 0)" />
+            <stop offset="15%" stopColor="hsl(190 90% 50% / 0.4)" />
+            <stop offset="50%" stopColor="hsl(185 80% 55% / 0.35)" />
+            <stop offset="85%" stopColor="hsl(190 90% 50% / 0.4)" />
+            <stop offset="100%" stopColor="hsl(190 90% 50% / 0)" />
           </linearGradient>
           <linearGradient id="app-contour-2" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(168, 85, 247, 0)" />
-            <stop offset="20%" stopColor="rgba(168, 85, 247, 0.45)" />
-            <stop offset="80%" stopColor="rgba(168, 85, 247, 0.45)" />
-            <stop offset="100%" stopColor="rgba(168, 85, 247, 0)" />
+            <stop offset="0%" stopColor="hsl(185 80% 45% / 0)" />
+            <stop offset="20%" stopColor="hsl(185 80% 45% / 0.35)" />
+            <stop offset="80%" stopColor="hsl(185 80% 45% / 0.35)" />
+            <stop offset="100%" stopColor="hsl(185 80% 45% / 0)" />
           </linearGradient>
           <linearGradient id="app-contour-3" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(236, 72, 153, 0)" />
-            <stop offset="25%" stopColor="rgba(236, 72, 153, 0.4)" />
-            <stop offset="75%" stopColor="rgba(236, 72, 153, 0.4)" />
-            <stop offset="100%" stopColor="rgba(236, 72, 153, 0)" />
+            <stop offset="0%" stopColor="hsl(200 85% 55% / 0)" />
+            <stop offset="25%" stopColor="hsl(200 85% 55% / 0.3)" />
+            <stop offset="75%" stopColor="hsl(200 85% 55% / 0.3)" />
+            <stop offset="100%" stopColor="hsl(200 85% 55% / 0)" />
           </linearGradient>
+          {/* Fourth gradient - lighter cyan variation */}
           <linearGradient id="app-contour-4" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="rgba(139, 92, 246, 0)" />
-            <stop offset="30%" stopColor="rgba(139, 92, 246, 0.35)" />
-            <stop offset="70%" stopColor="rgba(236, 72, 153, 0.35)" />
-            <stop offset="100%" stopColor="rgba(236, 72, 153, 0)" />
+            <stop offset="0%" stopColor="hsl(195 85% 50% / 0)" />
+            <stop offset="30%" stopColor="hsl(195 85% 50% / 0.25)" />
+            <stop offset="70%" stopColor="hsl(190 90% 50% / 0.25)" />
+            <stop offset="100%" stopColor="hsl(190 90% 50% / 0)" />
           </linearGradient>
         </defs>
         

@@ -79,8 +79,8 @@
   --primary: 190 90% 50%;
   --primary-foreground: 220 15% 6%;
 
-  /* Secondary: Purple - AI/Intelligence features only */
-  --secondary: 270 60% 55%;
+  /* Secondary: Muted dark for general UI elements (buttons, badges) */
+  --secondary: 220 15% 22%;
   --secondary-foreground: 210 20% 98%;
 
   /* Muted */
@@ -100,11 +100,11 @@
   --input: 220 15% 18%;
   --ring: 190 90% 50%;
 
-  /* Charts - Cyan dominant */
+  /* Charts - Cyan dominant, no purple */
   --chart-1: 190 90% 50%;
   --chart-2: 185 80% 45%;
   --chart-3: 200 85% 55%;
-  --chart-4: 270 60% 55%;
+  --chart-4: 195 75% 40%;
   --chart-5: 43 74% 66%;
 
   /* Sidebar */
@@ -121,16 +121,104 @@
   --ai-purple: 270 60% 55%;
   --ai-purple-glow: 270 70% 60%;
 
+  /* Structural color - hierarchy, clarity, trust */
+  /* #E6EAF0 = hsl(216 25% 92%) */
+  --structural: 216 25% 92%;
+  --structural-dim: 216 20% 75%;
+
   --radius: 0.75rem;
 }
 
 body {
   @apply font-sans antialiased bg-background text-foreground;
-  background-image: 
-    radial-gradient(circle at 50% 0%, hsl(190 90% 50% / 0.06), transparent 45%),
-    radial-gradient(circle at 80% 20%, hsl(185 80% 45% / 0.04), transparent 35%),
-    radial-gradient(circle at 20% 80%, hsl(190 90% 50% / 0.03), transparent 40%);
   background-attachment: fixed;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Animated background container */
+.animated-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+/* Slow-moving gradient blobs */
+.bg-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  will-change: transform;
+}
+
+.bg-blob-1 {
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, hsl(190 90% 50% / 0.15), transparent 70%);
+  top: -200px;
+  left: 30%;
+  animation: blobDrift1 15s ease-in-out infinite;
+}
+
+.bg-blob-2 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, hsl(185 80% 45% / 0.1), transparent 70%);
+  top: 40%;
+  right: -150px;
+  animation: blobDrift2 18s ease-in-out infinite;
+}
+
+.bg-blob-3 {
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, hsl(190 90% 50% / 0.08), transparent 70%);
+  bottom: 10%;
+  left: -100px;
+  animation: blobDrift3 20s ease-in-out infinite;
+}
+
+@keyframes blobDrift1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(30px, 20px, 0) scale(1.05); }
+  66% { transform: translate3d(-20px, -10px, 0) scale(0.95); }
+}
+
+@keyframes blobDrift2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-40px, 30px, 0) scale(1.08); }
+}
+
+@keyframes blobDrift3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  40% { transform: translate3d(25px, -20px, 0) scale(1.03); }
+  80% { transform: translate3d(-15px, 15px, 0) scale(0.97); }
+}
+
+/* Structural color utilities */
+.text-structural {
+  color: hsl(var(--structural));
+}
+
+.text-structural-dim {
+  color: hsl(var(--structural-dim));
+}
+
+.border-structural {
+  border-color: hsl(var(--structural) / 0.12);
+}
+
+.bg-structural-overlay {
+  background-color: hsl(var(--structural) / 0.04);
+}
+
+/* Divider with structural color */
+.divider-structural {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, hsl(var(--structural) / 0.15), transparent);
 }
 
 /* Custom Scrollbar */
@@ -560,12 +648,42 @@ body {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-card:hover {
   background: rgba(255, 255, 255, 0.05);
   border-color: hsl(190 90% 50% / 0.4);
-  box-shadow: 0 0 20px hsl(190 90% 50% / 0.1);
+  box-shadow: 0 0 25px hsl(190 90% 50% / 0.12);
+  transform: translateY(-2px);
+}
+
+/* Card hover with subtle cyan glow */
+.card-hover-glow {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-glow:hover {
+  border-color: hsl(190 90% 50% / 0.3);
+  box-shadow: 0 4px 20px hsl(190 90% 50% / 0.1), 0 0 0 1px hsl(190 90% 50% / 0.1);
+  transform: translateY(-2px);
+}
+
+/* Structural border for cards */
+.border-structural-subtle {
+  border-color: hsl(var(--structural) / 0.1);
+}
+
+/* Section heading style with structural color */
+.section-heading {
+  color: hsl(var(--structural));
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+  color: hsl(var(--structural-dim));
+  font-weight: 400;
 }
 
 /* Neon glow text - Cyan */

@@ -1,0 +1,115 @@
+SWITCHCONTROL — COLOR SYSTEM + UI ENHANCEMENT SCRIPT
+GOAL
+Evolve the website and app from “clean” to alive, premium, and intentional, while keeping performance-focused credibility.
+This is a visual and UX pass only. No functional logic should break.
+1. FINAL COLOR SYSTEM (LOCK THIS IN)
+Primary Performance Color
+Cyan
+Represents speed, latency reduction, responsiveness
+Used for:
+Primary CTAs
+Performance metrics
+Active states
+Hover interactions
+Sliders, toggles, focus indicators
+Intelligence / AI Color
+Purple
+Reserved strictly for:
+AI features
+BIOS Advisor
+Intelligence-driven modules
+Do NOT use purple globally anymore
+Structural / Clarity Color (NEW)
+#E6EAF0
+Purpose: hierarchy, clarity, trust, engineering feel
+This is NOT an accent color
+This is NOT a CTA color
+Use #E6EAF0 for:
+Section headings
+Subtitles
+Supporting text
+Card borders (1px, 8–14% opacity)
+Dividers
+Low-opacity background overlays (3–6%)
+Do NOT use #E6EAF0 for:
+Buttons
+Performance stats
+Interactive emphasis
+2. BACKGROUND & DEPTH (VERY IMPORTANT)
+Animated Backgrounds
+Add slow-moving gradient blobs or contours
+Animation duration: 10–15 seconds minimum
+Extremely subtle motion
+No sharp transitions
+Works on desktop and mobile
+Base background:
+Dark / near-black foundation
+Cyan and purple gradients used sparingly
+#E6EAF0 only as low-opacity overlays for contrast
+3. INTERACTIONS & MICRO-ANIMATIONS
+Rules
+Subtle only
+No gimmicks
+No glow spam
+Allowed Effects
+Cyan glow on hover (very soft)
+Card elevation on hover
+Button glow on focus
+Smooth easing (no snappy bounce)
+Everything must feel premium, calm, and deliberate.
+4. LANDING PAGE ADJUSTMENTS
+Improve “Home” Feeling
+The site should feel:
+Purpose-driven
+Founder-led
+Calm but powerful
+Actions:
+Improve text hierarchy using #E6EAF0
+Add spacing and breathing room
+Use color to guide the eye, not decorate
+Apply the color system consistently to:
+Landing
+Pricing
+FAQ
+Terms
+Privacy
+App UI
+No section should feel disconnected.
+5. LOGO & FAVICON (IMPORTANT)
+Logo Requirements
+The SC logo must fill its container perfectly
+No white edges
+No rounded box background
+Logo should scale naturally in all frames
+Google / Favicon
+Update favicon.ico and all social preview icons
+Ensure logo is centered and fills frame correctly
+Match how professional SaaS sites display their favicon
+The user has provided a new logo image. Use it as the source of truth.
+Double-check:
+Google preview
+Browser tab
+Mobile tab
+Social previews
+Fix any sizing or cropping issues.
+6. CONSISTENCY CHECK (MANDATORY)
+After changes:
+Verify contrast accessibility
+Verify no color clashes (especially cyan vs error red)
+Verify animations do not impact performance
+Verify mobile responsiveness
+This is visual polish, but it must be production-grade.
+7. NON-GOALS (DO NOT DO THESE)
+Do NOT add new features
+Do NOT refactor logic
+Do NOT add presets or auto-optimize
+Do NOT add loud animations
+Do NOT change existing UX flow
+FINAL INTENT STATEMENT
+This update should make SwitchControl feel:
+Alive
+Engineered
+Trustworthy
+Passion-driven
+Premium without being flashy
+This is how we visually separate from competitors.

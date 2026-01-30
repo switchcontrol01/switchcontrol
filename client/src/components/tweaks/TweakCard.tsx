@@ -30,7 +30,7 @@ const LevelBadge = ({ level }: { level: TweakLevel }) => {
   const colors = {
     Recommended: "bg-primary/10 text-primary border-primary/20",
     Advanced: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-    Experimental: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+    Experimental: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   };
   return (
     <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", colors[level])}>

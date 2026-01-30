@@ -268,7 +268,7 @@ export default function AppBooster() {
           {...(!prefersReducedMotion && { variants: staggerContainer, initial: "initial", animate: "animate" })}
         >
           {[
-            { label: "Games Detected", value: games.length, icon: Gamepad2, color: "text-purple-400" },
+            { label: "Games Detected", value: games.length, icon: Gamepad2, color: "text-primary" },
             { label: "Currently Boosted", value: boostedGames, icon: Rocket, color: "text-green-400" },
             { label: "Optimized Profiles", value: optimizedGames, icon: CheckCircle, color: "text-blue-400" },
             { label: "FPS Potential", value: "+15-40%", icon: Gauge, color: "text-yellow-400" },
@@ -318,7 +318,7 @@ export default function AppBooster() {
             </Button>
             <Button 
               onClick={applyAllOptimizations}
-              className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+              className="bg-gradient-to-r from-primary to-cyan-600 hover:from-cyan-600 hover:to-primary"
               data-testid="button-optimize-all"
             >
               <Sparkles className="w-4 h-4 mr-2" />
@@ -333,7 +333,7 @@ export default function AppBooster() {
           <Card className="lg:col-span-1 bg-card/50 backdrop-blur border-border/50">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Gamepad2 className="w-5 h-5 text-purple-400" />
+                <Gamepad2 className="w-5 h-5 text-primary" />
                 Game Library
               </CardTitle>
               <CardDescription>Select a game to configure</CardDescription>
@@ -417,7 +417,7 @@ export default function AppBooster() {
                           "transition-all",
                           selectedGame.boostActive 
                             ? "bg-green-600 hover:bg-green-700" 
-                            : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                            : "bg-gradient-to-r from-primary to-cyan-600 hover:from-cyan-600 hover:to-primary"
                         )}
                         data-testid="button-toggle-boost"
                       >
@@ -513,7 +513,7 @@ export default function AppBooster() {
                       <Card className="bg-card/30 border-border/50">
                         <CardHeader className="pb-2">
                           <CardTitle className="text-sm flex items-center gap-2">
-                            <Cpu className="w-4 h-4 text-purple-400" />
+                            <Cpu className="w-4 h-4 text-primary" />
                             CPU Priority Level
                           </CardTitle>
                         </CardHeader>
@@ -591,11 +591,11 @@ export default function AppBooster() {
         </div>
 
         {/* Quick Tips */}
-        <Card className="bg-gradient-to-r from-purple-500/10 to-pink-500/10 border-purple-500/20">
+        <Card className="bg-gradient-to-r from-primary/10 to-cyan-500/10 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
-              <div className="p-2 rounded-lg bg-purple-500/20">
-                <Sparkles className="w-5 h-5 text-purple-400" />
+              <div className="p-2 rounded-lg bg-primary/20">
+                <Sparkles className="w-5 h-5 text-primary" />
               </div>
               <div>
                 <p className="font-medium text-sm">Pro Tip: Game-Specific Profiles</p>

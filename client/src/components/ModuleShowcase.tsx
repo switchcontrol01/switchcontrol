@@ -24,7 +24,7 @@ const MODULES = [
     icon: Zap,
     description: "38+ system optimizations",
     details: "Registry and system tweaks to reduce latency and improve responsiveness. Each tweak is categorized by impact and risk level.",
-    color: "from-purple-500/20 to-purple-600/10",
+    color: "from-primary/20 to-primary/10",
     preview: ["Disable Game DVR", "Optimize MMCSS", "Reduce USB Polling"]
   },
   {

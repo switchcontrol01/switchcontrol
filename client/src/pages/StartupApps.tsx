@@ -70,7 +70,7 @@ const STARTUP_APPS: StartupApp[] = [
 const CATEGORY_INFO: Record<StartupCategory, { name: string; color: string }> = {
   system: { name: "System Required", color: "bg-red-500/20 text-red-400" },
   drivers: { name: "Drivers & Hardware", color: "bg-blue-500/20 text-blue-400" },
-  gaming: { name: "Gaming", color: "bg-purple-500/20 text-purple-400" },
+  gaming: { name: "Gaming", color: "bg-primary/20 text-primary" },
   communication: { name: "Communication", color: "bg-green-500/20 text-green-400" },
   cloud: { name: "Cloud & Sync", color: "bg-cyan-500/20 text-cyan-400" },
   launchers: { name: "Launchers", color: "bg-orange-500/20 text-orange-400" },

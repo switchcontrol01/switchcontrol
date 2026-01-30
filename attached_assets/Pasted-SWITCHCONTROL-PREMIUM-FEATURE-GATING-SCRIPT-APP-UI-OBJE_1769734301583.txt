@@ -1,0 +1,103 @@
+SWITCHCONTROL — PREMIUM FEATURE GATING SCRIPT (APP + UI)
+OBJECTIVE
+Introduce clear Free vs Premium feature separation to:
+Increase perceived value
+Drive Premium upgrades naturally
+Prepare users for advanced modules (AI Advisor, BIOS Advisor)
+This is UI + access logic only. No functional optimizations should change yet.
+1. PREMIUM FEATURES (LOCKED)
+The following modules must be Premium-only:
+Fully Premium:
+AI Advisor
+BIOS Advisor (Coming Soon)
+Advanced Network Tweaks
+Partially Premium:
+System Tweaks
+Basic tweaks = Free
+Advanced / high-impact tweaks = Premium
+2. SIDEBAR / MODULE VISIBILITY
+All modules should remain visible to Free users.
+Premium modules must show:
+👑 Crown icon or lock icon
+Subtle purple accent (AI color)
+Tooltip or label: Premium
+Example sidebar behavior:
+Dashboard (Free)
+Tweaks (Free / Partial)
+Power Plan (Free)
+App Booster (Free)
+Focus Mode (Free)
+Network Tweaks (Premium 👑)
+Cleaner (Free)
+Debloat (Free)
+Startup (Free)
+AI Advisor (Premium 👑)
+BIOS Advisor (Premium 👑 – Coming Soon)
+3. LOCKED INTERACTION BEHAVIOR (IMPORTANT)
+When a Free user clicks a Premium feature:
+Show a modal with:
+Title: Premium Feature
+Message: “This feature is part of SwitchControl Premium and is designed for advanced optimization, analysis, and competitive performance.”
+CTA Button: Upgrade to Premium
+Secondary text (small): “No presets. No risky automation. Full transparency.”
+No urgency timers. No scare tactics.
+4. PARTIAL PREMIUM — SYSTEM TWEAKS
+Inside System Tweaks:
+Group tweaks into:
+Essential (Free)
+Advanced (Premium 👑)
+Premium tweaks:
+Greyed out or blurred
+Clickable → shows Premium modal
+Small crown icon next to tweak name
+Example:
+Disable background telemetry (Free)
+Timer resolution optimization (Free)
+Advanced scheduler tuning (Premium 👑)
+Latency-sensitive kernel tweaks (Premium 👑)
+5. AI ADVISOR (PREMIUM)
+Behavior:
+Fully locked for Free users
+Visible preview card
+Explains what it does without exposing controls
+Text example: “AI-driven performance analysis and consistency insights.”
+6. BIOS ADVISOR (PREMIUM – COMING SOON)
+Behavior:
+Visible in sidebar
+Marked “Coming Soon”
+Locked behind Premium
+Preview content:
+Short explanation
+Example BIOS cards (non-interactive)
+Premium badge
+7. PRICING PAGE UPDATE
+Update pricing comparison clearly:
+FREE
+Essential system tweaks
+Basic network optimization
+App Booster
+Power plan management
+Safe & reversible changes
+PREMIUM
+Everything in Free
+Advanced system tweaks
+Advanced Network Tweaks
+AI Advisor
+BIOS Advisor (coming soon)
+Competitive-focused optimization guidance
+Add small footer note: “Premium features prioritize insight and control — not blind automation.”
+8. VISUAL RULES
+Cyan = performance / interaction
+Purple = intelligence / AI / premium
+Premium elements must feel exclusive, not aggressive
+Animations remain subtle and smooth
+9. NO-GOS (DO NOT DO)
+No automatic optimizations
+No “one-click boost” language
+No fear-based warnings
+No fake urgency
+This setup:
+Feels premium
+Respects power users
+Matches your brand
+Sets up BIOS Advisor perfectly

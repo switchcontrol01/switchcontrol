@@ -203,7 +203,7 @@ export default function Pricing() {
       <div 
         className="fixed top-1/4 -left-32 w-96 h-96 rounded-full opacity-20 blur-[120px] pointer-events-none"
         style={{ 
-          background: 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)',
+          background: 'radial-gradient(circle, hsl(190 90% 50%) 0%, transparent 70%)',
           animation: prefersReducedMotion ? 'none' : 'blobFloat 20s ease-in-out infinite',
         }}
       />

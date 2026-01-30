@@ -70,7 +70,7 @@ const FOCUS_PROFILES: FocusProfile[] = [
     name: "Gaming Focus",
     icon: Gamepad2,
     description: "Maximum performance, zero distractions",
-    color: "from-purple-500/20 to-pink-500/20 border-purple-500/30",
+    color: "from-primary/20 to-cyan-400/20 border-primary/30",
     settings: { notifications: false, overlays: false, backgroundApps: false, networkPriority: true, inputLockdown: true, cpuLock: true, powerLock: true }
   },
   {

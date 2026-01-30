@@ -95,7 +95,7 @@ const POWER_PROFILES: PowerProfile[] = [
     description: "Smart power scaling for consistent FPS without excess heat or noise.",
     icon: Gauge,
     compatibility: ["desktop", "laptop"],
-    color: "from-primary/20 to-purple-500/20 border-primary/30",
+    color: "from-primary/20 to-cyan-500/20 border-primary/30",
     settings: {
       cpuBoost: "Enabled when under load",
       coreParking: "Minimal parking allowed",
@@ -693,7 +693,7 @@ export default function PowerPlan() {
                   </div>
                 </div>
 
-                <GlassCard className="p-4 bg-gradient-to-br from-primary/10 to-purple-500/10 border-primary/20">
+                <GlassCard className="p-4 bg-gradient-to-br from-primary/10 to-cyan-500/10 border-primary/20">
                   <h3 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
                     <Zap className="size-4 text-primary" /> Live Configuration Summary
                   </h3>
