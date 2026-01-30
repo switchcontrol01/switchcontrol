@@ -1,0 +1,61 @@
+MESSAGE TO SEND TO REPLIT (COPY EVERYTHING BELOW)
+I am trying to package a Vite + React app into an Electron desktop app.
+Current situation
+The Electron app builds successfully.
+The installer installs successfully.
+The Electron window opens, but it is completely blank (white screen).
+No crashes. No visible errors in the UI.
+Console logs confirm that index.html is being loaded.
+What works
+npm run build correctly outputs files to:
+Copy code
+
+dist/public/index.html
+dist/public/assets/*.js
+dist/public/assets/*.css
+electron-builder successfully packages everything into app.asar.
+Running the exe with logging shows:
+Copy code
+
+Loading: app.asar/dist/public/index.html
+Preload runs successfully and logs to console.
+React root exists in index.html.
+What does NOT work
+The Electron window renders blank.
+No visible JS runtime error in the Electron window.
+DevTools show assets attempting to load as:
+Copy code
+
+file:///C:/assets/index-xxxxx.js
+file:///C:/assets/index-xxxxx.css
+instead of relative paths inside app.asar.
+Key technical details
+This project was originally generated for Replit (web-first).
+Uses:
+Vite
+React 19
+Tailwind v4
+React Router
+vite.config.ts:
+root is set to client
+build.outDir is dist/public
+package.json has "type": "module"
+Electron main process loads:
+Copy code
+
+app.asar/dist/public/index.html
+What we suspect is broken
+Vite asset base path is incorrect for Electron (file://).
+Assets are being emitted or referenced as absolute (/assets/...) instead of relative.
+Router was previously BrowserRouter and was changed to HashRouter to avoid file:// routing issues.
+This appears to be a Vite + Electron base-path / Replit plugin incompatibility, not a React bug.
+What we are trying to achieve
+A working Electron build that loads the Vite production output correctly.
+Assets must load from app.asar/dist/public/assets.
+No dev server. Production-only.
+What we need help with
+Correct Vite configuration for Electron (base, assetsDir, build config).
+Removal or replacement of Replit-only plugins that may break Electron builds.
+Confirmation of the correct Electron + Vite architecture for this project.
+Minimal working configuration that guarantees a non-blank Electron window.
+At this point, the app works in the browser but not when packaged. We need guidance on restructuring the project so Electron is the primary target, not web-only

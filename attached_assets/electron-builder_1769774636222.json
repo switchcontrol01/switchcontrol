@@ -1,0 +1,37 @@
+{
+  "appId": "org.switchcontrol.app",
+  "productName": "SwitchControl",
+  "copyright": "Copyright © 2024 SwitchControl",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/public/**/*",
+    "electron/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ],
+    "forceCodeSigning": false,
+    "artifactName": "SwitchControl-Setup-${version}.${ext}"
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": true,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "SwitchControl"
+  },
+  "protocols": [
+    {
+      "name": "SwitchControl Protocol",
+      "schemes": ["switchcontrol"]
+    }
+  ]
+}
