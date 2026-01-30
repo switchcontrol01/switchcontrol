@@ -16,18 +16,9 @@ try {
   packageJson.author = 'SwitchControl';
   packageJson.main = 'electron/main.js';
 
-  if (!packageJson.scripts['electron:dev']) {
-    packageJson.scripts['electron:dev'] = 'concurrently "npm run dev" "wait-on http://localhost:5000 && electron ."';
-  }
-  if (!packageJson.scripts['build:client']) {
-    packageJson.scripts['build:client'] = 'vite build';
-  }
-  if (!packageJson.scripts['build:win']) {
-    packageJson.scripts['build:win'] = 'npm run build:client && electron-builder --win --config electron-builder.json';
-  }
-  if (!packageJson.scripts['build:portable']) {
-    packageJson.scripts['build:portable'] = 'npm run build:client && electron-builder --win portable --config electron-builder.json';
-  }
+  packageJson.scripts['electron:dev'] = 'concurrently "npm run dev" "wait-on http://localhost:5000 && electron ."';
+  packageJson.scripts['electron:build'] = 'npm run build && electron-builder --win --x64';
+  packageJson.scripts['electron:pack'] = 'npm run build && electron-builder --dir';
 
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
 
@@ -35,14 +26,13 @@ try {
   console.log('Added/Updated:');
   console.log('  - name: switchcontrol');
   console.log('  - main: electron/main.js');
-  console.log('  - scripts.electron:dev');
-  console.log('  - scripts.build:client');
-  console.log('  - scripts.build:win');
-  console.log('  - scripts.build:portable');
+  console.log('  - scripts.electron:dev - Run app in dev mode');
+  console.log('  - scripts.electron:build - Build Windows installer');
+  console.log('  - scripts.electron:pack - Build without installer');
   console.log('\nNext steps:');
   console.log('  1. Run: npm install');
   console.log('  2. Run: npm run electron:dev');
-  console.log('  3. To build installer: npm run build:win');
+  console.log('  3. To build installer: npm run electron:build');
 
 } catch (error) {
   console.error('Error updating package.json:', error.message);

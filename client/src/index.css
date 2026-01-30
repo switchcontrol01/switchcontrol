@@ -63,32 +63,32 @@
 :root {
   color-scheme: dark;
   
-  /* Deep dark background with subtle purple tint */
-  --background: 260 10% 8%;
+  /* Deep dark background */
+  --background: 220 15% 6%;
   --foreground: 210 20% 98%;
 
   /* Darker cards */
-  --card: 260 10% 12%;
+  --card: 220 15% 10%;
   --card-foreground: 210 20% 98%;
 
   /* Popovers */
-  --popover: 260 10% 12%;
+  --popover: 220 15% 10%;
   --popover-foreground: 210 20% 98%;
 
-  /* Primary: Electric Purple */
-  --primary: 270 70% 60%;
-  --primary-foreground: 210 20% 98%;
+  /* Primary: Ice Blue / Cyan - Speed, Precision, Control */
+  --primary: 190 90% 50%;
+  --primary-foreground: 220 15% 6%;
 
-  /* Secondary: Darker purple/grey */
-  --secondary: 260 15% 20%;
+  /* Secondary: Purple - AI/Intelligence features only */
+  --secondary: 270 60% 55%;
   --secondary-foreground: 210 20% 98%;
 
   /* Muted */
-  --muted: 260 10% 25%;
+  --muted: 220 15% 20%;
   --muted-foreground: 215 20% 65%;
 
-  /* Accent: Hot Pink/Magenta */
-  --accent: 320 80% 60%;
+  /* Accent: Soft Cyan glow */
+  --accent: 185 80% 45%;
   --accent-foreground: 210 20% 98%;
 
   /* Destructive */
@@ -96,26 +96,30 @@
   --destructive-foreground: 210 20% 98%;
 
   /* Borders */
-  --border: 260 15% 20%;
-  --input: 260 15% 20%;
-  --ring: 270 70% 60%;
+  --border: 220 15% 18%;
+  --input: 220 15% 18%;
+  --ring: 190 90% 50%;
 
-  /* Charts */
-  --chart-1: 270 70% 60%;
-  --chart-2: 320 80% 60%;
-  --chart-3: 200 80% 60%;
-  --chart-4: 43 74% 66%;
-  --chart-5: 27 87% 67%;
+  /* Charts - Cyan dominant */
+  --chart-1: 190 90% 50%;
+  --chart-2: 185 80% 45%;
+  --chart-3: 200 85% 55%;
+  --chart-4: 270 60% 55%;
+  --chart-5: 43 74% 66%;
 
   /* Sidebar */
-  --sidebar: 260 12% 10%;
+  --sidebar: 220 15% 8%;
   --sidebar-foreground: 240 5% 96%;
-  --sidebar-primary: 270 70% 60%;
-  --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent: 260 15% 20%;
+  --sidebar-primary: 190 90% 50%;
+  --sidebar-primary-foreground: 220 15% 6%;
+  --sidebar-accent: 220 15% 18%;
   --sidebar-accent-foreground: 240 5% 96%;
-  --sidebar-border: 260 15% 20%;
-  --sidebar-ring: 270 70% 60%;
+  --sidebar-border: 220 15% 18%;
+  --sidebar-ring: 190 90% 50%;
+
+  /* AI/Intelligence purple - use for AI advisor, BIOS, premium */
+  --ai-purple: 270 60% 55%;
+  --ai-purple-glow: 270 70% 60%;
 
   --radius: 0.75rem;
 }
@@ -123,8 +127,9 @@
 body {
   @apply font-sans antialiased bg-background text-foreground;
   background-image: 
-    radial-gradient(circle at 50% 0%, hsl(270 70% 60% / 0.08), transparent 40%),
-    radial-gradient(circle at 80% 10%, hsl(320 80% 60% / 0.05), transparent 30%);
+    radial-gradient(circle at 50% 0%, hsl(190 90% 50% / 0.06), transparent 45%),
+    radial-gradient(circle at 80% 20%, hsl(185 80% 45% / 0.04), transparent 35%),
+    radial-gradient(circle at 20% 80%, hsl(190 90% 50% / 0.03), transparent 40%);
   background-attachment: fixed;
 }
 
@@ -149,13 +154,35 @@ body {
 
 /* Custom Animations */
 @keyframes glow-pulse {
-  0% { box-shadow: 0 0 5px hsl(var(--primary) / 0.2); }
-  50% { box-shadow: 0 0 20px hsl(var(--primary) / 0.5); }
-  100% { box-shadow: 0 0 5px hsl(var(--primary) / 0.2); }
+  0% { box-shadow: 0 0 5px hsl(var(--primary) / 0.3); }
+  50% { box-shadow: 0 0 25px hsl(var(--primary) / 0.6), 0 0 40px hsl(var(--primary) / 0.2); }
+  100% { box-shadow: 0 0 5px hsl(var(--primary) / 0.3); }
 }
 
 .animate-glow {
   animation: glow-pulse 3s infinite;
+}
+
+/* Cyan glow for interactive elements */
+@keyframes cyan-glow {
+  0% { box-shadow: 0 0 5px hsl(190 90% 50% / 0.3); }
+  50% { box-shadow: 0 0 20px hsl(190 90% 50% / 0.5), 0 0 35px hsl(190 90% 50% / 0.2); }
+  100% { box-shadow: 0 0 5px hsl(190 90% 50% / 0.3); }
+}
+
+.animate-cyan-glow {
+  animation: cyan-glow 3s ease-in-out infinite;
+}
+
+/* AI Purple glow - for AI advisor sections only */
+@keyframes ai-glow {
+  0% { box-shadow: 0 0 5px hsl(270 60% 55% / 0.3); }
+  50% { box-shadow: 0 0 20px hsl(270 60% 55% / 0.5), 0 0 35px hsl(270 60% 55% / 0.2); }
+  100% { box-shadow: 0 0 5px hsl(270 60% 55% / 0.3); }
+}
+
+.animate-ai-glow {
+  animation: ai-glow 4s ease-in-out infinite;
 }
 
 /* Noise overlay */
@@ -254,12 +281,12 @@ body {
 
 @keyframes ctaPulse {
   0%, 100% { 
-    box-shadow: 0 0 20px hsl(270 70% 60% / 0.4), 
-                0 4px 20px hsl(270 70% 60% / 0.3);
+    box-shadow: 0 0 20px hsl(190 90% 50% / 0.4), 
+                0 4px 20px hsl(190 90% 50% / 0.3);
   }
   50% { 
-    box-shadow: 0 0 30px hsl(270 70% 60% / 0.6), 
-                0 4px 30px hsl(270 70% 60% / 0.4);
+    box-shadow: 0 0 35px hsl(190 90% 50% / 0.6), 
+                0 4px 35px hsl(190 90% 50% / 0.4);
   }
 }
 
@@ -425,7 +452,7 @@ body {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    hsl(270 70% 60% / 0.1) 50%,
+    hsl(190 90% 50% / 0.1) 50%,
     transparent 100%
   );
   background-size: 200% 100%;
@@ -450,8 +477,8 @@ body {
   background: linear-gradient(
     90deg,
     transparent,
-    hsl(270 70% 60% / 0.5),
-    hsl(320 80% 60% / 0.5),
+    hsl(190 90% 50% / 0.5),
+    hsl(185 80% 60% / 0.5),
     transparent
   );
   background-size: 300% 100%;
@@ -537,20 +564,37 @@ body {
 
 .glass-card:hover {
   background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(139, 92, 246, 0.3);
+  border-color: hsl(190 90% 50% / 0.4);
+  box-shadow: 0 0 20px hsl(190 90% 50% / 0.1);
 }
 
-/* Neon glow text */
+/* Neon glow text - Cyan */
 .neon-text {
   text-shadow: 
-    0 0 5px hsl(270 70% 60% / 0.5),
-    0 0 10px hsl(270 70% 60% / 0.3),
-    0 0 20px hsl(270 70% 60% / 0.2);
+    0 0 5px hsl(190 90% 50% / 0.5),
+    0 0 10px hsl(190 90% 50% / 0.3),
+    0 0 20px hsl(190 90% 50% / 0.2);
 }
 
-/* Premium gradient text */
+/* AI neon text - Purple for AI features */
+.neon-text-ai {
+  text-shadow: 
+    0 0 5px hsl(270 60% 55% / 0.5),
+    0 0 10px hsl(270 60% 55% / 0.3),
+    0 0 20px hsl(270 60% 55% / 0.2);
+}
+
+/* Premium gradient text - Cyan to lighter cyan */
 .gradient-text {
-  background: linear-gradient(135deg, hsl(270 70% 60%), hsl(320 80% 60%));
+  background: linear-gradient(135deg, hsl(190 90% 50%), hsl(185 80% 60%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* AI gradient text - Purple gradient */
+.gradient-text-ai {
+  background: linear-gradient(135deg, hsl(270 60% 55%), hsl(280 70% 65%));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -566,21 +610,38 @@ body {
   animation: float 4s ease-in-out infinite;
 }
 
-/* Pulsing ring animation */
+/* Pulsing ring animation - Cyan */
 @keyframes pulseRing {
   0% { 
-    box-shadow: 0 0 0 0 hsl(270 70% 60% / 0.4);
+    box-shadow: 0 0 0 0 hsl(190 90% 50% / 0.4);
   }
   70% { 
-    box-shadow: 0 0 0 10px hsl(270 70% 60% / 0);
+    box-shadow: 0 0 0 10px hsl(190 90% 50% / 0);
   }
   100% { 
-    box-shadow: 0 0 0 0 hsl(270 70% 60% / 0);
+    box-shadow: 0 0 0 0 hsl(190 90% 50% / 0);
   }
 }
 
 .pulse-ring {
   animation: pulseRing 2s infinite;
+}
+
+/* AI pulse ring - Purple */
+@keyframes pulseRingAI {
+  0% { 
+    box-shadow: 0 0 0 0 hsl(270 60% 55% / 0.4);
+  }
+  70% { 
+    box-shadow: 0 0 0 10px hsl(270 60% 55% / 0);
+  }
+  100% { 
+    box-shadow: 0 0 0 0 hsl(270 60% 55% / 0);
+  }
+}
+
+.pulse-ring-ai {
+  animation: pulseRingAI 2s infinite;
 }
 
 /* Premium card with 3D tilt effect */
@@ -615,7 +676,7 @@ body {
 
 .premium-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 40px -10px hsl(270 70% 60% / 0.5);
+  box-shadow: 0 10px 40px -10px hsl(190 90% 50% / 0.5);
 }
 
 .premium-btn:active {
@@ -629,7 +690,7 @@ body {
 
 .icon-hover:hover {
   transform: scale(1.1) rotate(5deg);
-  filter: drop-shadow(0 0 8px hsl(270 70% 60% / 0.5));
+  filter: drop-shadow(0 0 8px hsl(190 90% 50% / 0.5));
 }
 
 /* Reduce motion preferences - REDUCE animations, don't eliminate them */
@@ -695,7 +756,7 @@ body {
   
   .premium-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 5px 20px -5px hsl(270 70% 60% / 0.3);
+    box-shadow: 0 5px 20px -5px hsl(190 90% 50% / 0.3);
   }
   
   .icon-hover:hover {
