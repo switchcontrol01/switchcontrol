@@ -147,7 +147,7 @@ All future features will be safe, reversible, and require explicit user action.
 ### Build fails on Windows
 - Ensure you have admin rights
 - Run `npm cache clean --force` and try again
-- Check that `assets/icon.ico` exists
+- Check that `build/icon.ico` exists
 
 ### OAuth redirect doesn't work in desktop
 - The deep link protocol is registered during install
