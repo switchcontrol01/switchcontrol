@@ -1,0 +1,82 @@
+Color System + “Make it feel alive” pass)
+Goal:
+The website and app feel technically impressive but emotionally flat.
+We are NOT redesigning layouts.
+We are correcting the color system, energy, and visual hierarchy.
+A) Introduce a Primary Energy Color (CRITICAL)
+Add Ice Blue / Cyan as the primary accent color across:
+Landing page
+Pricing
+Download
+Terms / Privacy
+App UI
+This color represents:
+Precision
+Latency reduction
+Speed
+Control
+Rules:
+Cyan is the main highlight color
+Use it for:
+Primary CTAs
+Active states
+Hover states
+Graphs
+Important keywords
+Progress / performance indicators
+Cyan should glow subtly, not neon
+B) Reassign Purple to Secondary Role
+Purple must become secondary only.
+Purple is reserved for:
+AI Advisor
+BIOS Advisor
+Intelligence / analysis sections
+Premium indicators (crown, lock, advanced features)
+Do NOT use purple globally anymore.
+It should feel deliberate and intelligent, not everywhere.
+C) Background Must Feel Alive (All Pages)
+Currently backgrounds feel static and empty.
+Add:
+Subtle animated contours
+Slow moving gradients
+Soft glow blobs
+Requirements:
+Extend from top to bottom of every page
+Middle and bottom sections must not feel dead
+Keep it smooth and premium
+No harsh motion, no gimmicks
+D) Buttons, Cards, and Interactions
+Every interactive element should feel responsive.
+Add:
+Cyan glow on hover
+Gentle shine sweep on cards
+Micro motion on hover and focus
+Smooth transitions (no snapping)
+This applies to:
+Buttons
+Cards
+Sliders
+Clickable modules
+E) App UI Alignment
+Apply the same visual language inside the app:
+Active module → cyan indicator
+Performance graphs → ice blue
+AI / BIOS insights → purple accent
+Backgrounds should not be flat black
+The app should feel like:
+Engineering software, not a generic dashboard
+F) Do NOT Change Content or Layout
+Important:
+Keep all existing text
+Keep all existing sections
+Keep structure exactly the same
+This is visual identity refinement only
+G) Manual QA Required
+After changes, manually verify:
+Desktop and mobile match visually
+Cyan feels dominant but not overpowering
+Purple feels intelligent, not loud
+Background feels alive everywhere
+No performance drops
+Summary Intent:
+The site must feel like it was built by someone obsessed with latency, precision, and engineering — not just “a cool dark website”.
