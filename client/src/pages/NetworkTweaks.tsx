@@ -465,7 +465,13 @@ export default function NetworkTweaks() {
           </div>
         )}
         
-        {!isPremium && <PremiumPageOverlay featureName="Network Optimization" buttonText="Unlock Network Tweaks" />}
+        {!isPremium && (
+          <PremiumPageOverlay 
+            featureName="Network Tweaks" 
+            buttonText="Unlock Network Tweaks"
+            description="Advanced latency and network behavior adjustments are available with SwitchControl Premium."
+          />
+        )}
       </div>
 
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />

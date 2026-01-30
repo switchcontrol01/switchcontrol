@@ -8,9 +8,10 @@ import { Link } from "wouter";
 interface PremiumPageOverlayProps {
   featureName: string;
   buttonText?: string;
+  description?: string;
 }
 
-export function PremiumPageOverlay({ featureName, buttonText }: PremiumPageOverlayProps) {
+export function PremiumPageOverlay({ featureName, buttonText, description }: PremiumPageOverlayProps) {
   const [isAnimating, setIsAnimating] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   
@@ -47,7 +48,7 @@ export function PremiumPageOverlay({ featureName, buttonText }: PremiumPageOverl
         <div>
           <h3 className="text-lg font-semibold text-white">{featureName}</h3>
           <p className="text-xs text-muted-foreground mt-1">
-            Premium feature – unlock to apply
+            {description || "Premium feature – unlock to apply"}
           </p>
         </div>
         <Link href="/pricing">
