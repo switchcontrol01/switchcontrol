@@ -132,7 +132,7 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorC
           className="absolute inset-0 flex items-center justify-center cursor-pointer z-10"
           onClick={() => setShowModal(true)}
         >
-          <div className="text-center space-y-3 p-4 rounded-xl bg-black/70 backdrop-blur-sm border border-white/10">
+          <div className="text-center space-y-3 p-4 rounded-xl bg-gradient-to-br from-[hsl(270,60%,20%,0.85)] via-[hsl(270,50%,15%,0.9)] to-[hsl(280,60%,15%,0.85)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] shadow-[0_0_30px_rgba(168,85,247,0.15)]">
             <AnimatedCrown size="md" onClick={() => setShowModal(true)} className="mx-auto" />
             <p className="text-xs text-muted-foreground">Premium feature – unlock to apply</p>
             <Button

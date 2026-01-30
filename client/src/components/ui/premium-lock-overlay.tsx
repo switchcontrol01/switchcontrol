@@ -39,7 +39,7 @@ export function PremiumLockOverlay({
         className="absolute inset-0 flex items-center justify-center cursor-pointer z-10"
         onClick={() => setShowModal(true)}
       >
-        <div className="text-center space-y-3 p-6 rounded-2xl bg-black/60 backdrop-blur-sm border border-white/10 max-w-sm mx-4">
+        <div className="text-center space-y-3 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.85)] via-[hsl(270,50%,15%,0.9)] to-[hsl(280,60%,15%,0.85)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4 shadow-[0_0_40px_rgba(168,85,247,0.15)]">
           <motion.div
             className="mx-auto w-14 h-14 rounded-full bg-[rgba(168,85,247,0.15)] flex items-center justify-center"
             animate={{

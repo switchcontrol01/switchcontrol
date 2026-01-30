@@ -3,21 +3,39 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Crown, Check } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
-const PREMIUM_SEEN_KEY = "switchcontrol_premium_seen";
+const PREMIUM_SEEN_KEY = "switchcontrol_premium_unlocked";
 
 export function PremiumUnlockAnimation() {
-  const { isPremium, isLoading } = useAuth();
+  const { isPremium, isLoading, user } = useAuth();
   const [showAnimation, setShowAnimation] = useState(false);
+  const previousPremiumRef = useRef<boolean | null>(null);
   const hasCheckedRef = useRef(false);
 
   useEffect(() => {
-    if (isLoading || hasCheckedRef.current) return;
+    if (isLoading || !user) return;
     
-    hasCheckedRef.current = true;
+    const wasNotPremium = previousPremiumRef.current === false;
+    const isNowPremium = isPremium === true;
+    const hasSeenUnlock = localStorage.getItem(PREMIUM_SEEN_KEY) === "true";
     
-    const premiumSeen = localStorage.getItem(PREMIUM_SEEN_KEY);
+    if (previousPremiumRef.current === null && !hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      previousPremiumRef.current = isPremium;
+      
+      if (isPremium && !hasSeenUnlock) {
+        setShowAnimation(true);
+        localStorage.setItem(PREMIUM_SEEN_KEY, "true");
+        
+        const timer = setTimeout(() => {
+          setShowAnimation(false);
+        }, 3500);
+        
+        return () => clearTimeout(timer);
+      }
+      return;
+    }
     
-    if (isPremium && premiumSeen !== "true") {
+    if (wasNotPremium && isNowPremium && !hasSeenUnlock) {
       setShowAnimation(true);
       localStorage.setItem(PREMIUM_SEEN_KEY, "true");
       
@@ -25,9 +43,12 @@ export function PremiumUnlockAnimation() {
         setShowAnimation(false);
       }, 3500);
       
+      previousPremiumRef.current = isPremium;
       return () => clearTimeout(timer);
     }
-  }, [isPremium, isLoading]);
+    
+    previousPremiumRef.current = isPremium;
+  }, [isPremium, isLoading, user]);
 
   return (
     <AnimatePresence>

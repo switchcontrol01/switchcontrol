@@ -489,10 +489,10 @@ export default function NetworkTweaks() {
         
         {!isPremium && (
           <div 
-            className="fixed inset-0 z-30 flex items-center justify-center bg-black/40 backdrop-blur-[1px] cursor-pointer"
+            className="fixed inset-0 z-30 flex items-center justify-center bg-black/30 backdrop-blur-[1px] cursor-pointer"
             onClick={() => setShowPremiumModal(true)}
           >
-            <div className="text-center space-y-4 p-6 rounded-2xl bg-black/80 backdrop-blur-md border border-white/10 max-w-sm mx-4">
+            <div className="text-center space-y-4 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4 shadow-[0_0_40px_rgba(168,85,247,0.2)]">
               <AnimatedCrown size="lg" onClick={() => setShowPremiumModal(true)} className="mx-auto" />
               <div>
                 <h3 className="text-lg font-semibold text-white">Network Optimization</h3>

@@ -14,12 +14,14 @@ import {
   Wifi,
   Terminal,
   Cpu,
-  Crown
+  Crown,
+  Brain
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, sidebarSlide, useMotion } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
+import { useAuth } from "@/hooks/use-auth";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -48,7 +50,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/app" },
   { label: "Tweaks", icon: Settings, href: "/app/tweaks" },
-  { label: "Power Plan", icon: Zap, href: "/app/power-plan" },
+  { label: "Power Plan", icon: Zap, href: "/app/power-plan", isPremium: true },
   { label: "App Booster", icon: Rocket, href: "/app/app-booster" },
   { label: "Focus Mode", icon: Moon, href: "/app/focus" },
   { label: "Network Tweaks", icon: Wifi, href: "/app/network", isPremium: true },
@@ -62,7 +64,11 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar() {
   const [location] = useLocation();
   const { prefersReducedMotion, hasLoaded } = useMotion();
+  const { user, isPremium } = useAuth();
   const shouldAnimate = !prefersReducedMotion;
+  
+  const userName = user?.firstName || user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
+  const userInitials = userName.slice(0, 2).toUpperCase();
 
   const SidebarWrapper = shouldAnimate ? motion.aside : "aside";
   const sidebarProps = shouldAnimate && !hasLoaded ? {
@@ -133,12 +139,33 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/5 backdrop-blur-sm">
         <div className="flex items-center gap-3 px-2 group cursor-default">
-          <div className="size-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 ring-1 ring-white/10 flex items-center justify-center text-xs font-mono text-zinc-400 shadow-inner transition-transform duration-300 group-hover:scale-105">
-            ST
-          </div>
+          {user?.avatar ? (
+            <img 
+              src={user.avatar} 
+              alt={userName}
+              className="size-8 rounded-full ring-1 ring-white/10 object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          ) : (
+            <div className="size-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 ring-1 ring-white/10 flex items-center justify-center text-xs font-mono text-zinc-400 shadow-inner transition-transform duration-300 group-hover:scale-105">
+              {userInitials}
+            </div>
+          )}
           <div className="flex flex-col">
-            <span className="text-xs font-medium text-white group-hover:text-primary transition-colors">SwitchTech</span>
-            <span className="text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-1.5 py-0.5 rounded w-fit border border-emerald-500/10 shadow-[0_0_10px_rgba(52,211,153,0.1)]">Premium</span>
+            <span className="text-xs font-medium text-white group-hover:text-primary transition-colors">{userName}</span>
+            {isPremium ? (
+              <motion.span 
+                className="text-[10px] text-[hsl(270,60%,65%)] font-medium bg-[hsl(270,60%,55%,0.15)] px-1.5 py-0.5 rounded w-fit border border-[hsl(270,60%,55%,0.2)] flex items-center gap-1"
+                animate={{ boxShadow: ["0 0 8px hsl(270 60% 55% / 0.2)", "0 0 12px hsl(270 60% 55% / 0.35)", "0 0 8px hsl(270 60% 55% / 0.2)"] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <Crown className="size-2.5" />
+                Premium
+              </motion.span>
+            ) : (
+              <span className="text-[10px] text-muted-foreground font-medium bg-white/5 px-1.5 py-0.5 rounded w-fit border border-white/10">
+                Free
+              </span>
+            )}
           </div>
         </div>
         <div className="mt-3 flex items-center justify-between px-2">
