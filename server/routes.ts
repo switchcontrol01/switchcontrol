@@ -5,22 +5,7 @@ import { z } from "zod";
 import { setupGoogleAuth, requirePremium } from "./auth/google";
 import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
-
-// Tweak tier definitions - matches client-side logic
-const PREMIUM_TWEAK_LEVELS = ["Advanced", "Experimental"];
-const PREMIUM_TWEAK_CATEGORIES = ["Network"];
-
-function isPremiumTweak(tweakId: string, tweakLevel?: string, tweakCategory?: string): boolean {
-  // If level is Advanced or Experimental, it's premium
-  if (tweakLevel && PREMIUM_TWEAK_LEVELS.includes(tweakLevel)) {
-    return true;
-  }
-  // If category is Network, it's premium
-  if (tweakCategory && PREMIUM_TWEAK_CATEGORIES.includes(tweakCategory)) {
-    return true;
-  }
-  return false;
-}
+import { isPremiumTweakById } from "../shared/tweak-tiers";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -64,10 +49,10 @@ export async function registerRoutes(
   app.post("/api/tweaks/:tweakId", async (req, res) => {
     try {
       const { tweakId } = req.params;
-      const { enabled, tweakTitle, tweakLevel, tweakCategory } = req.body;
+      const { enabled, tweakTitle } = req.body;
       
-      // Server-side premium enforcement for premium tweaks
-      if (enabled && isPremiumTweak(tweakId, tweakLevel, tweakCategory)) {
+      // Server-side premium enforcement for premium tweaks (uses canonical server-side lookup)
+      if (enabled && isPremiumTweakById(tweakId)) {
         const user = (req as any).user;
         if (!user) {
           return res.status(401).json({ 
