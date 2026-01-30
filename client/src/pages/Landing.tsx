@@ -14,7 +14,11 @@ import {
   Menu,
   X,
   Download,
-  LogOut
+  LogOut,
+  Cpu,
+  Crown,
+  MemoryStick,
+  Radio
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
@@ -710,6 +714,107 @@ export default function Landing() {
             </Reveal>
             
             <ModuleShowcase />
+          </div>
+        </section>
+
+        {/* BIOS Advisor Premium Section */}
+        <section className="py-24 relative overflow-hidden" data-reveal>
+          <div className="absolute inset-0 bg-gradient-to-b from-[hsl(270,60%,55%)/0.05] via-[hsl(270,60%,55%)/0.08] to-transparent pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-[hsl(270,60%,55%)/0.08] blur-[120px] pointer-events-none" />
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <Reveal className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[hsl(270,60%,55%)/0.15] border border-[hsl(270,60%,55%)/0.3] mb-6">
+                <Crown className="w-4 h-4 text-[hsl(270,60%,55%)]" />
+                <span className="text-sm font-medium text-[hsl(270,60%,55%)]">Premium Feature</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
+                Premium BIOS Advisor
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+                Firmware-level intelligence for latency, stability, and competitive performance.
+              </p>
+            </Reveal>
+            
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <Reveal className="space-y-6">
+                <p className="text-white/80 text-lg leading-relaxed">
+                  Most performance tools stop at the operating system. <span className="text-white font-medium">SwitchControl goes deeper.</span>
+                </p>
+                <p className="text-muted-foreground leading-relaxed">
+                  The BIOS Advisor analyzes firmware behavior that directly impacts latency, scheduling, and frametime consistency — without unsafe presets or blind toggles.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  {[
+                    { icon: Cpu, label: "CPU Scheduling" },
+                    { icon: Zap, label: "Power & Voltage" },
+                    { icon: MemoryStick, label: "Memory & Fabric" },
+                    { icon: Radio, label: "Signal Integrity" }
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
+                      <div className="p-2 rounded-lg bg-[hsl(270,60%,55%)/0.2]">
+                        <item.icon className="w-4 h-4 text-[hsl(270,60%,55%)]" />
+                      </div>
+                      <span className="text-sm text-white/80">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+                
+                <div className="pt-4">
+                  <Link href="/pricing">
+                    <Button 
+                      size="lg"
+                      className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+                    >
+                      <Crown className="w-4 h-4 mr-2" />
+                      Included with Premium
+                    </Button>
+                  </Link>
+                </div>
+              </Reveal>
+              
+              <Reveal delay={0.2}>
+                <div className="relative">
+                  <div className="absolute -inset-4 bg-gradient-to-br from-[hsl(270,60%,55%)/0.2] to-transparent rounded-2xl blur-xl" />
+                  <div className="relative space-y-3">
+                    {[
+                      { name: "XMP / EXPO", status: "Disabled", impact: "High", desc: "Memory running JEDEC limits bandwidth" },
+                      { name: "CPPC Preferred Cores", status: "Enabled", impact: "High", desc: "Better thread placement for Ryzen" },
+                      { name: "Spread Spectrum", status: "Enabled", impact: "Medium", desc: "EMI modulation causing timing variance" },
+                      { name: "Global C-States", status: "Enabled", impact: "High", desc: "Deep sleep states add wake latency" },
+                      { name: "FCLK", status: "Auto", impact: "High", desc: "Infinity Fabric clock affecting latency" }
+                    ].map((setting, i) => (
+                      <motion.div 
+                        key={setting.name}
+                        className="p-4 rounded-lg bg-card/80 backdrop-blur border border-white/10"
+                        initial={{ opacity: 0, x: 20 }}
+                        whileInView={{ opacity: 1, x: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: i * 0.1, duration: 0.4 }}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="font-medium text-white text-sm">{setting.name}</span>
+                          <span className={cn(
+                            "text-xs px-2 py-0.5 rounded-full",
+                            setting.impact === "High" 
+                              ? "bg-red-500/20 text-red-400 border border-red-500/30"
+                              : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                          )}>
+                            {setting.impact} Impact
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span className="text-[hsl(270,60%,55%)]">{setting.status}</span>
+                          <span>•</span>
+                          <span>{setting.desc}</span>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              </Reveal>
+            </div>
           </div>
         </section>
 
