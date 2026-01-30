@@ -20,25 +20,26 @@ import {
 } from "lucide-react";
 import { motion, useMotion } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
-import { useAuth } from "@/components/ProtectedRoute";
+import { useAuth } from "@/hooks/use-auth";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useToast } from "@/hooks/use-toast";
 
 const FREE_FEATURES = [
-  "Basic system tweaks",
-  "Network optimization",
-  "Performance monitoring",
+  "System monitoring",
+  "7 beginner-safe tweaks",
+  "Basic RAM cleanup tools",
   "Community support"
 ];
 
 const PREMIUM_FEATURES = [
   "Everything in Free",
-  "Advanced tweaks & scripts",
-  "AI-powered recommendations",
-  "Priority support",
-  "Early access to new features",
-  "Custom power plans",
-  "Game-specific profiles"
+  "Advanced system tweaks",
+  "Power Plan control",
+  "Network optimization",
+  "AI Advisor",
+  "BIOS Advisor (guidance)",
+  "Competitive performance tuning",
+  "Priority support"
 ];
 
 const TRUST_ITEMS = [
@@ -49,13 +50,14 @@ const TRUST_ITEMS = [
 ];
 
 const COMPARISON_ITEMS = [
-  { feature: "Basic system optimizations", free: true, premium: true },
-  { feature: "Network latency tweaks", free: true, premium: true },
-  { feature: "Performance monitoring", free: true, premium: true },
-  { feature: "Advanced registry tweaks", free: false, premium: true },
-  { feature: "AI-powered recommendations", free: false, premium: true },
-  { feature: "Game-specific profiles", free: false, premium: true },
-  { feature: "Custom power plans", free: false, premium: true },
+  { feature: "System monitoring", free: true, premium: true },
+  { feature: "7 beginner-safe tweaks", free: true, premium: true },
+  { feature: "RAM cleanup tools", free: true, premium: true },
+  { feature: "Advanced system tweaks", free: false, premium: true },
+  { feature: "Network optimization", free: false, premium: true },
+  { feature: "Power Plan control", free: false, premium: true },
+  { feature: "AI Advisor", free: false, premium: true },
+  { feature: "BIOS Advisor (guidance)", free: false, premium: true },
   { feature: "Priority support", free: false, premium: true },
 ];
 

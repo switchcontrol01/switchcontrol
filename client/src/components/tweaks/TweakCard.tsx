@@ -2,10 +2,12 @@ import { useState, useCallback, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Info, AlertTriangle, ShieldCheck, X, Cpu, MonitorSpeaker, HardDrive, Wifi, Timer, AlertCircle } from "lucide-react";
+import { Info, AlertTriangle, ShieldCheck, X, Cpu, MonitorSpeaker, HardDrive, Wifi, Timer, AlertCircle, Lock, Crown } from "lucide-react";
 import { Tweak, RiskLevel, TweakLevel, TweakExpected, ImpactLevel } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
+import { isTweakPremium } from "@/lib/premium-config";
+import { useAuth } from "@/hooks/use-auth";
 
 interface TweakCardProps {
   tweak: Tweak;
@@ -85,7 +87,12 @@ const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
 
 export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   const [open, setOpen] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { prefersReducedMotion } = useMotion();
+  const { isPremium } = useAuth();
+  
+  const isPremiumTweak = isTweakPremium(tweak.id);
+  const isLocked = isPremiumTweak && !isPremium;
 
   const closeModal = useCallback(() => {
     setOpen(false);
@@ -94,6 +101,14 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   const openModal = useCallback(() => {
     setOpen(true);
   }, []);
+  
+  const handleToggle = useCallback(() => {
+    if (isLocked) {
+      setShowPremiumModal(true);
+    } else {
+      onToggle();
+    }
+  }, [isLocked, onToggle]);
 
   useEffect(() => {
     if (!open) return;
@@ -130,6 +145,12 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                   {tweak.title}
                 </h3>
                 <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                  {isLocked && (
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] text-[hsl(270,60%,70%)] flex items-center gap-1">
+                      <Crown className="size-3" />
+                      Premium
+                    </span>
+                  )}
                   <LevelBadge level={tweak.level} />
                   <RiskBadge level={tweak.risk} />
                   {tweak.requiresAgent && (
@@ -159,12 +180,25 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               </Button>
             </motion.div>
 
-            <Switch 
-              checked={isEnabled} 
-              onCheckedChange={onToggle} 
-              data-testid={`switch-tweak-${tweak.id}`}
-              className="data-[state=checked]:bg-primary shadow-lg"
-            />
+            {isLocked ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowPremiumModal(true)}
+                className="h-8 px-3 text-[10px] text-[hsl(270,60%,70%)] border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] hover:bg-[hsl(270,60%,55%,0.2)]"
+                data-testid={`button-unlock-${tweak.id}`}
+              >
+                <Lock className="size-3 mr-1" />
+                Unlock
+              </Button>
+            ) : (
+              <Switch 
+                checked={isEnabled} 
+                onCheckedChange={handleToggle} 
+                data-testid={`switch-tweak-${tweak.id}`}
+                className="data-[state=checked]:bg-primary shadow-lg"
+              />
+            )}
           </div>
         </GlassCard>
       </motion.div>
@@ -241,6 +275,59 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                       This tweak requires a system restart to take full effect.
                     </div>
                   )}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+      
+      <AnimatePresence>
+        {showPremiumModal && (
+          <>
+            <motion.div 
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm pointer-events-auto"
+              onClick={() => setShowPremiumModal(false)}
+              variants={modalBackdrop}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            />
+            <motion.div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+              variants={modalContent}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+            >
+              <div 
+                className="relative w-full max-w-sm bg-gradient-to-b from-zinc-900 to-black border border-[hsl(270,60%,55%,0.3)] rounded-2xl p-6 shadow-2xl shadow-[hsl(270,60%,55%,0.15)] pointer-events-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <motion.button
+                  onClick={() => setShowPremiumModal(false)}
+                  className="absolute right-3 top-3 p-1.5 rounded-full bg-white/5 hover:bg-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <X className="h-4 w-4 text-white" />
+                </motion.button>
+                
+                <div className="text-center space-y-4">
+                  <div className="size-14 rounded-full bg-[hsl(270,60%,55%,0.2)] flex items-center justify-center mx-auto">
+                    <Crown className="size-7 text-[hsl(270,60%,70%)]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Premium Feature</h3>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      This tweak is part of SwitchControl Premium. Advanced system tuning for latency, consistency, and performance.
+                    </p>
+                  </div>
+                  <a href="/pricing">
+                    <Button className="w-full">
+                      Upgrade to Premium
+                    </Button>
+                  </a>
                 </div>
               </div>
             </motion.div>

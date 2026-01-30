@@ -11,7 +11,9 @@ import {
   ChevronDown, 
   ChevronRight, 
   AlertTriangle,
-  ShieldCheck
+  ShieldCheck,
+  Lock,
+  Crown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
@@ -25,6 +27,8 @@ import {
 } from "@/lib/network-tweaks-data";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useAuth } from "@/hooks/use-auth";
+import { Link } from "wouter";
 
 const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
   const colors = {
@@ -263,6 +267,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
 }
 
 export default function NetworkTweaks() {
+  const { isPremium } = useAuth();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<NetworkCategory | "All">("All");
   const [enabledTweaks, setEnabledTweaks] = useState<Set<string>>(() => {
@@ -273,6 +278,57 @@ export default function NetworkTweaks() {
     new Set(NETWORK_CATEGORIES)
   );
   const [selectedTweak, setSelectedTweak] = useState<NetworkTweak | null>(null);
+
+  if (!isPremium) {
+    return (
+      <AppLayout>
+        <div className="p-8 space-y-8">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent flex items-center gap-3">
+              Network Tweaks
+              <span className="text-sm font-medium px-3 py-1 rounded-full border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] text-[hsl(270,60%,70%)] flex items-center gap-1.5">
+                <Crown className="size-4" />
+                Premium
+              </span>
+            </h1>
+            <p className="text-muted-foreground">
+              Optimize latency, throughput, and stability with network stack tuning.
+            </p>
+          </div>
+
+          <GlassCard className="p-8 border-[hsl(270,60%,55%,0.2)] bg-[hsl(270,60%,55%,0.05)]">
+            <div className="text-center space-y-6 max-w-md mx-auto">
+              <div className="size-20 rounded-full bg-[hsl(270,60%,55%,0.15)] flex items-center justify-center mx-auto">
+                <Lock className="size-10 text-[hsl(270,60%,55%)]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-white mb-2">Premium Feature</h2>
+                <p className="text-sm text-muted-foreground">
+                  Network optimization is available exclusively to SwitchControl Premium users. 
+                  Fine-tune TCP/IP, DNS, UDP, and security settings for competitive advantage.
+                </p>
+              </div>
+              <div className="p-4 rounded-lg bg-white/5 border border-white/10 text-left">
+                <h3 className="text-xs font-medium text-white mb-2">What's included:</h3>
+                <ul className="text-xs text-muted-foreground space-y-1.5">
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> SMB and TCP/IP optimization</li>
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> UDP and DNS tuning</li>
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> Security hardening options</li>
+                  <li className="flex items-center gap-2"><ShieldCheck className="size-3 text-emerald-400" /> Latency reduction tweaks</li>
+                </ul>
+              </div>
+              <Link href="/pricing">
+                <Button className="px-8">
+                  <Crown className="size-4 mr-2" />
+                  Upgrade to Premium
+                </Button>
+              </Link>
+            </div>
+          </GlassCard>
+        </div>
+      </AppLayout>
+    );
+  }
 
   const toggleTweak = useCallback((id: string) => {
     setEnabledTweaks(prev => {
