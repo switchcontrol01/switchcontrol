@@ -37,7 +37,7 @@ export class WebhookHandlers {
 
         const now = new Date();
         
-        if (userId) {
+        if (userId && db) {
           const result = await db
             .update(users)
             .set({ isPremium: true, premiumActivatedAt: now, updatedAt: now })
@@ -50,7 +50,7 @@ export class WebhookHandlers {
           }
         }
         
-        if (!updated && customerId) {
+        if (!updated && customerId && db) {
           const result = await db
             .update(users)
             .set({ isPremium: true, premiumActivatedAt: now, updatedAt: now })

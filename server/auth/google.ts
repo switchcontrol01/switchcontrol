@@ -339,3 +339,23 @@ export const isAuthenticated: RequestHandler = (req, res, next) => {
   }
   return res.status(401).json({ message: "Unauthorized" });
 };
+
+export const requirePremium: RequestHandler = async (req, res, next) => {
+  if (!req.isAuthenticated() || !req.user) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+  
+  try {
+    const dbUser = await storage.getUser(req.user.id);
+    if (!dbUser?.isPremium) {
+      return res.status(403).json({ 
+        message: "Premium required", 
+        error: "premium_required",
+        upgradeUrl: "/pricing" 
+      });
+    }
+    return next();
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to verify premium status" });
+  }
+};

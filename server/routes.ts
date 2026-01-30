@@ -2,9 +2,25 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { setupGoogleAuth } from "./auth/google";
+import { setupGoogleAuth, requirePremium } from "./auth/google";
 import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
+
+// Tweak tier definitions - matches client-side logic
+const PREMIUM_TWEAK_LEVELS = ["Advanced", "Experimental"];
+const PREMIUM_TWEAK_CATEGORIES = ["Network"];
+
+function isPremiumTweak(tweakId: string, tweakLevel?: string, tweakCategory?: string): boolean {
+  // If level is Advanced or Experimental, it's premium
+  if (tweakLevel && PREMIUM_TWEAK_LEVELS.includes(tweakLevel)) {
+    return true;
+  }
+  // If category is Network, it's premium
+  if (tweakCategory && PREMIUM_TWEAK_CATEGORIES.includes(tweakCategory)) {
+    return true;
+  }
+  return false;
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -48,7 +64,26 @@ export async function registerRoutes(
   app.post("/api/tweaks/:tweakId", async (req, res) => {
     try {
       const { tweakId } = req.params;
-      const { enabled, tweakTitle } = req.body;
+      const { enabled, tweakTitle, tweakLevel, tweakCategory } = req.body;
+      
+      // Server-side premium enforcement for premium tweaks
+      if (enabled && isPremiumTweak(tweakId, tweakLevel, tweakCategory)) {
+        const user = (req as any).user;
+        if (!user) {
+          return res.status(401).json({ 
+            error: "premium_required", 
+            message: "Authentication required for premium tweaks" 
+          });
+        }
+        const dbUser = await storage.getUser(user.id);
+        if (!dbUser?.isPremium) {
+          return res.status(403).json({ 
+            error: "premium_required",
+            message: "Premium subscription required for this tweak",
+            upgradeUrl: "/pricing"
+          });
+        }
+      }
       
       const settings = await storage.getOrCreateSettings();
       const tweak = await storage.setTweak(settings.id, tweakId, enabled);
@@ -163,7 +198,8 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/ai-scan", async (req, res) => {
+  // Premium-only: AI Scan
+  app.post("/api/ai-scan", requirePremium, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       
@@ -282,9 +318,11 @@ export async function registerRoutes(
       }
 
       const stripe = await getUncachableStripeClient();
+      const isProduction = process.env.NODE_ENV === "production";
+      const productionDomain = "https://switchcontrol.org";
       const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
-      const publishedDomain = domains.find(d => d.endsWith('.replit.app')) || domains[0];
-      const baseUrl = `https://${publishedDomain}`;
+      const devDomain = domains.find(d => d.endsWith('.replit.app')) || domains[0];
+      const baseUrl = isProduction ? productionDomain : `https://${devDomain}`;
       const testMode = isTestMode();
       
       const priceId = process.env.STRIPE_PRICE_ID;
