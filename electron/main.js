@@ -39,7 +39,6 @@ function createWindow() {
       sandbox: true,
       preload: path.join(__dirname, 'preload.js'),
     },
-    icon: path.join(__dirname, '../build/icon.ico'),
   });
 
   mainWindow.once('ready-to-show', () => {
@@ -57,7 +56,12 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../dist/public/index.html'));
+    const filePath = path.join(app.getAppPath(), 'dist', 'public', 'index.html');
+    console.log('Loading production file:', filePath);
+    mainWindow.loadFile(filePath).catch(err => {
+      console.error('Failed to load file:', err);
+      console.error('App path:', app.getAppPath());
+    });
   }
 
   mainWindow.on('closed', () => {
