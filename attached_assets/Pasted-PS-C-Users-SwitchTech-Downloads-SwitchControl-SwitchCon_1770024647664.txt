@@ -1,0 +1,84 @@
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> rd /s /q node_modules
+Remove-Item : A positional parameter cannot be found that accepts argument '/q'.
+At line:1 char:1
++ rd /s /q node_modules
++ ~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (:) [Remove-Item], ParameterBindingException
+    + FullyQualifiedErrorId : PositionalParameterNotFound,Microsoft.PowerShell.Commands.RemoveItemCommand
+
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> del package-lock.json
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm install
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   93 more (cmdk, embla-carousel-react, framer-motion, input-otp, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+added 2 packages, removed 3 packages, and audited 771 packages in 10s
+
+108 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> rest-express@1.0.0 electron:build
+> npm run build && electron-builder
+
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3118 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                      2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png   21.20 kB
+../dist/public/assets/icon-O7sJFqru.png      358.07 kB
+../dist/public/assets/index-BTJs8oxW.css     208.05 kB │ gzip:  28.24 kB
+../dist/public/assets/index-k0ZFh3qM.js      934.11 kB │ gzip: 282.07 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.72s
+building server...
+
+  dist\index.cjs  1.7mb ⚠️
+
+⚡ Done in 57ms
+  • electron-builder  version=26.6.0 os=10.0.26200
+  • loaded configuration  file=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron-builder.json
+  • writing effective config  file=release\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=40.1.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=40.1.0 appOutDir=release\win-unpacked
+  • downloading     url=https://github.com/electron/electron/releases/download/v40.1.0/electron-v40.1.0-win32-x64.zip size=138 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v40.1.0/electron-v40.1.0-win32-x64.zip duration=4.59s
+  • searching for node modules  pm=npm searchDir=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+(node:15008) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  • cannot find path for dependency  name=bufferutil reference=undefined
+
