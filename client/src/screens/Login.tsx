@@ -34,6 +34,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
     setIsLoading(provider);
     setTimeout(() => {
       localStorage.setItem(AUTH_TOKEN_KEY, "mock_token_" + Date.now());
+      window.location.hash = "#/dashboard";
       onLoginSuccess();
     }, 1200);
   };

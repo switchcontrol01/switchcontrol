@@ -78,6 +78,10 @@ contextBridge.exposeInMainWorld('switchControl', {
   },
 });
 
+contextBridge.exposeInMainWorld('sc', {
+  getSystemInfo: () => ipcRenderer.invoke('system:getInfo')
+});
+
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[SwitchControl Desktop] Preload initialized');
   console.log('[SwitchControl Desktop] Platform:', process.platform);

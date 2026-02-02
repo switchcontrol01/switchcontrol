@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,22 @@ import { useAuth } from "@/hooks/use-auth";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
+
+declare global {
+  interface Window {
+    sc?: {
+      getSystemInfo: () => Promise<{
+        platform: string;
+        arch: string;
+        hostname: string;
+        cpus: number;
+        totalMemory: number;
+        freeMemory: number;
+        uptime: number;
+      }>;
+    };
+  }
+}
 
 interface AIAdvisorCardProps {
   isPremium: boolean;
@@ -136,12 +152,27 @@ interface TelemetryData {
 }
 
 export default function Home() {
-  const { stats, account, clearRam, runAIScan, latestAIScan } = useStore();
+  const { stats, account, clearRam, runAIScan, latestAIScan, setStats } = useStore();
   const [scanning, setScanning] = useState(false);
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   useRevealOnScroll();
+  
+  useEffect(() => {
+    if (window.sc?.getSystemInfo) {
+      window.sc.getSystemInfo().then((info) => {
+        const totalGB = info.totalMemory / 1024 / 1024 / 1024;
+        const usedGB = (info.totalMemory - info.freeMemory) / 1024 / 1024 / 1024;
+        setStats({
+          totalRamGb: Math.round(totalGB),
+          usedRamGb: parseFloat(usedGB.toFixed(1)),
+          cpuCores: info.cpus,
+          cpuThreads: info.cpus * 2,
+        });
+      });
+    }
+  }, [setStats]);
   
   const handleTelemetryUpdate = useCallback((data: TelemetryData) => {
     setSsdData(data.ssds);
