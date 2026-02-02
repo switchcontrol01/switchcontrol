@@ -1,0 +1,72 @@
+[{
+	"resource": "/c:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/App.tsx",
+	"owner": "typescript",
+	"code": "7016",
+	"severity": 8,
+	"message": "Could not find a declaration file for module 'react'. 'c:/Users/SwitchTech/node_modules/react/index.js' implicitly has an 'any' type.\n  Try `npm i --save-dev @types/react` if it exists or add a new declaration (.d.ts) file containing `declare module 'react';`",
+	"source": "ts",
+	"startLineNumber": 4,
+	"startColumn": 37,
+	"endLineNumber": 4,
+	"endColumn": 44,
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/App.tsx",
+	"owner": "typescript",
+	"code": "2307",
+	"severity": 8,
+	"message": "Cannot find module '@tanstack/react-query' or its corresponding type declarations.",
+	"source": "ts",
+	"startLineNumber": 6,
+	"startColumn": 37,
+	"endLineNumber": 6,
+	"endColumn": 60,
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/App.tsx",
+	"owner": "typescript",
+	"code": "2741",
+	"severity": 8,
+	"message": "Property 'children' is missing in type '{}' but required in type '{ children: ReactNode; }'.",
+	"source": "ts",
+	"startLineNumber": 54,
+	"startColumn": 8,
+	"endLineNumber": 54,
+	"endColumn": 22,
+	"relatedInformation": [
+		{
+			"startLineNumber": 7,
+			"startColumn": 48,
+			"endLineNumber": 7,
+			"endColumn": 56,
+			"message": "'children' is declared here.",
+			"resource": "/c:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/motion.tsx"
+		}
+	],
+	"modelVersionId": 1,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/tsconfig.json",
+	"owner": "typescript",
+	"severity": 8,
+	"message": "Cannot find type definition file for 'node'.\n  The file is in the program because:\n    Entry point of type library 'node' specified in compilerOptions",
+	"source": "ts",
+	"startLineNumber": 1,
+	"startColumn": 1,
+	"endLineNumber": 1,
+	"endColumn": 2,
+	"origin": "extHost1"
+},{
+	"resource": "/c:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/tsconfig.json",
+	"owner": "typescript",
+	"severity": 8,
+	"message": "Cannot find type definition file for 'vite/client'.\n  The file is in the program because:\n    Entry point of type library 'vite/client' specified in compilerOptions",
+	"source": "ts",
+	"startLineNumber": 1,
+	"startColumn": 1,
+	"endLineNumber": 1,
+	"endColumn": 2,
+	"origin": "extHost1"
+}]
