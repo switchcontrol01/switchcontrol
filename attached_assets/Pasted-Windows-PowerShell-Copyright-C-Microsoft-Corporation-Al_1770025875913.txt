@@ -1,0 +1,107 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\Users\SwitchTech> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> switchcontrol@1.0.0 electron:build
+> npm run build && electron-builder
+
+
+> switchcontrol@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3118 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                      2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png   21.20 kB
+../dist/public/assets/icon-O7sJFqru.png      358.07 kB
+../dist/public/assets/index-BTJs8oxW.css     208.05 kB │ gzip:  28.24 kB
+../dist/public/assets/index-k0ZFh3qM.js      934.11 kB │ gzip: 282.07 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.90s
+building server...
+
+  dist\index.cjs  1.7mb ⚠️
+
+⚡ Done in 75ms
+  • electron-builder  version=26.6.0 os=10.0.26200
+  • loaded configuration  file=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron-builder.json
+  • description is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • author is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • writing effective config  file=release\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=40.1.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=40.1.0 appOutDir=release\win-unpacked
+  • searching for node modules  pm=npm searchDir=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+(node:16596) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  • cannot find path for dependency  name=bufferutil reference=undefined
+  • file source doesn't exist  from=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build
+  • updating asar integrity executable resource  executablePath=release\win-unpacked\SwitchControl.exe
+  • file source doesn't exist  from=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build
+  • default Electron icon is used  reason=application icon is not set
+  • signing with signtool.exe  path=release\win-unpacked\SwitchControl.exe
+  • building        target=nsis file=release\SwitchControl-Setup-1.0.0.exe archs=x64 oneClick=false perMachine=true
+  ⨯ cannot find specified resource "build/icon.ico", nor relative to "C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build", neither relative to project dir ("C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl")
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> switchcontrol@1.0.0 electron:build
+> npm run build && electron-builder
+
+
+> switchcontrol@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3118 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                      2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png   21.20 kB
+../dist/public/assets/icon-O7sJFqru.png      358.07 kB
+../dist/public/assets/index-BTJs8oxW.css     208.05 kB │ gzip:  28.24 kB
+../dist/public/assets/index-k0ZFh3qM.js      934.11 kB │ gzip: 282.07 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.74s
+building server...
+
+  dist\index.cjs  1.7mb ⚠️
+
+⚡ Done in 55ms
+  • electron-builder  version=26.6.0 os=10.0.26200
+  • loaded configuration  file=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron-builder.json
+  • description is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • author is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • writing effective config  file=release\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=40.1.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=40.1.0 appOutDir=release\win-unpacked
+  • searching for node modules  pm=npm searchDir=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+(node:5832) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  • cannot find path for dependency  name=bufferutil reference=undefined
+  • file source doesn't exist  from=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build
+  • updating asar integrity executable resource  executablePath=release\win-unpacked\SwitchControl.exe
+  • file source doesn't exist  from=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build
+  • default Electron icon is used  reason=application icon is not set
+  • signing with signtool.exe  path=release\win-unpacked\SwitchControl.exe
+  • building        target=nsis file=release\SwitchControl-Setup-1.0.0.exe archs=x64 oneClick=false perMachine=true
+  ⨯ cannot find specified resource "build/icon.ico", nor relative to "C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build", neither relative to project dir ("C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl")
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
