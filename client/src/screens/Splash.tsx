@@ -86,13 +86,11 @@ export default function Splash({ onComplete }: SplashProps) {
               }}
               transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              <div className="w-32 h-32 rounded-2xl bg-gradient-to-br from-primary via-purple-500 to-cyan-400 p-0.5">
-                <div className="w-full h-full rounded-2xl bg-[#0a0a0f] flex items-center justify-center">
-                  <span className="text-5xl font-bold bg-gradient-to-r from-primary via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                    SC
-                  </span>
-                </div>
-              </div>
+              <img
+                src="/logo.png"
+                alt="SwitchControl"
+                className="w-32 h-32 object-contain"
+              />
             </motion.div>
 
             <motion.h1 

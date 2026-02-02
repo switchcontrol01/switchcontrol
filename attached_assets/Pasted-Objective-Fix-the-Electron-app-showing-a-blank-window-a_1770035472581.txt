@@ -1,0 +1,137 @@
+Objective
+Fix the Electron app showing a blank window and ensure the provided logo image is used consistently in:
+Splash screen
+Login screen
+Installer
+App icon
+No placeholder text logos. No generated graphics. No gradients replacing the logo.
+1️⃣ ROOT CAUSE FIX — BLANK SCREEN
+Problem
+The Electron window opens but shows nothing because:
+The app is loading correctly
+BUT the UI renders no visible content due to missing logo references and routing finishing before UI mounts
+Required Fix
+Ensure Splash always renders visible content
+Ensure hash routing is respected
+Ensure assets load from /public
+2️⃣ SINGLE SOURCE OF TRUTH — LOGO
+HARD RULE
+The uploaded logo image is the only source of truth.
+❌ Do NOT generate replacement logos
+❌ Do NOT use text (“SC”, gradients, SVG text)
+❌ Do NOT recolor or stylize the logo
+✅ Use the image exactly as provided
+File name (must be exact):
+Copy code
+
+logo.png
+3️⃣ FILE SYSTEM REQUIREMENT
+Ensure this file exists:
+Copy code
+
+client/public/logo.png
+If it does not exist, copy the uploaded image there without modification.
+4️⃣ SPLASH SCREEN — FULL REPLACEMENT
+FILE TO REPLACE (FULL CONTENTS)
+Copy code
+
+client/src/screens/Splash.tsx
+REQUIREMENTS
+Must always render
+Must never be empty
+Must show the logo image
+Must include subtle topographic background
+Animation duration ≈ 1.1 seconds total
+Fade in → slight scale → fade out
+NO routing logic inside Splash
+REQUIRED IMPLEMENTATION RULES
+Use <img src="/logo.png" />
+Centered
+object-contain
+Visible even if CSS fails
+NON-NEGOTIABLE
+If the image is not visible, the implementation is wrong.
+5️⃣ LOGIN SCREEN — LOGO FIX ONLY
+FILE TO UPDATE
+Copy code
+
+client/src/screens/Login.tsx
+REQUIREMENTS
+Replace any text or gradient logo with the image
+Use the same /logo.png
+Size ~80px
+Do NOT change login logic
+Do NOT change hash navigation
+REQUIRED SNIPPET
+Copy code
+Tsx
+<img
+  src="/logo.png"
+  alt="SwitchControl"
+  className="w-20 h-20 object-contain"
+/>
+6️⃣ APP ENTRY — BLANK SCREEN SAFETY
+FILE TO VERIFY / FIX
+Copy code
+
+client/src/App.tsx
+HARD RULES
+App must always render something
+First render must be Splash
+Hash routing only
+No conditional render that can return null
+REQUIRED FLOW
+Copy code
+
+App
+ └─ BootGate
+     ├─ Splash (always visible)
+     └─ Login OR Dashboard
+IMPORTANT
+Do NOT use window.location.href
+Use window.location.hash only
+Splash must render even if auth fails
+7️⃣ ELECTRON ICON + INSTALLER (DO NOT BREAK)
+CONFIRM THESE FILES EXIST
+Copy code
+
+build/icon.ico
+build/icon.png
+build/installer/installer-sidebar.bmp
+build/installer/installer-header.bmp
+RULE
+These must be generated from the same logo.png, not replacements.
+8️⃣ ELECTRON WINDOW — ENSURE VISIBILITY
+FILE TO VERIFY
+Copy code
+
+electron/main.js
+REQUIREMENTS
+show: false → ready-to-show → show()
+Background color set (not transparent)
+Frameless is OK, but must be draggable
+If the window opens blank, log errors to console.
+9️⃣ FINAL VERIFICATION CHECKLIST (MUST PASS)
+Replit must confirm ALL of these:
+✅ Splash shows logo image (not text)
+✅ Splash background visible
+✅ Splash lasts ~1.1s
+✅ Login screen shows logo image
+✅ No blank white or black screen
+✅ Hash routing works (#/login, #/dashboard)
+✅ Installer icon matches logo
+✅ Taskbar icon matches logo
+✅ App never shows website landing page
+10️⃣ OUTPUT FORMAT REQUIRED FROM REPLIT
+Replit must respond with ONLY:
+Files replaced (full contents)
+Files updated (full contents)
+Confirmation that logo.png is referenced
+Confirmation that blank screen is resolved
+No explanations. No summaries. No assumptions.
+⚠️ FINAL NOTE (IMPORTANT)
+If the app is still blank after this:
+It is not an Electron issue
+It is not a Vite issue
+It is a render path returning nothing
+This script removes all ambiguity and forces visibility.

@@ -63,13 +63,11 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       >
         <div className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           <div className="flex flex-col items-center gap-6 mb-8">
-            <div className="w-20 h-20 rounded-xl bg-gradient-to-br from-primary via-purple-500 to-cyan-400 p-0.5">
-              <div className="w-full h-full rounded-xl bg-[#0a0a0f] flex items-center justify-center">
-                <span className="text-3xl font-bold bg-gradient-to-r from-primary via-purple-400 to-cyan-400 bg-clip-text text-transparent">
-                  SC
-                </span>
-              </div>
-            </div>
+            <img
+              src="/logo.png"
+              alt="SwitchControl"
+              className="w-20 h-20 object-contain"
+            />
             <div className="text-center">
               <h1 className="text-2xl font-bold text-white mb-2">Welcome to SwitchControl</h1>
               <p className="text-muted-foreground text-sm">Sign in to optimize your gaming experience</p>
