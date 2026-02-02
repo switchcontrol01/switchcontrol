@@ -8,6 +8,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
+import { WindowControls } from "@/components/WindowControls";
 
 const TOKEN_KEY = "sc_auth_token_v1";
 
@@ -27,7 +28,7 @@ function AppContent() {
     setTimeout(() => {
       setScreen(authed ? "dashboard" : "login");
       window.location.hash = authed ? "#/dashboard" : "#/login";
-    }, 600);
+    }, 1100);
   }, []);
 
   if (screen === "splash") {
@@ -53,7 +54,12 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <MotionProvider>
         <TooltipProvider>
-          <AppContent />
+          <div className="relative min-h-screen" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+            <WindowControls />
+            <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+              <AppContent />
+            </div>
+          </div>
           <Toaster />
           <PremiumUnlockAnimation />
         </TooltipProvider>

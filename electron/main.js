@@ -30,8 +30,10 @@ function createWindow() {
     height: 900,
     minWidth: 1280,
     minHeight: 720,
-    backgroundColor: '#0f0f14',
+    backgroundColor: '#0a0a0f',
     show: false,
+    frame: false,
+    titleBarStyle: 'hidden',
     autoHideMenuBar: true,
     webPreferences: {
       nodeIntegration: false,
@@ -57,11 +59,7 @@ function createWindow() {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     const filePath = path.join(app.getAppPath(), 'dist', 'public', 'index.html');
-    console.log('Loading production file:', filePath);
-    mainWindow.loadFile(filePath).catch(err => {
-      console.error('Failed to load file:', err);
-      console.error('App path:', app.getAppPath());
-    });
+    mainWindow.loadFile(filePath);
   }
 
   mainWindow.on('closed', () => {
@@ -93,6 +91,24 @@ function setupIPC() {
       return true;
     }
     return false;
+  });
+
+  ipcMain.handle('window:minimize', () => {
+    if (mainWindow) mainWindow.minimize();
+  });
+
+  ipcMain.handle('window:maximize', () => {
+    if (mainWindow) {
+      if (mainWindow.isMaximized()) {
+        mainWindow.unmaximize();
+      } else {
+        mainWindow.maximize();
+      }
+    }
+  });
+
+  ipcMain.handle('window:close', () => {
+    if (mainWindow) mainWindow.close();
   });
 }
 

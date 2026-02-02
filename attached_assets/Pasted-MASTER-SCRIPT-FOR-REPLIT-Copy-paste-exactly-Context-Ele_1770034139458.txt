@@ -1,0 +1,331 @@
+MASTER SCRIPT FOR REPLIT
+
+(Copy paste exactly)
+
+Context
+
+Electron build already works
+
+Installer opens correctly
+
+Splash animation works
+
+Do not regress anything
+
+Changes are polish only
+
+
+
+---
+
+OBJECTIVES (ALL REQUIRED)
+
+1. Add installer images (from provided logo image)
+
+
+2. Keep splash animation visually identical
+
+
+3. Slightly extend splash duration only
+
+
+4. Add subtle topographic contour background to splash
+
+
+5. Remove Electron window header/title bar
+
+
+6. Do NOT touch routing, auth, or backend
+
+
+7. Ensure ZIP download works out of the box on Windows
+
+
+
+
+---
+
+A) INSTALLER IMAGE (NSIS)
+
+Files to add
+
+Create folder if missing:
+
+build/installer/
+
+Add these files (generated from the provided crown logo image):
+
+build/installer/installer-sidebar.bmp
+build/installer/installer-header.bmp
+
+Rules
+
+Must be BMP format
+
+Sidebar image: left panel of installer
+
+Header image: top banner
+
+Use the provided crown logo image as source
+
+Do NOT upscale aggressively
+
+Dark background, centered logo, premium look
+
+
+Recommended sizes:
+
+Sidebar: 164 × 314
+
+Header: 150 × 57
+
+
+
+---
+
+Update electron-builder.json
+
+In the nsis section, ensure it contains all of this:
+
+"nsis": {
+  "oneClick": false,
+  "perMachine": true,
+  "allowToChangeInstallationDirectory": true,
+  "createDesktopShortcut": true,
+  "createStartMenuShortcut": true,
+  "shortcutName": "SwitchControl",
+  "installerIcon": "build/icon.ico",
+  "uninstallerIcon": "build/icon.ico",
+  "installerHeaderIcon": "build/icon.ico",
+  "installerSidebar": "build/installer/installer-sidebar.bmp",
+  "installerHeader": "build/installer/installer-header.bmp"
+}
+
+Confirm installer uses the images during electron:build.
+
+
+---
+
+B) SPLASH ANIMATION (KEEP VISUALS IDENTICAL)
+
+File
+
+client/src/screens/Splash.tsx
+
+HARD RULES
+
+Do NOT change logo
+
+Do NOT change animation transforms
+
+Do NOT change easing
+
+Do NOT change colors
+
+Do NOT refactor component
+
+
+
+---
+
+Change ONLY timing values
+
+Before
+
+setTimeout(() => setPhase("fadeout"), 400);
+setTimeout(onComplete, 600);
+
+After
+
+setTimeout(() => setPhase("fadeout"), 700);
+setTimeout(onComplete, 1100);
+
+Effect:
+
+Animation feels more premium
+
+No layout or motion change
+
+Still fast startup
+
+
+
+---
+
+C) ADD TOPOGRAPHIC CONTOUR BACKGROUND (SUBTLE)
+
+File
+
+client/src/screens/Splash.tsx
+
+Rules
+
+Background only
+
+Static (no animation)
+
+Extremely subtle
+
+Must not distract from logo
+
+GPU-cheap (CSS only)
+
+
+
+---
+
+Add background layer behind logo
+
+Add this inside the root splash container, behind content:
+
+<div className="absolute inset-0 pointer-events-none opacity-[0.08]">
+  <div
+    className="w-full h-full"
+    style={{
+      backgroundImage: `
+        repeating-radial-gradient(
+          circle at center,
+          rgba(255,255,255,0.08) 0px,
+          rgba(255,255,255,0.08) 1px,
+          transparent 1px,
+          transparent 14px
+        )
+      `
+    }}
+  />
+</div>
+
+Result:
+
+Topographic contour lines
+
+Visible only on dark background
+
+Premium depth
+
+Zero performance hit
+
+
+
+---
+
+D) REMOVE ELECTRON WINDOW HEADER / TITLE BAR
+
+File
+
+electron/main.js
+
+Change BrowserWindow config
+
+Before
+
+frame: true,
+
+After
+
+frame: false,
+titleBarStyle: 'hidden',
+
+
+---
+
+Make window draggable
+
+Add draggable region to the top-level app container in the renderer:
+
+-webkit-app-region: drag;
+
+For buttons and interactive elements inside it:
+
+-webkit-app-region: no-drag;
+
+Result:
+
+No Windows title bar
+
+Clean frameless window
+
+Still movable
+
+Matches image provided
+
+
+
+---
+
+E) DO NOT TOUCH (CRITICAL)
+
+Explicitly do NOT modify:
+
+App.tsx routing
+
+Hash routing
+
+Auth logic
+
+Electron IPC
+
+Build scripts
+
+Splash logo asset
+
+Sidebar logic
+
+Any backend files
+
+
+
+---
+
+F) FINAL VERIFICATION (MUST PASS)
+
+Replit must confirm all of these:
+
+npm install works
+
+npm run build passes
+
+npm run electron:dev opens app
+
+Splash lasts ~1.1s
+
+Splash visuals unchanged except duration + background
+
+Topographic contours visible but subtle
+
+No title bar visible
+
+Window draggable
+
+Installer shows custom images
+
+Installed app icon correct
+
+ZIP download works on fresh Windows machine
+
+
+
+---
+
+Final mentor note
+
+This is exactly the right polish layer:
+
+Longer splash = perceived quality
+
+Topography = visual identity
+
+Frameless window = real desktop app
+
+Installer branding = legitimacy
+
+
+You stopped before gimmicks. That’s how serious software looks.
+
+If you want next:
+
+Frameless window snap zones
+
+GPU-safe glow pulse
+
+First-launch cache warmup

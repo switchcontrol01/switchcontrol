@@ -3,11 +3,18 @@
   "productName": "SwitchControl",
   "copyright": "Copyright © 2024 SwitchControl",
   "directories": {
-    "output": "release"
+    "output": "release",
+    "buildResources": "build"
   },
   "files": [
     "dist/public/**/*",
     "electron/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "build/",
+      "to": "build/"
+    }
   ],
   "asar": true,
   "win": {
@@ -17,6 +24,7 @@
         "arch": ["x64"]
       }
     ],
+    "icon": "build/icon.ico",
     "artifactName": "SwitchControl-Setup-${version}.${ext}"
   },
   "nsis": {
@@ -25,7 +33,12 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": true,
     "createStartMenuShortcut": true,
-    "shortcutName": "SwitchControl"
+    "shortcutName": "SwitchControl",
+    "installerIcon": "build/icon.ico",
+    "uninstallerIcon": "build/icon.ico",
+    "installerHeaderIcon": "build/icon.ico",
+    "installerSidebar": "build/installer/installer-sidebar.bmp",
+    "installerHeader": "build/installer/installer-header.bmp"
   },
   "protocols": [
     {

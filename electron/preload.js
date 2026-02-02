@@ -12,6 +12,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     openExternal: (url) => ipcRenderer.invoke('system:openExternal', url),
   },
   
+  window: {
+    minimize: () => ipcRenderer.invoke('window:minimize'),
+    maximize: () => ipcRenderer.invoke('window:maximize'),
+    close: () => ipcRenderer.invoke('window:close'),
+  },
+  
   onAuthCallback: (callback) => {
     ipcRenderer.on('auth-callback', (event, data) => callback(data));
   },

@@ -11,11 +11,11 @@ export default function Splash({ onComplete }: SplashProps) {
   useEffect(() => {
     const logoTimer = setTimeout(() => {
       setPhase("fadeout");
-    }, 400);
+    }, 700);
 
     const completeTimer = setTimeout(() => {
       onComplete();
-    }, 600);
+    }, 1100);
 
     return () => {
       clearTimeout(logoTimer);
@@ -24,7 +24,24 @@ export default function Splash({ onComplete }: SplashProps) {
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
+    <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
+      <div className="absolute inset-0 pointer-events-none opacity-[0.08]">
+        <div
+          className="w-full h-full"
+          style={{
+            backgroundImage: `
+              repeating-radial-gradient(
+                circle at center,
+                rgba(255,255,255,0.08) 0px,
+                rgba(255,255,255,0.08) 1px,
+                transparent 1px,
+                transparent 14px
+              )
+            `
+          }}
+        />
+      </div>
+
       <div className="absolute inset-0 opacity-30">
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
