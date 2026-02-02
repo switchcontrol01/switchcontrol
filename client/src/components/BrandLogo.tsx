@@ -1,4 +1,3 @@
-import { Link } from 'wouter';
 import { brand } from '@/config/brand';
 import { cn } from '@/lib/utils';
 
@@ -37,10 +36,17 @@ export function BrandLogo({
   showWordmark = true, 
   size = 'md',
   className,
-  linkTo = '/',
+  linkTo = '#/dashboard',
   animate = true
 }: BrandLogoProps) {
   const config = sizeConfig[size];
+  
+  const handleClick = (e: React.MouseEvent) => {
+    if (linkTo.startsWith('#')) {
+      e.preventDefault();
+      window.location.hash = linkTo.replace(/^#/, '');
+    }
+  };
   
   const content = (
     <div className={cn(
@@ -80,13 +86,14 @@ export function BrandLogo({
 
   if (linkTo) {
     return (
-      <Link 
-        href={linkTo} 
+      <a 
+        href={linkTo}
+        onClick={handleClick}
         className="flex items-center py-1"
         data-testid="link-brand-logo"
       >
         {content}
-      </Link>
+      </a>
     );
   }
 

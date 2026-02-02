@@ -1,12 +1,11 @@
-import { Switch, Route, useLocation, Redirect } from "wouter";
+import { useState, useEffect, useCallback } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { MotionProvider, AnimatePresence, motion, pageTransition, useMotion } from "@/lib/motion";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import NotFound from "@/pages/not-found";
-import Landing from "@/pages/Landing";
+import { MotionProvider } from "@/lib/motion";
+import Splash from "@/screens/Splash";
+import Login from "@/screens/Login";
 import Dashboard from "@/pages/Home";
 import Tweaks from "@/pages/Tweaks";
 import History from "@/pages/History";
@@ -18,226 +17,119 @@ import Debloater from "@/pages/Debloater";
 import StartupApps from "@/pages/StartupApps";
 import FocusMode from "@/pages/FocusMode";
 import AppBooster from "@/pages/AppBooster";
-import Login from "@/pages/Login";
-import Pricing from "@/pages/Pricing";
-import Terms from "@/pages/Terms";
-import Privacy from "@/pages/Privacy";
-import Download from "@/pages/Download";
-import PremiumSuccess from "@/pages/PremiumSuccess";
-import Success from "@/pages/Success";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import Security from "@/pages/Security";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
-import BootGate from "@/screens/BootGate";
 
-const isElectron = typeof window !== "undefined" && 
-  !!(window as any).process?.versions?.electron;
+const AUTH_TOKEN_KEY = "sc_auth_token_v1";
 
-function AnimatedRoute({ children }: { children: React.ReactNode }) {
-  const { prefersReducedMotion } = useMotion();
-  const [location] = useLocation();
-  
-  if (prefersReducedMotion) {
-    return <>{children}</>;
+function isAuthenticated(): boolean {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  return !!token && token.length > 10;
+}
+
+function getHashRoute(): string {
+  const hash = window.location.hash;
+  if (!hash || hash === "#" || hash === "#/") {
+    return "/";
   }
-  
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location}
-        variants={pageTransition}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        className="w-full"
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
-  );
+  return hash.replace(/^#/, "");
 }
 
-function ElectronAppRoutes() {
-  return (
-    <AnimatedRoute>
-      <Switch>
-        <Route path="/app">
-          <Dashboard />
-        </Route>
-        <Route path="/app/tweaks">
-          <Tweaks />
-        </Route>
-        <Route path="/app/history">
-          <History />
-        </Route>
-        <Route path="/app/settings">
-          <Settings />
-        </Route>
-        <Route path="/app/power-plan">
-          <PowerPlan />
-        </Route>
-        <Route path="/app/network">
-          <NetworkTweaks />
-        </Route>
-        <Route path="/app/app-booster">
-          <AppBooster />
-        </Route>
-        <Route path="/app/focus">
-          <FocusMode />
-        </Route>
-        <Route path="/app/cleaner">
-          <SystemCleaner />
-        </Route>
-        <Route path="/app/debloat">
-          <Debloater />
-        </Route>
-        <Route path="/app/startup">
-          <StartupApps />
-        </Route>
-        <Route path="/app/bios-advisor">
-          <BiosAdvisor />
-        </Route>
-        <Route path="/app/security">
-          <Security />
-        </Route>
-        <Route>
-          <Redirect to="/app" />
-        </Route>
-      </Switch>
-    </AnimatedRoute>
-  );
+function navigateHash(path: string): void {
+  window.location.hash = path;
 }
 
-function WebRouter() {
-  return (
-    <AnimatedRoute>
-      <Switch>
-        <Route path="/" component={Landing} />
-        <Route path="/login" component={Login} />
-        <Route path="/pricing" component={Pricing} />
-        <Route path="/terms" component={Terms} />
-        <Route path="/privacy" component={Privacy} />
-        <Route path="/success" component={Success} />
-        
-        <Route path="/premium/success">
-          <ProtectedRoute>
-            <PremiumSuccess />
-          </ProtectedRoute>
-        </Route>
-        
-        <Route path="/download">
-          <ProtectedRoute>
-            <Download />
-          </ProtectedRoute>
-        </Route>
-        
-        <Route path="/app">
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/tweaks">
-          <ProtectedRoute>
-            <Tweaks />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/history">
-          <ProtectedRoute>
-            <History />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/settings">
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/power-plan">
-          <ProtectedRoute>
-            <PowerPlan />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/network">
-          <ProtectedRoute>
-            <NetworkTweaks />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/app-booster">
-          <ProtectedRoute>
-            <AppBooster />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/focus">
-          <ProtectedRoute>
-            <FocusMode />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/cleaner">
-          <ProtectedRoute>
-            <SystemCleaner />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/debloat">
-          <ProtectedRoute>
-            <Debloater />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/startup">
-          <ProtectedRoute>
-            <StartupApps />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/bios-advisor">
-          <ProtectedRoute>
-            <BiosAdvisor />
-          </ProtectedRoute>
-        </Route>
-        <Route path="/app/security">
-          <ProtectedRoute>
-            <Security />
-          </ProtectedRoute>
-        </Route>
-        
-        <Route path="/dashboard">
-          {() => {
-            window.location.href = '/app';
-            return null;
-          }}
-        </Route>
-        <Route path="/tweaks">
-          {() => {
-            window.location.href = '/app/tweaks';
-            return null;
-          }}
-        </Route>
-        
-        <Route component={NotFound} />
-      </Switch>
-    </AnimatedRoute>
-  );
+type BootPhase = "splash" | "login" | "dashboard";
+
+function BootGate() {
+  const [phase, setPhase] = useState<BootPhase>("splash");
+
+  const handleSplashComplete = useCallback(() => {
+    if (isAuthenticated()) {
+      setPhase("dashboard");
+      navigateHash("/dashboard");
+    } else {
+      setPhase("login");
+      navigateHash("/login");
+    }
+  }, []);
+
+  const handleLoginSuccess = useCallback(() => {
+    setPhase("dashboard");
+    navigateHash("/dashboard");
+  }, []);
+
+  if (phase === "splash") {
+    return <Splash onComplete={handleSplashComplete} />;
+  }
+
+  if (phase === "login") {
+    return <Login onLoginSuccess={handleLoginSuccess} />;
+  }
+
+  return <AppRouter />;
+}
+
+function AppRouter() {
+  const [route, setRoute] = useState(getHashRoute());
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setRoute(getHashRoute());
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigateHash("/login");
+      window.location.reload();
+    }
+  }, []);
+
+  switch (route) {
+    case "/":
+    case "/dashboard":
+      return <Dashboard />;
+    case "/tweaks":
+      return <Tweaks />;
+    case "/history":
+      return <History />;
+    case "/settings":
+      return <Settings />;
+    case "/power-plan":
+      return <PowerPlan />;
+    case "/network":
+      return <NetworkTweaks />;
+    case "/app-booster":
+      return <AppBooster />;
+    case "/focus":
+      return <FocusMode />;
+    case "/cleaner":
+      return <SystemCleaner />;
+    case "/debloat":
+      return <Debloater />;
+    case "/startup":
+      return <StartupApps />;
+    case "/bios-advisor":
+      return <BiosAdvisor />;
+    case "/security":
+      return <Security />;
+    default:
+      navigateHash("/dashboard");
+      return <Dashboard />;
+  }
 }
 
 function App() {
-  if (isElectron) {
-    return (
-      <QueryClientProvider client={queryClient}>
-        <MotionProvider>
-          <TooltipProvider>
-            <BootGate>
-              <ElectronAppRoutes />
-            </BootGate>
-            <Toaster />
-            <PremiumUnlockAnimation />
-          </TooltipProvider>
-        </MotionProvider>
-      </QueryClientProvider>
-    );
-  }
-
   return (
     <QueryClientProvider client={queryClient}>
       <MotionProvider>
         <TooltipProvider>
-          <WebRouter />
+          <BootGate />
           <Toaster />
           <PremiumUnlockAnimation />
         </TooltipProvider>

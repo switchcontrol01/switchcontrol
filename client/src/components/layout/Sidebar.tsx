@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -40,6 +40,27 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
+function getHashRoute(): string {
+  const hash = window.location.hash;
+  if (!hash || hash === "#" || hash === "#/") {
+    return "/dashboard";
+  }
+  return hash.replace(/^#/, "");
+}
+
+function HashLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
+  const handleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    window.location.hash = href;
+  };
+  
+  return (
+    <a href={`#${href}`} onClick={handleClick} className={className}>
+      {children}
+    </a>
+  );
+}
+
 interface NavItem {
   label: string;
   icon: React.ElementType;
@@ -49,25 +70,33 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/app" },
-  { label: "Tweaks", icon: Settings, href: "/app/tweaks" },
-  { label: "Power Plan", icon: Zap, href: "/app/power-plan", isPremium: true },
-  { label: "App Booster", icon: Rocket, href: "/app/app-booster" },
-  { label: "Focus Mode", icon: Moon, href: "/app/focus" },
-  { label: "Network Tweaks", icon: Wifi, href: "/app/network", isPremium: true },
-  { label: "Cleaner", icon: Trash2, href: "/app/cleaner" },
-  { label: "Debloat", icon: ShieldCheck, href: "/app/debloat" },
-  { label: "Startup", icon: List, href: "/app/startup" },
-  { label: "BIOS Advisor", icon: Cpu, href: "/app/bios-advisor", isPremium: true },
-  { label: "Security", icon: Shield, href: "/app/security" },
-  { label: "Settings", icon: Settings, href: "/app/settings" },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
+  { label: "Tweaks", icon: Settings, href: "/tweaks" },
+  { label: "Power Plan", icon: Zap, href: "/power-plan", isPremium: true },
+  { label: "App Booster", icon: Rocket, href: "/app-booster" },
+  { label: "Focus Mode", icon: Moon, href: "/focus" },
+  { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true },
+  { label: "Cleaner", icon: Trash2, href: "/cleaner" },
+  { label: "Debloat", icon: ShieldCheck, href: "/debloat" },
+  { label: "Startup", icon: List, href: "/startup" },
+  { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true },
+  { label: "Security", icon: Shield, href: "/security" },
+  { label: "Settings", icon: Settings, href: "/settings" },
 ];
 
 export function Sidebar() {
-  const [location] = useLocation();
+  const [location, setLocation] = useState(getHashRoute());
   const { prefersReducedMotion, hasLoaded } = useMotion();
   const { user, isPremium } = useAuth();
   const shouldAnimate = !prefersReducedMotion;
+  
+  useEffect(() => {
+    const handleHashChange = () => {
+      setLocation(getHashRoute());
+    };
+    window.addEventListener("hashchange", handleHashChange);
+    return () => window.removeEventListener("hashchange", handleHashChange);
+  }, []);
   
   const userName = user?.firstName || user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
   const userInitials = userName.slice(0, 2).toUpperCase();
@@ -85,7 +114,7 @@ export function Sidebar() {
       {...sidebarProps}
     >
       <div className="p-6">
-        <BrandLogo size="lg" linkTo="/app" />
+        <BrandLogo size="lg" linkTo="#/dashboard" />
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
@@ -101,7 +130,7 @@ export function Sidebar() {
               transition={shouldAnimate ? { delay: index * 0.03, duration: 0.3 } : undefined}
               whileHover={shouldAnimate ? { x: 4 } : undefined}
             >
-              <Link
+              <HashLink
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden",
@@ -133,7 +162,7 @@ export function Sidebar() {
                 {item.isPremium && (
                   <Crown className="size-3.5 text-[hsl(270,60%,55%)] z-10 shrink-0" />
                 )}
-              </Link>
+              </HashLink>
             </NavItem>
           );
         })}
