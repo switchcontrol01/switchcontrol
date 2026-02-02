@@ -13,7 +13,6 @@ import History from "@/pages/History";
 import Settings from "@/pages/Settings";
 import PowerPlan from "@/pages/PowerPlan";
 import NetworkTweaks from "@/pages/NetworkTweaks";
-import Placeholder from "@/pages/Placeholder";
 import SystemCleaner from "@/pages/SystemCleaner";
 import Debloater from "@/pages/Debloater";
 import StartupApps from "@/pages/StartupApps";
@@ -29,18 +28,10 @@ import Success from "@/pages/Success";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import Security from "@/pages/Security";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
-
-import ElectronLogin from "@/screens/Login";
+import BootGate from "@/screens/BootGate";
 
 const isElectron = typeof window !== "undefined" && 
   !!(window as any).process?.versions?.electron;
-
-const AUTH_TOKEN_KEY = "sc_auth_token_v1";
-
-function isAuthenticated(): boolean {
-  const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  return !!token && token.startsWith("mock_token_");
-}
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -66,29 +57,10 @@ function AnimatedRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-function ElectronRouter() {
-  const [location, setLocation] = useLocation();
-  const authenticated = isAuthenticated();
-
-  if (!authenticated && location !== "/login") {
-    return <Redirect to="/login" />;
-  }
-
-  if (authenticated && location === "/login") {
-    return <Redirect to="/app" />;
-  }
-
+function ElectronAppRoutes() {
   return (
     <AnimatedRoute>
       <Switch>
-        <Route path="/login">
-          <ElectronLogin onLoginSuccess={() => setLocation("/app")} />
-        </Route>
-        
-        <Route path="/">
-          <Redirect to={authenticated ? "/app" : "/login"} />
-        </Route>
-        
         <Route path="/app">
           <Dashboard />
         </Route>
@@ -128,9 +100,8 @@ function ElectronRouter() {
         <Route path="/app/security">
           <Security />
         </Route>
-        
         <Route>
-          <Redirect to={authenticated ? "/app" : "/login"} />
+          <Redirect to="/app" />
         </Route>
       </Switch>
     </AnimatedRoute>
@@ -246,11 +217,27 @@ function WebRouter() {
 }
 
 function App() {
+  if (isElectron) {
+    return (
+      <QueryClientProvider client={queryClient}>
+        <MotionProvider>
+          <TooltipProvider>
+            <BootGate>
+              <ElectronAppRoutes />
+            </BootGate>
+            <Toaster />
+            <PremiumUnlockAnimation />
+          </TooltipProvider>
+        </MotionProvider>
+      </QueryClientProvider>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <MotionProvider>
         <TooltipProvider>
-          {isElectron ? <ElectronRouter /> : <WebRouter />}
+          <WebRouter />
           <Toaster />
           <PremiumUnlockAnimation />
         </TooltipProvider>

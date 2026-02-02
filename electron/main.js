@@ -3,15 +3,12 @@ const path = require('path');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 
-// Security: Block dangerous shortcuts in production
 function registerProductionShortcuts() {
   if (isDev) return;
 
-  // Block DevTools shortcuts
   globalShortcut.register('CommandOrControl+Shift+I', () => {});
   globalShortcut.register('F12', () => {});
   
-  // Block zoom shortcuts
   globalShortcut.register('CommandOrControl+Plus', () => {});
   globalShortcut.register('CommandOrControl+=', () => {});
   globalShortcut.register('CommandOrControl+-', () => {});
@@ -19,7 +16,6 @@ function registerProductionShortcuts() {
   globalShortcut.register('CommandOrControl+numadd', () => {});
   globalShortcut.register('CommandOrControl+numsub', () => {});
   
-  // Block refresh shortcuts
   globalShortcut.register('CommandOrControl+R', () => {});
   globalShortcut.register('F5', () => {});
   globalShortcut.register('CommandOrControl+Shift+R', () => {});
@@ -171,136 +167,6 @@ function setupIPC() {
     }
     return false;
   });
-
-  // Security IPC handlers - Windows Defender integration
-  ipcMain.handle('security:getStatus', async () => {
-    const { exec } = require('child_process');
-    return new Promise((resolve) => {
-      exec('powershell -Command "Get-MpComputerStatus | ConvertTo-Json"', (error, stdout) => {
-        if (error) {
-          resolve({ success: false, error: error.message });
-          return;
-        }
-        try {
-          const data = JSON.parse(stdout);
-          resolve({
-            success: true,
-            data: {
-              realTimeProtection: data.RealTimeProtectionEnabled,
-              tamperProtection: data.IsTamperProtected,
-              lastScanTime: data.QuickScanEndTime || 'Never',
-              engineVersion: data.AMEngineVersion,
-              signatureVersion: data.AntivirusSignatureVersion,
-              lastUpdated: data.AntivirusSignatureLastUpdated
-            }
-          });
-        } catch (e) {
-          resolve({ success: false, error: 'Failed to parse Defender status' });
-        }
-      });
-    });
-  });
-
-  ipcMain.handle('security:startQuickScan', async () => {
-    const { exec } = require('child_process');
-    return new Promise((resolve) => {
-      exec('powershell -Command "Start-MpScan -ScanType QuickScan"', (error) => {
-        if (error) {
-          resolve({ success: false, error: error.message });
-        } else {
-          resolve({ success: true });
-        }
-      });
-    });
-  });
-
-  ipcMain.handle('security:startFullScan', async () => {
-    const { exec } = require('child_process');
-    return new Promise((resolve) => {
-      exec('powershell -Command "Start-MpScan -ScanType FullScan"', (error) => {
-        if (error) {
-          resolve({ success: false, error: error.message });
-        } else {
-          resolve({ success: true });
-        }
-      });
-    });
-  });
-
-  ipcMain.handle('security:getThreats', async () => {
-    const { exec } = require('child_process');
-    return new Promise((resolve) => {
-      exec('powershell -Command "Get-MpThreat | ConvertTo-Json"', (error, stdout) => {
-        if (error) {
-          resolve({ success: true, data: [] });
-          return;
-        }
-        try {
-          const threats = stdout.trim() ? JSON.parse(stdout) : [];
-          const threatArray = Array.isArray(threats) ? threats : [threats];
-          const mapped = threatArray.map((t) => ({
-            id: String(t.ThreatID),
-            name: t.ThreatName || 'Unknown Threat',
-            severity: t.SeverityID >= 5 ? 'Severe' : t.SeverityID >= 4 ? 'High' : t.SeverityID >= 3 ? 'Medium' : 'Low',
-            category: t.CategoryID || 'Unknown',
-            status: t.ThreatStatusID === 0 ? 'Active' : 'Resolved',
-            filePath: t.Resources?.[0] || undefined
-          }));
-          resolve({ success: true, data: mapped });
-        } catch (e) {
-          resolve({ success: true, data: [] });
-        }
-      });
-    });
-  });
-
-  ipcMain.handle('security:quarantineThreat', async (event, threatId) => {
-    const { execFile } = require('child_process');
-    const sanitizedId = String(threatId).replace(/[^0-9]/g, '');
-    if (!sanitizedId) {
-      return { success: false, error: 'Invalid threat ID' };
-    }
-    return new Promise((resolve) => {
-      execFile('powershell', ['-Command', `Remove-MpThreat -ThreatID ${sanitizedId}`], (error) => {
-        resolve({ success: !error, error: error?.message });
-      });
-    });
-  });
-
-  ipcMain.handle('security:removeThreat', async (event, threatId) => {
-    const { execFile } = require('child_process');
-    const sanitizedId = String(threatId).replace(/[^0-9]/g, '');
-    if (!sanitizedId) {
-      return { success: false, error: 'Invalid threat ID' };
-    }
-    return new Promise((resolve) => {
-      execFile('powershell', ['-Command', `Remove-MpThreat -ThreatID ${sanitizedId} -Force`], (error) => {
-        resolve({ success: !error, error: error?.message });
-      });
-    });
-  });
-
-  ipcMain.handle('security:allowThreat', async (event, threatId, filePath) => {
-    const { execFile } = require('child_process');
-    if (!filePath || typeof filePath !== 'string') {
-      return { success: false, error: 'File path required for exclusion' };
-    }
-    const sanitizedPath = filePath.replace(/[`$"]/g, '');
-    return new Promise((resolve) => {
-      execFile('powershell', ['-Command', `Add-MpPreference -ExclusionPath "${sanitizedPath}"`], (error) => {
-        resolve({ success: !error, error: error?.message });
-      });
-    });
-  });
-
-  ipcMain.handle('security:emergencyCleanup', async () => {
-    const { exec } = require('child_process');
-    return new Promise((resolve) => {
-      exec('powershell -Command "Start-MpScan -ScanType QuickScan"', (error) => {
-        resolve({ success: !error, error: error?.message });
-      });
-    });
-  });
 }
 
 app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
@@ -323,7 +189,6 @@ app.whenReady().then(() => {
   });
 });
 
-// Unregister shortcuts on quit
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
 });
@@ -335,19 +200,16 @@ app.on('window-all-closed', () => {
 });
 
 app.on('web-contents-created', (event, contents) => {
-  // Security: Block all external navigation - only allow app URLs
   contents.on('will-navigate', (event, navigationUrl) => {
     try {
       const parsedUrl = new URL(navigationUrl);
       
-      // Only allow file:// (production) and localhost:5000 (dev)
       const isAppUrl = 
         navigationUrl.startsWith('file://') ||
         (parsedUrl.hostname === 'localhost' && parsedUrl.port === '5000');
       
       if (!isAppUrl) {
         event.preventDefault();
-        // Open external URLs in system browser (including OAuth)
         if (navigationUrl.startsWith('http://') || navigationUrl.startsWith('https://')) {
           shell.openExternal(navigationUrl);
         }
@@ -357,7 +219,6 @@ app.on('web-contents-created', (event, contents) => {
     }
   });
 
-  // Security: Block window.open popups entirely
   contents.setWindowOpenHandler(() => {
     return { action: 'deny' };
   });

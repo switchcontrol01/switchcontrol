@@ -70,17 +70,6 @@ contextBridge.exposeInMainWorld('switchControl', {
       return { success: true };
     },
   },
-
-  security: {
-    getStatus: () => ipcRenderer.invoke('security:getStatus'),
-    startQuickScan: () => ipcRenderer.invoke('security:startQuickScan'),
-    startFullScan: () => ipcRenderer.invoke('security:startFullScan'),
-    getThreats: () => ipcRenderer.invoke('security:getThreats'),
-    quarantineThreat: (threatId) => ipcRenderer.invoke('security:quarantineThreat', threatId),
-    removeThreat: (threatId) => ipcRenderer.invoke('security:removeThreat', threatId),
-    allowThreat: (threatId, filePath) => ipcRenderer.invoke('security:allowThreat', threatId, filePath),
-    emergencyCleanup: () => ipcRenderer.invoke('security:emergencyCleanup'),
-  },
 });
 
 window.addEventListener('DOMContentLoaded', () => {
