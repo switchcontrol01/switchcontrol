@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
+const AUTH_TOKEN_KEY = "sc_auth_token_v1";
+
 interface LoginProps {
   onLoginSuccess: () => void;
 }
@@ -31,9 +33,9 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const handleLogin = (provider: "google" | "discord") => {
     setIsLoading(provider);
     setTimeout(() => {
-      localStorage.setItem("switchcontrol_auth", "true");
+      localStorage.setItem(AUTH_TOKEN_KEY, "mock_token_" + Date.now());
       onLoginSuccess();
-    }, 1500);
+    }, 1200);
   };
 
   return (
@@ -55,7 +57,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.4 }}
         className="relative z-10 w-full max-w-md mx-4"
       >
         <div className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">

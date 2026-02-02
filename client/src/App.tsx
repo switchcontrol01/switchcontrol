@@ -1,4 +1,4 @@
-import { Switch, Route, useLocation } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -29,9 +29,18 @@ import Success from "@/pages/Success";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import Security from "@/pages/Security";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
-import BootGate from "@/screens/BootGate";
 
-const isElectron = typeof window !== "undefined" && (window as any).__IS_ELECTRON__ === true;
+import ElectronLogin from "@/screens/Login";
+
+const isElectron = typeof window !== "undefined" && 
+  !!(window as any).process?.versions?.electron;
+
+const AUTH_TOKEN_KEY = "sc_auth_token_v1";
+
+function isAuthenticated(): boolean {
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
+  return !!token && token.startsWith("mock_token_");
+}
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -57,41 +66,100 @@ function AnimatedRoute({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Router() {
+function ElectronRouter() {
+  const [location, setLocation] = useLocation();
+  const authenticated = isAuthenticated();
+
+  if (!authenticated && location !== "/login") {
+    return <Redirect to="/login" />;
+  }
+
+  if (authenticated && location === "/login") {
+    return <Redirect to="/app" />;
+  }
+
   return (
     <AnimatedRoute>
       <Switch>
-        {/* Marketing Pages (public) - redirect to /app in Electron */}
-        <Route path="/">
-          {() => {
-            if (isElectron) {
-              window.location.hash = '#/app';
-              return null;
-            }
-            return <Landing />;
-          }}
+        <Route path="/login">
+          <ElectronLogin onLoginSuccess={() => setLocation("/app")} />
         </Route>
+        
+        <Route path="/">
+          <Redirect to={authenticated ? "/app" : "/login"} />
+        </Route>
+        
+        <Route path="/app">
+          <Dashboard />
+        </Route>
+        <Route path="/app/tweaks">
+          <Tweaks />
+        </Route>
+        <Route path="/app/history">
+          <History />
+        </Route>
+        <Route path="/app/settings">
+          <Settings />
+        </Route>
+        <Route path="/app/power-plan">
+          <PowerPlan />
+        </Route>
+        <Route path="/app/network">
+          <NetworkTweaks />
+        </Route>
+        <Route path="/app/app-booster">
+          <AppBooster />
+        </Route>
+        <Route path="/app/focus">
+          <FocusMode />
+        </Route>
+        <Route path="/app/cleaner">
+          <SystemCleaner />
+        </Route>
+        <Route path="/app/debloat">
+          <Debloater />
+        </Route>
+        <Route path="/app/startup">
+          <StartupApps />
+        </Route>
+        <Route path="/app/bios-advisor">
+          <BiosAdvisor />
+        </Route>
+        <Route path="/app/security">
+          <Security />
+        </Route>
+        
+        <Route>
+          <Redirect to={authenticated ? "/app" : "/login"} />
+        </Route>
+      </Switch>
+    </AnimatedRoute>
+  );
+}
+
+function WebRouter() {
+  return (
+    <AnimatedRoute>
+      <Switch>
+        <Route path="/" component={Landing} />
         <Route path="/login" component={Login} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
         <Route path="/success" component={Success} />
         
-        {/* Premium Success Page (protected) */}
         <Route path="/premium/success">
           <ProtectedRoute>
             <PremiumSuccess />
           </ProtectedRoute>
         </Route>
         
-        {/* Protected Download Page */}
         <Route path="/download">
           <ProtectedRoute>
             <Download />
           </ProtectedRoute>
         </Route>
         
-        {/* Protected App Routes */}
         <Route path="/app">
           <ProtectedRoute>
             <Dashboard />
@@ -158,7 +226,6 @@ function Router() {
           </ProtectedRoute>
         </Route>
         
-        {/* Legacy routes - redirect to new paths */}
         <Route path="/dashboard">
           {() => {
             window.location.href = '/app';
@@ -179,19 +246,13 @@ function Router() {
 }
 
 function App() {
-  const content = (
-    <>
-      <Router />
-      <Toaster />
-      <PremiumUnlockAnimation />
-    </>
-  );
-
   return (
     <QueryClientProvider client={queryClient}>
       <MotionProvider>
         <TooltipProvider>
-          {isElectron ? <BootGate>{content}</BootGate> : content}
+          {isElectron ? <ElectronRouter /> : <WebRouter />}
+          <Toaster />
+          <PremiumUnlockAnimation />
         </TooltipProvider>
       </MotionProvider>
     </QueryClientProvider>

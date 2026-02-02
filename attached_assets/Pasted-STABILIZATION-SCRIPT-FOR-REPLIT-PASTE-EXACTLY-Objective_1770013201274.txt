@@ -1,0 +1,85 @@
+STABILIZATION SCRIPT FOR REPLIT (PASTE EXACTLY)
+Objective
+Stabilize the SwitchControl Electron desktop app. Do NOT add new features. Do NOT polish UI. Do NOT refactor unrelated code. Only fix architecture and enforce correct app-only routing.
+Context
+This is an Electron + Vite + React app. Routing uses wouter. The desktop app must NEVER show the marketing landing page. We already added a Security tab powered by Windows Defender and we are keeping that. Recent changes touched too many areas at once. We are now rolling back to a stable base.
+Hard Rules
+DO NOT modify any Electron files under any condition
+Do NOT edit electron/main.js
+Do NOT edit electron/preload.js
+Do NOT add new IPC
+Do NOT change admin behavior
+DO NOT regenerate icons, favicons, or images
+DO NOT add new dependencies
+DO NOT touch unrelated pages or components
+Output format must be exactly: Files to delete
+Files to create
+Files to replace (full contents)
+Build steps to run
+Verification checklist
+No extra explanation.
+What we are keeping
+Security tab page and sidebar entry
+Windows Defender integration inside the existing IPC that already exists, but DO NOT modify Electron files now
+Disclaimer text on Security page
+If Security currently depends on new Electron IPC handlers created by the agent, STOP and instead make Security page UI-only with placeholder data until we later approve Electron edits. Do NOT touch Electron to “make it work”.
+Desktop App Flow Requirements
+Desktop app entry must be /login
+After login success, go to /app (dashboard)
+All /app routes must be protected
+If not authenticated, redirect to /login
+The landing page route / must never render in Electron builds
+No BootGate required. No splash required in this stabilization step. We will re-add splash later once stable.
+Authentication Rule
+Use localStorage token mock only
+Token key: sc_auth_token_v1
+If missing or invalid, treat as logged out.
+Electron detection
+Use renderer-side detection only. No Electron edits.
+In React, detect Electron with:
+const isElectron = typeof window !== "undefined" && !!(window as any).process?.versions?.electron;
+Routing Rules
+If isElectron is true:
+"/" redirects to "/login"
+"/login" shows Login screen
+"/app" shows Dashboard (protected)
+Any unknown route redirects to "/login"
+If isElectron is false (website):
+Keep existing marketing routes unchanged
+Do not break the website
+This means App.tsx must branch routing based on isElectron.
+File-level instructions
+Remove the unstable Electron flow files if they exist
+Delete client/src/screens/BootGate.tsx if present
+Delete any Splash screen files if present (we are not doing splash now)
+Ensure Login and Dashboard screens exist for Electron mode
+Create: client/src/screens/Login.tsx
+client/src/screens/Dashboard.tsx
+These must be simple, clean, and depend on localStorage token only
+Replace client/src/App.tsx with a version that supports dual routing:
+Electron mode uses only Login and Dashboard, no landing page, no marketing routes
+Web mode keeps the existing site pages untouched
+Update client/src/main.tsx only if required for wouter hash routing compatibility
+Do NOT import react-router-dom.
+Security tab handling
+Keep client/src/pages/Security.tsx and sidebar entry
+But if Security requires new IPC that was only added by editing Electron files, then change Security.tsx to UI-only placeholders and a message: “Defender integration will be enabled in the next update.”
+No fake scan results. No fake threat list.
+Output requirements
+List exactly which files to delete
+List exactly which files to create
+Provide full contents for every file you replace or create
+No partial snippets.
+Build steps must be: Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+npm install
+npm run build
+npm run electron:build
+Verification checklist must include:
+Electron build opens directly to login
+No landing page can appear even at "/"
+After login, /app renders
+Logged out users cannot access /app
+Website build still shows landing page when not in Electron
+Security tab exists in sidebar under BIOS Advisor
+Security page does not crash even if Defender IPC is unavailable
