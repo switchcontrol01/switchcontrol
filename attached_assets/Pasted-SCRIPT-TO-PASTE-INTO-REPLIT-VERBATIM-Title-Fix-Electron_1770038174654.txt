@@ -1,0 +1,154 @@
+SCRIPT TO PASTE INTO REPLIT (VERBATIM)
+Title: Fix Electron blank screen, click issues, logo loading, and build reliability
+Instructions:
+You must apply ALL changes exactly as specified. Do not skip steps. Do not refactor unrelated code.
+1️⃣ FIX ELECTRON CLICK / BLANK SCREEN ISSUE (CRITICAL)
+Problem:
+The app is frameless and the entire UI is inside a -webkit-app-region: drag, which blocks all clicks (login button is dead).
+Fix:
+client/src/App.tsx
+Replace the root layout with the following structure:
+Only a top title bar is draggable
+ALL interactive UI must be no-drag
+Required structure:
+Copy code
+Tsx
+<div className="app-root">
+  <div className="titlebar">
+    <WindowControls />
+  </div>
+
+  <div className="app-content">
+    <BootGate />
+  </div>
+</div>
+2️⃣ ADD REQUIRED CSS (DO NOT INLINE)
+Add this to your global CSS (where Tailwind base styles live):
+Copy code
+Css
+.app-root {
+  width: 100%;
+  height: 100%;
+}
+
+.titlebar {
+  height: 32px;
+  -webkit-app-region: drag;
+}
+
+.app-content {
+  height: calc(100% - 32px);
+  -webkit-app-region: no-drag;
+}
+
+button,
+input,
+a,
+select,
+textarea {
+  -webkit-app-region: no-drag;
+}
+This is mandatory. This fixes:
+Login button not clickable
+Blank app behavior
+Focus issues
+3️⃣ ENSURE LOGO IMAGE EXISTS AND LOADS (ELECTRON SAFE)
+Create / verify file:
+Copy code
+
+client/public/logo.png
+Use the provided crown “S” logo. No placeholders.
+4️⃣ UPDATE SPLASH TO USE IMAGE (NOT TEXT)
+client/src/screens/Splash.tsx
+Remove any "SC" text or gradient box
+Use ONLY:
+Copy code
+Tsx
+<img src="/logo.png" alt="SwitchControl" />
+Keep animation
+Duration: 1100ms total
+Background: topographic contour pattern
+5️⃣ UPDATE LOGIN TO USE IMAGE AND HASH NAVIGATION
+client/src/screens/Login.tsx
+Requirements:
+Use <img src="/logo.png" />
+On successful login, MUST do:
+Copy code
+Ts
+window.location.hash = "#/dashboard";
+No router helpers. No wouter.
+6️⃣ FIX DASHBOARD TO USE REAL SYSTEM DATA
+electron/preload.js
+Expose this API:
+Copy code
+Js
+contextBridge.exposeInMainWorld("sc", {
+  getSystemInfo: async () => {
+    const os = require("os");
+    return {
+      platform: os.platform(),
+      arch: os.arch(),
+      cpuCores: os.cpus().length,
+      totalMemory: os.totalmem(),
+      freeMemory: os.freemem(),
+    };
+  }
+});
+client/src/pages/Home.tsx
+On mount:
+Call window.sc.getSystemInfo()
+Populate:
+CPU cores
+RAM total
+RAM used
+No mock data. No placeholders.
+7️⃣ FIX VITE FOR ELECTRON FILE LOADING (REQUIRED)
+vite.config.ts
+Add exactly this:
+Copy code
+Ts
+base: "./",
+Without this, Electron builds will be blank.
+8️⃣ PACKAGE.JSON SCRIPTS (MUST EXIST IN ZIP)
+Ensure these scripts exist in package.json:
+Copy code
+Json
+"electron:dev": "cross-env NODE_ENV=development electron .",
+"electron:build": "npm run build && electron-builder"
+They must be present before ZIP export so the user does not re-add them manually.
+9️⃣ ELECTRON MAIN FILE LOAD FIX
+electron/main.js
+Production load must be:
+Copy code
+Js
+mainWindow.loadFile(
+  path.join(__dirname, "../dist/public/index.html")
+);
+Do NOT use app.getAppPath().
+10️⃣ FINAL VALIDATION (MANDATORY)
+Before finishing:
+Run npm run build
+Run npm run electron:dev
+Confirm:
+Splash shows logo
+Login button clicks
+Dashboard loads
+CPU/RAM are real
+No blank screen
+Run npm run electron:build
+Installer launches correctly
+🚫 DO NOT:
+Reintroduce wouter
+Add routing libraries
+Change Electron security settings
+Add mock system stats
+Mark entire app as draggable
+✅ SUCCESS CRITERIA
+When the user installs the app:
+Splash animates
+Login works
+Dashboard loads
+Buttons click
+Logo appears everywhere
+No blank screen
+No manual fixes required

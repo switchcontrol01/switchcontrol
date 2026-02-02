@@ -54,9 +54,11 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <MotionProvider>
         <TooltipProvider>
-          <div className="relative min-h-screen" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}>
-            <WindowControls />
-            <div style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          <div className="app-root">
+            <div className="titlebar">
+              <WindowControls />
+            </div>
+            <div className="app-content">
               <AppContent />
             </div>
           </div>

@@ -64,7 +64,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <div className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           <div className="flex flex-col items-center gap-6 mb-8">
             <img
-              src="/logo.png"
+              src="./logo.png"
               alt="SwitchControl"
               className="w-20 h-20 object-contain"
             />
