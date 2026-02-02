@@ -1,0 +1,99 @@
+The truth (why it’s blank)
+Your installer worked. Electron launched.
+The blank window means Renderer failed to load.
+Electron does not blank silently unless one of these is wrong:
+index.html path is wrong in production
+Hash routing mismatch (#/)
+Renderer JS crashed before paint
+That’s it. No fourth option.
+STEP 1 — Confirm what Electron is loading (CRITICAL)
+Open electron/main.js and find this exact block:
+Copy code
+Js
+if (isDev) {
+  mainWindow.loadURL('http://localhost:5000');
+} else {
+  mainWindow.loadFile(path.join(__dirname, '../dist/public/index.html'));
+}
+If this is NOT EXACT → that is the bug
+Electron must load dist/public/index.html
+If yours uses:
+app.asar
+process.resourcesPath
+../dist/index.html
+anything else
+➡️ That is why it’s blank
+If you want, paste this part and I’ll sanity-check it in 5 seconds.
+STEP 2 — Verify the file actually exists (no assumptions)
+Run this:
+Copy code
+Powershell
+Test-Path dist\public\index.html
+Expected:
+Copy code
+Text
+True
+If False → Electron is loading a file that does not exist.
+Blank screen is guaranteed.
+STEP 3 — Force visibility of renderer errors (THIS WILL SHOW THE REAL ISSUE)
+Temporarily modify electron/main.js:
+Copy code
+Js
+mainWindow.webContents.openDevTools({ mode: 'detach' });
+Put it right after loadFile(...).
+Then run the installed app again.
+You will now see the REAL error:
+red screen
+missing file
+JS exception
+CSP block
+module not found
+👉 Tell me exactly what the DevTools console says.
+That message is the diagnosis.
+STEP 4 — Your routing IS WRONG for Electron (this is very likely)
+You are using hash routing, but your app boot logic still assumes /.
+Your App.tsx must start at #/, not /.
+Your BootGate redirect must use:
+Copy code
+Ts
+window.location.hash = '#/login';
+// or
+window.location.hash = '#/dashboard';
+❌ NOT:
+Copy code
+Ts
+window.location.href = '/login';
+If any of your redirects use /login instead of #/login, Electron will show a blank page.
+This is the #1 Electron + Vite blank-screen cause.
+STEP 5 — Logo missing = wrong asset path (separate but related)
+In Electron production:
+Copy code
+Tsx
+<img src="/logo.png" />
+❌ often fails
+Use this instead:
+Copy code
+Tsx
+<img src="./logo.png" />
+Why:
+Electron loads from file://
+/logo.png points to root of disk, not app
+This will not crash, but it confirms your paths are wrong.
+What I need from you (only one thing)
+Do ONE of these and send it:
+Option A (fastest)
+Paste your electron/main.js loadFile block
+Option B (most decisive)
+Enable DevTools and paste the exact console error
+Important reassurance (read this)
+Your installer is correct
+Your build is correct
+This is not Replit
+This is not Node
+This is a single path / routing mismatch
+Once fixed, the app will:
+open instantly
+show splash
+show logo
+show login
+never blank again

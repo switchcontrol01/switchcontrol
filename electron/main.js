@@ -58,8 +58,13 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    const filePath = path.join(app.getAppPath(), 'dist', 'public', 'index.html');
-    mainWindow.loadFile(filePath);
+    const filePath = path.join(__dirname, '..', 'dist', 'public', 'index.html');
+    console.log('Loading:', filePath);
+    mainWindow.loadFile(filePath).catch(err => {
+      console.error('Failed to load:', err);
+    });
+    // Enable DevTools temporarily for debugging
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
   mainWindow.on('closed', () => {

@@ -1,0 +1,88 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\Users\SwitchTech> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm install
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   93 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+added 2 packages, removed 3 packages, and audited 771 packages in 2s
+
+108 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> rest-express@1.0.0 electron:build
+> npm run build && electron-builder
+
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3119 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                      2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png   21.20 kB
+../dist/public/assets/icon-O7sJFqru.png      358.07 kB
+../dist/public/assets/index-_DcA3RVD.css     207.07 kB │ gzip:  28.18 kB
+../dist/public/assets/index-BlI0jJBP.js      935.60 kB │ gzip: 282.55 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.51s
+building server...
+
+  dist\index.cjs  1.7mb ⚠️
+
+⚡ Done in 49ms
+  • electron-builder  version=26.6.0 os=10.0.26200
+  • loaded configuration  file=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron-builder.json
+  • description is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • author is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • writing effective config  file=release\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=40.1.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=40.1.0 appOutDir=release\win-unpacked
+  • searching for node modules  pm=npm searchDir=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+(node:3100) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  • cannot find path for dependency  name=bufferutil reference=undefined
+  • file source doesn't exist  from=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build
+  • updating asar integrity executable resource  executablePath=release\win-unpacked\SwitchControl.exe
+  • file source doesn't exist  from=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build
+  • default Electron icon is used  reason=application icon is not set
+  • signing with signtool.exe  path=release\win-unpacked\SwitchControl.exe
+  • building        target=nsis file=release\SwitchControl-Setup-1.0.0.exe archs=x64 oneClick=false perMachine=true
+  ⨯ cannot find specified resource "build/icon.ico", nor relative to "C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\build", neither relative to project dir ("C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl")
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
