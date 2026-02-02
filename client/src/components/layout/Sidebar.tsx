@@ -7,6 +7,7 @@ import {
   Activity, 
   Network, 
   ShieldCheck, 
+  Shield,
   Trash2, 
   Rocket, 
   Moon,
@@ -58,6 +59,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Debloat", icon: ShieldCheck, href: "/app/debloat" },
   { label: "Startup", icon: List, href: "/app/startup" },
   { label: "BIOS Advisor", icon: Cpu, href: "/app/bios-advisor", isPremium: true },
+  { label: "Security", icon: Shield, href: "/app/security" },
   { label: "Settings", icon: Settings, href: "/app/settings" },
 ];
 

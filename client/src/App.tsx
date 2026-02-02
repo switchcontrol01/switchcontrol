@@ -27,7 +27,11 @@ import Download from "@/pages/Download";
 import PremiumSuccess from "@/pages/PremiumSuccess";
 import Success from "@/pages/Success";
 import BiosAdvisor from "@/pages/BiosAdvisor";
+import Security from "@/pages/Security";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
+import BootGate from "@/screens/BootGate";
+
+const isElectron = typeof window !== "undefined" && (window as any).__IS_ELECTRON__ === true;
 
 function AnimatedRoute({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion } = useMotion();
@@ -57,8 +61,16 @@ function Router() {
   return (
     <AnimatedRoute>
       <Switch>
-        {/* Marketing Pages (public) */}
-        <Route path="/" component={Landing} />
+        {/* Marketing Pages (public) - redirect to /app in Electron */}
+        <Route path="/">
+          {() => {
+            if (isElectron) {
+              window.location.hash = '#/app';
+              return null;
+            }
+            return <Landing />;
+          }}
+        </Route>
         <Route path="/login" component={Login} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/terms" component={Terms} />
@@ -140,6 +152,11 @@ function Router() {
             <BiosAdvisor />
           </ProtectedRoute>
         </Route>
+        <Route path="/app/security">
+          <ProtectedRoute>
+            <Security />
+          </ProtectedRoute>
+        </Route>
         
         {/* Legacy routes - redirect to new paths */}
         <Route path="/dashboard">
@@ -162,13 +179,19 @@ function Router() {
 }
 
 function App() {
+  const content = (
+    <>
+      <Router />
+      <Toaster />
+      <PremiumUnlockAnimation />
+    </>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <MotionProvider>
         <TooltipProvider>
-          <Router />
-          <Toaster />
-          <PremiumUnlockAnimation />
+          {isElectron ? <BootGate>{content}</BootGate> : content}
         </TooltipProvider>
       </MotionProvider>
     </QueryClientProvider>

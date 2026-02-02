@@ -1,0 +1,130 @@
+FEATURES TO IMPLEMENT
+1. New App Tab: Security
+Add a new tab in the app sidebar:
+Icon: shield
+Label: Security
+Placement: under “BIOS Advisor”
+2. Security Overview (Top Section)
+Display current Defender status:
+Show:
+Real-Time Protection: ON / OFF
+Tamper Protection: ON / OFF
+Last Scan Time
+Defender Engine Version
+PowerShell commands:
+Copy code
+Powershell
+Get-MpComputerStatus
+Parse:
+RealTimeProtectionEnabled
+IsTamperProtected
+AntivirusSignatureLastUpdated
+AntivirusSignatureVersion
+3. Scan Actions (Buttons)
+Buttons:
+Quick Scan
+Full Scan
+PowerShell:
+Copy code
+Powershell
+Start-MpScan -ScanType QuickScan
+Start-MpScan -ScanType FullScan
+UI behavior:
+Disable buttons while scan is running
+Show “Scan in progress…”
+4. Threat List (Main Table)
+Table columns:
+Threat Name
+Severity
+Category
+Status
+Action Buttons
+PowerShell:
+Copy code
+Powershell
+Get-MpThreat
+Severity color mapping:
+Severe → red
+High → orange
+Medium → yellow
+Low / Unknown → gray
+5. Threat Actions
+Each row gets buttons:
+Quarantine
+Copy code
+Powershell
+Remove-MpThreat -ThreatID <id>
+Remove
+Copy code
+Powershell
+Remove-MpThreat -ThreatID <id> -Force
+Allow (Advanced)
+Copy code
+Powershell
+Add-MpPreference -ExclusionPath "<path>"
+Show confirmation modal before Allow:
+“Allowing a threat may reduce system security.”
+6. Resource Impact (If Applicable)
+If a threat has an active process:
+Show CPU %
+Show RAM usage
+PowerShell:
+Copy code
+Powershell
+Get-Process | Where-Object { $_.Path -match "<threat file path>" }
+If no process → show:
+“Inactive file – no runtime impact”
+DO NOT fake data.
+7. Emergency Mode Button
+Button: Emergency Cleanup
+When clicked:
+Kill suspicious processes (if found)
+Trigger Defender quick scan
+Disable common startup entries tied to detected threats
+Suggest Windows Defender Offline Scan (text only)
+PowerShell example:
+Copy code
+Powershell
+Stop-Process -Id <pid> -Force
+Start-MpScan -ScanType QuickScan
+8. IPC STRUCTURE (Electron)
+Renderer → Main:
+Copy code
+Ts
+security:getStatus
+security:startQuickScan
+security:startFullScan
+security:getThreats
+security:removeThreat
+security:quarantineThreat
+security:allowThreat
+security:emergencyCleanup
+Main process:
+Executes PowerShell via child_process.exec
+Returns parsed JSON only
+NO UI logic in main process
+9. DISCLAIMER (UI FOOTER)
+Always visible at bottom of Security tab:
+“SwitchControl uses Windows Defender to display and manage system security.
+This is not a standalone antivirus solution. Detection accuracy depends on Windows Defender.”
+10. PERMISSIONS
+The app always runs as admin. If Defender command fails:
+Show error toast
+Do NOT silently fail
+11. WHAT NOT TO BUILD
+❌ No custom virus definitions
+❌ No file crawling
+❌ No browser-based scanning
+❌ No VPN
+❌ No cookies logic
+DONE
+This makes SwitchControl:
+Legit
+Safe
+Useful
+Not a lawsuit magnet
+NEXT STEPS (OPTIONAL, LATER)
+Scan history timeline
+Defender update button
+Startup program viewer
+Browser extension audit
