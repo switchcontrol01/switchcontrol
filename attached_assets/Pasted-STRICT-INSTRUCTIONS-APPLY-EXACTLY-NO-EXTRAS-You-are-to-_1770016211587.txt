@@ -1,0 +1,148 @@
+STRICT INSTRUCTIONS – APPLY EXACTLY, NO EXTRAS
+You are to only modify the files listed below.
+Do not add features, do not optimize, do not refactor unrelated code.
+Replace the full contents of each file with working code that satisfies the requirements.
+🎯 GOAL
+Fix Electron boot flow and enable Electron dev run.
+Requirements:
+Electron must launch via npm run electron:dev
+Splash → Login → Dashboard flow must work
+Auth is mock only, stored in localStorage
+Routing must be hash-based only
+No backend calls
+No IPC
+No wouter usage in Electron flow
+Build must pass with no errors
+1️⃣ package.json (REPLACE SCRIPTS SECTION ONLY)
+Ensure these scripts exist exactly:
+Copy code
+Json
+"scripts": {
+  "dev:client": "vite dev --port 5000",
+  "dev": "NODE_ENV=development tsx server/index.ts",
+  "build": "tsx script/build.ts",
+  "start": "NODE_ENV=production node dist/index.cjs",
+
+  "electron:dev": "cross-env NODE_ENV=development electron .",
+  "electron:build": "npm run build && electron-builder",
+
+  "check": "tsc",
+  "db:push": "drizzle-kit push"
+}
+Do not remove other dependencies.
+2️⃣ client/src/main.tsx (FULL FILE)
+Copy code
+Ts
+import { createRoot } from "react-dom/client";
+import App from "./App";
+import "./index.css";
+
+createRoot(document.getElementById("root")!).render(<App />);
+No changes beyond this.
+3️⃣ client/src/App.tsx (FULL FILE – HASH ROUTING ONLY)
+Copy code
+Tsx
+import Splash from "@/screens/Splash";
+import Login from "@/screens/Login";
+import Dashboard from "@/screens/Dashboard";
+import { useEffect, useState } from "react";
+
+const TOKEN_KEY = "sc_auth_token_v1";
+
+type Screen = "splash" | "login" | "dashboard";
+
+export default function App() {
+  const [screen, setScreen] = useState<Screen>("splash");
+
+  useEffect(() => {
+    if (!window.location.hash) {
+      window.location.hash = "#/";
+    }
+
+    const token = localStorage.getItem(TOKEN_KEY);
+    const authed = Boolean(token && token.length > 10);
+
+    setTimeout(() => {
+      setScreen(authed ? "dashboard" : "login");
+      window.location.hash = authed ? "#/dashboard" : "#/login";
+    }, 600);
+  }, []);
+
+  if (screen === "splash") {
+    return <Splash onComplete={() => {}} />;
+  }
+
+  if (screen === "login") {
+    return (
+      <Login
+        onLoginSuccess={() => {
+          window.location.hash = "#/dashboard";
+          setScreen("dashboard");
+        }}
+      />
+    );
+  }
+
+  return <Dashboard />;
+}
+Rules:
+No wouter
+No React Router
+Hash routing only
+Splash always renders first
+4️⃣ client/src/screens/Splash.tsx (FULL FILE)
+Must be visual-only, auto-dismiss 400–600ms, no navigation logic.
+Use the existing animated Splash design, but:
+It must accept onComplete
+It must call it after 600ms
+It must not change routes itself
+5️⃣ client/src/screens/Login.tsx (FULL FILE)
+Requirements:
+Fake Google + Discord buttons
+On click:
+set localStorage.setItem("sc_auth_token_v1", "mock_token_" + Date.now())
+call onLoginSuccess()
+No backend calls
+No OAuth
+6️⃣ client/src/screens/Dashboard.tsx
+This file must remain a simple wrapper only:
+Copy code
+Ts
+import Dashboard from "@/pages/Home";
+export default Dashboard;
+Do not add logic here.
+7️⃣ Sidebar + Brand Logo (IF PRESENT)
+If these files exist:
+Replace all navigation with hash links
+Example:
+Copy code
+Tsx
+<a href="#/dashboard">Dashboard</a>
+Remove all Link, useLocation, or router usage
+8️⃣ Electron Files
+❌ DO NOT MODIFY:
+electron/main.js
+electron/preload.js
+They must remain untouched.
+9️⃣ FINAL VERIFICATION REQUIRED
+After changes, the following commands must work:
+Copy code
+Powershell
+npm install
+npm run build
+npm run electron:dev
+Expected result:
+Electron window opens
+Splash → Login → Dashboard
+No white screen
+No missing script errors
+No routing errors
+🚫 ABSOLUTE RULES
+Do not paraphrase requirements
+Do not add improvements
+Do not touch files not listed
+Do not remove existing styling unless necessary to compile
+When finished, output:
+✅ Files modified
+✅ Build status
+❌ Nothing else
