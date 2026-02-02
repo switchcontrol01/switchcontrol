@@ -1,0 +1,112 @@
+ REPLIT INSTRUCTION SCRIPT (PASTE EXACTLY)
+DO NOT DEVIATE. DO NOT ADD EXTRA FEATURES. DO NOT TOUCH ELECTRON FILES.
+Objective
+Fix SwitchControl so it:
+Boots reliably in Electron
+Shows Splash → Login → Dashboard
+Has no landing page
+Uses hash-based routing compatible with Electron
+Has zero IPC, backend, or security logic
+Builds without errors
+Global Rules
+Only modify files inside client/src/
+DO NOT modify anything inside electron/
+DO NOT add new dependencies
+DO NOT delete any files unless explicitly told
+Use wouter with hash routing only
+No backend calls, no IPC, no PowerShell
+Authentication is localStorage-only mock
+FILE-BY-FILE INSTRUCTIONS
+1️⃣ client/src/main.tsx
+REPLACE ENTIRE FILE
+Purpose: standard React entry, nothing else.
+Requirements:
+Use createRoot
+Render <App />
+No routing logic here
+2️⃣ client/src/App.tsx
+REPLACE ENTIRE FILE
+Purpose: control boot flow and routing.
+Must implement:
+BootGate component that:
+Always renders first at /
+Shows Splash
+Redirects after 600ms based on auth
+Routing rules:
+/ → BootGate
+/login → Login
+/dashboard → Protected Dashboard
+Any unknown route → redirect to /
+Auth rules:
+Token key: sc_auth_token_v1
+Stored in localStorage
+Length > 10 = authenticated
+Navigation rules:
+MUST use window.location.hash
+NO window.location.href
+NO browser history APIs
+3️⃣ client/src/screens/Splash.tsx
+REPLACE ENTIRE FILE
+Purpose: visual-only splash screen.
+Rules:
+NO routing logic
+NO auth logic
+Auto-dismiss:
+Fade starts at 400ms
+onComplete() fires at 600ms
+Must accept:
+Copy code
+Ts
+interface SplashProps {
+  onComplete: () => void;
+}
+4️⃣ client/src/screens/Login.tsx
+REPLACE ENTIRE FILE
+Purpose: mock login UI.
+Rules:
+No real auth
+On login:
+Set localStorage.setItem("sc_auth_token_v1", "mock_token_" + Date.now())
+Call onLoginSuccess()
+No redirects inside component
+UI-only
+5️⃣ client/src/screens/Dashboard.tsx
+KEEP AS WRAPPER ONLY
+Rules:
+Must ONLY re-export:
+Copy code
+Ts
+import Dashboard from "@/pages/Home";
+export default Dashboard;
+No logic added here
+6️⃣ Routing Enforcement
+No landing page
+No marketing routes
+No dual router systems
+Only one router in App.tsx
+BUILD VERIFICATION STEPS (DO NOT SKIP)
+After changes, I will manually run:
+Copy code
+Bash
+npm install
+npm run build
+npm run electron:dev
+Expected result:
+Electron window opens
+Splash shows
+Redirects to Login if no token
+Redirects to Dashboard if token exists
+No white screen
+No Vite errors
+No Electron crashes
+STRICT FAILURE CONDITIONS
+If ANY of the following happen, the task is FAILED:
+Electron shows a blank screen
+App navigates to a landing page
+Electron files are modified
+IPC or security logic is added
+Routing uses browser history instead of hash
+Confirmation Required
+Before making changes, respond with:
+"Confirmed. Applying exact changes only."
+Then proceed.
