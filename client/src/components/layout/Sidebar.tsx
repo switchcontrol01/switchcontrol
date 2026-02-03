@@ -42,21 +42,22 @@ interface NavItem {
   href: string;
   isPremium?: boolean;
   comingSoon?: boolean;
+  tourId?: string;
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard" },
-  { label: "Tweaks", icon: Settings, href: "/tweaks" },
+  { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", tourId: "dashboard" },
+  { label: "Tweaks", icon: Settings, href: "/tweaks", tourId: "tweaks" },
   { label: "Power Plan", icon: Zap, href: "/power-plan", isPremium: true },
   { label: "App Booster", icon: Rocket, href: "/app-booster" },
   { label: "Focus Mode", icon: Moon, href: "/focus" },
-  { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true },
+  { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true, tourId: "network" },
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },
   { label: "Debloat", icon: Shield, href: "/debloat" },
   { label: "Startup", icon: List, href: "/startup" },
-  { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true },
-  { label: "Security", icon: Shield, href: "/security" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+  { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true, tourId: "ai-advisor" },
+  { label: "Security", icon: Shield, href: "/security", tourId: "security" },
+  { label: "Settings", icon: Settings, href: "/settings", tourId: "settings" },
 ];
 
 export function Sidebar() {
@@ -100,6 +101,7 @@ export function Sidebar() {
             >
               <button
                 onClick={() => navigate(item.href)}
+                data-tour={item.tourId}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden text-left",
                   isActive 

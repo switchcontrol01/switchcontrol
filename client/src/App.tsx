@@ -14,6 +14,7 @@ import { useAuthStore, validateToken, exchangeToken, AuthUser } from "@/lib/auth
 import Splash from "@/screens/Splash";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
+import { OnboardingTour } from "@/components/OnboardingTour";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
 import SystemCleaner from "@/pages/SystemCleaner";
@@ -100,6 +101,7 @@ function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
+  const [showTour, setShowTour] = useState(false);
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
 
@@ -251,9 +253,16 @@ function ElectronAppContent() {
           >
             <WelcomeAnimation 
               userName={user?.username || null}
+              isPremium={user?.isPremium}
               onComplete={() => {
                 setPhase("authenticated");
                 setLocation("/dashboard");
+                if (isFirstLogin) {
+                  const tourKey = `sc_tour_completed_${user?.id}`;
+                  if (!localStorage.getItem(tourKey)) {
+                    setTimeout(() => setShowTour(true), 800);
+                  }
+                }
               }}
             />
           </motion.div>
@@ -273,6 +282,23 @@ function ElectronAppContent() {
           </motion.div>
         )}
       </AnimatePresence>
+      
+      {showTour && (
+        <OnboardingTour
+          onComplete={() => {
+            setShowTour(false);
+            if (user?.id) {
+              localStorage.setItem(`sc_tour_completed_${user.id}`, 'true');
+            }
+          }}
+          onSkip={() => {
+            setShowTour(false);
+            if (user?.id) {
+              localStorage.setItem(`sc_tour_completed_${user.id}`, 'true');
+            }
+          }}
+        />
+      )}
     </AppAuthContext.Provider>
   );
 }
