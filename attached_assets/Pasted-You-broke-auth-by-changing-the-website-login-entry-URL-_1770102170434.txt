@@ -1,0 +1,58 @@
+You broke auth by changing the website login entry URL from /auth/* to /api/auth/*.
+
+LOCKED VALUES (DO NOT CHANGE):
+- Website domain: https://switchcontrol.org
+- Discord callback (Discord Developer Portal): https://switchcontrol.org/api/auth/discord/callback
+- Google callback (Google Console): https://switchcontrol.org/api/auth/google/callback (if present in codebase)
+- App deep link scheme: switchcontrol://
+- Deep link success redirect: switchcontrol://auth/success?token=...&provider=...
+
+GOAL:
+Electron app opens browser to WEBSITE auth entry routes:
+- https://switchcontrol.org/auth/discord
+- https://switchcontrol.org/auth/google
+Website completes OAuth and SERVER callback redirects to switchcontrol:// deep link.
+Electron receives deep link, stores token, then calls GET https://switchcontrol.org/api/me to hydrate user.
+
+IMPORTANT:
+- Electron app must NOT compute premium.
+- App must always hydrate from /api/me.
+- Login screen must NOT navigate inside Electron window.
+- Login must use window.electron.openExternal(url).
+
+TASKS:
+1) Fix client/src/screens/Login.tsx (Electron app login screen)
+- Restore BOTH Google and Discord buttons.
+- Both buttons must call window.electron.openExternal("https://switchcontrol.org/auth/<provider>")
+- Remove any /api/auth/<provider> usage.
+- Do not use redirect query params in the login URL.
+- If not running inside Electron, show an error message instead of redirecting.
+
+2) Verify server routes exist and match:
+- /auth/discord must exist and initiate OAuth
+- /auth/google must exist and initiate OAuth
+- /api/auth/discord/callback must exist and on success must:
+  res.redirect(`switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`)
+- /api/auth/google/callback must exist and on success must:
+  res.redirect(`switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=google`)
+If google route isn’t implemented yet, implement it consistent with discord.
+
+3) Keep Electron deep link receiving logic as-is:
+- electron/main.js listens for switchcontrol:// and sends 'auth-callback' to renderer
+- electron/preload.js exposes window.electron.openExternal and window.auth.onCallback
+
+4) App.tsx must remain responsible for:
+- listening to auth callback
+- parsing token
+- storing token
+- fetching /api/me with Authorization: Bearer token
+- routing to /dashboard
+
+PROOF REQUIRED:
+Print the FULL contents of these files after edits:
+- client/src/screens/Login.tsx
+- server/auth/discord.ts OR the file containing /api/auth/discord/callback
+- server/auth/google.ts OR the file containing /api/auth/google/callback (if created)
+Also list the exact routes registered for /auth/discord and /auth/google.
+
+DO NOT SUMMARIZE. DO NOT CHANGE ROUTE PATHS OTHER THAN FIXING /api/auth misuse in Login.tsx.

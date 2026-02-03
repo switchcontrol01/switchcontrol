@@ -197,9 +197,9 @@ export function setupGoogleAuth(app: Express): void {
     if (redirectUri && redirectUri.startsWith("http")) {
       callbackURL = redirectUri;
     } else if (isProduction) {
-      callbackURL = `${productionDomain}/auth/google/callback`;
+      callbackURL = `${productionDomain}/api/auth/google/callback`;
     } else {
-      callbackURL = "/auth/google/callback";
+      callbackURL = "/api/auth/google/callback";
     }
     
     console.log("[AUTH] Google OAuth callback URL:", callbackURL);
@@ -238,17 +238,25 @@ export function setupGoogleAuth(app: Express): void {
         message: "Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables",
       });
     }
+    const rawRedirect = typeof req.query.redirect === 'string' ? req.query.redirect : '';
     const rawNext = typeof req.query.next === 'string' ? req.query.next : '/';
-    const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
-    (req.session as any).returnTo = nextUrl;
-    console.log("[AUTH] Starting Google OAuth flow, returnTo:", nextUrl);
+    
+    if (rawRedirect.startsWith('switchcontrol://')) {
+      (req.session as any).electronRedirect = rawRedirect;
+      console.log("[AUTH] Starting Google OAuth flow for Electron, redirect:", rawRedirect);
+    } else {
+      const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
+      (req.session as any).returnTo = nextUrl;
+      console.log("[AUTH] Starting Google OAuth flow, returnTo:", nextUrl);
+    }
+    
     passport.authenticate("google", {
       scope: ["profile", "email"],
     })(req, res, next);
   });
 
   app.get(
-    "/auth/google/callback",
+    "/api/auth/google/callback",
     (req, res, next) => {
       if (!clientId || !clientSecret) {
         return res.redirect("/?error=auth_not_configured");
@@ -258,10 +266,26 @@ export function setupGoogleAuth(app: Express): void {
       })(req, res, next);
     },
     (req, res) => {
+      const electronRedirect = (req.session as any).electronRedirect;
       const returnTo = (req.session as any).returnTo || '/';
+      
+      delete (req.session as any).electronRedirect;
       delete (req.session as any).returnTo;
-      console.log("[AUTH] Google OAuth callback successful, redirecting to:", returnTo);
-      res.redirect(returnTo);
+      
+      if (electronRedirect && electronRedirect.startsWith('switchcontrol://')) {
+        const user = req.user as Express.User;
+        const token = Buffer.from(JSON.stringify({
+          id: user.id,
+          ts: Date.now(),
+        })).toString('base64');
+        
+        const deepLinkUrl = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=google`;
+        console.log("[AUTH] Google OAuth callback successful, redirecting to Electron:", deepLinkUrl);
+        res.redirect(deepLinkUrl);
+      } else {
+        console.log("[AUTH] Google OAuth callback successful, redirecting to:", returnTo);
+        res.redirect(returnTo);
+      }
     }
   );
 
