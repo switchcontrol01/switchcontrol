@@ -235,12 +235,24 @@ export function setupGoogleAuth(app: Express): void {
     const next_url = req.query.next as string || '/';
     const source = req.query.source as string || 'web';
     
-    // Encode source in state parameter (survives OAuth redirect)
-    const stateData = Buffer.from(JSON.stringify({ source, next: next_url })).toString('base64');
+    console.log("[AUTH] Google auth initiated - source:", source);
+    
+    // Set cookie to track source (survives OAuth redirect)
+    res.cookie('auth_source', source, { 
+      maxAge: 5 * 60 * 1000, // 5 minutes
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
+    res.cookie('auth_next', next_url, { 
+      maxAge: 5 * 60 * 1000,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax'
+    });
     
     passport.authenticate("google", {
       scope: ["profile", "email"],
-      state: stateData,
     })(req, res, next);
   });
 
@@ -248,6 +260,7 @@ export function setupGoogleAuth(app: Express): void {
     "/api/auth/google/callback",
     (req, res, next) => {
       console.log("OAUTH CALLBACK HIT:", req.originalUrl);
+      console.log("[AUTH] Cookies received:", req.cookies);
       if (!clientId || !clientSecret) {
         return res.redirect("/?error=auth_not_configured");
       }
@@ -258,19 +271,13 @@ export function setupGoogleAuth(app: Express): void {
     (req, res) => {
       const user = req.user as Express.User;
       
-      // Decode source from state parameter
-      let source = 'web';
-      let nextUrl = '/';
-      try {
-        const stateParam = req.query.state as string;
-        if (stateParam) {
-          const stateData = JSON.parse(Buffer.from(stateParam, 'base64').toString('utf-8'));
-          source = stateData.source || 'web';
-          nextUrl = stateData.next || '/';
-        }
-      } catch (e) {
-        console.error("[AUTH] Failed to parse state:", e);
-      }
+      // Read source from cookie
+      const source = req.cookies?.auth_source || 'web';
+      const nextUrl = req.cookies?.auth_next || '/';
+      
+      // Clear the tracking cookies
+      res.clearCookie('auth_source');
+      res.clearCookie('auth_next');
       
       console.log("[AUTH] Google callback - source:", source, "user:", user.id);
       
