@@ -147,9 +147,15 @@ export function setupDiscordAuth(app: Express): void {
     )
   );
 
-  app.get("/auth/discord", passport.authenticate("discord", {
-    scope: DISCORD_SCOPES,
-  }));
+  app.get("/auth/discord", (req, res, next) => {
+    const next_url = req.query.next as string || '/download';
+    const source = req.query.source as string || 'web';
+    (req.session as any).authNext = next_url;
+    (req.session as any).authSource = source;
+    passport.authenticate("discord", {
+      scope: DISCORD_SCOPES,
+    })(req, res, next);
+  });
 
   app.get(
     "/api/auth/discord/callback",
@@ -161,15 +167,26 @@ export function setupDiscordAuth(app: Express): void {
     },
     (req, res) => {
       const user = req.user as Express.User;
-      const token = Buffer.from(JSON.stringify({
-        id: user.id,
-        ts: Date.now(),
-      })).toString('base64');
+      const source = (req.session as any).authSource || 'web';
+      const nextUrl = (req.session as any).authNext || '/download';
       
-      console.log("REDIRECTING TO DEEP LINK");
-      return res.redirect(
-        `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`
-      );
+      delete (req.session as any).authSource;
+      delete (req.session as any).authNext;
+      
+      if (source === 'electron') {
+        const token = Buffer.from(JSON.stringify({
+          id: user.id,
+          ts: Date.now(),
+        })).toString('base64');
+        
+        console.log("REDIRECTING TO DEEP LINK (Electron)");
+        return res.redirect(
+          `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`
+        );
+      } else {
+        console.log("REDIRECTING TO WEBSITE:", nextUrl);
+        return res.redirect(nextUrl);
+      }
     }
   );
 

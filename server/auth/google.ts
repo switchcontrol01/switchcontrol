@@ -231,9 +231,15 @@ export function setupGoogleAuth(app: Express): void {
     );
   }
 
-  app.get("/auth/google", passport.authenticate("google", {
-    scope: ["profile", "email"],
-  }));
+  app.get("/auth/google", (req, res, next) => {
+    const next_url = req.query.next as string || '/download';
+    const source = req.query.source as string || 'web';
+    (req.session as any).authNext = next_url;
+    (req.session as any).authSource = source;
+    passport.authenticate("google", {
+      scope: ["profile", "email"],
+    })(req, res, next);
+  });
 
   app.get(
     "/api/auth/google/callback",
@@ -248,15 +254,26 @@ export function setupGoogleAuth(app: Express): void {
     },
     (req, res) => {
       const user = req.user as Express.User;
-      const token = Buffer.from(JSON.stringify({
-        id: user.id,
-        ts: Date.now(),
-      })).toString('base64');
+      const source = (req.session as any).authSource || 'web';
+      const nextUrl = (req.session as any).authNext || '/download';
       
-      console.log("REDIRECTING TO DEEP LINK");
-      return res.redirect(
-        `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=google`
-      );
+      delete (req.session as any).authSource;
+      delete (req.session as any).authNext;
+      
+      if (source === 'electron') {
+        const token = Buffer.from(JSON.stringify({
+          id: user.id,
+          ts: Date.now(),
+        })).toString('base64');
+        
+        console.log("REDIRECTING TO DEEP LINK (Electron)");
+        return res.redirect(
+          `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=google`
+        );
+      } else {
+        console.log("REDIRECTING TO WEBSITE:", nextUrl);
+        return res.redirect(nextUrl);
+      }
     }
   );
 
