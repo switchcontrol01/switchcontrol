@@ -44,23 +44,63 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-export async function validateToken(token: string): Promise<AuthUser | null> {
+export async function exchangeToken(token: string): Promise<AuthUser | null> {
   try {
-    console.log('[Auth] Validating token with /api/me');
-    const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
+    console.log('[Auth] Exchanging token for session');
+    const response = await fetch(`${AUTH_DOMAIN}/api/auth/exchange`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     if (!response.ok) {
-      console.error('[Auth] Token validation failed:', response.status);
+      const err = await response.json().catch(() => ({}));
+      console.error('[Auth] Token exchange failed:', response.status, err);
       return null;
     }
 
     const data = await response.json();
-    console.log('[Auth] User validated:', data);
+    console.log('[Auth] Token exchange result:', data);
+
+    if (!data.success || !data.user) {
+      return null;
+    }
+
+    return {
+      id: data.user.id || '',
+      email: data.user.email || null,
+      username: data.user.name || data.user.firstName || null,
+      avatarUrl: data.user.avatar || null,
+      plan: data.user.isPremium ? 'premium' : 'free',
+      isPremium: data.user.isPremium || false,
+      loggedIn: true,
+    };
+  } catch (err) {
+    console.error('[Auth] Token exchange error:', err);
+    return null;
+  }
+}
+
+export async function validateToken(token: string): Promise<AuthUser | null> {
+  try {
+    console.log('[Auth] Validating session with /api/me');
+    const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.error('[Auth] Session validation failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    console.log('[Auth] Session status:', data);
     
     if (data.loggedIn === false) {
       return null;
@@ -69,14 +109,14 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
     return {
       id: data.id || '',
       email: data.email || null,
-      username: data.username || data.name || null,
-      avatarUrl: data.avatarUrl || data.avatar || null,
-      plan: data.plan || 'free',
+      username: data.name || data.firstName || null,
+      avatarUrl: data.avatar || null,
+      plan: data.isPremium ? 'premium' : 'free',
       isPremium: data.isPremium || false,
       loggedIn: true,
     };
   } catch (err) {
-    console.error('[Auth] Token validation error:', err);
+    console.error('[Auth] Session validation error:', err);
     return null;
   }
 }

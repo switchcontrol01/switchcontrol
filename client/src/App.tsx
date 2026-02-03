@@ -9,7 +9,7 @@ import { MotionProvider } from "@/lib/motion";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, AuthUser } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser } from "@/lib/auth-store";
 
 import Splash from "@/screens/Splash";
 import Login from "@/screens/Login";
@@ -99,16 +99,17 @@ function AppContent() {
           if (newToken) {
             setValidating(true);
             storeLogout();
-            const validatedUser = await validateToken(newToken);
             
-            if (validatedUser) {
+            const exchangedUser = await exchangeToken(newToken);
+            
+            if (exchangedUser) {
               setToken(newToken);
-              setUser(validatedUser);
-              console.log('[App] User authenticated, transitioning to dashboard');
+              setUser(exchangedUser);
+              console.log('[App] Token exchanged, user authenticated:', exchangedUser.id);
               setPhase("authenticated");
               setLocation("/dashboard");
             } else {
-              console.error('[App] Token validation failed');
+              console.error('[App] Token exchange failed');
               storeLogout();
               setPhase("unauthenticated");
             }

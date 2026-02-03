@@ -326,6 +326,91 @@ export function setupGoogleAuth(app: Express): void {
     }
     return res.json({ loggedIn: false, isPremium: false });
   });
+
+  app.post("/api/auth/exchange", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: 'Missing or invalid authorization header' });
+      }
+
+      const token = authHeader.substring(7);
+      
+      let decoded: { id: string; ts: number };
+      try {
+        decoded = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
+      } catch (e) {
+        console.error('[AUTH] Token decode failed:', e);
+        return res.status(401).json({ success: false, error: 'Invalid token format' });
+      }
+
+      if (!decoded.id) {
+        return res.status(401).json({ success: false, error: 'Token missing user id' });
+      }
+
+      const tokenAge = Date.now() - (decoded.ts || 0);
+      const maxAge = 5 * 60 * 1000;
+      if (tokenAge > maxAge) {
+        return res.status(401).json({ success: false, error: 'Token expired' });
+      }
+
+      let user: Express.User;
+      if (isNoDbMode || !db) {
+        user = {
+          id: decoded.id,
+          email: null,
+          firstName: null,
+          lastName: null,
+          profileImageUrl: null,
+          isPremium: false,
+        };
+      } else {
+        const userRows = await db
+          .select()
+          .from(users)
+          .where(eq(users.id, decoded.id))
+          .limit(1);
+
+        if (userRows.length === 0) {
+          return res.status(401).json({ success: false, error: 'User not found' });
+        }
+
+        const dbUser = userRows[0];
+        user = {
+          id: dbUser.id,
+          email: dbUser.email,
+          firstName: dbUser.firstName,
+          lastName: dbUser.lastName,
+          profileImageUrl: dbUser.profileImageUrl,
+          isPremium: dbUser.isPremium,
+        };
+      }
+
+      req.login(user, (err) => {
+        if (err) {
+          console.error('[AUTH] Login failed during exchange:', err);
+          return res.status(500).json({ success: false, error: 'Session creation failed' });
+        }
+
+        console.log('[AUTH] Token exchange successful for user:', user.id);
+        return res.json({
+          success: true,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: [user.firstName, user.lastName].filter(Boolean).join(" ") || null,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            avatar: user.profileImageUrl,
+            isPremium: user.isPremium,
+          }
+        });
+      });
+    } catch (error) {
+      console.error('[AUTH] Exchange error:', error);
+      return res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+  });
 }
 
 export const isAuthenticated: RequestHandler = (req, res, next) => {
