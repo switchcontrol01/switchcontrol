@@ -173,26 +173,18 @@ export function setupDiscordAuth(app: Express): void {
       })(req, res, next);
     },
     (req, res) => {
-      const electronRedirect = (req.session as any).electronRedirect;
-      const returnTo = (req.session as any).returnTo || '/download';
-      
       delete (req.session as any).electronRedirect;
       delete (req.session as any).returnTo;
       
-      if (electronRedirect && electronRedirect.startsWith('switchcontrol://')) {
-        const user = req.user as Express.User;
-        const token = Buffer.from(JSON.stringify({
-          id: user.id,
-          ts: Date.now(),
-        })).toString('base64');
-        
-        const deepLinkUrl = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`;
-        console.log("[AUTH] Discord OAuth callback successful, redirecting to Electron:", deepLinkUrl);
-        res.redirect(deepLinkUrl);
-      } else {
-        console.log("[AUTH] Discord OAuth callback successful, redirecting to:", returnTo);
-        res.redirect(returnTo);
-      }
+      const user = req.user as Express.User;
+      const token = Buffer.from(JSON.stringify({
+        id: user.id,
+        ts: Date.now(),
+      })).toString('base64');
+      
+      const deepLinkUrl = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`;
+      console.log("[AUTH] Discord OAuth callback successful, redirecting to Electron:", deepLinkUrl);
+      res.redirect(deepLinkUrl);
     }
   );
 
