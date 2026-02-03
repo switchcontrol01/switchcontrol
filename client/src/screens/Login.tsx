@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 
 const AUTH_TOKEN_KEY = "sc_auth_token_v1";
 const AUTH_USER_KEY = "sc_auth_user_v1";
-const AUTH_BASE_URL = "https://switchcontrol.app";
+const AUTH_DOMAIN = "https://switchcontrol.org";
 
 interface AuthUser {
   id: string;
   email: string | null;
-  name: string | null;
-  avatar: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  plan: string;
   isPremium: boolean;
 }
 
@@ -41,45 +42,24 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
-    
-    if (isElectron && window.electronAPI?.auth?.onCallback) {
-      window.electronAPI.auth.onCallback((data: { token: string; user: AuthUser }) => {
-        if (data.token && data.user) {
-          localStorage.setItem(AUTH_TOKEN_KEY, data.token);
-          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
-          window.location.hash = "#/dashboard";
-          onLoginSuccess();
-        } else {
-          setError("Authentication failed. Please try again.");
-          setIsLoading(null);
-        }
-      });
-
-      return () => {
-        window.electronAPI?.auth?.removeCallbackListener();
-      };
-    }
-  }, [onLoginSuccess]);
-
-  const handleLogin = async (provider: "google" | "discord") => {
+  const handleLogin = async (provider: "discord") => {
     setIsLoading(provider);
     setError(null);
     
-    const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+    const isElectron = typeof window !== 'undefined' && (window as any).electron?.openExternal;
     
-    if (isElectron && window.electronAPI?.system?.openExternal) {
-      const authUrl = `${AUTH_BASE_URL}/auth/${provider}?redirect=switchcontrol://auth`;
+    if (isElectron) {
+      const authUrl = `${AUTH_DOMAIN}/auth/${provider}?redirect=switchcontrol://auth/success`;
+      console.log('[Login] Opening external auth URL:', authUrl);
       try {
-        await window.electronAPI.system.openExternal(authUrl);
+        await (window as any).electron.openExternal(authUrl);
       } catch (err) {
-        console.error('Failed to open auth URL:', err);
+        console.error('[Login] Failed to open auth URL:', err);
         setError("Failed to open browser. Please try again.");
         setIsLoading(null);
       }
     } else {
-      window.location.href = `${AUTH_BASE_URL}/auth/${provider}`;
+      window.location.href = `${AUTH_DOMAIN}/auth/${provider}`;
     }
   };
 
@@ -130,24 +110,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           )}
 
           <div className="space-y-3">
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                onClick={() => handleLogin("google")}
-                disabled={isLoading !== null}
-                className="w-full h-12 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-all duration-200"
-                data-testid="button-login-google"
-              >
-                {isLoading === "google" ? (
-                  <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <GoogleIcon className="w-5 h-5 mr-3" />
-                    Continue with Google
-                  </>
-                )}
-              </Button>
-            </motion.div>
-
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
               <Button
                 onClick={() => handleLogin("discord")}

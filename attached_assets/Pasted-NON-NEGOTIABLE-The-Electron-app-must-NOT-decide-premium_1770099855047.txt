@@ -1,0 +1,87 @@
+NON NEGOTIABLE:
+The Electron app must NOT decide premium status.
+
+After auth callback:
+- Store token from switchcontrol:// URL
+- Call GET https://switchcontrol.org/api/me
+- Use response fields:
+  - avatarUrl
+  - username
+  - plan / isPremium
+UI must mirror website logic exactly.
+If website shows premium, app shows premium.
+No duplicate logic.
+
+LOCKED VALUES (DO NOT CHANGE):
+Website domain: https://switchcontrol.org
+Discord callback: https://switchcontrol.org/api/auth/discord/callback
+App deep link scheme: switchcontrol://
+
+TASK: Implement proper website → Electron deep link authentication.
+
+A) ELECTRON: register protocol
+In electron/main.js:
+- app.setAsDefaultProtocolClient("switchcontrol")
+- enforce single instance lock
+- on second-instance, parse argv for "switchcontrol://"
+- send URL to renderer via:
+  mainWindow.webContents.send("auth-callback", url)
+- focus the app window
+Also handle macOS:
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  mainWindow.webContents.send("auth-callback", url);
+});
+
+B) ELECTRON: open browser from app
+Add IPC:
+ipcMain.handle("open-external", (_, url) => shell.openExternal(url));
+Expose in preload.js:
+window.electron.openExternal(url)
+
+C) CLIENT: login button
+Login screen button MUST:
+- call window.electron.openExternal("https://switchcontrol.org/api/auth/discord")
+- NOT navigate inside the Electron window
+- NO fetch
+- NO iframe
+- NO BrowserWindow loadURL
+
+D) SERVER: final redirect
+In /api/auth/discord/callback route:
+After successful auth + token creation:
+res.redirect(
+  `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`
+)
+Keep HTTPS callback for Discord. Deep link is the second redirect only.
+
+E) CLIENT: receive auth
+Expose listener in preload:
+window.auth.onCallback(cb)
+
+In App.tsx:
+- listen for callback
+- console.log("AUTH CALLBACK:", url)
+- parse token from URL
+- localStorage.setItem("authToken", token)
+- call /api/me to hydrate user
+- route to /dashboard using wouter
+
+F) TYPES
+Update client/src/types/electron.d.ts
+If TS does not load it, import once in main.tsx:
+import "./types/electron";
+
+G) PROOF REQUIRED (NO SUMMARIES)
+Output full contents of:
+- electron/main.js
+- electron/preload.js
+- server Discord callback route
+- login screen file
+- App.tsx
+- client/src/types/electron.d.ts
+
+Then provide real test steps + what console logs should show.
+Include Windows dev note:
+- If protocol is not registered, deep link will not open app.
+- Test by running: start "" "switchcontrol://auth/success?token=TEST"

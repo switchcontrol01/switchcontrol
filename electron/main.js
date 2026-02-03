@@ -14,6 +14,7 @@ const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let mainWindow = null;
 
 const PROTOCOL_NAME = 'switchcontrol';
+const AUTH_DOMAIN = 'https://switchcontrol.org';
 
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
@@ -29,6 +30,8 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
+    console.log('[SwitchControl] second-instance event, argv:', commandLine);
+    
     if (mainWindow) {
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
@@ -36,23 +39,25 @@ if (!gotTheLock) {
     
     const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
     if (url) {
-      handleAuthCallback(url);
+      console.log('[SwitchControl] Deep link received:', url);
+      handleDeepLink(url);
     }
   });
 }
 
-function handleAuthCallback(url) {
+function handleDeepLink(url) {
+  console.log('[SwitchControl] Handling deep link:', url);
+  
+  if (!mainWindow) {
+    console.error('[SwitchControl] No main window available for deep link');
+    return;
+  }
+  
   try {
-    const parsed = new URL(url);
-    const token = parsed.searchParams.get('token');
-    const userJson = parsed.searchParams.get('user');
-    
-    if (token && userJson && mainWindow) {
-      const user = JSON.parse(decodeURIComponent(userJson));
-      mainWindow.webContents.send('auth-callback', { token, user });
-    }
+    mainWindow.webContents.send('auth-callback', url);
+    console.log('[SwitchControl] Sent auth-callback to renderer with URL:', url);
   } catch (err) {
-    console.error('[SwitchControl] Failed to parse auth callback:', err);
+    console.error('[SwitchControl] Failed to send deep link to renderer:', err);
   }
 }
 
@@ -277,7 +282,8 @@ function setupIPC() {
 
   ipcMain.handle('telemetry:getLive', async () => await getLiveTelemetry());
 
-  ipcMain.handle('system:openExternal', async (event, url) => {
+  ipcMain.handle('open-external', async (event, url) => {
+    console.log('[SwitchControl] Opening external URL:', url);
     if (url.startsWith('http://') || url.startsWith('https://')) {
       await shell.openExternal(url);
       return true;
@@ -306,7 +312,8 @@ function setupIPC() {
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  handleAuthCallback(url);
+  console.log('[SwitchControl] macOS open-url event:', url);
+  handleDeepLink(url);
 });
 
 app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
@@ -317,6 +324,12 @@ app.whenReady().then(() => {
   setupIPC();
   createWindow();
   registerProductionShortcuts();
+
+  const launchUrl = process.argv.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
+  if (launchUrl) {
+    console.log('[SwitchControl] Launched with deep link:', launchUrl);
+    setTimeout(() => handleDeepLink(launchUrl), 500);
+  }
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

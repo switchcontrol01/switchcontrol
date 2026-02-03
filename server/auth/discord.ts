@@ -148,10 +148,18 @@ export function setupDiscordAuth(app: Express): void {
   );
 
   app.get("/auth/discord", (req, res, next) => {
+    const rawRedirect = typeof req.query.redirect === 'string' ? req.query.redirect : '';
     const rawNext = typeof req.query.next === 'string' ? req.query.next : '/download';
-    const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/download';
-    (req.session as any).returnTo = nextUrl;
-    console.log("[AUTH] Starting Discord OAuth flow, returnTo:", nextUrl);
+    
+    if (rawRedirect.startsWith('switchcontrol://')) {
+      (req.session as any).electronRedirect = rawRedirect;
+      console.log("[AUTH] Starting Discord OAuth flow for Electron, redirect:", rawRedirect);
+    } else {
+      const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/download';
+      (req.session as any).returnTo = nextUrl;
+      console.log("[AUTH] Starting Discord OAuth flow, returnTo:", nextUrl);
+    }
+    
     passport.authenticate("discord", {
       scope: DISCORD_SCOPES,
     })(req, res, next);
@@ -165,10 +173,26 @@ export function setupDiscordAuth(app: Express): void {
       })(req, res, next);
     },
     (req, res) => {
+      const electronRedirect = (req.session as any).electronRedirect;
       const returnTo = (req.session as any).returnTo || '/download';
+      
+      delete (req.session as any).electronRedirect;
       delete (req.session as any).returnTo;
-      console.log("[AUTH] Discord OAuth callback successful, redirecting to:", returnTo);
-      res.redirect(returnTo);
+      
+      if (electronRedirect && electronRedirect.startsWith('switchcontrol://')) {
+        const user = req.user as Express.User;
+        const token = Buffer.from(JSON.stringify({
+          id: user.id,
+          ts: Date.now(),
+        })).toString('base64');
+        
+        const deepLinkUrl = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`;
+        console.log("[AUTH] Discord OAuth callback successful, redirecting to Electron:", deepLinkUrl);
+        res.redirect(deepLinkUrl);
+      } else {
+        console.log("[AUTH] Discord OAuth callback successful, redirecting to:", returnTo);
+        res.redirect(returnTo);
+      }
     }
   );
 
