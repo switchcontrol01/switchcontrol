@@ -1,24 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 const AUTH_TOKEN_KEY = "sc_auth_token_v1";
+const AUTH_USER_KEY = "sc_auth_user_v1";
 const AUTH_BASE_URL = "https://switchcontrol.app";
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      isElectron: boolean;
-      system?: {
-        openExternal: (url: string) => Promise<boolean>;
-      };
-      window: {
-        minimize: () => void;
-        maximize: () => void;
-        close: () => void;
-      };
-    };
-  }
+interface AuthUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  avatar: string | null;
+  isPremium: boolean;
 }
 
 interface LoginProps {
@@ -46,9 +39,33 @@ function DiscordIcon({ className }: { className?: string }) {
 
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+    
+    if (isElectron && window.electronAPI?.auth?.onCallback) {
+      window.electronAPI.auth.onCallback((data: { token: string; user: AuthUser }) => {
+        if (data.token && data.user) {
+          localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+          localStorage.setItem(AUTH_USER_KEY, JSON.stringify(data.user));
+          window.location.hash = "#/dashboard";
+          onLoginSuccess();
+        } else {
+          setError("Authentication failed. Please try again.");
+          setIsLoading(null);
+        }
+      });
+
+      return () => {
+        window.electronAPI?.auth?.removeCallbackListener();
+      };
+    }
+  }, [onLoginSuccess]);
 
   const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
+    setError(null);
     
     const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
     
@@ -56,28 +73,22 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const authUrl = `${AUTH_BASE_URL}/auth/${provider}?redirect=switchcontrol://auth`;
       try {
         await window.electronAPI.system.openExternal(authUrl);
-        setTimeout(() => {
-          localStorage.setItem(AUTH_TOKEN_KEY, "mock_token_" + Date.now());
-          window.location.hash = "#/dashboard";
-          onLoginSuccess();
-        }, 2000);
       } catch (err) {
         console.error('Failed to open auth URL:', err);
+        setError("Failed to open browser. Please try again.");
         setIsLoading(null);
       }
     } else {
-      setTimeout(() => {
-        localStorage.setItem(AUTH_TOKEN_KEY, "mock_token_" + Date.now());
-        window.location.hash = "#/dashboard";
-        onLoginSuccess();
-      }, 1200);
+      window.location.href = `${AUTH_BASE_URL}/auth/${provider}`;
     }
   };
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
-      {/* Premium diagonal contour background */}
-      <div className="absolute inset-0 overflow-hidden" style={{ transform: 'rotate(-12deg) scale(1.4)' }}>
+      <div 
+        className="absolute inset-0 overflow-hidden pointer-events-none" 
+        style={{ transform: 'rotate(-12deg) scale(1.4)' }}
+      >
         <div className="absolute inset-0 login-contour-drift" style={{ opacity: 0.08 }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
@@ -91,7 +102,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
       </div>
 
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/50 to-[#0a0a0f]" />
+      <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/50 to-[#0a0a0f] pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -102,7 +113,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         <div className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           <div className="flex flex-col items-center gap-6 mb-8">
             <img
-              src="./logo.png"
+              src="/logo.png"
               alt="SwitchControl"
               className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[20px]"
             />
@@ -111,6 +122,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
               <p className="text-muted-foreground text-sm">Sign in to optimize your gaming experience</p>
             </div>
           </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+              {error}
+            </div>
+          )}
 
           <div className="space-y-3">
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>

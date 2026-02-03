@@ -939,35 +939,16 @@ body {
   position: relative;
 }
 
+/* Window control buttons inside titlebar must NOT be draggable */
+.titlebar-controls {
+  -webkit-app-region: no-drag;
+}
+
 .app-content {
   flex: 1;
   height: calc(100vh - 32px);
   overflow: auto;
-  -webkit-app-region: no-drag !important;
   position: relative;
-}
-
-/* CRITICAL: Ensure ALL interactive and content elements are NOT draggable */
-.app-content *,
-button,
-input,
-a,
-select,
-textarea,
-nav,
-aside,
-[role="button"],
-[role="link"],
-[role="navigation"],
-[data-testid],
-.sidebar,
-.btn,
-.interactive,
-.card,
-.switch,
-.checkbox,
-.toggle {
-  -webkit-app-region: no-drag !important;
 }
 
 /* Animated contour keyframes for Splash screen */

@@ -13,6 +13,49 @@ try {
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let mainWindow = null;
 
+const PROTOCOL_NAME = 'switchcontrol';
+
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL_NAME, process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL_NAME);
+}
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', (event, commandLine) => {
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+    
+    const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
+    if (url) {
+      handleAuthCallback(url);
+    }
+  });
+}
+
+function handleAuthCallback(url) {
+  try {
+    const parsed = new URL(url);
+    const token = parsed.searchParams.get('token');
+    const userJson = parsed.searchParams.get('user');
+    
+    if (token && userJson && mainWindow) {
+      const user = JSON.parse(decodeURIComponent(userJson));
+      mainWindow.webContents.send('auth-callback', { token, user });
+    }
+  } catch (err) {
+    console.error('[SwitchControl] Failed to parse auth callback:', err);
+  }
+}
+
 function registerProductionShortcuts() {
   if (isDev) return;
 
@@ -242,6 +285,11 @@ function setupIPC() {
     if (mainWindow) mainWindow.close();
   });
 }
+
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleAuthCallback(url);
+});
 
 app.commandLine.appendSwitch('enable-features', 'SharedArrayBuffer');
 app.commandLine.appendSwitch('enable-gpu-rasterization');

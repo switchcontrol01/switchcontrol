@@ -25,9 +25,10 @@ export default function Splash({ onComplete }: SplashProps) {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
-      {/* Premium diagonal contour background - subtle and animated */}
-      <div className="absolute inset-0 overflow-hidden" style={{ transform: 'rotate(-15deg) scale(1.5)' }}>
-        {/* Layer 1 - Primary contours drifting */}
+      <div 
+        className="absolute inset-0 overflow-hidden pointer-events-none" 
+        style={{ transform: 'rotate(-15deg) scale(1.5)' }}
+      >
         <div className="absolute inset-0 splash-contour-drift-1" style={{ opacity: 0.12 }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
@@ -41,7 +42,6 @@ export default function Splash({ onComplete }: SplashProps) {
           </svg>
         </div>
 
-        {/* Layer 2 - Secondary contours counter-drifting */}
         <div className="absolute inset-0 splash-contour-drift-2" style={{ opacity: 0.08 }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
@@ -56,11 +56,9 @@ export default function Splash({ onComplete }: SplashProps) {
         </div>
       </div>
 
-      {/* Center glow - soft purple */}
-      <div className="absolute inset-0 bg-gradient-radial from-purple-600/15 via-transparent to-transparent" />
+      <div className="absolute inset-0 bg-gradient-radial from-purple-600/15 via-transparent to-transparent pointer-events-none" />
       
-      {/* Vignette */}
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/60 to-[#0a0a0f]" />
+      <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/60 to-[#0a0a0f] pointer-events-none" />
 
       <AnimatePresence mode="wait">
         {phase === "logo" && (
@@ -83,7 +81,7 @@ export default function Splash({ onComplete }: SplashProps) {
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
               <img
-                src="./logo.png"
+                src="/logo.png"
                 alt="SwitchControl"
                 className="w-28 h-28 max-w-[112px] max-h-[112px] object-contain rounded-[28px]"
               />

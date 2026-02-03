@@ -4,13 +4,28 @@ declare global {
   interface Window {
     electronAPI?: {
       isElectron: boolean;
+      system?: {
+        openExternal: (url: string) => Promise<boolean>;
+      };
       window: {
         minimize: () => void;
         maximize: () => void;
         close: () => void;
       };
+      auth?: {
+        onCallback: (callback: (data: { token: string; user: AuthUser }) => void) => void;
+        removeCallbackListener: () => void;
+      };
     };
   }
+}
+
+interface AuthUser {
+  id: string;
+  email: string | null;
+  name: string | null;
+  avatar: string | null;
+  isPremium: boolean;
 }
 
 export function WindowControls() {
@@ -31,10 +46,7 @@ export function WindowControls() {
   };
 
   return (
-    <div 
-      className="fixed top-0 right-0 z-[9999] flex items-center h-8"
-      style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-    >
+    <div className="titlebar-controls fixed top-0 right-0 z-[9999] flex items-center h-8">
       <button
         onClick={handleMinimize}
         className="w-12 h-8 flex items-center justify-center hover:bg-white/10 transition-colors"

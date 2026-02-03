@@ -32,7 +32,6 @@ export function AppBackground() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Layer 2: Glow blobs - subtle purple/cyan
   const glowBlobs = useMemo<GlowBlob[]>(() => [
     { id: 'top-left', top: '5%', left: '5%', size: 450, color: 'hsl(270 50% 45%)', blur: 120, opacity: 0.04, animClass: 'animate-blob-1' },
     { id: 'top-right', top: '10%', right: '10%', size: 350, color: 'hsl(190 70% 45%)', blur: 100, opacity: 0.03, animClass: 'animate-blob-2' },
@@ -40,7 +39,6 @@ export function AppBackground() {
     { id: 'bottom', top: '80%', right: '20%', size: 380, color: 'hsl(265 50% 45%)', blur: 110, opacity: 0.035, animClass: 'animate-blob-1' },
   ], []);
 
-  // Layer 1: Contour lines - fewer, more subtle, varying spacing
   const contourLines = useMemo<ContourLine[]>(() => {
     const lines: ContourLine[] = [];
     const lineCount = isMobile ? 8 : 14;
@@ -64,14 +62,14 @@ export function AppBackground() {
 
   return (
     <div 
-      className="fixed inset-0 pointer-events-none overflow-hidden"
-      style={{ zIndex: 0, transform: 'rotate(-12deg) scale(1.3)' }}
+      className="fixed inset-0 overflow-hidden"
+      style={{ zIndex: 0, transform: 'rotate(-12deg) scale(1.3)', pointerEvents: 'none' }}
       aria-hidden="true"
     >
-      {/* Layer 0: Base gradient - very subtle */}
       <div 
         className="absolute inset-0 opacity-20"
         style={{
+          pointerEvents: 'none',
           background: `
             radial-gradient(ellipse 70% 50% at 20% 30%, hsl(270 50% 45% / 0.06) 0%, transparent 50%),
             radial-gradient(ellipse 60% 40% at 80% 70%, hsl(190 70% 45% / 0.04) 0%, transparent 50%),
@@ -80,15 +78,14 @@ export function AppBackground() {
         }}
       />
 
-      {/* Layer 1: Contour lines SVG - subtle and diagonal */}
       <svg 
         className="absolute inset-0 w-full h-full"
+        style={{ pointerEvents: 'none' }}
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 100 100"
         preserveAspectRatio="none"
       >
         <defs>
-          {/* Purple-tinted contour gradients - reduced opacity */}
           <linearGradient id="app-contour-1" x1="0%" y1="0%" x2="100%" y2="0%">
             <stop offset="0%" stopColor="hsl(270 50% 50% / 0)" />
             <stop offset="15%" stopColor="hsl(270 50% 50% / 0.2)" />
@@ -144,7 +141,6 @@ export function AppBackground() {
         })}
       </svg>
 
-      {/* Layer 2: Glow blobs - very subtle */}
       {glowBlobs.map((blob) => (
         <div
           key={blob.id}
@@ -161,11 +157,11 @@ export function AppBackground() {
             opacity: blob.opacity,
             borderRadius: '50%',
             transform: 'translate3d(0,0,0)',
+            pointerEvents: 'none',
           }}
         />
       ))}
 
-      {/* Layer 3: Spotlight cursor (desktop only) */}
       <SpotlightCursor />
     </div>
   );
