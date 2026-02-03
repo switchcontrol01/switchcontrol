@@ -173,17 +173,22 @@ function ElectronAppContent() {
     if (!splashDone) return;
 
     const checkAuth = async () => {
-      if (token) {
-        console.log('[App] Existing token found, validating...');
+      // For Electron, use stored user data (cookies don't work cross-origin)
+      if (token && user) {
+        console.log('[App] Using stored user data:', user.id);
+        setPhase("authenticated");
+      } else if (token && !user) {
+        // Token exists but no user - try to exchange again
+        console.log('[App] Token exists but no user, re-exchanging...');
         setValidating(true);
-        const validatedUser = await validateToken(token);
+        const exchangedUser = await exchangeToken(token);
         setValidating(false);
         
-        if (validatedUser) {
-          setUser(validatedUser);
+        if (exchangedUser) {
+          setUser(exchangedUser);
           setPhase("authenticated");
         } else {
-          console.log('[App] Stored token invalid, clearing');
+          console.log('[App] Token exchange failed, clearing');
           storeLogout();
           setPhase("unauthenticated");
         }
@@ -193,7 +198,7 @@ function ElectronAppContent() {
     };
 
     checkAuth();
-  }, [splashDone, token, setUser, storeLogout, setValidating]);
+  }, [splashDone]);
 
   const handleLogout = () => {
     storeLogout();
