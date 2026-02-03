@@ -147,23 +147,9 @@ export function setupDiscordAuth(app: Express): void {
     )
   );
 
-  app.get("/auth/discord", (req, res, next) => {
-    const rawRedirect = typeof req.query.redirect === 'string' ? req.query.redirect : '';
-    const rawNext = typeof req.query.next === 'string' ? req.query.next : '/download';
-    
-    if (rawRedirect.startsWith('switchcontrol://')) {
-      (req.session as any).electronRedirect = rawRedirect;
-      console.log("[AUTH] Starting Discord OAuth flow for Electron, redirect:", rawRedirect);
-    } else {
-      const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/download';
-      (req.session as any).returnTo = nextUrl;
-      console.log("[AUTH] Starting Discord OAuth flow, returnTo:", nextUrl);
-    }
-    
-    passport.authenticate("discord", {
-      scope: DISCORD_SCOPES,
-    })(req, res, next);
-  });
+  app.get("/auth/discord", passport.authenticate("discord", {
+    scope: DISCORD_SCOPES,
+  }));
 
   app.get(
     "/api/auth/discord/callback",

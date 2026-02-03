@@ -231,29 +231,9 @@ export function setupGoogleAuth(app: Express): void {
     );
   }
 
-  app.get("/auth/google", (req, res, next) => {
-    if (!clientId || !clientSecret) {
-      return res.status(503).json({
-        error: "Google authentication not configured",
-        message: "Please set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables",
-      });
-    }
-    const rawRedirect = typeof req.query.redirect === 'string' ? req.query.redirect : '';
-    const rawNext = typeof req.query.next === 'string' ? req.query.next : '/';
-    
-    if (rawRedirect.startsWith('switchcontrol://')) {
-      (req.session as any).electronRedirect = rawRedirect;
-      console.log("[AUTH] Starting Google OAuth flow for Electron, redirect:", rawRedirect);
-    } else {
-      const nextUrl = rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : '/';
-      (req.session as any).returnTo = nextUrl;
-      console.log("[AUTH] Starting Google OAuth flow, returnTo:", nextUrl);
-    }
-    
-    passport.authenticate("google", {
-      scope: ["profile", "email"],
-    })(req, res, next);
-  });
+  app.get("/auth/google", passport.authenticate("google", {
+    scope: ["profile", "email"],
+  }));
 
   app.get(
     "/api/auth/google/callback",
