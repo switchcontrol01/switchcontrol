@@ -1,0 +1,47 @@
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\Users\SwitchTech> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> switchcontrol@1.0.0 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+✓ 3119 modules transformed.
+../dist/public/index.html                      2.49 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png   21.20 kB
+../dist/public/assets/icon-O7sJFqru.png      358.07 kB
+../dist/public/assets/index-Cj3eorHP.css      36.90 kB │ gzip:   9.30 kB
+../dist/public/assets/index-Dt9SwzGX.js      938.86 kB │ gzip: 283.38 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.42s
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> switchcontrol@1.0.0 electron:build
+> vite build && electron-builder
+
+vite v7.3.1 building client environment for production...
+✓ 3119 modules transformed.
+../dist/public/index.html                      2.49 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png   21.20 kB
+../dist/public/assets/icon-O7sJFqru.png      358.07 kB
+../dist/public/assets/index-Cj3eorHP.css      36.90 kB │ gzip:   9.30 kB
+../dist/public/assets/index-Dt9SwzGX.js      938.86 kB │ gzip: 283.38 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.39s
+  • electron-builder  version=26.7.0 os=10.0.26200
+  • loaded configuration  file=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron-builder.json
+  • description is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • author is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  ⨯ Package "electron" is only allowed in "devDependencies". Please remove it from the "dependencies" section in your package.json.
+Package "electron-builder" is only allowed in "devDependencies". Please remove it from the "dependencies" section in your package.json.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
