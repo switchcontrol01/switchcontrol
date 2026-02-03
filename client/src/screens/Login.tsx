@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import logoImg from "@/assets/logo.png";
@@ -24,9 +24,42 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
+function FloatingParticle({ delay, duration, startX, startY }: { delay: number; duration: number; startX: number; startY: number }) {
+  return (
+    <motion.div
+      className="absolute w-1 h-1 rounded-full bg-primary/40"
+      style={{ left: `${startX}%`, top: `${startY}%` }}
+      animate={{
+        y: [0, -100, -200],
+        x: [0, Math.random() * 40 - 20, Math.random() * 60 - 30],
+        opacity: [0, 1, 0],
+        scale: [0, 1.5, 0],
+      }}
+      transition={{
+        duration,
+        delay,
+        repeat: Infinity,
+        ease: "easeOut",
+      }}
+    />
+  );
+}
+
 export default function Login() {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number }>>([]);
+
+  useEffect(() => {
+    const newParticles = Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      delay: Math.random() * 5,
+      duration: 3 + Math.random() * 4,
+      startX: Math.random() * 100,
+      startY: 50 + Math.random() * 50,
+    }));
+    setParticles(newParticles);
+  }, []);
 
   const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
@@ -53,56 +86,152 @@ export default function Login() {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
+      <motion.div 
+        className="absolute inset-0 pointer-events-none"
+        animate={{
+          background: [
+            "radial-gradient(ellipse 80% 50% at 50% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)",
+            "radial-gradient(ellipse 60% 40% at 45% 45%, rgba(139, 92, 246, 0.2) 0%, transparent 50%)",
+            "radial-gradient(ellipse 80% 50% at 55% 55%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)",
+          ]
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(circle at 30% 20%, rgba(236, 72, 153, 0.1) 0%, transparent 40%)",
+        }}
+        animate={{
+          opacity: [0.3, 0.6, 0.3],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(circle at 70% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 40%)",
+        }}
+        animate={{
+          opacity: [0.2, 0.5, 0.2],
+        }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+      />
+
       <div 
         className="absolute inset-0 overflow-hidden pointer-events-none" 
         style={{ transform: 'rotate(-12deg) scale(1.4)' }}
       >
-        <div className="absolute inset-0 login-contour-drift" style={{ opacity: 0.14 }}>
+        <motion.div 
+          className="absolute inset-0" 
+          style={{ opacity: 0.12 }}
+          animate={{ y: [0, -20, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        >
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="loginTopo" x="0" y="0" width="200" height="150" patternUnits="userSpaceOnUse">
-                <path d="M0 50 Q50 25 100 50 T200 50" fill="none" stroke="hsl(270 50% 45%)" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M0 100 Q50 75 100 100 T200 100" fill="none" stroke="hsl(275 45% 50%)" strokeWidth="0.5" opacity="0.4"/>
+                <path d="M0 50 Q50 25 100 50 T200 50" fill="none" stroke="hsl(270 50% 55%)" strokeWidth="0.8" opacity="0.6"/>
+                <path d="M0 100 Q50 75 100 100 T200 100" fill="none" stroke="hsl(280 45% 60%)" strokeWidth="0.6" opacity="0.5"/>
+                <path d="M0 25 Q50 0 100 25 T200 25" fill="none" stroke="hsl(260 55% 50%)" strokeWidth="0.5" opacity="0.4"/>
+                <path d="M0 125 Q50 100 100 125 T200 125" fill="none" stroke="hsl(270 50% 45%)" strokeWidth="0.4" opacity="0.3"/>
               </pattern>
             </defs>
             <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#loginTopo)"/>
           </svg>
-        </div>
+        </motion.div>
       </div>
 
-      <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/50 to-[#0a0a0f] pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {particles.map((p) => (
+          <FloatingParticle key={p.id} {...p} />
+        ))}
+      </div>
+
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-[#0a0a0f]/80 pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0a0a0f_70%)] pointer-events-none" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md mx-4"
       >
-        <div className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
-          <div className="flex flex-col items-center gap-6 mb-8">
-            <img
-              src={logoImg}
-              alt="SwitchControl"
-              className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[22%]"
-            />
+        <motion.div
+          className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-primary/20 via-pink-500/10 to-blue-500/20 blur-xl"
+          animate={{
+            opacity: [0.4, 0.7, 0.4],
+          }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+        />
+        
+        <div className="relative bg-card/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-2xl overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-pink-500/5 pointer-events-none" />
+          
+          <div className="relative flex flex-col items-center gap-6 mb-8">
+            <motion.div
+              animate={{
+                boxShadow: [
+                  "0 0 20px rgba(139, 92, 246, 0.2)",
+                  "0 0 40px rgba(139, 92, 246, 0.4)",
+                  "0 0 20px rgba(139, 92, 246, 0.2)",
+                ]
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              className="rounded-[22%]"
+            >
+              <motion.img
+                src={logoImg}
+                alt="SwitchControl"
+                className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[22%]"
+                animate={{ rotate: [0, 2, -2, 0] }}
+                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
             <div className="text-center">
-              <h1 className="text-2xl font-bold text-white mb-2">Welcome to SwitchControl</h1>
-              <p className="text-muted-foreground text-sm">Sign in to optimize your gaming experience</p>
+              <motion.h1 
+                className="text-2xl font-bold text-white mb-2"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                Welcome to <span className="bg-gradient-to-r from-primary to-pink-400 bg-clip-text text-transparent">SwitchControl</span>
+              </motion.h1>
+              <motion.p 
+                className="text-muted-foreground text-sm"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                Sign in to optimize your gaming experience
+              </motion.p>
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
-          <div className="space-y-3">
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+          <div className="relative space-y-3">
+            <motion.div 
+              whileHover={{ scale: 1.02 }} 
+              whileTap={{ scale: 0.98 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
               <Button
                 onClick={() => handleLogin("google")}
                 disabled={isLoading !== null}
-                className="w-full h-12 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-all duration-200"
+                className="w-full h-12 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
                 data-testid="button-login-google"
               >
                 {isLoading === "google" ? (
@@ -116,11 +245,17 @@ export default function Login() {
               </Button>
             </motion.div>
 
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <motion.div 
+              whileHover={{ scale: 1.02 }} 
+              whileTap={{ scale: 0.98 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+            >
               <Button
                 onClick={() => handleLogin("discord")}
                 disabled={isLoading !== null}
-                className="w-full h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium rounded-xl transition-all duration-200"
+                className="w-full h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-[#5865F2]/20"
                 data-testid="button-login-discord"
               >
                 {isLoading === "discord" ? (
@@ -135,10 +270,38 @@ export default function Login() {
             </motion.div>
           </div>
 
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <motion.p 
+            className="text-center text-xs text-muted-foreground mt-6"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.6 }}
+          >
             By signing in, you agree to our Terms of Service and Privacy Policy
-          </p>
+          </motion.p>
         </div>
+      </motion.div>
+
+      <motion.div
+        className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+      >
+        {[0, 1, 2, 3, 4].map((i) => (
+          <motion.div
+            key={i}
+            className="w-1.5 h-1.5 rounded-full bg-primary/40"
+            animate={{
+              scale: [1, 1.5, 1],
+              opacity: [0.3, 0.8, 0.3],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              delay: i * 0.2,
+            }}
+          />
+        ))}
       </motion.div>
     </div>
   );
