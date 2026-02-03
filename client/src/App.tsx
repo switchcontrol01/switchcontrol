@@ -178,7 +178,19 @@ function ElectronAppContent() {
       // For Electron, use stored user data (cookies don't work cross-origin)
       if (token && user) {
         console.log('[App] Using stored user data:', user.id);
-        setPhase("authenticated");
+        
+        // Check if first time for this user
+        const welcomeKey = `sc_welcomed_${user.id}`;
+        const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+        
+        if (!hasBeenWelcomed) {
+          console.log('[App] First time user detected, showing welcome');
+          setIsFirstLogin(true);
+          localStorage.setItem(welcomeKey, 'true');
+          setPhase("welcome");
+        } else {
+          setPhase("authenticated");
+        }
       } else if (token && !user) {
         // Token exists but no user - try to exchange again
         console.log('[App] Token exists but no user, re-exchanging...');
@@ -188,7 +200,19 @@ function ElectronAppContent() {
         
         if (exchangedUser) {
           setUser(exchangedUser);
-          setPhase("authenticated");
+          
+          // Check if first time for this user
+          const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
+          const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+          
+          if (!hasBeenWelcomed) {
+            console.log('[App] First time user detected, showing welcome');
+            setIsFirstLogin(true);
+            localStorage.setItem(welcomeKey, 'true');
+            setPhase("welcome");
+          } else {
+            setPhase("authenticated");
+          }
         } else {
           console.log('[App] Token exchange failed, clearing');
           storeLogout();
