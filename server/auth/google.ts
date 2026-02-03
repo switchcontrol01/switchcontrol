@@ -231,6 +231,141 @@ export function setupGoogleAuth(app: Express): void {
     );
   }
 
+  // OAuth success page for Electron - shows message and tries to close tab
+  app.get("/auth/success", (req, res) => {
+    const token = req.query.token as string;
+    const provider = req.query.provider as string || 'google';
+    
+    if (!token) {
+      return res.status(400).send("Missing authentication token");
+    }
+    
+    const deepLink = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=${provider}`;
+    
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Login Successful - SwitchControl</title>
+        <link rel="icon" href="/favicon.ico">
+        <style>
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body {
+            min-height: 100vh;
+            background: #0a0a0f;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            overflow: hidden;
+          }
+          .container {
+            text-align: center;
+            padding: 3rem;
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            box-shadow: 0 0 60px rgba(139, 92, 246, 0.15);
+            max-width: 420px;
+            animation: fadeIn 0.5s ease-out;
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .checkmark {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s ease-in-out infinite;
+          }
+          @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
+            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+          }
+          .checkmark svg {
+            width: 40px;
+            height: 40px;
+            stroke: white;
+            stroke-width: 3;
+            fill: none;
+            animation: draw 0.6s ease-out 0.3s forwards;
+            stroke-dasharray: 50;
+            stroke-dashoffset: 50;
+          }
+          @keyframes draw {
+            to { stroke-dashoffset: 0; }
+          }
+          h1 {
+            color: white;
+            font-size: 1.75rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+          }
+          .subtitle {
+            color: #a1a1aa;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+          }
+          .hint {
+            color: #71717a;
+            font-size: 0.875rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.1);
+          }
+          .glow {
+            position: fixed;
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            pointer-events: none;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: glowPulse 4s ease-in-out infinite;
+          }
+          @keyframes glowPulse {
+            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="glow"></div>
+        <div class="container">
+          <div class="checkmark">
+            <svg viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <h1>Login Successful!</h1>
+          <p class="subtitle">You've been signed in to SwitchControl.<br>Returning to the app...</p>
+          <p class="hint">You can close this tab now.</p>
+        </div>
+        <script>
+          // Redirect to the deep link to open the Electron app
+          window.location.href = "${deepLink}";
+          
+          // Try to close the tab after a short delay
+          setTimeout(function() {
+            window.close();
+          }, 1500);
+          
+          // If window.close() doesn't work, the user will see the success message
+        </script>
+      </body>
+      </html>
+    `);
+  });
+
   app.get("/auth/google", (req, res, next) => {
     const next_url = req.query.next as string || '/';
     const source = req.query.source as string || 'web';
@@ -287,9 +422,9 @@ export function setupGoogleAuth(app: Express): void {
           ts: Date.now(),
         })).toString('base64');
         
-        console.log("REDIRECTING TO DEEP LINK (Electron)");
+        console.log("REDIRECTING TO SUCCESS PAGE (Electron)");
         return res.redirect(
-          `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=google`
+          `/auth/success?token=${encodeURIComponent(token)}&provider=google`
         );
       } else {
         console.log("REDIRECTING TO WEBSITE:", nextUrl);

@@ -200,9 +200,9 @@ export function setupDiscordAuth(app: Express): void {
           ts: Date.now(),
         })).toString('base64');
         
-        console.log("REDIRECTING TO DEEP LINK (Electron)");
+        console.log("REDIRECTING TO SUCCESS PAGE (Electron)");
         return res.redirect(
-          `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`
+          `/auth/success?token=${encodeURIComponent(token)}&provider=discord`
         );
       } else {
         console.log("REDIRECTING TO WEBSITE:", nextUrl);
