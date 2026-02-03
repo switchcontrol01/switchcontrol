@@ -13,6 +13,7 @@ import { useAuthStore, validateToken, exchangeToken, AuthUser } from "@/lib/auth
 
 import Splash from "@/screens/Splash";
 import LoginScreen from "@/screens/Login";
+import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
 import SystemCleaner from "@/pages/SystemCleaner";
@@ -36,7 +37,7 @@ import LoginPage from "@/pages/Login";
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).auth?.onCallback;
 
-type AppPhase = "splash" | "unauthenticated" | "authenticated";
+type AppPhase = "splash" | "unauthenticated" | "welcome" | "authenticated";
 
 interface AppAuthContextValue {
   user: AuthUser | null;
@@ -98,6 +99,7 @@ function WebsiteRoutes() {
 function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
+  const [isFirstLogin, setIsFirstLogin] = useState(false);
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
 
@@ -132,8 +134,19 @@ function ElectronAppContent() {
               setToken(newToken);
               setUser(exchangedUser);
               console.log('[App] Token exchanged, user authenticated:', exchangedUser.id);
-              setPhase("authenticated");
-              setLocation("/dashboard");
+              
+              // Check if first login for this user
+              const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
+              const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+              
+              if (!hasBeenWelcomed) {
+                setIsFirstLogin(true);
+                localStorage.setItem(welcomeKey, 'true');
+                setPhase("welcome");
+              } else {
+                setPhase("authenticated");
+                setLocation("/dashboard");
+              }
             } else {
               console.error('[App] Token exchange failed');
               storeLogout();
@@ -219,6 +232,25 @@ function ElectronAppContent() {
             className="h-full"
           >
             <LoginScreen />
+          </motion.div>
+        )}
+
+        {phase === "welcome" && (
+          <motion.div
+            key="welcome"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="h-full"
+          >
+            <WelcomeAnimation 
+              userName={user?.username || null}
+              onComplete={() => {
+                setPhase("authenticated");
+                setLocation("/dashboard");
+              }}
+            />
           </motion.div>
         )}
 

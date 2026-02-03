@@ -150,10 +150,13 @@ export function setupDiscordAuth(app: Express): void {
   app.get("/auth/discord", (req, res, next) => {
     const next_url = req.query.next as string || '/';
     const source = req.query.source as string || 'web';
-    (req.session as any).authNext = next_url;
-    (req.session as any).authSource = source;
+    
+    // Encode source in state parameter (survives OAuth redirect)
+    const stateData = Buffer.from(JSON.stringify({ source, next: next_url })).toString('base64');
+    
     passport.authenticate("discord", {
       scope: DISCORD_SCOPES,
+      state: stateData,
     })(req, res, next);
   });
 
@@ -167,11 +170,22 @@ export function setupDiscordAuth(app: Express): void {
     },
     (req, res) => {
       const user = req.user as Express.User;
-      const source = (req.session as any).authSource || 'web';
-      const nextUrl = (req.session as any).authNext || '/';
       
-      delete (req.session as any).authSource;
-      delete (req.session as any).authNext;
+      // Decode source from state parameter
+      let source = 'web';
+      let nextUrl = '/';
+      try {
+        const stateParam = req.query.state as string;
+        if (stateParam) {
+          const stateData = JSON.parse(Buffer.from(stateParam, 'base64').toString('utf-8'));
+          source = stateData.source || 'web';
+          nextUrl = stateData.next || '/';
+        }
+      } catch (e) {
+        console.error("[AUTH] Failed to parse state:", e);
+      }
+      
+      console.log("[AUTH] Discord callback - source:", source, "user:", user.id);
       
       if (source === 'electron') {
         const token = Buffer.from(JSON.stringify({
