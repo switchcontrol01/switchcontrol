@@ -50,23 +50,6 @@ interface SystemSpecs {
   };
 }
 
-declare global {
-  interface Window {
-    sc?: {
-      getSystemInfo: () => Promise<{
-        platform: string;
-        arch: string;
-        hostname: string;
-        cpus: number;
-        totalMemory: number;
-        freeMemory: number;
-        uptime: number;
-      }>;
-      getSystemSpecs: () => Promise<SystemSpecs>;
-      getRamUsage: () => Promise<{ ramTotalGb: number; ramUsedGb: number }>;
-    };
-  }
-}
 
 interface AIAdvisorCardProps {
   isPremium: boolean;
@@ -207,8 +190,9 @@ export default function Home() {
   };
   
   useEffect(() => {
-    if (window.sc?.getSystemSpecs) {
-      window.sc.getSystemSpecs().then((specs) => {
+    const sc = window.sc as typeof window.sc | undefined;
+    if (sc?.getSystemSpecs) {
+      sc.getSystemSpecs().then((specs: SystemSpecs) => {
         setStats({
           cpuName: specs.cpu.model || 'Unavailable',
           cpuCores: specs.cpu.cores || 0,
@@ -228,11 +212,11 @@ export default function Home() {
           osArch: specs.system.arch || 'Unavailable',
           hostname: specs.system.hostname || 'Unavailable',
         });
-      }).catch((err) => {
+      }).catch((err: unknown) => {
         console.error('[SwitchControl] Failed to get system specs:', err);
       });
-    } else if (window.sc?.getSystemInfo) {
-      window.sc.getSystemInfo().then((info) => {
+    } else if (sc?.getSystemInfo) {
+      sc.getSystemInfo().then((info: { totalMemory: number; freeMemory: number; cpus: number }) => {
         const totalGB = info.totalMemory / 1024 / 1024 / 1024;
         const usedGB = (info.totalMemory - info.freeMemory) / 1024 / 1024 / 1024;
         setStats({

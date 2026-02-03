@@ -1,32 +1,5 @@
 import { Minus, Square, X } from "lucide-react";
-
-declare global {
-  interface Window {
-    electronAPI?: {
-      isElectron: boolean;
-      system?: {
-        openExternal: (url: string) => Promise<boolean>;
-      };
-      window: {
-        minimize: () => void;
-        maximize: () => void;
-        close: () => void;
-      };
-      auth?: {
-        onCallback: (callback: (data: { token: string; user: AuthUser }) => void) => void;
-        removeCallbackListener: () => void;
-      };
-    };
-  }
-}
-
-interface AuthUser {
-  id: string;
-  email: string | null;
-  name: string | null;
-  avatar: string | null;
-  isPremium: boolean;
-}
+import "@/types/electron.d";
 
 export function WindowControls() {
   const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;

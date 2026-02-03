@@ -28,6 +28,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 });
 
+contextBridge.exposeInMainWorld('telemetry', {
+  getLive: () => ipcRenderer.invoke('telemetry:getLive'),
+});
+
 contextBridge.exposeInMainWorld('switchControl', {
   ready: true,
   version: '1.0.0',
@@ -60,7 +64,6 @@ contextBridge.exposeInMainWorld('switchControl', {
   
   system: {
     getInfo: () => ipcRenderer.invoke('system:getInfo'),
-    
     clearRam: async () => {
       console.log('[SwitchControl] RAM clear requested');
       return { success: true, freedMB: 0 };
@@ -82,7 +85,7 @@ contextBridge.exposeInMainWorld('switchControl', {
 contextBridge.exposeInMainWorld('sc', {
   getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
   getSystemSpecs: () => ipcRenderer.invoke('system:getSpecs'),
-  getRamUsage: () => ipcRenderer.invoke('system:getRamUsage')
+  getRamUsage: () => ipcRenderer.invoke('system:getRamUsage'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

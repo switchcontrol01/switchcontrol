@@ -1,7 +1,6 @@
-import Splash from "@/screens/Splash";
-import Login from "@/screens/Login";
-import Dashboard from "@/screens/Dashboard";
 import { useEffect, useState } from "react";
+import { Router, Route, Switch, useLocation } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -11,89 +10,104 @@ import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 
+import Splash from "@/screens/Splash";
+import Login from "@/screens/Login";
+import Home from "@/pages/Home";
+import NetworkTweaks from "@/pages/NetworkTweaks";
+import SystemCleaner from "@/pages/SystemCleaner";
+import Settings from "@/pages/Settings";
+import PowerPlan from "@/pages/PowerPlan";
+import AppBooster from "@/pages/AppBooster";
+import FocusMode from "@/pages/FocusMode";
+import Debloater from "@/pages/Debloater";
+import StartupApps from "@/pages/StartupApps";
+import BiosAdvisor from "@/pages/BiosAdvisor";
+import Security from "@/pages/Security";
+import Tweaks from "@/pages/Tweaks";
+
 const TOKEN_KEY = "sc_auth_token_v1";
 
-type Screen = "splash" | "login" | "dashboard";
+type AppPhase = "splash" | "login" | "app";
 
-const transitionVariants = [
-  {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0 },
-    exit: { opacity: 0, y: -10 },
-  },
-  {
-    initial: { opacity: 0, scale: 0.98 },
-    animate: { opacity: 1, scale: 1 },
-    exit: { opacity: 0, scale: 1.02 },
-  },
-  {
-    initial: { opacity: 0, x: 30 },
-    animate: { opacity: 1, x: 0 },
-    exit: { opacity: 0, x: -20 },
-  },
-];
+function AppRoutes() {
+  return (
+    <Switch>
+      <Route path="/" component={Home} />
+      <Route path="/dashboard" component={Home} />
+      <Route path="/tweaks" component={Tweaks} />
+      <Route path="/power-plan" component={PowerPlan} />
+      <Route path="/app-booster" component={AppBooster} />
+      <Route path="/focus" component={FocusMode} />
+      <Route path="/network" component={NetworkTweaks} />
+      <Route path="/cleaner" component={SystemCleaner} />
+      <Route path="/debloat" component={Debloater} />
+      <Route path="/startup" component={StartupApps} />
+      <Route path="/bios-advisor" component={BiosAdvisor} />
+      <Route path="/security" component={Security} />
+      <Route path="/settings" component={Settings} />
+      <Route>
+        <Home />
+      </Route>
+    </Switch>
+  );
+}
 
 function AppContent() {
-  const [screen, setScreen] = useState<Screen>("splash");
-  const [transitionIndex] = useState(() => Math.floor(Math.random() * transitionVariants.length));
+  const [phase, setPhase] = useState<AppPhase>("splash");
 
   useEffect(() => {
-    if (!window.location.hash) {
-      window.location.hash = "#/";
-    }
-
     const token = localStorage.getItem(TOKEN_KEY);
-    const authed = Boolean(token && token.length > 10);
+    const isAuthed = Boolean(token && token.length > 10);
 
-    setTimeout(() => {
-      setScreen(authed ? "dashboard" : "login");
-      window.location.hash = authed ? "#/dashboard" : "#/login";
-    }, 1100);
+    const timer = setTimeout(() => {
+      setPhase(isAuthed ? "app" : "login");
+    }, 2800);
+
+    return () => clearTimeout(timer);
   }, []);
 
-  const variant = transitionVariants[transitionIndex];
+  const handleLoginSuccess = () => {
+    setPhase("app");
+  };
 
   return (
     <AnimatePresence mode="wait">
-      {screen === "splash" && (
+      {phase === "splash" && (
         <motion.div
           key="splash"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.35, ease: "easeInOut" }}
+          transition={{ duration: 0.4, ease: "easeInOut" }}
           className="h-full"
         >
           <Splash onComplete={() => {}} />
         </motion.div>
       )}
 
-      {screen === "login" && (
+      {phase === "login" && (
         <motion.div
           key="login"
-          initial={variant.initial}
-          animate={variant.animate}
-          exit={variant.exit}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="h-full"
         >
-          <Login
-            onLoginSuccess={() => {
-              window.location.hash = "#/dashboard";
-              setScreen("dashboard");
-            }}
-          />
+          <Login onLoginSuccess={handleLoginSuccess} />
         </motion.div>
       )}
 
-      {screen === "dashboard" && (
+      {phase === "app" && (
         <motion.div
-          key="dashboard"
-          initial={variant.initial}
-          animate={variant.animate}
+          key="app"
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="h-full"
         >
-          <Dashboard />
+          <Router hook={useHashLocation}>
+            <AppRoutes />
+          </Router>
         </motion.div>
       )}
     </AnimatePresence>

@@ -23,6 +23,7 @@ import { motion, sidebarSlide, useMotion } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -37,27 +38,6 @@ function TikTokIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
     </svg>
-  );
-}
-
-function getHashRoute(): string {
-  const hash = window.location.hash;
-  if (!hash || hash === "#" || hash === "#/") {
-    return "/dashboard";
-  }
-  return hash.replace(/^#/, "");
-}
-
-function HashLink({ href, className, children }: { href: string; className?: string; children: React.ReactNode }) {
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    window.location.hash = href;
-  };
-  
-  return (
-    <a href={`#${href}`} onClick={handleClick} className={className}>
-      {children}
-    </a>
   );
 }
 
@@ -85,33 +65,26 @@ const NAV_ITEMS: NavItem[] = [
 ];
 
 export function Sidebar() {
-  const [location, setLocation] = useState(getHashRoute());
+  const [location, setLocation] = useLocation();
   const { prefersReducedMotion, hasLoaded } = useMotion();
   const { user, isPremium } = useAuth();
   const shouldAnimate = !prefersReducedMotion;
   
-  useEffect(() => {
-    const handleHashChange = () => {
-      setLocation(getHashRoute());
-    };
-    window.addEventListener("hashchange", handleHashChange);
-    return () => window.removeEventListener("hashchange", handleHashChange);
-  }, []);
+  const currentPath = location === "/" ? "/dashboard" : location;
   
   const userName = user?.firstName || user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
   const userInitials = userName.slice(0, 2).toUpperCase();
 
-  const SidebarWrapper = shouldAnimate ? motion.aside : "aside";
-  const sidebarProps = shouldAnimate && !hasLoaded ? {
-    variants: sidebarSlide,
-    initial: "initial",
-    animate: "animate",
-  } : {};
+  const navigate = (href: string) => {
+    setLocation(href);
+  };
 
   return (
-    <SidebarWrapper 
+    <motion.aside 
       className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-[hsl(270,60%,55%,0.08)] via-sidebar/90 to-sidebar/95 backdrop-blur-xl border-r border-[hsl(270,60%,55%,0.15)] flex flex-col z-50 shadow-2xl"
-      {...sidebarProps}
+      variants={shouldAnimate && !hasLoaded ? sidebarSlide : undefined}
+      initial={shouldAnimate && !hasLoaded ? "initial" : undefined}
+      animate={shouldAnimate && !hasLoaded ? "animate" : undefined}
     >
       <div className="p-6">
         <BrandLogo size="lg" linkTo="#/dashboard" />
@@ -119,21 +92,20 @@ export function Sidebar() {
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
         {NAV_ITEMS.map((item, index) => {
-          const isActive = location === item.href;
-          const NavItem = shouldAnimate ? motion.div : "div";
+          const isActive = currentPath === item.href;
           
           return (
-            <NavItem
+            <motion.div
               key={item.href}
-              initial={shouldAnimate && !hasLoaded ? { opacity: 0, x: -20 } : undefined}
-              animate={shouldAnimate && !hasLoaded ? { opacity: 1, x: 0 } : undefined}
+              initial={shouldAnimate && !hasLoaded ? { opacity: 0, x: -20 } : false}
+              animate={shouldAnimate && !hasLoaded ? { opacity: 1, x: 0 } : false}
               transition={shouldAnimate ? { delay: index * 0.03, duration: 0.3 } : undefined}
               whileHover={shouldAnimate ? { x: 4 } : undefined}
             >
-              <HashLink
-                href={item.href}
+              <button
+                onClick={() => navigate(item.href)}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden text-left",
                   isActive 
                     ? "text-white shadow-lg shadow-black/20" 
                     : "text-muted-foreground hover:text-white hover:bg-white/5"
@@ -162,8 +134,8 @@ export function Sidebar() {
                 {item.isPremium && (
                   <Crown className="size-3.5 text-[hsl(270,60%,55%)] z-10 shrink-0" />
                 )}
-              </HashLink>
-            </NavItem>
+              </button>
+            </motion.div>
           );
         })}
       </nav>
@@ -241,6 +213,6 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-    </SidebarWrapper>
+    </motion.aside>
   );
 }

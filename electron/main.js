@@ -124,33 +124,11 @@ function createWindow() {
 
 async function getSystemSpecs() {
   const specs = {
-    cpu: {
-      model: 'Unavailable',
-      cores: 0,
-      threads: 0,
-      speed: 'Unavailable'
-    },
-    ram: {
-      totalGB: 0,
-      usedGB: 0,
-      freeGB: 0
-    },
-    gpu: {
-      model: 'Unavailable',
-      vendor: 'Unavailable',
-      vramGB: 0
-    },
-    system: {
-      os: 'Unavailable',
-      osVersion: 'Unavailable',
-      arch: os.arch(),
-      hostname: os.hostname()
-    },
-    disk: {
-      name: 'Unavailable',
-      usedGB: 0,
-      totalGB: 0
-    }
+    cpu: { model: 'Unavailable', cores: 0, threads: 0, speed: 'Unavailable' },
+    ram: { totalGB: 0, usedGB: 0, freeGB: 0 },
+    gpu: { model: 'Unavailable', vendor: 'Unavailable', vramGB: 0 },
+    system: { os: 'Unavailable', osVersion: 'Unavailable', arch: os.arch(), hostname: os.hostname() },
+    disk: { name: 'Unavailable', usedGB: 0, totalGB: 0 }
   };
 
   try {
@@ -183,17 +161,11 @@ async function getSystemSpecs() {
           specs.cpu.speed = cpu.speed ? `${cpu.speed} GHz` : 'Unavailable';
         }
 
-        if (graphics && graphics.controllers && graphics.controllers.length > 0) {
+        if (graphics?.controllers?.length > 0) {
           const gpu = graphics.controllers[0];
           specs.gpu.model = gpu.model || 'Unavailable';
           specs.gpu.vendor = gpu.vendor || 'Unavailable';
           specs.gpu.vramGB = gpu.vram ? parseFloat((gpu.vram / 1024).toFixed(1)) : 0;
-          if (specs.gpu.vramGB === 0 && gpu.memoryTotal) {
-            specs.gpu.vramGB = parseFloat((gpu.memoryTotal / 1024).toFixed(1));
-          }
-          if (specs.gpu.vramGB === 0 && gpu.vram) {
-            specs.gpu.vramGB = parseFloat((gpu.vram / 1024).toFixed(1)) || gpu.vram;
-          }
         }
 
         if (osInfo) {
@@ -202,20 +174,16 @@ async function getSystemSpecs() {
           specs.system.arch = osInfo.arch || os.arch();
         }
 
-        if (diskLayout && diskLayout.length > 0) {
-          const mainDisk = diskLayout[0];
-          specs.disk.name = mainDisk.name || mainDisk.device || 'Primary Disk';
-          specs.disk.totalGB = mainDisk.size ? parseFloat((mainDisk.size / 1024 / 1024 / 1024).toFixed(0)) : 0;
+        if (diskLayout?.length > 0) {
+          specs.disk.name = diskLayout[0].name || diskLayout[0].device || 'Primary Disk';
+          specs.disk.totalGB = diskLayout[0].size ? parseFloat((diskLayout[0].size / 1024 / 1024 / 1024).toFixed(0)) : 0;
         }
 
-        if (fsSize && fsSize.length > 0) {
+        if (fsSize?.length > 0) {
           const mainFs = fsSize.find(fs => fs.mount === 'C:' || fs.mount === '/') || fsSize[0];
           if (mainFs) {
             specs.disk.usedGB = mainFs.used ? parseFloat((mainFs.used / 1024 / 1024 / 1024).toFixed(0)) : 0;
             specs.disk.totalGB = mainFs.size ? parseFloat((mainFs.size / 1024 / 1024 / 1024).toFixed(0)) : specs.disk.totalGB;
-            if (!specs.disk.name || specs.disk.name === 'Unavailable') {
-              specs.disk.name = mainFs.fs || 'Primary Disk';
-            }
           }
         }
       } catch (siError) {
@@ -229,26 +197,74 @@ async function getSystemSpecs() {
   return specs;
 }
 
+async function getLiveTelemetry() {
+  const telemetry = {
+    cpuLoadPercent: 0,
+    cpuTempC: null,
+    gpuTempC: null,
+    gpuLoadPercent: null,
+    ramUsedGb: 0,
+    ramTotalGb: 0
+  };
+
+  try {
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    telemetry.ramTotalGb = parseFloat((totalMem / 1024 / 1024 / 1024).toFixed(1));
+    telemetry.ramUsedGb = parseFloat(((totalMem - freeMem) / 1024 / 1024 / 1024).toFixed(1));
+
+    if (si) {
+      try {
+        const [cpuLoad, cpuTemp, graphics] = await Promise.all([
+          si.currentLoad().catch(() => null),
+          si.cpuTemperature().catch(() => null),
+          si.graphics().catch(() => null)
+        ]);
+
+        if (cpuLoad) {
+          telemetry.cpuLoadPercent = parseFloat(cpuLoad.currentLoad?.toFixed(1) || '0');
+        }
+
+        if (cpuTemp && cpuTemp.main !== null && cpuTemp.main !== -1) {
+          telemetry.cpuTempC = parseFloat(cpuTemp.main.toFixed(0));
+        }
+
+        if (graphics?.controllers?.length > 0) {
+          const gpu = graphics.controllers[0];
+          if (gpu.temperatureGpu !== null && gpu.temperatureGpu !== undefined) {
+            telemetry.gpuTempC = parseFloat(gpu.temperatureGpu.toFixed(0));
+          }
+          if (gpu.utilizationGpu !== null && gpu.utilizationGpu !== undefined) {
+            telemetry.gpuLoadPercent = parseFloat(gpu.utilizationGpu.toFixed(1));
+          }
+        }
+      } catch (siError) {
+        console.error('[SwitchControl] Telemetry error:', siError.message);
+      }
+    }
+  } catch (error) {
+    console.error('[SwitchControl] Error getting telemetry:', error.message);
+  }
+
+  return telemetry;
+}
+
 function setupIPC() {
   ipcMain.handle('app:getVersion', () => app.getVersion());
   ipcMain.handle('app:getPlatform', () => process.platform);
   ipcMain.handle('app:isPackaged', () => app.isPackaged);
 
-  ipcMain.handle('system:getInfo', async () => {
-    return {
-      platform: os.platform(),
-      arch: os.arch(),
-      hostname: os.hostname(),
-      cpus: os.cpus().length,
-      totalMemory: os.totalmem(),
-      freeMemory: os.freemem(),
-      uptime: os.uptime(),
-    };
-  });
+  ipcMain.handle('system:getInfo', async () => ({
+    platform: os.platform(),
+    arch: os.arch(),
+    hostname: os.hostname(),
+    cpus: os.cpus().length,
+    totalMemory: os.totalmem(),
+    freeMemory: os.freemem(),
+    uptime: os.uptime(),
+  }));
 
-  ipcMain.handle('system:getSpecs', async () => {
-    return await getSystemSpecs();
-  });
+  ipcMain.handle('system:getSpecs', async () => await getSystemSpecs());
 
   ipcMain.handle('system:getRamUsage', async () => {
     const totalMem = os.totalmem();
@@ -258,6 +274,8 @@ function setupIPC() {
       ramUsedGb: parseFloat(((totalMem - freeMem) / 1024 / 1024 / 1024).toFixed(1))
     };
   });
+
+  ipcMain.handle('telemetry:getLive', async () => await getLiveTelemetry());
 
   ipcMain.handle('system:openExternal', async (event, url) => {
     if (url.startsWith('http://') || url.startsWith('https://')) {

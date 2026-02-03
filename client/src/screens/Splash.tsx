@@ -11,11 +11,11 @@ export default function Splash({ onComplete }: SplashProps) {
   useEffect(() => {
     const logoTimer = setTimeout(() => {
       setPhase("fadeout");
-    }, 700);
+    }, 2400);
 
     const completeTimer = setTimeout(() => {
       onComplete();
-    }, 1100);
+    }, 2800);
 
     return () => {
       clearTimeout(logoTimer);
@@ -66,7 +66,7 @@ export default function Splash({ onComplete }: SplashProps) {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 1.05, y: -10 }}
-            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="relative z-10 flex flex-col items-center gap-6"
           >
             <motion.div 
@@ -91,10 +91,29 @@ export default function Splash({ onComplete }: SplashProps) {
               className="text-3xl font-bold text-white tracking-tight"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1, duration: 0.3 }}
+              transition={{ delay: 0.2, duration: 0.4 }}
             >
               Switch<span className="text-primary">Control</span>
             </motion.h1>
+
+            <motion.p
+              className="text-sm text-muted-foreground"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 0.5 }}
+            >
+              Gaming optimization suite
+            </motion.p>
+
+            <motion.div
+              className="mt-4 flex items-center gap-2"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8, duration: 0.5 }}
+            >
+              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+              <span className="text-xs text-muted-foreground">Initializing...</span>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
