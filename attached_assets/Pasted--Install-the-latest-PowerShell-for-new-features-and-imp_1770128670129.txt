@@ -1,0 +1,127 @@
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\WINDOWS\system32> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item node_modules -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm install
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   93 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated passport-discord@0.1.4: This package is no longer maintained. Please consider migrating to a maintained alternative, (following packages are author unvetted) such as: discord-strategy, passport-discord-auth, ...
+npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+added 778 packages, and audited 779 packages in 9s
+
+111 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3235 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                        2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/public/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/public/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/public/assets/index-BeD9d17C.css       209.37 kB │ gzip:  28.02 kB
+../dist/public/assets/index-BZW6Xhp0.js      1,341.87 kB │ gzip: 388.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.99s
+building server...
+
+  dist\index.cjs  1.7mb
+
+Done in 65ms
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> rest-express@1.0.0 electron:build
+> npm run build && electron-builder --win --x64
+
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3235 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                        2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/public/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/public/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/public/assets/index-BeD9d17C.css       209.37 kB │ gzip:  28.02 kB
+../dist/public/assets/index-BZW6Xhp0.js      1,341.87 kB │ gzip: 388.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.78s
+building server...
+
+  dist\index.cjs  1.7mb
+
+Done in 50ms
+  • electron-builder  version=26.7.0 os=10.0.26200
+  • loaded configuration  file=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron-builder.json
+  • writing effective config  file=release\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=40.1.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=40.1.0 appOutDir=release\win-unpacked
+  • searching for node modules  pm=npm searchDir=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+(node:14036) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  • updating asar integrity executable resource  executablePath=release\win-unpacked\SwitchControl.exe
+  ⨯ Application entry file "index.js" in the "C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\release\win-unpacked\resources\app.asar" is corrupted: Error: "index.js" was not found in this archive  failedTask=build stackTrace=Error: Application entry file "index.js" in the "C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\release\win-unpacked\resources\app.asar" is corrupted: Error: "index.js" was not found in this archive
+    at error (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\asar\asarFileChecker.ts:6:12)
+    at checkFileInArchive (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\asar\asarFileChecker.ts:15:11)
+    at WinPackager.checkFileInPackage (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\platformPackager.ts:635:25)
+    at WinPackager.sanityCheckPackage (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\platformPackager.ts:683:16)
+    at WinPackager.doPack (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\platformPackager.ts:351:5)
+    at WinPackager.pack (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\platformPackager.ts:161:5)
+    at Packager.doBuild (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\packager.ts:538:11)
+    at executeFinally (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\builder-util\src\promise.ts:12:14)
+    at Packager.build (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\app-builder-lib\src\packager.ts:458:31)
+    at executeFinally (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\builder-util\src\promise.ts:12:14)
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
