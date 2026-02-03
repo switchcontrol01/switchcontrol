@@ -1,0 +1,78 @@
+MESSAGE TO REPLIT (PASTE THIS)
+You are missing the real issue. Stop analyzing code and fix deployment + domain routing.
+Facts you must accept before doing anything else:
+https://switchcontrol.org/api/debug/auth returns 404 in production.
+A 404 means the request is NOT reaching Express at all.
+Therefore production is not running the backend server, regardless of routes being mounted locally.
+OAuth is failing because /api/auth/* never hits Express.
+This is NOT an auth bug.
+This is NOT a Google or Discord config issue.
+This is a wrong deployment / wrong domain attachment issue.
+WHAT YOU MUST DO (NO SKIPPING STEPS)
+1. Audit deployments
+Go to Replit → Deployments
+Identify every deployment currently attached to switchcontrol.org
+If there is more than one, that is the problem
+2. Delete all deployments
+Stop and delete every existing deployment
+Wait 30 seconds
+There must be ZERO active deployments
+3. Create ONE clean production deployment
+This deployment MUST:
+Run the backend server
+Listen on port 5000
+Use server/index.ts as the entry point
+Use one of these explicitly (depending on build setup):
+If built JS exists
+Copy code
+
+node dist/server/index.js
+If running TS directly
+Copy code
+
+ts-node server/index.ts
+Environment:
+Copy code
+
+NODE_ENV=production
+Port:
+Copy code
+
+5000
+4. Attach domain correctly
+Attach switchcontrol.org ONLY to this deployment
+Remove the domain from anything else (frontend/static deployments)
+Wait 2–5 minutes for routing to propagate
+REQUIRED VERIFICATION (YOU MUST TEST THESE)
+You are not done until ALL of these pass:
+Open in browser:
+Copy code
+
+https://switchcontrol.org/api/debug/auth
+Expected: JSON response (not 404)
+Open in browser:
+Copy code
+
+https://switchcontrol.org/api/auth/google/callback
+Expected: 302 redirect (not 404)
+OAuth end-to-end:
+Click Google login in Electron
+Complete Google auth
+App opens via switchcontrol://auth/success
+/api/me returns loggedIn: true
+IMPORTANT
+Do NOT respond with:
+“Routes are mounted”
+“Works locally”
+“302 is expected”
+“OAuth config looks correct”
+None of that matters until /api/debug/auth stops returning 404 on production.
+FINAL EXPECTATION
+Once the domain points to the correct backend deployment:
+Google OAuth will stop throwing “request invalid”
+Discord will stop redirecting to /download
+Electron deep-link auth will work without changes
+Premium gating will start functioning
+Confirm ONLY after production /api/debug/auth returns JSON.
+If Replit pushes back or claims this is already correct, they are wrong.
+This is a routing/deployment mismatch, not a code issue.
