@@ -927,6 +927,7 @@ body {
   display: flex;
   flex-direction: column;
   background: hsl(var(--background));
+  overflow: hidden;
 }
 
 .titlebar {
@@ -935,24 +936,38 @@ body {
   -webkit-app-region: drag;
   flex-shrink: 0;
   z-index: 9999;
+  position: relative;
 }
 
 .app-content {
   flex: 1;
   height: calc(100vh - 32px);
   overflow: auto;
-  -webkit-app-region: no-drag;
+  -webkit-app-region: no-drag !important;
+  position: relative;
 }
 
-/* Ensure ALL interactive elements are NOT draggable */
+/* CRITICAL: Ensure ALL interactive and content elements are NOT draggable */
+.app-content *,
 button,
 input,
 a,
 select,
 textarea,
+nav,
+aside,
 [role="button"],
-[data-testid] {
-  -webkit-app-region: no-drag;
+[role="link"],
+[role="navigation"],
+[data-testid],
+.sidebar,
+.btn,
+.interactive,
+.card,
+.switch,
+.checkbox,
+.toggle {
+  -webkit-app-region: no-drag !important;
 }
 
 /* Animated contour keyframes for Splash screen */

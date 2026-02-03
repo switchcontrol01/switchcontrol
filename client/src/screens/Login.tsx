@@ -3,6 +3,23 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 const AUTH_TOKEN_KEY = "sc_auth_token_v1";
+const AUTH_BASE_URL = "https://switchcontrol.app";
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      isElectron: boolean;
+      system?: {
+        openExternal: (url: string) => Promise<boolean>;
+      };
+      window: {
+        minimize: () => void;
+        maximize: () => void;
+        close: () => void;
+      };
+    };
+  }
+}
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -30,13 +47,31 @@ function DiscordIcon({ className }: { className?: string }) {
 export default function Login({ onLoginSuccess }: LoginProps) {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
 
-  const handleLogin = (provider: "google" | "discord") => {
+  const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
-    setTimeout(() => {
-      localStorage.setItem(AUTH_TOKEN_KEY, "mock_token_" + Date.now());
-      window.location.hash = "#/dashboard";
-      onLoginSuccess();
-    }, 1200);
+    
+    const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+    
+    if (isElectron && window.electronAPI?.system?.openExternal) {
+      const authUrl = `${AUTH_BASE_URL}/auth/${provider}?redirect=switchcontrol://auth`;
+      try {
+        await window.electronAPI.system.openExternal(authUrl);
+        setTimeout(() => {
+          localStorage.setItem(AUTH_TOKEN_KEY, "mock_token_" + Date.now());
+          window.location.hash = "#/dashboard";
+          onLoginSuccess();
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to open auth URL:', err);
+        setIsLoading(null);
+      }
+    } else {
+      setTimeout(() => {
+        localStorage.setItem(AUTH_TOKEN_KEY, "mock_token_" + Date.now());
+        window.location.hash = "#/dashboard";
+        onLoginSuccess();
+      }, 1200);
+    }
   };
 
   return (
@@ -69,7 +104,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             <img
               src="./logo.png"
               alt="SwitchControl"
-              className="w-20 h-20 object-contain rounded-[20%]"
+              className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[20px]"
             />
             <div className="text-center">
               <h1 className="text-2xl font-bold text-white mb-2">Welcome to SwitchControl</h1>

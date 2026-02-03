@@ -75,17 +75,17 @@ export default function Splash({ onComplete }: SplashProps) {
               className="relative"
               animate={{ 
                 filter: [
-                  "drop-shadow(0 0 15px hsl(270 60% 55% / 0.25))",
-                  "drop-shadow(0 0 30px hsl(270 60% 55% / 0.4))",
-                  "drop-shadow(0 0 15px hsl(270 60% 55% / 0.25))"
+                  "drop-shadow(0 0 20px hsl(270 60% 55% / 0.3))",
+                  "drop-shadow(0 0 40px hsl(270 60% 55% / 0.5))",
+                  "drop-shadow(0 0 20px hsl(270 60% 55% / 0.3))"
                 ]
               }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
               <img
                 src="./logo.png"
                 alt="SwitchControl"
-                className="w-32 h-32 object-contain rounded-[24px]"
+                className="w-28 h-28 max-w-[112px] max-h-[112px] object-contain rounded-[28px]"
               />
             </motion.div>
 

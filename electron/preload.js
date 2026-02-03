@@ -18,12 +18,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     close: () => ipcRenderer.invoke('window:close'),
   },
   
-  onAuthCallback: (callback) => {
-    ipcRenderer.on('auth-callback', (event, data) => callback(data));
-  },
-  
-  removeAuthCallbackListener: () => {
-    ipcRenderer.removeAllListeners('auth-callback');
+  auth: {
+    onCallback: (callback) => {
+      ipcRenderer.on('auth-callback', (event, data) => callback(data));
+    },
+    removeCallbackListener: () => {
+      ipcRenderer.removeAllListeners('auth-callback');
+    },
   },
 });
 

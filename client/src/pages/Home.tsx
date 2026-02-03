@@ -183,14 +183,28 @@ interface TelemetryData {
   ssds: Array<{ name: string; totalGB: number; usedGB: number; status: string }>;
 }
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
 export default function Home() {
   const { stats, account, clearRam, runAIScan, latestAIScan, setStats } = useStore();
   const [scanning, setScanning] = useState(false);
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
-  const { isPremium } = useAuth();
+  const { user, isPremium } = useAuth();
   useRevealOnScroll();
+  
+  const getUserDisplayName = (): string => {
+    if (user?.firstName) return user.firstName;
+    if (user?.name) return user.name.split(' ')[0];
+    const token = localStorage.getItem('sc_auth_token_v1');
+    return token ? 'User' : 'Guest';
+  };
   
   useEffect(() => {
     if (window.sc?.getSystemSpecs) {
@@ -276,7 +290,7 @@ export default function Home() {
           <div className="flex items-center justify-between relative z-10">
             <div>
               <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-[hsl(270,60%,75%)] to-white/60 bg-clip-text text-transparent">
-                Good afternoon, SwitchTech <span className="text-2xl">👑</span>
+                Good {getGreeting()}, {getUserDisplayName()} {isPremium && <span className="text-2xl">👑</span>}
               </h1>
               <p className="text-muted-foreground mt-1">System status is optimal. Optimization consistency prioritized.</p>
             </div>
