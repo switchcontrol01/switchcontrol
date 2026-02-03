@@ -33,10 +33,10 @@ export function AppBackground() {
   }, []);
 
   const glowBlobs = useMemo<GlowBlob[]>(() => [
-    { id: 'top-left', top: '5%', left: '5%', size: 450, color: 'hsl(270 50% 45%)', blur: 120, opacity: 0.04, animClass: 'animate-blob-1' },
-    { id: 'top-right', top: '10%', right: '10%', size: 350, color: 'hsl(190 70% 45%)', blur: 100, opacity: 0.03, animClass: 'animate-blob-2' },
-    { id: 'mid', top: '45%', left: '50%', size: 500, color: 'hsl(275 55% 50%)', blur: 140, opacity: 0.025, animClass: 'animate-blob-3' },
-    { id: 'bottom', top: '80%', right: '20%', size: 380, color: 'hsl(265 50% 45%)', blur: 110, opacity: 0.035, animClass: 'animate-blob-1' },
+    { id: 'top-left', top: '5%', left: '5%', size: 450, color: 'hsl(270 50% 45%)', blur: 120, opacity: 0.09, animClass: 'animate-blob-1' },
+    { id: 'top-right', top: '10%', right: '10%', size: 350, color: 'hsl(190 70% 45%)', blur: 100, opacity: 0.07, animClass: 'animate-blob-2' },
+    { id: 'mid', top: '45%', left: '50%', size: 500, color: 'hsl(275 55% 50%)', blur: 140, opacity: 0.06, animClass: 'animate-blob-3' },
+    { id: 'bottom', top: '80%', right: '20%', size: 380, color: 'hsl(265 50% 45%)', blur: 110, opacity: 0.08, animClass: 'animate-blob-1' },
   ], []);
 
   const contourLines = useMemo<ContourLine[]>(() => {
@@ -52,7 +52,7 @@ export function AppBackground() {
         y,
         amplitude: 4 + Math.sin(i * 0.6) * 3,
         strokeWidth: 0.6 + (i % 3) * 0.2,
-        opacity: 0.06 + Math.sin(i * 0.5) * 0.03,
+        opacity: 0.10 + Math.sin(i * 0.5) * 0.04,
         gradientId: i % 4 === 0 ? 'app-contour-1' : i % 4 === 1 ? 'app-contour-2' : i % 4 === 2 ? 'app-contour-3' : 'app-contour-4',
         animClass: `animate-contour-${(i % 4) + 1}`,
       });
@@ -71,9 +71,9 @@ export function AppBackground() {
         style={{
           pointerEvents: 'none',
           background: `
-            radial-gradient(ellipse 70% 50% at 20% 30%, hsl(270 50% 45% / 0.06) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 80% 70%, hsl(190 70% 45% / 0.04) 0%, transparent 50%),
-            radial-gradient(ellipse 50% 40% at 50% 80%, hsl(275 55% 50% / 0.03) 0%, transparent 50%)
+            radial-gradient(ellipse 70% 50% at 20% 30%, hsl(270 50% 45% / 0.10) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 80% 70%, hsl(190 70% 45% / 0.08) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 40% at 50% 80%, hsl(275 55% 50% / 0.06) 0%, transparent 50%)
           `,
         }}
       />

@@ -29,7 +29,7 @@ export default function Splash({ onComplete }: SplashProps) {
         className="absolute inset-0 overflow-hidden pointer-events-none" 
         style={{ transform: 'rotate(-15deg) scale(1.5)' }}
       >
-        <div className="absolute inset-0 splash-contour-drift-1" style={{ opacity: 0.12 }}>
+        <div className="absolute inset-0 splash-contour-drift-1" style={{ opacity: 0.18 }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
               <pattern id="splashContour1" x="0" y="0" width="300" height="200" patternUnits="userSpaceOnUse">
@@ -42,7 +42,7 @@ export default function Splash({ onComplete }: SplashProps) {
           </svg>
         </div>
 
-        <div className="absolute inset-0 splash-contour-drift-2" style={{ opacity: 0.08 }}>
+        <div className="absolute inset-0 splash-contour-drift-2" style={{ opacity: 0.14 }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
               <pattern id="splashContour2" x="0" y="0" width="250" height="180" patternUnits="userSpaceOnUse">

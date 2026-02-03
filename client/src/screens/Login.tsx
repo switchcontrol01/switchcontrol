@@ -56,7 +56,7 @@ export default function Login() {
         className="absolute inset-0 overflow-hidden pointer-events-none" 
         style={{ transform: 'rotate(-12deg) scale(1.4)' }}
       >
-        <div className="absolute inset-0 login-contour-drift" style={{ opacity: 0.08 }}>
+        <div className="absolute inset-0 login-contour-drift" style={{ opacity: 0.14 }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <pattern id="loginTopo" x="0" y="0" width="200" height="150" patternUnits="userSpaceOnUse">
