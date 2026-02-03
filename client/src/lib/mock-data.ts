@@ -569,26 +569,40 @@ export interface SystemStats {
   cpuName: string;
   cpuCores: number;
   cpuThreads: number;
+  cpuSpeed: string;
   gpuName: string;
+  gpuVendor: string;
   totalRamGb: number;
   usedRamGb: number;
+  freeRamGb: number;
   diskName: string;
   diskUsedGb: number;
   diskTotalGb: number;
   vramGb: number;
+  osName: string;
+  osVersion: string;
+  osArch: string;
+  hostname: string;
 }
 
 export const MOCK_STATS: SystemStats = {
-  cpuName: "AMD Ryzen 7 9800X3D",
-  cpuCores: 8,
-  cpuThreads: 16,
-  gpuName: "AMD Radeon RX 7800 XT",
-  totalRamGb: 32,
-  usedRamGb: 9.5,
-  diskName: "Samsung 990 PRO (C:)",
-  diskUsedGb: 450,
-  diskTotalGb: 2048,
-  vramGb: 16
+  cpuName: "Unavailable",
+  cpuCores: 0,
+  cpuThreads: 0,
+  cpuSpeed: "Unavailable",
+  gpuName: "Unavailable",
+  gpuVendor: "Unavailable",
+  totalRamGb: 0,
+  usedRamGb: 0,
+  freeRamGb: 0,
+  diskName: "Unavailable",
+  diskUsedGb: 0,
+  diskTotalGb: 0,
+  vramGb: 0,
+  osName: "Unavailable",
+  osVersion: "Unavailable",
+  osArch: "Unavailable",
+  hostname: "Unavailable"
 };
 
 export interface AIRecommendation {

@@ -79,7 +79,8 @@ contextBridge.exposeInMainWorld('switchControl', {
 });
 
 contextBridge.exposeInMainWorld('sc', {
-  getSystemInfo: () => ipcRenderer.invoke('system:getInfo')
+  getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
+  getSystemSpecs: () => ipcRenderer.invoke('system:getSpecs')
 });
 
 window.addEventListener('DOMContentLoaded', () => {

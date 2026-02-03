@@ -20,6 +20,36 @@ import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 
+interface SystemSpecs {
+  cpu: {
+    model: string;
+    cores: number;
+    threads: number;
+    speed: string;
+  };
+  ram: {
+    totalGB: number;
+    usedGB: number;
+    freeGB: number;
+  };
+  gpu: {
+    model: string;
+    vendor: string;
+    vramGB: number;
+  };
+  system: {
+    os: string;
+    osVersion: string;
+    arch: string;
+    hostname: string;
+  };
+  disk: {
+    name: string;
+    usedGB: number;
+    totalGB: number;
+  };
+}
+
 declare global {
   interface Window {
     sc?: {
@@ -32,6 +62,7 @@ declare global {
         freeMemory: number;
         uptime: number;
       }>;
+      getSystemSpecs: () => Promise<SystemSpecs>;
     };
   }
 }
@@ -160,7 +191,31 @@ export default function Home() {
   useRevealOnScroll();
   
   useEffect(() => {
-    if (window.sc?.getSystemInfo) {
+    if (window.sc?.getSystemSpecs) {
+      window.sc.getSystemSpecs().then((specs) => {
+        setStats({
+          cpuName: specs.cpu.model || 'Unavailable',
+          cpuCores: specs.cpu.cores || 0,
+          cpuThreads: specs.cpu.threads || 0,
+          cpuSpeed: specs.cpu.speed || 'Unavailable',
+          gpuName: specs.gpu.model || 'Unavailable',
+          gpuVendor: specs.gpu.vendor || 'Unavailable',
+          vramGb: specs.gpu.vramGB || 0,
+          totalRamGb: specs.ram.totalGB || 0,
+          usedRamGb: specs.ram.usedGB || 0,
+          freeRamGb: specs.ram.freeGB || 0,
+          diskName: specs.disk.name || 'Unavailable',
+          diskUsedGb: specs.disk.usedGB || 0,
+          diskTotalGb: specs.disk.totalGB || 0,
+          osName: specs.system.os || 'Unavailable',
+          osVersion: specs.system.osVersion || 'Unavailable',
+          osArch: specs.system.arch || 'Unavailable',
+          hostname: specs.system.hostname || 'Unavailable',
+        });
+      }).catch((err) => {
+        console.error('[SwitchControl] Failed to get system specs:', err);
+      });
+    } else if (window.sc?.getSystemInfo) {
       window.sc.getSystemInfo().then((info) => {
         const totalGB = info.totalMemory / 1024 / 1024 / 1024;
         const usedGB = (info.totalMemory - info.freeMemory) / 1024 / 1024 / 1024;

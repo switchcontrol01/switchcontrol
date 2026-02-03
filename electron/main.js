@@ -1,5 +1,14 @@
 const { app, BrowserWindow, ipcMain, shell, globalShortcut } = require('electron');
 const path = require('path');
+const os = require('os');
+
+let si;
+try {
+  si = require('systeminformation');
+} catch (e) {
+  console.warn('[SwitchControl] systeminformation not installed. Run: npm install systeminformation');
+  si = null;
+}
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
 let mainWindow = null;
@@ -63,13 +72,118 @@ function createWindow() {
     mainWindow.loadFile(filePath).catch(err => {
       console.error('Failed to load:', err);
     });
-    // Enable DevTools temporarily for debugging
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+}
+
+async function getSystemSpecs() {
+  const specs = {
+    cpu: {
+      model: 'Unavailable',
+      cores: 0,
+      threads: 0,
+      speed: 'Unavailable'
+    },
+    ram: {
+      totalGB: 0,
+      usedGB: 0,
+      freeGB: 0
+    },
+    gpu: {
+      model: 'Unavailable',
+      vendor: 'Unavailable',
+      vramGB: 0
+    },
+    system: {
+      os: 'Unavailable',
+      osVersion: 'Unavailable',
+      arch: os.arch(),
+      hostname: os.hostname()
+    },
+    disk: {
+      name: 'Unavailable',
+      usedGB: 0,
+      totalGB: 0
+    }
+  };
+
+  try {
+    const cpuInfo = os.cpus();
+    if (cpuInfo && cpuInfo.length > 0) {
+      specs.cpu.model = cpuInfo[0].model || 'Unavailable';
+      specs.cpu.threads = cpuInfo.length;
+    }
+
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    specs.ram.totalGB = parseFloat((totalMem / 1024 / 1024 / 1024).toFixed(1));
+    specs.ram.freeGB = parseFloat((freeMem / 1024 / 1024 / 1024).toFixed(1));
+    specs.ram.usedGB = parseFloat(((totalMem - freeMem) / 1024 / 1024 / 1024).toFixed(1));
+
+    if (si) {
+      try {
+        const [cpu, graphics, osInfo, diskLayout, fsSize] = await Promise.all([
+          si.cpu().catch(() => null),
+          si.graphics().catch(() => null),
+          si.osInfo().catch(() => null),
+          si.diskLayout().catch(() => null),
+          si.fsSize().catch(() => null)
+        ]);
+
+        if (cpu) {
+          specs.cpu.model = cpu.brand || cpu.manufacturer || specs.cpu.model;
+          specs.cpu.cores = cpu.physicalCores || cpu.cores || 0;
+          specs.cpu.threads = cpu.cores || specs.cpu.threads;
+          specs.cpu.speed = cpu.speed ? `${cpu.speed} GHz` : 'Unavailable';
+        }
+
+        if (graphics && graphics.controllers && graphics.controllers.length > 0) {
+          const gpu = graphics.controllers[0];
+          specs.gpu.model = gpu.model || 'Unavailable';
+          specs.gpu.vendor = gpu.vendor || 'Unavailable';
+          specs.gpu.vramGB = gpu.vram ? parseFloat((gpu.vram / 1024).toFixed(1)) : 0;
+          if (specs.gpu.vramGB === 0 && gpu.memoryTotal) {
+            specs.gpu.vramGB = parseFloat((gpu.memoryTotal / 1024).toFixed(1));
+          }
+          if (specs.gpu.vramGB === 0 && gpu.vram) {
+            specs.gpu.vramGB = parseFloat((gpu.vram / 1024).toFixed(1)) || gpu.vram;
+          }
+        }
+
+        if (osInfo) {
+          specs.system.os = osInfo.distro || osInfo.platform || 'Unavailable';
+          specs.system.osVersion = osInfo.release || 'Unavailable';
+          specs.system.arch = osInfo.arch || os.arch();
+        }
+
+        if (diskLayout && diskLayout.length > 0) {
+          const mainDisk = diskLayout[0];
+          specs.disk.name = mainDisk.name || mainDisk.device || 'Primary Disk';
+          specs.disk.totalGB = mainDisk.size ? parseFloat((mainDisk.size / 1024 / 1024 / 1024).toFixed(0)) : 0;
+        }
+
+        if (fsSize && fsSize.length > 0) {
+          const mainFs = fsSize.find(fs => fs.mount === 'C:' || fs.mount === '/') || fsSize[0];
+          if (mainFs) {
+            specs.disk.usedGB = mainFs.used ? parseFloat((mainFs.used / 1024 / 1024 / 1024).toFixed(0)) : 0;
+            specs.disk.totalGB = mainFs.size ? parseFloat((mainFs.size / 1024 / 1024 / 1024).toFixed(0)) : specs.disk.totalGB;
+            if (!specs.disk.name || specs.disk.name === 'Unavailable') {
+              specs.disk.name = mainFs.fs || 'Primary Disk';
+            }
+          }
+        }
+      } catch (siError) {
+        console.error('[SwitchControl] systeminformation error:', siError.message);
+      }
+    }
+  } catch (error) {
+    console.error('[SwitchControl] Error getting system specs:', error.message);
+  }
+
+  return specs;
 }
 
 function setupIPC() {
@@ -78,7 +192,6 @@ function setupIPC() {
   ipcMain.handle('app:isPackaged', () => app.isPackaged);
 
   ipcMain.handle('system:getInfo', async () => {
-    const os = require('os');
     return {
       platform: os.platform(),
       arch: os.arch(),
@@ -88,6 +201,10 @@ function setupIPC() {
       freeMemory: os.freemem(),
       uptime: os.uptime(),
     };
+  });
+
+  ipcMain.handle('system:getSpecs', async () => {
+    return await getSystemSpecs();
   });
 
   ipcMain.handle('system:openExternal', async (event, url) => {
