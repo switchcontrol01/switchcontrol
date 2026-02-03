@@ -35,7 +35,7 @@ export default function Login() {
     const isElectron = typeof window !== 'undefined' && (window as any).electron?.openExternal;
     
     if (isElectron) {
-      const authUrl = `${AUTH_DOMAIN}/auth/${provider}`;
+      const authUrl = `${AUTH_DOMAIN}/auth/${provider}?source=electron`;
       console.log('[Login] Opening external auth URL:', authUrl);
       try {
         await (window as any).electron.openExternal(authUrl);
