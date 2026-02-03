@@ -1,0 +1,55 @@
+../dist/public/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/public/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/public/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/public/assets/index-BeD9d17C.css       209.37 kB │ gzip:  28.02 kB
+../dist/public/assets/index-BZW6Xhp0.js      1,341.87 kB │ gzip: 388.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.91s
+building server...
+
+  dist\index.cjs  1.7mb
+
+Done in 62ms
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:buildd
+npm error Missing script: "electron:buildd"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: C:\Users\SwitchTech\AppData\Local\npm-cache\_logs\2026-02-03T14_17_02_760Z-debug-0.log
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3235 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                        2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/public/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/public/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/public/assets/index-BeD9d17C.css       209.37 kB │ gzip:  28.02 kB
+../dist/public/assets/index-BZW6Xhp0.js      1,341.87 kB │ gzip: 388.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.83s
+building server...
+
+  dist\index.cjs  1.7mb
+
+Done in 50ms
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+npm error Missing script: "electron:build"
+npm error
+npm error To see a list of scripts, run:
+npm error   npm run
+npm error A complete log of this run can be found in: C:\Users\SwitchTech\AppData\Local\npm-cache\_logs\2026-02-03T14_17_10_432Z-debug-0.log
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
