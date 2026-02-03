@@ -147,10 +147,6 @@ function AppContent() {
     return () => clearTimeout(timer);
   }, []);
 
-  const handleLoginSuccess = () => {
-    setPhase("app");
-  };
-
   return (
     <AnimatePresence mode="wait">
       {phase === "splash" && (
@@ -174,7 +170,7 @@ function AppContent() {
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className="h-full"
         >
-          <Login onLoginSuccess={handleLoginSuccess} />
+          <Login />
         </motion.div>
       )}
 
