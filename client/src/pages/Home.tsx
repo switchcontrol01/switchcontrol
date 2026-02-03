@@ -174,6 +174,7 @@ function getGreeting(): string {
 }
 
 export default function Home() {
+  console.log("MOUNT Home");
   const { stats, account, clearRam, runAIScan, latestAIScan, setStats } = useStore();
   const [scanning, setScanning] = useState(false);
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);

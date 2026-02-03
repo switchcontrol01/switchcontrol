@@ -270,6 +270,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
 }
 
 export default function NetworkTweaks() {
+  console.log("MOUNT NetworkTweaks");
   const { isPremium } = useAuth();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<NetworkCategory | "All">("All");
