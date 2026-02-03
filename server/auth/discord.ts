@@ -168,23 +168,22 @@ export function setupDiscordAuth(app: Express): void {
   app.get(
     "/api/auth/discord/callback",
     (req, res, next) => {
+      console.log("OAUTH CALLBACK HIT:", req.originalUrl);
       passport.authenticate("discord", {
         failureRedirect: "/?error=discord_auth_failed",
       })(req, res, next);
     },
     (req, res) => {
-      delete (req.session as any).electronRedirect;
-      delete (req.session as any).returnTo;
-      
       const user = req.user as Express.User;
       const token = Buffer.from(JSON.stringify({
         id: user.id,
         ts: Date.now(),
       })).toString('base64');
       
-      const deepLinkUrl = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`;
-      console.log("[AUTH] Discord OAuth callback successful, redirecting to Electron:", deepLinkUrl);
-      res.redirect(deepLinkUrl);
+      console.log("REDIRECTING TO DEEP LINK");
+      return res.redirect(
+        `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=discord`
+      );
     }
   );
 

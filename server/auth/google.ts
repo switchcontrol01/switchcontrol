@@ -258,6 +258,7 @@ export function setupGoogleAuth(app: Express): void {
   app.get(
     "/api/auth/google/callback",
     (req, res, next) => {
+      console.log("OAUTH CALLBACK HIT:", req.originalUrl);
       if (!clientId || !clientSecret) {
         return res.redirect("/?error=auth_not_configured");
       }
@@ -266,18 +267,16 @@ export function setupGoogleAuth(app: Express): void {
       })(req, res, next);
     },
     (req, res) => {
-      delete (req.session as any).electronRedirect;
-      delete (req.session as any).returnTo;
-      
       const user = req.user as Express.User;
       const token = Buffer.from(JSON.stringify({
         id: user.id,
         ts: Date.now(),
       })).toString('base64');
       
-      const deepLinkUrl = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=google`;
-      console.log("[AUTH] Google OAuth callback successful, redirecting to Electron:", deepLinkUrl);
-      res.redirect(deepLinkUrl);
+      console.log("REDIRECTING TO DEEP LINK");
+      return res.redirect(
+        `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=google`
+      );
     }
   );
 
