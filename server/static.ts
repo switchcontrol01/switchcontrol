@@ -29,8 +29,12 @@ export function serveStatic(app: Express) {
   // Serve built client assets
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
-  app.use("*", (_req, res) => {
+  // fall through to index.html if the file doesn't exist (but not for API routes or OPTIONS)
+  app.use("*", (req, res, next) => {
+    // Don't catch API routes or OPTIONS preflight requests
+    if (req.path.startsWith('/api') || req.method === 'OPTIONS') {
+      return next();
+    }
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }
