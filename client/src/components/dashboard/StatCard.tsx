@@ -34,9 +34,9 @@ export function StatCard({
     <GlassCard className={cn("relative overflow-hidden group", className)}>
       <div className="p-6">
         <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <span className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
+          <div className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
             {title}
-          </span>
+          </div>
           <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
         </div>
         <div>

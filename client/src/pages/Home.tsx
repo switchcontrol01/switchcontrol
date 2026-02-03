@@ -407,6 +407,7 @@ export default function Home() {
                         onChange={(e) => setSelectedDiskIndex(Number(e.target.value))}
                         className="bg-transparent border border-white/20 rounded px-1.5 py-0.5 text-xs cursor-pointer hover:border-primary/50 transition-colors focus:outline-none focus:border-primary"
                         onClick={(e) => e.stopPropagation()}
+                        data-testid="select-disk-drive"
                       >
                         {allDisks.map((disk, idx) => (
                           <option key={disk.mount} value={idx} className="bg-zinc-900 text-white">
