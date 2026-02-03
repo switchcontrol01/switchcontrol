@@ -1,7 +1,6 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
-import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,7 +12,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser } from "@/lib/auth-store";
 
 import Splash from "@/screens/Splash";
-import Login from "@/screens/Login";
+import LoginScreen from "@/screens/Login";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
 import SystemCleaner from "@/pages/SystemCleaner";
@@ -33,6 +32,7 @@ import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import Success from "@/pages/Success";
 import PremiumSuccess from "@/pages/PremiumSuccess";
+import LoginPage from "@/pages/Login";
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).auth?.onCallback;
 
@@ -83,6 +83,7 @@ function WebsiteRoutes() {
       <Route path="/" component={Landing} />
       <Route path="/pricing" component={Pricing} />
       <Route path="/download" component={Download} />
+      <Route path="/login" component={LoginPage} />
       <Route path="/terms" component={Terms} />
       <Route path="/privacy" component={Privacy} />
       <Route path="/success" component={Success} />
@@ -217,7 +218,7 @@ function ElectronAppContent() {
             transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
-            <Login />
+            <LoginScreen />
           </motion.div>
         )}
 
@@ -240,10 +241,18 @@ function ElectronAppContent() {
 }
 
 function WebsiteContent() {
+  const authContextValue: AppAuthContextValue = {
+    user: null,
+    isPremium: false,
+    logout: () => {},
+  };
+
   return (
-    <Router>
-      <WebsiteRoutes />
-    </Router>
+    <AppAuthContext.Provider value={authContextValue}>
+      <Router>
+        <WebsiteRoutes />
+      </Router>
+    </AppAuthContext.Provider>
   );
 }
 
