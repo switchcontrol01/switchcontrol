@@ -1,0 +1,44 @@
+Windows PowerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\WINDOWS\system32> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm install
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+added 595 packages, and audited 596 packages in 7s
+
+91 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> switchcontrol@1.0.0 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+✓ 4 modules transformed.
+✗ Build failed in 122ms
+error during build:
+[vite:css] Failed to load PostCSS config (searchPath: C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client): [Error] Loading PostCSS Plugin failed: Cannot find module '@tailwindcss/postcss'
+Require stack:
+- C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\postcss.config.js
+
+(@C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\postcss.config.js)
+Error: Loading PostCSS Plugin failed: Cannot find module '@tailwindcss/postcss'
+Require stack:
+- C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\postcss.config.js
+
+(@C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\postcss.config.js)
+    at load (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:7660:10)
+    at async Promise.all (index 0)
+    at async plugins (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:7682:11)
+    at async processResult (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:7721:13)
+file: C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/index.css
+
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
