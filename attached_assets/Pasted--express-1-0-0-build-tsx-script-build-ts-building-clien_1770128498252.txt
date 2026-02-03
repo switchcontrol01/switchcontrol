@@ -1,0 +1,74 @@
+-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3235 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                        2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/public/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/public/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/public/assets/index-BeD9d17C.css       209.37 kB │ gzip:  28.02 kB
+../dist/public/assets/index-BZW6Xhp0.js      1,341.87 kB │ gzip: 388.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.84s
+building server...
+
+  dist\index.cjs  1.7mb
+
+Done in 62ms
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> rest-express@1.0.0 electron:build
+> npm run build && electron-builder --win --x64
+
+
+> rest-express@1.0.0 build
+> tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3235 modules transformed.
+rendering chunks (1)...[meta-images] no Replit deployment domain found, skipping meta tag updates
+../dist/public/index.html                        2.48 kB │ gzip:   0.86 kB
+../dist/public/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/public/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/public/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/public/assets/index-BeD9d17C.css       209.37 kB │ gzip:  28.02 kB
+../dist/public/assets/index-BZW6Xhp0.js      1,341.87 kB │ gzip: 388.59 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.98s
+building server...
+
+  dist\index.cjs  1.7mb
+
+Done in 49ms
+  • electron-builder  version=26.7.0 os=10.0.26200
+  • loaded configuration  file=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron-builder.json
+  • writing effective config  file=release\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=40.1.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • preparing       moduleName=bcrypt arch=x64
+  ⨯
+Error: Could not find any Visual Studio installation to use
+    at VisualStudioFinder.fail (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\node-gyp\lib\find-visualstudio.js:118:11)
+    at VisualStudioFinder.findVisualStudio (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\node-gyp\lib\find-visualstudio.js:74:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async createBuildDir (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\node-gyp\lib\configure.js:112:18)
+    at async process.<anonymous> (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/@electron/rebuild/lib/module-type/node-gyp/worker.js:22:13)
+
+
+  ⨯ node-gyp failed to rebuild 'C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\bcrypt'  failedTask=build stackTrace=Error: node-gyp failed to rebuild 'C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\node_modules\bcrypt'
+    at ChildProcess.<anonymous> (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/@electron/rebuild/lib/module-type/node-gyp/node-gyp.js:114:24)
+    at ChildProcess.emit (node:events:508:28)
+    at ChildProcess._handle.onexit (node:internal/child_process:294:12)
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
