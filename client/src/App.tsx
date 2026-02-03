@@ -241,11 +241,61 @@ function ElectronAppContent() {
 }
 
 function WebsiteContent() {
-  const authContextValue: AppAuthContextValue = {
-    user: null,
-    isPremium: false,
-    logout: () => {},
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const response = await fetch('/api/me', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.loggedIn) {
+            setUser({
+              id: data.id,
+              email: data.email,
+              username: data.name || data.firstName,
+              avatarUrl: data.avatar,
+              plan: data.isPremium ? 'premium' : 'free',
+              isPremium: data.isPremium,
+              loggedIn: true,
+            });
+          }
+        }
+      } catch (err) {
+        console.error('[Website] Session check failed:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkSession();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+    } catch (err) {
+      console.error('[Website] Logout failed:', err);
+    }
+    setUser(null);
+    window.location.href = '/';
   };
+
+  const authContextValue: AppAuthContextValue = {
+    user,
+    isPremium: user?.isPremium ?? false,
+    logout: handleLogout,
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <AppAuthContext.Provider value={authContextValue}>
