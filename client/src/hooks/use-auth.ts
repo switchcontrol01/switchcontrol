@@ -1,55 +1,23 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-
-interface AuthUser {
-  loggedIn: boolean;
-  id?: string;
-  email?: string | null;
-  name?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
-  avatar?: string | null;
-  isPremium?: boolean;
-}
-
-async function fetchUser(): Promise<AuthUser> {
-  const response = await fetch("/api/me", {
-    credentials: "include",
-  });
-
-  if (!response.ok) {
-    return { loggedIn: false };
-  }
-
-  return response.json();
-}
+import { useAppAuth } from "@/App";
 
 export function useAuth() {
-  const queryClient = useQueryClient();
-  const { data: user, isLoading, refetch } = useQuery<AuthUser>({
-    queryKey: ["/api/me"],
-    queryFn: fetchUser,
-    retry: false,
-    staleTime: 1000 * 30,
-    refetchOnWindowFocus: true,
-  });
-
-  const logout = async () => {
-    try {
-      await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
-      queryClient.setQueryData(['/api/me'], { loggedIn: false });
-      queryClient.invalidateQueries({ queryKey: ['/api/me'] });
-      window.location.href = '/';
-    } catch (error) {
-      console.error('Logout failed:', error);
-    }
-  };
+  const { user, isPremium, logout } = useAppAuth();
 
   return {
-    user: user?.loggedIn ? user : null,
-    isLoading,
-    isAuthenticated: user?.loggedIn ?? false,
-    isPremium: user?.isPremium ?? false,
+    user: user ? {
+      loggedIn: true,
+      id: user.id,
+      email: user.email,
+      name: user.username,
+      firstName: user.username?.split(' ')[0] || null,
+      lastName: null,
+      avatar: user.avatarUrl,
+      isPremium: user.isPremium,
+    } : null,
+    isLoading: false,
+    isAuthenticated: !!user,
+    isPremium,
     logout,
-    refetch,
+    refetch: async () => {},
   };
 }

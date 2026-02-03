@@ -84,7 +84,7 @@ export default function Splash({ onComplete }: SplashProps) {
               <img
                 src={logoImg}
                 alt="SwitchControl"
-                className="w-28 h-28 max-w-[112px] max-h-[112px] object-contain rounded-[28px]"
+                className="w-28 h-28 max-w-[112px] max-h-[112px] object-contain rounded-[22%]"
               />
             </motion.div>
 

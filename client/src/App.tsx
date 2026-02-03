@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, createContext, useContext } from "react";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -9,6 +9,7 @@ import { MotionProvider } from "@/lib/motion";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
+import { useAuthStore, validateToken, AuthUser } from "@/lib/auth-store";
 
 import Splash from "@/screens/Splash";
 import Login from "@/screens/Login";
@@ -25,19 +26,22 @@ import BiosAdvisor from "@/pages/BiosAdvisor";
 import Security from "@/pages/Security";
 import Tweaks from "@/pages/Tweaks";
 
-const TOKEN_KEY = "sc_auth_token_v1";
-const USER_KEY = "sc_auth_user_v1";
-const AUTH_DOMAIN = "https://switchcontrol.org";
+type AppPhase = "splash" | "unauthenticated" | "authenticated";
 
-type AppPhase = "splash" | "login" | "app";
-
-interface AuthUser {
-  id: string;
-  email: string | null;
-  username: string | null;
-  avatarUrl: string | null;
-  plan: string;
+interface AppAuthContextValue {
+  user: AuthUser | null;
   isPremium: boolean;
+  logout: () => void;
+}
+
+const AppAuthContext = createContext<AppAuthContextValue>({
+  user: null,
+  isPremium: false,
+  logout: () => {},
+});
+
+export function useAppAuth() {
+  return useContext(AppAuthContext);
 }
 
 function AppRoutes() {
@@ -63,131 +67,149 @@ function AppRoutes() {
   );
 }
 
-async function fetchUserFromAPI(token: string): Promise<AuthUser | null> {
-  try {
-    console.log('[App] Fetching user from API with token');
-    const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    });
-    
-    if (!response.ok) {
-      console.error('[App] API /me failed with status:', response.status);
-      return null;
-    }
-    
-    const user = await response.json();
-    console.log('[App] User data from API:', user);
-    return user;
-  } catch (err) {
-    console.error('[App] Failed to fetch user from API:', err);
-    return null;
-  }
-}
-
 function AppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
+  const [splashDone, setSplashDone] = useState(false);
+  const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
+
+  useEffect(() => {
+    const splashTimer = setTimeout(() => {
+      setSplashDone(true);
+    }, 2800);
+    return () => clearTimeout(splashTimer);
+  }, []);
 
   useEffect(() => {
     const isElectron = typeof window !== 'undefined' && (window as any).auth?.onCallback;
     
     if (isElectron) {
-      console.log('[App] Registering auth callback listener');
+      console.log('[App] Registering deep link auth callback');
       
       (window as any).auth.onCallback(async (url: string) => {
         console.log('[App] AUTH CALLBACK:', url);
         
         try {
           const parsed = new URL(url);
-          const token = parsed.searchParams.get('token');
+          const newToken = parsed.searchParams.get('token');
           const provider = parsed.searchParams.get('provider');
           
-          console.log('[App] Parsed token:', token ? 'present' : 'missing');
-          console.log('[App] Provider:', provider);
+          console.log('[App] Token:', newToken ? 'present' : 'missing', 'Provider:', provider);
           
-          if (token) {
-            localStorage.setItem(TOKEN_KEY, token);
+          if (newToken) {
+            setValidating(true);
+            storeLogout();
+            const validatedUser = await validateToken(newToken);
             
-            const user = await fetchUserFromAPI(token);
-            
-            if (user) {
-              localStorage.setItem(USER_KEY, JSON.stringify(user));
-              console.log('[App] User stored, transitioning to app phase');
-              setPhase("app");
+            if (validatedUser) {
+              setToken(newToken);
+              setUser(validatedUser);
+              console.log('[App] User authenticated, transitioning to dashboard');
+              setPhase("authenticated");
               setLocation("/dashboard");
             } else {
-              console.error('[App] Failed to fetch user after auth');
-              localStorage.removeItem(TOKEN_KEY);
+              console.error('[App] Token validation failed');
+              storeLogout();
+              setPhase("unauthenticated");
             }
+            setValidating(false);
           } else {
-            console.error('[App] No token in callback URL');
+            storeLogout();
+            setPhase("unauthenticated");
           }
         } catch (err) {
           console.error('[App] Error parsing auth callback:', err);
+          setValidating(false);
         }
       });
 
       return () => {
-        (window as any).auth?.removeCallbackListener();
+        (window as any).auth?.removeCallbackListener?.();
       };
     }
-  }, [setLocation]);
+  }, [setToken, setUser, setLocation, setValidating]);
 
   useEffect(() => {
-    const token = localStorage.getItem(TOKEN_KEY);
-    const isAuthed = Boolean(token && token.length > 10);
+    if (!splashDone) return;
 
-    const timer = setTimeout(() => {
-      setPhase(isAuthed ? "app" : "login");
-    }, 2800);
+    const checkAuth = async () => {
+      if (token) {
+        console.log('[App] Existing token found, validating...');
+        setValidating(true);
+        const validatedUser = await validateToken(token);
+        setValidating(false);
+        
+        if (validatedUser) {
+          setUser(validatedUser);
+          setPhase("authenticated");
+        } else {
+          console.log('[App] Stored token invalid, clearing');
+          storeLogout();
+          setPhase("unauthenticated");
+        }
+      } else {
+        setPhase("unauthenticated");
+      }
+    };
 
-    return () => clearTimeout(timer);
-  }, []);
+    checkAuth();
+  }, [splashDone, token, setUser, storeLogout, setValidating]);
+
+  const handleLogout = () => {
+    storeLogout();
+    setPhase("unauthenticated");
+    setLocation("/");
+  };
+
+  const authContextValue: AppAuthContextValue = {
+    user: user,
+    isPremium: user?.isPremium ?? false,
+    logout: handleLogout,
+  };
 
   return (
-    <AnimatePresence mode="wait">
-      {phase === "splash" && (
-        <motion.div
-          key="splash"
-          initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.4, ease: "easeInOut" }}
-          className="h-full"
-        >
-          <Splash onComplete={() => {}} />
-        </motion.div>
-      )}
+    <AppAuthContext.Provider value={authContextValue}>
+      <AnimatePresence mode="wait">
+        {phase === "splash" && (
+          <motion.div
+            key="splash"
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: "easeInOut" }}
+            className="h-full"
+          >
+            <Splash onComplete={() => {}} />
+          </motion.div>
+        )}
 
-      {phase === "login" && (
-        <motion.div
-          key="login"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="h-full"
-        >
-          <Login />
-        </motion.div>
-      )}
+        {phase === "unauthenticated" && (
+          <motion.div
+            key="login"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full"
+          >
+            <Login />
+          </motion.div>
+        )}
 
-      {phase === "app" && (
-        <motion.div
-          key="app"
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          className="h-full"
-        >
-          <Router hook={useHashLocation}>
-            <AppRoutes />
-          </Router>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        {phase === "authenticated" && (
+          <motion.div
+            key="app"
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="h-full"
+          >
+            <Router hook={useHashLocation}>
+              <AppRoutes />
+            </Router>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </AppAuthContext.Provider>
   );
 }
 

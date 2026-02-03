@@ -1,22 +1,17 @@
-import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
   Settings, 
   Zap, 
-  Activity, 
-  Network, 
-  ShieldCheck, 
   Shield,
   Trash2, 
   Rocket, 
   Moon,
   List,
   Wifi,
-  Terminal,
   Cpu,
   Crown,
-  Brain
+  LogOut
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { motion, sidebarSlide, useMotion } from "@/lib/motion";
@@ -57,7 +52,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Focus Mode", icon: Moon, href: "/focus" },
   { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true },
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },
-  { label: "Debloat", icon: ShieldCheck, href: "/debloat" },
+  { label: "Debloat", icon: Shield, href: "/debloat" },
   { label: "Startup", icon: List, href: "/startup" },
   { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true },
   { label: "Security", icon: Shield, href: "/security" },
@@ -67,13 +62,14 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar() {
   const [location, setLocation] = useLocation();
   const { prefersReducedMotion, hasLoaded } = useMotion();
-  const { user, isPremium } = useAuth();
+  const { user, isPremium, logout } = useAuth();
   const shouldAnimate = !prefersReducedMotion;
   
   const currentPath = location === "/" ? "/dashboard" : location;
   
-  const userName = user?.firstName || user?.name?.split(' ')[0] || user?.email?.split('@')[0] || 'User';
+  const userName = user?.name || user?.firstName || user?.email?.split('@')[0] || 'User';
   const userInitials = userName.slice(0, 2).toUpperCase();
+  const avatarUrl = user?.avatar;
 
   const navigate = (href: string) => {
     setLocation(href);
@@ -141,20 +137,20 @@ export function Sidebar() {
       </nav>
 
       <div className="p-4 border-t border-sidebar-border bg-sidebar-accent/5 backdrop-blur-sm">
-        <div className="flex items-center gap-3 px-2 group cursor-default">
-          {user?.avatar ? (
+        <div className="flex items-center gap-3 px-2 group">
+          {avatarUrl ? (
             <img 
-              src={user.avatar} 
+              src={avatarUrl} 
               alt={userName}
-              className="size-8 rounded-full ring-1 ring-white/10 object-cover transition-transform duration-300 group-hover:scale-105"
+              className="size-9 rounded-full ring-2 ring-white/10 object-cover transition-all duration-300 group-hover:ring-primary/30"
             />
           ) : (
-            <div className="size-8 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 ring-1 ring-white/10 flex items-center justify-center text-xs font-mono text-zinc-400 shadow-inner transition-transform duration-300 group-hover:scale-105">
+            <div className="size-9 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 ring-2 ring-white/10 flex items-center justify-center text-xs font-mono text-zinc-400 shadow-inner transition-all duration-300 group-hover:ring-primary/30">
               {userInitials}
             </div>
           )}
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-white group-hover:text-primary transition-colors">{userName}</span>
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="text-sm font-medium text-white truncate">{userName}</span>
             {isPremium ? (
               <motion.span 
                 className="text-[10px] text-[hsl(270,60%,65%)] font-medium bg-[hsl(270,60%,55%,0.15)] px-1.5 py-0.5 rounded w-fit border border-[hsl(270,60%,55%,0.2)] flex items-center gap-1"
@@ -170,6 +166,19 @@ export function Sidebar() {
               </span>
             )}
           </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={logout}
+                className="size-7 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+              >
+                <LogOut className="size-3.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              Sign out
+            </TooltipContent>
+          </Tooltip>
         </div>
         <div className="mt-3 flex items-center justify-between px-2">
           <span className="text-[10px] text-muted-foreground font-mono opacity-50">v1.0.0 (Early Access)</span>

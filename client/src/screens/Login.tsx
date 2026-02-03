@@ -83,7 +83,7 @@ export default function Login() {
             <img
               src={logoImg}
               alt="SwitchControl"
-              className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[20px]"
+              className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[22%]"
             />
             <div className="text-center">
               <h1 className="text-2xl font-bold text-white mb-2">Welcome to SwitchControl</h1>

@@ -58,7 +58,7 @@ export default function DownloadPage() {
                 <motion.img 
                   src={faviconImg}
                   alt="SwitchControl"
-                  className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl transition-all duration-300 object-contain logo-animate"
+                  className="relative w-20 h-20 md:w-24 md:h-24 rounded-[22%] transition-all duration-300 object-contain logo-animate"
                   initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
