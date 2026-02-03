@@ -5,6 +5,7 @@ import { ArrowLeft, Download, Shield, CheckCircle, Monitor, Clock } from "lucide
 import { useAuth } from "@/components/ProtectedRoute";
 import { brand } from "@/config/brand";
 import { motion, useMotion } from "@/lib/motion";
+import faviconImg from "@/assets/favicon.png";
 
 export default function DownloadPage() {
   const { user } = useAuth();
@@ -55,7 +56,7 @@ export default function DownloadPage() {
               <div className="relative">
                 <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-cyan-600/30 blur-2xl scale-150 opacity-60" />
                 <motion.img 
-                  src="/favicon.png"
+                  src={faviconImg}
                   alt="SwitchControl"
                   className="relative w-20 h-20 md:w-24 md:h-24 rounded-2xl transition-all duration-300 object-contain logo-animate"
                   initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}

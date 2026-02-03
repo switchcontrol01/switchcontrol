@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Zap, Monitor, Wifi, ChevronRight, Shield, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AnimateIn from './AnimateIn';
+import wordmarkImg from '@/assets/wordmark.png';
 
 type TabId = 'latency' | 'frames' | 'network';
 
@@ -89,7 +90,7 @@ export function WhatIsSwitchControl() {
                       What is
                     </span>
                     <img 
-                      src="/switchcontrol-wordmark.png" 
+                      src={wordmarkImg} 
                       alt="SwitchControl"
                       className="h-8 md:h-10 lg:h-11 object-contain animate-logo-float"
                       style={{ 

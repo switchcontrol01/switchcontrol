@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import logoImg from "@/assets/logo.png";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
 
@@ -80,7 +81,7 @@ export default function Login() {
         <div className="bg-card/80 backdrop-blur-xl border border-white/10 rounded-2xl p-8 shadow-2xl">
           <div className="flex flex-col items-center gap-6 mb-8">
             <img
-              src="/logo.png"
+              src={logoImg}
               alt="SwitchControl"
               className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[20px]"
             />

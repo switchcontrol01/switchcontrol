@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import logoImg from "@/assets/logo.png";
 
 interface SplashProps {
   onComplete: () => void;
@@ -81,7 +82,7 @@ export default function Splash({ onComplete }: SplashProps) {
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
               <img
-                src="/logo.png"
+                src={logoImg}
                 alt="SwitchControl"
                 className="w-28 h-28 max-w-[112px] max-h-[112px] object-contain rounded-[28px]"
               />
