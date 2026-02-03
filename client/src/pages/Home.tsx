@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -63,6 +63,7 @@ declare global {
         uptime: number;
       }>;
       getSystemSpecs: () => Promise<SystemSpecs>;
+      getRamUsage: () => Promise<{ ramTotalGb: number; ramUsedGb: number }>;
     };
   }
 }
@@ -186,6 +187,7 @@ export default function Home() {
   const { stats, account, clearRam, runAIScan, latestAIScan, setStats } = useStore();
   const [scanning, setScanning] = useState(false);
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
+  const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   useRevealOnScroll();
@@ -227,6 +229,24 @@ export default function Home() {
         });
       });
     }
+  }, [setStats]);
+
+  useEffect(() => {
+    if (window.sc?.getRamUsage) {
+      ramIntervalRef.current = setInterval(() => {
+        window.sc!.getRamUsage().then((ram) => {
+          setStats({
+            usedRamGb: ram.ramUsedGb,
+            totalRamGb: ram.ramTotalGb
+          });
+        }).catch(() => {});
+      }, 2000);
+    }
+    return () => {
+      if (ramIntervalRef.current) {
+        clearInterval(ramIntervalRef.current);
+      }
+    };
   }, [setStats]);
   
   const handleTelemetryUpdate = useCallback((data: TelemetryData) => {

@@ -207,6 +207,15 @@ function setupIPC() {
     return await getSystemSpecs();
   });
 
+  ipcMain.handle('system:getRamUsage', async () => {
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    return {
+      ramTotalGb: parseFloat((totalMem / 1024 / 1024 / 1024).toFixed(1)),
+      ramUsedGb: parseFloat(((totalMem - freeMem) / 1024 / 1024 / 1024).toFixed(1))
+    };
+  });
+
   ipcMain.handle('system:openExternal', async (event, url) => {
     if (url.startsWith('http://') || url.startsWith('https://')) {
       await shell.openExternal(url);
