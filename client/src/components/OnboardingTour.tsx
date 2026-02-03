@@ -35,7 +35,7 @@ const tourSteps: TourStep[] = [
     title: "AI BIOS Advisor",
     description: "Get personalized BIOS optimization recommendations powered by AI to maximize your gaming performance.",
     icon: <Cpu className="w-5 h-5" />,
-    position: "left"
+    position: "right"
   },
   {
     id: "tweaks",
@@ -128,31 +128,38 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
     const padding = 20;
     const tooltipWidth = 320;
     const tooltipHeight = 180;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    let top: number;
+    let left: number;
     
     switch (step.position) {
       case "right":
-        return {
-          top: targetRect.top + targetRect.height / 2 - tooltipHeight / 2,
-          left: targetRect.right + padding
-        };
+        top = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
+        left = targetRect.right + padding;
+        break;
       case "left":
-        return {
-          top: targetRect.top + targetRect.height / 2 - tooltipHeight / 2,
-          left: targetRect.left - tooltipWidth - padding
-        };
+        top = targetRect.top + targetRect.height / 2 - tooltipHeight / 2;
+        left = targetRect.left - tooltipWidth - padding;
+        break;
       case "bottom":
-        return {
-          top: targetRect.bottom + padding,
-          left: targetRect.left + targetRect.width / 2 - tooltipWidth / 2
-        };
+        top = targetRect.bottom + padding;
+        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
+        break;
       case "top":
-        return {
-          top: targetRect.top - tooltipHeight - padding,
-          left: targetRect.left + targetRect.width / 2 - tooltipWidth / 2
-        };
+        top = targetRect.top - tooltipHeight - padding;
+        left = targetRect.left + targetRect.width / 2 - tooltipWidth / 2;
+        break;
       default:
         return { top: "50%", left: "50%" };
     }
+    
+    // Clamp to viewport bounds
+    left = Math.max(padding, Math.min(left, viewportWidth - tooltipWidth - padding));
+    top = Math.max(padding, Math.min(top, viewportHeight - tooltipHeight - padding));
+    
+    return { top, left };
   };
 
   const tooltipPos = getTooltipPosition();
