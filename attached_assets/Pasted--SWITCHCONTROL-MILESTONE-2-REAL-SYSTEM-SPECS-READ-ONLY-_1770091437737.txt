@@ -1,0 +1,86 @@
+🔒 SWITCHCONTROL – MILESTONE 2
+REAL SYSTEM SPECS (READ-ONLY, PER-USER, RELIABLE)
+Objective
+Make the Dashboard show REAL system specs of the user’s machine.
+No fake data. No placeholders. No browser hacks.
+This milestone is DATA ONLY.
+Do NOT redesign UI unless required to display data.
+ABSOLUTE RULES
+❌ Do NOT add temps yet
+❌ Do NOT add live charts yet
+❌ Do NOT add OAuth or premium logic
+❌ Do NOT guess values
+❌ Do NOT hardcode specs
+❌ Do NOT use navigator APIs
+❌ Do NOT use fake random data
+✅ MUST use Electron main → preload → renderer bridge
+✅ MUST work for any user who installs the app
+✅ MUST return real hardware info
+✅ MUST fail gracefully if a field is unavailable
+REQUIRED DATA (MINIMUM)
+The following must be real and must populate:
+CPU
+Model name (full string)
+Physical cores
+Logical threads
+Base clock (if available)
+RAM
+Total installed RAM (GB)
+Available RAM (GB)
+Used RAM (GB)
+GPU
+GPU model name
+Vendor
+VRAM (if available)
+SYSTEM
+OS name
+OS version
+Architecture (x64 / arm64)
+Hostname
+IMPLEMENTATION REQUIREMENTS
+1️⃣ Electron Main Process
+Use Node.js OS APIs
+Use systeminformation library (REQUIRED)
+Copy code
+Bash
+npm install systeminformation
+Collect data ONLY in electron/main.js
+No UI logic in main
+Return clean JSON only
+2️⃣ Preload Bridge
+Expose exactly ONE object:
+Copy code
+Ts
+window.sc.getSystemSpecs()
+Must return a resolved object
+No direct Node access in React
+Context isolation stays ON
+3️⃣ Renderer (Dashboard)
+On mount:
+Call window.sc.getSystemSpecs()
+Store result in state
+Display values in:
+Specs list
+Cards
+If a value is missing:
+Show "Unavailable" (not 0, not fake)
+FILES YOU ARE ALLOWED TO TOUCH
+electron/main.js
+electron/preload.js
+client/src/pages/Home.tsx (or Dashboard content file)
+client/src/lib (if you need a helper)
+package.json (dependency only)
+❌ Do NOT touch routing
+❌ Do NOT touch splash
+❌ Do NOT touch login
+❌ Do NOT touch CSS except to display values
+REQUIRED OUTPUT FORMAT
+Return ONLY this:
+Files to modify
+Full file contents (NO snippets)
+New dependency added (if any)
+PowerShell commands to build
+Verification checklist
+No explanations outside this format.
+
+

@@ -64,7 +64,7 @@ export function BrandLogo({
           alt={`${brand.name} logo`}
           className={cn(
             config.icon, 
-            'relative rounded-lg object-contain flex-shrink-0 transition-transform duration-300',
+            'relative rounded-[20%] object-contain flex-shrink-0 transition-transform duration-300',
             animate && 'group-hover:scale-[1.05]'
           )}
         />

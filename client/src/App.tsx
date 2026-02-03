@@ -9,13 +9,33 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
 import { WindowControls } from "@/components/WindowControls";
+import { AnimatePresence, motion } from "framer-motion";
 
 const TOKEN_KEY = "sc_auth_token_v1";
 
 type Screen = "splash" | "login" | "dashboard";
 
+const transitionVariants = [
+  {
+    initial: { opacity: 0, y: 20 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+  },
+  {
+    initial: { opacity: 0, scale: 0.98 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 1.02 },
+  },
+  {
+    initial: { opacity: 0, x: 30 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 },
+  },
+];
+
 function AppContent() {
   const [screen, setScreen] = useState<Screen>("splash");
+  const [transitionIndex] = useState(() => Math.floor(Math.random() * transitionVariants.length));
 
   useEffect(() => {
     if (!window.location.hash) {
@@ -31,22 +51,53 @@ function AppContent() {
     }, 1100);
   }, []);
 
-  if (screen === "splash") {
-    return <Splash onComplete={() => {}} />;
-  }
+  const variant = transitionVariants[transitionIndex];
 
-  if (screen === "login") {
-    return (
-      <Login
-        onLoginSuccess={() => {
-          window.location.hash = "#/dashboard";
-          setScreen("dashboard");
-        }}
-      />
-    );
-  }
+  return (
+    <AnimatePresence mode="wait">
+      {screen === "splash" && (
+        <motion.div
+          key="splash"
+          initial={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.35, ease: "easeInOut" }}
+          className="h-full"
+        >
+          <Splash onComplete={() => {}} />
+        </motion.div>
+      )}
 
-  return <Dashboard />;
+      {screen === "login" && (
+        <motion.div
+          key="login"
+          initial={variant.initial}
+          animate={variant.animate}
+          exit={variant.exit}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="h-full"
+        >
+          <Login
+            onLoginSuccess={() => {
+              window.location.hash = "#/dashboard";
+              setScreen("dashboard");
+            }}
+          />
+        </motion.div>
+      )}
+
+      {screen === "dashboard" && (
+        <motion.div
+          key="dashboard"
+          initial={variant.initial}
+          animate={variant.animate}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          className="h-full"
+        >
+          <Dashboard />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 }
 
 export default function App() {

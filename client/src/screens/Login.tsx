@@ -41,16 +41,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
-      <div className="absolute inset-0 opacity-20">
-        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <pattern id="loginTopo" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
-              <path d="M0 50 Q25 30 50 50 T100 50" fill="none" stroke="hsl(270 60% 40% / 0.3)" strokeWidth="0.5"/>
-              <path d="M0 70 Q25 50 50 70 T100 70" fill="none" stroke="hsl(270 60% 50% / 0.2)" strokeWidth="0.5"/>
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#loginTopo)"/>
-        </svg>
+      {/* Premium diagonal contour background */}
+      <div className="absolute inset-0 overflow-hidden" style={{ transform: 'rotate(-12deg) scale(1.4)' }}>
+        <div className="absolute inset-0 login-contour-drift" style={{ opacity: 0.08 }}>
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <pattern id="loginTopo" x="0" y="0" width="200" height="150" patternUnits="userSpaceOnUse">
+                <path d="M0 50 Q50 25 100 50 T200 50" fill="none" stroke="hsl(270 50% 45%)" strokeWidth="0.6" opacity="0.5"/>
+                <path d="M0 100 Q50 75 100 100 T200 100" fill="none" stroke="hsl(275 45% 50%)" strokeWidth="0.5" opacity="0.4"/>
+              </pattern>
+            </defs>
+            <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#loginTopo)"/>
+          </svg>
+        </div>
       </div>
 
       <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/50 to-[#0a0a0f]" />
@@ -66,7 +69,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             <img
               src="./logo.png"
               alt="SwitchControl"
-              className="w-20 h-20 object-contain"
+              className="w-20 h-20 object-contain rounded-[20%]"
             />
             <div className="text-center">
               <h1 className="text-2xl font-bold text-white mb-2">Welcome to SwitchControl</h1>
