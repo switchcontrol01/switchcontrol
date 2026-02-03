@@ -375,7 +375,7 @@ function Header() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <BrandLogo size="lg" />
+          <BrandLogo size="lg" linkTo="/" />
 
           <nav className="hidden md:flex items-center gap-8">
             {NAV_LINKS.map(link => (
@@ -504,7 +504,7 @@ function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
-            <BrandLogo size="md" className="mb-4" />
+            <BrandLogo size="md" className="mb-4" linkTo="/" />
             <p className="text-sm text-muted-foreground">
               Professional gaming optimization for competitive players.
             </p>

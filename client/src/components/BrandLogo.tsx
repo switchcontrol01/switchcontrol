@@ -45,6 +45,10 @@ export function BrandLogo({
     if (linkTo.startsWith('#')) {
       e.preventDefault();
       window.location.hash = linkTo.replace(/^#/, '');
+    } else if (linkTo === '/') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.history.pushState({}, '', '/');
     }
   };
   

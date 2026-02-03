@@ -232,7 +232,7 @@ export function setupGoogleAuth(app: Express): void {
   }
 
   app.get("/auth/google", (req, res, next) => {
-    const next_url = req.query.next as string || '/download';
+    const next_url = req.query.next as string || '/';
     const source = req.query.source as string || 'web';
     (req.session as any).authNext = next_url;
     (req.session as any).authSource = source;
@@ -255,7 +255,7 @@ export function setupGoogleAuth(app: Express): void {
     (req, res) => {
       const user = req.user as Express.User;
       const source = (req.session as any).authSource || 'web';
-      const nextUrl = (req.session as any).authNext || '/download';
+      const nextUrl = (req.session as any).authNext || '/';
       
       delete (req.session as any).authSource;
       delete (req.session as any).authNext;
