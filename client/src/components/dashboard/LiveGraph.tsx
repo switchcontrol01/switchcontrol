@@ -15,7 +15,7 @@ interface TelemetryData {
 interface DataPoint {
   time: string;
   cpu: number;
-  gpu: number;
+  gpu: number | null;
   ram: number;
 }
 
@@ -78,10 +78,11 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
         
         setData(prev => {
+          const gpuValue = telemetry.gpuTempC ?? telemetry.gpuLoadPercent;
           const newPoint: DataPoint = {
             time: timeStr,
             cpu: telemetry.cpuTempC ?? telemetry.cpuLoadPercent,
-            gpu: telemetry.gpuTempC ?? (telemetry.gpuLoadPercent ?? 0),
+            gpu: gpuValue,
             ram: parseFloat(((telemetry.ramUsedGb / telemetry.ramTotalGb) * 100).toFixed(1))
           };
           const updated = [...prev, newPoint];
@@ -140,12 +141,12 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 <span className="size-2 rounded-full bg-red-500" />
                 CPU: {latest.cpuTempC !== null ? `${latest.cpuTempC}°C` : `${latest.cpuLoadPercent.toFixed(0)}%`}
               </span>
-              {(latest.gpuTempC !== null || latest.gpuLoadPercent !== null) && (
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-orange-500" />
-                  GPU: {latest.gpuTempC !== null ? `${latest.gpuTempC}°C` : `${latest.gpuLoadPercent?.toFixed(0)}%`}
-                </span>
-              )}
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-orange-500" />
+                GPU: {latest.gpuTempC !== null ? `${latest.gpuTempC}°C` : 
+                      latest.gpuLoadPercent !== null ? `${latest.gpuLoadPercent.toFixed(0)}%` : 
+                      <span className="text-muted-foreground/60" title="GPU monitoring requires supported drivers">N/A</span>}
+              </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-cyan-500" />
                 RAM: {latest.ramUsedGb.toFixed(1)}GB / {latest.ramTotalGb.toFixed(0)}GB

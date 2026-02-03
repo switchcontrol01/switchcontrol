@@ -133,7 +133,8 @@ async function getSystemSpecs() {
     ram: { totalGB: 0, usedGB: 0, freeGB: 0 },
     gpu: { model: 'Unavailable', vendor: 'Unavailable', vramGB: 0 },
     system: { os: 'Unavailable', osVersion: 'Unavailable', arch: os.arch(), hostname: os.hostname() },
-    disk: { name: 'Unavailable', usedGB: 0, totalGB: 0 }
+    disk: { name: 'Unavailable', usedGB: 0, totalGB: 0 },
+    disks: []
   };
 
   try {
@@ -185,8 +186,21 @@ async function getSystemSpecs() {
         }
 
         if (fsSize?.length > 0) {
+          const allDisks = fsSize
+            .filter(fs => fs.size > 0 && (fs.mount.match(/^[A-Z]:$/) || fs.mount === '/' || fs.mount.startsWith('/mnt')))
+            .map(fs => ({
+              mount: fs.mount,
+              name: fs.fs || fs.mount,
+              usedGB: fs.used ? parseFloat((fs.used / 1024 / 1024 / 1024).toFixed(0)) : 0,
+              totalGB: fs.size ? parseFloat((fs.size / 1024 / 1024 / 1024).toFixed(0)) : 0,
+              usedPercent: fs.use ? parseFloat(fs.use.toFixed(1)) : 0
+            }));
+          
+          specs.disks = allDisks;
+          
           const mainFs = fsSize.find(fs => fs.mount === 'C:' || fs.mount === '/') || fsSize[0];
           if (mainFs) {
+            specs.disk.name = mainFs.mount || 'C:';
             specs.disk.usedGB = mainFs.used ? parseFloat((mainFs.used / 1024 / 1024 / 1024).toFixed(0)) : 0;
             specs.disk.totalGB = mainFs.size ? parseFloat((mainFs.size / 1024 / 1024 / 1024).toFixed(0)) : specs.disk.totalGB;
           }
@@ -200,6 +214,26 @@ async function getSystemSpecs() {
   }
 
   return specs;
+}
+
+async function getAllDisks() {
+  if (!si) return [];
+  
+  try {
+    const fsSize = await si.fsSize().catch(() => []);
+    return fsSize
+      .filter(fs => fs.size > 0 && (fs.mount.match(/^[A-Z]:$/) || fs.mount === '/' || fs.mount.startsWith('/mnt')))
+      .map(fs => ({
+        mount: fs.mount,
+        name: fs.fs || fs.mount,
+        usedGB: fs.used ? parseFloat((fs.used / 1024 / 1024 / 1024).toFixed(0)) : 0,
+        totalGB: fs.size ? parseFloat((fs.size / 1024 / 1024 / 1024).toFixed(0)) : 0,
+        usedPercent: fs.use ? parseFloat(fs.use.toFixed(1)) : 0
+      }));
+  } catch (error) {
+    console.error('[SwitchControl] Error getting disks:', error.message);
+    return [];
+  }
 }
 
 async function getLiveTelemetry() {
@@ -270,6 +304,8 @@ function setupIPC() {
   }));
 
   ipcMain.handle('system:getSpecs', async () => await getSystemSpecs());
+  
+  ipcMain.handle('system:getAllDisks', async () => await getAllDisks());
 
   ipcMain.handle('system:getRamUsage', async () => {
     const totalMem = os.totalmem();

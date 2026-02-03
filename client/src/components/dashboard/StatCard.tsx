@@ -3,9 +3,10 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { ReactNode } from "react";
 
 interface StatCardProps {
-  title: string;
+  title: string | ReactNode;
   value: string | number;
   total?: string | number;
   unit?: string;

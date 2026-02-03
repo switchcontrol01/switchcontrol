@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('sc', {
   getSystemInfo: () => ipcRenderer.invoke('system:getInfo'),
   getSystemSpecs: () => ipcRenderer.invoke('system:getSpecs'),
   getRamUsage: () => ipcRenderer.invoke('system:getRamUsage'),
+  getAllDisks: () => ipcRenderer.invoke('system:getAllDisks'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

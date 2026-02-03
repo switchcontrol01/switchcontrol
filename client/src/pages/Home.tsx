@@ -20,6 +20,14 @@ import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 
+interface DiskInfo {
+  mount: string;
+  name: string;
+  usedGB: number;
+  totalGB: number;
+  usedPercent: number;
+}
+
 interface SystemSpecs {
   cpu: {
     model: string;
@@ -48,6 +56,7 @@ interface SystemSpecs {
     usedGB: number;
     totalGB: number;
   };
+  disks?: DiskInfo[];
 }
 
 
@@ -178,6 +187,8 @@ export default function Home() {
   const { stats, account, clearRam, runAIScan, latestAIScan, setStats } = useStore();
   const [scanning, setScanning] = useState(false);
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
+  const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
+  const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
@@ -231,6 +242,23 @@ export default function Home() {
   }, [setStats]);
 
   useEffect(() => {
+    const sc = window.sc as typeof window.sc | undefined;
+    if (sc?.getAllDisks) {
+      sc.getAllDisks().then((disks) => {
+        if (disks && disks.length > 0) {
+          setAllDisks(disks);
+          const mainIndex = disks.findIndex(d => d.mount === 'C:' || d.mount === '/');
+          if (mainIndex >= 0) {
+            setSelectedDiskIndex(mainIndex);
+          }
+        }
+      }).catch((err) => {
+        console.error('[SwitchControl] Failed to get disks:', err);
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     if (window.sc?.getRamUsage) {
       ramIntervalRef.current = setInterval(() => {
         window.sc!.getRamUsage().then((ram) => {
@@ -253,7 +281,12 @@ export default function Home() {
   }, []);
   
   const ramPercent = (stats.usedRamGb / stats.totalRamGb) * 100;
-  const diskPercent = (stats.diskUsedGb / stats.diskTotalGb) * 100;
+  
+  const selectedDisk = allDisks.length > 0 ? allDisks[selectedDiskIndex] : null;
+  const currentDiskUsed = selectedDisk?.usedGB ?? stats.diskUsedGb;
+  const currentDiskTotal = selectedDisk?.totalGB ?? stats.diskTotalGb;
+  const currentDiskName = selectedDisk?.mount ?? stats.diskName;
+  const diskPercent = currentDiskTotal > 0 ? (currentDiskUsed / currentDiskTotal) * 100 : 0;
 
   const handleAIScan = async () => {
     setScanning(true);
@@ -365,13 +398,31 @@ export default function Home() {
               transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.3 }}
             >
               <StatCard
-                title="Disk (C:)"
-                value={stats.diskUsedGb}
-                total={stats.diskTotalGb}
+                title={
+                  allDisks.length > 1 ? (
+                    <div className="flex items-center gap-1">
+                      <span>Disk</span>
+                      <select 
+                        value={selectedDiskIndex}
+                        onChange={(e) => setSelectedDiskIndex(Number(e.target.value))}
+                        className="bg-transparent border border-white/20 rounded px-1.5 py-0.5 text-xs cursor-pointer hover:border-primary/50 transition-colors focus:outline-none focus:border-primary"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {allDisks.map((disk, idx) => (
+                          <option key={disk.mount} value={idx} className="bg-zinc-900 text-white">
+                            {disk.mount}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : `Disk (${currentDiskName})`
+                }
+                value={currentDiskUsed}
+                total={currentDiskTotal}
                 unit="GB"
                 icon={HardDrive}
                 progress={diskPercent}
-                subtext={stats.diskName}
+                subtext={selectedDisk?.name || stats.diskName}
               />
             </motion.div>
           </motion.div>

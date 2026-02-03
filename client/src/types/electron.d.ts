@@ -1,3 +1,11 @@
+interface DiskInfo {
+  mount: string;
+  name: string;
+  usedGB: number;
+  totalGB: number;
+  usedPercent: number;
+}
+
 interface SystemSpecs {
   cpu: {
     model: string;
@@ -26,6 +34,7 @@ interface SystemSpecs {
     usedGB: number;
     totalGB: number;
   };
+  disks?: DiskInfo[];
 }
 
 interface TelemetryData {
@@ -97,6 +106,7 @@ declare global {
       }>;
       getSystemSpecs: () => Promise<SystemSpecs>;
       getRamUsage: () => Promise<{ ramTotalGb: number; ramUsedGb: number }>;
+      getAllDisks: () => Promise<DiskInfo[]>;
     };
   }
 }
