@@ -1,0 +1,20 @@
+ugin:vite:import-analysis] Failed to resolve import "react-helmet" from "client/src/pages/Pricing.tsx". Does the file exist?
+C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/pages/Pricing.tsx:3:23
+3  |  import { useState, useEffect } from "react";
+4  |  import { Link, useLocation } from "wouter";
+5  |  import { Helmet } from "react-helmet";
+   |                          ^
+6  |  import { Button } from "@/components/ui/button";
+7  |  import { Card, CardContent } from "@/components/ui/card";
+    at TransformPluginContext._formatLog (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:42528:41)
+    at TransformPluginContext.error (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:42525:16)
+    at normalizeUrl (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:40504:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:40623:37
+    at async Promise.all (index 3)
+    at async TransformPluginContext.transform (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:40550:7)
+    at async EnvironmentPluginContainer.transform (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:42323:18)
+    at async loadAndTransform (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:35739:27)
+    at async viteTransformMiddleware (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/dep-D4NMHUTW.js:37254:24
+Click outside, press Esc key, or fix the code to dismiss.
+You can also disable this overlay by setting server.hmr.overlay to false in vite.config.ts.
