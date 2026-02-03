@@ -1,0 +1,63 @@
+REPLIT: STOP summarizing. OUTPUT FULL FILE CONTENTS ONLY.
+Objective
+Implement Milestone 2: Real System Specs in Electron using IPC. Must work after downloading ZIP with only npm install and no extra steps.
+Hard rules
+Do NOT write explanations.
+Do NOT write “I will” or narrate.
+Output only:
+Files to delete
+Files to create
+Files to replace (full contents)
+Build steps to run
+Verification checklist
+Requirements
+A) Dependency
+Add systeminformation to dependencies in root package.json.
+Do NOT tell me to manually install it later.
+B) Security and architecture
+Keep contextIsolation: true, nodeIntegration: false, sandbox: true.
+All systeminformation calls happen in electron/main.js ONLY.
+Renderer gets data via IPC only.
+Preload exposes a single safe API: window.sc.getSystemSpecs() and optionally window.sc.getSystemTemps() for later.
+C) IPC
+ipcMain.handle("system:getSpecs", async () => { ... })
+Preload: contextBridge.exposeInMainWorld("sc", { getSystemSpecs: () => ipcRenderer.invoke("system:getSpecs") })
+D) Data format
+Return a plain JSON object with exactly these fields (strings or numbers):
+cpuModel
+cpuCores
+cpuThreads
+ramTotalGb
+ramUsedGb
+gpuModel
+gpuVramGb (or null)
+osName
+osVersion
+diskTotalGb
+diskUsedGb
+E) Frontend
+In client/src/pages/Home.tsx (or the dashboard component), on mount call window.sc.getSystemSpecs() if available and set state.
+If not in Electron, show “Unavailable” not fake numbers.
+Do NOT crash if API missing.
+F) Live refresh
+Add a refresh timer every 2 seconds for RAM used only (optional), but do not refetch full specs more than once at startup.
+Never spam IPC.
+Files you must output in full
+package.json
+electron/main.js
+electron/preload.js
+The dashboard file that renders specs: either client/src/pages/Home.tsx or whatever file actually shows CPU/RAM/GPU
+Any store file used to hold stats, if you change it
+Build steps to run (PowerShell)
+Include Windows-safe commands, not rm -rf.
+Verification checklist
+Run npm install then npm run build then npm run electron:dev
+Dashboard shows real CPU and RAM values on my machine
+No red console errors
+Packaged app via npm run electron:build still shows real specs
+Output format
+Files to delete
+Files to create
+Files to replace (with full contents)
+Build steps to run
+Verification checklist
