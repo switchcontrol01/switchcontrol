@@ -1,6 +1,7 @@
 import { useEffect, useState, createContext, useContext } from "react";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
+import { useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -25,6 +26,15 @@ import StartupApps from "@/pages/StartupApps";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import Security from "@/pages/Security";
 import Tweaks from "@/pages/Tweaks";
+import Landing from "@/pages/Landing";
+import Pricing from "@/pages/Pricing";
+import Download from "@/pages/Download";
+import Terms from "@/pages/Terms";
+import Privacy from "@/pages/Privacy";
+import Success from "@/pages/Success";
+import PremiumSuccess from "@/pages/PremiumSuccess";
+
+const isElectron = typeof window !== 'undefined' && !!(window as any).auth?.onCallback;
 
 type AppPhase = "splash" | "unauthenticated" | "authenticated";
 
@@ -44,7 +54,7 @@ export function useAppAuth() {
   return useContext(AppAuthContext);
 }
 
-function AppRoutes() {
+function ElectronAppRoutes() {
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -67,7 +77,24 @@ function AppRoutes() {
   );
 }
 
-function AppContent() {
+function WebsiteRoutes() {
+  return (
+    <Switch>
+      <Route path="/" component={Landing} />
+      <Route path="/pricing" component={Pricing} />
+      <Route path="/download" component={Download} />
+      <Route path="/terms" component={Terms} />
+      <Route path="/privacy" component={Privacy} />
+      <Route path="/success" component={Success} />
+      <Route path="/premium-success" component={PremiumSuccess} />
+      <Route>
+        <Landing />
+      </Route>
+    </Switch>
+  );
+}
+
+function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
@@ -81,8 +108,6 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    const isElectron = typeof window !== 'undefined' && (window as any).auth?.onCallback;
-    
     if (isElectron) {
       console.log('[App] Registering deep link auth callback');
       
@@ -205,7 +230,7 @@ function AppContent() {
             className="h-full"
           >
             <Router hook={useHashLocation}>
-              <AppRoutes />
+              <ElectronAppRoutes />
             </Router>
           </motion.div>
         )}
@@ -214,19 +239,31 @@ function AppContent() {
   );
 }
 
+function WebsiteContent() {
+  return (
+    <Router>
+      <WebsiteRoutes />
+    </Router>
+  );
+}
+
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <MotionProvider>
         <TooltipProvider>
-          <div className="app-root">
-            <div className="titlebar">
-              <WindowControls />
+          {isElectron ? (
+            <div className="app-root">
+              <div className="titlebar">
+                <WindowControls />
+              </div>
+              <div className="app-content">
+                <ElectronAppContent />
+              </div>
             </div>
-            <div className="app-content">
-              <AppContent />
-            </div>
-          </div>
+          ) : (
+            <WebsiteContent />
+          )}
           <Toaster />
           <PremiumUnlockAnimation />
         </TooltipProvider>
