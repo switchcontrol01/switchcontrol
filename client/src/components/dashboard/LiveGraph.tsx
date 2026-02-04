@@ -17,6 +17,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   const [data, setData] = useState<DataPoint[]>([]);
   const [latest, setLatest] = useState<TelemetryData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isBrowserMode, setIsBrowserMode] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
   const enhancedSensorsEnabled = useStore((state) => state.enhancedSensorsEnabled);
@@ -27,6 +28,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         let telemetry: TelemetryData;
 
         if (window.telemetry?.getLive) {
+          setIsBrowserMode(false);
           telemetry = await window.telemetry.getLive();
           
           if (enhancedSensorsEnabled && window.telemetry?.getEnhanced) {
@@ -43,6 +45,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             }
           }
         } else if (window.sc?.getRamUsage) {
+          setIsBrowserMode(true);
           const ram = await window.sc.getRamUsage();
           telemetry = {
             cpuLoadPercent: Math.random() * 30 + 20,
@@ -54,6 +57,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             ramTotalGb: ram.ramTotalGb,
           };
         } else {
+          setIsBrowserMode(true);
           telemetry = {
             cpuLoadPercent: Math.random() * 30 + 20,
             cpuTempC: null,
@@ -145,6 +149,11 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         <h3 className="text-sm font-medium text-white flex items-center gap-2">
           <Activity className="size-4 text-primary" />
           Live System Monitor
+          {isBrowserMode && (
+            <span className="text-[9px] font-normal text-amber-400/80 bg-amber-400/10 px-1.5 py-0.5 rounded ml-1">
+              Preview Mode
+            </span>
+          )}
         </h3>
         <div className="flex items-center gap-3 text-[10px]">
           {latest && (
