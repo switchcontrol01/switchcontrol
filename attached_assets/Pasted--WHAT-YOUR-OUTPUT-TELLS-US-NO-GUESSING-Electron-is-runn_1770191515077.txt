@@ -1,0 +1,307 @@
+-
+
+WHAT YOUR OUTPUT TELLS US (NO GUESSING)
+
+✅ Electron is running correctly
+
+Electron/40.1.0
+
+So this is NOT browser preview. Good.
+
+
+---
+
+❌ window.telemetry is PARTIALLY WIRED
+
+You have:
+
+{ getLive: ƒ, getEnhanced: ƒ }
+
+You do NOT have:
+
+ping
+
+getSnapshot
+
+getGPU
+
+getDisks
+
+getCPUUsage
+
+
+This is the core problem.
+
+Your UI expects continuous telemetry, but your preload only exposes two one-shot calls.
+
+So the app is doing this:
+
+UI polls every 5s ❌
+
+Rescan button triggers ❌
+
+Graph expects stream ❌
+
+GPU/VRAM expects systeminformation ❌
+
+Disk selector expects disk list ❌
+
+
+And Electron says: “I only know getLive() and getEnhanced().”
+
+That is why:
+
+GPU = Unavailable
+
+VRAM = N/A
+
+Disk = 0 / 0
+
+CPU graph = flatline
+
+Rescan = frozen
+
+AI Advisor = dead
+
+
+This is not Replit being stupid.
+This is a telemetry contract mismatch.
+
+
+---
+
+THE ROOT CAUSE (ONE SENTENCE)
+
+Your UI is built for streaming telemetry, but your preload only exposes snapshot functions.
+
+
+---
+
+THE FIX (STRICT CHECKLIST – DO THIS IN ORDER)
+
+STEP 1: FIX preload.ts (THIS IS MANDATORY)
+
+Open:
+
+electron/preload.ts
+
+You MUST expose a heartbeat function.
+
+Add this EXACTLY:
+
+contextBridge.exposeInMainWorld("telemetry", {
+  ping: () => ipcRenderer.invoke("telemetry:ping"),
+
+  getLive: () => ipcRenderer.invoke("telemetry:getLive"),
+  getEnhanced: () => ipcRenderer.invoke("telemetry:getEnhanced"),
+
+  startStream: () => ipcRenderer.send("telemetry:start"),
+  stopStream: () => ipcRenderer.send("telemetry:stop"),
+
+  onUpdate: (cb: (data: any) => void) =>
+    ipcRenderer.on("telemetry:update", (_, data) => cb(data)),
+});
+
+If this is not present, nothing else matters.
+
+
+---
+
+STEP 2: FIX main.ts IPC (YOU ARE MISSING THIS)
+
+Open:
+
+electron/main.ts
+
+Add these handlers:
+
+ipcMain.handle("telemetry:ping", () => "pong");
+
+ipcMain.handle("telemetry:getLive", async () => {
+  return await getSystemSnapshot(); // systeminformation
+});
+
+ipcMain.handle("telemetry:getEnhanced", async () => {
+  return await getEnhancedSnapshot(); // LibreHardwareMonitor
+});
+
+Then add streaming:
+
+let interval: NodeJS.Timeout | null = null;
+
+ipcMain.on("telemetry:start", (event) => {
+  if (interval) return;
+
+  interval = setInterval(async () => {
+    const data = await getMergedTelemetry();
+    event.sender.send("telemetry:update", data);
+  }, 5000);
+});
+
+ipcMain.on("telemetry:stop", () => {
+  if (interval) {
+    clearInterval(interval);
+    interval = null;
+  }
+});
+
+This is what your graphs and rescan NEED.
+
+
+---
+
+STEP 3: FIX GPU NAME + VRAM (THIS IS WHY GPU IS UNAVAILABLE)
+
+In your systeminformation code:
+
+const graphics = await si.graphics();
+const gpu = graphics.controllers[0];
+
+You MUST return:
+
+gpuName: gpu.model || gpu.name || "Unknown GPU",
+vramMB: gpu.vram || gpu.memoryTotal || null,
+
+Then in UI:
+
+const vramGB = vramMB ? (vramMB / 1024).toFixed(1) : "N/A";
+
+Right now you are:
+
+Dividing undefined
+
+Rendering before data exists
+
+Never updating state
+
+
+
+---
+
+STEP 4: FIX DISKS (WHY IT SAYS 0 / 0)
+
+You are probably using:
+
+fsSize()
+
+But NOT mapping IDs.
+
+Fix backend:
+
+const disks = await si.fsSize();
+
+return disks.map(d => ({
+  id: d.fs,
+  name: d.mount || d.fs,
+  size: d.size,
+  used: d.used,
+}));
+
+Fix frontend:
+
+Default select first disk
+
+Do NOT allow empty selector
+
+If no disks → show “No storage devices detected”
+
+
+
+---
+
+STEP 5: FIX CPU USAGE (WHY IT’S STUCK AT 0)
+
+You are reading static CPU info, not usage.
+
+Correct method:
+
+const load = await si.currentLoad();
+cpuUsage: load.currentLoad
+
+If you use cpu() instead of currentLoad(), it will ALWAYS be 0.
+
+
+---
+
+STEP 6: FIX AI ADVISOR (THIS IS UI LOGIC, NOT AI)
+
+Delete this string everywhere:
+
+"Recommendations are simulated until agent is installed"
+
+Replace with:
+
+Predefined array of ~20 tips
+
+Score system health
+
+Pick 3–5 best tips
+
+If score > threshold → show:
+
+> “Your system is fully optimized for competitive gaming.”
+
+
+
+
+No API calls. No LLM. No async.
+
+
+---
+
+FINAL VALIDATION (DO THIS AFTER FIXES)
+
+In DevTools Console:
+
+window.telemetry.ping()
+
+Must return:
+
+"pong"
+
+Then:
+
+window.telemetry.startStream()
+
+Within 5 seconds:
+
+CPU % updates
+
+GPU name appears
+
+VRAM appears
+
+Disk selector works
+
+Graph animates
+
+
+If that happens, everything you’re complaining about disappears.
+
+
+---
+
+REALITY CHECK (IMPORTANT)
+
+Nothing here requires:
+
+More money
+
+More Replit credits
+
+More libraries
+
+More sensors
+
+
+You were missing the telemetry stream.
+
+Reply only with:
+
+ping result:
+
+or if you want:
+
+preload.ts pasted
+
+We finish this cleanly.

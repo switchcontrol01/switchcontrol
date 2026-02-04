@@ -10,6 +10,9 @@ const ENHANCED_CACHE_MS = 500;
 let enhancedCrashCount = 0;
 let enhancedDisabled = false;
 const MAX_CRASH_COUNT = 2;
+
+let telemetryInterval = null;
+const TELEMETRY_INTERVAL_MS = 5000;
 try {
   si = require('systeminformation');
 } catch (e) {
@@ -253,7 +256,10 @@ async function getLiveTelemetry() {
     gpuLoadPercent: null,
     moboTempC: null,
     ramUsedGb: 0,
-    ramTotalGb: 0
+    ramTotalGb: 0,
+    gpuName: null,
+    vramMB: null,
+    disks: []
   };
 
   try {
@@ -264,11 +270,11 @@ async function getLiveTelemetry() {
 
     if (si) {
       try {
-        const [cpuLoad, cpuTemp, graphics, baseboard] = await Promise.all([
+        const [cpuLoad, cpuTemp, graphics, fsSize] = await Promise.all([
           si.currentLoad().catch(() => null),
           si.cpuTemperature().catch(() => null),
           si.graphics().catch(() => null),
-          si.baseboard().catch(() => null)
+          si.fsSize().catch(() => [])
         ]);
 
         if (cpuLoad) {
@@ -285,12 +291,28 @@ async function getLiveTelemetry() {
 
         if (graphics?.controllers?.length > 0) {
           const gpu = graphics.controllers[0];
+          telemetry.gpuName = gpu.model || gpu.name || null;
+          telemetry.vramMB = gpu.vram || gpu.memoryTotal || null;
+          
           if (gpu.temperatureGpu !== null && gpu.temperatureGpu !== undefined) {
             telemetry.gpuTempC = parseFloat(gpu.temperatureGpu.toFixed(0));
           }
           if (gpu.utilizationGpu !== null && gpu.utilizationGpu !== undefined) {
             telemetry.gpuLoadPercent = parseFloat(gpu.utilizationGpu.toFixed(1));
           }
+        }
+
+        if (fsSize?.length > 0) {
+          telemetry.disks = fsSize
+            .filter(fs => fs.size > 0 && (fs.mount.match(/^[A-Z]:$/) || fs.mount === '/' || fs.mount.startsWith('/mnt')))
+            .map(fs => ({
+              id: fs.fs || fs.mount,
+              mount: fs.mount,
+              name: fs.fs || fs.mount,
+              usedGB: fs.used ? parseFloat((fs.used / 1024 / 1024 / 1024).toFixed(1)) : 0,
+              totalGB: fs.size ? parseFloat((fs.size / 1024 / 1024 / 1024).toFixed(1)) : 0,
+              usedPercent: fs.use ? parseFloat(fs.use.toFixed(1)) : 0
+            }));
         }
       } catch (siError) {
         console.error('[SwitchControl] Telemetry error:', siError.message);
@@ -301,6 +323,21 @@ async function getLiveTelemetry() {
   }
 
   return telemetry;
+}
+
+async function getFullSnapshot() {
+  const live = await getLiveTelemetry();
+  const specs = await getSystemSpecs();
+  
+  return {
+    ...live,
+    cpu: specs.cpu,
+    gpu: specs.gpu,
+    ram: specs.ram,
+    system: specs.system,
+    disk: specs.disk,
+    timestamp: Date.now()
+  };
 }
 
 function setupIPC() {
@@ -331,7 +368,42 @@ function setupIPC() {
     };
   });
 
+  ipcMain.handle('telemetry:ping', () => 'pong');
+  
   ipcMain.handle('telemetry:getLive', async () => await getLiveTelemetry());
+  
+  ipcMain.handle('telemetry:getSnapshot', async () => await getFullSnapshot());
+
+  ipcMain.on('telemetry:start', (event) => {
+    if (telemetryInterval) {
+      console.log('[SwitchControl] Telemetry stream already running');
+      return;
+    }
+    
+    console.log('[SwitchControl] Starting telemetry stream');
+    
+    const sendUpdate = async () => {
+      try {
+        const data = await getLiveTelemetry();
+        if (!event.sender.isDestroyed()) {
+          event.sender.send('telemetry:update', data);
+        }
+      } catch (err) {
+        console.error('[SwitchControl] Telemetry stream error:', err.message);
+      }
+    };
+    
+    sendUpdate();
+    telemetryInterval = setInterval(sendUpdate, TELEMETRY_INTERVAL_MS);
+  });
+
+  ipcMain.on('telemetry:stop', () => {
+    if (telemetryInterval) {
+      console.log('[SwitchControl] Stopping telemetry stream');
+      clearInterval(telemetryInterval);
+      telemetryInterval = null;
+    }
+  });
 
   ipcMain.handle('telemetry:getEnhanced', async () => {
     if (enhancedDisabled) {
