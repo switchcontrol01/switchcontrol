@@ -1,3 +1,68 @@
 {
-  "type": "commonjs"
+  "name": "switchcontrol-electron",
+  "version": "1.0.0",
+  "description": "SwitchControl - Windows PC optimization app",
+  "main": "main.js",
+  "type": "commonjs",
+  "author": "SwitchControl",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.switchcontrol.app",
+    "productName": "SwitchControl",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "executors/**/*",
+      "bin/**/*",
+      "sensors-helper/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "sensors-helper",
+        "to": "sensors-helper",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "requestedExecutionLevel": "asInvoker"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "SwitchControl"
+    },
+    "protocols": {
+      "name": "SwitchControl",
+      "schemes": ["switchcontrol"]
+    }
+  }
 }
