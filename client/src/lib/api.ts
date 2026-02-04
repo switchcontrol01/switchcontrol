@@ -2,6 +2,35 @@ import { queryClient } from "./queryClient";
 
 const API_BASE = "/api";
 
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)_csrf=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+async function ensureCsrfToken(): Promise<string> {
+  let token = getCsrfToken();
+  if (!token) {
+    const res = await fetch(`${API_BASE}/csrf-token`, { credentials: 'include' });
+    if (res.ok) {
+      const data = await res.json();
+      token = data.token;
+    }
+  }
+  return token || '';
+}
+
+async function csrfFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await ensureCsrfToken();
+  return fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      ...options.headers,
+      'x-csrf-token': token,
+    },
+  });
+}
+
 export async function fetchSettings() {
   const res = await fetch(`${API_BASE}/settings`);
   if (!res.ok) throw new Error("Failed to fetch settings");
@@ -9,7 +38,7 @@ export async function fetchSettings() {
 }
 
 export async function updateSettings(data: Record<string, unknown>) {
-  const res = await fetch(`${API_BASE}/settings`, {
+  const res = await csrfFetch(`${API_BASE}/settings`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
@@ -25,7 +54,7 @@ export async function fetchTweaks(): Promise<Record<string, boolean>> {
 }
 
 export async function toggleTweak(tweakId: string, enabled: boolean, tweakTitle: string) {
-  const res = await fetch(`${API_BASE}/tweaks/${tweakId}`, {
+  const res = await csrfFetch(`${API_BASE}/tweaks/${tweakId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ enabled, tweakTitle }),
@@ -37,7 +66,7 @@ export async function toggleTweak(tweakId: string, enabled: boolean, tweakTitle:
 }
 
 export async function resetTweaks() {
-  const res = await fetch(`${API_BASE}/tweaks/reset`, { method: "POST" });
+  const res = await csrfFetch(`${API_BASE}/tweaks/reset`, { method: "POST" });
   if (!res.ok) throw new Error("Failed to reset tweaks");
   queryClient.invalidateQueries({ queryKey: ["settings"] });
   queryClient.invalidateQueries({ queryKey: ["history"] });
@@ -45,7 +74,7 @@ export async function resetTweaks() {
 }
 
 export async function applyRecommended(tweakIds: string[]) {
-  const res = await fetch(`${API_BASE}/tweaks/apply-recommended`, {
+  const res = await csrfFetch(`${API_BASE}/tweaks/apply-recommended`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tweakIds }),

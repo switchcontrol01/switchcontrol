@@ -7,6 +7,7 @@ import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
 import { isPremiumTweakById } from "../shared/tweak-tiers";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
+import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -15,6 +16,19 @@ export async function registerRoutes(
   
   setupGoogleAuth(app);
   setupDiscordAuth(app);
+
+  app.get("/api/csrf-token", (req, res) => {
+    const token = req.cookies?._csrf || generateCsrfToken();
+    if (!req.cookies?._csrf) {
+      res.cookie("_csrf", token, {
+        httpOnly: false,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 1000
+      });
+    }
+    res.json({ token });
+  });
 
   app.get("/api/settings", async (req, res) => {
     try {
@@ -25,7 +39,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/settings", async (req, res) => {
+  app.patch("/api/settings", csrfProtection, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       const updated = await storage.updateSettings(settings.id, req.body);
@@ -47,7 +61,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tweaks/:tweakId", async (req, res) => {
+  app.post("/api/tweaks/:tweakId", csrfProtection, async (req, res) => {
     try {
       const { tweakId } = req.params;
       const { enabled, tweakTitle } = req.body;
@@ -94,7 +108,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tweaks/reset", async (req, res) => {
+  app.post("/api/tweaks/reset", csrfProtection, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       await storage.resetTweaks(settings.id);
@@ -114,7 +128,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tweaks/apply-recommended", async (req, res) => {
+  app.post("/api/tweaks/apply-recommended", csrfProtection, async (req, res) => {
     try {
       const { tweakIds } = req.body;
       const settings = await storage.getOrCreateSettings();

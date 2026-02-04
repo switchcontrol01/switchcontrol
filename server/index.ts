@@ -1,22 +1,34 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
 import { getStripeClient, isStripeConfigured } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
+import { csrfTokenMiddleware } from "./middleware/csrf";
 import fs from "fs";
 import path from "path";
 
 const app = express();
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many authentication attempts, please try again later" }
+});
+
+app.use("/api/auth", authLimiter);
+
 // CORS for Electron app
 app.use(cors({
   origin: ['http://localhost:5173', 'http://localhost:5000', 'file://'],
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
 }));
 const httpServer = createServer(app);
 
@@ -69,6 +81,7 @@ app.use(
 
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+app.use(csrfTokenMiddleware);
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {

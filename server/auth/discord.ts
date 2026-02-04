@@ -181,7 +181,7 @@ export function setupDiscordAuth(app: Express): void {
         failureRedirect: "/?error=discord_auth_failed",
       })(req, res, next);
     },
-    (req, res) => {
+    (req, res, next) => {
       const user = req.user as Express.User;
       
       // Read source from cookie
@@ -194,20 +194,36 @@ export function setupDiscordAuth(app: Express): void {
       
       console.log("[AUTH] Discord callback - source:", source, "user:", user.id);
       
-      if (source === 'electron') {
-        const token = Buffer.from(JSON.stringify({
-          id: user.id,
-          ts: Date.now(),
-        })).toString('base64');
+      // Session rotation to prevent session fixation attacks
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("[AUTH] Session regenerate error:", err);
+          return next(err);
+        }
         
-        console.log("REDIRECTING TO SUCCESS PAGE (Electron)");
-        return res.redirect(
-          `/auth/success?token=${encodeURIComponent(token)}&provider=discord`
-        );
-      } else {
-        console.log("REDIRECTING TO WEBSITE:", nextUrl);
-        return res.redirect(nextUrl);
-      }
+        // Re-login user after session regeneration
+        req.login(user, (loginErr) => {
+          if (loginErr) {
+            console.error("[AUTH] Re-login after regenerate error:", loginErr);
+            return next(loginErr);
+          }
+          
+          if (source === 'electron') {
+            const token = Buffer.from(JSON.stringify({
+              id: user.id,
+              ts: Date.now(),
+            })).toString('base64');
+            
+            console.log("REDIRECTING TO SUCCESS PAGE (Electron)");
+            return res.redirect(
+              `/auth/success?token=${encodeURIComponent(token)}&provider=discord`
+            );
+          } else {
+            console.log("REDIRECTING TO WEBSITE:", nextUrl);
+            return res.redirect(nextUrl);
+          }
+        });
+      });
     }
   );
 
