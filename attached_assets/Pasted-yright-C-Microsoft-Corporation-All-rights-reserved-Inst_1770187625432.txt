@@ -1,0 +1,107 @@
+yright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\WINDOWS\system32> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item node_modules -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm install
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   93 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+added 608 packages, and audited 609 packages in 8s
+
+94 packages are looking for funding
+  run `npm fund` for details
+
+1 critical severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> switchcontrol@1.0.0 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+✓ 3238 modules transformed.
+../dist/index.html                        2.49 kB │ gzip:   0.86 kB
+../dist/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/assets/index-D1HV0ngc.css       212.25 kB │ gzip:  28.23 kB
+../dist/assets/api-noxtu2Qt.js            1.15 kB │ gzip:   0.67 kB
+../dist/assets/index-FtjnZ0J6.js      1,349.71 kB │ gzip: 390.61 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.93s
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> switchcontrol@1.0.0 electron:build
+> vite build && electron-builder
+
+vite v7.3.1 building client environment for production...
+✓ 3238 modules transformed.
+../dist/index.html                        2.49 kB │ gzip:   0.86 kB
+../dist/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/assets/index-D1HV0ngc.css       212.25 kB │ gzip:  28.23 kB
+../dist/assets/api-noxtu2Qt.js            1.15 kB │ gzip:   0.67 kB
+../dist/assets/index-FtjnZ0J6.js      1,349.71 kB │ gzip: 390.61 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.88s
+  • electron-builder  version=26.7.0 os=10.0.26200
+  • loaded configuration  file=package.json ("build" field)
+  • description is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • author is missed in the package.json  appPackageFile=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\package.json
+  • writing effective config  file=release\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=40.1.0 arch=x64 buildFromSource=false workspaceRoot=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl projectDir=./ appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=40.1.0 appOutDir=release\win-unpacked
+  • searching for node modules  pm=npm searchDir=C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+(node:8012) [DEP0190] DeprecationWarning: Passing args to a child process with shell option true can lead to security vulnerabilities, as the arguments are not escaped, only concatenated.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+  • updating asar integrity executable resource  executablePath=release\win-unpacked\SwitchControl.exe
+  • signing with signtool.exe  path=release\win-unpacked\resources\bin\SensorsHelper.exe
+  • signing with signtool.exe  path=release\win-unpacked\SwitchControl.exe
+  • building        target=nsis file=release\SwitchControl Setup 1.0.0.exe archs=x64 oneClick=false perMachine=true
+  • signing with signtool.exe  path=release\win-unpacked\resources\elevate.exe
+  • signing with signtool.exe  path=release\SwitchControl Setup 1.0.0.__uninstaller.exe
+  • signing with signtool.exe  path=release\SwitchControl Setup 1.0.0.exe
+  • building block map  blockMapFile=release\SwitchControl Setup 1.0.0.exe.blockmap
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>

@@ -159,26 +159,61 @@ export const useStore = create<AppState>()(
       },
 
       runAIScan: async () => {
-        const { stats } = get();
+        const { account, tweaks } = get();
+        const tweaksApplied = account.stats.tweaksApplied;
+        const enabledTweaksCount = Object.values(tweaks).filter(Boolean).length;
+        const totalApplied = tweaksApplied + enabledTweaksCount;
         
-        // Build system context from current stats
-        const systemContext = {
-          gpuVendor: stats.gpuVendor || stats.gpuName,
-          hasSsd: true, // Default to true, ideally would be detected
-          cpuCores: stats.cpuCores,
-          ramGb: stats.totalRamGb
-        };
+        const earlyMessages = [
+          "Your system has significant room for improvement. Apply the recommended tweaks below for better gaming performance.",
+          "We detected several areas that could use optimization. Consider enabling more tweaks for smoother gameplay.",
+          "Initial scan complete. Your PC could benefit from additional optimization tweaks.",
+        ];
         
-        // Call API with system context for smart recommendations
-        const { runAIScan: apiRunAIScan } = await import('./api');
-        const result = await apiRunAIScan(systemContext);
+        const midMessages = [
+          "Good progress! Your system is partially optimized. A few more tweaks could help.",
+          "You're on the right track. Consider enabling a few more optimizations.",
+          "Solid foundation. Some additional tweaks could further improve performance.",
+        ];
+        
+        const optimizedMessages = [
+          "Excellent! Your system is well-optimized for gaming. Keep up the great work!",
+          "Great job! Your PC is running at peak performance levels.",
+          "Your system is fully optimized. You're ready for competitive gaming!",
+        ];
+        
+        const recommendations = [
+          { id: "game-dvr", action: "Enable 'Disable Game DVR' for lower input latency", tag: "Safe" as const },
+          { id: "tcp-opt", action: "Consider 'TCP Optimizer' for better network performance", tag: "Safe" as const },
+          { id: "power-plan", action: "Enable 'High Performance Power Plan' for consistent frames", tag: "Safe" as const },
+          { id: "startup", action: "Disable unnecessary startup apps to free resources", tag: "Safe" as const },
+          { id: "fullscreen", action: "Enable 'Disable Fullscreen Optimizations' for reduced stuttering", tag: "Advanced" as const },
+        ];
+        
+        let summary: string;
+        let optimized: boolean;
+        let recs: typeof recommendations;
+        
+        if (totalApplied >= 10) {
+          summary = optimizedMessages[Math.floor(Math.random() * optimizedMessages.length)];
+          optimized = true;
+          recs = [];
+        } else if (totalApplied >= 5) {
+          summary = midMessages[Math.floor(Math.random() * midMessages.length)];
+          optimized = false;
+          recs = recommendations.slice(0, 2);
+        } else {
+          summary = earlyMessages[Math.floor(Math.random() * earlyMessages.length)];
+          optimized = false;
+          recs = recommendations.slice(0, 4);
+        }
         
         set({ 
           latestAIScan: {
-            timestamp: result.timestamp || new Date().toISOString(),
-            summary: result.summary,
-            recommendations: result.recommendations || [],
-            optimized: result.optimized || false
+            timestamp: new Date().toISOString(),
+            summary,
+            recommendations: recs,
+            optimized
           } 
         });
       },

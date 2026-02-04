@@ -150,6 +150,7 @@ async function getSystemSpecs() {
     if (cpuInfo && cpuInfo.length > 0) {
       specs.cpu.model = cpuInfo[0].model || 'Unavailable';
       specs.cpu.threads = cpuInfo.length;
+      specs.cpu.cores = Math.ceil(cpuInfo.length / 2);
     }
 
     const totalMem = os.totalmem();
