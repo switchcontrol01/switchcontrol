@@ -36,7 +36,7 @@ const PREMIUM_FEATURES = [
   "Advanced system tweaks",
   "Power Plan control",
   "Network optimization",
-  "System Advisor",
+  "AI Advisor",
   "BIOS Advisor (guidance)",
   "Competitive performance tuning",
   "Priority support"
@@ -56,7 +56,7 @@ const COMPARISON_ITEMS = [
   { feature: "Advanced system tweaks", free: false, premium: true },
   { feature: "Network optimization", free: false, premium: true },
   { feature: "Power Plan control", free: false, premium: true },
-  { feature: "System Advisor", free: false, premium: true },
+  { feature: "AI Advisor", free: false, premium: true },
   { feature: "BIOS Advisor (guidance)", free: false, premium: true },
   { feature: "Priority support", free: false, premium: true },
 ];

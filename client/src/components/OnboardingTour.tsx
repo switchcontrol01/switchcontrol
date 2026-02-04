@@ -32,8 +32,8 @@ const tourSteps: TourStep[] = [
   {
     id: "ai-advisor",
     targetSelector: '[data-tour="ai-advisor"]',
-    title: "System Advisor",
-    description: "Get personalized optimization recommendations based on your current system configuration.",
+    title: "AI BIOS Advisor",
+    description: "Get personalized BIOS optimization recommendations powered by AI to maximize your gaming performance.",
     icon: <Cpu className="w-5 h-5" />,
     position: "right"
   },

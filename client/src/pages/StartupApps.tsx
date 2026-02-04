@@ -186,6 +186,7 @@ export default function StartupApps() {
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl">
               Control what runs at boot. Delay apps instead of disabling them for faster startup.
+              <span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span>
             </p>
           </div>
           <Button variant="outline" onClick={() => setShowTimeline(!showTimeline)} data-testid="button-timeline">

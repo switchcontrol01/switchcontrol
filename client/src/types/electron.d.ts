@@ -55,16 +55,6 @@ declare global {
     moboTempC: number | null;
     ramUsedGb: number;
     ramTotalGb: number;
-    gpuName?: string | null;
-    vramMB?: number | null;
-    disks?: Array<{
-      id: string;
-      mount: string;
-      name: string;
-      usedGB: number;
-      totalGB: number;
-      usedPercent: number;
-    }>;
   }
   
   interface EnhancedTelemetryData {
@@ -111,13 +101,8 @@ declare global {
     };
     
     telemetry?: {
-      ping: () => Promise<string>;
       getLive: () => Promise<TelemetryData>;
       getEnhanced: () => Promise<EnhancedTelemetryData>;
-      getSnapshot: () => Promise<TelemetryData & { cpu: any; gpu: any; ram: any; system: any; disk: any; timestamp: number }>;
-      startStream: () => void;
-      stopStream: () => void;
-      onUpdate: (callback: (data: TelemetryData) => void) => () => void;
     };
     
     sc?: {

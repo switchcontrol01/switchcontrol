@@ -6,7 +6,7 @@ import { useStore } from "@/lib/store";
 
 interface DataPoint {
   time: string;
-  cpu: number | null;
+  cpu: number;
   gpu: number | null;
   mobo: number | null;
   ram: number;
@@ -17,7 +17,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   const [data, setData] = useState<DataPoint[]>([]);
   const [latest, setLatest] = useState<TelemetryData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isBrowserMode, setIsBrowserMode] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
   const enhancedSensorsEnabled = useStore((state) => state.enhancedSensorsEnabled);
@@ -28,7 +27,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         let telemetry: TelemetryData;
 
         if (window.telemetry?.getLive) {
-          setIsBrowserMode(false);
           telemetry = await window.telemetry.getLive();
           
           if (enhancedSensorsEnabled && window.telemetry?.getEnhanced) {
@@ -45,7 +43,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             }
           }
         } else if (window.sc?.getRamUsage) {
-          setIsBrowserMode(true);
           const ram = await window.sc.getRamUsage();
           telemetry = {
             cpuLoadPercent: Math.random() * 30 + 20,
@@ -57,7 +54,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             ramTotalGb: ram.ramTotalGb,
           };
         } else {
-          setIsBrowserMode(true);
           telemetry = {
             cpuLoadPercent: Math.random() * 30 + 20,
             cpuTempC: null,
@@ -92,11 +88,10 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
         
         setData(prev => {
-          const gpuValue = telemetry.gpuTempC ?? telemetry.gpuLoadPercent ?? null;
-          const cpuValue = telemetry.cpuLoadPercent > 0 ? telemetry.cpuLoadPercent : (telemetry.cpuTempC ?? null);
+          const gpuValue = telemetry.gpuTempC ?? telemetry.gpuLoadPercent;
           const newPoint: DataPoint = {
             time: timeStr,
-            cpu: cpuValue,
+            cpu: telemetry.cpuTempC ?? telemetry.cpuLoadPercent,
             gpu: gpuValue,
             mobo: telemetry.moboTempC,
             ram: parseFloat(((telemetry.ramUsedGb / telemetry.ramTotalGb) * 100).toFixed(1))
@@ -149,11 +144,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         <h3 className="text-sm font-medium text-white flex items-center gap-2">
           <Activity className="size-4 text-primary" />
           Live System Monitor
-          {isBrowserMode && (
-            <span className="text-[9px] font-normal text-amber-400/80 bg-amber-400/10 px-1.5 py-0.5 rounded ml-1">
-              Preview Mode
-            </span>
-          )}
         </h3>
         <div className="flex items-center gap-3 text-[10px]">
           {latest && (
@@ -219,7 +209,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 3 }}
-              connectNulls={false}
             />
             <Line 
               type="monotone" 
@@ -229,7 +218,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 3 }}
-              connectNulls={false}
             />
             <Line 
               type="monotone" 

@@ -183,6 +183,7 @@ export default function Debloater() {
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
             Role-based debloating that removes what you don't need while protecting what you do.
+            <span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span>
           </p>
         </div>
 

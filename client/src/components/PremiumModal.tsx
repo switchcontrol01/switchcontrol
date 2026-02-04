@@ -11,7 +11,7 @@ interface PremiumModalProps {
 }
 
 const PREMIUM_FEATURES = [
-  { icon: Brain, text: "System Advisor - Intelligent performance analysis" },
+  { icon: Brain, text: "AI Advisor - Intelligent performance analysis" },
   { icon: Cpu, text: "BIOS Advisor - Firmware-level optimization" },
   { icon: Zap, text: "Advanced system tweaks" },
   { icon: Shield, text: "Advanced network optimizations" },

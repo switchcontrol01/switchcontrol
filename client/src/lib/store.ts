@@ -85,7 +85,7 @@ export const useStore = create<AppState>()(
         get().applyAction(
           `${isEnabled ? 'Enabled' : 'Disabled'} ${tweak?.title || id}`,
           'Tweaks',
-          'Applied'
+          'Simulated apply'
         );
       },
 
@@ -159,74 +159,26 @@ export const useStore = create<AppState>()(
       },
 
       runAIScan: async () => {
-        const { account, tweaks, stats } = get();
-        const tweaksApplied = account.stats.tweaksApplied;
-        const enabledTweaksCount = Object.values(tweaks).filter(Boolean).length;
-        const totalApplied = tweaksApplied + enabledTweaksCount;
-        const ramUsagePercent = stats.totalRamGb > 0 ? (stats.usedRamGb / stats.totalRamGb) * 100 : 0;
+        const { stats } = get();
         
-        type AdvisorRule = {
-          id: string;
-          priority: number;
-          condition: () => boolean;
-          result: {
-            action: string;
-            tag: "Safe" | "Advanced";
-          };
+        // Build system context from current stats
+        const systemContext = {
+          gpuVendor: stats.gpuVendor || stats.gpuName,
+          hasSsd: true, // Default to true, ideally would be detected
+          cpuCores: stats.cpuCores,
+          ramGb: stats.totalRamGb
         };
         
-        const rules: AdvisorRule[] = [
-          { id: "power-plan", priority: 10, condition: () => !tweaks['ultimate-perf'], result: { action: "Enable Ultimate Performance power plan for reduced CPU latency", tag: "Safe" } },
-          { id: "game-dvr", priority: 9, condition: () => !tweaks['disable-game-dvr'], result: { action: "Disable Windows Game DVR for lower input latency", tag: "Safe" } },
-          { id: "fullscreen-opt", priority: 9, condition: () => !tweaks['disable-fullscreen-opt'], result: { action: "Disable Fullscreen Optimizations for reduced stuttering", tag: "Safe" } },
-          { id: "hpet", priority: 8, condition: () => !tweaks['disable-hpet'], result: { action: "Disable HPET timer for improved frame pacing", tag: "Advanced" } },
-          { id: "spectre", priority: 7, condition: () => !tweaks['disable-spectre'], result: { action: "Disable Spectre/Meltdown mitigations for extra CPU performance", tag: "Advanced" } },
-          { id: "mem-pressure", priority: 8, condition: () => ramUsagePercent > 80, result: { action: "High memory pressure detected - close background apps", tag: "Safe" } },
-          { id: "tcp-opt", priority: 7, condition: () => !tweaks['tcp-optimizer'], result: { action: "Enable TCP optimizations for lower network latency", tag: "Safe" } },
-          { id: "nagle", priority: 7, condition: () => !tweaks['disable-nagle'], result: { action: "Disable Nagle's algorithm for faster network packets", tag: "Safe" } },
-          { id: "priority-boost", priority: 6, condition: () => !tweaks['priority-boost'], result: { action: "Enable game process priority boosting", tag: "Safe" } },
-          { id: "startup-apps", priority: 6, condition: () => account.stats.startupAppsDisabled < 3, result: { action: "Disable unnecessary startup applications", tag: "Safe" } },
-          { id: "cortana", priority: 5, condition: () => !tweaks['disable-cortana'], result: { action: "Disable Cortana to free background resources", tag: "Safe" } },
-          { id: "superfetch", priority: 5, condition: () => !tweaks['disable-superfetch'], result: { action: "Disable Superfetch for SSD optimization", tag: "Advanced" } },
-          { id: "indexing", priority: 5, condition: () => !tweaks['disable-indexing'], result: { action: "Disable Windows Search indexing on game drives", tag: "Safe" } },
-          { id: "hwaccel-gpu", priority: 6, condition: () => !tweaks['gpu-scheduling'], result: { action: "Enable hardware-accelerated GPU scheduling", tag: "Safe" } },
-          { id: "visual-effects", priority: 4, condition: () => !tweaks['visual-effects'], result: { action: "Optimize Windows visual effects for performance", tag: "Safe" } },
-          { id: "usb-power", priority: 4, condition: () => !tweaks['usb-power'], result: { action: "Disable USB selective suspend for peripherals", tag: "Safe" } },
-          { id: "mouse-accel", priority: 5, condition: () => !tweaks['disable-mouse-accel'], result: { action: "Disable mouse acceleration for precise aiming", tag: "Safe" } },
-          { id: "core-parking", priority: 6, condition: () => !tweaks['disable-core-parking'], result: { action: "Disable CPU core parking for consistent performance", tag: "Advanced" } },
-          { id: "network-throttling", priority: 5, condition: () => !tweaks['disable-network-throttle'], result: { action: "Disable network throttling for multiplayer games", tag: "Safe" } },
-          { id: "game-mode", priority: 4, condition: () => !tweaks['enable-game-mode'], result: { action: "Enable Windows Game Mode for resource prioritization", tag: "Safe" } },
-        ];
-        
-        const applicable = rules
-          .filter(r => r.condition())
-          .sort((a, b) => b.priority - a.priority)
-          .slice(0, 4);
-        
-        let summary: string;
-        let optimized: boolean;
-        let recs: { id: string; action: string; tag: "Safe" | "Advanced" }[];
-        
-        if (applicable.length === 0 || totalApplied >= 15) {
-          summary = "Your system is fully optimized. No critical performance issues detected. You are ready for competitive gaming.";
-          optimized = true;
-          recs = [];
-        } else if (applicable.length <= 2 || totalApplied >= 10) {
-          summary = "Good progress! Your system is mostly optimized. A few optional tweaks remain.";
-          optimized = false;
-          recs = applicable.map(r => ({ id: r.id, action: r.result.action, tag: r.result.tag }));
-        } else {
-          summary = "Analysis complete. Several optimization opportunities detected for improved gaming performance.";
-          optimized = false;
-          recs = applicable.map(r => ({ id: r.id, action: r.result.action, tag: r.result.tag }));
-        }
+        // Call API with system context for smart recommendations
+        const { runAIScan: apiRunAIScan } = await import('./api');
+        const result = await apiRunAIScan(systemContext);
         
         set({ 
           latestAIScan: {
-            timestamp: new Date().toISOString(),
-            summary,
-            recommendations: recs,
-            optimized
+            timestamp: result.timestamp || new Date().toISOString(),
+            summary: result.summary,
+            recommendations: result.recommendations || [],
+            optimized: result.optimized || false
           } 
         });
       },

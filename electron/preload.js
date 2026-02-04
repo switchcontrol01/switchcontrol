@@ -38,17 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 });
 
 contextBridge.exposeInMainWorld('telemetry', {
-  ping: () => ipcRenderer.invoke('telemetry:ping'),
   getLive: () => ipcRenderer.invoke('telemetry:getLive'),
   getEnhanced: () => ipcRenderer.invoke('telemetry:getEnhanced'),
-  getSnapshot: () => ipcRenderer.invoke('telemetry:getSnapshot'),
-  startStream: () => ipcRenderer.send('telemetry:start'),
-  stopStream: () => ipcRenderer.send('telemetry:stop'),
-  onUpdate: (callback) => {
-    const handler = (event, data) => callback(data);
-    ipcRenderer.on('telemetry:update', handler);
-    return () => ipcRenderer.removeListener('telemetry:update', handler);
-  },
 });
 
 contextBridge.exposeInMainWorld('sc', {

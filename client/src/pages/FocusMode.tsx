@@ -181,6 +181,7 @@ export default function FocusMode() {
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl">
               Zero distractions, maximum stability. One toggle, no micromanagement.
+              <span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span>
             </p>
           </div>
           <Button 
