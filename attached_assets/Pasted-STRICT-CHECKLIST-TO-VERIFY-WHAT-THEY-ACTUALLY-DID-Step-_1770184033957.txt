@@ -1,0 +1,71 @@
+STRICT CHECKLIST TO VERIFY WHAT THEY ACTUALLY DID
+Step 1: Confirm the enhanced sensors helper is truly bundled
+On the INSTALLED version (the one that differs from unpacked):
+Open:
+%LOCALAPPDATA%\\Programs\\SwitchControl\\ or wherever NSIS installs it
+Look for something like resources\\ or resources\\app.asar
+You must find either:
+SensorsHelper.exe in resources (extraResources) or
+inside unpacked app.asar.unpacked
+If it is not there, enhanced sensors cannot work in the installer build.
+What to tell me after:
+“Found helper at: (path)” or “not found”.
+Step 2: Confirm the new IPC exists and does not throw
+In the installed app DevTools Console run:
+
+Copy code
+Js
+await window.telemetry.getLive()
+If they exposed enhanced:
+Copy code
+Js
+await window.telemetry.getEnhanced?.()
+Expected:
+getLive returns a normal object
+getEnhanced returns an object or fails gracefully, not crashing
+What to paste back:
+the output of both
+Step 3: Confirm CSRF is NOT blocking token exchange
+This is the big one.
+In Electron, after auth deep link happens, your app should call POST /api/auth/exchange.
+Open DevTools Console and check Network or log output.
+If you can run curl:
+From a browser where you are logged in, open:
+https://switchcontrol.org/api/me
+If still false, then exchange never worked or sessions are not being set.
+Now test exchange directly is harder without your token, but the best proof is:
+After login in app:
+https://switchcontrol.org/api/me must return loggedIn true in the same session context the app uses
+If it stays false, security changes broke session or exchange.
+Step 4: Make sure CSRF is only applied where it should be
+CSRF must NOT apply to:
+/auth/google
+/auth/discord
+/api/auth/* callbacks
+/api/auth/exchange
+/api/me
+CSRF should apply only to state-changing app routes like:
+/api/settings PATCH
+tweaks POST
+history POST/DELETE
+clear-ram POST
+ai-scan POST
+If Replit applied CSRF globally, that is a mistake.
+What you should do right now
+You do not need “more changes”. You need verification.
+Do this in order:
+Tell me if the installed build contains SensorsHelper.exe and where.
+Run the two console commands above and paste outputs.
+After logging in, hit https://switchcontrol.org/api/me and paste the response.
+With those three, I can tell you:
+whether the sensors integration is real
+whether security work broke auth
+exactly what single change fixes it
+Brutal truth
+Replit is doing the classic “I changed 10 systems at once and now nothing is debuggable” move. That is why you felt like everything was chaos earlier.
+You only accept changes that come with proof:
+file paths
+console outputs
+HTTP status codes
+No proof, it did not happen.
+Send me the 3 results above and I’ll tell you the next exact fix.
