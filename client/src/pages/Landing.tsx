@@ -506,7 +506,7 @@ function Footer() {
           <div className="col-span-2 md:col-span-1">
             <BrandLogo size="md" className="mb-4" linkTo="/" />
             <p className="text-sm text-muted-foreground">
-              Professional gaming optimization for competitive players.
+              Windows PC tweak app focused on lower delay and stable FPS.
             </p>
           </div>
           
