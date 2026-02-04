@@ -1,0 +1,122 @@
+We need to implement baseline production security for SwitchControl.
+Do NOT change OAuth logic, redirect URLs, or session behavior.
+Only add the items below.
+🔐 SECURITY IMPLEMENTATION PLAN (STRICT)
+✅ What we already have (DO NOT TOUCH)
+Cookie-based auth sessions
+OAuth login working (Google)
+/api/me session validation
+Electron → browser → backend auth flow stable
+1️⃣ Rate-limit auth endpoints (REQUIRED)
+Why
+Prevent brute-force, spam login attempts, and abuse.
+What to protect
+Only these routes:
+/api/auth/google
+/api/auth/google/callback
+/api/auth/exchange
+/api/login (if exists)
+DO NOT rate-limit /api/me
+How to implement
+Install
+Copy code
+
+npm install express-rate-limit
+Add middleware (server/index.ts or app.ts)
+Copy code
+Ts
+import rateLimit from "express-rate-limit";
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use("/api/auth", authLimiter);
+That is it.
+No IP bans. No captcha. No extra logic.
+2️⃣ Session rotation after login (IMPORTANT)
+Why
+Prevents session fixation attacks.
+What to do
+Rotate session after successful OAuth login only.
+How to implement
+In the OAuth callback handler (after user is authenticated):
+Copy code
+Ts
+req.session.regenerate(err => {
+  if (err) {
+    return next(err);
+  }
+
+  req.login(user, err => {
+    if (err) return next(err);
+    return res.redirect(DEEP_LINK_URL);
+  });
+});
+⚠️ Do NOT rotate sessions on every request
+⚠️ Do NOT touch cookies config beyond this
+3️⃣ CSRF protection (LIMITED SCOPE)
+Important rule
+Do NOT apply CSRF to OAuth routes
+Do NOT apply CSRF to Electron token exchange
+Only protect state-changing authenticated routes.
+Routes to protect
+/api/settings
+/api/tweaks
+/api/profile
+/api/purchase (if exists)
+How to implement
+Install
+Copy code
+
+npm install csurf
+Middleware
+Copy code
+Ts
+import csurf from "csurf";
+
+const csrfProtection = csurf({
+  cookie: false
+});
+Apply only to protected routes
+Copy code
+Ts
+app.post("/api/settings", csrfProtection, handler);
+app.post("/api/tweaks", csrfProtection, handler);
+Frontend:
+Fetch CSRF token once
+Send via header X-CSRF-Token
+DO NOT break existing auth.
+4️⃣ Remove debug routes in production (MANDATORY)
+Why
+Debug endpoints are a security liability.
+What to remove or gate
+Any route like:
+/api/debug/*
+/api/debug/auth
+/api/debug/google-oauth
+How to implement safely
+Wrap debug routes:
+Copy code
+Ts
+if (process.env.NODE_ENV !== "production") {
+  app.use("/api/debug", debugRouter);
+}
+OR delete them entirely.
+5️⃣ Final verification checklist (DO THIS LAST)
+After implementing:
+Login via app
+/api/me returns loggedIn: true
+Premium redirect still works
+Debug routes return 404 in prod
+No redirect_uri changes
+No OAuth breakage
+🚫 Explicit DO NOT list
+Do NOT change callback URLs
+Do NOT add JWT auth
+Do NOT add refresh tokens
+Do NOT change cookies to localStorage
+Do NOT add Cloudflare, WAF, or firewalls yet

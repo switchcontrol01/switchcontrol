@@ -1,8 +1,12 @@
 const { app, BrowserWindow, ipcMain, shell, globalShortcut } = require('electron');
 const path = require('path');
 const os = require('os');
+const { spawn } = require('child_process');
 
 let si;
+let enhancedCache = null;
+let enhancedCacheTime = 0;
+const ENHANCED_CACHE_MS = 500;
 try {
   si = require('systeminformation');
 } catch (e) {
@@ -323,6 +327,82 @@ function setupIPC() {
   });
 
   ipcMain.handle('telemetry:getLive', async () => await getLiveTelemetry());
+
+  ipcMain.handle('telemetry:getEnhanced', async () => {
+    const now = Date.now();
+    if (enhancedCache && (now - enhancedCacheTime) < ENHANCED_CACHE_MS) {
+      console.log('[telemetry] using cached enhanced sensors');
+      return enhancedCache;
+    }
+
+    const helperPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'bin', 'SensorsHelper.exe')
+      : path.join(__dirname, 'bin', 'SensorsHelper.exe');
+
+    return new Promise((resolve) => {
+      const fs = require('fs');
+      if (!fs.existsSync(helperPath)) {
+        console.log('[telemetry] SensorsHelper.exe not found at:', helperPath);
+        resolve({ enhancedAvailable: false, error: 'Helper not found' });
+        return;
+      }
+
+      console.log('[telemetry] using enhanced sensors from:', helperPath);
+      let stdout = '';
+      let stderr = '';
+      let resolved = false;
+
+      const proc = spawn(helperPath, [], { windowsHide: true });
+
+      const timeout = setTimeout(() => {
+        if (!resolved) {
+          resolved = true;
+          proc.kill();
+          console.log('[telemetry] enhanced sensors timeout');
+          resolve({ enhancedAvailable: false, error: 'Timeout' });
+        }
+      }, 1000);
+
+      proc.stdout.on('data', (data) => {
+        stdout += data.toString();
+      });
+
+      proc.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      proc.on('close', (code) => {
+        clearTimeout(timeout);
+        if (resolved) return;
+        resolved = true;
+
+        if (code !== 0 || !stdout.trim()) {
+          console.log('[telemetry] enhanced sensors failed:', stderr || 'no output');
+          resolve({ enhancedAvailable: false, error: stderr || 'Helper failed' });
+          return;
+        }
+
+        try {
+          const data = JSON.parse(stdout.trim());
+          enhancedCache = { enhancedAvailable: true, ...data };
+          enhancedCacheTime = now;
+          console.log('[telemetry] enhanced sensors:', JSON.stringify(data));
+          resolve(enhancedCache);
+        } catch (e) {
+          console.log('[telemetry] enhanced sensors parse error:', e.message);
+          resolve({ enhancedAvailable: false, error: 'Parse error' });
+        }
+      });
+
+      proc.on('error', (err) => {
+        clearTimeout(timeout);
+        if (resolved) return;
+        resolved = true;
+        console.log('[telemetry] enhanced sensors spawn error:', err.message);
+        resolve({ enhancedAvailable: false, error: err.message });
+      });
+    });
+  });
 
   ipcMain.handle('open-external', async (event, url) => {
     console.log('[SwitchControl] Opening external URL:', url);

@@ -1,0 +1,98 @@
+SCRIPT TO SEND TO REPLIT (COPY EVERYTHING BELOW)
+You are not to improvise. Follow this spec exactly.
+GOAL
+Add reliable motherboard / extended temperature readings without breaking existing telemetry, without forcing users to install HWiNFO, and without requiring admin by default.
+CURRENT STATE (DO NOT BREAK)
+systeminformation is the default telemetry source
+CPU temp works
+GPU temp works
+RAM works
+IPC telemetry:getLive already exists and must continue working
+UI already handles null / N/A values
+REQUIRED IMPLEMENTATION
+1. Keep existing telemetry path
+DO NOT remove or change:
+telemetry:getLive
+systeminformation usage
+CPU / GPU / RAM logic
+This remains the default path.
+2. Add an OPTIONAL “Enhanced Sensors” path
+This is a second telemetry path, not a replacement.
+New IPC
+Create a new IPC handler:
+Copy code
+Ts
+ipcMain.handle("telemetry:getEnhanced", async () => { ... })
+3. Use LibreHardwareMonitor via helper executable
+Do NOT bundle HWiNFO.
+Do NOT require users to install anything manually.
+Helper requirements
+Language: C# (.NET)
+Library: LibreHardwareMonitor
+Output: JSON via stdout
+No UI, console only
+Helper JSON output schema (STRICT)
+Copy code
+Json
+{
+  "cpuTempC": number | null,
+  "gpuTempC": number | null,
+  "moboTempC": number | null,
+  "chipsetTempC": number | null,
+  "vrmTempC": number | null,
+  "diskTemps": [
+    { "name": "C:", "tempC": number | null }
+  ]
+}
+If a sensor is unavailable, return null. Never fake values.
+4. Electron integration
+Use child_process.spawn
+Parse JSON from stdout
+Timeout after 1 second
+Cache results for 500ms to prevent UI stutter
+If helper fails:
+Log error
+Return { enhancedAvailable: false }
+DO NOT crash
+DO NOT block normal telemetry
+5. Renderer logic
+Default behavior: use telemetry:getLive
+Add Settings toggle:
+Label: “Enhanced Sensors (experimental)”
+Default: OFF
+If enabled:
+Call telemetry:getEnhanced
+Merge results with normal telemetry
+If enhanced values are null → show N/A
+6. Security + UX rules
+No admin required by default
+If helper requires elevated permissions:
+Fail gracefully
+Show tooltip: “Some sensors unavailable on this system”
+No antivirus-triggering behavior
+No kernel drivers
+7. What NOT to do
+Do NOT remove motherboard temp entirely
+Do NOT hard-require enhanced sensors
+Do NOT auto-enable enhanced mode
+Do NOT introduce vendor-specific SDKs
+Do NOT fake motherboard temps
+8. Proof required before saying “done”
+You must provide:
+Helper source code
+IPC handler code
+Renderer toggle code
+Example JSON output from:
+One machine with mobo temp
+One machine without (showing null)
+Console logs showing:
+[telemetry] using systeminformation
+[telemetry] using enhanced sensors
+If you cannot provide proof, the task is not complete.
+PRODUCT DECISION (FINAL)
+CPU, GPU, RAM: guaranteed
+Motherboard / VRM / chipset: best-effort
+N/A is acceptable
+Stability > perfect coverage
+Implement exactly this. Do not re-architect auth, routing, or telemetry beyond this scope.
+END SCRIPT

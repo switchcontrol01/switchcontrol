@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
 contextBridge.exposeInMainWorld('telemetry', {
   getLive: () => ipcRenderer.invoke('telemetry:getLive'),
+  getEnhanced: () => ipcRenderer.invoke('telemetry:getEnhanced'),
 });
 
 contextBridge.exposeInMainWorld('sc', {
