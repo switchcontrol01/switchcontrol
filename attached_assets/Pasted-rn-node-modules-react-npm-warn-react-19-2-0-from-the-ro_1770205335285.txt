@@ -1,0 +1,94 @@
+rn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   83 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated passport-discord@0.1.4: This package is no longer maintained. Please consider migrating to a maintained alternative, (following packages are author unvetted) such as: discord-strategy, passport-discord-auth, ...
+
+added 381 packages, and audited 382 packages in 5s
+
+53 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> switchcontrol@1.0.0 build
+> npx tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3241 modules transformed.
+../dist/index.html                        2.48 kB │ gzip:   0.86 kB
+../dist/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/assets/index-aLFIoQ8q.css       213.02 kB │ gzip:  28.30 kB
+../dist/assets/api-DuvMsecM.js            1.15 kB │ gzip:   0.67 kB
+../dist/assets/index-zcW-xhIN.js      1,352.54 kB │ gzip: 391.77 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.90s
+building server...
+
+  dist\index.cjs  2.3mb
+
+Done in 60ms
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> switchcontrol@1.0.0 electron:build
+> cd electron && npm run dist:win
+
+
+> switchcontrol-electron@1.0.0 dist:win
+> electron-builder --win
+
+  • electron-builder  version=25.1.8 os=10.0.26200
+  • loaded configuration  file=package.json ("build" field)
+  • writing effective config  file=dist\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=33.4.11 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=33.4.11 appOutDir=dist\win-unpacked
+  • downloading     url=https://github.com/electron/electron/releases/download/v33.4.11/electron-v33.4.11-win32-x64.zip size=115 MB parts=8
+  • downloaded      url=https://github.com/electron/electron/releases/download/v33.4.11/electron-v33.4.11-win32-x64.zip duration=22.781s
+  • updating asar integrity executable resource  executablePath=dist\win-unpacked\SwitchControl.exe
+  • signing with signtool.exe  path=dist\win-unpacked\resources\bin\SensorsHelper.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • default Electron icon is used  reason=application icon is not set
+  • signing with signtool.exe  path=dist\win-unpacked\SwitchControl.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • building        target=nsis file=dist\SwitchControl Setup 1.0.0.exe archs=x64 oneClick=false perMachine=false
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z size=1.3 MB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-3.0.4.1/nsis-3.0.4.1.7z duration=2.359s
+  • signing with signtool.exe  path=dist\win-unpacked\resources\elevate.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • downloading     url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z size=731 kB parts=1
+  • downloaded      url=https://github.com/electron-userland/electron-builder-binaries/releases/download/nsis-resources-3.4.1/nsis-resources-3.4.1.7z duration=2.094s
+  • signing with signtool.exe  path=dist\__uninstaller-nsis-switchcontrol-electron.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=dist\SwitchControl Setup 1.0.0.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • building block map  blockMapFile=dist\SwitchControl Setup 1.0.0.exe.blockmap
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
