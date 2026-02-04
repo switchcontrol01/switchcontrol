@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Info, AlertTriangle, ShieldCheck, X, Cpu, MonitorSpeaker, HardDrive, Wifi, Timer, AlertCircle, Lock, Crown } from "lucide-react";
+import { Info, AlertTriangle, ShieldCheck, X, Cpu, MonitorSpeaker, HardDrive, Wifi, Timer, AlertCircle, Lock, Crown, Loader2, Zap } from "lucide-react";
 import { Tweak, RiskLevel, TweakLevel, TweakExpected, ImpactLevel } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
@@ -10,6 +10,7 @@ import { isTweakPremium } from "@/lib/premium-config";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumBadge } from "@/components/ui/animated-crown";
 import { openPricing } from "@/lib/pricing";
+import { useTweakExecutor, isTierATweak, isElectronWithTweaks } from "@/hooks/use-tweak-executor";
 
 interface TweakCardProps {
   tweak: Tweak;
@@ -170,9 +171,13 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
+  const { executeTweak, executing, isElectron } = useTweakExecutor();
   
   const isPremiumTweak = isTweakPremium(tweak.id);
   const isLocked = isPremiumTweak && !isPremium;
+  const isExecuting = executing === tweak.id;
+  const isTierA = isTierATweak(tweak.id);
+  const isRealTweak = isElectron && isTierA;
 
   const closeModal = useCallback(() => {
     setOpen(false);
@@ -182,13 +187,21 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
     setOpen(true);
   }, []);
   
-  const handleToggle = useCallback(() => {
+  const handleToggle = useCallback(async () => {
     if (isLocked) {
       setShowPremiumModal(true);
+      return;
+    }
+    
+    if (isRealTweak) {
+      const success = await executeTweak(tweak.id, isEnabled);
+      if (success) {
+        onToggle();
+      }
     } else {
       onToggle();
     }
-  }, [isLocked, onToggle]);
+  }, [isLocked, isRealTweak, executeTweak, tweak.id, isEnabled, onToggle, setOpen]);
 
   useEffect(() => {
     if (!open) return;
@@ -226,9 +239,15 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                 </h3>
                 <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
                   {isLocked && <PremiumBadge className="text-[10px] px-2 py-0.5" />}
+                  {isRealTweak && (
+                    <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/20 shadow-[0_0_10px_rgba(34,211,238,0.1)]">
+                      <Zap className="inline-block size-3 mr-0.5 -mt-0.5" />
+                      Real
+                    </span>
+                  )}
                   <LevelBadge level={tweak.level} />
                   <RiskBadge level={tweak.risk} />
-                  {tweak.requiresAgent && (
+                  {tweak.requiresAgent && !isRealTweak && (
                     <span className="text-[10px] font-medium px-1.5 py-0.5 rounded border border-zinc-700 bg-zinc-800/50 text-zinc-400">
                       Agent Req.
                     </span>
@@ -266,12 +285,19 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                 <Lock className="size-3 mr-1" />
                 Unlock
               </Button>
+            ) : isExecuting ? (
+              <div className="flex items-center justify-center w-11 h-6">
+                <Loader2 className="size-4 animate-spin text-primary" />
+              </div>
             ) : (
               <Switch 
                 checked={isEnabled} 
                 onCheckedChange={handleToggle} 
                 data-testid={`switch-tweak-${tweak.id}`}
-                className="data-[state=checked]:bg-primary shadow-lg"
+                className={cn(
+                  "data-[state=checked]:bg-primary shadow-lg",
+                  isRealTweak && "data-[state=checked]:bg-cyan-500"
+                )}
               />
             )}
           </div>

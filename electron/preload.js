@@ -49,6 +49,14 @@ contextBridge.exposeInMainWorld('sc', {
   getAllDisks: () => ipcRenderer.invoke('system:getAllDisks'),
 });
 
+contextBridge.exposeInMainWorld('tweaks', {
+  execute: (tweakId, action) => ipcRenderer.invoke('tweak:execute', tweakId, action),
+  checkStatus: (tweakId) => ipcRenderer.invoke('tweak:checkStatus', tweakId),
+  syncAll: () => ipcRenderer.invoke('tweak:syncAll'),
+  getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
+  getInfo: () => ipcRenderer.invoke('tweak:getInfo'),
+});
+
 window.addEventListener('DOMContentLoaded', () => {
   console.log('[SwitchControl Desktop] Preload initialized');
   console.log('[SwitchControl Desktop] Platform:', process.platform);

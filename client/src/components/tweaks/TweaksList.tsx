@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { TweakCard } from "./TweakCard";
 import { TWEAKS_DATA, TweakCategory } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Search, SlidersHorizontal, RotateCcw, CheckCircle2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -13,6 +13,8 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTweakExecutor, isElectronWithTweaks, isTierATweak } from "@/hooks/use-tweak-executor";
+import { useToast } from "@/hooks/use-toast";
 
 const CATEGORIES = [
   "Performance", 
@@ -32,10 +34,55 @@ const CATEGORY_MAP: Record<string, TweakCategory[]> = {
 };
 
 export function TweaksList() {
-  const { tweaks, toggleTweak, resetData, enableRecommended } = useStore();
+  const { tweaks, toggleTweak, resetData, enableRecommended, setTweak } = useStore();
+  const { syncAllTweaks, localState, isElectron } = useTweakExecutor();
+  const { toast } = useToast();
   const [search, setSearch] = useState("");
   const [activeChip, setActiveChip] = useState<string>("All");
   const [showRisky, setShowRisky] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncFailed, setSyncFailed] = useState(false);
+
+  useEffect(() => {
+    if (isElectron) {
+      setSyncing(true);
+      setSyncFailed(false);
+      syncAllTweaks()
+        .then((results) => {
+          if (results && Object.keys(results).length > 0) {
+            Object.entries(results).forEach(([tweakId, status]) => {
+              if (!status.error && isTierATweak(tweakId)) {
+                setTweak(tweakId, status.applied);
+              }
+            });
+          }
+        })
+        .catch((err) => {
+          console.error('[TweaksList] Failed to sync tweaks:', err);
+          setSyncFailed(true);
+          toast({
+            title: 'Sync Failed',
+            description: 'Could not sync tweak states from system. Using cached values.',
+            variant: 'destructive',
+          });
+        })
+        .finally(() => {
+          setSyncing(false);
+        });
+    }
+  }, [isElectron, syncAllTweaks, setTweak, toast]);
+
+  const getTweakEnabled = (tweakId: string): boolean => {
+    const storeValue = tweaks[tweakId] ?? false;
+    if (isElectron && isTierATweak(tweakId)) {
+      if (syncFailed) {
+        return storeValue;
+      }
+      const hasLocalState = tweakId in localState.appliedTweaks;
+      return hasLocalState ? localState.appliedTweaks[tweakId] : storeValue;
+    }
+    return storeValue;
+  };
 
   const filteredTweaks = useMemo(() => {
     return TWEAKS_DATA.filter((t) => {
@@ -59,6 +106,7 @@ export function TweaksList() {
             placeholder="Search tweaks..." 
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            data-testid="input-search-tweaks"
             className="pl-9 bg-black/40 border-white/5 focus:border-primary/50 transition-all rounded-xl h-10"
           />
         </div>
@@ -67,24 +115,25 @@ export function TweaksList() {
           <Button 
             onClick={enableRecommended} 
             size="sm" 
+            data-testid="button-apply-safe"
             className="h-9 px-4 gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20"
           >
             <CheckCircle2 className="size-4" />
             Apply Safe
           </Button>
-          <Button variant="outline" size="sm" onClick={resetData} className="h-9 gap-2 border-white/5 hover:bg-white/5">
+          <Button variant="outline" size="sm" onClick={resetData} data-testid="button-reset-tweaks" className="h-9 gap-2 border-white/5 hover:bg-white/5">
             <RotateCcw className="size-4" />
             Reset
           </Button>
           
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0">
+              <Button variant="ghost" size="sm" data-testid="button-filter-settings" className="h-9 w-9 p-0">
                 <SlidersHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-black/90 backdrop-blur-xl border-white/10">
-              <DropdownMenuCheckboxItem checked={showRisky} onCheckedChange={setShowRisky}>
+              <DropdownMenuCheckboxItem checked={showRisky} onCheckedChange={setShowRisky} data-testid="checkbox-show-risky">
                 Show Risky
               </DropdownMenuCheckboxItem>
             </DropdownMenuContent>
@@ -97,6 +146,7 @@ export function TweaksList() {
         <div className="flex gap-2 pb-2">
           <button
             onClick={() => setActiveChip("All")}
+            data-testid="filter-chip-all"
             className={cn(
               "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
               activeChip === "All" 
@@ -110,6 +160,7 @@ export function TweaksList() {
             <button
               key={cat}
               onClick={() => setActiveChip(cat)}
+              data-testid={`filter-chip-${cat.toLowerCase().replace(/\s+/g, '-')}`}
               className={cn(
                 "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
                 activeChip === cat 
@@ -129,7 +180,7 @@ export function TweaksList() {
           <TweakCard
             key={tweak.id}
             tweak={tweak}
-            isEnabled={!!tweaks[tweak.id]}
+            isEnabled={getTweakEnabled(tweak.id)}
             onToggle={() => toggleTweak(tweak.id)}
           />
         ))}

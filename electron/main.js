@@ -3,6 +3,13 @@ const path = require('path');
 const os = require('os');
 const { spawn } = require('child_process');
 
+let tweakExecutor = null;
+try {
+  tweakExecutor = require('./executors/tweaks');
+} catch (e) {
+  console.warn('[SwitchControl] Tweak executor not available:', e.message);
+}
+
 let si;
 let enhancedCache = null;
 let enhancedCacheTime = 0;
@@ -447,6 +454,42 @@ function setupIPC() {
 
   ipcMain.handle('window:close', () => {
     if (mainWindow) mainWindow.close();
+  });
+
+  // Tweak executor IPC handlers
+  ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
+    if (!tweakExecutor) {
+      return { success: false, error: 'Tweak executor not available' };
+    }
+    return await tweakExecutor.executeTweak(tweakId, action);
+  });
+
+  ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
+    if (!tweakExecutor) {
+      return { tweakId, applied: false, error: 'Tweak executor not available' };
+    }
+    return await tweakExecutor.checkTweakStatus(tweakId);
+  });
+
+  ipcMain.handle('tweak:syncAll', async () => {
+    if (!tweakExecutor) {
+      return { error: 'Tweak executor not available' };
+    }
+    return await tweakExecutor.syncAllTweakStates();
+  });
+
+  ipcMain.handle('tweak:getLocalState', () => {
+    if (!tweakExecutor) {
+      return { appliedTweaks: {}, lastSync: null };
+    }
+    return tweakExecutor.getLocalState();
+  });
+
+  ipcMain.handle('tweak:getInfo', () => {
+    if (!tweakExecutor) {
+      return [];
+    }
+    return tweakExecutor.getTweakInfo();
   });
 }
 

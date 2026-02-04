@@ -36,6 +36,7 @@ interface AppState {
   
   // Actions
   toggleTweak: (id: string) => void;
+  setTweak: (id: string, enabled: boolean) => void;
   applyAction: (actionName: string, page: string, result?: string, notes?: string) => void;
   clearRam: () => void;
   resetData: () => void;
@@ -87,6 +88,15 @@ export const useStore = create<AppState>()(
           'Tweaks',
           'Simulated apply'
         );
+      },
+
+      setTweak: (id, enabled) => {
+        set((state) => ({
+          tweaks: {
+            ...state.tweaks,
+            [id]: enabled,
+          }
+        }));
       },
 
       applyAction: (action, page, result = 'Success', notes) => {
