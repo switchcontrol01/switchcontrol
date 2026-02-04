@@ -129,7 +129,8 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    const filePath = path.join(__dirname, '..', 'dist', 'index.html');
+    // In packaged app, dist is in extraResources
+    const filePath = path.join(process.resourcesPath, 'dist', 'index.html');
     console.log('[SwitchControl] Loading production file:', filePath);
     mainWindow.loadFile(filePath).catch(err => {
       console.error('[SwitchControl] Failed to load:', err);

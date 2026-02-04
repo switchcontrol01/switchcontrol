@@ -26,12 +26,14 @@
     "files": [
       "main.js",
       "preload.js",
-      "executors/**/*",
-      "bin/**/*",
-      "sensors-helper/**/*",
-      "../dist/**/*"
+      "executors/**/*"
     ],
     "extraResources": [
+      {
+        "from": "../dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      },
       {
         "from": "bin",
         "to": "bin",
@@ -50,7 +52,7 @@
           "arch": ["x64"]
         }
       ],
-      "icon": "build/icon.ico",
+      "icon": "build/icon",
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
