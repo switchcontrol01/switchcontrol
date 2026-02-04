@@ -165,7 +165,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/history", async (req, res) => {
+  app.delete("/api/history", csrfProtection, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       await storage.clearHistory(settings.id);
@@ -175,7 +175,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/history", async (req, res) => {
+  app.post("/api/history", csrfProtection, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       const entry = await storage.addHistory({
@@ -207,7 +207,7 @@ export async function registerRoutes(
   }).optional();
 
   // Premium-only: AI Scan with cooldown and dynamic messages
-  app.post("/api/ai-scan", requirePremium, async (req, res) => {
+  app.post("/api/ai-scan", csrfProtection, requirePremium, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       
@@ -311,7 +311,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/clear-ram", async (req, res) => {
+  app.post("/api/clear-ram", csrfProtection, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       const currentRam = settings.usedRamGb || 9.5;

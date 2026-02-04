@@ -92,7 +92,7 @@ export async function fetchHistory() {
 }
 
 export async function clearHistory() {
-  const res = await fetch(`${API_BASE}/history`, { method: "DELETE" });
+  const res = await csrfFetch(`${API_BASE}/history`, { method: "DELETE" });
   if (!res.ok) throw new Error("Failed to clear history");
   return res.json();
 }
@@ -116,7 +116,7 @@ interface SystemContextForAI {
 
 export async function runAIScan(systemContext?: SystemContextForAI) {
   try {
-    const res = await fetch(`${API_BASE}/ai-scan`, { 
+    const res = await csrfFetch(`${API_BASE}/ai-scan`, { 
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(systemContext || {})
@@ -149,7 +149,7 @@ export async function runAIScan(systemContext?: SystemContextForAI) {
 }
 
 export async function clearRam() {
-  const res = await fetch(`${API_BASE}/clear-ram`, { method: "POST" });
+  const res = await csrfFetch(`${API_BASE}/clear-ram`, { method: "POST" });
   if (!res.ok) throw new Error("Failed to clear RAM");
   queryClient.invalidateQueries({ queryKey: ["settings"] });
   queryClient.invalidateQueries({ queryKey: ["history"] });
