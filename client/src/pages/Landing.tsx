@@ -632,8 +632,7 @@ export default function Landing() {
               
               <AnimateIn delay={300}>
                 <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto animate-hero-float-slow">
-                  Professional-grade Windows optimization for competitive gaming. 
-                  Lower latency, smoother frames, better consistency.
+                  Windows PC tweak app focused on lower delay and stable FPS.
                 </p>
               </AnimateIn>
               
