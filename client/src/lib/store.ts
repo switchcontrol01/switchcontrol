@@ -156,18 +156,28 @@ export const useStore = create<AppState>()(
       },
 
       runAIScan: async () => {
-        await new Promise(r => setTimeout(r, 1500));
-        const results: AIScanResult = {
-          timestamp: new Date().toISOString(),
-          summary: "Your system is good, but these 3 changes could help consistency.",
-          recommendations: [
-            { id: "1", action: "Reduce background process priority", tag: "Safe" },
-            { id: "2", action: "Optimize kernel memory management", tag: "Advanced" },
-            { id: "3", action: "Disable unused driver hooks", tag: "Requires local agent" }
-          ]
+        const { stats } = get();
+        
+        // Build system context from current stats
+        const systemContext = {
+          gpuVendor: stats.gpuVendor || stats.gpuName,
+          hasSsd: true, // Default to true, ideally would be detected
+          cpuCores: stats.cpuCores,
+          ramGb: stats.totalRamGb
         };
-        set({ latestAIScan: results });
-        get().applyAction('AI Scan', 'Dashboard', 'Scan complete', 'Generated 3 recommendations');
+        
+        // Call API with system context for smart recommendations
+        const { runAIScan: apiRunAIScan } = await import('./api');
+        const result = await apiRunAIScan(systemContext);
+        
+        set({ 
+          latestAIScan: {
+            timestamp: result.timestamp || new Date().toISOString(),
+            summary: result.summary,
+            recommendations: result.recommendations || [],
+            optimized: result.optimized || false
+          } 
+        });
       },
 
       setStats: (newStats) => set((state) => ({ stats: { ...state.stats, ...newStats } })),

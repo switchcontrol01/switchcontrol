@@ -3,19 +3,11 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
 
-interface TelemetryData {
-  cpuLoadPercent: number;
-  cpuTempC: number | null;
-  gpuTempC: number | null;
-  gpuLoadPercent: number | null;
-  ramUsedGb: number;
-  ramTotalGb: number;
-}
-
 interface DataPoint {
   time: string;
   cpu: number;
   gpu: number | null;
+  mobo: number | null;
   ram: number;
 }
 
@@ -41,6 +33,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             cpuTempC: null,
             gpuTempC: null,
             gpuLoadPercent: null,
+            moboTempC: null,
             ramUsedGb: ram.ramUsedGb,
             ramTotalGb: ram.ramTotalGb,
           };
@@ -50,6 +43,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             cpuTempC: null,
             gpuTempC: null,
             gpuLoadPercent: null,
+            moboTempC: null,
             ramUsedGb: 8,
             ramTotalGb: 16,
           };
@@ -64,7 +58,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             temps: { 
               cpu: telemetry.cpuTempC ?? 0, 
               gpu: telemetry.gpuTempC ?? 0, 
-              mobo: 0 
+              mobo: telemetry.moboTempC ?? 0 
             },
             ram: { 
               totalGB: telemetry.ramTotalGb, 
@@ -83,6 +77,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             time: timeStr,
             cpu: telemetry.cpuTempC ?? telemetry.cpuLoadPercent,
             gpu: gpuValue,
+            mobo: telemetry.moboTempC,
             ram: parseFloat(((telemetry.ramUsedGb / telemetry.ramTotalGb) * 100).toFixed(1))
           };
           const updated = [...prev, newPoint];
@@ -134,7 +129,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
           <Activity className="size-4 text-primary" />
           Live System Monitor
         </h3>
-        <div className="flex items-center gap-4 text-[10px]">
+        <div className="flex items-center gap-3 text-[10px]">
           {latest && (
             <>
               <span className="flex items-center gap-1.5">
@@ -146,6 +141,11 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 GPU: {latest.gpuTempC !== null ? `${latest.gpuTempC}°C` : 
                       latest.gpuLoadPercent !== null ? `${latest.gpuLoadPercent.toFixed(0)}%` : 
                       <span className="text-muted-foreground/60" title="GPU monitoring requires supported drivers">N/A</span>}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="size-2 rounded-full bg-purple-500" />
+                Mobo: {latest.moboTempC !== null ? `${latest.moboTempC}°C` : 
+                      <span className="text-muted-foreground/60" title="Motherboard temp not available">N/A</span>}
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-cyan-500" />
@@ -202,6 +202,16 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 3 }}
+            />
+            <Line 
+              type="monotone" 
+              dataKey="mobo" 
+              name="Mobo"
+              stroke="#a855f7" 
+              strokeWidth={2}
+              dot={false}
+              activeDot={{ r: 3 }}
+              connectNulls={false}
             />
             <Line 
               type="monotone" 

@@ -37,15 +37,6 @@ interface SystemSpecs {
   disks?: DiskInfo[];
 }
 
-interface TelemetryData {
-  cpuLoadPercent: number;
-  cpuTempC: number | null;
-  gpuTempC: number | null;
-  gpuLoadPercent: number | null;
-  ramUsedGb: number;
-  ramTotalGb: number;
-}
-
 interface AuthUser {
   id: string;
   email: string | null;
@@ -56,6 +47,15 @@ interface AuthUser {
 }
 
 declare global {
+  interface TelemetryData {
+    cpuLoadPercent: number;
+    cpuTempC: number | null;
+    gpuTempC: number | null;
+    gpuLoadPercent: number | null;
+    moboTempC: number | null;
+    ramUsedGb: number;
+    ramTotalGb: number;
+  }
   interface Window {
     electron?: {
       openExternal: (url: string) => Promise<boolean>;

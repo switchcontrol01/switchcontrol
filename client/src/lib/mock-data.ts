@@ -615,4 +615,5 @@ export interface AIScanResult {
   timestamp: string;
   summary: string;
   recommendations: AIRecommendation[];
+  optimized?: boolean;
 }

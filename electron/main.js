@@ -242,6 +242,7 @@ async function getLiveTelemetry() {
     cpuTempC: null,
     gpuTempC: null,
     gpuLoadPercent: null,
+    moboTempC: null,
     ramUsedGb: 0,
     ramTotalGb: 0
   };
@@ -254,10 +255,11 @@ async function getLiveTelemetry() {
 
     if (si) {
       try {
-        const [cpuLoad, cpuTemp, graphics] = await Promise.all([
+        const [cpuLoad, cpuTemp, graphics, baseboard] = await Promise.all([
           si.currentLoad().catch(() => null),
           si.cpuTemperature().catch(() => null),
-          si.graphics().catch(() => null)
+          si.graphics().catch(() => null),
+          si.baseboard().catch(() => null)
         ]);
 
         if (cpuLoad) {
@@ -266,6 +268,10 @@ async function getLiveTelemetry() {
 
         if (cpuTemp && cpuTemp.main !== null && cpuTemp.main !== -1) {
           telemetry.cpuTempC = parseFloat(cpuTemp.main.toFixed(0));
+        }
+        
+        if (cpuTemp && cpuTemp.chipset !== null && cpuTemp.chipset !== -1) {
+          telemetry.moboTempC = parseFloat(cpuTemp.chipset.toFixed(0));
         }
 
         if (graphics?.controllers?.length > 0) {

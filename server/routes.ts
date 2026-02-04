@@ -6,7 +6,7 @@ import { setupGoogleAuth, requirePremium } from "./auth/google";
 import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
 import { isPremiumTweakById } from "../shared/tweak-tiers";
-import { getTierFromTweakCount, getRandomMessage, getRandomRecommendations } from "./lib/aiMessages";
+import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -184,6 +184,14 @@ export async function registerRoutes(
     }
   });
 
+  // Schema for AI scan request body
+  const aiScanBodySchema = z.object({
+    gpuVendor: z.string().optional(),
+    hasSsd: z.boolean().optional(),
+    cpuCores: z.number().optional(),
+    ramGb: z.number().optional()
+  }).optional();
+
   // Premium-only: AI Scan with cooldown and dynamic messages
   app.post("/api/ai-scan", requirePremium, async (req, res) => {
     try {
@@ -208,9 +216,23 @@ export async function registerRoutes(
       const tweaksApplied = settings.tweaksApplied ?? 0;
       const tier = getTierFromTweakCount(tweaksApplied);
       
-      // Generate dynamic message and recommendations
+      // Parse and validate request body with defaults
+      const parsedBody = aiScanBodySchema.safeParse(req.body);
+      const bodyData = parsedBody.success ? (parsedBody.data || {}) : {};
+      const { gpuVendor, hasSsd, cpuCores, ramGb } = bodyData;
+      
+      const systemContext: SystemContext = {
+        hasNvidiaGpu: gpuVendor?.toLowerCase().includes('nvidia'),
+        hasAmdGpu: gpuVendor?.toLowerCase().includes('amd'),
+        hasSsd: hasSsd ?? true,
+        cpuCores: cpuCores,
+        ramGb: ramGb,
+        tweaksApplied
+      };
+      
+      // Generate dynamic message and smart recommendations based on system
       const message = getRandomMessage(tier);
-      const recommendations = getRandomRecommendations(tier, 3);
+      const recommendations = getSmartRecommendations(tier, systemContext, 3);
       
       // Always persist scan and history
       const scan = await storage.addAIScan({

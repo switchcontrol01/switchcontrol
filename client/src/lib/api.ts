@@ -78,8 +78,19 @@ interface CooldownError extends Error {
   remainingSeconds?: number;
 }
 
-export async function runAIScan() {
-  const res = await fetch(`${API_BASE}/ai-scan`, { method: "POST" });
+interface SystemContextForAI {
+  gpuVendor?: string;
+  hasSsd?: boolean;
+  cpuCores?: number;
+  ramGb?: number;
+}
+
+export async function runAIScan(systemContext?: SystemContextForAI) {
+  const res = await fetch(`${API_BASE}/ai-scan`, { 
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(systemContext || {})
+  });
   
   // Handle cooldown response
   if (res.status === 429) {
