@@ -1,0 +1,123 @@
+This does three things:
+Fix LibreHardwareMonitor integration properly
+Ensure GPU temps always show when drivers allow it
+Add disk temps where available
+Clarify NO external runtime viewers required unless unavoidable
+Read once, then send as-is.
+MESSAGE TO SEND TO REPLIT (DO NOT EDIT)
+🔧 REQUIRED FIXES – Enhanced Sensors (LibreHardwareMonitor)
+We need to finalize enhanced sensors properly. Current state is incomplete. Follow this checklist exactly.
+A. SensorsHelper.exe (CRITICAL)
+A1. LibreHardwareMonitor usage
+Use LibreHardwareMonitorLib only
+Do NOT depend on HWiNFO or any external runtime viewer
+The helper must:
+Enumerate CPU, GPU, Motherboard, Storage sensors
+Gracefully return null when unavailable (never crash)
+A2. Disk temperature support
+Include storage temperature sensors from LibreHardwareMonitor:
+NVMe drives
+SATA SSDs
+HDDs (if exposed)
+Output disk temps as:
+Copy code
+Json
+{
+  "disks": [
+    { "name": "Samsung 980 Pro", "temp": 42 },
+    { "name": "WD Blue HDD", "temp": null }
+  ]
+}
+If a disk does not expose temp → return null, not 0
+B. GPU TEMPERATURES (MANDATORY)
+B1. GPU detection rules
+Use LibreHardwareMonitor GPU sensors:
+NVIDIA: Core temperature
+AMD: Edge temperature
+If multiple GPUs exist:
+Select the active / primary GPU
+If driver blocks access:
+Return null
+UI must display N/A, not freeze or delay
+B2. Never block UI
+If GPU temp fails, fallback to systeminformation GPU temp
+Merge logic:
+Copy code
+Ts
+gpuTemp = enhancedGpuTemp ?? basicGpuTemp ?? null
+C. NO EXTERNAL VIEWERS (IMPORTANT)
+C1. Do NOT require:
+HWiNFO
+OpenHardwareMonitor GUI
+Any background viewer
+C2. Acceptable bundled dependency
+LibreHardwareMonitor DLLs embedded inside SensorsHelper.exe
+SensorsHelper.exe is the only binary dependency
+C3. If admin rights are required
+Detect at runtime
+If not elevated:
+Continue without enhanced sensors
+Show tooltip: “Some sensors require admin access”
+D. BUILD & PACKAGING (REQUIRED)
+D1. Windows build only
+SensorsHelper.exe must be built externally (Windows + .NET 6 SDK)
+Output location must be:
+Copy code
+
+electron/bin/SensorsHelper.exe
+D2. electron-builder.json
+Confirm this exists exactly:
+Copy code
+Json
+"extraResources": [
+  {
+    "from": "electron/bin",
+    "to": "bin",
+    "filter": ["**/*"]
+  }
+]
+D3. Runtime path resolution
+In main.js:
+Copy code
+Js
+const helperPath = app.isPackaged
+  ? path.join(process.resourcesPath, "bin", "SensorsHelper.exe")
+  : path.join(__dirname, "bin", "SensorsHelper.exe");
+E. IPC + UI DATA CONTRACT (DO NOT CHANGE SHAPE)
+SensorsHelper.exe output must be:
+Copy code
+Json
+{
+  "cpuTemp": number | null,
+  "gpuTemp": number | null,
+  "motherboardTemp": number | null,
+  "disks": [
+    { "name": string, "temp": number | null }
+  ]
+}
+Frontend rules:
+Never wait for enhanced sensors to render UI
+Merge enhanced data async
+Graph updates smoothly without re-mount
+F. FAILURE HANDLING (MANDATORY)
+If SensorsHelper.exe missing:
+Disable enhanced sensors automatically
+Log warning, not error
+If helper crashes:
+Restart once
+If crash repeats → disable enhanced sensors
+G. FINAL VERIFICATION CHECKLIST (MUST PASS)
+[ ] SensorsHelper.exe exists in electron/bin
+[ ] CPU temp always shows
+[ ] GPU temp shows on NVIDIA/AMD systems
+[ ] Disk temps show where supported
+[ ] No external viewers required
+[ ] App runs without admin privileges
+[ ] No blocking on first boot
+[ ] No crashes if sensors unavailable
+DO NOT ADD:
+New auth logic
+New security layers
+New permissions prompts
+Any UI redesign
+This is a stability + correctness pass only.

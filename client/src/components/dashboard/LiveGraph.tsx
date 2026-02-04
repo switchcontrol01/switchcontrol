@@ -34,10 +34,9 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               const enhanced = await window.telemetry.getEnhanced();
               if (enhanced.enhancedAvailable) {
                 console.log('[telemetry] merging enhanced sensors');
-                if (enhanced.cpuTempC != null) telemetry.cpuTempC = enhanced.cpuTempC;
-                if (enhanced.gpuTempC != null) telemetry.gpuTempC = enhanced.gpuTempC;
-                if (enhanced.moboTempC != null) telemetry.moboTempC = enhanced.moboTempC;
-                else if (enhanced.chipsetTempC != null) telemetry.moboTempC = enhanced.chipsetTempC;
+                if (enhanced.cpuTemp != null) telemetry.cpuTempC = enhanced.cpuTemp;
+                if (enhanced.gpuTemp != null) telemetry.gpuTempC = enhanced.gpuTemp;
+                if (enhanced.motherboardTemp != null) telemetry.moboTempC = enhanced.motherboardTemp;
               }
             } catch (e) {
               console.warn('[telemetry] enhanced sensors error:', e);

@@ -60,12 +60,11 @@ declare global {
   interface EnhancedTelemetryData {
     enhancedAvailable: boolean;
     error?: string;
-    cpuTempC?: number | null;
-    gpuTempC?: number | null;
-    moboTempC?: number | null;
-    chipsetTempC?: number | null;
-    vrmTempC?: number | null;
-    diskTemps?: Array<{ name: string; tempC: number | null }>;
+    cpuTemp?: number | null;
+    gpuTemp?: number | null;
+    motherboardTemp?: number | null;
+    disks?: Array<{ name: string; temp: number | null }>;
+    isAdmin?: boolean;
   }
   interface Window {
     electron?: {

@@ -7,6 +7,9 @@ let si;
 let enhancedCache = null;
 let enhancedCacheTime = 0;
 const ENHANCED_CACHE_MS = 500;
+let enhancedCrashCount = 0;
+let enhancedDisabled = false;
+const MAX_CRASH_COUNT = 2;
 try {
   si = require('systeminformation');
 } catch (e) {
@@ -329,9 +332,12 @@ function setupIPC() {
   ipcMain.handle('telemetry:getLive', async () => await getLiveTelemetry());
 
   ipcMain.handle('telemetry:getEnhanced', async () => {
+    if (enhancedDisabled) {
+      return { enhancedAvailable: false, error: 'Disabled due to repeated crashes' };
+    }
+
     const now = Date.now();
     if (enhancedCache && (now - enhancedCacheTime) < ENHANCED_CACHE_MS) {
-      console.log('[telemetry] using cached enhanced sensors');
       return enhancedCache;
     }
 
@@ -342,12 +348,12 @@ function setupIPC() {
     return new Promise((resolve) => {
       const fs = require('fs');
       if (!fs.existsSync(helperPath)) {
-        console.log('[telemetry] SensorsHelper.exe not found at:', helperPath);
+        console.warn('[telemetry] SensorsHelper.exe not found at:', helperPath);
+        enhancedDisabled = true;
         resolve({ enhancedAvailable: false, error: 'Helper not found' });
         return;
       }
 
-      console.log('[telemetry] using enhanced sensors from:', helperPath);
       let stdout = '';
       let stderr = '';
       let resolved = false;
@@ -358,10 +364,14 @@ function setupIPC() {
         if (!resolved) {
           resolved = true;
           proc.kill();
-          console.log('[telemetry] enhanced sensors timeout');
+          enhancedCrashCount++;
+          if (enhancedCrashCount >= MAX_CRASH_COUNT) {
+            console.warn('[telemetry] enhanced sensors disabled after repeated timeouts');
+            enhancedDisabled = true;
+          }
           resolve({ enhancedAvailable: false, error: 'Timeout' });
         }
-      }, 1000);
+      }, 1500);
 
       proc.stdout.on('data', (data) => {
         stdout += data.toString();
@@ -377,19 +387,23 @@ function setupIPC() {
         resolved = true;
 
         if (code !== 0 || !stdout.trim()) {
-          console.log('[telemetry] enhanced sensors failed:', stderr || 'no output');
+          enhancedCrashCount++;
+          if (enhancedCrashCount >= MAX_CRASH_COUNT) {
+            console.warn('[telemetry] enhanced sensors disabled after repeated failures');
+            enhancedDisabled = true;
+          }
           resolve({ enhancedAvailable: false, error: stderr || 'Helper failed' });
           return;
         }
+
+        enhancedCrashCount = 0;
 
         try {
           const data = JSON.parse(stdout.trim());
           enhancedCache = { enhancedAvailable: true, ...data };
           enhancedCacheTime = now;
-          console.log('[telemetry] enhanced sensors:', JSON.stringify(data));
           resolve(enhancedCache);
         } catch (e) {
-          console.log('[telemetry] enhanced sensors parse error:', e.message);
           resolve({ enhancedAvailable: false, error: 'Parse error' });
         }
       });
@@ -398,7 +412,11 @@ function setupIPC() {
         clearTimeout(timeout);
         if (resolved) return;
         resolved = true;
-        console.log('[telemetry] enhanced sensors spawn error:', err.message);
+        enhancedCrashCount++;
+        if (enhancedCrashCount >= MAX_CRASH_COUNT) {
+          console.warn('[telemetry] enhanced sensors disabled after spawn errors');
+          enhancedDisabled = true;
+        }
         resolve({ enhancedAvailable: false, error: err.message });
       });
     });

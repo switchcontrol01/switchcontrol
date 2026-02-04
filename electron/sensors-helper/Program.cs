@@ -5,18 +5,17 @@ using LibreHardwareMonitor.Hardware;
 
 class SensorData
 {
-    public double? cpuTempC { get; set; }
-    public double? gpuTempC { get; set; }
-    public double? moboTempC { get; set; }
-    public double? chipsetTempC { get; set; }
-    public double? vrmTempC { get; set; }
-    public List<DiskTemp> diskTemps { get; set; } = new List<DiskTemp>();
+    public double? cpuTemp { get; set; }
+    public double? gpuTemp { get; set; }
+    public double? motherboardTemp { get; set; }
+    public List<DiskTemp> disks { get; set; } = new List<DiskTemp>();
+    public bool isAdmin { get; set; }
 }
 
 class DiskTemp
 {
     public string name { get; set; } = "";
-    public double? tempC { get; set; }
+    public double? temp { get; set; }
 }
 
 class UpdateVisitor : IVisitor
@@ -39,9 +38,24 @@ class UpdateVisitor : IVisitor
 
 class Program
 {
+    static bool IsAdministrator()
+    {
+        try
+        {
+            using var identity = System.Security.Principal.WindowsIdentity.GetCurrent();
+            var principal = new System.Security.Principal.WindowsPrincipal(identity);
+            return principal.IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
     static void Main(string[] args)
     {
         var data = new SensorData();
+        data.isAdmin = IsAdministrator();
 
         try
         {
@@ -65,12 +79,13 @@ class Program
                         {
                             if (sensor.SensorType == SensorType.Temperature)
                             {
-                                if (sensor.Name.Contains("Package") || sensor.Name.Contains("Core Average") || 
-                                    (sensor.Name.Contains("Core") && data.cpuTempC == null))
+                                string name = sensor.Name.ToLower();
+                                if (name.Contains("package") || name.Contains("core average") || 
+                                    (name.Contains("core") && data.cpuTemp == null))
                                 {
                                     if (sensor.Value.HasValue && sensor.Value.Value > 0 && sensor.Value.Value < 150)
                                     {
-                                        data.cpuTempC = Math.Round(sensor.Value.Value, 1);
+                                        data.cpuTemp = Math.Round(sensor.Value.Value, 1);
                                     }
                                 }
                             }
@@ -78,16 +93,49 @@ class Program
                         break;
 
                     case HardwareType.GpuNvidia:
+                        foreach (ISensor sensor in hardware.Sensors)
+                        {
+                            if (sensor.SensorType == SensorType.Temperature)
+                            {
+                                string name = sensor.Name.ToLower();
+                                if (name.Contains("core") || name.Contains("gpu"))
+                                {
+                                    if (sensor.Value.HasValue && sensor.Value.Value > 0 && sensor.Value.Value < 150)
+                                    {
+                                        data.gpuTemp = Math.Round(sensor.Value.Value, 1);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+
                     case HardwareType.GpuAmd:
+                        foreach (ISensor sensor in hardware.Sensors)
+                        {
+                            if (sensor.SensorType == SensorType.Temperature)
+                            {
+                                string name = sensor.Name.ToLower();
+                                if (name.Contains("edge") || name.Contains("temperature") || name.Contains("gpu"))
+                                {
+                                    if (sensor.Value.HasValue && sensor.Value.Value > 0 && sensor.Value.Value < 150)
+                                    {
+                                        data.gpuTemp = Math.Round(sensor.Value.Value, 1);
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        break;
+
                     case HardwareType.GpuIntel:
                         foreach (ISensor sensor in hardware.Sensors)
                         {
-                            if (sensor.SensorType == SensorType.Temperature && 
-                                (sensor.Name.Contains("GPU Core") || sensor.Name.Contains("Temperature")))
+                            if (sensor.SensorType == SensorType.Temperature)
                             {
                                 if (sensor.Value.HasValue && sensor.Value.Value > 0 && sensor.Value.Value < 150)
                                 {
-                                    data.gpuTempC = Math.Round(sensor.Value.Value, 1);
+                                    data.gpuTemp = Math.Round(sensor.Value.Value, 1);
                                     break;
                                 }
                             }
@@ -105,24 +153,16 @@ class Program
                                     if (val > 0 && val < 150)
                                     {
                                         string name = sensor.Name.ToLower();
-                                        if (name.Contains("vrm") || name.Contains("mos") || name.Contains("vcore"))
+                                        if (name.Contains("system") || name.Contains("mainboard") || 
+                                            name.Contains("board") || name.Contains("chipset") || name.Contains("pch"))
                                         {
-                                            if (data.vrmTempC == null)
-                                                data.vrmTempC = Math.Round(val, 1);
+                                            if (data.motherboardTemp == null)
+                                                data.motherboardTemp = Math.Round(val, 1);
                                         }
-                                        else if (name.Contains("chipset") || name.Contains("pch"))
+                                        else if (data.motherboardTemp == null && !name.Contains("cpu") && 
+                                                 !name.Contains("vrm") && !name.Contains("mos"))
                                         {
-                                            if (data.chipsetTempC == null)
-                                                data.chipsetTempC = Math.Round(val, 1);
-                                        }
-                                        else if (name.Contains("system") || name.Contains("mainboard") || name.Contains("board"))
-                                        {
-                                            if (data.moboTempC == null)
-                                                data.moboTempC = Math.Round(val, 1);
-                                        }
-                                        else if (data.moboTempC == null && !name.Contains("cpu"))
-                                        {
-                                            data.moboTempC = Math.Round(val, 1);
+                                            data.motherboardTemp = Math.Round(val, 1);
                                         }
                                     }
                                 }
@@ -131,21 +171,23 @@ class Program
                         break;
 
                     case HardwareType.Storage:
+                        double? diskTemp = null;
                         foreach (ISensor sensor in hardware.Sensors)
                         {
-                            if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
+                            if (sensor.SensorType == SensorType.Temperature)
                             {
-                                if (sensor.Value.Value > 0 && sensor.Value.Value < 100)
+                                if (sensor.Value.HasValue && sensor.Value.Value > 0 && sensor.Value.Value < 100)
                                 {
-                                    data.diskTemps.Add(new DiskTemp
-                                    {
-                                        name = hardware.Name,
-                                        tempC = Math.Round(sensor.Value.Value, 1)
-                                    });
+                                    diskTemp = Math.Round(sensor.Value.Value, 1);
                                     break;
                                 }
                             }
                         }
+                        data.disks.Add(new DiskTemp
+                        {
+                            name = hardware.Name,
+                            temp = diskTemp
+                        });
                         break;
                 }
             }
