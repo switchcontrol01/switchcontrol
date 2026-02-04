@@ -122,7 +122,7 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    const filePath = path.join(__dirname, '..', 'dist', 'index.html');
+    const filePath = path.join(app.getAppPath(), 'dist', 'index.html');
     console.log('Loading:', filePath);
     mainWindow.loadFile(filePath).catch(err => {
       console.error('Failed to load:', err);
