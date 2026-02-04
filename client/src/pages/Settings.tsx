@@ -10,6 +10,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Settings as SettingsIcon, Save, RotateCcw, FolderOpen, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
+import { RuntimeDiagnostics } from "@/components/RuntimeDiagnostics";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -151,6 +152,17 @@ export default function Settings() {
                    Open Log Directory
                  </Button>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Runtime Diagnostics */}
+          <Card className="bg-card/50 border-border/50">
+            <CardHeader>
+              <CardTitle>System Diagnostics</CardTitle>
+              <CardDescription>Debug runtime environment and sensor connectivity.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <RuntimeDiagnostics />
             </CardContent>
           </Card>
 
