@@ -134,6 +134,10 @@ function createWindow() {
   }
 
   mainWindow.on('closed', () => {
+    if (telemetryInterval) {
+      clearInterval(telemetryInterval);
+      telemetryInterval = null;
+    }
     mainWindow = null;
   });
 }
