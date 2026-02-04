@@ -9,7 +9,7 @@ import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from 
 import { isTweakPremium } from "@/lib/premium-config";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumBadge } from "@/components/ui/animated-crown";
-import { Link } from "wouter";
+import { openPricing } from "@/lib/pricing";
 
 interface TweakCardProps {
   tweak: Tweak;
@@ -151,12 +151,13 @@ function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose:
                 This tweak is part of SwitchControl Premium. Advanced system tuning for latency, consistency, and performance.
               </p>
             </div>
-            <Link href="/pricing">
-              <Button className="w-full bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white">
-                <Crown className="size-4 mr-2" />
-                Upgrade to Premium
-              </Button>
-            </Link>
+            <Button 
+              onClick={openPricing}
+              className="w-full bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+            >
+              <Crown className="size-4 mr-2" />
+              Upgrade to Premium
+            </Button>
           </div>
         </motion.div>
       </motion.div>

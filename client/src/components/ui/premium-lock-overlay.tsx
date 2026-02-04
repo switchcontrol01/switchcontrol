@@ -1,9 +1,9 @@
 import { cn } from "@/lib/utils";
 import { Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { openPricing } from "@/lib/pricing";
 
 interface PremiumLockOverlayProps {
   featureName: string;
@@ -95,15 +95,14 @@ export function PremiumLockOverlay({
             )}
           </div>
           
-          <Link href="/pricing">
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-            >
-              <Crown className="size-3 mr-1.5" />
-              Unlock {featureName}
-            </Button>
-          </Link>
+          <Button
+            size="sm"
+            onClick={openPricing}
+            className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+          >
+            <Crown className="size-3 mr-1.5" />
+            Unlock {featureName}
+          </Button>
         </motion.div>
       </div>
     </div>

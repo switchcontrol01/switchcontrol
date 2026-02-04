@@ -6,6 +6,7 @@ import { setupGoogleAuth, requirePremium } from "./auth/google";
 import { setupDiscordAuth } from "./auth/discord";
 import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
 import { isPremiumTweakById } from "../shared/tweak-tiers";
+import { getTierFromTweakCount, getRandomMessage, getRandomRecommendations } from "./lib/aiMessages";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -183,35 +184,58 @@ export async function registerRoutes(
     }
   });
 
-  // Premium-only: AI Scan
+  // Premium-only: AI Scan with cooldown and dynamic messages
   app.post("/api/ai-scan", requirePremium, async (req, res) => {
     try {
       const settings = await storage.getOrCreateSettings();
       
-      const recommendations = [
-        { id: "1", action: "Reduce background process priority", tag: "Safe" },
-        { id: "2", action: "Optimize kernel memory management", tag: "Advanced" },
-        { id: "3", action: "Disable unused driver hooks", tag: "Requires local agent" }
-      ];
+      // Cooldown check - 60 seconds between AI scans (using latest AI scan timestamp)
+      const latestAIScan = await storage.getLatestAIScan(settings.id);
+      if (latestAIScan?.timestamp) {
+        const cooldownMs = 60 * 1000; // 60 seconds
+        const timeSinceLastScan = Date.now() - new Date(latestAIScan.timestamp).getTime();
+        if (timeSinceLastScan < cooldownMs) {
+          const remainingSeconds = Math.ceil((cooldownMs - timeSinceLastScan) / 1000);
+          return res.status(429).json({ 
+            error: "cooldown", 
+            message: `Please wait ${remainingSeconds} seconds before running another AI scan.`,
+            remainingSeconds
+          });
+        }
+      }
       
+      // Get dynamic tier based on tweaks applied
+      const tweaksApplied = settings.tweaksApplied ?? 0;
+      const tier = getTierFromTweakCount(tweaksApplied);
+      
+      // Generate dynamic message and recommendations
+      const message = getRandomMessage(tier);
+      const recommendations = getRandomRecommendations(tier, 3);
+      
+      // Always persist scan and history
       const scan = await storage.addAIScan({
         settingsId: settings.id,
-        summary: "Your system is good, but these 3 changes could help consistency.",
+        summary: message,
         recommendations,
       });
-      
-      await storage.updateSettings(settings.id, { lastScan: new Date() });
       
       await storage.addHistory({
         settingsId: settings.id,
         action: 'AI Scan',
         page: 'Dashboard',
-        result: 'Scan complete',
-        notes: 'Generated 3 recommendations',
+        result: tier === "optimized" ? 'System optimized' : 'Scan complete',
+        notes: tier === "optimized" 
+          ? 'No further optimizations needed' 
+          : `Generated ${recommendations.length} recommendations (${tier} tier)`,
       });
       
-      res.json(scan);
+      res.json({ 
+        ...scan, 
+        tier, 
+        optimized: tier === "optimized"
+      });
     } catch (error) {
+      console.error("AI scan error:", error);
       res.status(500).json({ error: "Failed to run AI scan" });
     }
   });

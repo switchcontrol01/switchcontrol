@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef } from "react";
 import { AnimatedCrown } from "@/components/ui/animated-crown";
-import { Link } from "wouter";
+import { openPricing } from "@/lib/pricing";
 
 interface PremiumPageOverlayProps {
   featureName: string;
@@ -51,16 +51,15 @@ export function PremiumPageOverlay({ featureName, buttonText, description }: Pre
             {description || "Premium feature – unlock to apply"}
           </p>
         </div>
-        <Link href="/pricing">
-          <Button
-            size="sm"
-            className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-            data-testid="button-unlock-premium"
-          >
-            <Crown className="size-3 mr-1.5" />
-            {buttonText || `Unlock ${featureName}`}
-          </Button>
-        </Link>
+        <Button
+          size="sm"
+          onClick={openPricing}
+          className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+          data-testid="button-unlock-premium"
+        >
+          <Crown className="size-3 mr-1.5" />
+          {buttonText || `Unlock ${featureName}`}
+        </Button>
       </motion.div>
     </div>
   );
@@ -117,16 +116,15 @@ export function PremiumCardOverlay({ featureName, buttonText, children, isLocked
               Premium feature – unlock to apply
             </p>
           </div>
-          <Link href="/pricing">
-            <Button
-              size="sm"
-              className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-              data-testid="button-unlock-premium"
-            >
-              <Crown className="size-3 mr-1.5" />
-              {buttonText || `Unlock ${featureName}`}
-            </Button>
-          </Link>
+          <Button
+            size="sm"
+            onClick={openPricing}
+            className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+            data-testid="button-unlock-premium"
+          >
+            <Crown className="size-3 mr-1.5" />
+            {buttonText || `Unlock ${featureName}`}
+          </Button>
         </motion.div>
       </div>
     </div>

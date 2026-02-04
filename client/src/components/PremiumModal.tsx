@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Crown, Shield, Zap, Brain, Cpu, Check } from "lucide-react";
 import { motion, useMotion } from "@/lib/motion";
-import { Link } from "wouter";
+import { openPricing } from "@/lib/pricing";
 
 interface PremiumModalProps {
   open: boolean;
@@ -61,15 +61,16 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
         </div>
         
         <div className="space-y-3">
-          <Link href="/pricing">
-            <Button 
-              className="w-full bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
-              onClick={() => onOpenChange(false)}
-            >
-              <Crown className="w-4 h-4 mr-2" />
-              Upgrade to Premium
-            </Button>
-          </Link>
+          <Button 
+            className="w-full bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+            onClick={() => {
+              openPricing();
+              onOpenChange(false);
+            }}
+          >
+            <Crown className="w-4 h-4 mr-2" />
+            Upgrade to Premium
+          </Button>
           
           <p className="text-center text-xs text-muted-foreground">
             No presets. No risky automation. Full transparency.

@@ -74,8 +74,21 @@ export async function fetchAIScan() {
   return res.json();
 }
 
+interface CooldownError extends Error {
+  remainingSeconds?: number;
+}
+
 export async function runAIScan() {
   const res = await fetch(`${API_BASE}/ai-scan`, { method: "POST" });
+  
+  // Handle cooldown response
+  if (res.status === 429) {
+    const data = await res.json();
+    const error = new Error(data.message || "Please wait before running another scan") as CooldownError;
+    error.remainingSeconds = data.remainingSeconds;
+    throw error;
+  }
+  
   if (!res.ok) throw new Error("Failed to run AI scan");
   queryClient.invalidateQueries({ queryKey: ["settings"] });
   queryClient.invalidateQueries({ queryKey: ["history"] });

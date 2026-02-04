@@ -68,6 +68,20 @@ shared/
 - **History**: Action log with JSON export capability
 - **Settings**: Account preferences and app configuration
 
+### AI Advisor System
+- **Cooldown**: 60-second cooldown between AI scans (enforced server-side using latest aiScans timestamp)
+- **Dynamic Messages**: Three-tier message system based on tweaksApplied count:
+  - `early` (<5 tweaks): Suggests many optimizations
+  - `mid` (5-10 tweaks): Partial optimization messages
+  - `optimized` (10+ tweaks): System is fully optimized
+- **Randomized Recommendations**: Pulls from pools in `server/lib/aiMessages.ts`
+- **Frontend State**: Countdown timer, disabled button during cooldown, green styling for optimized state
+
+### Premium Redirect System
+- All "Unlock Premium" / "Get Premium" buttons open `https://switchcontrol.org/pricing` in external browser
+- Uses centralized `client/src/lib/pricing.ts` helper
+- Electron: `window.electron.openExternal()`, Browser: `window.open()`
+
 ## External Dependencies
 
 ### Database

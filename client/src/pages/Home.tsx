@@ -65,14 +65,19 @@ interface AIAdvisorCardProps {
   scanning: boolean;
   latestAIScan: any;
   onScan: () => void;
+  cooldownSeconds: number;
+  scanError: string | null;
 }
 
-function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorCardProps) {
+function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeconds, scanError }: AIAdvisorCardProps) {
   const mockRecommendations = [
     { id: "1", action: "Disable Windows Search indexing for game drives", tag: "Safe" },
     { id: "2", action: "Enable Hardware-accelerated GPU scheduling", tag: "Safe" },
     { id: "3", action: "Disable Superfetch for SSD optimization", tag: "Advanced" },
   ];
+
+  const isOnCooldown = cooldownSeconds > 0;
+  const isOptimized = latestAIScan?.optimized === true;
 
   const cardContent = (
     <Card className={cn(
@@ -110,25 +115,44 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan }: AIAdvisorC
               </div>
             ) : latestAIScan && (
               <div className="space-y-3 animate-in fade-in duration-500">
-                <div className="p-2.5 rounded-lg bg-white/5 border border-white/10">
-                  <p className="text-[11px] leading-relaxed text-white/90">{latestAIScan.summary}</p>
+                <div className={cn(
+                  "p-2.5 rounded-lg border",
+                  isOptimized 
+                    ? "bg-emerald-500/10 border-emerald-500/20" 
+                    : "bg-white/5 border-white/10"
+                )}>
+                  <p className={cn(
+                    "text-[11px] leading-relaxed",
+                    isOptimized ? "text-emerald-400" : "text-white/90"
+                  )}>{latestAIScan.summary}</p>
                 </div>
-                <div className="space-y-1.5">
-                  {latestAIScan.recommendations.map((rec: any) => (
-                    <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors">
-                      <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
-                      <span className={cn(
-                        "text-[9px] font-bold uppercase px-1 rounded",
-                        rec.tag === "Safe" ? "text-emerald-400" : 
-                        rec.tag === "Advanced" ? "text-blue-400" : "text-amber-400"
-                      )}>
-                        {rec.tag === "Safe" ? "Safe" : rec.tag === "Advanced" ? "Adv" : "Agent"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <Button onClick={onScan} variant="ghost" size="sm" className="w-full text-[10px] h-7 hover:bg-white/5">
-                  Rescan System
+                {!isOptimized && latestAIScan.recommendations?.length > 0 && (
+                  <div className="space-y-1.5">
+                    {latestAIScan.recommendations.map((rec: any) => (
+                      <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors">
+                        <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
+                        <span className={cn(
+                          "text-[9px] font-bold uppercase px-1 rounded",
+                          rec.tag === "Safe" ? "text-emerald-400" : 
+                          rec.tag === "Advanced" ? "text-blue-400" : "text-amber-400"
+                        )}>
+                          {rec.tag === "Safe" ? "Safe" : rec.tag === "Advanced" ? "Adv" : "Agent"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {scanError && (
+                  <p className="text-[10px] text-amber-400 text-center">{scanError}</p>
+                )}
+                <Button 
+                  onClick={onScan} 
+                  variant="ghost" 
+                  size="sm" 
+                  className="w-full text-[10px] h-7 hover:bg-white/5"
+                  disabled={isOnCooldown || scanning}
+                >
+                  {isOnCooldown ? `Wait ${cooldownSeconds}s` : 'Rescan System'}
                 </Button>
               </div>
             )}
@@ -189,10 +213,28 @@ export default function Home() {
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [scanError, setScanError] = useState<string | null>(null);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
   useRevealOnScroll();
+  
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    
+    cooldownIntervalRef.current = setInterval(() => {
+      setCooldownSeconds(prev => Math.max(0, prev - 1));
+    }, 1000);
+    
+    return () => {
+      if (cooldownIntervalRef.current) {
+        clearInterval(cooldownIntervalRef.current);
+        cooldownIntervalRef.current = null;
+      }
+    };
+  }, [cooldownSeconds]);
   
   const getUserDisplayName = (): string => {
     if (user?.firstName) return user.firstName;
@@ -289,8 +331,19 @@ export default function Home() {
   const diskPercent = currentDiskTotal > 0 ? (currentDiskUsed / currentDiskTotal) * 100 : 0;
 
   const handleAIScan = async () => {
+    if (cooldownSeconds > 0) return;
+    setScanError(null);
     setScanning(true);
-    await runAIScan();
+    try {
+      await runAIScan();
+    } catch (error: any) {
+      if (error?.remainingSeconds) {
+        setCooldownSeconds(error.remainingSeconds);
+        setScanError(null);
+      } else {
+        setScanError(error?.message || 'Scan failed');
+      }
+    }
     setScanning(false);
   };
 
@@ -510,7 +563,9 @@ export default function Home() {
               isPremium={isPremium} 
               scanning={scanning} 
               latestAIScan={latestAIScan} 
-              onScan={handleAIScan} 
+              onScan={handleAIScan}
+              cooldownSeconds={cooldownSeconds}
+              scanError={scanError}
             />
           </motion.div>
 
