@@ -81,7 +81,7 @@
     "directories": {"output": "release"},
     "files": ["dist/**/*", "electron/**/*"],
     "extraResources": [{"from": "electron/bin", "to": "bin", "filter": ["**/*"]}],
-    "win": {"target": "nsis", "icon": "client/src/assets/logo.png"},
+    "win": {"target": "nsis", "icon": "assets/icon.ico"},
     "nsis": {"oneClick": false, "perMachine": true, "allowToChangeInstallationDirectory": true}
   }
 }
