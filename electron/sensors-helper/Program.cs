@@ -93,39 +93,53 @@ class Program
                         break;
 
                     case HardwareType.GpuNvidia:
+                        double? nvidiaCoreTemp = null;
+                        double? nvidiaFallbackTemp = null;
                         foreach (ISensor sensor in hardware.Sensors)
                         {
-                            if (sensor.SensorType == SensorType.Temperature)
+                            if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
                             {
-                                string name = sensor.Name.ToLower();
-                                if (name.Contains("core") || name.Contains("gpu"))
+                                double val = sensor.Value.Value;
+                                if (val > 0 && val < 150)
                                 {
-                                    if (sensor.Value.HasValue && sensor.Value.Value > 0 && sensor.Value.Value < 150)
+                                    string name = sensor.Name.ToLower();
+                                    if (name.Contains("gpu core") || name == "core")
                                     {
-                                        data.gpuTemp = Math.Round(sensor.Value.Value, 1);
-                                        break;
+                                        nvidiaCoreTemp = Math.Round(val, 1);
+                                    }
+                                    else if (nvidiaFallbackTemp == null)
+                                    {
+                                        nvidiaFallbackTemp = Math.Round(val, 1);
                                     }
                                 }
                             }
                         }
+                        data.gpuTemp = nvidiaCoreTemp ?? nvidiaFallbackTemp;
                         break;
 
                     case HardwareType.GpuAmd:
+                        double? amdEdgeTemp = null;
+                        double? amdFallbackTemp = null;
                         foreach (ISensor sensor in hardware.Sensors)
                         {
-                            if (sensor.SensorType == SensorType.Temperature)
+                            if (sensor.SensorType == SensorType.Temperature && sensor.Value.HasValue)
                             {
-                                string name = sensor.Name.ToLower();
-                                if (name.Contains("edge") || name.Contains("temperature") || name.Contains("gpu"))
+                                double val = sensor.Value.Value;
+                                if (val > 0 && val < 150)
                                 {
-                                    if (sensor.Value.HasValue && sensor.Value.Value > 0 && sensor.Value.Value < 150)
+                                    string name = sensor.Name.ToLower();
+                                    if (name.Contains("edge"))
                                     {
-                                        data.gpuTemp = Math.Round(sensor.Value.Value, 1);
-                                        break;
+                                        amdEdgeTemp = Math.Round(val, 1);
+                                    }
+                                    else if (amdFallbackTemp == null)
+                                    {
+                                        amdFallbackTemp = Math.Round(val, 1);
                                     }
                                 }
                             }
                         }
+                        data.gpuTemp = amdEdgeTemp ?? amdFallbackTemp;
                         break;
 
                     case HardwareType.GpuIntel:
