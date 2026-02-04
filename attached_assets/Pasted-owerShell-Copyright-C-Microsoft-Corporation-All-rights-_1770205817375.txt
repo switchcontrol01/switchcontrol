@@ -1,0 +1,122 @@
+owerShell
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+Install the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\WINDOWS\system32> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item node_modules -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm install
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   83 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+npm warn deprecated @esbuild-kit/esm-loader@2.6.5: Merged into tsx: https://tsx.is
+npm warn deprecated @esbuild-kit/core-utils@3.3.2: Merged into tsx: https://tsx.is
+npm warn deprecated passport-discord@0.1.4: This package is no longer maintained. Please consider migrating to a maintained alternative, (following packages are author unvetted) such as: discord-strategy, passport-discord-auth, ...
+
+> switchcontrol@1.0.0 postinstall
+> cd electron && npm install
+
+
+up to date, audited 396 packages in 724ms
+
+63 packages are looking for funding
+  run `npm fund` for details
+
+10 vulnerabilities (1 moderate, 9 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+added 381 packages, and audited 382 packages in 5s
+
+53 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> switchcontrol@1.0.0 build
+> npx tsx script/build.ts
+
+building client...
+vite v7.3.1 building client environment for production...
+✓ 3241 modules transformed.
+../dist/index.html                        2.48 kB │ gzip:   0.86 kB
+../dist/assets/wordmark-C34wmMGH.png     21.20 kB
+../dist/assets/favicon-BRJw6V6x.png      66.31 kB
+../dist/assets/icon-DV4hFloJ.png      1,072.04 kB
+../dist/assets/index-aLFIoQ8q.css       213.02 kB │ gzip:  28.30 kB
+../dist/assets/api-DuvMsecM.js            1.15 kB │ gzip:   0.67 kB
+../dist/assets/index-zcW-xhIN.js      1,352.54 kB │ gzip: 391.77 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 2.93s
+building server...
+
+  dist\index.cjs  2.3mb
+
+Done in 64ms
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run electron:build
+
+> switchcontrol@1.0.0 electron:build
+> cd electron && npm run dist:win
+
+
+> switchcontrol-electron@1.0.0 dist:win
+> electron-builder --win
+
+  • electron-builder  version=25.1.8 os=10.0.26200
+  • loaded configuration  file=package.json ("build" field)
+  • writing effective config  file=dist\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=33.4.11 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=33.4.11 appOutDir=dist\win-unpacked
+  • updating asar integrity executable resource  executablePath=dist\win-unpacked\SwitchControl.exe
+  • signing with signtool.exe  path=dist\win-unpacked\resources\bin\SensorsHelper.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • default Electron icon is used  reason=application icon is not set
+  • signing with signtool.exe  path=dist\win-unpacked\SwitchControl.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • building        target=nsis file=dist\SwitchControl Setup 1.0.0.exe archs=x64 oneClick=false perMachine=false
+  • signing with signtool.exe  path=dist\win-unpacked\resources\elevate.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=dist\__uninstaller-nsis-switchcontrol-electron.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=dist\SwitchControl Setup 1.0.0.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • building block map  blockMapFile=dist\SwitchControl Setup 1.0.0.exe.blockmap
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
