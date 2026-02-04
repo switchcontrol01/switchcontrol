@@ -28,8 +28,9 @@ function TikTokIcon({ className }: { className?: string }) {
 }
 
 export default function Settings() {
-  const { account, resetData } = useStore();
+  const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled } = useStore();
   const { toast } = useToast();
+  const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
   const handleSave = () => {
     toast({
@@ -82,6 +83,32 @@ export default function Settings() {
                 </div>
                 <Switch defaultChecked />
               </div>
+              {isElectron && (
+                <>
+                  <Separator className="bg-border/50" />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label className="flex items-center gap-2">
+                        Enhanced Sensors
+                        <span className="text-[9px] text-amber-400 uppercase font-medium px-1.5 py-0.5 bg-amber-500/10 rounded">Experimental</span>
+                      </Label>
+                      <p className="text-xs text-muted-foreground">Use LibreHardwareMonitor for motherboard, VRM, and chipset temps.</p>
+                    </div>
+                    <Switch 
+                      checked={enhancedSensorsEnabled} 
+                      onCheckedChange={(checked) => {
+                        setEnhancedSensorsEnabled(checked);
+                        toast({
+                          title: checked ? "Enhanced Sensors Enabled" : "Enhanced Sensors Disabled",
+                          description: checked 
+                            ? "Motherboard temps may now be available if supported." 
+                            : "Using default system sensors.",
+                        });
+                      }}
+                    />
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

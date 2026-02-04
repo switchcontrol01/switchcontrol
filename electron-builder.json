@@ -8,7 +8,15 @@
   },
   "files": [
     "dist/public/**/*",
-    "electron/**/*"
+    "electron/**/*",
+    "!electron/sensors-helper/**/*"
+  ],
+  "extraResources": [
+    {
+      "from": "electron/bin",
+      "to": "bin",
+      "filter": ["**/*"]
+    }
   ],
   "asar": true,
   "icon": "assets/icon",

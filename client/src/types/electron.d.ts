@@ -56,6 +56,17 @@ declare global {
     ramUsedGb: number;
     ramTotalGb: number;
   }
+  
+  interface EnhancedTelemetryData {
+    enhancedAvailable: boolean;
+    error?: string;
+    cpuTempC?: number | null;
+    gpuTempC?: number | null;
+    moboTempC?: number | null;
+    chipsetTempC?: number | null;
+    vrmTempC?: number | null;
+    diskTemps?: Array<{ name: string; tempC: number | null }>;
+  }
   interface Window {
     electron?: {
       openExternal: (url: string) => Promise<boolean>;
@@ -92,6 +103,7 @@ declare global {
     
     telemetry?: {
       getLive: () => Promise<TelemetryData>;
+      getEnhanced: () => Promise<EnhancedTelemetryData>;
     };
     
     sc?: {

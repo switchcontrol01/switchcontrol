@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { useStore } from "@/lib/store";
 
 interface DataPoint {
   time: string;
@@ -18,6 +19,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
+  const enhancedSensorsEnabled = useStore((state) => state.enhancedSensorsEnabled);
 
   useEffect(() => {
     const fetchTelemetry = async () => {
@@ -26,6 +28,21 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
 
         if (window.telemetry?.getLive) {
           telemetry = await window.telemetry.getLive();
+          
+          if (enhancedSensorsEnabled && window.telemetry?.getEnhanced) {
+            try {
+              const enhanced = await window.telemetry.getEnhanced();
+              if (enhanced.enhancedAvailable) {
+                console.log('[telemetry] merging enhanced sensors');
+                if (enhanced.cpuTempC != null) telemetry.cpuTempC = enhanced.cpuTempC;
+                if (enhanced.gpuTempC != null) telemetry.gpuTempC = enhanced.gpuTempC;
+                if (enhanced.moboTempC != null) telemetry.moboTempC = enhanced.moboTempC;
+                else if (enhanced.chipsetTempC != null) telemetry.moboTempC = enhanced.chipsetTempC;
+              }
+            } catch (e) {
+              console.warn('[telemetry] enhanced sensors error:', e);
+            }
+          }
         } else if (window.sc?.getRamUsage) {
           const ram = await window.sc.getRamUsage();
           telemetry = {
@@ -104,7 +121,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         clearInterval(intervalRef.current);
       }
     };
-  }, [onTelemetryUpdate]);
+  }, [onTelemetryUpdate, enhancedSensorsEnabled]);
 
   if (error) {
     return (

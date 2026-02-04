@@ -32,6 +32,7 @@ interface AppState {
   tweaks: Record<string, boolean>; // id -> enabled
   history: HistoryItem[];
   latestAIScan: AIScanResult | null;
+  enhancedSensorsEnabled: boolean;
   
   // Actions
   toggleTweak: (id: string) => void;
@@ -42,6 +43,7 @@ interface AppState {
   enableRecommended: () => void;
   runAIScan: () => Promise<void>;
   updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
+  setEnhancedSensorsEnabled: (enabled: boolean) => void;
 }
 
 const DEFAULT_ACCOUNT_STATS: AccountStats = {
@@ -65,6 +67,7 @@ export const useStore = create<AppState>()(
       tweaks: {},
       history: [],
       latestAIScan: null,
+      enhancedSensorsEnabled: false,
 
       toggleTweak: (id) => {
         const { tweaks } = get();
@@ -182,6 +185,8 @@ export const useStore = create<AppState>()(
 
       setStats: (newStats) => set((state) => ({ stats: { ...state.stats, ...newStats } })),
       
+      setEnhancedSensorsEnabled: (enabled) => set({ enhancedSensorsEnabled: enabled }),
+      
       resetData: () => set({
         tweaks: {},
         history: [],
@@ -204,7 +209,8 @@ export const useStore = create<AppState>()(
       partialize: (state) => ({ 
         tweaks: state.tweaks, 
         history: state.history,
-        latestAIScan: state.latestAIScan
+        latestAIScan: state.latestAIScan,
+        enhancedSensorsEnabled: state.enhancedSensorsEnabled
       }),
       version: 1, // Force update if structure changes
     }
