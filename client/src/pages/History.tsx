@@ -29,7 +29,7 @@ export default function History() {
               Scan History
             </h1>
             <p className="text-muted-foreground mt-2">
-              Log of all simulated optimization actions.
+              Log of all optimization actions.
             </p>
           </div>
           <div className="flex gap-2">

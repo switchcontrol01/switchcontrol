@@ -229,7 +229,6 @@ export default function SystemCleaner() {
             </h1>
             <p className="text-muted-foreground mt-2 max-w-2xl">
               Impact-based cleaning that targets performance, not just disk space.
-              <span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span>
             </p>
           </div>
           <div className="flex items-center gap-2">

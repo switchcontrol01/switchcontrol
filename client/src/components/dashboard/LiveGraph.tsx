@@ -6,7 +6,7 @@ import { useStore } from "@/lib/store";
 
 interface DataPoint {
   time: string;
-  cpu: number;
+  cpu: number | null;
   gpu: number | null;
   mobo: number | null;
   ram: number;
@@ -88,10 +88,11 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
         
         setData(prev => {
-          const gpuValue = telemetry.gpuTempC ?? telemetry.gpuLoadPercent;
+          const gpuValue = telemetry.gpuTempC ?? telemetry.gpuLoadPercent ?? null;
+          const cpuValue = telemetry.cpuLoadPercent > 0 ? telemetry.cpuLoadPercent : (telemetry.cpuTempC ?? null);
           const newPoint: DataPoint = {
             time: timeStr,
-            cpu: telemetry.cpuTempC ?? telemetry.cpuLoadPercent,
+            cpu: cpuValue,
             gpu: gpuValue,
             mobo: telemetry.moboTempC,
             ram: parseFloat(((telemetry.ramUsedGb / telemetry.ramTotalGb) * 100).toFixed(1))
@@ -209,6 +210,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 3 }}
+              connectNulls={false}
             />
             <Line 
               type="monotone" 
@@ -218,6 +220,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 3 }}
+              connectNulls={false}
             />
             <Line 
               type="monotone" 

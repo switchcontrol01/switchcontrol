@@ -93,19 +93,19 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
       </div>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-medium flex items-center gap-2">
-          AI Advisor
+          System Advisor
           {!isPremium && <PremiumBadge className="ml-1" />}
         </CardTitle>
-        <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
+        <CardDescription className="text-[10px]">Performance optimization analysis</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isPremium ? (
           <>
             {!latestAIScan && !scanning && !scanError ? (
               <div className="py-6 text-center space-y-4">
-                <p className="text-xs text-muted-foreground px-4">Run an AI scan to get personalized optimization recommendations.</p>
+                <p className="text-xs text-muted-foreground px-4">Run a system analysis to get optimization recommendations.</p>
                 <Button onClick={onScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
-                  Run AI Scan
+                  Run Analysis
                 </Button>
               </div>
             ) : !latestAIScan && !scanning && scanError ? (
@@ -118,7 +118,7 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
             ) : scanning ? (
               <div className="py-8 flex flex-col items-center justify-center space-y-3">
                 <Loader2 className="size-6 text-primary animate-spin" />
-                <span className="text-xs text-muted-foreground animate-pulse">Analyzing system state...</span>
+                <span className="text-xs text-muted-foreground animate-pulse">Analyzing system configuration...</span>
               </div>
             ) : latestAIScan && (
               <div className="space-y-3 animate-in fade-in duration-500">
@@ -140,10 +140,9 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
                         <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
                         <span className={cn(
                           "text-[9px] font-bold uppercase px-1 rounded",
-                          rec.tag === "Safe" ? "text-emerald-400" : 
-                          rec.tag === "Advanced" ? "text-blue-400" : "text-amber-400"
+                          rec.tag === "Safe" ? "text-emerald-400" : "text-blue-400"
                         )}>
-                          {rec.tag === "Safe" ? "Safe" : rec.tag === "Advanced" ? "Adv" : "Agent"}
+                          {rec.tag === "Safe" ? "Safe" : "Adv"}
                         </span>
                       </div>
                     ))}
@@ -187,14 +186,14 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
         
         <div className="pt-2 border-t border-border/50 flex items-center gap-1.5 opacity-40">
           <Info className="size-2.5" />
-          <span className="text-[9px]">Recommendations are simulated until agent is installed.</span>
+          <span className="text-[9px]">Based on your current system configuration</span>
         </div>
       </CardContent>
     </Card>
   );
 
   return (
-    <PremiumCardOverlay featureName="AI Advisor" buttonText="Unlock AI Advisor" isLocked={!isPremium}>
+    <PremiumCardOverlay featureName="System Advisor" buttonText="Unlock System Advisor" isLocked={!isPremium}>
       {cardContent}
     </PremiumCardOverlay>
   );
@@ -431,7 +430,7 @@ export default function Home() {
                 title="CPU"
                 value={stats.cpuName}
                 icon={Cpu}
-                subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
+                subtext={stats.cpuCores > 0 ? `${stats.cpuCores} Cores / ${stats.cpuThreads} Threads` : `${stats.cpuThreads} Threads`}
                 className="border-blue-500/20 shadow-[0_0_20px_-10px_hsl(210_100%_50%/0.1)]"
               />
             </motion.div>
@@ -446,7 +445,7 @@ export default function Home() {
                 title="GPU"
                 value={stats.gpuName}
                 icon={Activity}
-                subtext={`${stats.vramGb} GB VRAM`}
+                subtext={stats.vramGb > 0 ? `${stats.vramGb} GB VRAM` : 'VRAM: N/A'}
                 className="border-red-500/20 shadow-[0_0_20px_-10px_hsl(0_100%_50%/0.1)]"
               />
             </motion.div>
@@ -559,7 +558,7 @@ export default function Home() {
           </Card>
           </motion.div>
 
-          {/* AI Advisor Card - Premium Only */}
+          {/* System Advisor Card - Premium Only */}
           <motion.div 
             variants={staggerItem}
             initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}

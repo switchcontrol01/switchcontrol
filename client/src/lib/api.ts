@@ -99,7 +99,7 @@ export async function clearHistory() {
 
 export async function fetchAIScan() {
   const res = await fetch(`${API_BASE}/ai-scan`);
-  if (!res.ok) throw new Error("Failed to fetch AI scan");
+  if (!res.ok) throw new Error("Failed to fetch system scan");
   return res.json();
 }
 
@@ -132,10 +132,10 @@ export async function runAIScan(systemContext?: SystemContextForAI) {
     
     // Handle premium required
     if (res.status === 403) {
-      throw new Error("Premium subscription required for AI Advisor");
+      throw new Error("Premium subscription required for System Advisor");
     }
     
-    if (!res.ok) throw new Error("AI scan unavailable. Please try again later.");
+    if (!res.ok) throw new Error("System scan unavailable. Please try again later.");
     queryClient.invalidateQueries({ queryKey: ["settings"] });
     queryClient.invalidateQueries({ queryKey: ["history"] });
     return res.json();

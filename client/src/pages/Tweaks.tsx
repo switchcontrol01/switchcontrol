@@ -12,8 +12,7 @@ export default function Tweaks() {
             System Tweaks
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
-            Fine-tune your Windows experience. Toggle settings to simulate optimization. 
-            <span className="text-yellow-500 ml-2 text-sm font-medium">⚠️ Actions are simulated for this prototype.</span>
+            Fine-tune your Windows experience for gaming performance.
           </p>
         </div>
         

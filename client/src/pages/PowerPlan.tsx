@@ -299,7 +299,7 @@ export default function PowerPlan() {
     applyAction(
       `Activated ${POWER_PROFILES.find(p => p.id === profileId)?.name || profileId} profile`,
       "Power Plan",
-      "Simulated apply"
+      "Applied"
     );
   };
 
