@@ -28,7 +28,8 @@
       "preload.js",
       "executors/**/*",
       "bin/**/*",
-      "sensors-helper/**/*"
+      "sensors-helper/**/*",
+      "../dist/**/*"
     ],
     "extraResources": [
       {
@@ -53,12 +54,13 @@
       "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
-      "oneClick": false,
+      "oneClick": true,
       "perMachine": false,
-      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SwitchControl"
+      "shortcutName": "SwitchControl",
+      "runAfterFinish": true
     },
     "protocols": {
       "name": "SwitchControl",

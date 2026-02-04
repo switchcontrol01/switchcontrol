@@ -129,10 +129,11 @@ function createWindow() {
     mainWindow.loadURL('http://localhost:5000');
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
-    const filePath = path.join(__dirname, '..', 'dist', 'public', 'index.html');
-    console.log('Loading:', filePath);
+    const filePath = path.join(__dirname, '..', 'dist', 'index.html');
+    console.log('[SwitchControl] Loading production file:', filePath);
     mainWindow.loadFile(filePath).catch(err => {
-      console.error('Failed to load:', err);
+      console.error('[SwitchControl] Failed to load:', err);
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
     });
   }
 
