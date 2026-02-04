@@ -1,29 +1,35 @@
 #!/usr/bin/env node
-const express = require('express');
+
+const { spawn } = require('child_process');
 const path = require('path');
-const fs = require('fs');
 
-const app = express();
-const PORT = parseInt(process.env.PORT || '5000', 10);
+process.env.NODE_ENV = 'production';
 
-app.use(express.json());
+const serverPath = path.join(__dirname, 'server', 'index.ts');
 
-const distPath = path.join(__dirname, 'dist');
-app.use(express.static(distPath));
+console.log('Starting SwitchControl production server...');
+console.log('Server path:', serverPath);
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+const child = spawn('npx', ['tsx', serverPath], {
+  stdio: 'inherit',
+  env: { ...process.env, NODE_ENV: 'production' },
+  shell: true
 });
 
-app.get('/{*splat}', (req, res) => {
-  const indexPath = path.join(distPath, 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(404).send('Application not found. Please run npm run build first.');
-  }
+child.on('error', (err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log('SwitchControl server running on port ' + PORT);
+child.on('close', (code) => {
+  console.log('Server exited with code:', code);
+  process.exit(code || 0);
+});
+
+process.on('SIGTERM', () => {
+  child.kill('SIGTERM');
+});
+
+process.on('SIGINT', () => {
+  child.kill('SIGINT');
 });
