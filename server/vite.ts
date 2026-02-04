@@ -31,7 +31,8 @@ export async function setupVite(server: Server, app: Express) {
 
   app.use(vite.middlewares);
 
-  app.use("*", async (req, res, next) => {
+  // Catch-all handler for SPA - use middleware instead of "*" path
+  app.use(async (req, res, next) => {
     const url = req.originalUrl;
 
     // Skip API and auth routes - let Express handle them

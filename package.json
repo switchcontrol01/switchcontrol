@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 5000",
-    "build": "vite build",
-    "start": "vite preview --host --port 5000"
+    "dev": "tsx server/index.ts",
+    "build": "npx tsx script/build.ts",
+    "start": "node dist/index.cjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
