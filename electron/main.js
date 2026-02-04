@@ -124,6 +124,7 @@ function createWindow() {
   } else {
     const filePath = path.join(app.getAppPath(), 'dist', 'index.html');
     console.log('Loading:', filePath);
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
     mainWindow.loadFile(filePath).catch(err => {
       console.error('Failed to load:', err);
     });
