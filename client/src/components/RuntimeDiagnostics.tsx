@@ -6,6 +6,8 @@ interface DiagnosticsResult {
   hasPreload: boolean;
   hasTelemetry: boolean;
   hasSystemAPI: boolean;
+  hasPing: boolean;
+  hasStream: boolean;
 }
 
 export function RuntimeDiagnostics({ compact = false }: { compact?: boolean }) {
@@ -24,22 +26,30 @@ export function RuntimeDiagnostics({ compact = false }: { compact?: boolean }) {
     
     const hasSystemAPI = typeof window !== 'undefined' && 
       typeof window.sc?.getSystemSpecs === 'function';
+    
+    const hasPing = typeof window !== 'undefined' && 
+      typeof window.telemetry?.ping === 'function';
+    
+    const hasStream = typeof window !== 'undefined' && 
+      typeof window.telemetry?.startStream === 'function';
 
     setDiagnostics({
       isElectron,
       hasPreload,
       hasTelemetry,
-      hasSystemAPI
+      hasSystemAPI,
+      hasPing,
+      hasStream
     });
   }, []);
 
   const runPing = async () => {
     try {
-      if (window.telemetry?.getLive) {
-        const result = await window.telemetry.getLive();
-        setDebugOutput(prev => [...prev, `[PING] Telemetry response: CPU ${result.cpuLoadPercent}%, RAM ${result.ramUsedGb}GB`]);
+      if (window.telemetry?.ping) {
+        const result = await window.telemetry.ping();
+        setDebugOutput(prev => [...prev, `[PING] Response: "${result}"`]);
       } else {
-        setDebugOutput(prev => [...prev, `[PING] FAILED - window.telemetry.getLive not available`]);
+        setDebugOutput(prev => [...prev, `[PING] FAILED - window.telemetry.ping not available`]);
       }
     } catch (err: any) {
       setDebugOutput(prev => [...prev, `[PING] ERROR: ${err.message}`]);
@@ -75,7 +85,7 @@ export function RuntimeDiagnostics({ compact = false }: { compact?: boolean }) {
 
   if (!diagnostics) return null;
 
-  const allGood = diagnostics.isElectron && diagnostics.hasPreload && diagnostics.hasTelemetry;
+  const allGood = diagnostics.isElectron && diagnostics.hasPreload && diagnostics.hasTelemetry && diagnostics.hasPing;
 
   if (compact) {
     return (
@@ -133,6 +143,24 @@ export function RuntimeDiagnostics({ compact = false }: { compact?: boolean }) {
             <AlertCircle className="size-3.5 text-red-400" />
           )}
           <span>System API: {diagnostics.hasSystemAPI ? "Available" : "Unavailable"}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {diagnostics.hasPing ? (
+            <CheckCircle className="size-3.5 text-emerald-400" />
+          ) : (
+            <AlertCircle className="size-3.5 text-red-400" />
+          )}
+          <span>Ping: {diagnostics.hasPing ? "Available" : "Missing"}</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {diagnostics.hasStream ? (
+            <CheckCircle className="size-3.5 text-emerald-400" />
+          ) : (
+            <AlertCircle className="size-3.5 text-amber-400" />
+          )}
+          <span>Stream: {diagnostics.hasStream ? "Available" : "Missing"}</span>
         </div>
       </div>
 
