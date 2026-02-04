@@ -101,11 +101,18 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
       <CardContent className="space-y-4">
         {isPremium ? (
           <>
-            {!latestAIScan && !scanning ? (
+            {!latestAIScan && !scanning && !scanError ? (
               <div className="py-6 text-center space-y-4">
                 <p className="text-xs text-muted-foreground px-4">Run an AI scan to get personalized optimization recommendations.</p>
                 <Button onClick={onScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
                   Run AI Scan
+                </Button>
+              </div>
+            ) : !latestAIScan && !scanning && scanError ? (
+              <div className="py-6 text-center space-y-4">
+                <p className="text-xs text-amber-400 px-4">{scanError}</p>
+                <Button onClick={onScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
+                  Try Again
                 </Button>
               </div>
             ) : scanning ? (

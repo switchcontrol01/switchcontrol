@@ -86,24 +86,37 @@ interface SystemContextForAI {
 }
 
 export async function runAIScan(systemContext?: SystemContextForAI) {
-  const res = await fetch(`${API_BASE}/ai-scan`, { 
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(systemContext || {})
-  });
-  
-  // Handle cooldown response
-  if (res.status === 429) {
-    const data = await res.json();
-    const error = new Error(data.message || "Please wait before running another scan") as CooldownError;
-    error.remainingSeconds = data.remainingSeconds;
-    throw error;
+  try {
+    const res = await fetch(`${API_BASE}/ai-scan`, { 
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(systemContext || {})
+    });
+    
+    // Handle cooldown response
+    if (res.status === 429) {
+      const data = await res.json();
+      const error = new Error(data.message || "Please wait before running another scan") as CooldownError;
+      error.remainingSeconds = data.remainingSeconds;
+      throw error;
+    }
+    
+    // Handle premium required
+    if (res.status === 403) {
+      throw new Error("Premium subscription required for AI Advisor");
+    }
+    
+    if (!res.ok) throw new Error("AI scan unavailable. Please try again later.");
+    queryClient.invalidateQueries({ queryKey: ["settings"] });
+    queryClient.invalidateQueries({ queryKey: ["history"] });
+    return res.json();
+  } catch (err: any) {
+    // Network error or no backend
+    if (err.name === 'TypeError' && err.message.includes('fetch')) {
+      throw new Error("Cannot connect to server. Check your connection.");
+    }
+    throw err;
   }
-  
-  if (!res.ok) throw new Error("Failed to run AI scan");
-  queryClient.invalidateQueries({ queryKey: ["settings"] });
-  queryClient.invalidateQueries({ queryKey: ["history"] });
-  return res.json();
 }
 
 export async function clearRam() {
