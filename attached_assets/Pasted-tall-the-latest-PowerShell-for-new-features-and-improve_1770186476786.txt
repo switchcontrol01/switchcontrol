@@ -1,0 +1,49 @@
+tall the latest PowerShell for new features and improvements! https://aka.ms/PSWindows
+
+PS C:\WINDOWS\system32> cd C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item node_modules -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item dist -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> Remove-Item release -Recurse -Force -ErrorAction SilentlyContinue
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm install
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+
+added 597 packages, and audited 598 packages in 6s
+
+92 packages are looking for funding
+  run `npm fund` for details
+
+1 critical severity vulnerability
+
+To address all issues, run:
+  npm audit fix
+
+Run `npm audit` for details.
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl> npm run build
+
+> switchcontrol@1.0.0 build
+> vite build
+
+vite v7.3.1 building client environment for production...
+✓ 46 modules transformed.
+✗ Build failed in 288ms
+error during build:
+[vite]: Rollup failed to resolve import "react-helmet" from "C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/pages/Pricing.tsx".
+This is most likely unintended because it can break your application at runtime.
+If you do want to externalize this module explicitly add it to
+`build.rollupOptions.external`
+    at viteLog (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:33635:57)
+    at file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:33669:73
+    at onwarn (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/@vitejs/plugin-react/dist/index.js:76:7)
+    at file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:33669:28
+    at onRollupLog (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:33664:63)
+    at onLog (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/vite/dist/node/chunks/config.js:33467:4)
+    at file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/rollup/dist/es/shared/node-entry.js:20955:32
+    at Object.logger [as onLog] (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/rollup/dist/es/shared/node-entry.js:22942:9)
+    at ModuleLoader.handleInvalidResolvedId (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/rollup/dist/es/shared/node-entry.js:21686:26)
+    at file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/node_modules/rollup/dist/es/shared/node-entry.js:21644:26
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl>
