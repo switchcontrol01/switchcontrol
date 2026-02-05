@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
-import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
+import { PremiumUpgradeAnimation, shouldShowPremiumAnimation } from "@/components/PremiumUpgradeAnimation";
 import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
@@ -114,8 +114,13 @@ function ElectronAppContent() {
 
   const handlePremiumUpgrade = useCallback(() => {
     console.log('[App] Premium upgrade detected!');
-    setShowUpgradeAnimation(true);
-  }, []);
+    if (shouldShowPremiumAnimation()) {
+      setShowUpgradeAnimation(true);
+    } else {
+      console.log('[App] Animation already shown, skipping');
+      triggerPremiumTour();
+    }
+  }, [triggerPremiumTour]);
 
   const triggerActivation = usePremiumActivation((s) => s.triggerActivation);
   
