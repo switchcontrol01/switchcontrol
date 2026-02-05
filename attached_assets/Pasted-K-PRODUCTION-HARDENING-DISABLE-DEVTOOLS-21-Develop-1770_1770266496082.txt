@@ -1,0 +1,308 @@
+K) PRODUCTION HARDENING – DISABLE DEVTOOLS
+--------------------------------------------
+
+21) Developer tools MUST be disabled in production builds
+
+Problem:
+- DevTools can currently be opened (keyboard or menu)
+- This is not acceptable for a shipped consumer app
+
+Required:
+- DevTools must be fully disabled in production builds
+- No keyboard shortcuts
+- No menu access
+- No programmatic access from renderer
+
+Implementation requirements:
+- Disable DevTools via BrowserWindow options
+- Remove any menu entries that expose DevTools
+- Block shortcuts (Ctrl+Shift+I, F12, etc.)
+- Ensure NODE_ENV=production enforces this
+
+Acceptance test:
+- In a production build:
+  - Pressing F12 does nothing
+  - Ctrl+Shift+I does nothing
+  - Right-click does NOT show “Inspect”
+  - DevTools cannot be opened programmatically
+
+Exception:
+- DevTools may remain enabled ONLY in local development builds
+
+--------------------------------------------REPLIT TASK LIST FOR SWITCHCONTROL (DO ALL)
+
+Priority rule:
+Fix functionality first. Then polish. No “fake UI” buttons. If something is not wired, disable it and show “Coming soon”.
+
+--------------------------------------------
+A) APP IDENTITY + PACKAGING (MUST FIX)
+--------------------------------------------
+
+1) App name is wrong in Windows
+Problem: Installed Apps shows “SwitchControl 1.0”.
+Required:
+- App display name must be exactly: SwitchControl
+- Version must be metadata only: 1.0.0 (or similar)
+- Ensure this name is consistent across:
+  - Installed Apps
+  - Start Menu
+  - Task Manager process name where possible
+  - Installer/uninstaller entries
+Acceptance test:
+- Windows Settings > Apps > Installed apps shows SwitchControl (no version in name)
+
+2) Icons
+- Ensure app icon is consistent everywhere (installer, start menu, taskbar)
+
+--------------------------------------------
+B) TELEMETRY + LHM (GPU TEMPS, MOBO TEMPS)
+--------------------------------------------
+
+Current understanding:
+- App detects LibreHardwareMonitor only if it is already running on HTTP port 8085.
+- AMD GPU temp shows N/A because LHM is not running or not installed.
+
+3) Telemetry behavior must be honest and stable
+Keep the 3-tier stack:
+Tier 3 baseline: systeminformation always
+Tier 2 vendor: nvidia-smi for NVIDIA only
+Tier 1 enhanced: LibreHardwareMonitor (optional) via HTTP endpoint
+
+4) Motherboard temperature graph
+Requirement:
+- If LHM is available and returns motherboard temp, show it in graph.
+- If not available, do not show a fake line. Hide it and show “Requires LibreHardwareMonitor”.
+
+5) AMD GPU temps
+Requirement:
+- AMD GPU temp must display ONLY when LHM is running and providing it.
+- Otherwise show “GPU Temp: Requires LibreHardwareMonitor”.
+
+6) Should SwitchControl auto-start LHM?
+Decision:
+Do NOT auto-start LHM by default.
+Reason: AV trust, admin issues, corporate PCs, and user consent.
+Required:
+- Add a setting toggle: “Enhanced sensors (LibreHardwareMonitor)”
+  - Description: “Starts LibreHardwareMonitor in the background for AMD GPU temps, motherboard temps, fan RPM, NVMe temps.”
+- If user enables it:
+  - Start bundled LHM helper in background
+  - Shut it down when SwitchControl closes (or keep running if user chooses “Keep running”)
+Acceptance test:
+- Fresh PC with no LHM installed:
+  - Default behavior: app works, temps that require LHM show “Requires LHM”
+  - If user enables enhanced sensors: LHM starts and AMD GPU temp becomes available
+
+7) Embedding LHM into the app
+Requirement:
+- We can bundle LibreHardwareMonitor as an external helper exe shipped with the installer, not as a code library.
+- Do NOT ship kernel drivers, do NOT do DLL injection.
+Implementation requirement:
+- Bundle official LHM release zip in app resources
+- On first enable, extract to app data folder
+- Start it with required args to enable HTTP endpoint (8085)
+- Health check endpoint and restart if needed
+Acceptance test:
+- Enabling enhanced sensors launches the helper and endpoint responds within 3 seconds
+
+--------------------------------------------
+C) DASHBOARD GRAPH IS TOO DEAD (ADD MORE SIGNALS)
+--------------------------------------------
+
+8) Expand the graph
+Right now it shows basically CPU load and RAM percent, and GPU load only sometimes.
+Add these series when available:
+- CPU temperature (if LHM or other available)
+- GPU temperature (NVIDIA via nvidia-smi, AMD via LHM)
+- GPU load (from nvidia-smi or LHM)
+- VRAM usage if possible (NVIDIA via nvidia-smi, AMD maybe via LHM)
+- Disk active percent or read/write (if available)
+- Ping / jitter graph (if you already have network module, otherwise leave for later)
+
+Rules:
+- If a metric is unavailable, hide the series.
+- No fake zeros.
+- Tooltip values must be clean rounded numbers, not long decimals.
+Acceptance test:
+- Graph tooltip shows nice values like 34%, 52C, not 34.1777219
+
+--------------------------------------------
+D) UI BUGS (MUST FIX)
+--------------------------------------------
+
+9) Toast notification close button broken
+Problem:
+- The X on the purple toast is not clickable or does not dismiss.
+Required:
+- Make X clickable and dismiss instantly
+- Ensure the toast does not block clicks behind it
+Acceptance test:
+- Click X, toast disappears every time
+
+10) Discord and TikTok buttons behave wrong
+Problems:
+- Clicking shows purple text overlay you cannot remove
+- Clicking opens inside the app webview (NO)
+Required:
+- Open in external default browser only
+- Remove the weird purple label overlay or ensure it auto fades in 1 second
+Implementation:
+- Use Electron shell.openExternal for external links
+Acceptance test:
+- Clicking Discord opens browser, app stays unchanged, no stuck overlay text
+
+--------------------------------------------
+E) PREMIUM PURCHASE FLOW (MUST FIX)
+--------------------------------------------
+
+11) Premium status does not update unless logout/login
+Problem:
+- After buying premium, app still shows free until user logs out and back in
+Required:
+- On successful payment, premium entitlement must sync immediately
+Implementation options:
+- After checkout success redirect, call “refreshEntitlements()” in app
+- Listen to auth state changes and refetch subscription
+- Use IPC event to update UI state instantly
+Acceptance test:
+- Buy premium, return to app, premium features unlock without logout
+
+12) After purchase, show “Return to App” screen
+Requirement:
+- After successful payment, show a confirmation screen:
+  - Button A: “Open SwitchControl”
+  - Button B: “Back to website”
+- If user clicks Open SwitchControl:
+  - Trigger premium animation sequence (see next section)
+
+13) Premium animation sequence
+Requirement:
+- Smooth, premium, not overdone.
+- Sidebar must remain static, no crazy animations in left nav.
+Animation sequence when premium activates:
+- Logo transitions from no-crown to crown (use provided images)
+- Lock icon transitions to unlock
+- Add a subtle suspense sound effect (optional toggle in settings: “Sounds”)
+- Then show an onboarding tour overlay highlighting:
+  1) Dashboard premium areas (AI Advisor, BIOS Advisor)
+  2) Premium tweaks section
+  3) Anything else premium locked previously
+Acceptance test:
+- User buys premium and immediately sees:
+  - Confirmation screen
+  - Click “Open SwitchControl”
+  - Animation plays
+  - Premium UI is unlocked right after animation
+
+--------------------------------------------
+F) ANIMATIONS AND POLISH (WHOLE APP, NOT SIDEBAR)
+--------------------------------------------
+
+14) Add premium-grade motion across the entire app
+Requirement:
+- Motion should be subtle, consistent, and performant.
+- Apply across all pages, not just dashboard.
+Examples:
+- Page transitions: fade + slight slide
+- Card hover: subtle glow and lift
+- Buttons: soft shine sweep on hover, not constant
+- Background: subtle animated glows, soft particles, contour topography parallax very light
+Rules:
+- No over-animation.
+- Left sidebar must remain static (no shifting, no pulsing, no moving highlights beyond simple hover)
+Acceptance test:
+- App feels like a polished desktop product, but no lag, no motion sickness
+
+--------------------------------------------
+G) FEATURES THAT DO NOT WORK (MUST FIX OR DISABLE)
+--------------------------------------------
+
+15) AI Advisor does not work
+Problem:
+- It shows cannot connect / does nothing
+Required:
+- If backend is not ready, do NOT pretend.
+- Provide:
+  - Clear error state with “Retry”
+  - Proper logging of failure reason
+  - If offline, show offline message
+Acceptance test:
+- Clicking Retry triggers a real network call and the UI updates
+
+16) View Logs does nothing
+Required:
+- Implement logs viewer:
+  - Open a modal or separate page
+  - Show latest logs from app
+  - Include copy button
+Acceptance test:
+- Click View Logs and you see real logs
+
+17) Optimize Now does nothing
+Required:
+- Either wire it to a real action or disable it.
+If real:
+- It should run a defined “recommended safe preset” of tweaks
+- Show progress
+- Show results and what changed
+Acceptance test:
+- Click Optimize Now and it actually performs actions and reports them
+
+--------------------------------------------
+H) “REAL” TWEAKS NOT WORKING AND PROOF THEY APPLIED
+--------------------------------------------
+
+18) Some tweaks show “real” but fail or do nothing
+Required:
+- Every tweak must have:
+  - Apply function
+  - Verify function (read back registry/service/task state)
+  - UI result based on verification, not hopes
+- If apply fails due to permissions, show:
+  - “Requires admin”
+  - One-click elevation prompt if you support it
+Acceptance test:
+- When a tweak is toggled on, the app verifies and shows “Applied” only if verification passes
+
+19) Show a proof panel per tweak
+Requirement:
+- Under each tweak, add a collapsible “Proof”:
+  - What key/value changed
+  - Old value
+  - New value
+  - Verification result
+Acceptance test:
+- User can see exactly what changed
+
+--------------------------------------------
+I) FIX THE WINDOW CONTROLS (X, MINIMIZE, ETC)
+--------------------------------------------
+
+20) Window close/minimize buttons must be aligned and work reliably
+Acceptance test:
+- All window controls respond immediately and do not clip
+
+--------------------------------------------
+J) FINAL QA CHECKLIST (MUST DO)
+--------------------------------------------
+
+Before marking done, verify these on Windows:
+
+- App name shows SwitchControl everywhere
+- Discord and TikTok open in external browser
+- Toast X closes the toast
+- Premium updates without logout
+- Premium post-buy flow exists and animation plays
+- Sidebar static
+- Graph has more than 2 lines when data exists
+- AMD GPU temp shows when LHM is enabled and running
+- Motherboard temp shows when LHM provides it
+- AI Advisor either works or clearly states it is offline with real retry behavior
+- View Logs opens real logs
+- Optimize Now performs a real action or is disabled with label “Coming soon”
+- Tweaks show “Applied” only after verification passes
+
+Deliverables:
+- Commit changes
+- Provide short demo notes: where each fix is, and how to test it
+- If any item cannot be done, list it explicitly with reason, not vague excuses

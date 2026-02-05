@@ -65,11 +65,37 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: false // Required for systeminformation
+      sandbox: false, // Required for systeminformation
+      devTools: isDev // Disable DevTools in production
     }
   });
 
-  mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // Only open DevTools in development mode
+  if (isDev) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+
+  // Block DevTools keyboard shortcuts in production
+  if (!isDev) {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      // Block F12
+      if (input.key === 'F12') {
+        event.preventDefault();
+      }
+      // Block Ctrl+Shift+I (Windows/Linux) and Cmd+Option+I (macOS)
+      if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'i') {
+        event.preventDefault();
+      }
+      // Block Ctrl+Shift+J (console)
+      if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'j') {
+        event.preventDefault();
+      }
+      // Block Ctrl+Shift+C (inspect element)
+      if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'c') {
+        event.preventDefault();
+      }
+    });
+  }
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5000');
