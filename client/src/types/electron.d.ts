@@ -29,6 +29,7 @@ interface SystemSpecs {
     os: string;
     osVersion: string;
     arch: string;
+    hasLibreHardwareMonitor: boolean;
     hostname: string;
   };
   disk: {
@@ -54,6 +55,8 @@ interface LiveTelemetry {
   ramUsage: number;
   cpuTemp: number | null;
   gpuTemp: number | null;
+  gpuLoad: number | null;
+  moboTemp: number | null;
   timestamp: number;
 }
 

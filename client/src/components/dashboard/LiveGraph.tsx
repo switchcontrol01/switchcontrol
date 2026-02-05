@@ -8,12 +8,23 @@ interface DataPoint {
   time: string;
   cpu: number;
   gpu: number | null;
+  mobo: number | null;
   ram: number;
+}
+
+interface LatestState {
+  cpuUsage: number;
+  cpuTemp: number | null;
+  gpuTemp: number | null;
+  gpuLoad: number | null;
+  moboTemp: number | null;
+  ramUsedGb: number;
+  ramTotalGb: number;
 }
 
 export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: any) => void }) {
   const [data, setData] = useState<DataPoint[]>([]);
-  const [latest, setLatest] = useState<{ cpuUsage: number; cpuTemp: number | null; gpuTemp: number | null; ramUsedGb: number; ramTotalGb: number } | null>(null);
+  const [latest, setLatest] = useState<LatestState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
@@ -41,11 +52,15 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
           
           const cpuTemp = live.cpuTemp !== null && Number.isFinite(live.cpuTemp) ? live.cpuTemp : null;
           const gpuTemp = live.gpuTemp !== null && Number.isFinite(live.gpuTemp) ? live.gpuTemp : null;
+          const gpuLoad = live.gpuLoad !== null && Number.isFinite(live.gpuLoad) ? live.gpuLoad : null;
+          const moboTemp = live.moboTemp !== null && Number.isFinite(live.moboTemp) ? live.moboTemp : null;
           
-          const telemetryState = {
+          const telemetryState: LatestState = {
             cpuUsage: safeNumber(live.cpuUsage, 0),
             cpuTemp,
             gpuTemp,
+            gpuLoad,
+            moboTemp,
             ramUsedGb,
             ramTotalGb,
           };
@@ -78,6 +93,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               time: timeStr,
               cpu: cpuTemp ?? telemetryState.cpuUsage,
               gpu: gpuTemp,
+              mobo: moboTemp,
               ram: safeNumber(ramPercent)
             };
             const updated = [...prev, newPoint];
@@ -110,6 +126,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   }, [onTelemetryUpdate]);
 
   const hasGpuData = data.some(d => Number.isFinite(d.gpu));
+  const hasMoboData = data.some(d => Number.isFinite(d.mobo));
   const hasCpuTemp = latest?.cpuTemp !== null;
 
   if (error) {
@@ -146,10 +163,18 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 <span className="size-2 rounded-full bg-green-500" />
                 GPU: {hasGpuData && latest.gpuTemp !== null ? (
                   `${latest.gpuTemp}°C`
+                ) : latest.gpuLoad !== null ? (
+                  `${safeFixed(latest.gpuLoad, 0)}%`
                 ) : (
-                  <span className="text-muted-foreground/60" title="GPU temp available on NVIDIA only">N/A</span>
+                  <span className="text-muted-foreground/60" title="GPU temp requires NVIDIA or LibreHardwareMonitor">N/A</span>
                 )}
               </span>
+              {hasMoboData && latest.moboTemp !== null && (
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-purple-500" />
+                  Mobo: {latest.moboTemp}°C
+                </span>
+              )}
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-cyan-500" />
                 RAM: {safeFixed(latest.ramUsedGb, 1)}GB / {safeFixed(latest.ramTotalGb, 0)}GB
@@ -208,6 +233,17 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 activeDot={{ r: 3 }}
               />
             )}
+            {hasMoboData && (
+              <Line 
+                type="monotone" 
+                dataKey="mobo" 
+                name="Mobo Temp (°C)"
+                stroke="#a855f7" 
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+              />
+            )}
             <Line 
               type="monotone" 
               dataKey="ram" 
@@ -223,7 +259,12 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
       
       <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/60">
         <Info className="size-3" />
-        <span>GPU temperature is available on NVIDIA GPUs only. Other GPUs will show "N/A".</span>
+        <span>
+          {hasMoboData 
+            ? "LibreHardwareMonitor detected. Full sensor data available."
+            : "GPU temp: NVIDIA only. Mobo temp: requires LibreHardwareMonitor."
+          }
+        </span>
       </div>
     </GlassCard>
   );

@@ -116,6 +116,140 @@ function isNvidiaGpu(graphics) {
   return gpu.vendor.toLowerCase().includes('nvidia');
 }
 
+// Helper: Get NVIDIA GPU load via nvidia-smi
+function getNvidiaGpuLoad() {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32') {
+      return resolve(null);
+    }
+    exec(
+      'nvidia-smi --query-gpu=utilization.gpu --format=csv,noheader,nounits',
+      { windowsHide: true, timeout: 3000 },
+      (err, stdout) => {
+        if (err) return resolve(null);
+        const load = Number(stdout.trim());
+        resolve(Number.isFinite(load) ? load : null);
+      }
+    );
+  });
+}
+
+// LHM detection cache
+let lhmAvailable = null;
+let lhmLastCheck = 0;
+const LHM_CHECK_INTERVAL = 30000; // Re-check every 30 seconds
+
+// Helper: Check if LibreHardwareMonitor is running and accessible
+async function checkLibreHardwareMonitor() {
+  const now = Date.now();
+  if (lhmAvailable !== null && (now - lhmLastCheck) < LHM_CHECK_INTERVAL) {
+    return lhmAvailable;
+  }
+  
+  return new Promise((resolve) => {
+    // LHM Web Server default port is 8085
+    const http = require('http');
+    const req = http.get('http://localhost:8085/data.json', { timeout: 2000 }, (res) => {
+      lhmAvailable = res.statusCode === 200;
+      lhmLastCheck = now;
+      res.resume(); // Consume response to free up memory
+      resolve(lhmAvailable);
+    });
+    
+    req.on('error', () => {
+      lhmAvailable = false;
+      lhmLastCheck = now;
+      resolve(false);
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      lhmAvailable = false;
+      lhmLastCheck = now;
+      resolve(false);
+    });
+  });
+}
+
+// Helper: Fetch telemetry from LibreHardwareMonitor
+async function getLhmTelemetry() {
+  if (!await checkLibreHardwareMonitor()) {
+    return null;
+  }
+  
+  return new Promise((resolve) => {
+    const http = require('http');
+    const req = http.get('http://localhost:8085/data.json', { timeout: 3000 }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        try {
+          const json = JSON.parse(data);
+          const result = parseLhmData(json);
+          resolve(result);
+        } catch (e) {
+          resolve(null);
+        }
+      });
+    });
+    
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => {
+      req.destroy();
+      resolve(null);
+    });
+  });
+}
+
+// Helper: Parse LHM JSON structure to extract temps/loads
+function parseLhmData(data) {
+  const result = {
+    cpuTemp: null,
+    gpuTemp: null,
+    gpuLoad: null,
+    moboTemp: null,
+    fans: []
+  };
+  
+  function traverse(node) {
+    if (!node) return;
+    
+    const name = (node.Text || '').toLowerCase();
+    const value = parseFloat(node.Value);
+    const type = (node.Type || '').toLowerCase();
+    
+    // CPU Temperature
+    if (type === 'temperature' && name.includes('cpu') && name.includes('package')) {
+      if (Number.isFinite(value)) result.cpuTemp = safeNum(value);
+    }
+    
+    // GPU Temperature
+    if (type === 'temperature' && name.includes('gpu') && name.includes('core')) {
+      if (Number.isFinite(value)) result.gpuTemp = safeNum(value);
+    }
+    
+    // GPU Load
+    if (type === 'load' && name.includes('gpu') && name.includes('core')) {
+      if (Number.isFinite(value)) result.gpuLoad = safeNum(value);
+    }
+    
+    // Motherboard Temperature
+    if (type === 'temperature' && (name.includes('system') || name.includes('motherboard'))) {
+      if (Number.isFinite(value) && result.moboTemp === null) {
+        result.moboTemp = safeNum(value);
+      }
+    }
+    
+    // Recurse into children
+    if (node.Children && Array.isArray(node.Children)) {
+      node.Children.forEach(traverse);
+    }
+  }
+  
+  traverse(data);
+  return result;
+}
+
 // App info handlers
 ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('app:getPlatform', () => process.platform);
@@ -229,23 +363,24 @@ ipcMain.handle('system:getSpecs', async () => {
         os: process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux',
         osVersion: os.release() || 'Unknown',
         arch: os.arch() || 'Unknown',
-        hostname: os.hostname() || 'Unknown'
+        hostname: os.hostname() || 'Unknown',
+        hasLibreHardwareMonitor: await checkLibreHardwareMonitor()
       },
       disk: disks[0] || { name: 'C:', usedGB: 0, totalGB: 0, usePercent: 0 },
       disks: disks
     };
 
     cachedSpecsTime = Date.now();
-    console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model);
+    console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model, 'LHM:', cachedSpecs.system.hasLibreHardwareMonitor);
     return cachedSpecs;
 
   } catch (e) {
     console.error('[SwitchControl] getSpecs error:', e);
     return {
       cpu: { model: 'Unknown CPU', cores: 0, threads: 0, speed: 'Unknown' },
-      gpu: { model: 'Unavailable', vendor: 'Unavailable', vramGB: 0 },
+      gpu: { model: 'Unavailable', vendor: 'Unavailable', vramGB: 0, isNvidia: false },
       ram: { totalGB: 0, usedGB: 0, freeGB: 0 },
-      system: { os: 'Unknown', osVersion: '', arch: '', hostname: '' },
+      system: { os: 'Unknown', osVersion: '', arch: '', hostname: '', hasLibreHardwareMonitor: false },
       disk: { name: 'Unknown', usedGB: 0, totalGB: 0, usePercent: 0 },
       disks: []
     };
@@ -297,41 +432,56 @@ ipcMain.handle('system:getAllDisks', async () => {
   }
 });
 
-// Telemetry - null means unavailable, never undefined
+// Telemetry - 3-tier merge: systeminformation baseline → nvidia-smi → LHM overlay
+// null means unavailable, never undefined
 ipcMain.handle('telemetry:getLive', async () => {
   try {
-    // Get real CPU load
+    // === TIER 3: systeminformation baseline (always on) ===
     const load = await si.currentLoad();
     const cpuUsage = safeNum(load.currentLoad || 0);
     
-    // Only update if changed significantly (>1% difference) to reduce re-renders
     if (Math.abs(cpuUsage - lastCpuLoad) > 1) {
       lastCpuLoad = cpuUsage;
     }
 
-    // Get RAM usage
     const total = os.totalmem();
     const free = os.freemem();
     const ramUsage = safeNum(((total - free) / total) * 100);
 
-    // CPU temp from systeminformation
     let cpuTemp = null;
     try {
       const temps = await si.cpuTemperature();
       const temp = safeNum(temps.main || 0);
       cpuTemp = Number.isFinite(temp) && temp > 0 ? temp : null;
     } catch (e) {
-      // Temperature not available
+      // CPU temp not available
     }
 
-    // GPU temp via nvidia-smi (NVIDIA only)
+    // === TIER 2: nvidia-smi overlay (NVIDIA only) ===
     let gpuTemp = null;
+    let gpuLoad = null;
     if (cachedSpecs?.gpu?.isNvidia) {
       try {
-        gpuTemp = await getNvidiaGpuTemp();
+        const [nvTemp, nvLoad] = await Promise.all([
+          getNvidiaGpuTemp(),
+          getNvidiaGpuLoad()
+        ]);
+        gpuTemp = nvTemp;
+        gpuLoad = nvLoad;
       } catch (e) {
-        // GPU temp not available
+        // nvidia-smi not available
       }
+    }
+
+    // === TIER 1: LibreHardwareMonitor overlay (if available) ===
+    let moboTemp = null;
+    const lhm = await getLhmTelemetry();
+    if (lhm) {
+      // LHM values take precedence when available
+      if (lhm.cpuTemp !== null) cpuTemp = lhm.cpuTemp;
+      if (lhm.gpuTemp !== null) gpuTemp = lhm.gpuTemp;
+      if (lhm.gpuLoad !== null) gpuLoad = lhm.gpuLoad;
+      if (lhm.moboTemp !== null) moboTemp = lhm.moboTemp;
     }
 
     return {
@@ -339,6 +489,8 @@ ipcMain.handle('telemetry:getLive', async () => {
       ramUsage: ramUsage,
       cpuTemp: cpuTemp,
       gpuTemp: gpuTemp,
+      gpuLoad: gpuLoad,
+      moboTemp: moboTemp,
       timestamp: Date.now()
     };
   } catch (e) {
@@ -348,6 +500,8 @@ ipcMain.handle('telemetry:getLive', async () => {
       ramUsage: 0,
       cpuTemp: null,
       gpuTemp: null,
+      gpuLoad: null,
+      moboTemp: null,
       timestamp: Date.now()
     };
   }
