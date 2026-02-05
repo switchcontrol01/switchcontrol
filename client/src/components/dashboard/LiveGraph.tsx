@@ -51,8 +51,8 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             gpuTempC: null,
             gpuLoadPercent: null,
             moboTempC: null,
-            ramUsedGb: ram.ramUsedGb,
-            ramTotalGb: ram.ramTotalGb,
+            ramUsedGb: safeNumber(ram?.ramUsedGb, 8),
+            ramTotalGb: safeNumber(ram?.ramTotalGb, 16),
           };
         } else {
           telemetry = {

@@ -214,7 +214,6 @@ function getGreeting(): string {
 }
 
 export default function Home() {
-  console.log("MOUNT Home");
   const { stats, account, clearRam, runAIScan, latestAIScan, setStats } = useStore();
   const [scanning, setScanning] = useState(false);
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
@@ -250,45 +249,57 @@ export default function Home() {
     return token ? 'User' : 'Guest';
   };
   
+  const specsLoadedRef = useRef(false);
+  
   useEffect(() => {
+    if (specsLoadedRef.current) return;
+    specsLoadedRef.current = true;
+    
     const sc = window.sc as typeof window.sc | undefined;
     if (sc?.getSystemSpecs) {
-      sc.getSystemSpecs().then((specs: SystemSpecs) => {
+      sc.getSystemSpecs().then((specs: SystemSpecs | null | undefined) => {
+        if (!specs) {
+          console.warn('[SwitchControl] getSystemSpecs returned null/undefined');
+          return;
+        }
         setStats({
-          cpuName: specs.cpu.model || 'Unavailable',
-          cpuCores: specs.cpu.cores || 0,
-          cpuThreads: specs.cpu.threads || 0,
-          cpuSpeed: specs.cpu.speed || 'Unavailable',
-          gpuName: specs.gpu.model || 'Unavailable',
-          gpuVendor: specs.gpu.vendor || 'Unavailable',
-          vramGb: specs.gpu.vramGB || 0,
-          totalRamGb: specs.ram.totalGB || 0,
-          usedRamGb: specs.ram.usedGB || 0,
-          freeRamGb: specs.ram.freeGB || 0,
-          diskName: specs.disk.name || 'Unavailable',
-          diskUsedGb: specs.disk.usedGB || 0,
-          diskTotalGb: specs.disk.totalGB || 0,
-          osName: specs.system.os || 'Unavailable',
-          osVersion: specs.system.osVersion || 'Unavailable',
-          osArch: specs.system.arch || 'Unavailable',
-          hostname: specs.system.hostname || 'Unavailable',
+          cpuName: specs.cpu?.model || 'Unavailable',
+          cpuCores: specs.cpu?.cores || 0,
+          cpuThreads: specs.cpu?.threads || 0,
+          cpuSpeed: specs.cpu?.speed || 'Unavailable',
+          gpuName: specs.gpu?.model || 'Unavailable',
+          gpuVendor: specs.gpu?.vendor || 'Unavailable',
+          vramGb: specs.gpu?.vramGB || 0,
+          totalRamGb: specs.ram?.totalGB || 0,
+          usedRamGb: specs.ram?.usedGB || 0,
+          freeRamGb: specs.ram?.freeGB || 0,
+          diskName: specs.disk?.name || 'Unavailable',
+          diskUsedGb: specs.disk?.usedGB || 0,
+          diskTotalGb: specs.disk?.totalGB || 0,
+          osName: specs.system?.os || 'Unavailable',
+          osVersion: specs.system?.osVersion || 'Unavailable',
+          osArch: specs.system?.arch || 'Unavailable',
+          hostname: specs.system?.hostname || 'Unavailable',
         });
       }).catch((err: unknown) => {
         console.error('[SwitchControl] Failed to get system specs:', err);
       });
     } else if (sc?.getSystemInfo) {
-      sc.getSystemInfo().then((info: { totalMemory: number; freeMemory: number; cpus: number }) => {
-        const totalGB = info.totalMemory / 1024 / 1024 / 1024;
-        const usedGB = (info.totalMemory - info.freeMemory) / 1024 / 1024 / 1024;
+      sc.getSystemInfo().then((info: { totalMemory?: number; freeMemory?: number; cpus?: number } | null) => {
+        if (!info) return;
+        const totalMem = info.totalMemory || 0;
+        const freeMem = info.freeMemory || 0;
+        const totalGB = totalMem / 1024 / 1024 / 1024;
+        const usedGB = (totalMem - freeMem) / 1024 / 1024 / 1024;
         setStats({
           totalRamGb: Math.round(totalGB),
-          usedRamGb: parseFloat(usedGB.toFixed(1)),
-          cpuCores: info.cpus,
-          cpuThreads: info.cpus * 2,
+          usedRamGb: Number.isFinite(usedGB) ? parseFloat(usedGB.toFixed(1)) : 0,
+          cpuCores: info.cpus || 0,
+          cpuThreads: (info.cpus || 0) * 2,
         });
-      });
+      }).catch(() => {});
     }
-  }, [setStats]);
+  }, []);
 
   useEffect(() => {
     const sc = window.sc as typeof window.sc | undefined;
@@ -311,10 +322,12 @@ export default function Home() {
     if (window.sc?.getRamUsage) {
       ramIntervalRef.current = setInterval(() => {
         window.sc!.getRamUsage().then((ram) => {
-          setStats({
-            usedRamGb: ram.ramUsedGb,
-            totalRamGb: ram.ramTotalGb
-          });
+          if (ram && typeof ram.ramUsedGb === 'number' && typeof ram.ramTotalGb === 'number') {
+            setStats({
+              usedRamGb: ram.ramUsedGb,
+              totalRamGb: ram.ramTotalGb
+            });
+          }
         }).catch(() => {});
       }, 2000);
     }
@@ -323,7 +336,7 @@ export default function Home() {
         clearInterval(ramIntervalRef.current);
       }
     };
-  }, [setStats]);
+  }, []);
   
   const handleTelemetryUpdate = useCallback((data: TelemetryData) => {
     setSsdData(data.ssds);
