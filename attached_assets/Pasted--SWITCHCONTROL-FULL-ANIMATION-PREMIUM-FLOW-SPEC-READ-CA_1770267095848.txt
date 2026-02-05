@@ -1,0 +1,284 @@
+ SWITCHCONTROL – FULL ANIMATION + PREMIUM FLOW SPEC (READ CAREFULLY)
+Core clarification (important)
+Yes, animation code may already exist, but it is not playing because:
+Components are mounted once and never re-mounted
+State changes do not trigger animation variants
+Premium state updates without lifecycle hooks
+No animation controller is listening to unlock events
+UI updates silently instead of transitioning
+Animation code existing ≠ animation happening
+Animations must be explicitly orchestrated.
+🧠 GLOBAL ANIMATION PHILOSOPHY (NON-NEGOTIABLE)
+What the app should feel like
+Premium
+Polished
+Intentional
+Calm, not chaotic
+Built by an experienced dev
+What it must NOT feel like
+Static
+Sudden
+Jumpy
+“React demo app”
+Fake premium
+🧱 STRUCTURAL RULES (VERY IMPORTANT)
+1️⃣ Sidebar (left navigation)
+100% STATIC
+NO animations
+NO motion
+NO hover glows beyond subtle highlight
+Sidebar must anchor the user visually
+All animation happens in the main content area only.
+✨ GLOBAL ANIMATION RULESET (ENTIRE APP)
+These apply everywhere except sidebar:
+Page transitions
+Fade + slight vertical motion (4–8px)
+200–300ms
+Ease out
+No slide-ins from sides
+Cards / modules
+Subtle scale-in (0.98 → 1.0)
+Soft opacity fade
+No bounce
+No elastic
+Buttons
+Glow on hover
+Slight press compression
+Micro ripple or shine on click
+Text
+Fade in
+No typewriter effects
+No flashing
+Background
+Subtle animated gradients
+Contour/topography texture stays static
+Optional slow light sweep
+Particles
+Extremely subtle
+Only during premium unlock
+Never persistent
+👑 PREMIUM UNLOCK ANIMATION (DETAILED, STEP-BY-STEP)
+This animation must be explicitly triggered by a premiumUnlocked event.
+Trigger source
+Deep link return from checkout
+OR backend entitlement refresh event
+This is NOT tied to page load alone.
+🎥 EXACT SEQUENCE (MANDATORY)
+Phase 1 – App acknowledgment
+App opens automatically
+Screen dims slightly
+UI input disabled
+Background fades darker
+Phase 2 – Logo reveal
+SwitchControl logo appears without crown
+Logo fades + scales in (calm)
+Short pause (300–500ms)
+Phase 3 – Lock suspense
+Lock icon fades in above or near logo
+Soft suspense sound (optional but allowed)
+Lock shakes slightly (very subtle)
+Phase 4 – Unlock moment
+Lock animates → unlock
+Metallic click sound
+Micro glow burst (not flashy)
+Phase 5 – Crown upgrade
+Crown animates onto logo
+Glow pulse around logo
+Soft shine sweep passes once
+Phase 6 – Confirmation
+Text fades in:
+Copy code
+
+Premium Unlocked
+Welcome to SwitchControl
+Hold for 1–1.5s
+Phase 7 – Transition to app
+Fade out animation layer
+Main app fades back in
+Premium UI is now visible
+🔁 WHY THIS MUST BE CODED EXPLICITLY
+This CANNOT rely on:
+CSS only
+Component mount once
+Boolean rendering
+It REQUIRES:
+Animation controller (Framer Motion or equivalent)
+Explicit state machine:
+Copy code
+
+idle → detecting → animating → completed
+One-time execution flag stored per user
+🧭 PREMIUM ONBOARDING (AFTER ANIMATION)
+Immediately after animation completes:
+Start guided tour
+Highlight:
+AI Advisor
+BIOS Advisor
+Premium tweaks
+Advanced telemetry
+This must be visually connected to the upgrade moment.
+🔄 WHY ANIMATIONS ARE CURRENTLY NOT SHOWING
+Likely causes (must be fixed):
+Premium state updates without re-mount
+Animation component always mounted but never toggled
+No listener for entitlement refresh
+Animation code exists but no trigger is wired
+UI switches instantly without transition layer
+Fix: Introduce a dedicated PremiumUpgradeOverlay component that mounts ONLY on unlock.
+🧪 ANIMATION ACCEPTANCE TEST
+A tester must see:
+Motion when switching pages
+Motion when opening modules
+Motion when unlocking premium
+Smooth transitions everywhere
+No dead, static UI areas
+If animation code exists but user sees nothing → feature FAILED.
+🚫 WHAT NOT TO DO
+No animation spam
+No sidebar motion
+No page sliding
+No neon overload
+No constant particles
+No instant state swaps
+🔧 IMPLEMENTATION NOTE (IMPORTANT)
+If animations exist but do not play:
+They are not connected to lifecycle events
+Or not wrapped in AnimatePresence
+Or not driven by a controller
+This is not optional polish.
+This is core UX correctness🔒 PREMIUM UNLOCK FLOW – REQUIRED IMPLEMENTATION (NON-NEGOTIABLE)
+Problem (current state)
+Premium purchase flow is broken and unprofessional:
+User buys Premium on web
+Clicks “Go to App”
+App does nothing
+User must manually:
+open the app
+log out
+log back in
+Only then Premium appears
+No animation
+No confirmation
+No onboarding
+Feels fake and low-quality
+This is not acceptable for a paid desktop product.
+🎯 Goal (what must happen)
+When a user unlocks Premium:
+App opens automatically
+Premium is detected instantly
+App visually celebrates the upgrade
+Premium state updates live (no logout)
+Guided onboarding starts
+Everything feels intentional, premium, and fluid
+✅ REQUIRED FLOW (STEP BY STEP)
+1️⃣ User clicks “Unlock Premium” in app
+Redirect to web checkout (Stripe)
+Include:
+userId
+deviceId (or appInstanceId)
+deep-link return URL
+Example:
+Copy code
+
+switchcontrol://premium-success?session_id=XYZ
+2️⃣ Purchase succeeds (WEB)
+After payment success page:
+Show modal with two buttons:
+“Open SwitchControl App” (primary)
+“Stay on Website” (secondary)
+This is NOT optional.
+3️⃣ User clicks “Open SwitchControl App”
+This MUST happen:
+OS deep link launches SwitchControl automatically
+User does NOT manually open the app
+No dragging mouse
+No re-login
+No refresh hacks
+Required:
+Register custom protocol:
+switchcontrol://
+4️⃣ App receives premium-success event
+On app launch or resume:
+Parse deep link params
+Call backend:
+Copy code
+
+auth.refreshSession()
+auth.fetchEntitlements()
+Update state immediately
+No logout
+No restart required
+Premium flag must update live in memory.
+5️⃣ App restarts itself (clean reload)
+After entitlement confirmed:
+Soft restart app UI (NOT OS relaunch)
+Clear cached free state
+Reload with premium=true
+This ensures clean state.
+👑 PREMIUM UPGRADE ANIMATION (REQUIRED)
+After restart:
+Visual sequence (mandatory):
+Screen fades to dark
+SwitchControl logo appears (NO crown)
+Pause (300–500ms)
+Lock icon appears
+Lock animates → unlock
+Subtle suspense sound effect
+Crown animates onto logo
+Glow pulse + soft shine
+Text appears:
+Copy code
+
+Premium Unlocked
+Welcome to SwitchControl
+This is one-time only per user.
+🧭 PREMIUM ONBOARDING GUIDE (IMMEDIATELY AFTER)
+Auto-start guided tour:
+Highlight in order:
+AI Advisor (Premium badge)
+BIOS Advisor
+Premium Tweaks section
+Advanced telemetry
+Any locked → unlocked UI
+User can:
+Continue
+Skip
+But it must appear.
+🔄 STATE SYNC REQUIREMENTS
+Premium state must:
+Update without logout
+Persist across restarts
+Reflect instantly after purchase
+Be stored in:
+backend
+local cache
+memory state
+No polling delays. No manual refresh. No “restart app to see changes”.
+🚫 WHAT MUST NOT HAPPEN
+No “log out and log back in”
+No silent unlock
+No static UI change only
+No missing animation
+No broken “Go to App” button
+No dev shortcuts
+This is a paid moment. Treat it like one.
+✅ ACCEPTANCE TEST (STRICT)
+A tester must be able to:
+Buy Premium
+Click “Open App”
+App opens automatically
+Premium detected instantly
+See unlock animation
+See guided tour
+Use premium features immediately
+If any step fails → feature is NOT complete.
+🔧 IMPLEMENTATION NOTES (FYI)
+Use OS deep linking
+Use IPC to trigger soft reload
+Use Framer Motion / CSS transitions
+Keep sidebar static (no animation)
+Animation only in main content area
+Final note
+This flow is table stakes for any serious desktop product.
+Without it, Premium feels fake and trust is damaged.
+Implement exactly as described.

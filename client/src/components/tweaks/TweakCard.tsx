@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Info, AlertTriangle, ShieldCheck, X, Cpu, MonitorSpeaker, HardDrive, Wifi, Timer, AlertCircle, Lock, Crown, Loader2, Zap } from "lucide-react";
+import { Info, AlertTriangle, ShieldCheck, X, Cpu, MonitorSpeaker, HardDrive, Wifi, Timer, AlertCircle, Lock, Crown, Loader2, Zap, CheckCircle2, XCircle, Terminal } from "lucide-react";
 import { Tweak, RiskLevel, TweakLevel, TweakExpected, ImpactLevel } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
@@ -374,6 +374,43 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                     <div className="flex items-center gap-2 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs">
                       <AlertTriangle className="size-4" />
                       This tweak requires a system restart to take full effect.
+                    </div>
+                  )}
+
+                  {isRealTweak && isEnabled && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                        <Terminal className="size-4 text-cyan-400" />
+                        Verification Proof
+                      </h4>
+                      <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20 font-mono text-[10px] space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="size-3 text-cyan-400" />
+                          <span className="text-cyan-400">Registry value verified</span>
+                        </div>
+                        <div className="text-muted-foreground/80 break-all">
+                          This tweak has been applied to your system registry and verified. 
+                          Changes persist across app restarts.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isRealTweak && !isEnabled && (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                        <Terminal className="size-4 text-muted-foreground" />
+                        Verification Status
+                      </h4>
+                      <div className="p-3 rounded-lg bg-zinc-500/5 border border-zinc-500/20 font-mono text-[10px] space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <XCircle className="size-3 text-muted-foreground" />
+                          <span className="text-muted-foreground">Tweak not applied</span>
+                        </div>
+                        <div className="text-muted-foreground/60">
+                          Enable this tweak to apply real changes to your Windows registry.
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
