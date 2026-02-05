@@ -65,6 +65,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
+
+  // Auth cookie management
+  clearAuthCookies: () => ipcRenderer.invoke('auth:clearCookies'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

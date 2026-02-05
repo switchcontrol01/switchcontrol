@@ -63,7 +63,7 @@ export async function registerRoutes(
 
   app.post("/api/tweaks/:tweakId", csrfProtection, async (req, res) => {
     try {
-      const { tweakId } = req.params;
+      const tweakId = req.params.tweakId as string;
       const { enabled, tweakTitle } = req.body;
       
       // Server-side premium enforcement for premium tweaks (uses canonical server-side lookup)
@@ -86,7 +86,7 @@ export async function registerRoutes(
       }
       
       const settings = await storage.getOrCreateSettings();
-      const tweak = await storage.setTweak(settings.id, tweakId, enabled);
+      const tweak = await storage.setTweak(settings.id, String(tweakId), enabled);
       
       const currentCount = settings.tweaksApplied || 0;
       const newCount = enabled ? currentCount + 1 : Math.max(0, currentCount - 1);

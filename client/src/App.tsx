@@ -11,7 +11,7 @@ import { PremiumUpgradeAnimation, shouldShowPremiumAnimation } from "@/component
 import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, performFullLogout } from "@/lib/auth-store";
 import { usePremiumActivation } from "@/lib/premium-activation-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 
@@ -326,9 +326,12 @@ function ElectronAppContent() {
     if (!splashDone) return;
 
     const checkAuth = async () => {
+      // Boot logging for auth state
+      console.log('[Auth] Boot: token present:', !!token, 'user present:', !!user, 'premium:', user?.isPremium);
+      
       // For Electron, use stored user data (cookies don't work cross-origin)
       if (token && user) {
-        console.log('[App] Using stored user data:', user.id);
+        console.log('[Auth] Using stored user data:', user.id, 'isPremium:', user.isPremium);
         
         // Check if first time for this user
         const welcomeKey = `sc_welcomed_${user.id}`;
@@ -377,8 +380,9 @@ function ElectronAppContent() {
     checkAuth();
   }, [splashDone]);
 
-  const handleLogout = () => {
-    storeLogout();
+  const handleLogout = async () => {
+    console.log('[Auth] Electron logout initiated');
+    await performFullLogout();
     setPhase("unauthenticated");
     setLocation("/");
   };
@@ -531,11 +535,15 @@ function WebsiteContent() {
   }, []);
 
   const handleLogout = async () => {
+    console.log('[Auth] Website logout initiated');
     try {
       await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
+      console.log('[Auth] Backend session invalidated');
     } catch (err) {
-      console.error('[Website] Logout failed:', err);
+      console.error('[Auth] Logout failed:', err);
     }
+    // Clear local storage
+    localStorage.removeItem('sc_auth_token_v2');
     setUser(null);
     window.location.href = '/';
   };

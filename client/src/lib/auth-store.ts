@@ -44,6 +44,42 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
+// Full logout that invalidates backend session + clears all local state
+export async function performFullLogout(): Promise<void> {
+  console.log('[Auth] performFullLogout started');
+  
+  try {
+    // 1. Call backend to invalidate session and expire cookie
+    console.log('[Auth] Calling backend /auth/logout');
+    const response = await fetch(`${AUTH_DOMAIN}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    console.log('[Auth] Backend logout response:', response.status);
+  } catch (err) {
+    console.error('[Auth] Backend logout failed:', err);
+  }
+  
+  // 2. Clear Zustand store and persisted localStorage
+  const store = useAuthStore.getState();
+  store.clear();
+  
+  // 3. Clear the persisted storage key
+  localStorage.removeItem(TOKEN_KEY);
+  
+  // 4. Reset lastKnownIsPremium
+  lastKnownIsPremium = null;
+  
+  // 5. Clear Electron cookies if available
+  const api = (window as any).electronAPI;
+  if (api?.clearAuthCookies) {
+    console.log('[Auth] Clearing Electron cookies');
+    await api.clearAuthCookies();
+  }
+  
+  console.log('[Auth] performFullLogout completed');
+}
+
 export async function exchangeToken(token: string): Promise<AuthUser | null> {
   try {
     console.log('[Auth] Exchanging token for session');

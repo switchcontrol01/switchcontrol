@@ -747,6 +747,37 @@ ipcMain.handle('tweak:getInfo', () => {
   return tweakExecutor.getTweakInfo();
 });
 
+// Auth: Clear cookies for the backend domain
+ipcMain.handle('auth:clearCookies', async () => {
+  console.log('[Auth] Clearing cookies for switchcontrol.org');
+  try {
+    const { session } = require('electron');
+    const ses = session.defaultSession;
+    
+    // Clear cookies for the auth domain
+    const cookies = await ses.cookies.get({ domain: 'switchcontrol.org' });
+    console.log('[Auth] Found', cookies.length, 'cookies to clear');
+    
+    for (const cookie of cookies) {
+      const url = `https://${cookie.domain.replace(/^\./, '')}${cookie.path}`;
+      await ses.cookies.remove(url, cookie.name);
+    }
+    
+    // Also clear any cookies with .switchcontrol.org domain
+    const dotCookies = await ses.cookies.get({ domain: '.switchcontrol.org' });
+    for (const cookie of dotCookies) {
+      const url = `https://switchcontrol.org${cookie.path}`;
+      await ses.cookies.remove(url, cookie.name);
+    }
+    
+    console.log('[Auth] Cookies cleared successfully');
+    return { success: true };
+  } catch (err) {
+    console.error('[Auth] Failed to clear cookies:', err);
+    return { success: false, error: err.message };
+  }
+});
+
 app.whenReady().then(() => {
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   createWindow();
