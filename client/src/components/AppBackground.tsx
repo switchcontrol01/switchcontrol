@@ -1,5 +1,6 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 import { SpotlightCursor } from './SpotlightCursor';
+import { PremiumParticles } from './PremiumBackground';
 
 interface GlowBlob {
   id: string;
@@ -24,13 +25,52 @@ interface ContourLine {
 
 export function AppBackground() {
   const [isMobile, setIsMobile] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const parallaxRef = useRef({ x: 0, y: 0 });
   
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    const checkMotion = () => setPrefersReducedMotion(
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    );
     checkMobile();
+    checkMotion();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion || isMobile) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    let animationId: number;
+    let targetX = 0;
+    let targetY = 0;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      targetX = (e.clientX / window.innerWidth - 0.5) * 15;
+      targetY = (e.clientY / window.innerHeight - 0.5) * 15;
+    };
+
+    const animate = () => {
+      parallaxRef.current.x += (targetX - parallaxRef.current.x) * 0.03;
+      parallaxRef.current.y += (targetY - parallaxRef.current.y) * 0.03;
+      
+      container.style.transform = `rotate(-12deg) scale(1.3) translate(${parallaxRef.current.x}px, ${parallaxRef.current.y}px)`;
+      animationId = requestAnimationFrame(animate);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    animationId = requestAnimationFrame(animate);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      cancelAnimationFrame(animationId);
+    };
+  }, [prefersReducedMotion, isMobile]);
 
   const glowBlobs = useMemo<GlowBlob[]>(() => [
     { id: 'top-left', top: '5%', left: '5%', size: 450, color: 'hsl(270 50% 45%)', blur: 120, opacity: 0.09, animClass: 'animate-blob-1' },
@@ -61,7 +101,10 @@ export function AppBackground() {
   }, [isMobile]);
 
   return (
+    <>
+    <PremiumParticles config={{ count: 20, speed: 0.2, opacity: 0.06, size: 1.5 }} />
     <div 
+      ref={containerRef}
       className="fixed inset-0 overflow-hidden"
       style={{ zIndex: 0, transform: 'rotate(-12deg) scale(1.3)', pointerEvents: 'none' }}
       aria-hidden="true"
@@ -164,5 +207,6 @@ export function AppBackground() {
 
       <SpotlightCursor />
     </div>
+    </>
   );
 }
