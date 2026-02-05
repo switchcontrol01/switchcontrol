@@ -1,0 +1,355 @@
+ “Everything shows but only two things on the graph”
+
+What’s happening
+
+Your graph is technically working, but it’s under-populated:
+
+Currently plotted:
+
+CPU load
+
+RAM %
+
+
+That’s why it feels dead.
+
+What you should add (minimum viable, no fake data)
+
+Always-on (Tier 3 – systeminformation):
+
+CPU load %
+
+RAM usage %
+
+Disk active %
+
+Network RX/TX (optional but easy)
+
+
+Conditional (Tier 2/1):
+
+GPU load % (NVIDIA via nvidia-smi, AMD via LHM)
+
+GPU temp °C (NVIDIA via nvidia-smi, AMD via LHM)
+
+CPU temp °C (LHM only)
+
+Motherboard temp °C (LHM only)
+
+
+Rule
+
+Graph auto-expands lines when data exists
+
+Null hides line
+
+No placeholders, no fake zeros
+
+
+That alone turns the graph from “dead” to “alive”.
+
+
+---
+
+2️⃣ GPU shows “N/A” for temp on AMD – is this correct?
+
+Yes. This is correct and honest.
+
+AMD GPU temps will NOT show unless:
+
+LibreHardwareMonitor is running
+
+
+systeminformation cannot read AMD GPU temps
+
+That is not your fault
+
+
+Do not fake AMD temps. Ever.
+
+
+---
+
+3️⃣ Purple floating text when clicking Discord / TikTok
+
+What’s wrong
+
+That purple pill is:
+
+A tooltip or toast
+
+With no dismiss logic
+
+And no timeout
+
+And likely pointer-events: none on the X
+
+
+That is a bug.
+
+Fix (non-negotiable)
+
+All external-link actions must:
+
+Open browser
+
+Never show persistent UI state
+
+
+Any tooltip must:
+
+Auto-dismiss after 2–3s
+
+Or be clickable to dismiss
+
+
+
+If it can’t be dismissed, users assume the app is broken.
+
+
+---
+
+4️⃣ Discord / TikTok opening inside the app
+
+This is a hard NO, you’re right.
+
+Required behavior
+
+External links must use:
+
+shell.openExternal(url)
+
+What NOT to do
+
+Do NOT open inside Electron
+
+Do NOT use in-app webviews
+
+Do NOT iframe social sites
+
+
+Opening TikTok inside your app screams “sketchy Electron app” to users and AV.
+
+
+---
+
+5️⃣ “Real” tweaks failing but UI says success
+
+Your screenshot confirms it:
+
+> Requested registry access is not allowed
+
+
+
+What’s broken
+
+PowerShell command failed
+
+Error thrown
+
+UI still reported success
+
+
+That destroys trust.
+
+
+---
+
+6️⃣ Mandatory fix: tweak verification system
+
+Every tweak must return:
+
+status: applied | failed | warning
+reason: string
+verified: boolean
+
+Example
+
+After setting registry:
+
+Read key back
+
+Compare expected value
+
+Only show success if verified
+
+
+If not verified:
+
+Show red toast
+
+With actual error reason
+
+No green “Applied” lie
+
+
+This is what separates serious tools from garbage.
+
+
+---
+
+7️⃣ “How do I know a tweak actually applied?”
+
+You currently don’t. That’s the problem.
+
+Fix
+
+Add a “Verified” badge per tweak:
+
+✔ Verified
+
+✖ Blocked by policy
+
+✖ Requires admin
+
+
+No badge = no trust.
+
+
+---
+
+8️⃣ Premium state not updating without logout
+
+This is a state sync bug, not payments.
+
+Root cause
+
+App caches user.plan
+
+Purchase happens on web
+
+App never re-fetches session
+
+
+Logging out forces refresh. That’s bad UX.
+
+
+---
+
+9️⃣ Correct premium flow (this is the right way)
+
+After purchase
+
+User sees page:
+
+“Premium activated”
+
+Buttons:
+
+Continue in App
+
+Stay on Web
+
+
+
+Continue in App
+
+Deep link back to app
+
+App forces entitlement refresh
+
+No logout required
+
+Premium unlocked immediately
+
+
+
+---
+
+🔟 Upgrade animation you described (this is good)
+
+Your idea is solid and premium-feeling.
+
+One-time animation
+
+Fade to dark
+
+SwitchControl logo
+
+Crown animates in
+
+Lock icon morphs to unlock
+
+Soft glow
+
+Transition to dashboard
+
+
+No confetti. Clean. Controlled.
+
+
+---
+
+1️⃣1️⃣ Post-upgrade guided tour (important)
+
+Immediately after animation:
+
+Tooltips highlighting:
+
+AI Advisor
+
+BIOS Advisor
+
+Premium tweaks
+
+
+
+Rules:
+
+One time only
+
+Skip button available
+
+Never repeat
+
+
+This reduces refunds massively.
+
+
+---
+
+1️⃣2️⃣ What to tell Replit (copy-paste)
+
+> We need to:
+
+Add more live graph metrics (disk, network, GPU when available)
+
+Fix external links to always open in browser
+
+Remove persistent tooltips and make them dismissible
+
+Add verification after every tweak and only show success if verified
+
+Fix premium entitlement caching so it updates instantly without logout
+
+Add a one-time premium upgrade animation and guided tour These are correctness and trust issues, not cosmetic polish.
+
+
+
+
+
+---
+
+Final blunt truth
+
+You’re past the “cool UI” phase. You’re now in the trust and correctness phase.
+
+Fix these and SwitchControl stops feeling like:
+
+> “another tweaker”
+
+
+
+and starts feeling like:
+
+> “a real system tool”
+
+
+
+If you want next, I can:
+
+Design the exact graph schema
+
+Spec the tweak verification layer
+
+Or map the premium entitlement refresh logic end-to-end

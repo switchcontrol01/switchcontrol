@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, useContext } from "react";
+import { useEffect, useState, createContext, useContext, useCallback } from "react";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -7,9 +7,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
+import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
+import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements } from "@/lib/auth-store";
 
 import Splash from "@/screens/Splash";
 import LoginScreen from "@/screens/Login";
@@ -102,8 +104,50 @@ function ElectronAppContent() {
   const [splashDone, setSplashDone] = useState(false);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [showTour, setShowTour] = useState(false);
+  const [showUpgradeAnimation, setShowUpgradeAnimation] = useState(false);
+  const { showTour: showPremiumTour, triggerTour: triggerPremiumTour, completeTour: completePremiumTour } = usePremiumTourState();
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
+
+  const handlePremiumUpgrade = useCallback(() => {
+    console.log('[App] Premium upgrade detected!');
+    setShowUpgradeAnimation(true);
+  }, []);
+
+  const handleUpgradeAnimationComplete = useCallback(() => {
+    setShowUpgradeAnimation(false);
+    triggerPremiumTour();
+  }, [triggerPremiumTour]);
+
+  useEffect(() => {
+    if (!user?.loggedIn || phase !== 'authenticated') return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[App] App focused, refreshing entitlements...');
+        const result = await refreshEntitlements();
+        if (result.upgraded) {
+          handlePremiumUpgrade();
+        }
+      }
+    };
+
+    const handleFocus = async () => {
+      console.log('[App] Window focused, refreshing entitlements...');
+      const result = await refreshEntitlements();
+      if (result.upgraded) {
+        handlePremiumUpgrade();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [user?.loggedIn, phase, handlePremiumUpgrade]);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
@@ -124,8 +168,18 @@ function ElectronAppContent() {
           const parsed = new URL(url);
           const newToken = parsed.searchParams.get('token');
           const provider = parsed.searchParams.get('provider');
+          const premiumActivated = parsed.searchParams.get('premium_activated') === 'true';
           
-          console.log('[App] Token:', newToken ? 'present' : 'missing', 'Provider:', provider);
+          console.log('[App] Token:', newToken ? 'present' : 'missing', 'Provider:', provider, 'Premium:', premiumActivated);
+          
+          if (premiumActivated && user?.loggedIn) {
+            console.log('[App] Premium purchase return detected, refreshing entitlements...');
+            const result = await refreshEntitlements();
+            if (result.upgraded) {
+              handlePremiumUpgrade();
+            }
+            return;
+          }
           
           if (newToken) {
             setValidating(true);
@@ -149,6 +203,10 @@ function ElectronAppContent() {
               } else {
                 setPhase("authenticated");
                 setLocation("/dashboard");
+              }
+              
+              if (premiumActivated && exchangedUser.isPremium) {
+                handlePremiumUpgrade();
               }
             } else {
               console.error('[App] Token exchange failed');
@@ -324,6 +382,16 @@ function ElectronAppContent() {
           }}
         />
       )}
+      
+      <PremiumUpgradeAnimation 
+        show={showUpgradeAnimation} 
+        onComplete={handleUpgradeAnimationComplete} 
+      />
+      
+      <GuidedTour 
+        show={showPremiumTour} 
+        onComplete={completePremiumTour} 
+      />
     </AppAuthContext.Provider>
   );
 }

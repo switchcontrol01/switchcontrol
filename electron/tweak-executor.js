@@ -237,40 +237,60 @@ async function executeTweak(tweakId, action) {
     const expectedState = action === 'apply';
     
     if (verification.verified && verification.applied === expectedState) {
-      // Success - update state
       const state = loadState();
       state.tweaks[tweakId] = action === 'apply';
       saveState(state);
       
       const result = {
         success: true,
-        message: `${tweak.name} ${action === 'apply' ? 'enabled' : 'disabled'}`,
+        verified: true,
+        message: `${tweak.name} ${action === 'apply' ? 'enabled' : 'disabled'} (verified)`,
         requiresReboot: tweak.requiresReboot,
         requiresAdmin: false,
         error: null,
       };
       logAction(action, tweakId, result);
       return result;
-    } else {
-      // Verification failed
+    } else if (!verification.verified) {
       const result = {
         success: false,
+        verified: false,
         message: null,
         requiresReboot: false,
         requiresAdmin: false,
-        error: 'Change was applied but verification failed. Registry may have been reset.',
+        error: 'Unable to verify change. Registry access may be restricted.',
+      };
+      logAction(action, tweakId, result);
+      return result;
+    } else {
+      const result = {
+        success: false,
+        verified: true,
+        message: null,
+        requiresReboot: false,
+        requiresAdmin: false,
+        error: 'Change was blocked by system policy or antivirus.',
       };
       logAction(action, tweakId, result);
       return result;
     }
   } catch (error) {
     console.error(`[TweakExecutor] Failed to ${action} ${tweakId}:`, error);
+    
+    let errorMsg = error.message || 'Failed to execute tweak';
+    if (errorMsg.includes('access is not allowed') || errorMsg.includes('Access denied')) {
+      errorMsg = 'Requires administrator privileges to modify this setting.';
+    } else if (errorMsg.includes('does not exist')) {
+      errorMsg = 'Registry path not found. This setting may not apply to your Windows version.';
+    }
+    
     const result = {
       success: false,
+      verified: false,
       message: null,
       requiresReboot: false,
-      requiresAdmin: false,
-      error: error.message || 'Failed to execute tweak',
+      requiresAdmin: errorMsg.includes('administrator'),
+      error: errorMsg,
     };
     logAction(action, tweakId, result);
     return result;

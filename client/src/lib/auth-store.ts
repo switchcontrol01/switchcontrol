@@ -120,3 +120,47 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
     return null;
   }
 }
+
+export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: AuthUser | null }> {
+  const store = useAuthStore.getState();
+  const previousPlan = store.user?.plan || 'free';
+  
+  try {
+    console.log('[Auth] Refreshing entitlements...');
+    const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.error('[Auth] Entitlement refresh failed:', response.status);
+      return { upgraded: false, user: null };
+    }
+
+    const data = await response.json();
+    
+    if (data.loggedIn === false) {
+      return { upgraded: false, user: null };
+    }
+
+    const newUser: AuthUser = {
+      id: data.id || store.user?.id || '',
+      email: data.email || null,
+      username: data.name || data.firstName || null,
+      avatarUrl: data.avatar || null,
+      plan: data.isPremium ? 'premium' : 'free',
+      isPremium: data.isPremium || false,
+      loggedIn: true,
+    };
+
+    const upgraded = previousPlan === 'free' && newUser.plan === 'premium';
+    
+    store.setUser(newUser);
+    console.log('[Auth] Entitlements refreshed. Upgraded:', upgraded);
+    
+    return { upgraded, user: newUser };
+  } catch (err) {
+    console.error('[Auth] Entitlement refresh error:', err);
+    return { upgraded: false, user: null };
+  }
+}

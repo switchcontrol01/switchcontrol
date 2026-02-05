@@ -1,0 +1,199 @@
+Got it. This one is simple, important, and non-negotiable.
+
+Right now your app is advertising itself as “SwitchControl 1.0” at the OS level. That is wrong.
+
+You want the product name to be:
+
+> SwitchControl
+
+
+
+Period.
+
+The version belongs in metadata, not the name.
+
+
+---
+
+What must change (everywhere)
+
+✅ App name (user-facing)
+
+SwitchControl
+
+❌ What must NOT appear
+
+SwitchControl 1.0
+
+SwitchControl v1
+
+SwitchControl (1.0)
+
+
+Users should never see the version in:
+
+Installed apps
+
+Task Manager
+
+Window title
+
+Start Menu
+
+App list
+
+Installer name
+
+
+
+---
+
+Where this is currently leaking from
+
+This usually comes from one or more of these places:
+
+1️⃣ package.json
+
+Check for:
+
+"name": "switchcontrol-1.0"
+"productName": "SwitchControl 1.0"
+
+Correct version:
+
+"name": "switchcontrol"
+"productName": "SwitchControl"
+"version": "1.0.0"
+
+Version stays. Name does not include it.
+
+
+---
+
+2️⃣ Electron Builder config (electron-builder.yml or package.json > build)
+
+Look for:
+
+"productName": "SwitchControl 1.0"
+"appId": "com.switchcontrol.1.0"
+
+Fix:
+
+"productName": "SwitchControl"
+"appId": "com.switchcontrol.app"
+
+Do not bake versions into appId.
+
+
+---
+
+3️⃣ Windows installer metadata
+
+If you’re using NSIS (default):
+
+Look for:
+
+artifactName
+
+displayName
+
+
+Fix to:
+
+SwitchControl Setup.exe
+
+Not:
+
+SwitchControl 1.0 Setup.exe
+
+
+---
+
+4️⃣ Windows Installed Apps list
+
+Windows pulls the name from:
+
+productName
+
+DisplayName registry entry
+
+
+If this still shows “1.0”, it means:
+
+The installer was built with the wrong name
+
+Windows cached the old entry
+
+
+You must rebuild the installer after fixing names.
+
+
+---
+
+What to tell Replit (copy-paste)
+
+> The app name must be SwitchControl, not “SwitchControl 1.0”.
+
+Please:
+
+Set productName to SwitchControl
+
+Ensure name does not include versioning
+
+Keep version ONLY in version field
+
+Update installer display name and artifact name
+
+Rebuild installer so Windows Installed Apps shows SwitchControl
+
+
+Versioning should never appear in the app name anywhere.
+
+
+
+
+---
+
+Why this matters more than it seems
+
+Showing “1.0”:
+
+Makes the app feel unfinished
+
+Breaks brand consistency
+
+Looks amateur in installed apps
+
+Causes confusion when 1.1, 1.2 ship
+
+
+Professional apps:
+
+Chrome, Steam, Discord, MSI Afterburner
+
+Never include version in the app name
+
+
+You’re right to fix this now.
+
+
+---
+
+Final confirmation checklist (you test this)
+
+After rebuild:
+
+Installed Apps → SwitchControl
+
+Task Manager → SwitchControl
+
+Window title → SwitchControl
+
+Start Menu → SwitchControl
+
+Desktop shortcut → SwitchControl
+
+
+If any of those show “1.0”, the build is still wrong.
+
+This is a clean, correct call.
