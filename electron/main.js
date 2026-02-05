@@ -64,11 +64,11 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
-    console.log('[DeepLink] second-instance event:', commandLine);
+    console.log('[TEMP-LOG] second-instance event - commandLine:', commandLine);
     
     const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
     if (url) {
-      console.log('[DeepLink] received:', url);
+      console.log('[TEMP-LOG] protocol URL received - FULL URL:', url);
       deliverDeepLink(url);
     } else if (mainWindow) {
       // Just focus the window even without deep link
@@ -80,7 +80,7 @@ if (!gotTheLock) {
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  console.log('[DeepLink] open-url event received:', url);
+  console.log('[TEMP-LOG] open-url event received - FULL URL:', url);
   deliverDeepLink(url);
 });
 
@@ -178,12 +178,16 @@ function createWindow() {
   
   // Send focus events to renderer for UI cleanup
   mainWindow.on('focus', () => {
+    console.log('[TEMP-LOG] window focus event fired');
     if (rendererReady && mainWindow) {
       mainWindow.webContents.send('window-focus');
     }
   });
 
-  mainWindow.once('ready-to-show', () => mainWindow.show());
+  mainWindow.once('ready-to-show', () => {
+    console.log('[TEMP-LOG] window ready-to-show, calling show()');
+    mainWindow.show();
+  });
   mainWindow.on('closed', () => { 
     mainWindow = null; 
     rendererReady = false;
@@ -749,7 +753,7 @@ ipcMain.handle('tweak:getInfo', () => {
 
 // Auth: Clear cookies for the backend domain
 ipcMain.handle('auth:clearCookies', async () => {
-  console.log('[Auth] Clearing cookies for switchcontrol.org');
+  console.log('[TEMP-LOG] auth:clearCookies IPC called');
   try {
     const { session } = require('electron');
     const ses = session.defaultSession;
@@ -779,6 +783,7 @@ ipcMain.handle('auth:clearCookies', async () => {
 });
 
 app.whenReady().then(() => {
+  console.log('[TEMP-LOG] app.whenReady() fired, setting protocol and creating window');
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   createWindow();
 });

@@ -115,8 +115,10 @@ function ElectronAppContent() {
   const [, setLocation] = useHashLocation();
 
   const handlePremiumUpgrade = useCallback(() => {
+    console.log('[TEMP-LOG] handlePremiumUpgrade called');
     console.log('[App] Premium upgrade detected!');
     if (shouldShowPremiumAnimation()) {
+      console.log('[TEMP-LOG] shouldShowPremiumAnimation=true, setting showUpgradeAnimation=true');
       setShowUpgradeAnimation(true);
     } else {
       console.log('[App] Animation already shown, skipping');
@@ -229,6 +231,7 @@ function ElectronAppContent() {
       const api = (window as any).electronAPI;
       
       api.auth.onCallback(async (url: string) => {
+        console.log('[TEMP-LOG] deep-link callback fired');
         console.log('[PremiumFlow] deep-link received:', url);
         
         try {

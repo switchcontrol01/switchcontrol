@@ -1,0 +1,74 @@
+Message to Replit (verbatim)
+We need to stop trial-and-error. I need a full explanation of how this app is actually configured and wired, because multiple core behaviors are broken.
+First: explain the architecture in plain terms
+Answer these explicitly:
+How is a tweak defined?
+Where is a tweak declared?
+What fields does it have (id, apply, revert, check, requiresAdmin, etc)?
+Is there a standard interface or are tweaks ad-hoc?
+How does a toggle work internally?
+What function is called when I turn it ON?
+What function is called when I turn it OFF?
+Where does the UI get the “is enabled” state from?
+Is that state derived from system checks or local state?
+How are admin-required tweaks handled?
+How do you detect a tweak requires elevation?
+How do you request UAC?
+Is there an elevated helper process or not?
+If no elevation is available, why does the UI still allow clicking?
+How is premium gating implemented?
+What controls whether a tweak is locked?
+Is this checked per-render, per-route, or once on boot?
+Where is the premium modal state stored?
+How does modal state work?
+Where is the premium modal state stored?
+Why does it not close on background click or ESC?
+Why does it persist until route change?
+How does deep linking / “Go to app” work?
+What event is fired when “Go to app” is clicked?
+How does Electron receive it?
+How is window focus handled?
+What triggers the premium animation (exact function and file)?
+How is app startup animation implemented?
+What component controls it?
+Is it scale-based or opacity-based?
+Why does the UI resize instead of fade?
+Second: confirm or deny these suspected bugs
+Answer YES or NO for each, with file references:
+Most tweaks do not have a revert() implementation
+UI toggle state is not derived from a real system check
+Multiple tweaks modify the same registry keys or commands
+No per-action UAC elevation exists
+Premium modal state is not reset on route change
+Dashboard animation uses scale instead of opacity
+Third: files I need you to provide for analysis
+List all files, then confirm you can share them:
+Tweak system
+All tweak definition files
+Any registry / PowerShell execution helpers
+Any “apply / revert / check” logic
+UI state
+Toggle component
+Modal component
+Premium gating logic
+Any global store (Zustand/Redux/etc)
+Electron
+electron/main.*
+electron/preload.*
+Any IPC handlers
+Any elevation helpers (if they exist)
+Auth / premium
+/me handling on client
+Premium unlock animation component
+Deep link handler
+Animations
+Dashboard mount animation
+Splash screen transition logic
+If you cannot explain or locate something, say so explicitly.
+Fourth: expectation
+Do not implement new changes yet.
+I want:
+A written explanation
+A list of files
+A confirmation of which assumptions above are correct
+Only after that do we touch code again
