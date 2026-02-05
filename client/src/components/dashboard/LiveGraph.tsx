@@ -13,10 +13,12 @@ interface DataPoint {
 }
 
 interface LatestState {
-  cpuUsage: number;
-  cpuTemp: number | null;
-  gpuTemp: number | null;
-  gpuLoad: number | null;
+  cpuDisplay: number;
+  cpuLabel: string;
+  gpuDisplay: number | null;
+  gpuLabel: string | null;
+  showGpu: boolean;
+  showMobo: boolean;
   moboTemp: number | null;
   ramUsedGb: number;
   ramTotalGb: number;
@@ -50,17 +52,14 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             }
           }
           
-          const cpuTemp = live.cpuTemp !== null && Number.isFinite(live.cpuTemp) ? live.cpuTemp : null;
-          const gpuTemp = live.gpuTemp !== null && Number.isFinite(live.gpuTemp) ? live.gpuTemp : null;
-          const gpuLoad = live.gpuLoad !== null && Number.isFinite(live.gpuLoad) ? live.gpuLoad : null;
-          const moboTemp = live.moboTemp !== null && Number.isFinite(live.moboTemp) ? live.moboTemp : null;
-          
           const telemetryState: LatestState = {
-            cpuUsage: safeNumber(live.cpuUsage, 0),
-            cpuTemp,
-            gpuTemp,
-            gpuLoad,
-            moboTemp,
+            cpuDisplay: safeNumber(live.cpuDisplay, 0),
+            cpuLabel: live.cpuLabel || 'CPU Load (%)',
+            gpuDisplay: live.gpuDisplay,
+            gpuLabel: live.gpuLabel,
+            showGpu: live.showGpu ?? false,
+            showMobo: live.showMobo ?? false,
+            moboTemp: live.moboTemp,
             ramUsedGb,
             ramTotalGb,
           };
@@ -72,8 +71,8 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
           if (onTelemetryUpdate) {
             onTelemetryUpdate({
               temps: { 
-                cpu: cpuTemp ?? 0, 
-                gpu: gpuTemp ?? 0
+                cpu: live.cpuTemp ?? 0, 
+                gpu: live.gpuTemp ?? 0
               },
               ram: { 
                 totalGB: ramTotalGb, 
@@ -91,9 +90,9 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
           setData(prev => {
             const newPoint: DataPoint = {
               time: timeStr,
-              cpu: cpuTemp ?? telemetryState.cpuUsage,
-              gpu: gpuTemp,
-              mobo: moboTemp,
+              cpu: telemetryState.cpuDisplay,
+              gpu: telemetryState.gpuDisplay,
+              mobo: telemetryState.moboTemp,
               ram: safeNumber(ramPercent)
             };
             const updated = [...prev, newPoint];
@@ -125,10 +124,6 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
     };
   }, [onTelemetryUpdate]);
 
-  const hasGpuData = data.some(d => Number.isFinite(d.gpu));
-  const hasMoboData = data.some(d => Number.isFinite(d.mobo));
-  const hasCpuTemp = latest?.cpuTemp !== null;
-
   if (error) {
     return (
       <GlassCard className="p-4">
@@ -157,19 +152,17 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             <>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-red-500" />
-                CPU: {hasCpuTemp ? `${latest.cpuTemp}°C` : `${safeFixed(latest.cpuUsage, 0)}%`}
+                {latest.cpuLabel.replace(' (°C)', '').replace(' (%)', '')}: {safeFixed(latest.cpuDisplay, 0)}{latest.cpuLabel.includes('°C') ? '°C' : '%'}
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-green-500" />
-                GPU: {hasGpuData && latest.gpuTemp !== null ? (
-                  `${latest.gpuTemp}°C`
-                ) : latest.gpuLoad !== null ? (
-                  `${safeFixed(latest.gpuLoad, 0)}%`
+                GPU: {latest.showGpu && latest.gpuDisplay !== null ? (
+                  `${safeFixed(latest.gpuDisplay, 0)}${latest.gpuLabel?.includes('°C') ? '°C' : '%'}`
                 ) : (
-                  <span className="text-muted-foreground/60" title="GPU temp requires NVIDIA or LibreHardwareMonitor">N/A</span>
+                  <span className="text-muted-foreground/60" title="GPU requires NVIDIA or LibreHardwareMonitor">N/A</span>
                 )}
               </span>
-              {hasMoboData && latest.moboTemp !== null && (
+              {latest.showMobo && latest.moboTemp !== null && (
                 <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-purple-500" />
                   Mobo: {latest.moboTemp}°C
@@ -216,24 +209,24 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             <Line 
               type="monotone" 
               dataKey="cpu" 
-              name={hasCpuTemp ? "CPU Temp (°C)" : "CPU Load (%)"}
+              name={latest?.cpuLabel || "CPU"}
               stroke="#ef4444" 
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 3 }}
             />
-            {hasGpuData && (
+            {latest?.showGpu && (
               <Line 
                 type="monotone" 
                 dataKey="gpu" 
-                name="GPU Temp (°C)"
+                name={latest?.gpuLabel || "GPU"}
                 stroke="#22c55e" 
                 strokeWidth={2}
                 dot={false}
                 activeDot={{ r: 3 }}
               />
             )}
-            {hasMoboData && (
+            {latest?.showMobo && (
               <Line 
                 type="monotone" 
                 dataKey="mobo" 
@@ -260,9 +253,9 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
       <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/60">
         <Info className="size-3" />
         <span>
-          {hasMoboData 
+          {latest?.showMobo 
             ? "LibreHardwareMonitor detected. Full sensor data available."
-            : "GPU temp: NVIDIA only. Mobo temp: requires LibreHardwareMonitor."
+            : "GPU: NVIDIA or LibreHardwareMonitor required. Mobo: LibreHardwareMonitor required."
           }
         </span>
       </div>

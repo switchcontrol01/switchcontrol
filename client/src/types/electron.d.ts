@@ -57,6 +57,12 @@ interface LiveTelemetry {
   gpuTemp: number | null;
   gpuLoad: number | null;
   moboTemp: number | null;
+  cpuDisplay: number;
+  cpuLabel: string;
+  gpuDisplay: number | null;
+  gpuLabel: string | null;
+  showGpu: boolean;
+  showMobo: boolean;
   timestamp: number;
 }
 

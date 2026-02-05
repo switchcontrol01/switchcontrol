@@ -484,13 +484,34 @@ ipcMain.handle('telemetry:getLive', async () => {
       if (lhm.moboTemp !== null) moboTemp = lhm.moboTemp;
     }
 
+    // === BUILD DISPLAY-READY VALUES ===
+    // CPU: prefer temp, fallback to usage
+    const cpuDisplay = cpuTemp !== null ? cpuTemp : lastCpuLoad;
+    const cpuLabel = cpuTemp !== null ? 'CPU Temp (°C)' : 'CPU Load (%)';
+    
+    // GPU: prefer temp, fallback to load, then null
+    const gpuDisplay = gpuTemp !== null ? gpuTemp : gpuLoad;
+    const gpuLabel = gpuTemp !== null ? 'GPU Temp (°C)' : (gpuLoad !== null ? 'GPU Load (%)' : null);
+    const showGpu = gpuDisplay !== null;
+    
+    // Mobo: only show if available
+    const showMobo = moboTemp !== null;
+
     return {
+      // Raw values
       cpuUsage: lastCpuLoad,
       ramUsage: ramUsage,
       cpuTemp: cpuTemp,
       gpuTemp: gpuTemp,
       gpuLoad: gpuLoad,
       moboTemp: moboTemp,
+      // Display-ready values
+      cpuDisplay,
+      cpuLabel,
+      gpuDisplay,
+      gpuLabel,
+      showGpu,
+      showMobo,
       timestamp: Date.now()
     };
   } catch (e) {
@@ -502,6 +523,12 @@ ipcMain.handle('telemetry:getLive', async () => {
       gpuTemp: null,
       gpuLoad: null,
       moboTemp: null,
+      cpuDisplay: 0,
+      cpuLabel: 'CPU Load (%)',
+      gpuDisplay: null,
+      gpuLabel: null,
+      showGpu: false,
+      showMobo: false,
       timestamp: Date.now()
     };
   }
