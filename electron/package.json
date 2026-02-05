@@ -11,6 +11,9 @@
     "dist:win": "npm run prebuild && electron-builder --win"
   },
 
+  "dependencies": {
+    "systeminformation": "^5.23.5"
+  },
   "devDependencies": {
     "electron": "^33.4.11",
     "electron-builder": "^25.1.8"
@@ -27,7 +30,9 @@
 
     "files": [
       "main.js",
-      "preload.js"
+      "preload.js",
+      "tweak-executor.js",
+      "node_modules/systeminformation/**/*"
     ],
 
     "extraResources": [
