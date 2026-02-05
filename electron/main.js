@@ -20,9 +20,11 @@ function createWindow() {
     }
   });
 
+  // Always enable DevTools for debugging
+  mainWindow.webContents.openDevTools({ mode: 'detach' });
+
   if (isDev) {
     mainWindow.loadURL('http://localhost:5000');
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
   } else {
     const indexPath = path.join(process.resourcesPath, 'dist', 'index.html');
     console.log('[SwitchControl] Loading:', indexPath);

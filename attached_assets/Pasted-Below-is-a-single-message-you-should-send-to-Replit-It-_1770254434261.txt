@@ -1,0 +1,181 @@
+Below is a single message you should send to Replit. It does three things:
+
+1. Forces Replit to diagnose the blank screen properly
+
+
+2. Forces DevTools to be enabled so errors are visible
+
+
+3. Forces Replit to permanently fix the icon/build folder issue so you never do it manually again
+
+
+
+
+---
+
+MESSAGE TO SEND TO REPLIT (COPY EXACTLY)
+
+> I need you to stop making assumptions and follow this checklist in order. My Electron app opens with the correct icon but shows a blank window. DevTools are currently disabled so I cannot see renderer errors.
+
+PART 1: FORCE VISIBILITY (MANDATORY)
+
+1. Modify electron/main.js to always open DevTools in production until the blank screen is resolved:
+
+
+
+mainWindow.webContents.openDevTools({ mode: "detach" });
+
+2. Log the exact HTML path being loaded:
+
+
+
+console.log("Loading:", indexPath);
+
+I need to SEE renderer errors. No guessing.
+
+
+---
+
+PART 2: FILE EXISTENCE VERIFICATION (NO ASSUMPTIONS)
+
+Verify inside the packaged app at:
+
+electron/dist/win-unpacked/resources/
+
+That ALL of the following exist:
+
+dist/index.html
+dist/assets/
+
+If index.html is missing, fix electron-builder config immediately.
+
+
+---
+
+PART 3: FIX VITE + ELECTRON COMPATIBILITY
+
+1. Confirm Vite build uses:
+
+
+
+base: "./"
+
+NOT /
+
+2. If missing, fix it and rebuild.
+
+
+
+
+---
+
+PART 4: SANDBOX ISOLATION TEST
+
+Temporarily disable sandbox to confirm it is not killing the renderer:
+
+sandbox: false
+
+If the UI appears after this, report it clearly.
+
+
+---
+
+PART 5: IPC CONTRACT VERIFICATION
+
+Confirm every IPC handler expected by preload exists in main.js, including but not limited to:
+
+window:minimize
+
+window:maximize
+
+window:close
+
+tweak:execute
+
+tweak:checkStatus
+
+tweak:syncAll
+
+
+If even one is missing, the renderer WILL silently fail.
+
+
+---
+
+PART 6: ICON + BUILD FOLDER PERMANENT FIX (NO MANUAL STEPS)
+
+I uploaded an icon image.
+
+I want you to:
+
+1. Always generate electron/build/icon.ico automatically from the uploaded image
+
+
+2. Ensure electron/package.json always references:
+
+
+
+"win": {
+  "icon": "build/icon.ico"
+}
+
+3. Ensure electron/build/ is committed and included in the ZIP every time
+
+
+
+I should NEVER have to manually add icons again.
+
+
+---
+
+PART 7: FINAL REQUIREMENT
+
+After fixes, you must:
+
+Rebuild the Electron app
+
+Launch it
+
+Report exact DevTools errors, if any
+
+
+Do not say “should work”. I need confirmation with evidence.
+
+
+
+
+---
+
+Why this works (so you know I’m not guessing)
+
+Blank + icon visible = renderer crash or asset path failure
+
+No DevTools = flying blind
+
+Vite base "/" breaks file:// loading
+
+Sandbox true commonly kills React 19 apps silently
+
+Missing IPC handlers crashes preload execution before render
+
+Icon issues are 100% electron-builder config, not Windows
+
+
+This checklist forces Replit to stop hand-waving and actually prove what’s broken.
+
+
+---
+
+What I’ll do next once Replit responds
+
+When you paste their reply here, I will:
+
+Translate it to plain English
+
+Call out any BS instantly
+
+Tell you exactly what to change or delete
+
+
+Sleep if you need to. You’re not stuck.
+You’re just at the annoying part everyone hits with Electro
