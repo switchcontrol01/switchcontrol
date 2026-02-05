@@ -11,7 +11,8 @@ import {
   Wifi,
   Cpu,
   Crown,
-  LogOut
+  LogOut,
+  Activity
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
@@ -56,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Startup", icon: List, href: "/startup" },
   { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true, tourId: "ai-advisor" },
   { label: "Security", icon: Shield, href: "/security", tourId: "security" },
+  { label: "History", icon: Activity, href: "/history" },
   { label: "Settings", icon: Settings, href: "/settings", tourId: "settings" },
 ];
 

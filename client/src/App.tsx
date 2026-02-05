@@ -29,6 +29,7 @@ import StartupApps from "@/pages/StartupApps";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import Security from "@/pages/Security";
 import Tweaks from "@/pages/Tweaks";
+import History from "@/pages/History";
 import Landing from "@/pages/Landing";
 import Pricing from "@/pages/Pricing";
 import Download from "@/pages/Download";
@@ -73,6 +74,7 @@ function ElectronAppRoutes() {
       <Route path="/startup" component={StartupApps} />
       <Route path="/bios-advisor" component={BiosAdvisor} />
       <Route path="/security" component={Security} />
+      <Route path="/history" component={History} />
       <Route path="/settings" component={Settings} />
       <Route>
         <Home />
