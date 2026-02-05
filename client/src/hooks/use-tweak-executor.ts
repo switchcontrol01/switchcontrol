@@ -65,6 +65,7 @@ function getTweaksAPI() {
 export function useTweakExecutor() {
   const { toast } = useToast();
   const [executing, setExecuting] = useState<string | null>(null);
+  const [inProgress, setInProgress] = useState<Set<string>>(new Set());
   const [localState, setLocalState] = useState<LocalTweakState>({ appliedTweaks: {}, lastSync: null });
 
   useEffect(() => {
@@ -82,10 +83,18 @@ export function useTweakExecutor() {
       return true;
     }
 
+    // Prevent double-clicks with inProgress lock
+    if (inProgress.has(tweakId)) {
+      console.log(`[TweakExecutor] ${tweakId} already in progress, ignoring`);
+      return false;
+    }
+
+    setInProgress(prev => new Set(prev).add(tweakId));
     setExecuting(tweakId);
     const action = currentlyEnabled ? 'revert' : 'apply';
 
     try {
+      console.log(`[TweakExecutor] Executing ${action} for ${tweakId}`);
       const result: TweakResult = await getTweaksAPI().execute(tweakId, action);
       
       if (result.requiresAdmin && !result.success) {
@@ -98,6 +107,12 @@ export function useTweakExecutor() {
       }
       
       if (result.success) {
+        // Re-check the actual status from the system to avoid flip-flop
+        const verifiedStatus = await getTweaksAPI().checkStatus(tweakId);
+        const actualState = verifiedStatus?.applied ?? (action === 'apply');
+        
+        console.log(`[TweakExecutor] ${tweakId} verified state: ${actualState}`);
+        
         toast({
           title: action === 'apply' ? 'Tweak Applied' : 'Tweak Reverted',
           description: result.message || `Successfully ${action === 'apply' ? 'applied' : 'reverted'} tweak`,
@@ -112,11 +127,12 @@ export function useTweakExecutor() {
           });
         }
 
+        // Update local state with verified result
         setLocalState(prev => ({
           ...prev,
           appliedTweaks: {
             ...prev.appliedTweaks,
-            [tweakId]: action === 'apply'
+            [tweakId]: actualState
           }
         }));
 
@@ -138,8 +154,13 @@ export function useTweakExecutor() {
       return false;
     } finally {
       setExecuting(null);
+      setInProgress(prev => {
+        const next = new Set(prev);
+        next.delete(tweakId);
+        return next;
+      });
     }
-  }, [toast]);
+  }, [toast, inProgress]);
 
   const syncAllTweaks = useCallback(async () => {
     if (!isElectronWithTweaks()) {
@@ -170,6 +191,8 @@ export function useTweakExecutor() {
     }
   }, []);
 
+  const isInProgress = useCallback((tweakId: string) => inProgress.has(tweakId), [inProgress]);
+
   return {
     executeTweak,
     syncAllTweaks,
@@ -179,5 +202,6 @@ export function useTweakExecutor() {
     isElectron: isElectronWithTweaks(),
     isTierA: isTierATweak,
     isTierB: isTierBTweak,
+    isInProgress,
   };
 }

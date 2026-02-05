@@ -292,6 +292,30 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 activeDot={{ r: 3 }}
               />
             )}
+            {expanded && data.some(d => d.netRx !== null) && (
+              <Line 
+                type="monotone" 
+                dataKey="netRx" 
+                name="Net ↓ KB/s"
+                stroke="#3b82f6" 
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={{ r: 2 }}
+                strokeDasharray="4 2"
+              />
+            )}
+            {expanded && data.some(d => d.netTx !== null) && (
+              <Line 
+                type="monotone" 
+                dataKey="netTx" 
+                name="Net ↑ KB/s"
+                stroke="#8b5cf6" 
+                strokeWidth={1.5}
+                dot={false}
+                activeDot={{ r: 2 }}
+                strokeDasharray="4 2"
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>

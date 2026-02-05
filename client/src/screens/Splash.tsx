@@ -8,6 +8,7 @@ interface SplashProps {
 
 export default function Splash({ onComplete }: SplashProps) {
   const [phase, setPhase] = useState<"logo" | "fadeout">("logo");
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const logoTimer = setTimeout(() => {
@@ -18,19 +19,36 @@ export default function Splash({ onComplete }: SplashProps) {
       onComplete();
     }, 2800);
 
+    // Progress bar animation
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) return 100;
+        // Ease out the progress
+        const remaining = 100 - prev;
+        return prev + Math.max(remaining * 0.08, 0.5);
+      });
+    }, 50);
+
     return () => {
       clearTimeout(logoTimer);
       clearTimeout(completeTimer);
+      clearInterval(progressInterval);
     };
   }, [onComplete]);
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
+      {/* Animated contour background */}
       <div 
         className="absolute inset-0 overflow-hidden pointer-events-none" 
         style={{ transform: 'rotate(-15deg) scale(1.5)' }}
       >
-        <div className="absolute inset-0 splash-contour-drift-1" style={{ opacity: 0.18 }}>
+        <motion.div 
+          className="absolute inset-0" 
+          style={{ opacity: 0.18 }}
+          animate={{ x: [0, 50, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+        >
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
               <pattern id="splashContour1" x="0" y="0" width="300" height="200" patternUnits="userSpaceOnUse">
@@ -41,9 +59,14 @@ export default function Splash({ onComplete }: SplashProps) {
             </defs>
             <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#splashContour1)" />
           </svg>
-        </div>
+        </motion.div>
 
-        <div className="absolute inset-0 splash-contour-drift-2" style={{ opacity: 0.14 }}>
+        <motion.div 
+          className="absolute inset-0" 
+          style={{ opacity: 0.14 }}
+          animate={{ x: [0, -30, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+        >
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
               <pattern id="splashContour2" x="0" y="0" width="250" height="180" patternUnits="userSpaceOnUse">
@@ -54,12 +77,36 @@ export default function Splash({ onComplete }: SplashProps) {
             </defs>
             <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#splashContour2)" />
           </svg>
-        </div>
+        </motion.div>
       </div>
 
       <div className="absolute inset-0 bg-gradient-radial from-purple-600/15 via-transparent to-transparent pointer-events-none" />
       
       <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/60 to-[#0a0a0f] pointer-events-none" />
+
+      {/* Floating particles */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {[...Array(6)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute size-1 rounded-full bg-primary/30"
+            style={{
+              left: `${15 + i * 15}%`,
+              top: `${20 + (i % 3) * 25}%`,
+            }}
+            animate={{
+              y: [-20, 20, -20],
+              opacity: [0.2, 0.5, 0.2],
+            }}
+            transition={{
+              duration: 3 + i * 0.5,
+              repeat: Infinity,
+              delay: i * 0.3,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
 
       <AnimatePresence mode="wait">
         {phase === "logo" && (
@@ -70,6 +117,7 @@ export default function Splash({ onComplete }: SplashProps) {
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="relative z-10 flex flex-col items-center gap-6"
           >
+            {/* Logo with shimmer effect */}
             <motion.div 
               className="relative"
               animate={{ 
@@ -81,6 +129,13 @@ export default function Splash({ onComplete }: SplashProps) {
               }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
+              <div className="absolute inset-0 rounded-[22%] overflow-hidden">
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                  animate={{ x: ['-100%', '100%'] }}
+                  transition={{ duration: 2, repeat: Infinity, repeatDelay: 1, ease: "easeInOut" }}
+                />
+              </div>
               <img
                 src={logoImg}
                 alt="SwitchControl"
@@ -106,14 +161,28 @@ export default function Splash({ onComplete }: SplashProps) {
               Gaming optimization suite
             </motion.p>
 
+            {/* Progress bar */}
             <motion.div
-              className="mt-4 flex items-center gap-2"
+              className="mt-4 w-48"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
+              transition={{ delay: 0.6, duration: 0.4 }}
             >
-              <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs text-muted-foreground">Initializing...</span>
+              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                <motion.div 
+                  className="h-full bg-gradient-to-r from-primary via-purple-400 to-primary rounded-full"
+                  style={{ width: `${progress}%` }}
+                  transition={{ ease: "easeOut" }}
+                />
+              </div>
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <motion.div 
+                  className="w-1.5 h-1.5 rounded-full bg-primary"
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                />
+                <span className="text-xs text-muted-foreground">Initializing...</span>
+              </div>
             </motion.div>
           </motion.div>
         )}

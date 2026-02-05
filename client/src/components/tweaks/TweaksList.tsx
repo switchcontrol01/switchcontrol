@@ -51,8 +51,9 @@ export function TweaksList() {
         .then((results) => {
           if (results && Object.keys(results).length > 0) {
             Object.entries(results).forEach(([tweakId, status]) => {
-              if (!status.error && isTierATweak(tweakId)) {
-                setTweak(tweakId, status.applied);
+              const s = status as { applied: boolean; error: string | null };
+              if (!s.error && isTierATweak(tweakId)) {
+                setTweak(tweakId, s.applied);
               }
             });
           }
