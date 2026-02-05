@@ -40,6 +40,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
     stopAmbientHum();
     setPhase('done');
     localStorage.setItem(ANIMATION_SHOWN_KEY, 'true');
+    console.log('[PremiumFlow] animation skipped -> start tour');
     onComplete();
   }, [onComplete]);
 
@@ -183,6 +184,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
     timers.push(setTimeout(() => {
       setPhase('done');
       localStorage.setItem(ANIMATION_SHOWN_KEY, 'true');
+      console.log('[PremiumFlow] animation complete -> start tour');
       onComplete();
     }, 3400));
 
