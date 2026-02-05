@@ -1,0 +1,271 @@
+What is happening (root cause)
+
+This error is NOT a frontend bug.
+
+> “This file does not have an app associated with it for performing this action”
+
+
+
+That error appears when Windows tries to open a URL that should be handled by a custom protocol, but no protocol handler is registered.
+
+What your flow currently is
+
+1. Electron app opens
+
+
+2. User clicks “Login with Google”
+
+
+3. Electron opens browser to:
+
+https://switchcontrol.org/auth/google?source=electron
+
+
+4. Google login succeeds
+
+
+5. Your backend redirects to something like:
+
+switchcontrol://auth?token=...
+
+
+6. Windows does not know what switchcontrol:// is
+
+
+7. Login fails
+
+
+
+So the UI renders, auth starts, but the deep-link return is broken.
+
+
+---
+
+Why this works on web but not Electron
+
+On web:
+
+OAuth redirects back to https://switchcontrol.org/...
+
+Browser handles it normally
+
+
+On Electron:
+
+OAuth must return to your desktop app
+
+That requires a custom protocol registration
+
+Right now: ❌ not registered
+
+
+
+---
+
+This is the exact missing piece
+
+You have:
+
+preload listeners
+
+renderer listeners
+
+backend generating deep links
+
+
+But you do not have:
+
+> app.setAsDefaultProtocolClient("switchcontrol")
+
+
+
+So Windows has no idea what to do with switchcontrol://.
+
+
+---
+
+What needs to be fixed (non-negotiable)
+
+1. Register protocol in electron/main.js
+
+Tell Replit to add exactly this:
+
+app.setAsDefaultProtocolClient("switchcontrol");
+
+This must be:
+
+At top-level (before whenReady)
+
+And again inside whenReady for safety
+
+
+Example:
+
+app.setAsDefaultProtocolClient("switchcontrol");
+
+app.whenReady().then(() => {
+  app.setAsDefaultProtocolClient("switchcontrol");
+  createWindow();
+});
+
+
+---
+
+2. Handle deep-link events (Windows-specific)
+
+Tell Replit to add:
+
+app.on("open-url", (event, url) => {
+  event.preventDefault();
+  if (mainWindow) {
+    mainWindow.webContents.send("auth:callback", url);
+  }
+});
+
+AND for Windows launch:
+
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on("second-instance", (event, commandLine) => {
+    const url = commandLine.find(arg => arg.startsWith("switchcontrol://"));
+    if (url && mainWindow) {
+      mainWindow.webContents.send("auth:callback", url);
+    }
+  });
+}
+
+This is required on Windows. macOS uses open-url, Windows uses second-instance.
+
+
+---
+
+3. Ensure backend redirects to protocol only for Electron
+
+Your backend must do something like:
+
+if (source === "electron") {
+  redirect(`switchcontrol://auth?token=${token}`);
+} else {
+  redirect(`https://switchcontrol.org/auth/success`);
+}
+
+From your logs, you are already doing this, so backend is fine.
+
+
+---
+
+Why the error dialog appears
+
+Windows sees:
+
+switchcontrol://auth?token=...
+
+But:
+
+no registry entry
+
+no protocol handler
+
+so Windows shows that dialog
+
+
+Once the protocol is registered, this dialog disappears permanently.
+
+
+---
+
+What NOT to touch
+
+Do NOT:
+
+rewrite OAuth
+
+touch Vite again
+
+change preload listeners
+
+move assets
+
+rebuild auth UI
+
+
+This is a desktop OS integration issue only.
+
+
+---
+
+Checklist you should send to Replit (copy-paste)
+
+Tell Replit:
+
+Register custom protocol switchcontrol:// using app.setAsDefaultProtocolClient
+
+Handle deep links on:
+
+open-url (macOS safety)
+
+second-instance (Windows required)
+
+
+Forward deep-link URL to renderer via auth:callback
+
+Do NOT change frontend auth logic
+
+Do NOT change backend OAuth logic
+
+Ensure protocol registration happens in packaged builds
+
+
+
+---
+
+Sanity check: your logs already confirm this
+
+You pasted:
+
+[Login] Opening external auth URL: https://switchcontrol.org/auth/google?source=electron
+
+That means:
+
+login button works
+
+browser opens correctly
+
+backend reachable
+
+
+Only the return path is missing.
+
+
+---
+
+Bottom line
+
+You are no longer debugging “random Electron issues”.
+
+You are at Step 9/10 of a proper Electron app:
+
+✅ UI renders
+✅ Assets load
+✅ Icons work
+✅ IPC works
+❌ Deep-link protocol not registered
+
+Fix that, and login will work.
+
+
+---
+
+When Replit applies that fix, you do NOT need to rebuild the web app.
+Just rebuild Electron:
+
+npm run electron:build
+
+If you want, next I can:
+
+sanity-check your backend redirect code
+
+or give you a minimal “known-good” protocol han

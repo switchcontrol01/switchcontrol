@@ -3,7 +3,50 @@ const path = require('path');
 const os = require('os');
 
 const isDev = !app.isPackaged;
+const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
+
+// Register protocol handler BEFORE app is ready
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient(PROTOCOL_NAME, process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient(PROTOCOL_NAME);
+}
+
+// Single instance lock for Windows deep-link handling
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  // Windows: Handle deep-link when app is already running
+  app.on('second-instance', (event, commandLine) => {
+    console.log('[SwitchControl] second-instance event:', commandLine);
+    
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
+    }
+    
+    // Find the deep-link URL in command line args
+    const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
+    if (url && mainWindow) {
+      console.log('[SwitchControl] Deep link received:', url);
+      mainWindow.webContents.send('auth-callback', url);
+    }
+  });
+}
+
+// macOS: Handle deep-link
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  console.log('[SwitchControl] open-url event:', url);
+  if (mainWindow) {
+    mainWindow.webContents.send('auth-callback', url);
+  }
+});
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -20,7 +63,7 @@ function createWindow() {
     }
   });
 
-  // Always enable DevTools for debugging
+  // Always enable DevTools for debugging (remove this line once working)
   mainWindow.webContents.openDevTools({ mode: 'detach' });
 
   if (isDev) {
@@ -122,7 +165,11 @@ ipcMain.handle('tweak:syncAll', () => ({}));
 ipcMain.handle('tweak:getLocalState', () => ({ appliedTweaks: {}, lastSync: null }));
 ipcMain.handle('tweak:getInfo', () => ({}));
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  // Register protocol again after ready for safety
+  app.setAsDefaultProtocolClient(PROTOCOL_NAME);
+  createWindow();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
