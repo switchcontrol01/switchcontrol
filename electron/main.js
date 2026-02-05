@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const os = require('os');
+const tweakExecutor = require('./tweak-executor');
 
 const isDev = !app.isPackaged;
 const PROTOCOL_NAME = 'switchcontrol';
@@ -200,12 +201,32 @@ ipcMain.handle('telemetry:getLive', () => ({
 
 ipcMain.handle('telemetry:getEnhanced', () => null);
 
-// Tweak handlers (placeholder - tweaks work in UI only for now)
-ipcMain.handle('tweak:execute', () => ({ success: true, message: 'Simulated' }));
-ipcMain.handle('tweak:checkStatus', () => ({ applied: false }));
-ipcMain.handle('tweak:syncAll', () => ({}));
-ipcMain.handle('tweak:getLocalState', () => ({ appliedTweaks: {}, lastSync: null }));
-ipcMain.handle('tweak:getInfo', () => ({}));
+// Tweak handlers - real Windows execution for Tier A tweaks
+ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
+  console.log(`[SwitchControl] Executing tweak: ${tweakId}, action: ${action}`);
+  return await tweakExecutor.executeTweak(tweakId, action);
+});
+
+ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
+  return await tweakExecutor.checkTweakStatus(tweakId);
+});
+
+ipcMain.handle('tweak:syncAll', async () => {
+  const state = tweakExecutor.getLocalState();
+  const results = {};
+  for (const tweakId of Object.keys(state.appliedTweaks)) {
+    results[tweakId] = await tweakExecutor.checkTweakStatus(tweakId);
+  }
+  return results;
+});
+
+ipcMain.handle('tweak:getLocalState', () => {
+  return tweakExecutor.getLocalState();
+});
+
+ipcMain.handle('tweak:getInfo', () => {
+  return tweakExecutor.getTweakInfo();
+});
 
 app.whenReady().then(() => {
   // Register protocol again after ready for safety
