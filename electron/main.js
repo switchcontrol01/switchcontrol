@@ -95,6 +95,11 @@ function createWindow() {
         event.preventDefault();
       }
     });
+    
+    // Block context menu (right-click inspect) in production
+    mainWindow.webContents.on('context-menu', (event) => {
+      event.preventDefault();
+    });
   }
 
   if (isDev) {
