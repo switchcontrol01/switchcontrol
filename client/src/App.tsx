@@ -36,7 +36,7 @@ import Success from "@/pages/Success";
 import PremiumSuccess from "@/pages/PremiumSuccess";
 import LoginPage from "@/pages/Login";
 
-const isElectron = typeof window !== 'undefined' && !!(window as any).auth?.onCallback;
+const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
 type AppPhase = "splash" | "unauthenticated" | "welcome" | "authenticated";
 
@@ -115,8 +115,9 @@ function ElectronAppContent() {
   useEffect(() => {
     if (isElectron) {
       console.log('[App] Registering deep link auth callback');
+      const api = (window as any).electronAPI;
       
-      (window as any).auth.onCallback(async (url: string) => {
+      api.auth.onCallback(async (url: string) => {
         console.log('[App] AUTH CALLBACK:', url);
         
         try {
@@ -166,7 +167,7 @@ function ElectronAppContent() {
       });
 
       return () => {
-        (window as any).auth?.removeCallbackListener?.();
+        (window as any).electronAPI?.auth?.removeCallbackListener?.();
       };
     }
   }, [setToken, setUser, setLocation, setValidating]);

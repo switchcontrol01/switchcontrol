@@ -26,37 +26,46 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
     const fetchTelemetry = async () => {
       try {
         let telemetry: TelemetryData;
+        const api = (window as any).electronAPI;
 
-        if (window.telemetry?.getLive) {
-          telemetry = await window.telemetry.getLive();
+        if (api?.telemetry?.getLive) {
+          const live = await api.telemetry.getLive();
+          telemetry = {
+            cpuLoadPercent: safeNumber(live.cpuUsage, 0),
+            cpuTempC: safeNumber(live.cpuTemp, 0) || null,
+            gpuTempC: safeNumber(live.gpuTemp, 0) || null,
+            gpuLoadPercent: null,
+            moboTempC: null,
+            ramUsedGb: 0,
+            ramTotalGb: 0,
+          };
           
-          if (enhancedSensorsEnabled && window.telemetry?.getEnhanced) {
+          // Get RAM data
+          if (api?.system?.getRamUsage) {
             try {
-              const enhanced = await window.telemetry.getEnhanced();
-              if (enhanced.enhancedAvailable) {
-                console.log('[telemetry] merging enhanced sensors');
-                if (enhanced.cpuTemp != null) telemetry.cpuTempC = enhanced.cpuTemp;
-                if (enhanced.gpuTemp != null) telemetry.gpuTempC = enhanced.gpuTemp;
-                if (enhanced.motherboardTemp != null) telemetry.moboTempC = enhanced.motherboardTemp;
+              const ram = await api.system.getRamUsage();
+              telemetry.ramUsedGb = safeNumber(ram?.usedGB || ram?.ramUsedGb, 0);
+              telemetry.ramTotalGb = safeNumber(ram?.totalGB || ram?.ramTotalGb, 16);
+            } catch (e) {
+              console.warn('[telemetry] RAM fetch error:', e);
+            }
+          }
+          
+          if (enhancedSensorsEnabled && api?.telemetry?.getEnhanced) {
+            try {
+              const enhanced = await api.telemetry.getEnhanced();
+              if (enhanced) {
+                if (enhanced.cpuTemp != null) telemetry.cpuTempC = safeNumber(enhanced.cpuTemp, 0);
+                if (enhanced.gpuTemp != null) telemetry.gpuTempC = safeNumber(enhanced.gpuTemp, 0);
               }
             } catch (e) {
               console.warn('[telemetry] enhanced sensors error:', e);
             }
           }
-        } else if (window.sc?.getRamUsage) {
-          const ram = await window.sc.getRamUsage();
-          telemetry = {
-            cpuLoadPercent: Math.random() * 30 + 20,
-            cpuTempC: null,
-            gpuTempC: null,
-            gpuLoadPercent: null,
-            moboTempC: null,
-            ramUsedGb: safeNumber(ram?.ramUsedGb, 8),
-            ramTotalGb: safeNumber(ram?.ramTotalGb, 16),
-          };
         } else {
+          // Fallback for non-Electron
           telemetry = {
-            cpuLoadPercent: Math.random() * 30 + 20,
+            cpuLoadPercent: 0,
             cpuTempC: null,
             gpuTempC: null,
             gpuLoadPercent: null,

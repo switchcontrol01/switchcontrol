@@ -65,13 +65,14 @@ export default function Login() {
     setIsLoading(provider);
     setError(null);
     
-    const isElectron = typeof window !== 'undefined' && (window as any).electron?.openExternal;
+    const api = (window as any).electronAPI;
+    const isElectron = api?.isElectron && api?.openExternal;
     
     if (isElectron) {
       const authUrl = `${AUTH_DOMAIN}/auth/${provider}?source=electron`;
       console.log('[Login] Opening external auth URL:', authUrl);
       try {
-        await (window as any).electron.openExternal(authUrl);
+        await api.openExternal(authUrl);
       } catch (err) {
         console.error('[Login] Failed to open auth URL:', err);
         setError("Failed to open browser. Please try again.");

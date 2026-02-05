@@ -255,9 +255,9 @@ export default function Home() {
     if (specsLoadedRef.current) return;
     specsLoadedRef.current = true;
     
-    const sc = window.sc as typeof window.sc | undefined;
-    if (sc?.getSystemSpecs) {
-      sc.getSystemSpecs().then((specs: SystemSpecs | null | undefined) => {
+    const api = (window as any).electronAPI;
+    if (api?.system?.getSpecs) {
+      api.system.getSpecs().then((specs: SystemSpecs | null | undefined) => {
         if (!specs) {
           console.warn('[SwitchControl] getSystemSpecs returned null/undefined');
           return;
@@ -284,8 +284,8 @@ export default function Home() {
       }).catch((err: unknown) => {
         console.error('[SwitchControl] Failed to get system specs:', err);
       });
-    } else if (sc?.getSystemInfo) {
-      sc.getSystemInfo().then((info: { totalMemory?: number; freeMemory?: number; cpus?: number } | null) => {
+    } else if (api?.system?.getInfo) {
+      api.system.getInfo().then((info: { totalMemory?: number; freeMemory?: number; cpus?: number } | null) => {
         if (!info) return;
         const totalMem = info.totalMemory || 0;
         const freeMem = info.freeMemory || 0;
@@ -302,30 +302,31 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    const sc = window.sc as typeof window.sc | undefined;
-    if (sc?.getAllDisks) {
-      sc.getAllDisks().then((disks) => {
+    const api = (window as any).electronAPI;
+    if (api?.system?.getAllDisks) {
+      api.system.getAllDisks().then((disks: DiskInfo[]) => {
         if (disks && disks.length > 0) {
           setAllDisks(disks);
-          const mainIndex = disks.findIndex(d => d.mount === 'C:' || d.mount === '/');
+          const mainIndex = disks.findIndex((d: DiskInfo) => d.mount === 'C:' || d.mount === '/');
           if (mainIndex >= 0) {
             setSelectedDiskIndex(mainIndex);
           }
         }
-      }).catch((err) => {
+      }).catch((err: unknown) => {
         console.error('[SwitchControl] Failed to get disks:', err);
       });
     }
   }, []);
 
   useEffect(() => {
-    if (window.sc?.getRamUsage) {
+    const api = (window as any).electronAPI;
+    if (api?.system?.getRamUsage) {
       ramIntervalRef.current = setInterval(() => {
-        window.sc!.getRamUsage().then((ram) => {
-          if (ram && typeof ram.ramUsedGb === 'number' && typeof ram.ramTotalGb === 'number') {
+        api.system.getRamUsage().then((ram: any) => {
+          if (ram && typeof ram.usedGB === 'number' && typeof ram.totalGB === 'number') {
             setStats({
-              usedRamGb: ram.ramUsedGb,
-              totalRamGb: ram.ramTotalGb
+              usedRamGb: ram.usedGB,
+              totalRamGb: ram.totalGB
             });
           }
         }).catch(() => {});

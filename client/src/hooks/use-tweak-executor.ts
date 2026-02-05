@@ -1,21 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 
-declare global {
-  interface Window {
-    tweaks?: {
-      execute: (tweakId: string, action: 'apply' | 'revert') => Promise<TweakResult>;
-      checkStatus: (tweakId: string) => Promise<TweakStatus>;
-      syncAll: () => Promise<Record<string, TweakStatus>>;
-      getLocalState: () => Promise<LocalTweakState>;
-      getInfo: () => Promise<TweakInfo[]>;
-    };
-  }
-}
-
 interface TweakResult {
   success: boolean;
   requiresReboot: boolean;
+  requiresAdmin: boolean;
   message: string | null;
   error: string | null;
 }
@@ -29,12 +18,15 @@ interface TweakStatus {
 interface LocalTweakState {
   appliedTweaks: Record<string, boolean>;
   lastSync: string | null;
+  windowsBuild?: string;
 }
 
 interface TweakInfo {
   id: string;
   name: string;
   tier: string;
+  requiresAdmin: boolean;
+  requiresReboot: boolean;
 }
 
 const TIER_A_TWEAKS = [
@@ -47,15 +39,27 @@ const TIER_A_TWEAKS = [
   'compact-explorer',
   'recent-files',
   'xbox-bar',
-  'hibernation'
+];
+
+const TIER_B_TWEAKS = [
+  'hibernation',
 ];
 
 export function isTierATweak(tweakId: string): boolean {
   return TIER_A_TWEAKS.includes(tweakId);
 }
 
+export function isTierBTweak(tweakId: string): boolean {
+  return TIER_B_TWEAKS.includes(tweakId);
+}
+
 export function isElectronWithTweaks(): boolean {
-  return typeof window !== 'undefined' && !!window.tweaks;
+  const api = (window as any).electronAPI;
+  return typeof window !== 'undefined' && !!api?.tweaks;
+}
+
+function getTweaksAPI() {
+  return (window as any).electronAPI?.tweaks;
 }
 
 export function useTweakExecutor() {
@@ -65,7 +69,7 @@ export function useTweakExecutor() {
 
   useEffect(() => {
     if (isElectronWithTweaks()) {
-      window.tweaks!.getLocalState().then(setLocalState);
+      getTweaksAPI().getLocalState().then(setLocalState);
     }
   }, []);
 
@@ -74,7 +78,7 @@ export function useTweakExecutor() {
       return true;
     }
 
-    if (!isTierATweak(tweakId)) {
+    if (!isTierATweak(tweakId) && !isTierBTweak(tweakId)) {
       return true;
     }
 
@@ -82,7 +86,16 @@ export function useTweakExecutor() {
     const action = currentlyEnabled ? 'revert' : 'apply';
 
     try {
-      const result = await window.tweaks!.execute(tweakId, action);
+      const result: TweakResult = await getTweaksAPI().execute(tweakId, action);
+      
+      if (result.requiresAdmin && !result.success) {
+        toast({
+          title: 'Admin Required',
+          description: result.error || 'This tweak requires administrator privileges.',
+          variant: 'destructive',
+        });
+        return false;
+      }
       
       if (result.success) {
         toast({
@@ -134,8 +147,8 @@ export function useTweakExecutor() {
     }
 
     try {
-      const results = await window.tweaks!.syncAll();
-      const state = await window.tweaks!.getLocalState();
+      const results = await getTweaksAPI().syncAll();
+      const state = await getTweaksAPI().getLocalState();
       setLocalState(state);
       return results;
     } catch (err) {
@@ -150,7 +163,7 @@ export function useTweakExecutor() {
     }
 
     try {
-      const status = await window.tweaks!.checkStatus(tweakId);
+      const status: TweakStatus = await getTweaksAPI().checkStatus(tweakId);
       return status.error ? null : status.applied;
     } catch {
       return null;
@@ -165,5 +178,6 @@ export function useTweakExecutor() {
     localState,
     isElectron: isElectronWithTweaks(),
     isTierA: isTierATweak,
+    isTierB: isTierBTweak,
   };
 }

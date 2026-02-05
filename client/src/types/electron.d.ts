@@ -3,7 +3,8 @@ interface DiskInfo {
   name: string;
   usedGB: number;
   totalGB: number;
-  usedPercent: number;
+  usedPercent?: number;
+  usePercent?: number;
 }
 
 interface SystemSpecs {
@@ -33,17 +34,63 @@ interface SystemSpecs {
     name: string;
     usedGB: number;
     totalGB: number;
+    usePercent?: number;
   };
   disks?: DiskInfo[];
 }
 
-interface AuthUser {
+interface RamUsage {
+  totalGB: number;
+  usedGB: number;
+  freeGB: number;
+  usagePercent: number;
+  ramTotalGb?: number;
+  ramUsedGb?: number;
+}
+
+interface LiveTelemetry {
+  cpuUsage: number;
+  ramUsage: number;
+  cpuTemp: number;
+  gpuTemp: number;
+  timestamp: number;
+}
+
+interface EnhancedTelemetry {
+  cpuUsage: number;
+  cpuCores: number[];
+  ramUsage: number;
+  cpuTemp: number;
+  gpuTemp: number;
+  timestamp: number;
+}
+
+interface TweakResult {
+  success: boolean;
+  requiresReboot: boolean;
+  requiresAdmin: boolean;
+  message: string | null;
+  error: string | null;
+}
+
+interface TweakStatus {
+  tweakId: string;
+  applied: boolean;
+  error: string | null;
+}
+
+interface LocalTweakState {
+  appliedTweaks: Record<string, boolean>;
+  lastSync: string | null;
+  windowsBuild?: string;
+}
+
+interface TweakInfo {
   id: string;
-  email: string | null;
-  username: string | null;
-  avatarUrl: string | null;
-  plan: string;
-  isPremium: boolean;
+  name: string;
+  tier: string;
+  requiresAdmin: boolean;
+  requiresReboot: boolean;
 }
 
 declare global {
@@ -57,31 +104,26 @@ declare global {
     ramTotalGb: number;
   }
   
-  interface EnhancedTelemetryData {
-    enhancedAvailable: boolean;
-    error?: string;
-    cpuTemp?: number | null;
-    gpuTemp?: number | null;
-    motherboardTemp?: number | null;
-    disks?: Array<{ name: string; temp: number | null }>;
-    isAdmin?: boolean;
-  }
   interface Window {
-    electron?: {
-      openExternal: (url: string) => Promise<boolean>;
-    };
-    
-    auth?: {
-      onCallback: (callback: (url: string) => void) => void;
-      removeCallbackListener: () => void;
-    };
-    
     electronAPI?: {
       isElectron: boolean;
       getVersion: () => Promise<string>;
       getPlatform: () => Promise<string>;
       isPackaged: () => Promise<boolean>;
-      system?: {
+      openExternal: (url: string) => Promise<void>;
+      
+      auth: {
+        onCallback: (callback: (url: string) => void) => void;
+        removeCallbackListener: () => void;
+      };
+      
+      window: {
+        minimize: () => Promise<void>;
+        maximize: () => Promise<void>;
+        close: () => Promise<void>;
+      };
+      
+      system: {
         getInfo: () => Promise<{
           platform: string;
           arch: string;
@@ -89,35 +131,24 @@ declare global {
           cpus: number;
           totalMemory: number;
           freeMemory: number;
-          uptime: number;
         }>;
-        openExternal: (url: string) => Promise<boolean>;
+        getSpecs: () => Promise<SystemSpecs>;
+        getRamUsage: () => Promise<RamUsage>;
+        getAllDisks: () => Promise<DiskInfo[]>;
       };
-      window: {
-        minimize: () => void;
-        maximize: () => void;
-        close: () => void;
+      
+      telemetry: {
+        getLive: () => Promise<LiveTelemetry>;
+        getEnhanced: () => Promise<EnhancedTelemetry>;
       };
-    };
-    
-    telemetry?: {
-      getLive: () => Promise<TelemetryData>;
-      getEnhanced: () => Promise<EnhancedTelemetryData>;
-    };
-    
-    sc?: {
-      getSystemInfo: () => Promise<{
-        platform: string;
-        arch: string;
-        hostname: string;
-        cpus: number;
-        totalMemory: number;
-        freeMemory: number;
-        uptime: number;
-      }>;
-      getSystemSpecs: () => Promise<SystemSpecs>;
-      getRamUsage: () => Promise<{ ramTotalGb: number; ramUsedGb: number }>;
-      getAllDisks: () => Promise<DiskInfo[]>;
+      
+      tweaks: {
+        execute: (tweakId: string, action: 'apply' | 'revert') => Promise<TweakResult>;
+        checkStatus: (tweakId: string) => Promise<TweakStatus>;
+        syncAll: () => Promise<Record<string, TweakStatus>>;
+        getLocalState: () => Promise<LocalTweakState>;
+        getInfo: () => Promise<TweakInfo[]>;
+      };
     };
   }
 }
