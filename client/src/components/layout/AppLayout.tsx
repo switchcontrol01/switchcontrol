@@ -3,9 +3,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
 import { SpotlightCursor } from "@/components/SpotlightCursor";
+import { useLocation } from "wouter";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion, hasLoaded } = useMotion();
+  const [location] = useLocation();
   
   const shouldAnimate = !prefersReducedMotion && hasLoaded;
 
@@ -17,22 +19,15 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       
       <Sidebar />
       <main className="pl-64 min-h-screen relative z-10">
-        {shouldAnimate ? (
-          <motion.div
-            className="container max-w-7xl mx-auto p-8"
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-          >
-            <motion.div variants={staggerItem}>
-              {children}
-            </motion.div>
-          </motion.div>
-        ) : (
-          <div className="container max-w-7xl mx-auto p-8">
-            {children}
-          </div>
-        )}
+        <motion.div
+          key={location}
+          className="container max-w-7xl mx-auto p-8"
+          initial={shouldAnimate ? { opacity: 0, x: 6 } : false}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.12, ease: "easeOut" }}
+        >
+          {children}
+        </motion.div>
       </main>
       <Toaster />
     </div>
