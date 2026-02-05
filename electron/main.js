@@ -8,8 +8,10 @@ const isDev = !app.isPackaged;
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
-// Cache for system specs (called once per app boot)
+// Cache for system specs (5 minute TTL)
 let cachedSpecs = null;
+let cachedSpecsTime = 0;
+const SPECS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 let lastCpuLoad = 0;
 
 // Register protocol handler BEFORE app is ready
@@ -124,8 +126,9 @@ ipcMain.handle('system:getInfo', () => ({
 // System specs with REAL data from systeminformation
 // Uses cache - only fetches once per app boot
 ipcMain.handle('system:getSpecs', async () => {
-  // Return cached specs if available
-  if (cachedSpecs) {
+  // Return cached specs if available and not expired
+  const now = Date.now();
+  if (cachedSpecs && (now - cachedSpecsTime) < SPECS_CACHE_TTL) {
     return cachedSpecs;
   }
 
@@ -166,13 +169,17 @@ ipcMain.handle('system:getSpecs', async () => {
 
     const gpu = graphics.controllers?.[0];
 
-    const disks = (fsData || []).map(d => ({
-      mount: d.mount || 'Unknown',
-      name: d.fs || d.mount || 'Unknown',
-      totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
-      usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
-      usePercent: safeNum(d.use || 0)
-    }));
+    const disks = (fsData || []).map(d => {
+      const pct = safeNum(d.use || 0);
+      return {
+        mount: d.mount || 'Unknown',
+        name: d.fs || d.mount || 'Unknown',
+        totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
+        usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
+        usePercent: pct,
+        usedPercent: pct // Alias for compatibility
+      };
+    });
 
     cachedSpecs = {
       cpu: {
@@ -201,6 +208,7 @@ ipcMain.handle('system:getSpecs', async () => {
       disks: disks
     };
 
+    cachedSpecsTime = Date.now();
     console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model);
     return cachedSpecs;
 
@@ -245,13 +253,17 @@ ipcMain.handle('system:getRamUsage', () => {
 ipcMain.handle('system:getAllDisks', async () => {
   try {
     const fsData = await si.fsSize();
-    return (fsData || []).map(d => ({
-      mount: d.mount || 'Unknown',
-      name: d.fs || d.mount || 'Unknown',
-      totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
-      usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
-      usePercent: safeNum(d.use || 0)
-    }));
+    return (fsData || []).map(d => {
+      const pct = safeNum(d.use || 0);
+      return {
+        mount: d.mount || 'Unknown',
+        name: d.fs || d.mount || 'Unknown',
+        totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
+        usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
+        usePercent: pct,
+        usedPercent: pct // Alias for compatibility
+      };
+    });
   } catch (e) {
     console.error('[SwitchControl] getAllDisks error:', e);
     return [];

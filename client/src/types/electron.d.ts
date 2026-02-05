@@ -3,8 +3,8 @@ interface DiskInfo {
   name: string;
   usedGB: number;
   totalGB: number;
-  usedPercent?: number;
-  usePercent?: number;
+  usePercent: number;
+  usedPercent: number; // Alias for compatibility
 }
 
 interface SystemSpecs {
