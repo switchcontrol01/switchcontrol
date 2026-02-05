@@ -116,7 +116,7 @@ export default function Settings() {
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
               <CardTitle>Account</CardTitle>
-              <CardDescription>Your subscription details.</CardDescription>
+              <CardDescription>Your license details.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-2">
@@ -125,8 +125,8 @@ export default function Settings() {
               </div>
               <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-md">
                 <div className="space-y-0.5">
-                  <span className="text-sm font-medium text-emerald-400">Premium Plan Active</span>
-                  <p className="text-xs text-emerald-500/70">License valid until Dec 2026</p>
+                  <span className="text-sm font-medium text-emerald-400">Premium (Lifetime)</span>
+                  <p className="text-xs text-emerald-500/70">One-time purchase - Lifetime access</p>
                 </div>
                 <Button variant="outline" size="sm" className="border-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">
                   Manage
@@ -162,11 +162,17 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2">
-                <a
-                  href={SOCIAL_LINKS.discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (isElectron && window.electronAPI?.openExternal) {
+                      window.electronAPI.openExternal(SOCIAL_LINKS.discord);
+                    } else {
+                      window.open(SOCIAL_LINKS.discord, '_blank');
+                    }
+                  }}
                   data-testid="link-discord"
+                  className="text-left"
                 >
                   <GlassCard className="p-4 group cursor-pointer hover:border-[#5865F2]/30 hover:shadow-[0_0_20px_-5px_rgba(88,101,242,0.3)]">
                     <div className="flex items-center gap-3">
@@ -182,12 +188,18 @@ export default function Settings() {
                       </div>
                     </div>
                   </GlassCard>
-                </a>
-                <a
-                  href={SOCIAL_LINKS.tiktok}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (isElectron && window.electronAPI?.openExternal) {
+                      window.electronAPI.openExternal(SOCIAL_LINKS.tiktok);
+                    } else {
+                      window.open(SOCIAL_LINKS.tiktok, '_blank');
+                    }
+                  }}
                   data-testid="link-tiktok"
+                  className="text-left"
                 >
                   <GlassCard className="p-4 group cursor-pointer hover:border-pink-500/30 hover:shadow-[0_0_20px_-5px_rgba(236,72,153,0.3)]">
                     <div className="flex items-center gap-3">
@@ -203,7 +215,7 @@ export default function Settings() {
                       </div>
                     </div>
                   </GlassCard>
-                </a>
+                </button>
               </div>
             </CardContent>
           </Card>

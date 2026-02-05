@@ -275,7 +275,7 @@ export default function Pricing() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
             <Zap className="size-3" />
-            Simple pricing, no subscriptions
+            One-time purchase, lifetime access
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
             Choose Your Plan

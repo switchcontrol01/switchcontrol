@@ -124,22 +124,25 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
 export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: AuthUser | null }> {
   const store = useAuthStore.getState();
   const previousPlan = store.user?.plan || 'free';
+  const wasPremium = store.user?.isPremium || false;
   
   try {
-    console.log('[Auth] Refreshing entitlements...');
+    console.log('[PremiumFlow] refreshEntitlements start');
     const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
     });
 
     if (!response.ok) {
-      console.error('[Auth] Entitlement refresh failed:', response.status);
+      console.error('[PremiumFlow] refreshEntitlements failed:', response.status);
       return { upgraded: false, user: null };
     }
 
     const data = await response.json();
+    console.log('[PremiumFlow] refreshEntitlements response:', { isPremium: data.isPremium, loggedIn: data.loggedIn });
     
     if (data.loggedIn === false) {
+      console.log('[PremiumFlow] refreshEntitlements end - not logged in');
       return { upgraded: false, user: null };
     }
 
@@ -153,14 +156,14 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
       loggedIn: true,
     };
 
-    const upgraded = previousPlan === 'free' && newUser.plan === 'premium';
+    const upgraded = !wasPremium && newUser.isPremium;
     
     store.setUser(newUser);
-    console.log('[Auth] Entitlements refreshed. Upgraded:', upgraded);
+    console.log(`[PremiumFlow] refreshEntitlements end upgraded=${upgraded} premium=${newUser.isPremium}`);
     
     return { upgraded, user: newUser };
   } catch (err) {
-    console.error('[Auth] Entitlement refresh error:', err);
+    console.error('[PremiumFlow] refreshEntitlements error:', err);
     return { upgraded: false, user: null };
   }
 }

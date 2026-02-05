@@ -9,6 +9,10 @@ const isDev = !app.isPackaged;
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
+// Deep-link queue for when renderer is not ready
+let pendingDeepLinkUrl = null;
+let rendererReady = false;
+
 // Cache for system specs (5 minute TTL)
 let cachedSpecs = null;
 let cachedSpecsTime = 0;
@@ -24,6 +28,35 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
 }
 
+// Helper: deliver deep link to renderer
+function deliverDeepLink(url) {
+  console.log('[DeepLink] deliverDeepLink called with:', url);
+  
+  if (!mainWindow) {
+    console.log('[DeepLink] No main window, queueing:', url);
+    pendingDeepLinkUrl = url;
+    return;
+  }
+  
+  // Ensure window is visible and focused
+  if (mainWindow.isMinimized()) {
+    console.log('[DeepLink] Restoring minimized window');
+    mainWindow.restore();
+  }
+  mainWindow.show();
+  mainWindow.focus();
+  console.log('[DeepLink] focusing window');
+  
+  if (!rendererReady) {
+    console.log('[DeepLink] Renderer not ready, queueing:', url);
+    pendingDeepLinkUrl = url;
+    return;
+  }
+  
+  console.log('[DeepLink] delivered to renderer:', url);
+  mainWindow.webContents.send('auth-callback', url);
+}
+
 // Single instance lock for Windows deep-link handling
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -31,27 +64,24 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
-    console.log('[SwitchControl] second-instance event:', commandLine);
-    
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
-    }
+    console.log('[DeepLink] second-instance event:', commandLine);
     
     const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
-    if (url && mainWindow) {
-      console.log('[SwitchControl] Deep link received:', url);
-      mainWindow.webContents.send('auth-callback', url);
+    if (url) {
+      console.log('[DeepLink] received:', url);
+      deliverDeepLink(url);
+    } else if (mainWindow) {
+      // Just focus the window even without deep link
+      if (mainWindow.isMinimized()) mainWindow.restore();
+      mainWindow.focus();
     }
   });
 }
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  console.log('[SwitchControl] open-url event:', url);
-  if (mainWindow) {
-    mainWindow.webContents.send('auth-callback', url);
-  }
+  console.log('[DeepLink] open-url event received:', url);
+  deliverDeepLink(url);
 });
 
 function createWindow() {
@@ -101,6 +131,27 @@ function createWindow() {
       event.preventDefault();
     });
   }
+  
+  // === NAVIGATION GUARDS ===
+  // Block navigation to external sites - open in browser instead
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    const parsedUrl = new URL(url);
+    // Allow localhost and file:// protocols (normal app navigation)
+    if (parsedUrl.protocol === 'file:' || parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') {
+      return; // Allow internal navigation
+    }
+    // Block external navigation, open in browser
+    console.log('[Navigation] Blocking external navigation, opening in browser:', url);
+    event.preventDefault();
+    shell.openExternal(url);
+  });
+  
+  // Block new window creation - open in browser instead
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    console.log('[Navigation] Blocking new window, opening in browser:', url);
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
 
   if (isDev) {
     mainWindow.loadURL('http://localhost:5000');
@@ -111,9 +162,32 @@ function createWindow() {
       console.error('[SwitchControl] Failed to load:', err);
     });
   }
+  
+  // Track when renderer is ready
+  mainWindow.webContents.on('did-finish-load', () => {
+    console.log('[SwitchControl] Renderer did-finish-load');
+    rendererReady = true;
+    
+    // Deliver any pending deep link
+    if (pendingDeepLinkUrl) {
+      console.log('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
+      mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
+      pendingDeepLinkUrl = null;
+    }
+  });
+  
+  // Send focus events to renderer for UI cleanup
+  mainWindow.on('focus', () => {
+    if (rendererReady && mainWindow) {
+      mainWindow.webContents.send('window-focus');
+    }
+  });
 
   mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.on('closed', () => { mainWindow = null; });
+  mainWindow.on('closed', () => { 
+    mainWindow = null; 
+    rendererReady = false;
+  });
 }
 
 // Helper: safe number conversion
@@ -300,6 +374,7 @@ ipcMain.handle('window:close', () => mainWindow?.close());
 // External links
 ipcMain.handle('open-external', (event, url) => {
   if (url.startsWith('http://') || url.startsWith('https://')) {
+    console.log('[External] Opening URL in browser:', url);
     shell.openExternal(url);
   }
 });

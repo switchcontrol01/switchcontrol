@@ -900,7 +900,7 @@ export default function Landing() {
                 Simple, One-Time Pricing
               </h2>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                No subscriptions. Pay once, get premium features forever.
+                One-time purchase. Pay once, get premium features forever.
               </p>
             </Reveal>
             

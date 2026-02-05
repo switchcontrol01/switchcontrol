@@ -13,13 +13,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   auth: {
     onCallback: (callback) => {
       ipcRenderer.on('auth-callback', (event, url) => {
-        console.log('[SwitchControl Preload] Received auth-callback:', url);
+        console.log('[PremiumFlow] deep-link received:', url);
         callback(url);
       });
     },
     removeCallbackListener: () => {
       ipcRenderer.removeAllListeners('auth-callback');
     },
+  },
+
+  // Window focus event (for UI cleanup on re-focus)
+  onWindowFocus: (callback) => {
+    ipcRenderer.on('window-focus', () => {
+      console.log('[Window] Focus event received');
+      callback();
+    });
+  },
+  removeWindowFocusListener: () => {
+    ipcRenderer.removeAllListeners('window-focus');
   },
 
   // Window controls

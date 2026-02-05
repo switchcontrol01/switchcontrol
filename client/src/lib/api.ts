@@ -132,7 +132,7 @@ export async function runAIScan(systemContext?: SystemContextForAI) {
     
     // Handle premium required
     if (res.status === 403) {
-      throw new Error("Premium subscription required for AI Advisor");
+      throw new Error("Premium license required for AI Advisor");
     }
     
     if (!res.ok) throw new Error("AI scan unavailable. Please try again later.");

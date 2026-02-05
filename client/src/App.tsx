@@ -136,6 +136,10 @@ function ElectronAppContent() {
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         console.log('[App] App focused, refreshing entitlements...');
+        // Clear any stuck focus states
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
         const result = await refreshEntitlements();
         if (result.upgraded) {
           handlePremiumUpgrade();
@@ -145,6 +149,10 @@ function ElectronAppContent() {
 
     const handleFocus = async () => {
       console.log('[App] Window focused, refreshing entitlements...');
+      // Clear any stuck focus states
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       const result = await refreshEntitlements();
       if (result.upgraded) {
         handlePremiumUpgrade();
@@ -160,6 +168,25 @@ function ElectronAppContent() {
     };
   }, [user?.loggedIn, phase, handlePremiumUpgrade]);
 
+  // Electron window focus event - clear any stuck UI states
+  useEffect(() => {
+    if (!isElectron) return;
+    
+    const api = (window as any).electronAPI;
+    if (api?.onWindowFocus) {
+      api.onWindowFocus(() => {
+        console.log('[App] Electron window focus - clearing UI state');
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      });
+      
+      return () => {
+        api.removeWindowFocusListener?.();
+      };
+    }
+  }, []);
+
   useEffect(() => {
     const splashTimer = setTimeout(() => {
       setSplashDone(true);
@@ -173,7 +200,7 @@ function ElectronAppContent() {
       const api = (window as any).electronAPI;
       
       api.auth.onCallback(async (url: string) => {
-        console.log('[App] AUTH CALLBACK:', url);
+        console.log('[PremiumFlow] deep-link received:', url);
         
         try {
           const parsed = new URL(url);
@@ -181,10 +208,10 @@ function ElectronAppContent() {
           const provider = parsed.searchParams.get('provider');
           const premiumActivated = parsed.searchParams.get('premium_activated') === 'true';
           
-          console.log('[App] Token:', newToken ? 'present' : 'missing', 'Provider:', provider, 'Premium:', premiumActivated);
+          console.log('[PremiumFlow] token exchange start - Token:', newToken ? 'present' : 'missing', 'Provider:', provider, 'Premium:', premiumActivated);
           
           if (premiumActivated && user?.loggedIn) {
-            console.log('[App] Premium purchase return detected, refreshing entitlements...');
+            console.log('[PremiumFlow] Premium purchase return detected, refreshing entitlements...');
             
             // Retry logic for webhook processing delay
             const maxRetries = 5;
@@ -192,25 +219,27 @@ function ElectronAppContent() {
             
             for (let attempt = 0; attempt < maxRetries; attempt++) {
               if (attempt > 0) {
-                console.log(`[App] Retry ${attempt}/${maxRetries - 1} - waiting ${retryDelays[attempt]}ms...`);
+                console.log(`[PremiumFlow] Retry ${attempt}/${maxRetries - 1} - waiting ${retryDelays[attempt]}ms...`);
                 await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
               }
               
               const result = await refreshEntitlements();
+              console.log(`[PremiumFlow] premiumJustActivated=${result.upgraded}`);
               if (result.upgraded) {
-                console.log('[App] Premium upgrade confirmed on attempt', attempt + 1);
+                console.log('[PremiumFlow] Premium upgrade confirmed on attempt', attempt + 1);
+                console.log('[PremiumFlow] playing animation');
                 handlePremiumUpgrade();
                 return;
               }
               
               if (result.user?.isPremium) {
                 // User is already premium, no animation needed but confirm state
-                console.log('[App] User already premium, no upgrade animation needed');
+                console.log('[PremiumFlow] User already premium, no upgrade animation needed');
                 return;
               }
             }
             
-            console.warn('[App] Premium upgrade not detected after all retries - webhook may be delayed');
+            console.warn('[PremiumFlow] Premium upgrade not detected after all retries - webhook may be delayed');
             return;
           }
           

@@ -1,19 +1,56 @@
 import { create } from 'zustand';
 
 interface PremiumActivationState {
-  justActivated: boolean;
+  pendingActivation: boolean;
+  showAnimation: boolean;
   activationTime: number | null;
-  setJustActivated: (value: boolean) => void;
+  
+  setPendingActivation: (value: boolean) => void;
+  setShowAnimation: (value: boolean) => void;
   triggerActivation: () => void;
   clearActivation: () => void;
+  
+  justActivated: boolean;
+  setJustActivated: (value: boolean) => void;
 }
 
-export const usePremiumActivation = create<PremiumActivationState>((set) => ({
-  justActivated: false,
+export const usePremiumActivation = create<PremiumActivationState>((set, get) => ({
+  pendingActivation: false,
+  showAnimation: false,
   activationTime: null,
+  justActivated: false,
+  
+  setPendingActivation: (value) => {
+    console.log('[PremiumFlow] setPendingActivation:', value);
+    set({ pendingActivation: value });
+  },
+  
+  setShowAnimation: (value) => {
+    console.log('[PremiumFlow] setShowAnimation:', value);
+    set({ showAnimation: value });
+  },
+  
+  triggerActivation: () => {
+    console.log('[PremiumFlow] triggerActivation called');
+    set({ 
+      showAnimation: true, 
+      pendingActivation: false,
+      justActivated: true, 
+      activationTime: Date.now() 
+    });
+  },
+  
+  clearActivation: () => {
+    console.log('[PremiumFlow] clearActivation called');
+    set({ 
+      showAnimation: false, 
+      pendingActivation: false,
+      justActivated: false, 
+      activationTime: null 
+    });
+  },
+  
   setJustActivated: (value) => set({ justActivated: value }),
-  triggerActivation: () => set({ justActivated: true, activationTime: Date.now() }),
-  clearActivation: () => set({ justActivated: false, activationTime: null }),
 }));
 
 export function usePremiumJustActivated() {

@@ -7,6 +7,7 @@ import { motion, useMotion } from "@/lib/motion";
 import { useQueryClient } from "@tanstack/react-query";
 
 function openDesktopApp() {
+  console.log('[PremiumFlow] Opening desktop app via deep-link');
   const deepLink = "switchcontrol://auth-callback?premium_activated=true";
   window.location.href = deepLink;
 }
