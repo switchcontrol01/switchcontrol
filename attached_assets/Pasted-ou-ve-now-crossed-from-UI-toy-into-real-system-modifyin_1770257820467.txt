@@ -1,0 +1,294 @@
+ou’ve now crossed from UI toy into real system-modifying software. That changes the rules.
+
+Below is what’s good, what’s still broken or dangerous, and what you must lock down next.
+
+
+---
+
+1. Toast ❌ button fix
+
+This part is legit and correct.
+
+What was wrong before:
+
+Toast close button had pointer-events blocked
+
+Z-index too low
+
+Empty attributes confusing Radix / DOM
+
+
+What you described fixing:
+
+pointer-events-auto
+
+z-50
+
+Removed junk attributes
+
+Larger hitbox
+
+
+✅ This is a real fix.
+If it clicks now, move on.
+
+
+---
+
+2. “Simulated tweaks” → real Windows tweaks
+
+This is the most important shift so far.
+
+What’s GOOD
+
+Separate electron/tweak-executor.js layer ✔️
+
+Explicit tweak IDs ✔️
+
+Registry-based PowerShell commands ✔️
+
+Persisted state file ✔️
+
+Revert support ✔️
+
+
+This is the correct architecture.
+
+
+---
+
+3. What is still RISKY (read carefully)
+
+❌ You are executing PowerShell blindly
+
+If your executor does any of the following, you have a time bomb:
+
+powershell.exe -Command "Set-ItemProperty ..." without:
+
+explicit -ErrorAction Stop
+
+try/catch
+
+exit code validation
+
+
+No stdout / stderr capture
+
+No admin detection before admin-required tweaks
+
+
+If any tweak fails silently, your UI will lie.
+
+That is unacceptable for a system tool.
+
+
+---
+
+4. Hibernation tweak is NOT Tier A
+
+Be very clear here:
+
+> Disable Hibernation requires admin.
+
+
+
+That makes it:
+
+Tier B minimum
+
+Requires elevation check
+
+Requires user confirmation
+
+Requires reboot flag
+
+
+If you treat it as Tier A, you will:
+
+Break laptops
+
+Trigger Windows Defender suspicion
+
+Get false “applied” states
+
+
+Fix:
+Move hibernation out of Tier A immediately.
+
+
+---
+
+5. You must enforce a strict result contract (non-negotiable)
+
+Every tweak execution must return EXACTLY this shape:
+
+{
+  success: boolean,
+  requiresReboot: boolean,
+  requiresAdmin: boolean,
+  message: string,
+  error?: string
+}
+
+And the UI must:
+
+Never show “Applied” unless success === true
+
+Show admin prompt if requiresAdmin === true
+
+Show warning banner if requiresReboot === true
+
+
+If you don’t enforce this, users will not trust the app.
+
+
+---
+
+6. State file in %APPDATA% is correct, but incomplete
+
+What’s missing:
+
+OS version hash
+
+Windows build number
+
+Last verification timestamp
+
+
+Why it matters: If Windows updates, your stored state may be wrong.
+
+You need:
+
+{
+  "meta": {
+    "windowsBuild": "22631",
+    "lastVerified": 1730xxxxx
+  },
+  "tweaks": {
+    "gaming-mode": true
+  }
+}
+
+Without this, state desync is guaranteed.
+
+
+---
+
+7. You MUST add verification reads (not just writes)
+
+Right now it sounds like:
+
+Toggle → write registry → assume success
+
+
+That is amateur-level and will get you roasted if reviewed.
+
+Each tweak needs:
+
+apply() → write
+
+check() → read registry back
+
+revert() → restore
+
+verify() → confirm applied state
+
+
+UI should trust verify, not toggle state.
+
+
+---
+
+8. Security + reputation warning (important)
+
+The moment you:
+
+Run PowerShell
+
+Modify registry
+
+Touch Xbox / Copilot / Cortana
+
+
+You are on Microsoft Defender’s radar.
+
+To reduce flags:
+
+No obfuscated PowerShell
+
+No encoded commands
+
+No Invoke-Expression
+
+Clear command strings
+
+Log every action
+
+
+If you ignore this, you’ll get false malware reports later.
+
+
+---
+
+9. What you should do NEXT (in order)
+
+Do NOT add more tweaks yet.
+
+Do this instead:
+
+1. Move hibernation to Tier B
+
+
+2. Add admin detection (isElevated)
+
+
+3. Enforce result contract
+
+
+4. Add registry read-back verification
+
+
+5. Add failure UI states
+
+
+6. Log every tweak execution to file
+
+
+
+Only after that:
+
+Add more tweaks
+
+Add batch apply
+
+Add restore points
+
+
+
+---
+
+Final verdict
+
+You are finally doing real work, not UI theatre.
+
+But right now:
+
+Architecture: 70% solid
+
+Safety: unfinished
+
+Trustworthiness: fragile
+
+
+If you harden execution + verification, this can become legit. If you rush more tweaks, you will ship something unreliable.
+
+If you want, next we can:
+
+Audit one tweak end-to-end properly
+
+Design the Tier B admin flow
+
+Or lock down Defender-safe execution
+
+
+Tell me which one.

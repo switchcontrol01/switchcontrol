@@ -1,8 +1,10 @@
 const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 const TWEAK_STATE_FILE = path.join(process.env.APPDATA || '', 'SwitchControl', 'tweak-state.json');
+const TWEAK_LOG_FILE = path.join(process.env.APPDATA || '', 'SwitchControl', 'tweak-log.txt');
 
 function ensureStateDir() {
   const dir = path.dirname(TWEAK_STATE_FILE);
@@ -11,21 +13,49 @@ function ensureStateDir() {
   }
 }
 
+function logAction(action, tweakId, result) {
+  try {
+    ensureStateDir();
+    const timestamp = new Date().toISOString();
+    const logLine = `[${timestamp}] ${action} ${tweakId}: ${JSON.stringify(result)}\n`;
+    fs.appendFileSync(TWEAK_LOG_FILE, logLine);
+  } catch (e) {
+    console.error('[TweakExecutor] Failed to log:', e);
+  }
+}
+
+function getWindowsBuild() {
+  try {
+    return os.release();
+  } catch (e) {
+    return 'unknown';
+  }
+}
+
 function loadState() {
   try {
     ensureStateDir();
     if (fs.existsSync(TWEAK_STATE_FILE)) {
-      return JSON.parse(fs.readFileSync(TWEAK_STATE_FILE, 'utf8'));
+      const data = JSON.parse(fs.readFileSync(TWEAK_STATE_FILE, 'utf8'));
+      return {
+        meta: data.meta || { windowsBuild: getWindowsBuild(), lastVerified: null },
+        tweaks: data.tweaks || {},
+      };
     }
   } catch (e) {
     console.error('[TweakExecutor] Failed to load state:', e);
   }
-  return { appliedTweaks: {}, lastSync: null };
+  return { 
+    meta: { windowsBuild: getWindowsBuild(), lastVerified: null },
+    tweaks: {} 
+  };
 }
 
 function saveState(state) {
   try {
     ensureStateDir();
+    state.meta.windowsBuild = getWindowsBuild();
+    state.meta.lastVerified = new Date().toISOString();
     fs.writeFileSync(TWEAK_STATE_FILE, JSON.stringify(state, null, 2));
   } catch (e) {
     console.error('[TweakExecutor] Failed to save state:', e);
@@ -34,11 +64,14 @@ function saveState(state) {
 
 function runPowerShell(command) {
   return new Promise((resolve, reject) => {
-    const psCommand = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "${command.replace(/"/g, '\\"')}"`;
+    const safeCommand = command.replace(/"/g, '\\"');
+    const psCommand = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "try { ${safeCommand}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }"`;
+    
     exec(psCommand, { timeout: 30000 }, (error, stdout, stderr) => {
       if (error) {
-        console.error('[TweakExecutor] PowerShell error:', stderr || error.message);
-        reject(new Error(stderr || error.message));
+        const errorMsg = stderr?.trim() || stdout?.trim() || error.message;
+        console.error('[TweakExecutor] PowerShell error:', errorMsg);
+        reject(new Error(errorMsg));
       } else {
         resolve(stdout.trim());
       }
@@ -46,75 +79,151 @@ function runPowerShell(command) {
   });
 }
 
+function checkPowerShell(command) {
+  return new Promise((resolve) => {
+    const safeCommand = command.replace(/"/g, '\\"');
+    const psCommand = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "${safeCommand}"`;
+    
+    exec(psCommand, { timeout: 10000 }, (error, stdout) => {
+      if (error) {
+        resolve(false);
+      } else {
+        const result = stdout.trim().toLowerCase();
+        resolve(result === 'true');
+      }
+    });
+  });
+}
+
+// Tier A tweaks - safe, user-level, no admin required
 const TIER_A_TWEAKS = {
   'gaming-mode': {
     name: 'Game Mode',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\GameBar" -Name "AutoGameModeEnabled" -Value 1 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\GameBar" -Name "AutoGameModeEnabled" -Value 0 -Type DWord -Force`,
+    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\GameBar" -Name "AutoGameModeEnabled" -Value 1 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\GameBar" -Name "AutoGameModeEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\GameBar" -Name "AutoGameModeEnabled" -ErrorAction SilentlyContinue).AutoGameModeEnabled -eq 1`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'notifications': {
     name: 'Disable Notifications',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications" -Name "ToastEnabled" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications" -Name "ToastEnabled" -Value 1 -Type DWord -Force`,
+    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications" -Name "ToastEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications" -Name "ToastEnabled" -Value 1 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\PushNotifications" -Name "ToastEnabled" -ErrorAction SilentlyContinue).ToastEnabled -eq 0`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'copilot': {
     name: 'Disable Copilot',
-    apply: `New-Item -Path "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot" -Force | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot" -Name "TurnOffWindowsCopilot" -Value 1 -Type DWord -Force`,
-    revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot" -Name "TurnOffWindowsCopilot" -ErrorAction SilentlyContinue`,
+    apply: `New-Item -Path "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot" -Force -ErrorAction Stop | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot" -Name "TurnOffWindowsCopilot" -Value 1 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot" -Name "TurnOffWindowsCopilot" -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot" -Name "TurnOffWindowsCopilot" -ErrorAction SilentlyContinue).TurnOffWindowsCopilot -eq 1`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'cortana': {
     name: 'Disable Cortana',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search" -Name "CortanaConsent" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search" -Name "CortanaConsent" -Value 1 -Type DWord -Force`,
+    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search" -Name "CortanaConsent" -Value 0 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search" -Name "CortanaConsent" -Value 1 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Search" -Name "CortanaConsent" -ErrorAction SilentlyContinue).CortanaConsent -eq 0`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'search-highlights': {
     name: 'Disable Search Highlights',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings" -Name "IsDynamicSearchBoxEnabled" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings" -Name "IsDynamicSearchBoxEnabled" -Value 1 -Type DWord -Force`,
+    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings" -Name "IsDynamicSearchBoxEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings" -Name "IsDynamicSearchBoxEnabled" -Value 1 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\SearchSettings" -Name "IsDynamicSearchBoxEnabled" -ErrorAction SilentlyContinue).IsDynamicSearchBoxEnabled -eq 0`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'storage-sense': {
     name: 'Disable Storage Sense',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -Value 1 -Type DWord -Force`,
+    apply: `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Force -ErrorAction SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -Value 0 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -Value 1 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\StorageSense\\Parameters\\StoragePolicy" -Name "01" -ErrorAction SilentlyContinue)."01" -eq 0`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'compact-explorer': {
     name: 'Compact Explorer View',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "UseCompactMode" -Value 1 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "UseCompactMode" -Value 0 -Type DWord -Force`,
+    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "UseCompactMode" -Value 1 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "UseCompactMode" -Value 0 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "UseCompactMode" -ErrorAction SilentlyContinue).UseCompactMode -eq 1`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'recent-files': {
     name: 'Disable Recent Files',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "Start_TrackDocs" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "Start_TrackDocs" -Value 1 -Type DWord -Force`,
+    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "Start_TrackDocs" -Value 0 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "Start_TrackDocs" -Value 1 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "Start_TrackDocs" -ErrorAction SilentlyContinue).Start_TrackDocs -eq 0`,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
   'xbox-bar': {
     name: 'Disable Xbox Game Bar',
-    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR" -Name "AppCaptureEnabled" -Value 0 -Type DWord -Force; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_Enabled" -Value 0 -Type DWord -Force`,
-    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR" -Name "AppCaptureEnabled" -Value 1 -Type DWord -Force; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_Enabled" -Value 1 -Type DWord -Force`,
+    apply: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR" -Name "AppCaptureEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_Enabled" -Value 0 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR" -Name "AppCaptureEnabled" -Value 1 -Type DWord -Force -ErrorAction Stop; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_Enabled" -Value 1 -Type DWord -Force -ErrorAction Stop`,
     check: `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\GameDVR" -Name "AppCaptureEnabled" -ErrorAction SilentlyContinue).AppCaptureEnabled -eq 0`,
-  },
-  'hibernation': {
-    name: 'Disable Hibernation',
-    apply: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -Value 0 -Type DWord -Force -ErrorAction SilentlyContinue`,
-    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -Value 1 -Type DWord -Force -ErrorAction SilentlyContinue`,
-    check: `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -ErrorAction SilentlyContinue).HibernateEnabled -eq 0`,
-    requiresAdmin: true,
+    requiresAdmin: false,
+    requiresReboot: false,
   },
 };
 
-async function executeTweak(tweakId, action) {
-  const tweak = TIER_A_TWEAKS[tweakId];
+// Tier B tweaks - require admin elevation
+const TIER_B_TWEAKS = {
+  'hibernation': {
+    name: 'Disable Hibernation',
+    apply: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -Value 0 -Type DWord -Force -ErrorAction Stop`,
+    revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -Value 1 -Type DWord -Force -ErrorAction Stop`,
+    check: `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power" -Name "HibernateEnabled" -ErrorAction SilentlyContinue).HibernateEnabled -eq 0`,
+    requiresAdmin: true,
+    requiresReboot: true,
+  },
+};
+
+const ALL_TWEAKS = { ...TIER_A_TWEAKS, ...TIER_B_TWEAKS };
+
+async function verifyTweak(tweakId) {
+  const tweak = ALL_TWEAKS[tweakId];
+  if (!tweak) return { applied: false, verified: false };
   
+  try {
+    const applied = await checkPowerShell(tweak.check);
+    return { applied, verified: true };
+  } catch (e) {
+    return { applied: false, verified: false };
+  }
+}
+
+async function executeTweak(tweakId, action) {
+  const tweak = ALL_TWEAKS[tweakId];
+  
+  // Unknown tweak - return simulated
   if (!tweak) {
-    return { success: true, message: 'Simulated', requiresReboot: false, error: null };
+    const result = { 
+      success: true, 
+      message: 'Simulated (not a system tweak)', 
+      requiresReboot: false, 
+      requiresAdmin: false,
+      error: null 
+    };
+    logAction(action, tweakId, result);
+    return result;
+  }
+
+  // Check if admin required but not available
+  if (tweak.requiresAdmin) {
+    const result = {
+      success: false,
+      message: null,
+      requiresReboot: tweak.requiresReboot,
+      requiresAdmin: true,
+      error: 'This tweak requires administrator privileges. Run SwitchControl as Administrator.',
+    };
+    logAction(action, tweakId, result);
+    return result;
   }
 
   const command = action === 'apply' ? tweak.apply : tweak.revert;
@@ -123,38 +232,60 @@ async function executeTweak(tweakId, action) {
     console.log(`[TweakExecutor] Executing ${action} for ${tweakId}`);
     await runPowerShell(command);
     
-    const state = loadState();
-    state.appliedTweaks[tweakId] = action === 'apply';
-    state.lastSync = new Date().toISOString();
-    saveState(state);
+    // Verify the change took effect
+    const verification = await verifyTweak(tweakId);
+    const expectedState = action === 'apply';
     
-    return {
-      success: true,
-      message: `${tweak.name} ${action === 'apply' ? 'enabled' : 'disabled'}`,
-      requiresReboot: false,
-      error: null,
-    };
+    if (verification.verified && verification.applied === expectedState) {
+      // Success - update state
+      const state = loadState();
+      state.tweaks[tweakId] = action === 'apply';
+      saveState(state);
+      
+      const result = {
+        success: true,
+        message: `${tweak.name} ${action === 'apply' ? 'enabled' : 'disabled'}`,
+        requiresReboot: tweak.requiresReboot,
+        requiresAdmin: false,
+        error: null,
+      };
+      logAction(action, tweakId, result);
+      return result;
+    } else {
+      // Verification failed
+      const result = {
+        success: false,
+        message: null,
+        requiresReboot: false,
+        requiresAdmin: false,
+        error: 'Change was applied but verification failed. Registry may have been reset.',
+      };
+      logAction(action, tweakId, result);
+      return result;
+    }
   } catch (error) {
     console.error(`[TweakExecutor] Failed to ${action} ${tweakId}:`, error);
-    return {
+    const result = {
       success: false,
       message: null,
       requiresReboot: false,
+      requiresAdmin: false,
       error: error.message || 'Failed to execute tweak',
     };
+    logAction(action, tweakId, result);
+    return result;
   }
 }
 
 async function checkTweakStatus(tweakId) {
-  const tweak = TIER_A_TWEAKS[tweakId];
+  const tweak = ALL_TWEAKS[tweakId];
   
   if (!tweak) {
     return { tweakId, applied: false, error: null };
   }
 
   try {
-    const result = await runPowerShell(tweak.check);
-    const applied = result.toLowerCase() === 'true';
+    const applied = await checkPowerShell(tweak.check);
     return { tweakId, applied, error: null };
   } catch (error) {
     return { tweakId, applied: false, error: error.message };
@@ -162,22 +293,30 @@ async function checkTweakStatus(tweakId) {
 }
 
 function getLocalState() {
-  return loadState();
+  const state = loadState();
+  return {
+    appliedTweaks: state.tweaks,
+    lastSync: state.meta.lastVerified,
+    windowsBuild: state.meta.windowsBuild,
+  };
 }
 
 function getTweakInfo() {
-  return Object.entries(TIER_A_TWEAKS).map(([id, tweak]) => ({
+  return Object.entries(ALL_TWEAKS).map(([id, tweak]) => ({
     id,
     name: tweak.name,
-    tier: 'A',
-    requiresAdmin: tweak.requiresAdmin || false,
+    tier: TIER_A_TWEAKS[id] ? 'A' : 'B',
+    requiresAdmin: tweak.requiresAdmin,
+    requiresReboot: tweak.requiresReboot,
   }));
 }
 
 module.exports = {
   executeTweak,
   checkTweakStatus,
+  verifyTweak,
   getLocalState,
   getTweakInfo,
   TIER_A_TWEAKS,
+  TIER_B_TWEAKS,
 };
