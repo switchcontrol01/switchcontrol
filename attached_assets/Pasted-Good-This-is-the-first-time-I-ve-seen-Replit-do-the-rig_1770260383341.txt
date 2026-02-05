@@ -1,0 +1,136 @@
+Good. This is the first time I’ve seen Replit do the right sequence (systeminformation, unify preload, then refactor frontend usage). But do not celebrate yet.
+
+Replit’s own “architect review” flagged “critical runtime mismatches”, then Replit hand-waved it away. That is exactly how you end up back in “it works on their screen” hell.
+
+Here’s what you do now.
+
+
+---
+
+The 3 failure points that can still kill the app
+
+1) Name mismatch: window.electronAPI vs window.electronAPI
+
+Your screenshots show Replit is updating frontend to use window.electronAPI...
+
+You must verify preload exposes exactly that name. If preload exposes window.electronAPI but frontend calls window.electronAPI, nothing works. If preload exposes window.electronAPI but some file still uses window.sc, you get random undefined crashes.
+
+Non negotiable: one global, one spelling, everywhere.
+
+2) Telemetry still lying or returning nulls
+
+Even if hardware specs are fixed, LiveGraph will still crash if telemetry returns:
+
+null
+
+undefined
+
+strings
+
+NaN
+
+
+Replit claimed “fix live usage reporting” but I have not seen the actual telemetry:getLive handler code. That handler must never return nulls, ever.
+
+3) Disk field mismatch: mount vs name
+
+Replit admitted it: Home expects mount, main returned name.
+
+If they “fixed it by adding both fields”, fine, but we need to confirm the UI is using the correct one consistently. If half the UI uses mount and half uses name, your disk selector will still behave weird.
+
+
+---
+
+What I need from you right now (minimum, no fluff)
+
+Paste these exact sections from your repo after Replit’s changes:
+
+1. electron/preload.js (the whole file)
+
+
+2. From electron/main.js ONLY these handlers:
+
+
+
+ipcMain.handle('system:getSpecs'...)
+
+ipcMain.handle('system:getAllDisks'...)
+
+ipcMain.handle('system:getRamUsage'...)
+
+ipcMain.handle('telemetry:getLive'...)
+
+
+3. client/src/components/dashboard/LiveGraph.tsx (whole file)
+
+
+
+That’s enough for me to say “bulletproof” or “still broken” with proof.
+
+
+---
+
+What to test on your PC (takes 60 seconds)
+
+Open the Electron app, open DevTools console, and confirm these are true:
+
+1. In console:
+
+
+
+window.electronAPI exists
+
+window.sc is undefined
+
+window.telemetry is undefined
+
+window.tweaks is undefined
+
+window.auth is undefined
+
+
+2. Run this in console:
+
+
+
+await window.electronAPI.system.getSpecs()
+
+await window.electronAPI.system.getAllDisks()
+
+await window.electronAPI.telemetry.getLive()
+
+
+You should see:
+
+real CPU model string
+
+real GPU model string (or at least not empty)
+
+disks array not empty
+
+telemetry numbers, not null
+
+
+3. Watch console for:
+
+
+
+any .toFixed error
+
+any “Cannot read properties of undefined”
+
+any repeated “MOUNT Home” spam
+
+
+If any of those appear, it is still not fixed.
+
+
+---
+
+One more thing: Replit’s “it shows real GPU/disk now” claim is not proof
+
+They can still be returning “Unknown GPU” with a prettier UI and calling it “working”.
+
+We verify by reading the handler code and the return shape.
+
+Send those 3 code chunks and I’ll tell you exactly if Replit actually fixed it or just moved the bu
