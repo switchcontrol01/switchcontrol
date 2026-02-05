@@ -1,0 +1,163 @@
+MESSAGE TO PASTE INTO REPLIT (COPY EVERYTHING BELOW)
+
+> Critical fix required. Do NOT add new tooling or scripts. Do NOT invent files. Only inspect and correct existing code.
+
+The Electron app is still blank and the installer icon is not applied. There is also a main-process JavaScript syntax error.
+
+TASK 1 — FIX MAIN PROCESS CRASH (HIGHEST PRIORITY)
+
+Inspect electron/main.js line by line.
+
+Current runtime error:
+
+Uncaught Exception:
+SyntaxError: Unexpected token '{'
+at compileSourceTextModule
+
+This means invalid ESM syntax or stray character in the Electron main process.
+
+Requirements:
+
+Ensure electron/main.js is pure ESM, valid for Node 20+ and Electron 33+
+
+No top-level stray braces
+
+No mixed CJS (require) with ESM (import)
+
+No JSX, no TS syntax, no optional chaining in invalid context
+
+
+After fixing, Electron must launch without crashing before any window loads.
+
+
+---
+
+TASK 2 — FIX BLANK SCREEN (PRODUCTION PATHING)
+
+The frontend build exists at:
+
+/dist/index.html
+
+The Electron production loader must load:
+
+path.join(process.resourcesPath, "dist", "index.html")
+
+Requirements:
+
+Do NOT reference __dirname/../dist
+
+Do NOT reference public/
+
+Do NOT use relative paths in production
+
+The app must render correctly when launched from:
+
+electron/dist/win-unpacked/SwitchControl.exe
+
+
+Verify by logging the resolved path before loadFile.
+
+
+---
+
+TASK 3 — FIX INSTALLER ICON (BUILD-TIME ISSUE)
+
+Electron-builder is explicitly reporting:
+
+default Electron icon is used – application icon is not set
+
+This means the icon is missing or mislocated at build time.
+
+Required folder structure (must exist before build):
+
+electron/
+├─ build/
+│ └─ icon.ico
+
+Requirements:
+
+Use .ico only (PNG is NOT acceptable for Windows installer)
+
+Icon path must be relative to electron/package.json
+
+In electron/package.json:
+
+"win": {
+  "icon": "build/icon.ico"
+}
+
+Do NOT rely on automatic PNG conversion
+
+
+After fixing, electron-builder must NOT log “default Electron icon is used”.
+
+
+---
+
+TASK 4 — VERIFY ELECTRON BUILDER CONFIG
+
+In electron/package.json:
+
+Ensure extraResources includes:
+
+{
+  "from": "../dist",
+  "to": "dist"
+}
+
+Ensure files does NOT exclude required runtime files
+
+Do NOT include dev-only paths
+
+
+
+---
+
+TASK 5 — VERIFY BUILD ORDER (NO CHANGES ALLOWED)
+
+The following commands must work without modification:
+
+npm install
+npm run build
+npm run electron:build
+
+No .bat files. No auto-launch scripts. No background Electron start.
+
+
+---
+
+OUTPUT REQUIRED
+
+Respond with:
+
+1. The corrected full contents of electron/main.js
+
+
+2. The corrected full contents of electron/package.json
+
+
+3. Confirmation that electron/build/icon.ico exists
+
+
+4. Confirmation that Electron launches and displays UI (not blank)
+
+
+
+Do not proceed to new features until all above are verified.
+
+
+
+
+---
+
+WHY THIS WILL WORK (so you don’t doubt it)
+
+Your screenshot proves the app never reaches renderer. It dies in main.
+
+The icon issue is purely build-time, not runtime.
+
+Electron-builder already told us the icon path is wrong.
+
+Your build output proves the frontend is fine.
+
+This isolates the problem to two files only.

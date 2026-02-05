@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "main": "main.js",
-  "type": "module",
+  "type": "commonjs",
 
   "scripts": {
+    "start": "electron .",
     "dist:win": "electron-builder --win"
   },
 
@@ -19,11 +20,13 @@
     "productName": "SwitchControl",
 
     "directories": {
-      "output": "dist"
+      "output": "dist",
+      "buildResources": "build"
     },
 
     "files": [
-      "**/*"
+      "main.js",
+      "preload.js"
     ],
 
     "extraResources": [
@@ -35,14 +38,17 @@
 
     "win": {
       "target": "nsis",
-      "icon": "build/icon.ico"
+      "icon": "build/icon.png"
     },
 
     "nsis": {
       "oneClick": true,
       "perMachine": false,
       "allowElevation": true,
-      "allowToChangeInstallationDirectory": false
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": true
     }
   }
 }
