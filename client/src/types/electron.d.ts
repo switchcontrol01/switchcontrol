@@ -23,6 +23,7 @@ interface SystemSpecs {
     model: string;
     vendor: string;
     vramGB: number;
+    isNvidia: boolean;
   };
   system: {
     os: string;
@@ -51,8 +52,8 @@ interface RamUsage {
 interface LiveTelemetry {
   cpuUsage: number;
   ramUsage: number;
-  cpuTemp: number;
-  gpuTemp: number;
+  cpuTemp: number | null;
+  gpuTemp: number | null;
   timestamp: number;
 }
 

@@ -1,122 +1,95 @@
 import { useState, useEffect, useRef } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Activity } from "lucide-react";
+import { Activity, Info } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
-import { useStore } from "@/lib/store";
 import { safeFixed, safeNumber } from "@/lib/utils";
 
 interface DataPoint {
   time: string;
   cpu: number;
   gpu: number | null;
-  mobo: number | null;
   ram: number;
 }
 
-
 export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: any) => void }) {
   const [data, setData] = useState<DataPoint[]>([]);
-  const [latest, setLatest] = useState<TelemetryData | null>(null);
+  const [latest, setLatest] = useState<{ cpuUsage: number; cpuTemp: number | null; gpuTemp: number | null; ramUsedGb: number; ramTotalGb: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
-  const enhancedSensorsEnabled = useStore((state) => state.enhancedSensorsEnabled);
 
   useEffect(() => {
     const fetchTelemetry = async () => {
       try {
-        let telemetry: TelemetryData;
         const api = (window as any).electronAPI;
 
         if (api?.telemetry?.getLive) {
           const live = await api.telemetry.getLive();
-          const cpuTemp = safeNumber(live.cpuTemp, 0);
-          const gpuTemp = safeNumber(live.gpuTemp, 0);
-          telemetry = {
-            cpuLoadPercent: safeNumber(live.cpuUsage, 0),
-            cpuTempC: cpuTemp > 0 ? cpuTemp : null, // 0 means unavailable, not literally 0°C
-            gpuTempC: gpuTemp > 0 ? gpuTemp : null,
-            gpuLoadPercent: null,
-            moboTempC: null,
-            ramUsedGb: 0,
-            ramTotalGb: 0,
-          };
           
-          // Get RAM data
+          let ramUsedGb = 0;
+          let ramTotalGb = 16;
+          
           if (api?.system?.getRamUsage) {
             try {
               const ram = await api.system.getRamUsage();
-              telemetry.ramUsedGb = safeNumber(ram?.usedGB || ram?.ramUsedGb, 0);
-              telemetry.ramTotalGb = safeNumber(ram?.totalGB || ram?.ramTotalGb, 16);
+              ramUsedGb = safeNumber(ram?.usedGB || ram?.ramUsedGb, 0);
+              ramTotalGb = safeNumber(ram?.totalGB || ram?.ramTotalGb, 16);
             } catch (e) {
               console.warn('[telemetry] RAM fetch error:', e);
             }
           }
           
-          if (enhancedSensorsEnabled && api?.telemetry?.getEnhanced) {
-            try {
-              const enhanced = await api.telemetry.getEnhanced();
-              if (enhanced) {
-                if (enhanced.cpuTemp != null) telemetry.cpuTempC = safeNumber(enhanced.cpuTemp, 0);
-                if (enhanced.gpuTemp != null) telemetry.gpuTempC = safeNumber(enhanced.gpuTemp, 0);
-              }
-            } catch (e) {
-              console.warn('[telemetry] enhanced sensors error:', e);
-            }
-          }
-        } else {
-          // Fallback for non-Electron
-          telemetry = {
-            cpuLoadPercent: 0,
-            cpuTempC: null,
-            gpuTempC: null,
-            gpuLoadPercent: null,
-            moboTempC: null,
-            ramUsedGb: 8,
-            ramTotalGb: 16,
+          const cpuTemp = live.cpuTemp !== null && Number.isFinite(live.cpuTemp) ? live.cpuTemp : null;
+          const gpuTemp = live.gpuTemp !== null && Number.isFinite(live.gpuTemp) ? live.gpuTemp : null;
+          
+          const telemetryState = {
+            cpuUsage: safeNumber(live.cpuUsage, 0),
+            cpuTemp,
+            gpuTemp,
+            ramUsedGb,
+            ramTotalGb,
           };
-        }
 
-        setLatest(telemetry);
-        setError(null);
-        retryCountRef.current = 0;
-        
-        if (onTelemetryUpdate) {
-          onTelemetryUpdate({
-            temps: { 
-              cpu: telemetry.cpuTempC ?? 0, 
-              gpu: telemetry.gpuTempC ?? 0, 
-              mobo: telemetry.moboTempC ?? 0 
-            },
-            ram: { 
-              totalGB: telemetry.ramTotalGb, 
-              usedGB: telemetry.ramUsedGb 
-            },
-            ssds: []
-          });
-        }
-        
-        const now = new Date();
-        const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
-        
-        setData(prev => {
-          const gpuValue = telemetry.gpuTempC ?? telemetry.gpuLoadPercent;
-          const ramPercent = telemetry.ramTotalGb > 0
-            ? (telemetry.ramUsedGb / telemetry.ramTotalGb) * 100
-            : 0;
-          const newPoint: DataPoint = {
-            time: timeStr,
-            cpu: telemetry.cpuTempC ?? telemetry.cpuLoadPercent,
-            gpu: gpuValue,
-            mobo: telemetry.moboTempC,
-            ram: safeNumber(ramPercent)
-          };
-          const updated = [...prev, newPoint];
-          if (updated.length > 30) {
-            return updated.slice(-30);
+          setLatest(telemetryState);
+          setError(null);
+          retryCountRef.current = 0;
+          
+          if (onTelemetryUpdate) {
+            onTelemetryUpdate({
+              temps: { 
+                cpu: cpuTemp ?? 0, 
+                gpu: gpuTemp ?? 0, 
+                mobo: 0 
+              },
+              ram: { 
+                totalGB: ramTotalGb, 
+                usedGB: ramUsedGb 
+              },
+              ssds: []
+            });
           }
-          return updated;
-        });
+          
+          const now = new Date();
+          const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
+          
+          const ramPercent = ramTotalGb > 0 ? (ramUsedGb / ramTotalGb) * 100 : 0;
+          
+          setData(prev => {
+            const newPoint: DataPoint = {
+              time: timeStr,
+              cpu: cpuTemp ?? telemetryState.cpuUsage,
+              gpu: gpuTemp,
+              ram: safeNumber(ramPercent)
+            };
+            const updated = [...prev, newPoint];
+            if (updated.length > 30) {
+              return updated.slice(-30);
+            }
+            return updated;
+          });
+        } else {
+          setError("Telemetry not available in browser");
+        }
       } catch (err) {
         retryCountRef.current += 1;
         if (retryCountRef.current <= 3) {
@@ -128,14 +101,17 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
     };
 
     fetchTelemetry();
-    intervalRef.current = setInterval(fetchTelemetry, 1500); // 1.5s to reduce load on lower-end systems
+    intervalRef.current = setInterval(fetchTelemetry, 1500);
 
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, [onTelemetryUpdate, enhancedSensorsEnabled]);
+  }, [onTelemetryUpdate]);
+
+  const hasGpuData = data.some(d => Number.isFinite(d.gpu));
+  const hasCpuTemp = latest?.cpuTemp !== null;
 
   if (error) {
     return (
@@ -165,18 +141,15 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             <>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-red-500" />
-                CPU: {latest.cpuTempC !== null ? `${latest.cpuTempC}°C` : `${safeFixed(latest.cpuLoadPercent, 0)}%`}
+                CPU: {hasCpuTemp ? `${latest.cpuTemp}°C` : `${safeFixed(latest.cpuUsage, 0)}%`}
               </span>
               <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-orange-500" />
-                GPU: {latest.gpuTempC !== null ? `${latest.gpuTempC}°C` : 
-                      latest.gpuLoadPercent !== null ? `${safeFixed(latest.gpuLoadPercent, 0)}%` : 
-                      <span className="text-muted-foreground/60" title="GPU monitoring requires supported drivers">N/A</span>}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-purple-500" />
-                Mobo: {latest.moboTempC !== null ? `${latest.moboTempC}°C` : 
-                      <span className="text-muted-foreground/60" title="Motherboard temp not available">N/A</span>}
+                <span className="size-2 rounded-full bg-green-500" />
+                GPU: {hasGpuData && latest.gpuTemp !== null ? (
+                  `${latest.gpuTemp}°C`
+                ) : (
+                  <span className="text-muted-foreground/60" title="GPU temp available on NVIDIA only">N/A</span>
+                )}
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-cyan-500" />
@@ -219,31 +192,23 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             <Line 
               type="monotone" 
               dataKey="cpu" 
-              name="CPU"
+              name={hasCpuTemp ? "CPU Temp (°C)" : "CPU Load (%)"}
               stroke="#ef4444" 
               strokeWidth={2}
               dot={false}
               activeDot={{ r: 3 }}
             />
-            <Line 
-              type="monotone" 
-              dataKey="gpu" 
-              name="GPU"
-              stroke="#f97316" 
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 3 }}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="mobo" 
-              name="Mobo"
-              stroke="#a855f7" 
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 3 }}
-              connectNulls={false}
-            />
+            {hasGpuData && (
+              <Line 
+                type="monotone" 
+                dataKey="gpu" 
+                name="GPU Temp (°C)"
+                stroke="#22c55e" 
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+              />
+            )}
             <Line 
               type="monotone" 
               dataKey="ram" 
@@ -255,6 +220,11 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             />
           </LineChart>
         </ResponsiveContainer>
+      </div>
+      
+      <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/60">
+        <Info className="size-3" />
+        <span>GPU temperature is available on NVIDIA GPUs only. Other GPUs will show "N/A".</span>
       </div>
     </GlassCard>
   );

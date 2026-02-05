@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { exec } = require('child_process');
 const path = require('path');
 const os = require('os');
 const si = require('systeminformation');
@@ -88,6 +89,31 @@ function createWindow() {
 function safeNum(value, decimals = 1) {
   const num = Number(value);
   return Number.isFinite(num) ? parseFloat(num.toFixed(decimals)) : 0;
+}
+
+// Helper: Get NVIDIA GPU temp via nvidia-smi (only works for NVIDIA cards)
+function getNvidiaGpuTemp() {
+  return new Promise((resolve) => {
+    if (process.platform !== 'win32') {
+      return resolve(null);
+    }
+    exec(
+      'nvidia-smi --query-gpu=temperature.gpu --format=csv,noheader,nounits',
+      { windowsHide: true, timeout: 3000 },
+      (err, stdout) => {
+        if (err) return resolve(null);
+        const temp = Number(stdout.trim());
+        resolve(Number.isFinite(temp) ? temp : null);
+      }
+    );
+  });
+}
+
+// Helper: Check if GPU is NVIDIA
+function isNvidiaGpu(graphics) {
+  const gpu = graphics?.controllers?.[0];
+  if (!gpu?.vendor) return false;
+  return gpu.vendor.toLowerCase().includes('nvidia');
 }
 
 // App info handlers
@@ -191,7 +217,8 @@ ipcMain.handle('system:getSpecs', async () => {
       gpu: {
         model: gpu?.model || 'Unavailable',
         vendor: gpu?.vendor || 'Unavailable',
-        vramGB: gpu?.vram ? safeNum(gpu.vram / 1024) : 0
+        vramGB: gpu?.vram ? safeNum(gpu.vram / 1024) : 0,
+        isNvidia: isNvidiaGpu(graphics)
       },
       ram: {
         totalGB: safeNum(totalGB),
@@ -270,7 +297,7 @@ ipcMain.handle('system:getAllDisks', async () => {
   }
 });
 
-// Telemetry - NEVER returns null, uses 0 fallback
+// Telemetry - null means unavailable, never undefined
 ipcMain.handle('telemetry:getLive', async () => {
   try {
     // Get real CPU load
@@ -287,21 +314,29 @@ ipcMain.handle('telemetry:getLive', async () => {
     const free = os.freemem();
     const ramUsage = safeNum(((total - free) / total) * 100);
 
-    // Try to get temps (may not be available on all systems)
-    let cpuTemp = 0;
-    let gpuTemp = 0;
+    // CPU temp from systeminformation
+    let cpuTemp = null;
     try {
       const temps = await si.cpuTemperature();
-      cpuTemp = safeNum(temps.main || 0);
+      const temp = safeNum(temps.main || 0);
+      cpuTemp = Number.isFinite(temp) && temp > 0 ? temp : null;
     } catch (e) {
       // Temperature not available
+    }
+
+    // GPU temp via nvidia-smi (NVIDIA only)
+    let gpuTemp = null;
+    try {
+      gpuTemp = await getNvidiaGpuTemp();
+    } catch (e) {
+      // GPU temp not available
     }
 
     return {
       cpuUsage: lastCpuLoad,
       ramUsage: ramUsage,
-      gpuTemp: gpuTemp,
       cpuTemp: cpuTemp,
+      gpuTemp: gpuTemp,
       timestamp: Date.now()
     };
   } catch (e) {
@@ -309,8 +344,8 @@ ipcMain.handle('telemetry:getLive', async () => {
     return {
       cpuUsage: 0,
       ramUsage: 0,
-      gpuTemp: 0,
-      cpuTemp: 0,
+      cpuTemp: null,
+      gpuTemp: null,
       timestamp: Date.now()
     };
   }
