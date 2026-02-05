@@ -12,6 +12,7 @@ import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements } from "@/lib/auth-store";
+import { usePremiumActivation } from "@/lib/premium-activation-store";
 
 import Splash from "@/screens/Splash";
 import LoginScreen from "@/screens/Login";
@@ -114,16 +115,15 @@ function ElectronAppContent() {
   const handlePremiumUpgrade = useCallback(() => {
     console.log('[App] Premium upgrade detected!');
     setShowUpgradeAnimation(true);
-    // Trigger premium activation glow on components
-    import('@/lib/premium-activation-store').then(({ usePremiumActivation }) => {
-      usePremiumActivation.getState().triggerActivation();
-    });
   }, []);
 
+  const triggerActivation = usePremiumActivation((s) => s.triggerActivation);
+  
   const handleUpgradeAnimationComplete = useCallback(() => {
     setShowUpgradeAnimation(false);
+    triggerActivation();
     triggerPremiumTour();
-  }, [triggerPremiumTour]);
+  }, [triggerPremiumTour, triggerActivation]);
 
   useEffect(() => {
     if (!user?.loggedIn || phase !== 'authenticated') return;
