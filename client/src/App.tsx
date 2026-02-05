@@ -176,10 +176,32 @@ function ElectronAppContent() {
           
           if (premiumActivated && user?.loggedIn) {
             console.log('[App] Premium purchase return detected, refreshing entitlements...');
-            const result = await refreshEntitlements();
-            if (result.upgraded) {
-              handlePremiumUpgrade();
+            
+            // Retry logic for webhook processing delay
+            const maxRetries = 5;
+            const retryDelays = [0, 1500, 3000, 5000, 8000]; // Immediate, then 1.5s, 3s, 5s, 8s
+            
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+              if (attempt > 0) {
+                console.log(`[App] Retry ${attempt}/${maxRetries - 1} - waiting ${retryDelays[attempt]}ms...`);
+                await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
+              }
+              
+              const result = await refreshEntitlements();
+              if (result.upgraded) {
+                console.log('[App] Premium upgrade confirmed on attempt', attempt + 1);
+                handlePremiumUpgrade();
+                return;
+              }
+              
+              if (result.user?.isPremium) {
+                // User is already premium, no animation needed but confirm state
+                console.log('[App] User already premium, no upgrade animation needed');
+                return;
+              }
             }
+            
+            console.warn('[App] Premium upgrade not detected after all retries - webhook may be delayed');
             return;
           }
           
