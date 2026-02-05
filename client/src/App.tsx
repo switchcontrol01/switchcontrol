@@ -114,6 +114,10 @@ function ElectronAppContent() {
   const handlePremiumUpgrade = useCallback(() => {
     console.log('[App] Premium upgrade detected!');
     setShowUpgradeAnimation(true);
+    // Trigger premium activation glow on components
+    import('@/lib/premium-activation-store').then(({ usePremiumActivation }) => {
+      usePremiumActivation.getState().triggerActivation();
+    });
   }, []);
 
   const handleUpgradeAnimationComplete = useCallback(() => {

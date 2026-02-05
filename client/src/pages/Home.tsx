@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
+import { usePremiumActivation } from "@/lib/premium-activation-store";
 
 interface DiskInfo {
   mount: string;
@@ -70,19 +71,35 @@ interface AIAdvisorCardProps {
 }
 
 function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeconds, scanError }: AIAdvisorCardProps) {
+  const justActivated = usePremiumActivation((s) => s.justActivated);
+  const clearActivation = usePremiumActivation((s) => s.clearActivation);
+  const [showActivationGlow, setShowActivationGlow] = useState(false);
+
   const mockRecommendations = [
     { id: "1", action: "Disable Windows Search indexing for game drives", tag: "Safe" },
     { id: "2", action: "Enable Hardware-accelerated GPU scheduling", tag: "Safe" },
     { id: "3", action: "Disable Superfetch for SSD optimization", tag: "Advanced" },
   ];
 
+  useEffect(() => {
+    if (justActivated && isPremium) {
+      setShowActivationGlow(true);
+      const timer = setTimeout(() => {
+        setShowActivationGlow(false);
+        clearActivation();
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [justActivated, isPremium, clearActivation]);
+
   const isOnCooldown = cooldownSeconds > 0;
   const isOptimized = latestAIScan?.optimized === true;
 
   const cardContent = (
     <Card className={cn(
-      "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full",
-      !isPremium && "opacity-60 blur-[2px]"
+      "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full transition-all duration-500",
+      !isPremium && "opacity-60 blur-[2px]",
+      showActivationGlow && "ring-2 ring-purple-500/60 shadow-[0_0_30px_rgba(139,92,246,0.4)]"
     )}>
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
