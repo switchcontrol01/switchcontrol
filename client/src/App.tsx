@@ -15,6 +15,7 @@ import Splash from "@/screens/Splash";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { PageTransition } from "@/components/PageTransition";
 import Home from "@/pages/Home";
 import NetworkTweaks from "@/pages/NetworkTweaks";
 import SystemCleaner from "@/pages/SystemCleaner";
@@ -56,26 +57,64 @@ export function useAppAuth() {
   return useContext(AppAuthContext);
 }
 
-function ElectronAppRoutes() {
+function AnimatedRoute({ component: Component }: { component: React.ComponentType }) {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/dashboard" component={Home} />
-      <Route path="/tweaks" component={Tweaks} />
-      <Route path="/power-plan" component={PowerPlan} />
-      <Route path="/app-booster" component={AppBooster} />
-      <Route path="/focus" component={FocusMode} />
-      <Route path="/network" component={NetworkTweaks} />
-      <Route path="/cleaner" component={SystemCleaner} />
-      <Route path="/debloat" component={Debloater} />
-      <Route path="/startup" component={StartupApps} />
-      <Route path="/bios-advisor" component={BiosAdvisor} />
-      <Route path="/security" component={Security} />
-      <Route path="/settings" component={Settings} />
-      <Route>
-        <Home />
-      </Route>
-    </Switch>
+    <PageTransition>
+      <Component />
+    </PageTransition>
+  );
+}
+
+function ElectronAppRoutes() {
+  const [location] = useHashLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Switch key={location}>
+        <Route path="/">
+          <AnimatedRoute component={Home} />
+        </Route>
+        <Route path="/dashboard">
+          <AnimatedRoute component={Home} />
+        </Route>
+        <Route path="/tweaks">
+          <AnimatedRoute component={Tweaks} />
+        </Route>
+        <Route path="/power-plan">
+          <AnimatedRoute component={PowerPlan} />
+        </Route>
+        <Route path="/app-booster">
+          <AnimatedRoute component={AppBooster} />
+        </Route>
+        <Route path="/focus">
+          <AnimatedRoute component={FocusMode} />
+        </Route>
+        <Route path="/network">
+          <AnimatedRoute component={NetworkTweaks} />
+        </Route>
+        <Route path="/cleaner">
+          <AnimatedRoute component={SystemCleaner} />
+        </Route>
+        <Route path="/debloat">
+          <AnimatedRoute component={Debloater} />
+        </Route>
+        <Route path="/startup">
+          <AnimatedRoute component={StartupApps} />
+        </Route>
+        <Route path="/bios-advisor">
+          <AnimatedRoute component={BiosAdvisor} />
+        </Route>
+        <Route path="/security">
+          <AnimatedRoute component={Security} />
+        </Route>
+        <Route path="/settings">
+          <AnimatedRoute component={Settings} />
+        </Route>
+        <Route>
+          <AnimatedRoute component={Home} />
+        </Route>
+      </Switch>
+    </AnimatePresence>
   );
 }
 
