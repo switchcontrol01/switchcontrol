@@ -167,7 +167,8 @@ ipcMain.handle('system:getSpecs', async () => {
     const gpu = graphics.controllers?.[0];
 
     const disks = (fsData || []).map(d => ({
-      name: d.mount || 'Unknown',
+      mount: d.mount || 'Unknown',
+      name: d.fs || d.mount || 'Unknown',
       totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
       usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
       usePercent: safeNum(d.use || 0)
@@ -245,7 +246,8 @@ ipcMain.handle('system:getAllDisks', async () => {
   try {
     const fsData = await si.fsSize();
     return (fsData || []).map(d => ({
-      name: d.mount || 'Unknown',
+      mount: d.mount || 'Unknown',
+      name: d.fs || d.mount || 'Unknown',
       totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
       usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
       usePercent: safeNum(d.use || 0)

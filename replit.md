@@ -80,7 +80,23 @@ shared/
 ### Premium Redirect System
 - All "Unlock Premium" / "Get Premium" buttons open `https://switchcontrol.org/pricing` in external browser
 - Uses centralized `client/src/lib/pricing.ts` helper
-- Electron: `window.electron.openExternal()`, Browser: `window.open()`
+- Electron: `window.electronAPI.openExternal()`, Browser: `window.open()`
+
+### Electron Desktop App Architecture
+- **Unified API**: Single `window.electronAPI` global exposed via preload.js
+- **Real Hardware Data**: Uses `systeminformation` package for actual CPU, GPU, RAM, and disk info
+- **Key Files**:
+  - `electron/main.js`: IPC handlers, window management, deep-link handling
+  - `electron/preload.js`: Context bridge exposing unified API
+  - `electron/tweak-executor.js`: Registry/PowerShell tweak execution
+- **API Namespaces**:
+  - `electronAPI.system`: getInfo, getSpecs, getRamUsage, getAllDisks
+  - `electronAPI.telemetry`: getLive, getEnhanced (real CPU/RAM/temp data)
+  - `electronAPI.tweaks`: execute, checkStatus, syncAll, getLocalState
+  - `electronAPI.auth`: onCallback, removeCallbackListener (deep-link OAuth)
+  - `electronAPI.window`: minimize, maximize, close
+- **Stability Guarantees**: All IPC handlers use try/catch with stable fallback shapes (never undefined/null)
+- **Performance**: System specs cached per app boot, telemetry polling at 1-2 second intervals
 
 ## External Dependencies
 
