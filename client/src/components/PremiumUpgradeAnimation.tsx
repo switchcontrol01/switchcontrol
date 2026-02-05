@@ -35,6 +35,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   []);
 
   const skipAnimation = useCallback(() => {
+    console.log('[PremiumAnim] skipped by user');
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
     stopAmbientHum();
@@ -130,6 +131,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
     timersRef.current = timers;
 
     // PHASE 1: Freeze (300ms) - UI dims, lock appears
+    console.log('[PremiumAnim] started');
     setPhase('freeze');
     setLockState('locked');
     startAmbientHum();
@@ -184,7 +186,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
     timers.push(setTimeout(() => {
       setPhase('done');
       localStorage.setItem(ANIMATION_SHOWN_KEY, 'true');
-      console.log('[PremiumFlow] animation complete -> start tour');
+      console.log('[PremiumAnim] completed -> starting tour');
       onComplete();
     }, 3400));
 
@@ -555,7 +557,9 @@ function LockIconSVG({ state }: { state: 'locked' | 'pulse' | 'shaking' | 'unloc
 }
 
 export function shouldShowPremiumAnimation(): boolean {
-  return localStorage.getItem(ANIMATION_SHOWN_KEY) !== 'true';
+  const alreadyShown = localStorage.getItem(ANIMATION_SHOWN_KEY) === 'true';
+  console.log('[PremiumAnim] shouldShow:', !alreadyShown, 'alreadyShown:', alreadyShown);
+  return !alreadyShown;
 }
 
 export function resetPremiumAnimationFlag(): void {

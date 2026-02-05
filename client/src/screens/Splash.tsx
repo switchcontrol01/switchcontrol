@@ -19,15 +19,21 @@ export default function Splash({ onComplete }: SplashProps) {
       onComplete();
     }, 2800);
 
-    // Progress bar animation
+    // Progress bar animation with acceleration then ease out
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) return 100;
-        // Ease out the progress
+        // Accelerate in first half, then ease out
         const remaining = 100 - prev;
-        return prev + Math.max(remaining * 0.08, 0.5);
+        if (prev < 50) {
+          // Accelerating phase - starts slow then speeds up
+          return prev + Math.min(prev * 0.06 + 0.8, 4);
+        } else {
+          // Ease out phase - slows down as it approaches 100
+          return prev + Math.max(remaining * 0.1, 0.3);
+        }
       });
-    }, 50);
+    }, 40);
 
     return () => {
       clearTimeout(logoTimer);
@@ -84,29 +90,62 @@ export default function Splash({ onComplete }: SplashProps) {
       
       <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/60 to-[#0a0a0f] pointer-events-none" />
 
-      {/* Floating particles */}
+      {/* Floating particles with parallax */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(6)].map((_, i) => (
+        {[...Array(12)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute size-1 rounded-full bg-primary/30"
+            className="absolute rounded-full"
             style={{
-              left: `${15 + i * 15}%`,
-              top: `${20 + (i % 3) * 25}%`,
+              left: `${10 + i * 8}%`,
+              top: `${15 + (i % 4) * 20}%`,
+              width: `${2 + (i % 3)}px`,
+              height: `${2 + (i % 3)}px`,
+              background: i % 2 === 0 
+                ? 'rgba(168, 85, 247, 0.4)' 
+                : 'rgba(236, 72, 153, 0.3)',
             }}
             animate={{
-              y: [-20, 20, -20],
-              opacity: [0.2, 0.5, 0.2],
+              y: [-30 - i * 2, 30 + i * 2, -30 - i * 2],
+              x: [-10 + i, 10 - i, -10 + i],
+              opacity: [0.2, 0.6, 0.2],
+              scale: [1, 1.2, 1],
             }}
             transition={{
-              duration: 3 + i * 0.5,
+              duration: 4 + i * 0.3,
               repeat: Infinity,
-              delay: i * 0.3,
+              delay: i * 0.15,
               ease: "easeInOut",
             }}
           />
         ))}
       </div>
+
+      {/* Breathing center glow */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        animate={{
+          background: [
+            'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
+            'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.25) 0%, transparent 60%)',
+            'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
+          ]
+        }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* Gradient sweep */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'linear-gradient(45deg, transparent, rgba(139, 92, 246, 0.08), transparent)',
+          backgroundSize: '200% 200%',
+        }}
+        animate={{
+          backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
+        }}
+        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+      />
 
       <AnimatePresence mode="wait">
         {phase === "logo" && (

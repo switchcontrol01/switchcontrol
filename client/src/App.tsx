@@ -13,6 +13,7 @@ import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements } from "@/lib/auth-store";
 import { usePremiumActivation } from "@/lib/premium-activation-store";
+import { PendingActivationModal } from "@/components/PendingActivationModal";
 
 import Splash from "@/screens/Splash";
 import LoginScreen from "@/screens/Login";
@@ -108,6 +109,7 @@ function ElectronAppContent() {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showUpgradeAnimation, setShowUpgradeAnimation] = useState(false);
+  const [showPendingActivation, setShowPendingActivation] = useState(false);
   const { showTour: showPremiumTour, triggerTour: triggerPremiumTour, completeTour: completePremiumTour } = usePremiumTourState();
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
@@ -168,17 +170,44 @@ function ElectronAppContent() {
     };
   }, [user?.loggedIn, phase, handlePremiumUpgrade]);
 
-  // Electron window focus event - clear any stuck UI states
+  // Electron window focus event - clear any stuck UI states and force reflow
   useEffect(() => {
     if (!isElectron) return;
     
     const api = (window as any).electronAPI;
+    
+    const resetUIState = () => {
+      console.log('[App] Resetting UI state on focus');
+      
+      // Blur any focused element
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      
+      // Force reflow to clear any stuck visual states
+      const root = document.getElementById('root');
+      if (root) {
+        root.style.display = 'none';
+        void root.offsetHeight; // Force reflow
+        root.style.display = '';
+      }
+      
+      // Clear any stuck overlay classes
+      document.querySelectorAll('[data-overlay]').forEach(el => {
+        (el as HTMLElement).style.pointerEvents = '';
+        (el as HTMLElement).style.opacity = '';
+      });
+      
+      // Remove any stuck focus rings
+      document.querySelectorAll('.ring-2, .ring-primary, [class*="focus:ring"]').forEach(el => {
+        (el as HTMLElement).blur();
+      });
+    };
+    
     if (api?.onWindowFocus) {
       api.onWindowFocus(() => {
         console.log('[App] Electron window focus - clearing UI state');
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
+        resetUIState();
       });
       
       return () => {
@@ -239,7 +268,8 @@ function ElectronAppContent() {
               }
             }
             
-            console.warn('[PremiumFlow] Premium upgrade not detected after all retries - webhook may be delayed');
+            console.warn('[PremiumFlow] Premium upgrade not detected after all retries - showing pending modal');
+            setShowPendingActivation(true);
             return;
           }
           
@@ -453,6 +483,15 @@ function ElectronAppContent() {
       <GuidedTour 
         show={showPremiumTour} 
         onComplete={completePremiumTour} 
+      />
+      
+      <PendingActivationModal
+        show={showPendingActivation}
+        onUpgradeDetected={() => {
+          setShowPendingActivation(false);
+          handlePremiumUpgrade();
+        }}
+        onDismiss={() => setShowPendingActivation(false)}
       />
     </AppAuthContext.Provider>
   );

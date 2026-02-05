@@ -121,13 +121,17 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
   }
 }
 
+// Track last known premium state separately to avoid stale store issues
+let lastKnownIsPremium: boolean | null = null;
+
 export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: AuthUser | null }> {
   const store = useAuthStore.getState();
   const previousPlan = store.user?.plan || 'free';
-  const wasPremium = store.user?.isPremium || false;
+  const wasPremium = lastKnownIsPremium !== null ? lastKnownIsPremium : (store.user?.isPremium || false);
+  
+  console.log('[PremiumFlow] refreshEntitlements start - wasPremium:', wasPremium, 'lastKnownIsPremium:', lastKnownIsPremium);
   
   try {
-    console.log('[PremiumFlow] refreshEntitlements start');
     const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -158,8 +162,11 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
 
     const upgraded = !wasPremium && newUser.isPremium;
     
+    // Update lastKnownIsPremium AFTER computing upgraded
+    lastKnownIsPremium = newUser.isPremium;
+    
     store.setUser(newUser);
-    console.log(`[PremiumFlow] refreshEntitlements end upgraded=${upgraded} premium=${newUser.isPremium}`);
+    console.log(`[PremiumFlow] refreshEntitlements end upgraded=${upgraded} premium=${newUser.isPremium} wasPremium=${wasPremium}`);
     
     return { upgraded, user: newUser };
   } catch (err) {
