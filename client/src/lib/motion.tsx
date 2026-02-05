@@ -310,21 +310,25 @@ export function Reveal({
     return () => observer.disconnect();
   }, []);
 
+  // When reduced motion is preferred, show content immediately without animation
+  if (prefersReducedMotion) {
+    return (
+      <div ref={ref} className={cn(className)}>
+        {children}
+      </div>
+    );
+  }
+
   const getTransform = () => {
     if (isVisible) return 'translate(0, 0)';
-    // Reduce distance for reduced motion, but still animate
-    const actualDistance = prefersReducedMotion ? distance * 0.3 : distance;
     switch (direction) {
-      case 'up': return `translateY(${actualDistance}px)`;
-      case 'down': return `translateY(-${actualDistance}px)`;
-      case 'left': return `translateX(${actualDistance}px)`;
-      case 'right': return `translateX(-${actualDistance}px)`;
-      default: return `translateY(${actualDistance}px)`;
+      case 'up': return `translateY(${distance}px)`;
+      case 'down': return `translateY(-${distance}px)`;
+      case 'left': return `translateX(${distance}px)`;
+      case 'right': return `translateX(-${distance}px)`;
+      default: return `translateY(${distance}px)`;
     }
   };
-
-  // Reduce duration for reduced motion, but don't eliminate
-  const actualDuration = prefersReducedMotion ? duration * 0.5 : duration;
 
   return (
     <div
@@ -333,7 +337,7 @@ export function Reveal({
       style={{
         opacity: isVisible ? 1 : 0,
         transform: getTransform(),
-        transition: `opacity ${actualDuration}s ease-out ${delay}s, transform ${actualDuration}s ease-out ${delay}s`,
+        transition: `opacity ${duration}s ease-out ${delay}s, transform ${duration}s ease-out ${delay}s`,
         willChange: 'opacity, transform',
       }}
     >

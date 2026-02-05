@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { SpotlightCursor } from './SpotlightCursor';
 import { PremiumParticles } from './PremiumBackground';
+import { useMotion } from '@/lib/motion';
 
 interface GlowBlob {
   id: string;
@@ -25,17 +26,13 @@ interface ContourLine {
 
 export function AppBackground() {
   const [isMobile, setIsMobile] = useState(false);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const { prefersReducedMotion } = useMotion();
   const containerRef = useRef<HTMLDivElement>(null);
   const parallaxRef = useRef({ x: 0, y: 0 });
   
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    const checkMotion = () => setPrefersReducedMotion(
-      window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    );
     checkMobile();
-    checkMotion();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
@@ -49,13 +46,23 @@ export function AppBackground() {
     let animationId: number;
     let targetX = 0;
     let targetY = 0;
+    let isVisible = true;
 
     const handleMouseMove = (e: MouseEvent) => {
       targetX = (e.clientX / window.innerWidth - 0.5) * 15;
       targetY = (e.clientY / window.innerHeight - 0.5) * 15;
     };
 
+    const handleVisibilityChange = () => {
+      isVisible = document.visibilityState === 'visible';
+      if (isVisible) {
+        animationId = requestAnimationFrame(animate);
+      }
+    };
+
     const animate = () => {
+      if (!isVisible) return;
+      
       parallaxRef.current.x += (targetX - parallaxRef.current.x) * 0.03;
       parallaxRef.current.y += (targetY - parallaxRef.current.y) * 0.03;
       
@@ -64,10 +71,12 @@ export function AppBackground() {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     animationId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       cancelAnimationFrame(animationId);
     };
   }, [prefersReducedMotion, isMobile]);

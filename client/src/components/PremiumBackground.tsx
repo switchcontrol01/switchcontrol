@@ -60,7 +60,21 @@ export const PremiumParticles = memo(function PremiumParticles({
       opacity: Math.random() * finalConfig.opacity,
     }));
 
+    let isVisible = true;
+
+    const handleVisibilityChange = () => {
+      isVisible = document.visibilityState === 'visible';
+      if (isVisible && !animationRef.current) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
+    };
+
     const animate = () => {
+      if (!isVisible) {
+        animationRef.current = null;
+        return;
+      }
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       particlesRef.current.forEach((p) => {
@@ -81,10 +95,12 @@ export const PremiumParticles = memo(function PremiumParticles({
       animationRef.current = requestAnimationFrame(animate);
     };
 
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     animate();
 
     return () => {
       window.removeEventListener("resize", resizeCanvas);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -116,25 +132,39 @@ export const TopographicBackground = memo(function TopographicBackground() {
     let mouseY = 0;
     let currentX = 0;
     let currentY = 0;
+    let animationId: number;
+    let isVisible = true;
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = (e.clientX / window.innerWidth - 0.5) * 20;
       mouseY = (e.clientY / window.innerHeight - 0.5) * 20;
     };
 
+    const handleVisibilityChange = () => {
+      isVisible = document.visibilityState === 'visible';
+      if (isVisible) {
+        animationId = requestAnimationFrame(animate);
+      }
+    };
+
     const animate = () => {
+      if (!isVisible) return;
+
       currentX += (mouseX - currentX) * 0.05;
       currentY += (mouseY - currentY) * 0.05;
 
       container.style.transform = `translate(${currentX}px, ${currentY}px)`;
-      requestAnimationFrame(animate);
+      animationId = requestAnimationFrame(animate);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
-    animate();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    animationId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      cancelAnimationFrame(animationId);
     };
   }, [prefersReducedMotion]);
 
