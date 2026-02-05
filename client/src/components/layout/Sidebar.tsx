@@ -14,7 +14,6 @@ import {
   LogOut
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { motion, sidebarSlide, useMotion } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
@@ -62,9 +61,7 @@ const NAV_ITEMS: NavItem[] = [
 
 export function Sidebar() {
   const [location, setLocation] = useLocation();
-  const { prefersReducedMotion, hasLoaded } = useMotion();
   const { user, isPremium, logout } = useAuth();
-  const shouldAnimate = !prefersReducedMotion;
   
   const currentPath = location === "/" ? "/dashboard" : location;
   
@@ -77,63 +74,44 @@ export function Sidebar() {
   };
 
   return (
-    <motion.aside 
-      className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-[hsl(270,60%,55%,0.08)] via-sidebar/90 to-sidebar/95 backdrop-blur-xl border-r border-[hsl(270,60%,55%,0.15)] flex flex-col z-50 shadow-2xl"
-      variants={shouldAnimate && !hasLoaded ? sidebarSlide : undefined}
-      initial={shouldAnimate && !hasLoaded ? "initial" : undefined}
-      animate={shouldAnimate && !hasLoaded ? "animate" : undefined}
-    >
+    <aside className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-[hsl(270,60%,55%,0.08)] via-sidebar/90 to-sidebar/95 backdrop-blur-xl border-r border-[hsl(270,60%,55%,0.15)] flex flex-col z-50 shadow-2xl">
       <div className="p-6">
         <BrandLogo size="lg" linkTo="#/dashboard" />
       </div>
 
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
-        {NAV_ITEMS.map((item, index) => {
+        {NAV_ITEMS.map((item) => {
           const isActive = currentPath === item.href;
           
           return (
-            <motion.div
-              key={item.href}
-              initial={shouldAnimate && !hasLoaded ? { opacity: 0, x: -20 } : false}
-              animate={shouldAnimate && !hasLoaded ? { opacity: 1, x: 0 } : false}
-              transition={shouldAnimate ? { delay: index * 0.03, duration: 0.3 } : undefined}
-              whileHover={shouldAnimate ? { x: 4 } : undefined}
-            >
+            <div key={item.href}>
               <button
                 onClick={() => navigate(item.href)}
                 data-tour={item.tourId}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative overflow-hidden text-left",
+                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium group relative overflow-hidden text-left",
                   isActive 
                     ? "text-white shadow-lg shadow-black/20" 
                     : "text-muted-foreground hover:text-white hover:bg-white/5"
                 )}
               >
                 {isActive && (
-                  <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-[hsl(270,60%,55%,0.25)] to-transparent"
-                    layoutId={shouldAnimate ? "activeIndicator" : undefined}
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-[hsl(270,60%,55%,0.25)] to-transparent" />
                 )}
                 {isActive && (
-                  <motion.div 
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_12px_hsl(270,60%,55%,0.6)]"
-                    layoutId={shouldAnimate ? "activePill" : undefined}
-                    transition={{ type: "spring", stiffness: 350, damping: 30 }}
-                  />
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_12px_hsl(270,60%,55%,0.6)]" />
                 )}
                 
                 <item.icon className={cn(
-                  "size-4 transition-all duration-200 z-10", 
-                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(270,60%,55%,0.5)]" : "group-hover:text-primary/80 group-hover:scale-105"
+                  "size-4 z-10", 
+                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(270,60%,55%,0.5)]" : ""
                 )} />
-                <span className={cn("z-10 transition-transform duration-200 flex-1", isActive && "translate-x-0.5")}>{item.label}</span>
+                <span className={cn("z-10 flex-1", isActive && "translate-x-0.5")}>{item.label}</span>
                 {item.isPremium && (
                   <Crown className="size-3.5 text-[hsl(270,60%,55%)] z-10 shrink-0" />
                 )}
               </button>
-            </motion.div>
+            </div>
           );
         })}
       </nav>
@@ -144,24 +122,20 @@ export function Sidebar() {
             <img 
               src={avatarUrl} 
               alt={userName}
-              className="size-9 rounded-full ring-2 ring-white/10 object-cover transition-all duration-300 group-hover:ring-primary/30"
+              className="size-9 rounded-full ring-2 ring-white/10 object-cover"
             />
           ) : (
-            <div className="size-9 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 ring-2 ring-white/10 flex items-center justify-center text-xs font-mono text-zinc-400 shadow-inner transition-all duration-300 group-hover:ring-primary/30">
+            <div className="size-9 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 ring-2 ring-white/10 flex items-center justify-center text-xs font-mono text-zinc-400 shadow-inner">
               {userInitials}
             </div>
           )}
           <div className="flex flex-col flex-1 min-w-0">
             <span className="text-sm font-medium text-white truncate">{userName}</span>
             {isPremium ? (
-              <motion.span 
-                className="text-[10px] text-[hsl(270,60%,65%)] font-medium bg-[hsl(270,60%,55%,0.15)] px-1.5 py-0.5 rounded w-fit border border-[hsl(270,60%,55%,0.2)] flex items-center gap-1"
-                animate={{ boxShadow: ["0 0 8px hsl(270 60% 55% / 0.2)", "0 0 12px hsl(270 60% 55% / 0.35)", "0 0 8px hsl(270 60% 55% / 0.2)"] }}
-                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              >
+              <span className="text-[10px] text-[hsl(270,60%,65%)] font-medium bg-[hsl(270,60%,55%,0.15)] px-1.5 py-0.5 rounded w-fit border border-[hsl(270,60%,55%,0.2)] flex items-center gap-1">
                 <Crown className="size-2.5" />
                 Premium
-              </motion.span>
+              </span>
             ) : (
               <span className="text-[10px] text-muted-foreground font-medium bg-white/5 px-1.5 py-0.5 rounded w-fit border border-white/10">
                 Free
@@ -172,7 +146,7 @@ export function Sidebar() {
             <TooltipTrigger asChild>
               <button
                 onClick={logout}
-                className="size-7 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200"
+                className="size-7 rounded-lg flex items-center justify-center text-muted-foreground/50 hover:text-red-400 hover:bg-red-500/10"
               >
                 <LogOut className="size-3.5" />
               </button>
@@ -187,7 +161,7 @@ export function Sidebar() {
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <motion.button
+                <button
                   onClick={() => {
                     const api = (window as any).electronAPI;
                     if (api?.openExternal) {
@@ -196,13 +170,11 @@ export function Sidebar() {
                       window.open(SOCIAL_LINKS.discord, '_blank');
                     }
                   }}
-                  className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-[#5865F2] hover:bg-[#5865F2]/10 transition-all duration-200"
+                  className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-[#5865F2] hover:bg-[#5865F2]/10"
                   data-testid="sidebar-link-discord"
-                  whileHover={shouldAnimate ? { scale: 1.1 } : undefined}
-                  whileTap={shouldAnimate ? { scale: 0.9 } : undefined}
                 >
                   <DiscordIcon className="size-3.5" />
-                </motion.button>
+                </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 Join our Discord
@@ -210,7 +182,7 @@ export function Sidebar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <motion.button
+                <button
                   onClick={() => {
                     const api = (window as any).electronAPI;
                     if (api?.openExternal) {
@@ -219,13 +191,11 @@ export function Sidebar() {
                       window.open(SOCIAL_LINKS.tiktok, '_blank');
                     }
                   }}
-                  className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-pink-500 hover:bg-pink-500/10 transition-all duration-200"
+                  className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-pink-500 hover:bg-pink-500/10"
                   data-testid="sidebar-link-tiktok"
-                  whileHover={shouldAnimate ? { scale: 1.1 } : undefined}
-                  whileTap={shouldAnimate ? { scale: 0.9 } : undefined}
                 >
                   <TikTokIcon className="size-3.5" />
-                </motion.button>
+                </button>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 Follow on TikTok
@@ -234,6 +204,6 @@ export function Sidebar() {
           </div>
         </div>
       </div>
-    </motion.aside>
+    </aside>
   );
 }
