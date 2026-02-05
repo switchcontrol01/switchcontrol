@@ -230,7 +230,7 @@ function ElectronAppContent() {
         (window as any).electronAPI?.auth?.removeCallbackListener?.();
       };
     }
-  }, [setToken, setUser, setLocation, setValidating]);
+  }, [setToken, setUser, setLocation, setValidating, handlePremiumUpgrade, user?.loggedIn, storeLogout]);
 
   useEffect(() => {
     if (!splashDone) return;

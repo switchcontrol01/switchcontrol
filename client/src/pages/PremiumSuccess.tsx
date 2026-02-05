@@ -2,9 +2,14 @@ import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2, XCircle } from "lucide-react";
+import { CheckCircle, Loader2, XCircle, ExternalLink, Download } from "lucide-react";
 import { motion, useMotion } from "@/lib/motion";
 import { useQueryClient } from "@tanstack/react-query";
+
+function openDesktopApp() {
+  const deepLink = "switchcontrol://auth-callback?premium_activated=true";
+  window.location.href = deepLink;
+}
 
 export default function PremiumSuccess() {
   const { prefersReducedMotion } = useMotion();
@@ -33,9 +38,6 @@ export default function PremiumSuccess() {
           setStatus("success");
           queryClient.invalidateQueries({ queryKey: ["/api/user/premium-status"] });
           queryClient.invalidateQueries({ queryKey: ["/api/me"] });
-          setTimeout(() => {
-            navigate("/download");
-          }, 3000);
         } else {
           setStatus("error");
           setError("Payment not completed");
@@ -89,14 +91,30 @@ export default function PremiumSuccess() {
                 <p className="text-muted-foreground mb-6">
                   Your payment was successful. You now have lifetime access to all premium features.
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">Redirecting to download page...</p>
-                <Button 
-                  onClick={() => navigate("/download")}
-                  className="bg-primary hover:bg-primary/90"
-                  data-testid="button-goto-download"
-                >
-                  Go to Download Now
-                </Button>
+                
+                <div className="space-y-3 mb-4">
+                  <Button 
+                    onClick={openDesktopApp}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+                    data-testid="button-open-app"
+                  >
+                    <ExternalLink className="size-4 mr-2" />
+                    Open SwitchControl App
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate("/download")}
+                    className="w-full border-white/20"
+                    data-testid="button-goto-download"
+                  >
+                    <Download className="size-4 mr-2" />
+                    Download App First
+                  </Button>
+                </div>
+                
+                <p className="text-xs text-muted-foreground">
+                  If you already have SwitchControl installed, click "Open App" to activate Premium instantly.
+                </p>
               </>
             )}
             

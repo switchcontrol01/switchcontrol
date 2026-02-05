@@ -129,7 +129,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
               background: 'radial-gradient(ellipse at center, transparent 30%, rgba(0,0,0,0.4) 100%)',
             }}
             initial={{ opacity: 0 }}
-            animate={{ opacity: phase !== 'idle' ? 1 : 0 }}
+            animate={{ opacity: 1 }}
           />
 
           <div className="relative flex flex-col items-center">
