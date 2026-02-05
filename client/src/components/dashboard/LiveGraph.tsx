@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Activity, Info } from "lucide-react";
+import { Activity, Info, Maximize2, Minimize2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { safeFixed, safeNumber } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface DataPoint {
   time: string;
@@ -11,6 +12,8 @@ interface DataPoint {
   mobo: number | null;
   ram: number;
   disk: number | null;
+  netRx: number | null;
+  netTx: number | null;
 }
 
 interface LatestState {
@@ -32,6 +35,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   const [data, setData] = useState<DataPoint[]>([]);
   const [latest, setLatest] = useState<LatestState | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
 
@@ -101,7 +105,9 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               gpu: telemetryState.gpuDisplay,
               mobo: telemetryState.moboTemp,
               ram: safeNumber(ramPercent),
-              disk: telemetryState.diskPercent
+              disk: telemetryState.diskPercent,
+              netRx: telemetryState.netRxSec,
+              netTx: telemetryState.netTxSec
             };
             const updated = [...prev, newPoint];
             if (updated.length > 30) {
@@ -194,10 +200,19 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               )}
             </>
           )}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="h-6 w-6 p-0 ml-2 hover:bg-white/10"
+            onClick={() => setExpanded(!expanded)}
+            title={expanded ? "Collapse graph" : "Expand graph"}
+          >
+            {expanded ? <Minimize2 className="size-3" /> : <Maximize2 className="size-3" />}
+          </Button>
         </div>
       </div>
       
-      <div className="h-48">
+      <div className={expanded ? "h-80 transition-all duration-300" : "h-48 transition-all duration-300"}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
             <XAxis 
