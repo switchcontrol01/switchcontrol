@@ -30,10 +30,12 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
 
         if (api?.telemetry?.getLive) {
           const live = await api.telemetry.getLive();
+          const cpuTemp = safeNumber(live.cpuTemp, 0);
+          const gpuTemp = safeNumber(live.gpuTemp, 0);
           telemetry = {
             cpuLoadPercent: safeNumber(live.cpuUsage, 0),
-            cpuTempC: safeNumber(live.cpuTemp, 0) || null,
-            gpuTempC: safeNumber(live.gpuTemp, 0) || null,
+            cpuTempC: cpuTemp > 0 ? cpuTemp : null, // 0 means unavailable, not literally 0°C
+            gpuTempC: gpuTemp > 0 ? gpuTemp : null,
             gpuLoadPercent: null,
             moboTempC: null,
             ramUsedGb: 0,
@@ -99,14 +101,15 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         
         setData(prev => {
           const gpuValue = telemetry.gpuTempC ?? telemetry.gpuLoadPercent;
+          const ramPercent = telemetry.ramTotalGb > 0
+            ? (telemetry.ramUsedGb / telemetry.ramTotalGb) * 100
+            : 0;
           const newPoint: DataPoint = {
             time: timeStr,
             cpu: telemetry.cpuTempC ?? telemetry.cpuLoadPercent,
             gpu: gpuValue,
             mobo: telemetry.moboTempC,
-            ram: safeNumber(telemetry.ramTotalGb) > 0 
-              ? parseFloat(safeFixed((safeNumber(telemetry.ramUsedGb) / safeNumber(telemetry.ramTotalGb)) * 100, 1))
-              : 0
+            ram: safeNumber(ramPercent)
           };
           const updated = [...prev, newPoint];
           if (updated.length > 30) {
@@ -125,7 +128,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
     };
 
     fetchTelemetry();
-    intervalRef.current = setInterval(fetchTelemetry, 1000);
+    intervalRef.current = setInterval(fetchTelemetry, 1500); // 1.5s to reduce load on lower-end systems
 
     return () => {
       if (intervalRef.current) {

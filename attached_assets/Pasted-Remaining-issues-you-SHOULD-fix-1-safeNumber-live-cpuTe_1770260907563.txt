@@ -1,0 +1,93 @@
+Remaining issues you SHOULD fix
+1. safeNumber(live.cpuTemp, 0) || null is subtly wrong
+This line:
+Copy code
+Ts
+cpuTempC: safeNumber(live.cpuTemp, 0) || null
+Problem:
+If CPU temp is legitimately 0, this converts it to null
+That changes semantics unintentionally
+Correct version:
+Copy code
+Ts
+const cpuTemp = safeNumber(live.cpuTemp, 0);
+cpuTempC: Number.isFinite(cpuTemp) ? cpuTemp : null;
+Same issue here:
+Copy code
+Ts
+gpuTempC: safeNumber(live.gpuTemp, 0) || null
+This won’t crash, but it’s sloppy logic. Fix it.
+2. RAM percentage math double-converts strings → numbers
+This line:
+Copy code
+Ts
+ram: safeNumber(telemetry.ramTotalGb) > 0 
+  ? parseFloat(safeFixed((safeNumber(telemetry.ramUsedGb) / safeNumber(telemetry.ramTotalGb)) * 100, 1))
+  : 0
+Problems:
+safeFixed() already returns a string
+parseFloat(safeFixed(...)) is unnecessary churn
+You’re mixing numeric and string formatting logic
+Cleaner and safer:
+Copy code
+Ts
+const ramPercent =
+  telemetry.ramTotalGb > 0
+    ? (telemetry.ramUsedGb / telemetry.ramTotalGb) * 100
+    : 0;
+
+ram: safeNumber(ramPercent);
+Format only at render time, not in data storage.
+3. Telemetry polling is still a bit aggressive
+You’re polling every 1000ms, and inside that:
+IPC call
+RAM IPC call
+optional enhanced IPC call
+React state update
+chart re-render
+This will work, but on lower-end systems it can stutter.
+Better default:
+1500–2000 ms
+Or adaptive polling (slow down if window not focused)
+Not required, but recommended.
+Disk percentage alias: ✅ correct
+You were right to insist on this.
+Returning both:
+Copy code
+Ts
+usePercent
+usedPercent: usePercent
+was the correct compatibility move.
+This avoids silent UI failures later.
+Good call.
+GPU telemetry reality check (important)
+You handled this correctly conceptually.
+Facts:
+systeminformation does not provide GPU temps reliably on Windows
+si.graphics() ≠ live telemetry
+Anything else requires:
+vendor APIs
+nvidia-smi
+kernel drivers
+admin permissions
+Your current approach:
+GPU graph exists
+Values are 0 or null
+UI labels it as unavailable
+That is honest engineering.
+Do NOT fake GPU numbers. You did the right thing.
+Final verdict
+Is this safe from crash loops?
+Yes.
+Is this production-grade?
+Almost. Fix the 3 points above and it is.
+Are you still one IPC response away from disaster?
+No. Not anymore.
+What I’d tell Replit (final checklist)
+If anything still “feels off”, tell them only this:
+Replace safeNumber(x) || null patterns with explicit finite checks
+Simplify RAM percentage math to avoid string↔number churn
+Increase LiveGraph polling interval to ≥1500 ms
+Do NOT fake GPU metrics; keep “Unavailable” explicit
+Confirm usedPercent and usePercent both exist on disks
+Do not add new globals. Ever.
