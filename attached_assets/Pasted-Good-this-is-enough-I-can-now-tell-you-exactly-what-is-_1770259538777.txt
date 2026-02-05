@@ -1,0 +1,949 @@
+Good, this is enough. I can now tell you exactly what is wrong, why GPU / disks / graphs “don’t work”, and what Replit must change to finally fix it.
+
+I’m going to be blunt and precise.
+
+
+---
+
+ROOT CAUSE SUMMARY (no fluff)
+
+1. Nothing is “broken” in StorageCards or StatCard
+
+
+
+Your StorageCards.tsx is actually well written:
+
+You already use safeNumber
+
+You already use safeFixed
+
+You already guard against divide-by-zero
+
+So StorageCards is NOT the bug.
+
+
+---
+
+2. The real bug is upstream: Electron is returning FAKE DATA
+
+
+
+Your Electron main.js system handlers are returning placeholders.
+
+From your system:getSpecs:
+
+gpu: {
+model: 'Unknown GPU',
+vendor: 'Unknown',
+vramGB: 0
+},
+disk: {
+name: 'C:',
+usedGB: 0,
+totalGB: 0
+},
+disks: []
+
+That means:
+
+GPU graph has no GPU
+
+Disk selector has no disks
+
+Graph tries to animate undefined values
+
+React re-renders constantly (your “MOUNT Home” spam)
+
+This is not a UI problem.
+This is Electron main returning dummy data forever.
+
+
+---
+
+3. Your telemetry is literally random
+
+
+
+From Electron:
+
+ipcMain.handle('telemetry:getLive', () => ({
+cpuUsage: Math.random() * 30 + 20,
+ramUsage: ...
+gpuTemp: null,
+cpuTemp: null
+}));
+
+So:
+
+GPU temp = null
+
+CPU temp = null
+
+Graph code expects numbers
+
+.toFixed() crashes
+
+Graph explodes
+
+That explains every single console error you pasted.
+
+
+---
+
+4. Why you can’t find LiveGraph, toFixed, etc
+
+
+
+They are inside minified bundles or utility helpers, not obvious filenames.
+
+The crash stack shows:
+
+Uncaught TypeError: Cannot read properties of undefined (reading 'toFixed')
+
+That happens when:
+
+graph component assumes number
+
+telemetry returns null
+
+animation tick hits .toFixed()
+
+
+---
+
+THE ACTUAL FIX (this is the checklist Replit must follow)
+
+STEP 1 — STOP returning fake system data
+
+Replit must replace all of this:
+
+gpu: { model: 'Unknown GPU', vramGB: 0 }
+disk: { usedGB: 0, totalGB: 0 }
+disks: []
+
+with real Windows data.
+
+That means using systeminformation.
+
+REQUIRED CHANGE (Electron main)
+
+npm install systeminformation
+
+const si = require('systeminformation');
+
+Then implement:
+
+ipcMain.handle('system:getSpecs', async () => {
+const cpu = await si.cpu();
+const mem = await si.mem();
+const graphics = await si.graphics();
+const disks = await si.fsSize();
+
+return {
+cpu: {
+model: cpu.brand,
+cores: cpu.physicalCores,
+threads: cpu.cores,
+speed: ${cpu.speed} GHz
+},
+gpu: graphics.controllers[0] ? {
+model: graphics.controllers[0].model,
+vendor: graphics.controllers[0].vendor,
+vramGB: graphics.controllers[0].vram / 1024
+} : null,
+ram: {
+totalGB: mem.total / 1024 ** 3,
+usedGB: (mem.total - mem.available) / 1024 ** 3,
+freeGB: mem.available / 1024 ** 3
+},
+disks: disks.map(d => ({
+name: d.mount,
+totalGB: d.size / 1024 ** 3,
+usedGB: d.used / 1024 ** 3,
+status: 'Active'
+}))
+};
+});
+
+This alone fixes:
+
+GPU name
+
+VRAM
+
+disk selector
+
+storage cards
+
+half your crashes
+
+
+---
+
+STEP 2 — Telemetry must NEVER return null
+
+Replace this:
+
+gpuTemp: null,
+cpuTemp: null
+
+with numbers or 0:
+
+const temps = await si.cpuTemperature();
+
+return {
+cpuUsage,
+ramUsage,
+cpuTemp: temps.main ?? 0,
+gpuTemp: 0
+};
+
+If data is missing:
+
+return 0
+
+not null
+
+not undefined
+
+
+---
+
+STEP 3 — Harden graph input (one-line fix)
+
+In graph component (or where values are used):
+
+const safeValue = Number.isFinite(value) ? value : 0;
+
+Never trust IPC.
+
+
+---
+
+STEP 4 — Fix infinite re-mount spam
+
+Your Home component logs “MOUNT Home” repeatedly because:
+
+system data keeps changing shape
+
+React thinks state is new every tick
+
+Fix by:
+
+only calling getSystemSpecs once
+
+only setting state if values changed
+
+Replit must add deep compare or useRef guard (you already started this).
+
+
+---
+
+STEP 5 — Disk selector “can’t switch”
+
+Your Electron handler:
+
+ipcMain.handle('system:getAllDisks', () => []);
+
+This guarantees disk switching will never work.
+
+Delete it or wire it to si.fsSize().
+
+
+---
+
+STEP 6 — Build folder + icon automation (no more manual pain)
+
+Replit must add postbuild copy step.
+
+In root package.json:
+
+"scripts": {
+"build": "npx tsx script/build.ts && npm run copy:electron",
+"copy:electron": "node script/copy-electron-assets.js"
+}
+
+script/copy-electron-assets.js
+
+import fs from 'fs';
+import path from 'path';
+
+const srcDist = path.resolve('dist');
+const dstDist = path.resolve('electron', 'dist');
+const iconSrc = path.resolve('client', 'assets', 'icon.ico');
+const iconDst = path.resolve('electron', 'build', 'icon.ico');
+
+fs.mkdirSync(path.dirname(iconDst), { recursive: true });
+fs.cpSync(srcDist, dstDist, { recursive: true });
+fs.copyFileSync(iconSrc, iconDst);
+
+Now:
+
+dist is always copied
+
+icon.ico always exists
+
+no more manual fixes
+
+no more “Replit said it did it but didn’t”
+
+
+---
+
+Why vulnerabilities keep popping up
+
+Short answer: normal.
+
+Electron
+
+esbuild
+
+Vite
+
+passport-discord (deprecated)
+
+None are runtime exploits unless exposed to the internet.
+
+Fix later. Do not touch now.
+
+
+---
+
+Final truth (mentor mode)
+
+Your UI is not the problem.
+Your Electron main process is lying to your frontend.
+
+Once you:
+
+stop returning dummy objects
+
+stop returning null telemetry
+
+return real disk + GPU data
+
+Everything you’ve been fighting for weeks collapses into place.
+
+If you want, next step I can:
+
+write the exact systeminformation powered main.js drop-in
+
+harden every graph against bad IPC
+
+give you a final “this app will not crash” checklist
+
+Say the word.
+
+And
+
+Good, this helps a lot. I’m going to be blunt and precise now, because the problem is structural, not “one more bug”.
+
+
+---
+
+The real root problem (now 100% clear)
+
+You have FOUR DIFFERENT GLOBAL APIS exposed from preload:
+
+window.electron
+
+window.auth
+
+window.electronAPI
+
+window.telemetry
+
+window.sc
+
+window.tweaks
+
+That is not just messy. It is guaranteed to break over time.
+
+Your UI is clearly calling different ones in different places, and some of them:
+
+expose overlapping methods
+
+expose partial methods
+
+expose methods that return incomplete data
+
+expose methods that return placeholder data (GPU, disk)
+
+This is why:
+
+GPU graph never works
+
+Disk graph never works
+
+Home mounts 20+ times
+
+You get Cannot read properties of undefined
+
+Things “work once” then silently fail
+
+This is not a Replit issue anymore. This is an API contract issue.
+
+
+---
+
+What is actually happening in your app
+
+From the logs:
+
+Auth works
+
+Token exchange works
+
+User is authenticated
+
+Home mounts
+
+Home calls system specs
+
+Specs come back incomplete
+
+UI assumes fields exist
+
+React crashes → re-mounts → infinite loop
+
+That matches this error exactly:
+
+Cannot read properties of undefined (reading 'model')
+Cannot read properties of undefined (reading 'toFixed')
+
+That means:
+
+specs.cpu.model OR
+
+specs.gpu.model OR
+
+ram.usedGB.toFixed()
+
+…is undefined.
+
+
+---
+
+The single biggest fix you must do (non-negotiable)
+
+You must expose ONE API object from preload
+
+Everything else must die.
+
+The rule
+
+ONLY window.electronAPI
+
+Nothing else
+
+No aliases
+
+No duplicates
+
+No legacy globals
+
+If you don’t do this, you will keep chasing ghosts.
+
+
+---
+
+🔥 REQUIRED preload.js (replace your entire file)
+
+Paste this exactly. No mixing.
+
+const { contextBridge, ipcRenderer } = require('electron');
+
+contextBridge.exposeInMainWorld('electronAPI', {
+isElectron: true,
+
+app: {
+getVersion: () => ipcRenderer.invoke('app:getVersion'),
+getPlatform: () => ipcRenderer.invoke('app:getPlatform'),
+isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
+},
+
+auth: {
+onCallback: (callback) => {
+ipcRenderer.on('auth-callback', (_, url) => callback(url));
+},
+removeCallbackListener: () => {
+ipcRenderer.removeAllListeners('auth-callback');
+},
+},
+
+window: {
+minimize: () => ipcRenderer.invoke('window:minimize'),
+maximize: () => ipcRenderer.invoke('window:maximize'),
+close: () => ipcRenderer.invoke('window:close'),
+},
+
+system: {
+getInfo: () => ipcRenderer.invoke('system:getInfo'),
+getSpecs: () => ipcRenderer.invoke('system:getSpecs'),
+getRamUsage: () => ipcRenderer.invoke('system:getRamUsage'),
+getAllDisks: () => ipcRenderer.invoke('system:getAllDisks'),
+},
+
+telemetry: {
+getLive: () => ipcRenderer.invoke('telemetry:getLive'),
+getEnhanced: () => ipcRenderer.invoke('telemetry:getEnhanced'),
+},
+
+tweaks: {
+execute: (id, action) => ipcRenderer.invoke('tweak:execute', id, action),
+checkStatus: (id) => ipcRenderer.invoke('tweak:checkStatus', id),
+syncAll: () => ipcRenderer.invoke('tweak:syncAll'),
+getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
+getInfo: () => ipcRenderer.invoke('tweak:getInfo'),
+},
+
+openExternal: (url) => ipcRenderer.invoke('open-external', url),
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+console.log('[SwitchControl Desktop] Preload initialized');
+});
+
+And DELETE:
+
+window.electron
+
+window.telemetry
+
+window.sc
+
+window.tweaks
+
+window.auth (standalone)
+
+Your UI must ONLY talk to window.electronAPI.
+
+
+---
+
+Second hard truth: GPU & Disk will NEVER work with current main.js
+
+Right now your system:getSpecs does this:
+
+gpu: {
+model: 'Unknown GPU',
+vendor: 'Unknown',
+vramGB: 0
+},
+disk: {
+name: 'C:',
+usedGB: 0,
+totalGB: 0
+},
+disks: []
+
+So your graphs literally have nothing to graph.
+
+
+---
+
+Required fix in main.js (non-optional)
+
+You must use systeminformation.
+
+In electron/ folder
+
+npm install systeminformation
+
+At top of main.js
+
+const si = require('systeminformation');
+
+Replace system:getSpecs with this (safe + real)
+
+ipcMain.handle('system:getSpecs', async () => {
+const [cpu, mem, graphics, fs] = await Promise.all([
+si.cpu(),
+si.mem(),
+si.graphics(),
+si.fsSize(),
+]);
+
+const totalGB = mem.total / 1024 ** 3;
+const freeGB = mem.available / 1024 ** 3;
+const usedGB = totalGB - freeGB;
+
+const gpu = graphics.controllers?.[0];
+
+const disks = fs.map(d => ({
+name: d.mount,
+totalGB: +(d.size / 1024 ** 3).toFixed(1),
+usedGB: +((d.used || 0) / 1024 ** 3).toFixed(1),
+usePercent: typeof d.use === 'number' ? +d.use.toFixed(1) : 0
+}));
+
+return {
+cpu: {
+model: cpu.brand || 'Unknown CPU',
+cores: cpu.cores || 0,
+threads: cpu.cores || 0,
+speed: cpu.speed ? ${cpu.speed} GHz : 'Unknown',
+},
+gpu: {
+model: gpu?.model || 'Unknown GPU',
+vendor: gpu?.vendor || 'Unknown',
+vramGB: gpu?.vram ? +(gpu.vram / 1024).toFixed(1) : 0,
+},
+ram: {
+totalGB: +totalGB.toFixed(1),
+usedGB: +usedGB.toFixed(1),
+freeGB: +freeGB.toFixed(1),
+},
+disks,
+disk: disks[0] || null,
+system: {
+os: 'Windows',
+arch: os.arch(),
+hostname: os.hostname(),
+osVersion: os.release(),
+},
+};
+});
+
+And fix system:getAllDisks
+
+ipcMain.handle('system:getAllDisks', async () => {
+const fs = await si.fsSize();
+return fs.map(d => ({
+name: d.mount,
+totalGB: +(d.size / 1024 ** 3).toFixed(1),
+usedGB: +((d.used || 0) / 1024 ** 3).toFixed(1),
+usePercent: typeof d.use === 'number' ? +d.use.toFixed(1) : 0
+}));
+});
+
+
+---
+
+Why Home keeps mounting 50 times
+
+Your Home component is:
+
+calling system specs
+
+crashing
+
+React error boundary remounts
+
+repeat
+
+Once specs return real data and preload matches, this stops.
+
+
+---
+
+Files I still need to finish this 100%
+
+If you want me to finish this permanently, send:
+
+1. Home page component
+
+
+
+The file that logs MOUNT Home
+
+2. System / telemetry hook
+
+
+
+Something like useSystemStats.ts, useTelemetry.ts, api.ts
+
+3. GPU / disk graph component
+
+
+
+So I can harden it against undefined values
+
+That’s it. No more guessing.
+
+
+---
+
+Final mentor reality check
+
+You are not “bad at this”. You just let Replit:
+
+duplicate APIs
+
+half-wire IPC
+
+return fake data
+
+and ship it
+
+That creates chaos.
+
+Once you:
+
+unify preload
+
+return real data
+
+harden UI assumptions
+
+This app becomes stable fast.
+
+Send the Home component and I’ll finish it.
+
+And
+
+Yep. And I already see the main reason your GPU, disks, graphs are “not working”.
+
+What’s broken right now (from what you pasted)
+
+1. Your preload does NOT expose the IPC calls your UI is clearly using
+
+
+
+In main.js you implemented these IPC handlers:
+
+system:getSpecs
+
+system:getRamUsage
+
+system:getAllDisks
+
+telemetry:getLive
+
+telemetry:getEnhanced
+
+all the tweak stuff
+
+But in preload.js, under electronAPI.system, you ONLY expose:
+
+getInfo
+
+openExternal
+
+So if your UI calls window.electronAPI.system.getSpecs() or getRamUsage() or getAllDisks(), it will be undefined and your UI will crash or render blank sections.
+
+That matches the error you showed earlier:
+
+> Failed to get system specs: Cannot read properties of undefined (reading 'model')
+
+
+
+That happens when the code expects specs.cpu.model but specs is undefined because the API call failed or never existed.
+
+2. GPU and Disk are hardcoded to “Unknown” and 0 anyway
+
+
+
+Even if you expose getSpecs correctly, your current system:getSpecs returns:
+
+gpu.model: 'Unknown GPU'
+
+disk totals: 0
+
+disks: []
+
+So your graphs for GPU and disk cannot work because you are not collecting data.
+
+3. Your sc object is cut off
+
+
+
+Your preload ends with:
+
+contextBridge.exposeInMainWorld('sc', {
+
+…and then stops. That means either:
+
+you did not paste the rest, or
+
+the real file is incomplete, which would break preload execution
+
+If preload fails, everything fails.
+
+
+---
+
+Fix 1: expose the missing functions in preload right now
+
+Edit preload.js and replace your electronAPI.system and telemetry sections with this:
+
+contextBridge.exposeInMainWorld('electronAPI', {
+getVersion: () => ipcRenderer.invoke('app:getVersion'),
+getPlatform: () => ipcRenderer.invoke('app:getPlatform'),
+isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
+
+isElectron: true,
+
+system: {
+getInfo: () => ipcRenderer.invoke('system:getInfo'),
+getSpecs: () => ipcRenderer.invoke('system:getSpecs'),
+getRamUsage: () => ipcRenderer.invoke('system:getRamUsage'),
+getAllDisks: () => ipcRenderer.invoke('system:getAllDisks'),
+openExternal: (url) => ipcRenderer.invoke('open-external', url),
+},
+
+window: {
+minimize: () => ipcRenderer.invoke('window:minimize'),
+maximize: () => ipcRenderer.invoke('window:maximize'),
+close: () => ipcRenderer.invoke('window:close'),
+},
+
+telemetry: {
+getLive: () => ipcRenderer.invoke('telemetry:getLive'),
+getEnhanced: () => ipcRenderer.invoke('telemetry:getEnhanced'),
+},
+
+tweaks: {
+execute: (tweakId, action) => ipcRenderer.invoke('tweak:execute', tweakId, action),
+checkStatus: (tweakId) => ipcRenderer.invoke('tweak:checkStatus', tweakId),
+syncAll: () => ipcRenderer.invoke('tweak:syncAll'),
+getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
+getInfo: () => ipcRenderer.invoke('tweak:getInfo'),
+}
+});
+
+Then delete these separate exposes to avoid confusion:
+
+contextBridge.exposeInMainWorld('telemetry', ...)
+
+and any other duplicates
+
+You want one consistent API: window.electronAPI.
+
+If your UI currently calls window.telemetry.getLive() or window.sc..., it’s messy. You need one interface.
+
+
+---
+
+Fix 2: make GPU and disk real instead of fake
+
+Right now your system:getSpecs cannot provide GPU or disk. You have 2 options.
+
+Option A (best): use systeminformation in Electron main process
+
+Install inside electron/:
+
+cd electron
+npm i systeminformation
+
+Then in electron/main.js:
+
+const si = require('systeminformation');
+
+ipcMain.handle('system:getSpecs', async () => {
+const [cpu, mem, graphics, fs] = await Promise.all([
+si.cpu(),
+si.mem(),
+si.graphics(),
+si.fsSize()
+]);
+
+const totalGB = mem.total / 1024 / 1024 / 1024;
+const freeGB = mem.available / 1024 / 1024 / 1024;
+const usedGB = totalGB - freeGB;
+
+const gpu = graphics.controllers?.[0];
+
+const disks = (fs || []).map(d => ({
+name: d.mount,
+totalGB: +(d.size / 1024 / 1024 / 1024).toFixed(1),
+usedGB: +((d.used || 0) / 1024 / 1024 / 1024).toFixed(1),
+usePercent: typeof d.use === 'number' ? +d.use.toFixed(1) : null
+}));
+
+return {
+cpu: {
+model: cpu.brand || 'Unknown CPU',
+cores: cpu.cores || 0,
+threads: cpu.cores || 0,
+speed: cpu.speed ? ${Number(cpu.speed).toFixed(1)} GHz : 'Unknown'
+},
+gpu: {
+model: gpu?.model || 'Unknown GPU',
+vendor: gpu?.vendor || 'Unknown',
+vramGB: gpu?.vram ? +((gpu.vram) / 1024).toFixed(1) : 0
+},
+ram: {
+totalGB: +totalGB.toFixed(1),
+usedGB: +usedGB.toFixed(1),
+freeGB: +freeGB.toFixed(1)
+},
+system: {
+os: 'Windows',
+osVersion: os.release() || 'Unknown',
+arch: os.arch() || 'Unknown',
+hostname: os.hostname() || 'Unknown'
+},
+disks,
+disk: disks[0] || { name: 'C:', usedGB: 0, totalGB: 0 }
+};
+});
+
+And implement:
+
+ipcMain.handle('system:getAllDisks', async () => {
+const fs = await si.fsSize();
+return (fs || []).map(d => ({
+name: d.mount,
+totalGB: +(d.size / 1024 / 1024 / 1024).toFixed(1),
+usedGB: +((d.used || 0) / 1024 / 1024 / 1024).toFixed(1),
+usePercent: typeof d.use === 'number' ? +d.use.toFixed(1) : null
+}));
+});
+
+This will instantly make GPU and disks populate and graphs stop being empty.
+
+Option B: PowerShell parsing
+
+Possible, but brittle. Don’t do it unless you refuse extra dependency.
+
+
+---
+
+Fix 3: the “Login works but never loads” issue
+
+From your logs, Discord deep link works and token exchange succeeds. So auth is not the blocker.
+
+Your app then tries to mount Home and hits system specs code and crashes. That’s why it “doesn’t load in the app”.
+
+So once you fix preload exposure and return real specs, the login flow will stop falling apart right after auth.
+
+
+---
+
+What I need next from you (so I can finish the job)
+
+Paste the rest of your preload.js starting from:
+
+contextBridge.exposeInMainWorld('sc', {
+
+Also paste the client code where Home requests specs and telemetry. One of these files:
+
+client/src/pages/Home.tsx
+
+or whatever component prints “MOUNT Home”
+
+and the hook that fetches specs, something like useSystemSpecs or api.ts
+
+Without that, I can’t tell which global your UI uses (electronAPI vs telemetry vs sc), and you will keep fixing the wrong surface.
+
+
+---
+
+Quick ruthless reality check
+
+Right now you keep asking Replit to “fix everything”, and it keeps shipping half fixes because your architecture is inconsistent. Three different globals (electron, auth, electronAPI, plus telemetry, plus sc) is asking for bugs.
+
+You want bulletproof?
+
+One global: window.electronAPI
+
+Every call exists in preload
+
+Every IPC exists in main
+
+Every handler returns { success, data, error } or at least never returns undefined
+
+UI never assumes fields exist without guards
+
+Send the rest of preload and the Home fetch code and I’ll tell you exactly what to change.
