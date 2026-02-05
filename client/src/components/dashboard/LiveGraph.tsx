@@ -3,6 +3,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Activity } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { useStore } from "@/lib/store";
+import { safeFixed, safeNumber } from "@/lib/utils";
 
 interface DataPoint {
   time: string;
@@ -94,7 +95,9 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             cpu: telemetry.cpuTempC ?? telemetry.cpuLoadPercent,
             gpu: gpuValue,
             mobo: telemetry.moboTempC,
-            ram: parseFloat(((telemetry.ramUsedGb / telemetry.ramTotalGb) * 100).toFixed(1))
+            ram: safeNumber(telemetry.ramTotalGb) > 0 
+              ? parseFloat(safeFixed((safeNumber(telemetry.ramUsedGb) / safeNumber(telemetry.ramTotalGb)) * 100, 1))
+              : 0
           };
           const updated = [...prev, newPoint];
           if (updated.length > 30) {
@@ -150,12 +153,12 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             <>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-red-500" />
-                CPU: {latest.cpuTempC !== null ? `${latest.cpuTempC}°C` : `${latest.cpuLoadPercent.toFixed(0)}%`}
+                CPU: {latest.cpuTempC !== null ? `${latest.cpuTempC}°C` : `${safeFixed(latest.cpuLoadPercent, 0)}%`}
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-orange-500" />
                 GPU: {latest.gpuTempC !== null ? `${latest.gpuTempC}°C` : 
-                      latest.gpuLoadPercent !== null ? `${latest.gpuLoadPercent.toFixed(0)}%` : 
+                      latest.gpuLoadPercent !== null ? `${safeFixed(latest.gpuLoadPercent, 0)}%` : 
                       <span className="text-muted-foreground/60" title="GPU monitoring requires supported drivers">N/A</span>}
               </span>
               <span className="flex items-center gap-1.5">
@@ -165,7 +168,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="size-2 rounded-full bg-cyan-500" />
-                RAM: {latest.ramUsedGb.toFixed(1)}GB / {latest.ramTotalGb.toFixed(0)}GB
+                RAM: {safeFixed(latest.ramUsedGb, 1)}GB / {safeFixed(latest.ramTotalGb, 0)}GB
               </span>
             </>
           )}

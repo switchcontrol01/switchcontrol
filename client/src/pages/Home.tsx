@@ -410,7 +410,7 @@ export default function Home() {
             >
               <StatCard
                 title="Memory"
-                value={stats.usedRamGb.toFixed(1)}
+                value={typeof stats.usedRamGb === 'number' && Number.isFinite(stats.usedRamGb) ? stats.usedRamGb.toFixed(1) : '0.0'}
                 total={stats.totalRamGb}
                 unit="GB"
                 icon={MemoryStick}

@@ -133,7 +133,8 @@ export const useStore = create<AppState>()(
 
       clearRam: () => {
         const { stats } = get();
-        const newUsed = Math.max(3.0, stats.usedRamGb - (Math.random() * 2 + 1));
+        const currentUsed = typeof stats.usedRamGb === 'number' && Number.isFinite(stats.usedRamGb) ? stats.usedRamGb : 0;
+        const newUsed = Math.max(3.0, currentUsed - (Math.random() * 2 + 1));
         
         set((state) => ({
           stats: {
@@ -143,7 +144,8 @@ export const useStore = create<AppState>()(
         }));
         
         get().updateCounter('cleanersRun', 1);
-        get().applyAction('Clear RAM', 'Dashboard', `Freed ${(stats.usedRamGb - newUsed).toFixed(1)} GB`);
+        const freed = currentUsed - newUsed;
+        get().applyAction('Clear RAM', 'Dashboard', `Freed ${Number.isFinite(freed) ? freed.toFixed(1) : '0.0'} GB`);
       },
       
       enableRecommended: () => {

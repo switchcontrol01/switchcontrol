@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { safeFixed, safeNumber } from "@/lib/utils";
 import { 
   Trash2, 
   Cpu, 
@@ -181,7 +182,7 @@ export default function SystemCleaner() {
     });
 
     return {
-      size: totalSize > 1024 ? `${(totalSize / 1024).toFixed(1)} GB` : `${totalSize.toFixed(0)} MB`,
+      size: totalSize > 1024 ? `${safeFixed(totalSize / 1024, 1)} GB` : `${safeFixed(totalSize, 0)} MB`,
       cpu: totalCpu,
       ram: totalRam,
       boot: totalBoot,

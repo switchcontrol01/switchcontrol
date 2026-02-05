@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { safeFixed } from "@/lib/utils";
 import { 
   List, 
   Cpu, 
@@ -220,7 +221,7 @@ export default function StartupApps() {
           <Card className="bg-card/50 border-border/50">
             <CardContent className="p-4 text-center">
               <Clock className="size-6 mx-auto mb-2 text-blue-400" />
-              <p className="text-2xl font-bold text-white">{stats.totalBootDelay.toFixed(1)}s</p>
+              <p className="text-2xl font-bold text-white">{safeFixed(stats.totalBootDelay, 1)}s</p>
               <p className="text-xs text-muted-foreground">Boot Delay</p>
             </CardContent>
           </Card>

@@ -1,7 +1,7 @@
 import { GlassCard } from "@/components/ui/glass-card";
 import { HardDrive } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { cn } from "@/lib/utils";
+import { cn, safeFixed, safeNumber } from "@/lib/utils";
 
 interface SSDInfo {
   name: string;
@@ -22,8 +22,10 @@ export function StorageCards({ ssds }: { ssds: SSDInfo[] }) {
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {ssds.map((ssd) => {
-          const usedPercent = (ssd.usedGB / ssd.totalGB) * 100;
-          const freeGB = ssd.totalGB - ssd.usedGB;
+          const usedGB = safeNumber(ssd.usedGB);
+          const totalGB = safeNumber(ssd.totalGB);
+          const usedPercent = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
+          const freeGB = totalGB - usedGB;
           
           return (
             <GlassCard 
@@ -60,11 +62,11 @@ export function StorageCards({ ssds }: { ssds: SSDInfo[] }) {
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Used</span>
-                    <span className="text-white font-mono">{ssd.usedGB.toFixed(0)} GB</span>
+                    <span className="text-white font-mono">{safeFixed(usedGB, 0)} GB</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Free</span>
-                    <span className="text-emerald-400 font-mono">{freeGB.toFixed(0)} GB</span>
+                    <span className="text-emerald-400 font-mono">{safeFixed(freeGB, 0)} GB</span>
                   </div>
                 </div>
               </div>

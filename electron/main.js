@@ -113,37 +113,79 @@ ipcMain.handle('system:getInfo', () => ({
   freeMemory: os.freemem()
 }));
 
-ipcMain.handle('system:getSpecs', () => {
-  const cpuInfo = os.cpus();
-  return {
-    cpu: {
-      model: cpuInfo[0]?.model || 'Unknown',
-      cores: cpuInfo.length,
-      speed: cpuInfo[0]?.speed || 0
-    },
-    ram: {
-      totalGB: parseFloat((os.totalmem() / 1024 / 1024 / 1024).toFixed(1)),
-      freeGB: parseFloat((os.freemem() / 1024 / 1024 / 1024).toFixed(1)),
-      usedGB: parseFloat(((os.totalmem() - os.freemem()) / 1024 / 1024 / 1024).toFixed(1))
-    },
-    system: {
-      platform: process.platform,
-      arch: os.arch(),
-      hostname: os.hostname()
-    }
-  };
+ipcMain.handle('system:getSpecs', async () => {
+  try {
+    const cpuInfo = os.cpus();
+    const totalMem = os.totalmem();
+    const freeMem = os.freemem();
+    const totalGB = totalMem / 1024 / 1024 / 1024;
+    const freeGB = freeMem / 1024 / 1024 / 1024;
+    const usedGB = totalGB - freeGB;
+    
+    return {
+      cpu: {
+        model: cpuInfo?.[0]?.model || 'Unknown CPU',
+        cores: cpuInfo?.length || 0,
+        threads: cpuInfo?.length || 0,
+        speed: cpuInfo?.[0]?.speed ? `${(cpuInfo[0].speed / 1000).toFixed(1)} GHz` : 'Unknown'
+      },
+      gpu: {
+        model: 'Unknown GPU',
+        vendor: 'Unknown',
+        vramGB: 0
+      },
+      ram: {
+        totalGB: Number.isFinite(totalGB) ? parseFloat(totalGB.toFixed(1)) : 0,
+        usedGB: Number.isFinite(usedGB) ? parseFloat(usedGB.toFixed(1)) : 0,
+        freeGB: Number.isFinite(freeGB) ? parseFloat(freeGB.toFixed(1)) : 0
+      },
+      system: {
+        os: process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux',
+        osVersion: os.release() || 'Unknown',
+        arch: os.arch() || 'Unknown',
+        hostname: os.hostname() || 'Unknown'
+      },
+      disk: {
+        name: 'C:',
+        usedGB: 0,
+        totalGB: 0
+      },
+      disks: []
+    };
+  } catch (e) {
+    console.error('[SwitchControl] getSpecs error:', e);
+    return {
+      cpu: { model: 'Unknown CPU', cores: 0, threads: 0, speed: 'Unknown' },
+      gpu: { model: 'Unknown GPU', vendor: 'Unknown', vramGB: 0 },
+      ram: { totalGB: 0, usedGB: 0, freeGB: 0 },
+      system: { os: 'Unknown', osVersion: '', arch: '', hostname: '' },
+      disk: { name: 'Unknown', usedGB: 0, totalGB: 0 },
+      disks: []
+    };
+  }
 });
 
 ipcMain.handle('system:getRamUsage', () => {
-  const total = os.totalmem();
-  const free = os.freemem();
-  const used = total - free;
-  return {
-    totalGB: parseFloat((total / 1024 / 1024 / 1024).toFixed(1)),
-    usedGB: parseFloat((used / 1024 / 1024 / 1024).toFixed(1)),
-    freeGB: parseFloat((free / 1024 / 1024 / 1024).toFixed(1)),
-    usagePercent: parseFloat(((used / total) * 100).toFixed(1))
-  };
+  try {
+    const total = os.totalmem();
+    const free = os.freemem();
+    const used = total - free;
+    const totalGB = total / 1024 / 1024 / 1024;
+    const usedGB = used / 1024 / 1024 / 1024;
+    const freeGB = free / 1024 / 1024 / 1024;
+    const usagePercent = (used / total) * 100;
+    
+    return {
+      totalGB: Number.isFinite(totalGB) ? parseFloat(totalGB.toFixed(1)) : 0,
+      usedGB: Number.isFinite(usedGB) ? parseFloat(usedGB.toFixed(1)) : 0,
+      freeGB: Number.isFinite(freeGB) ? parseFloat(freeGB.toFixed(1)) : 0,
+      usagePercent: Number.isFinite(usagePercent) ? parseFloat(usagePercent.toFixed(1)) : 0,
+      ramTotalGb: Number.isFinite(totalGB) ? parseFloat(totalGB.toFixed(1)) : 0,
+      ramUsedGb: Number.isFinite(usedGB) ? parseFloat(usedGB.toFixed(1)) : 0
+    };
+  } catch (e) {
+    return { totalGB: 0, usedGB: 0, freeGB: 0, usagePercent: 0, ramTotalGb: 0, ramUsedGb: 0 };
+  }
 });
 
 ipcMain.handle('system:getAllDisks', () => []);
