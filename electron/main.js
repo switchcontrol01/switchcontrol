@@ -484,6 +484,40 @@ ipcMain.handle('telemetry:getLive', async () => {
       if (lhm.moboTemp !== null) moboTemp = lhm.moboTemp;
     }
 
+    // === DISK USAGE (always-on via systeminformation) ===
+    let diskPercent = null;
+    try {
+      const fsData = await si.fsSize();
+      if (fsData && fsData.length > 0) {
+        // Use primary/system disk (usually C: on Windows or / on Linux)
+        const primaryDisk = fsData.find(d => d.mount === 'C:' || d.mount === '/') || fsData[0];
+        diskPercent = safeNum(primaryDisk.use || 0);
+      }
+    } catch (e) {
+      // Disk info not available
+    }
+
+    // === NETWORK (always-on via systeminformation) ===
+    let netRxSec = null;
+    let netTxSec = null;
+    try {
+      const netStats = await si.networkStats();
+      if (netStats && netStats.length > 0) {
+        // Sum all interfaces for total throughput
+        let totalRx = 0;
+        let totalTx = 0;
+        netStats.forEach(iface => {
+          totalRx += iface.rx_sec || 0;
+          totalTx += iface.tx_sec || 0;
+        });
+        // Convert to KB/s
+        netRxSec = safeNum(totalRx / 1024, 1);
+        netTxSec = safeNum(totalTx / 1024, 1);
+      }
+    } catch (e) {
+      // Network stats not available
+    }
+
     // === BUILD DISPLAY-READY VALUES ===
     // CPU: prefer temp, fallback to usage
     const cpuDisplay = cpuTemp !== null ? cpuTemp : lastCpuLoad;
@@ -505,6 +539,9 @@ ipcMain.handle('telemetry:getLive', async () => {
       gpuTemp: gpuTemp,
       gpuLoad: gpuLoad,
       moboTemp: moboTemp,
+      diskPercent: diskPercent,
+      netRxSec: netRxSec,
+      netTxSec: netTxSec,
       // Display-ready values
       cpuDisplay,
       cpuLabel,
@@ -523,6 +560,9 @@ ipcMain.handle('telemetry:getLive', async () => {
       gpuTemp: null,
       gpuLoad: null,
       moboTemp: null,
+      diskPercent: null,
+      netRxSec: null,
+      netTxSec: null,
       cpuDisplay: 0,
       cpuLabel: 'CPU Load (%)',
       gpuDisplay: null,

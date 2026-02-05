@@ -10,6 +10,7 @@ interface DataPoint {
   gpu: number | null;
   mobo: number | null;
   ram: number;
+  disk: number | null;
 }
 
 interface LatestState {
@@ -22,6 +23,9 @@ interface LatestState {
   moboTemp: number | null;
   ramUsedGb: number;
   ramTotalGb: number;
+  diskPercent: number | null;
+  netRxSec: number | null;
+  netTxSec: number | null;
 }
 
 export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: any) => void }) {
@@ -62,6 +66,9 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             moboTemp: live.moboTemp,
             ramUsedGb,
             ramTotalGb,
+            diskPercent: live.diskPercent,
+            netRxSec: live.netRxSec,
+            netTxSec: live.netTxSec,
           };
 
           setLatest(telemetryState);
@@ -93,7 +100,8 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               cpu: telemetryState.cpuDisplay,
               gpu: telemetryState.gpuDisplay,
               mobo: telemetryState.moboTemp,
-              ram: safeNumber(ramPercent)
+              ram: safeNumber(ramPercent),
+              disk: telemetryState.diskPercent
             };
             const updated = [...prev, newPoint];
             if (updated.length > 30) {
@@ -172,6 +180,18 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 <span className="size-2 rounded-full bg-cyan-500" />
                 RAM: {safeFixed(latest.ramUsedGb, 1)}GB / {safeFixed(latest.ramTotalGb, 0)}GB
               </span>
+              {latest.diskPercent !== null && (
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-yellow-500" />
+                  Disk: {safeFixed(latest.diskPercent, 0)}%
+                </span>
+              )}
+              {(latest.netRxSec !== null || latest.netTxSec !== null) && (
+                <span className="flex items-center gap-1.5 text-muted-foreground/70">
+                  <span className="size-2 rounded-full bg-blue-500" />
+                  Net: ↓{safeFixed(latest.netRxSec ?? 0, 0)} ↑{safeFixed(latest.netTxSec ?? 0, 0)} KB/s
+                </span>
+              )}
             </>
           )}
         </div>
@@ -246,6 +266,17 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               dot={false}
               activeDot={{ r: 3 }}
             />
+            {data.some(d => d.disk !== null) && (
+              <Line 
+                type="monotone" 
+                dataKey="disk" 
+                name="Disk %"
+                stroke="#eab308" 
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+              />
+            )}
           </LineChart>
         </ResponsiveContainer>
       </div>

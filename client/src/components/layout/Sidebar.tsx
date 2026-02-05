@@ -187,17 +187,22 @@ export function Sidebar() {
           <div className="flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <motion.a
-                  href={SOCIAL_LINKS.discord}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <motion.button
+                  onClick={() => {
+                    const api = (window as any).electronAPI;
+                    if (api?.openExternal) {
+                      api.openExternal(SOCIAL_LINKS.discord);
+                    } else {
+                      window.open(SOCIAL_LINKS.discord, '_blank');
+                    }
+                  }}
                   className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-[#5865F2] hover:bg-[#5865F2]/10 transition-all duration-200"
                   data-testid="sidebar-link-discord"
                   whileHover={shouldAnimate ? { scale: 1.1 } : undefined}
                   whileTap={shouldAnimate ? { scale: 0.9 } : undefined}
                 >
                   <DiscordIcon className="size-3.5" />
-                </motion.a>
+                </motion.button>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 Join our Discord
@@ -205,17 +210,22 @@ export function Sidebar() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <motion.a
-                  href={SOCIAL_LINKS.tiktok}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <motion.button
+                  onClick={() => {
+                    const api = (window as any).electronAPI;
+                    if (api?.openExternal) {
+                      api.openExternal(SOCIAL_LINKS.tiktok);
+                    } else {
+                      window.open(SOCIAL_LINKS.tiktok, '_blank');
+                    }
+                  }}
                   className="size-6 rounded flex items-center justify-center text-muted-foreground/50 hover:text-pink-500 hover:bg-pink-500/10 transition-all duration-200"
                   data-testid="sidebar-link-tiktok"
                   whileHover={shouldAnimate ? { scale: 1.1 } : undefined}
                   whileTap={shouldAnimate ? { scale: 0.9 } : undefined}
                 >
                   <TikTokIcon className="size-3.5" />
-                </motion.a>
+                </motion.button>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
                 Follow on TikTok
