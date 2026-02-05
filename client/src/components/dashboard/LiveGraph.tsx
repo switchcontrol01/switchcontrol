@@ -58,8 +58,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             onTelemetryUpdate({
               temps: { 
                 cpu: cpuTemp ?? 0, 
-                gpu: gpuTemp ?? 0, 
-                mobo: 0 
+                gpu: gpuTemp ?? 0
               },
               ram: { 
                 totalGB: ramTotalGb, 

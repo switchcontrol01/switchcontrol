@@ -326,10 +326,12 @@ ipcMain.handle('telemetry:getLive', async () => {
 
     // GPU temp via nvidia-smi (NVIDIA only)
     let gpuTemp = null;
-    try {
-      gpuTemp = await getNvidiaGpuTemp();
-    } catch (e) {
-      // GPU temp not available
+    if (cachedSpecs?.gpu?.isNvidia) {
+      try {
+        gpuTemp = await getNvidiaGpuTemp();
+      } catch (e) {
+        // GPU temp not available
+      }
     }
 
     return {
@@ -359,12 +361,24 @@ ipcMain.handle('telemetry:getEnhanced', async () => {
       si.cpuTemperature().catch(() => ({ main: 0 }))
     ]);
 
+    const cpuTemp = safeNum(temps.main || 0);
+    
+    // Only fetch GPU temp if NVIDIA GPU is detected
+    let gpuTemp = null;
+    if (cachedSpecs?.gpu?.isNvidia) {
+      try {
+        gpuTemp = await getNvidiaGpuTemp();
+      } catch (e) {
+        // GPU temp not available
+      }
+    }
+
     return {
       cpuUsage: safeNum(load.currentLoad || 0),
       cpuCores: (load.cpus || []).map(c => safeNum(c.load || 0)),
       ramUsage: safeNum(((mem.total - mem.available) / mem.total) * 100 || 0),
-      cpuTemp: safeNum(temps.main || 0),
-      gpuTemp: 0,
+      cpuTemp: Number.isFinite(cpuTemp) && cpuTemp > 0 ? cpuTemp : null,
+      gpuTemp: gpuTemp,
       timestamp: Date.now()
     };
   } catch (e) {
@@ -372,8 +386,8 @@ ipcMain.handle('telemetry:getEnhanced', async () => {
       cpuUsage: 0,
       cpuCores: [],
       ramUsage: 0,
-      cpuTemp: 0,
-      gpuTemp: 0,
+      cpuTemp: null,
+      gpuTemp: null,
       timestamp: Date.now()
     };
   }

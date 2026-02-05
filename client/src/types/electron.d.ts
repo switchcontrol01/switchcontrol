@@ -61,8 +61,8 @@ interface EnhancedTelemetry {
   cpuUsage: number;
   cpuCores: number[];
   ramUsage: number;
-  cpuTemp: number;
-  gpuTemp: number;
+  cpuTemp: number | null;
+  gpuTemp: number | null;
   timestamp: number;
 }
 
@@ -100,7 +100,6 @@ declare global {
     cpuTempC: number | null;
     gpuTempC: number | null;
     gpuLoadPercent: number | null;
-    moboTempC: number | null;
     ramUsedGb: number;
     ramTotalGb: number;
   }

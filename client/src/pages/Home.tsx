@@ -201,7 +201,7 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
 }
 
 interface TelemetryData {
-  temps: { cpu: number; gpu: number; mobo: number };
+  temps: { cpu: number; gpu: number };
   ram: { totalGB: number; usedGB: number };
   ssds: Array<{ name: string; totalGB: number; usedGB: number; status: string }>;
 }
