@@ -128,11 +128,11 @@ function ElectronAppContent() {
 
   const triggerActivation = usePremiumActivation((s) => s.triggerActivation);
   
-  const handleUpgradeAnimationComplete = useCallback(() => {
+  const handleUpgradeAnimationComplete = useCallback(async () => {
     setShowUpgradeAnimation(false);
+    await postUnlockSeen();
     triggerActivation();
     triggerPremiumTour();
-    postUnlockSeen();
   }, [triggerPremiumTour, triggerActivation]);
 
   useEffect(() => {

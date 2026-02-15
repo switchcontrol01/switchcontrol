@@ -4,6 +4,8 @@ import { Crown, Check } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { postUnlockSeen } from "@/lib/auth-store";
 
+const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
+
 export function PremiumUnlockAnimation() {
   const { isPremium, isLoading, user } = useAuth();
   const [showAnimation, setShowAnimation] = useState(false);
@@ -12,6 +14,7 @@ export function PremiumUnlockAnimation() {
   const markingSeenRef = useRef(false);
 
   useEffect(() => {
+    if (isElectron) return;
     if (isLoading || !user) return;
 
     const hasSeenUnlock = user.hasSeenPremiumUnlock === true;
@@ -56,6 +59,8 @@ export function PremiumUnlockAnimation() {
     await postUnlockSeen();
     markingSeenRef.current = false;
   }
+
+  if (isElectron) return null;
 
   return (
     <AnimatePresence>

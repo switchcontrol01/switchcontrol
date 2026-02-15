@@ -1,0 +1,78 @@
+Good progress. But right now you’re trusting Replit’s “done” message. That’s weak. You need to verify the only thing that matters: real runtime behavior in the packaged Electron app and the website, across fresh state and repeat opens.
+Also I see a red flag: they said they call postUnlockSeen in BOTH handleUpgradeAnimationComplete and handlePremiumUpgrade. If both paths fire you can double post, and worse you can mark “seen” before the animation actually played if the wrong callback order happens. That can kill the animation permanently.
+Here’s what you do next, no debating.
+1) Kill duplicate unlock seen posting
+Tell Replit:
+postUnlockSeen must be called from exactly one place, after the animation finishes.
+Remove any other calls (especially in handlePremiumUpgrade).
+You want one authoritative trigger:
+Animation component plays
+OnComplete calls postUnlockSeen
+Store updates user.hasSeenPremiumUnlock = true
+If animation never plays, it must never mark seen. Period.
+Paste this to Replit:
+Txt
+Copy code
+I see you added postUnlockSeen in multiple places (handleUpgradeAnimationComplete AND handlePremiumUpgrade). That is a bug risk.
+
+Rule:
+- postUnlockSeen must be called exactly once, ONLY after the premium unlock animation finishes successfully.
+- Remove any other calls so we cannot mark seen early or double-call.
+
+Make it idempotent server-side anyway, but client must not race itself.
+Show the final diff in App.tsx and the animation component proving only one call site remains.
+2) Verify the server actually enforces the contract
+You need proof that /api/me always returns hasSeenPremiumUnlock on:
+JWT auth path (Electron)
+Cookie auth path (web)
+No auth path (should be false)
+And proof that POST /api/premium/unlock-seen:
+requires premium
+uses JWT or cookie
+is idempotent (calling twice does not break anything)
+actually updates the DB row you’re using in /api/me
+Ask Replit for exact handler code and one real log showing authMode.
+3) Your real test matrix (do this yourself in DevTools)
+This is the bulletproof part.
+Prepare clean tests
+In Electron DevTools Console run:
+Check JWT exists: localStorage.getItem("sc_jwt")?.length
+Hard reset client state: localStorage.removeItem("sc_jwt"); localStorage.clear();
+Then fully quit app and reopen. Do not just refresh.
+TEST A: Existing premium, already seen
+Goal: no animation, no tour.
+Steps:
+Make DB for your test user: isPremium true, hasSeenPremiumUnlock true
+Log in via app
+Confirm /api/me response includes "hasSeenPremiumUnlock": true
+Confirm no animation triggers
+TEST B: premium true, not seen
+Goal: animation plays exactly once, then it flips server flag.
+Steps:
+Set DB: isPremium true, hasSeenPremiumUnlock false
+Open app, log in
+Confirm animation plays
+After it finishes, check Network:
+you must see POST /api/premium/unlock-seen 200
+Then immediately check GET /api/me:
+must now return hasSeenPremiumUnlock true
+Restart app
+animation must not play
+TEST C: purchase on website, then open app
+Goal: app detects premium and triggers animation once.
+Steps:
+Log into website, buy premium
+Confirm website /api/me shows isPremium true and hasSeenPremiumUnlock false
+Click “Open app”
+App opens and must play animation
+After finish, server flips flag, restart app, no replay
+If any of these fail, it’s not done.
+4) One more dangerous edge case
+What if premium is true but the user is offline when the app opens?
+If the app can’t call /api/me, you must not run animation. Otherwise you risk:
+showing premium unlock animation without server confirmation
+then failing to mark seen
+and replaying later
+So rule:
+No /api/me success, no animation, no tour.
+Make sure the animation gate checks a loaded user state from server, not a cached guess.

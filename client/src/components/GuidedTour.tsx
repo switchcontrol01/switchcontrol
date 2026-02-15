@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, Sparkles, Cpu, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useAuthStore } from '@/lib/auth-store';
 
 interface TourStep {
   id: string;
@@ -48,10 +47,8 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
   const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
-    const user = useAuthStore.getState().user;
-    const serverSeen = user?.hasSeenPremiumUnlock === true;
     const localCompleted = localStorage.getItem(TOUR_STORAGE_KEY) === 'true';
-    if (serverSeen || localCompleted) {
+    if (localCompleted) {
       setDismissed(true);
     }
   }, []);
@@ -160,10 +157,8 @@ export function usePremiumTourState() {
   const [showTour, setShowTour] = useState(false);
 
   const triggerTour = () => {
-    const user = useAuthStore.getState().user;
-    const serverSeen = user?.hasSeenPremiumUnlock === true;
     const localCompleted = localStorage.getItem(TOUR_STORAGE_KEY) === 'true';
-    if (!serverSeen && !localCompleted) {
+    if (!localCompleted) {
       setShowTour(true);
     }
   };
