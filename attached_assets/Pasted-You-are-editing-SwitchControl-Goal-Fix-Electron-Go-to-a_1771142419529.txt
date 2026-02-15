@@ -1,0 +1,77 @@
+You are editing SwitchControl. Goal: Fix Electron “Go to app” premium unlock by removing reliance on cookies for Desktop only, using JWT via Authorization header. Website must keep using session cookies unchanged.
+
+Non negotiable requirements
+1) Desktop uses JWT, website stays cookie session.
+2) JWT must be verified server-side AND /api/me must DB-verify premium status (do not trust isPremium inside token).
+3) Never auto logout or clear cookies on entitlement refresh.
+4) Premium animation triggers only when:
+   - previous plan was free AND
+   - /api/me confirms isPremium true.
+
+Server changes
+A) Add JWT_SECRET env var.
+   - In production: if JWT_SECRET missing, crash on boot with clear error.
+   - Do not reuse SESSION_SECRET.
+
+B) Create server/lib/jwt.ts (or similar) with:
+   - signJwt(payload, expiresIn = "7d")
+   - verifyJwt(token)
+   Payload should include userId only (and maybe iat/exp). No premium fields.
+
+C) Update POST /api/auth/exchange (or your exchangeToken endpoint)
+   - Existing behavior (session cookie) stays for web.
+   - In addition, return JSON including a jwt field for desktop:
+     { success: true, user: <existing user>, jwt: "<token>" }
+   - Add server logs:
+     [AUTH] exchange issued jwt userId=<id>
+
+D) Update GET /api/me
+   Order of auth:
+   1) If Authorization: Bearer <jwt> present:
+      - verify jwt
+      - fetch user from DB by userId
+      - return { loggedIn:true, id, email/name, isPremium:<from DB>, authMode:"jwt" }
+   2) Else fall back to existing session cookie logic:
+      - return same response shape but authMode:"cookie"
+   Also add response header: X-Auth-Mode: jwt|cookie
+
+E) Add temporary GET /api/debug/authMode
+   - Returns what the server sees:
+     { authMode:"jwt"|"cookie"|"none", loggedIn, userId }
+   - Remove later, but ship it for debugging now.
+
+Client changes (Electron + web-safe)
+F) In client/src/lib/auth-store.ts
+   - Add sc_jwt localStorage key.
+   - After exchangeToken succeeds, if response.jwt exists:
+     store it in localStorage sc_jwt and in memory store.
+   - For all authenticated API calls from the desktop build:
+     add Authorization header if sc_jwt exists:
+       Authorization: Bearer <jwt>
+   - Keep credentials:'include' as well (harmless), but JWT is the source of truth for desktop.
+
+G) Update refreshEntitlements() + validateToken() to:
+   - call `${AUTH_DOMAIN}/api/me` with Authorization header when sc_jwt exists
+   - log: [PremiumFlow] /api/me status=<code> authMode=<header X-Auth-Mode> loggedIn=<..> isPremium=<..>
+
+Premium return and animation reliability
+H) In App.tsx deep link handler:
+   - After exchangeToken returns success + jwt saved:
+     wait 300ms then call retryRefreshEntitlements()
+   - If deep link indicates premium activation (premium_activated=true or equivalent):
+     poll /api/me up to 20 seconds total (example: 20 attempts x 1s)
+     stop early when isPremium true
+   - If timeout: show “Premium still activating” modal, DO NOT logout.
+
+Critical verification checklist (must pass)
+1) Desktop: after login, /api/me shows authMode jwt (network header X-Auth-Mode: jwt).
+2) Desktop: after premium purchase + Go to app, /api/me eventually returns isPremium true and upgraded=true triggers animation exactly once.
+3) Website: cookie session path still works (authMode cookie).
+4) No automatic performFullLogout except user clicking Sign out.
+
+Do the implementation now. After changes, tell me:
+- files changed list
+- exact response JSON for exchange endpoint
+- exact /api/me response shape for both modes
+- how sc_jwt is read/written
+- where Authorization header is attached
