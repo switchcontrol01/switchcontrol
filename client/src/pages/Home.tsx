@@ -596,6 +596,7 @@ export default function Home() {
             initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
+            data-tour="ai-advisor"
           >
             <AIAdvisorCard 
               isPremium={isPremium} 

@@ -17,7 +17,9 @@ export default function Tweaks() {
           </p>
         </div>
         
-        <TweaksList />
+        <div data-tour="advanced-premium-tweaks">
+          <TweaksList />
+        </div>
       </div>
     </AppLayout>
   );
