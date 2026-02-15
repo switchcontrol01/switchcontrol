@@ -504,7 +504,7 @@ export function setupGoogleAuth(app: Express): void {
         try {
           const dbUser = await storage.getUser(payload.sub);
           if (dbUser) {
-            console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id} isPremium=${dbUser.isPremium}`);
+            console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id} isPremium=${dbUser.isPremium} hasSeenPremiumUnlock=${dbUser.hasSeenPremiumUnlock}`);
             res.setHeader('X-Auth-Mode', 'jwt');
             return res.json({
               loggedIn: true,
@@ -515,6 +515,7 @@ export function setupGoogleAuth(app: Express): void {
               lastName: dbUser.lastName,
               avatar: dbUser.profileImageUrl,
               isPremium: dbUser.isPremium || false,
+              hasSeenPremiumUnlock: dbUser.hasSeenPremiumUnlock || false,
               authMode: 'jwt',
             });
           }
@@ -527,13 +528,13 @@ export function setupGoogleAuth(app: Express): void {
       }
       console.log(`[AUTH] /api/me authMode=jwt loggedIn=false`);
       res.setHeader('X-Auth-Mode', 'jwt');
-      return res.json({ loggedIn: false, isPremium: false, authMode: 'jwt' });
+      return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, authMode: 'jwt' });
     }
 
     if (hasCookie) {
       const dbUser = await storage.getUser(req.user!.id);
       console.log(`[AUTH] using cookie — user=${req.user!.id} isPremium=${dbUser?.isPremium}`);
-      console.log(`[AUTH] /api/me authMode=cookie loggedIn=true user=${req.user!.id}`);
+      console.log(`[AUTH] /api/me authMode=cookie loggedIn=true user=${req.user!.id} hasSeenPremiumUnlock=${dbUser?.hasSeenPremiumUnlock}`);
       res.setHeader('X-Auth-Mode', 'cookie');
       return res.json({
         loggedIn: true,
@@ -544,13 +545,14 @@ export function setupGoogleAuth(app: Express): void {
         lastName: req.user!.lastName,
         avatar: req.user!.profileImageUrl,
         isPremium: dbUser?.isPremium || false,
+        hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
         authMode: 'cookie',
       });
     }
 
     console.log(`[AUTH] no auth provided — returning loggedIn=false`);
     res.setHeader('X-Auth-Mode', 'none');
-    return res.json({ loggedIn: false, isPremium: false, authMode: 'none' });
+    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, authMode: 'none' });
   });
 
   app.get("/api/auth/me", async (req, res) => {
@@ -565,9 +567,89 @@ export function setupGoogleAuth(app: Express): void {
         lastName: req.user.lastName,
         avatar: req.user.profileImageUrl,
         isPremium: dbUser?.isPremium || false,
+        hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
       });
     }
-    return res.json({ loggedIn: false, isPremium: false });
+    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false });
+  });
+
+  app.post("/api/premium/unlock-seen", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let userId: string | null = null;
+      let authMode = 'none';
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const payload = verifyJwt(authHeader.substring(7));
+        if (payload?.sub) {
+          userId = payload.sub;
+          authMode = 'jwt';
+        }
+      } else if (req.isAuthenticated() && req.user) {
+        userId = req.user.id;
+        authMode = 'cookie';
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const dbUser = await storage.getUser(userId);
+      if (!dbUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!dbUser.isPremium) {
+        return res.status(400).json({ error: "User is not premium" });
+      }
+
+      if (!dbUser.hasSeenPremiumUnlock) {
+        await storage.markPremiumUnlockSeen(userId);
+        console.log(`[PremiumUnlock] mark seen user=${userId} authMode=${authMode}`);
+      } else {
+        console.log(`[PremiumUnlock] already seen user=${userId} authMode=${authMode} (idempotent)`);
+      }
+
+      return res.json({ success: true });
+    } catch (err) {
+      console.error('[PremiumUnlock] error:', err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.get("/api/debug/user-flags", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let userId: string | null = null;
+      let authMode = 'none';
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const payload = verifyJwt(authHeader.substring(7));
+        if (payload?.sub) {
+          userId = payload.sub;
+          authMode = 'jwt';
+        }
+      } else if (req.isAuthenticated() && req.user) {
+        userId = req.user.id;
+        authMode = 'cookie';
+      }
+
+      if (!userId) {
+        return res.json({ userId: null, isPremium: false, hasSeenPremiumUnlock: false, authMode });
+      }
+
+      const dbUser = await storage.getUser(userId);
+      return res.json({
+        userId: dbUser?.id || null,
+        isPremium: dbUser?.isPremium || false,
+        hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
+        premiumFirstSeenAt: dbUser?.premiumFirstSeenAt || null,
+        authMode,
+      });
+    } catch (err) {
+      console.error('[Debug] user-flags error:', err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
   });
 
   app.get("/api/debug/authMode", async (req, res) => {

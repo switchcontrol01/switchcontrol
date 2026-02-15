@@ -11,7 +11,7 @@ import { PremiumUpgradeAnimation, shouldShowPremiumAnimation } from "@/component
 import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen } from "@/lib/auth-store";
 import { usePremiumActivation } from "@/lib/premium-activation-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 
@@ -132,6 +132,7 @@ function ElectronAppContent() {
     setShowUpgradeAnimation(false);
     triggerActivation();
     triggerPremiumTour();
+    postUnlockSeen();
   }, [triggerPremiumTour, triggerActivation]);
 
   useEffect(() => {
@@ -536,6 +537,7 @@ function WebsiteContent() {
               avatarUrl: data.avatar,
               plan: data.isPremium ? 'premium' : 'free',
               isPremium: data.isPremium,
+              hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
               loggedIn: true,
             });
           }

@@ -38,6 +38,8 @@ Preferred communication style: Simple, everyday language.
 - `historyEntries`: Log of all simulated optimization actions
 - `aiScans`: Stores AI advisor scan results and recommendations
 - `users/sessions`: Replit Auth user and session data
+  - `users.hasSeenPremiumUnlock`: Server-authoritative flag for one-time premium unlock animation
+  - `users.premiumFirstSeenAt`: Timestamp when user first saw the premium unlock
 
 ### Application Structure
 ```

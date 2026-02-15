@@ -27,6 +27,8 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   isPremium: boolean("is_premium").notNull().default(false),
+  hasSeenPremiumUnlock: boolean("has_seen_premium_unlock").notNull().default(false),
+  premiumFirstSeenAt: timestamp("premium_first_seen_at"),
   stripeCustomerId: varchar("stripe_customer_id"),
   premiumActivatedAt: timestamp("premium_activated_at"),
   createdAt: timestamp("created_at").defaultNow(),

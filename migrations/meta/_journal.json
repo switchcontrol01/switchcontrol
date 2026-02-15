@@ -8,6 +8,13 @@
       "when": 1767685997653,
       "tag": "0000_white_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1771147337209,
+      "tag": "0001_left_whiplash",
+      "breakpoints": true
     }
   ]
 }

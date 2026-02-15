@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logoNoCrown from '@/assets/premium/logo-no-crown.png';
 import logoWithCrown from '@/assets/premium/logo-with-crown.png';
+import { useAuthStore } from '@/lib/auth-store';
 
 interface PremiumUpgradeAnimationProps {
   show: boolean;
@@ -557,9 +558,12 @@ function LockIconSVG({ state }: { state: 'locked' | 'pulse' | 'shaking' | 'unloc
 }
 
 export function shouldShowPremiumAnimation(): boolean {
-  const alreadyShown = localStorage.getItem(ANIMATION_SHOWN_KEY) === 'true';
-  console.log('[PremiumAnim] shouldShow:', !alreadyShown, 'alreadyShown:', alreadyShown);
-  return !alreadyShown;
+  const user = useAuthStore.getState().user;
+  const hasSeenServer = user?.hasSeenPremiumUnlock === true;
+  const alreadyShownLocal = localStorage.getItem(ANIMATION_SHOWN_KEY) === 'true';
+  const shouldShow = !hasSeenServer && !alreadyShownLocal;
+  console.log('[PremiumAnim] shouldShow:', shouldShow, 'serverSeen:', hasSeenServer, 'localShown:', alreadyShownLocal);
+  return shouldShow;
 }
 
 export function resetPremiumAnimationFlag(): void {

@@ -12,6 +12,7 @@ export interface AuthUser {
   avatarUrl: string | null;
   plan: string;
   isPremium: boolean;
+  hasSeenPremiumUnlock: boolean;
   loggedIn: boolean;
 }
 
@@ -144,10 +145,11 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       avatarUrl: data.user.avatar || null,
       plan: data.user.isPremium ? 'premium' : 'free',
       isPremium: data.user.isPremium || false,
+      hasSeenPremiumUnlock: !!data.user.hasSeenPremiumUnlock,
       loggedIn: true,
     };
 
-    console.log(`[Auth] exchangeToken success, user=${user.id} isPremium=${user.isPremium} ts=${Date.now()}`);
+    console.log(`[Auth] exchangeToken success, user=${user.id} isPremium=${user.isPremium} hasSeenPremiumUnlock=${user.hasSeenPremiumUnlock} ts=${Date.now()}`);
     return user;
   } catch (err) {
     console.error('[Auth] Token exchange error:', err);
@@ -191,6 +193,7 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
       avatarUrl: data.avatar || null,
       plan: data.isPremium ? 'premium' : 'free',
       isPremium: data.isPremium || false,
+      hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
       loggedIn: true,
     };
   } catch (err) {
@@ -231,7 +234,7 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
 
     const authMode = response.headers.get('X-Auth-Mode');
     const data = await response.json();
-    console.log(`[PremiumFlow] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium}`);
+    console.log(`[PremiumFlow] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} hasSeenPremiumUnlock=${data.hasSeenPremiumUnlock}`);
 
     if (data.loggedIn === false) {
       return { upgraded: false, user: null };
@@ -244,6 +247,7 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
       avatarUrl: data.avatar || null,
       plan: data.isPremium ? 'premium' : 'free',
       isPremium: data.isPremium || false,
+      hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
       loggedIn: true,
     };
 
@@ -292,4 +296,38 @@ export async function retryRefreshEntitlements(opts?: {
 
   console.warn(`[PremiumFlow] /api/me still loggedIn=false after ${attempts} attempts`);
   return { ok: false, upgraded: false, user: null, reason: 'not_logged_in_after_retries' };
+}
+
+export async function postUnlockSeen(): Promise<boolean> {
+  try {
+    const jwt = getStoredJwt();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) {
+      headers['Authorization'] = `Bearer ${jwt}`;
+    }
+
+    console.log('[PremiumUnlock] posting unlock-seen...');
+    const response = await fetch(`${AUTH_DOMAIN}/api/premium/unlock-seen`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.error(`[PremiumUnlock] unlock-seen failed status=${response.status}`);
+      return false;
+    }
+
+    console.log('[PremiumUnlock] unlock-seen success');
+
+    const store = useAuthStore.getState();
+    if (store.user) {
+      store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[PremiumUnlock] unlock-seen error:', err);
+    return false;
+  }
 }

@@ -1,0 +1,150 @@
+TASK: Implement “Premium unlock animation runs ONCE per account” (server-authoritative), for SwitchControl (Electron + Web). Do NOT rely on localStorage for the once-only rule.
+
+GOAL
+When a user’s account becomes premium for the first time, the desktop app (and web) should:
+1) Detect premium is now active
+2) Play the premium unlock animation + crown/lock UI change
+3) Show a tour of unlocked features
+4) NEVER play the unlock animation again for that same account, even across reinstalls/devices
+
+ARCHITECTURE RULES
+- Server is source of truth for “already saw unlock animation”.
+- Client may cache it for UX, but the gating must come from DB.
+- Works for both auth modes:
+  - Desktop uses JWT (Authorization: Bearer)
+  - Website uses cookie session fallback
+- No auto-logout added. No cookie clearing except explicit sign-out.
+
+STEP 1: DATABASE
+Add a persistent flag on the user:
+- users.hasSeenPremiumUnlock BOOLEAN NOT NULL DEFAULT false
+Optionally add:
+- users.premiumFirstSeenAt TIMESTAMP NULL (nice for audit)
+
+Implement the migration using your DB tooling (drizzle/knex/prisma/SQL file).
+Make sure the field is available in the users table and model types.
+
+STEP 2: SERVER /api/me MUST RETURN THE FLAG
+Find all /api/me handlers (you may have one in server/auth/google.ts and possibly another in integrations).
+Ensure the active /api/me response includes:
+- hasSeenPremiumUnlock: boolean
+
+JWT path:
+- Verify JWT (sub=userId)
+- Lookup user in DB
+- Return { loggedIn:true, id, email, name, avatar, isPremium, hasSeenPremiumUnlock, authMode:"jwt" }
+Cookie path:
+- If req.user exists (session), use that userId
+- Lookup in DB (do NOT trust req.user.isPremium, always DB)
+- Return same shape with authMode:"cookie"
+No auth:
+- Return { loggedIn:false, isPremium:false, hasSeenPremiumUnlock:false, authMode:"none" }
+
+STEP 3: SERVER ENDPOINT TO MARK AS SEEN
+Add:
+POST /api/premium/unlock-seen
+
+Behavior:
+- Require auth (JWT or cookie).
+- Determine userId from JWT sub if Authorization header exists else from req.user.
+- Update DB: set hasSeenPremiumUnlock=true
+- Return { success:true }
+
+IMPORTANT:
+- Only allow setting true (idempotent). Never set it false.
+- If user is not premium yet, still allow setting true? Prefer: only allow if DB says isPremium=true, otherwise return 400.
+
+Add logs:
+- [PremiumUnlock] mark seen user=<id> authMode=<jwt|cookie>
+
+STEP 4: CLIENT TYPES + STORE
+Update AuthUser type in client/src/lib/auth-store.ts:
+- add hasSeenPremiumUnlock?: boolean (or required boolean)
+
+Where you build AuthUser from /api/me and exchangeToken:
+- Set user.hasSeenPremiumUnlock from server if present.
+- If missing, default false.
+
+CRITICAL: refreshEntitlements() must store it:
+In refreshEntitlements():
+- newUser.hasSeenPremiumUnlock = !!data.hasSeenPremiumUnlock
+- store.setUser(newUser)
+
+exchangeToken():
+- it returns data.user from exchange, but exchange currently returns user fields.
+- DO NOT depend on exchange user for hasSeenPremiumUnlock.
+- After exchangeToken success, you already call refreshEntitlements / retryRefreshEntitlements in the flow.
+- That /api/me result should set hasSeenPremiumUnlock. That’s what the animation uses.
+
+STEP 5: PREMIUM UNLOCK ANIMATION GATING
+File: client/src/components/PremiumUnlockAnimation.tsx
+
+Change the gating logic to use server flag:
+- Only show animation if:
+  - isPremium === true
+  - user exists
+  - user.hasSeenPremiumUnlock === false
+  - AND either:
+    - first load and premium true (user just returned from purchase)
+    - OR transition from not premium -> premium (false -> true)
+
+After animation completes:
+- call API POST /api/premium/unlock-seen
+- On success:
+  - update local store user.hasSeenPremiumUnlock=true (store.setUser with updated flag) so UI never tries again this session
+
+Add logs:
+- [PremiumUnlock] eligible=<true|false> premium=<bool> seen=<bool> reason=<first_load|upgrade_transition|not_eligible>
+- [PremiumUnlock] posting unlock-seen...
+- [PremiumUnlock] unlock-seen success
+
+Where to put the API call:
+- use the same AUTH_DOMAIN and auth headers logic as /api/me:
+  - If sc_jwt exists, send Authorization Bearer
+  - Always include credentials: 'include' for cookie fallback
+
+STEP 6: TOUR
+After animation finishes (or immediately after marking seen), trigger your tour.
+Do NOT tie tour to localStorage either. Use the same flag:
+- Tour should show only when hasSeenPremiumUnlock is false AND premium is true.
+If you want the tour to be skippable but not reappear:
+- Mark seen as soon as animation starts OR when the user clicks “Start tour” OR “Skip”.
+Pick one and implement deterministically (recommended: mark seen at animation end, and also mark seen if user skips).
+
+STEP 7: VERIFY IN DEVTOOLS (NO GUESSING)
+Add temporary debug endpoint:
+GET /api/debug/user-flags
+- returns for current auth: { userId, isPremium, hasSeenPremiumUnlock, authMode }
+Remove later.
+
+Manual test plan:
+1) New user (free):
+- /api/me shows isPremium false, hasSeenPremiumUnlock false
+- No animation
+2) Upgrade to premium (simulate by flipping DB flag or real checkout):
+- /api/me returns isPremium true, hasSeenPremiumUnlock false
+- Animation plays once
+- POST /api/premium/unlock-seen sets flag true
+- /api/me now returns hasSeenPremiumUnlock true
+3) Restart app:
+- No animation
+4) Reinstall app (simulate by clearing local storage):
+- Still no animation (because DB says seen=true)
+5) Ensure web still works:
+- Website cookie auth sees same flag and behaves same.
+
+DELIVERABLES
+- Migration committed
+- /api/me includes hasSeenPremiumUnlock
+- POST /api/premium/unlock-seen added
+- Client AuthUser updated
+- PremiumUnlockAnimation gated by DB flag + posts unlock-seen
+- Tour triggered after unlock, also respects DB flag
+- Debug endpoint + logs for verification (can be removed later)
+
+DO NOT
+- Do not use localStorage as the authoritative “seen” state
+- Do not auto-logout on /api/me failures
+- Do not clear cookies unless user clicks sign out
+
+If Replit comes back saying “where exactly is the server auth guard / middleware”, tell it this: the POST endpoint must accept either JWT auth (Authorization header) or cookie session (req.user). It can reuse the same logic you already wrote for /api/me choosing authMode.

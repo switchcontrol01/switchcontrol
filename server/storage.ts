@@ -36,6 +36,7 @@ export interface IStorage {
   getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
   updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; isPremium?: boolean }): Promise<User>;
   setUserPremium(userId: string, isPremium: boolean): Promise<User>;
+  markPremiumUnlockSeen(userId: string): Promise<User>;
 }
 
 class MockStorage implements IStorage {
@@ -134,6 +135,10 @@ class MockStorage implements IStorage {
   }
 
   async setUserPremium(userId: string, isPremium: boolean): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async markPremiumUnlockSeen(userId: string): Promise<User> {
     throw new Error("Database not available in NO-DB mode");
   }
 }
@@ -242,6 +247,15 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db!
       .update(users)
       .set({ isPremium, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async markPremiumUnlockSeen(userId: string): Promise<User> {
+    const [updated] = await db!
+      .update(users)
+      .set({ hasSeenPremiumUnlock: true, premiumFirstSeenAt: new Date(), updatedAt: new Date() })
       .where(eq(users.id, userId))
       .returning();
     return updated;
