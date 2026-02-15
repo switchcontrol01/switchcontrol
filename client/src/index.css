@@ -499,6 +499,40 @@ body {
   will-change: transform;
 }
 
+/* Animated gradient mesh - slow ambient motion */
+@keyframes meshGradientShift {
+  0%, 100% { background-position: 0% 0%; }
+  25% { background-position: 100% 50%; }
+  50% { background-position: 50% 100%; }
+  75% { background-position: 0% 50%; }
+}
+
+.animate-gradient-mesh {
+  background: 
+    radial-gradient(ellipse 60% 50% at 20% 30%, hsl(270 60% 55% / 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 50% 60% at 80% 70%, hsl(190 90% 50% / 0.05) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 40% at 50% 50%, hsl(280 55% 50% / 0.06) 0%, transparent 50%);
+  background-size: 200% 200%;
+  animation: meshGradientShift 20s ease-in-out infinite;
+  will-change: background-position;
+}
+
+@media (max-width: 768px) {
+  .animate-gradient-mesh {
+    animation-duration: 30s;
+    background:
+      radial-gradient(ellipse 80% 60% at 30% 30%, hsl(270 60% 55% / 0.06) 0%, transparent 50%),
+      radial-gradient(ellipse 60% 70% at 70% 70%, hsl(190 90% 50% / 0.04) 0%, transparent 50%);
+    background-size: 200% 200%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-gradient-mesh {
+    animation: none;
+  }
+}
+
 /* Particle floating animation */
 @keyframes particleFloat {
   0% {

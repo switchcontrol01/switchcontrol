@@ -8,8 +8,10 @@ import { useQueryClient } from "@tanstack/react-query";
 
 function openDesktopApp() {
   console.log('[PremiumFlow] Opening desktop app via deep-link');
-  const deepLink = "switchcontrol://auth-callback?premium_activated=true";
-  window.location.href = deepLink;
+  window.location.href = `switchcontrol://premium?source=web&ts=${Date.now()}`;
+  setTimeout(() => {
+    window.location.href = "/download?from=premium";
+  }, 1500);
 }
 
 export default function PremiumSuccess() {

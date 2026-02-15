@@ -2,9 +2,17 @@ import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, Loader2, XCircle, ArrowRight, Home } from "lucide-react";
+import { CheckCircle, Loader2, XCircle, ArrowRight, Home, ExternalLink, Download } from "lucide-react";
 import { motion, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
+
+function openDesktopApp() {
+  console.log('[PremiumFlow] Opening desktop app via deep-link');
+  window.location.href = `switchcontrol://premium?source=web&ts=${Date.now()}`;
+  setTimeout(() => {
+    window.location.href = "/download?from=premium";
+  }, 1500);
+}
 
 type ConfirmState = "loading" | "success" | "error";
 
@@ -105,16 +113,18 @@ export default function Success() {
                 <p className="text-muted-foreground mb-8">Premium has been unlocked on your account.</p>
                 
                 <div className="space-y-3">
-                  <Link href="/app">
-                    <Button className="w-full bg-primary hover:bg-primary/90" data-testid="button-go-to-app">
-                      Go to app
-                      <ArrowRight className="ml-2 size-4" />
-                    </Button>
-                  </Link>
-                  <Link href="/pricing">
-                    <Button variant="outline" className="w-full border-white/20" data-testid="button-go-to-pricing">
-                      <Home className="mr-2 size-4" />
-                      Go to pricing
+                  <Button
+                    onClick={openDesktopApp}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
+                    data-testid="button-open-app"
+                  >
+                    <ExternalLink className="size-4 mr-2" />
+                    Open SwitchControl App
+                  </Button>
+                  <Link href="/download">
+                    <Button variant="outline" className="w-full border-white/20" data-testid="button-goto-download">
+                      <Download className="size-4 mr-2" />
+                      Download App First
                     </Button>
                   </Link>
                 </div>

@@ -98,6 +98,12 @@ export function PageBackground() {
         }}
       />
 
+      {/* Layer 0.5: Animated gradient mesh */}
+      <div 
+        className="absolute inset-0 animate-gradient-mesh"
+        style={{ height: docHeight }}
+      />
+
       {/* Layer 1: Contour lines - percentage based positioning */}
       <svg 
         className="absolute inset-0 w-full"
