@@ -40,3 +40,43 @@ export function verifyJwt(token: string): JwtPayload | null {
     return null;
   }
 }
+
+export function runJwtSelfTest(): void {
+  console.log("[JWT] ===== SELF-TEST START =====");
+
+  const testUserId = "self-test-user-000";
+  const validToken = signJwt(testUserId);
+  const validResult = verifyJwt(validToken);
+  if (validResult && validResult.sub === testUserId) {
+    console.log(`[JWT] PASS: valid token → sub=${validResult.sub} exp=${validResult.exp}`);
+  } else {
+    console.error("[JWT] FAIL: valid token did not verify correctly");
+  }
+
+  const invalidResult = verifyJwt("this.is.not.a.jwt");
+  if (invalidResult === null) {
+    console.log("[JWT] PASS: invalid token → null (rejected)");
+  } else {
+    console.error("[JWT] FAIL: invalid token was NOT rejected");
+  }
+
+  const expiredToken = jwt.sign({ sub: testUserId }, getSecret(), {
+    algorithm: "HS256",
+    expiresIn: "-1s",
+  });
+  const expiredResult = verifyJwt(expiredToken);
+  if (expiredResult === null) {
+    console.log("[JWT] PASS: expired token → null (rejected)");
+  } else {
+    console.error("[JWT] FAIL: expired token was NOT rejected");
+  }
+
+  const noAuthResult = verifyJwt("");
+  if (noAuthResult === null) {
+    console.log("[JWT] PASS: empty token → null (fallback to cookie path)");
+  } else {
+    console.error("[JWT] FAIL: empty token was NOT rejected");
+  }
+
+  console.log("[JWT] ===== SELF-TEST END =====");
+}

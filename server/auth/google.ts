@@ -491,14 +491,20 @@ export function setupGoogleAuth(app: Express): void {
 
   app.get("/api/me", async (req, res) => {
     const authHeader = req.headers.authorization;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
+    const hasBearer = !!(authHeader && authHeader.startsWith('Bearer '));
+    const hasCookie = req.isAuthenticated() && !!req.user;
+    console.log(`[AUTH] /api/me — Authorization header: ${hasBearer ? 'present' : 'missing'}, cookie session: ${hasCookie ? 'present' : 'missing'}`);
+
+    if (hasBearer) {
+      const token = authHeader!.substring(7);
+      console.log(`[AUTH] using JWT — token length=${token.length}`);
       const payload = verifyJwt(token);
       if (payload && payload.sub) {
+        console.log(`[AUTH] JWT verified — sub=${payload.sub} exp=${payload.exp}`);
         try {
           const dbUser = await storage.getUser(payload.sub);
           if (dbUser) {
-            console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id}`);
+            console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id} isPremium=${dbUser.isPremium}`);
             res.setHeader('X-Auth-Mode', 'jwt');
             return res.json({
               loggedIn: true,
@@ -512,34 +518,39 @@ export function setupGoogleAuth(app: Express): void {
               authMode: 'jwt',
             });
           }
+          console.log(`[AUTH] JWT valid but user not found in DB — sub=${payload.sub}`);
         } catch (err) {
           console.error('[AUTH] /api/me jwt DB lookup error:', err);
         }
+      } else {
+        console.log(`[AUTH] JWT verification failed — token rejected`);
       }
-      console.log(`[AUTH] /api/me authMode=jwt loggedIn=false (invalid token or user not found)`);
+      console.log(`[AUTH] /api/me authMode=jwt loggedIn=false`);
       res.setHeader('X-Auth-Mode', 'jwt');
       return res.json({ loggedIn: false, isPremium: false, authMode: 'jwt' });
     }
 
-    if (req.isAuthenticated() && req.user) {
-      const dbUser = await storage.getUser(req.user.id);
-      console.log(`[AUTH] /api/me authMode=cookie loggedIn=true user=${req.user.id}`);
+    if (hasCookie) {
+      const dbUser = await storage.getUser(req.user!.id);
+      console.log(`[AUTH] using cookie — user=${req.user!.id} isPremium=${dbUser?.isPremium}`);
+      console.log(`[AUTH] /api/me authMode=cookie loggedIn=true user=${req.user!.id}`);
       res.setHeader('X-Auth-Mode', 'cookie');
       return res.json({
         loggedIn: true,
-        id: req.user.id,
-        email: req.user.email,
-        name: [req.user.firstName, req.user.lastName].filter(Boolean).join(" ") || null,
-        firstName: req.user.firstName,
-        lastName: req.user.lastName,
-        avatar: req.user.profileImageUrl,
+        id: req.user!.id,
+        email: req.user!.email,
+        name: [req.user!.firstName, req.user!.lastName].filter(Boolean).join(" ") || null,
+        firstName: req.user!.firstName,
+        lastName: req.user!.lastName,
+        avatar: req.user!.profileImageUrl,
         isPremium: dbUser?.isPremium || false,
         authMode: 'cookie',
       });
     }
-    console.log(`[AUTH] /api/me authMode=cookie loggedIn=false user=none`);
-    res.setHeader('X-Auth-Mode', 'cookie');
-    return res.json({ loggedIn: false, isPremium: false, authMode: 'cookie' });
+
+    console.log(`[AUTH] no auth provided — returning loggedIn=false`);
+    res.setHeader('X-Auth-Mode', 'none');
+    return res.json({ loggedIn: false, isPremium: false, authMode: 'none' });
   });
 
   app.get("/api/auth/me", async (req, res) => {
@@ -643,8 +654,7 @@ export function setupGoogleAuth(app: Express): void {
         console.log('[AUTH] req.headers.origin:', req.headers.origin || 'NONE');
 
         const jwtToken = signJwt(user.id);
-        const jwtDecoded = verifyJwt(jwtToken);
-        console.log(`[AUTH] exchange issued jwt userId=${user.id} exp=${jwtDecoded?.exp}`);
+        console.log(`[JWT] issued for user: ${user.id}`);
 
         return res.json({
           success: true,

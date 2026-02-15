@@ -132,7 +132,9 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
 
     if (data.jwt) {
       useAuthStore.getState().setJwt(data.jwt);
-      console.log(`[Auth] saved jwt length=${data.jwt.length}`);
+      console.log(`[JWT] saved to localStorage — key=sc_jwt length=${data.jwt.length}`);
+    } else {
+      console.warn('[JWT] exchange response did NOT contain jwt field');
     }
 
     const user: AuthUser = {
