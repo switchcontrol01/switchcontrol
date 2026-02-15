@@ -585,6 +585,7 @@ export function setupGoogleAuth(app: Express): void {
         }
 
         console.log('[AUTH] Token exchange successful for user:', user.id);
+        console.log('[AUTH] req.headers.origin:', req.headers.origin || 'NONE');
         console.log('[AUTH] SESSION AFTER ASSIGN:', JSON.stringify({
           id: req.sessionID,
           passport: (req.session as any)?.passport,

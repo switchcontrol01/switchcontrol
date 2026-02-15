@@ -23,9 +23,21 @@ const authLimiter = rateLimit({
 
 app.use("/api/auth", authLimiter);
 
-// CORS for Electron app
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:5000', 'file://'],
+  origin: (origin, callback) => {
+    const allowed = [
+      'http://localhost:5173',
+      'http://localhost:5000',
+      'https://switchcontrol.org',
+      'https://www.switchcontrol.org',
+    ];
+    if (!origin || origin === 'null' || allowed.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('[CORS] Blocked origin:', origin);
+      callback(null, false);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],

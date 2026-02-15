@@ -105,6 +105,19 @@ function createWindow() {
       mainWindow.webContents.toggleDevTools();
     }
   });
+
+  const { session: electronSession } = require('electron');
+  electronSession.defaultSession.webRequest.onHeadersReceived(
+    { urls: ['https://switchcontrol.org/*', 'https://*.switchcontrol.org/*'] },
+    (details, callback) => {
+      const setCookies = details.responseHeaders?.['set-cookie'] || details.responseHeaders?.['Set-Cookie'];
+      if (setCookies) {
+        console.log('[Auth][MAIN] set-cookie received for', details.url);
+        console.log('[Auth][MAIN] set-cookie values:', setCookies);
+      }
+      callback({ cancel: false, responseHeaders: details.responseHeaders });
+    }
+  );
   
   // === NAVIGATION GUARDS ===
   // Block navigation to external sites - open in browser instead
