@@ -22,8 +22,8 @@ export async function registerRoutes(
     if (!req.cookies?._csrf) {
       res.cookie("_csrf", token, {
         httpOnly: false,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none" as const,
         maxAge: 24 * 60 * 60 * 1000
       });
     }

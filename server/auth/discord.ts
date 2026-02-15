@@ -155,16 +155,16 @@ export function setupDiscordAuth(app: Express): void {
     
     // Set cookie to track source (survives OAuth redirect)
     res.cookie('auth_source', source, { 
-      maxAge: 5 * 60 * 1000, // 5 minutes
+      maxAge: 5 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      secure: true,
+      sameSite: 'none' as const,
     });
     res.cookie('auth_next', next_url, { 
       maxAge: 5 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      secure: true,
+      sameSite: 'none' as const,
     });
     
     passport.authenticate("discord", {

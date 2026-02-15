@@ -127,7 +127,18 @@ export function setupGoogleAuth(app: Express): void {
 
   const isProduction = process.env.NODE_ENV === "production";
 
-  console.log('[AUTH] Session config — production:', isProduction, 'cookie: { secure: true, sameSite: "none", domain:', isProduction ? '".switchcontrol.org"' : 'undefined', '}');
+  const sessionCookieConfig = {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none" as const,
+    maxAge: sessionTtl,
+    path: "/",
+    domain: isProduction ? ".switchcontrol.org" : undefined,
+  };
+  console.log('[AUTH] ===== SESSION COOKIE CONFIG =====');
+  console.log('[AUTH] production:', isProduction);
+  console.log('[AUTH] cookie:', JSON.stringify(sessionCookieConfig));
+  console.log('[AUTH] ================================');
 
   app.use(
     session({
@@ -136,14 +147,7 @@ export function setupGoogleAuth(app: Express): void {
       resave: false,
       saveUninitialized: false,
       name: "switchcontrol.sid",
-      cookie: {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: sessionTtl,
-        path: "/",
-        domain: isProduction ? ".switchcontrol.org" : undefined,
-      },
+      cookie: sessionCookieConfig,
     })
   );
 
@@ -376,16 +380,16 @@ export function setupGoogleAuth(app: Express): void {
     
     // Set cookie to track source (survives OAuth redirect)
     res.cookie('auth_source', source, { 
-      maxAge: 5 * 60 * 1000, // 5 minutes
+      maxAge: 5 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      secure: true,
+      sameSite: 'none' as const,
     });
     res.cookie('auth_next', next_url, { 
       maxAge: 5 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      secure: true,
+      sameSite: 'none' as const,
     });
     
     passport.authenticate("google", {

@@ -37,7 +37,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
-      sameSite: "lax",
+      sameSite: "none" as const,
       maxAge: sessionTtl,
       path: "/",
       domain: isProduction ? ".switchcontrol.org" : undefined,

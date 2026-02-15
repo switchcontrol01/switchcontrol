@@ -24,8 +24,8 @@ export function csrfTokenMiddleware(req: Request, res: Response, next: NextFunct
     const token = generateCsrfToken();
     res.cookie(CSRF_COOKIE, token, {
       httpOnly: false,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
+      secure: true,
+      sameSite: "none" as const,
       maxAge: 24 * 60 * 60 * 1000
     });
   }
