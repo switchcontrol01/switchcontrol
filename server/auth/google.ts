@@ -126,7 +126,9 @@ export function setupGoogleAuth(app: Express): void {
   }
 
   const isProduction = process.env.NODE_ENV === "production";
-  
+
+  console.log('[AUTH] Session config — production:', isProduction, 'cookie: { secure: true, sameSite: "none", domain:', isProduction ? '".switchcontrol.org"' : 'undefined', '}');
+
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "switchcontrol-session-secret",
@@ -136,8 +138,8 @@ export function setupGoogleAuth(app: Express): void {
       name: "switchcontrol.sid",
       cookie: {
         httpOnly: true,
-        secure: isProduction,
-        sameSite: "lax",
+        secure: true,
+        sameSite: "none",
         maxAge: sessionTtl,
         path: "/",
         domain: isProduction ? ".switchcontrol.org" : undefined,
@@ -483,6 +485,7 @@ export function setupGoogleAuth(app: Express): void {
   }
 
   app.get("/api/me", async (req, res) => {
+    console.log('[AUTH] /api/me hit — sessionID:', req.sessionID, 'isAuth:', req.isAuthenticated(), 'hasUser:', !!req.user, 'cookies:', req.headers.cookie || 'NONE');
     if (req.isAuthenticated() && req.user) {
       const dbUser = await storage.getUser(req.user.id);
       return res.json({
@@ -582,6 +585,13 @@ export function setupGoogleAuth(app: Express): void {
         }
 
         console.log('[AUTH] Token exchange successful for user:', user.id);
+        console.log('[AUTH] SESSION AFTER ASSIGN:', JSON.stringify({
+          id: req.sessionID,
+          passport: (req.session as any)?.passport,
+          cookie: req.session?.cookie,
+        }));
+        console.log('[AUTH] RESPONSE HEADERS:', res.getHeaders());
+
         return res.json({
           success: true,
           user: {
