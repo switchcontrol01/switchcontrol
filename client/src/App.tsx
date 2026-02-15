@@ -250,8 +250,8 @@ function ElectronAppContent() {
           console.log('[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements with retries...');
 
           const result = await retryRefreshEntitlements({
-            attempts: 6,
-            delayMs: 1500,
+            attempts: 20,
+            delayMs: 1000,
             initialDelayMs: 500,
           });
 
@@ -302,8 +302,8 @@ function ElectronAppContent() {
             if (premiumActivated) {
               console.log('[PremiumFlow] Token exchange + premiumActivated — validating premium with retries...');
               const premResult = await retryRefreshEntitlements({
-                attempts: 6,
-                delayMs: 1500,
+                attempts: 20,
+                delayMs: 1000,
                 initialDelayMs: 300,
               });
               if (premResult.ok && premResult.upgraded) {

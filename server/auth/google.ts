@@ -8,6 +8,7 @@ import { db, isNoDbMode } from "../db";
 import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
 import { storage } from "../storage";
+import { signJwt, verifyJwt } from "../lib/jwt";
 
 declare global {
   namespace Express {
@@ -489,9 +490,41 @@ export function setupGoogleAuth(app: Express): void {
   }
 
   app.get("/api/me", async (req, res) => {
-    console.log('[AUTH] /api/me hit — sessionID:', req.sessionID, 'isAuth:', req.isAuthenticated(), 'hasUser:', !!req.user, 'cookies:', req.headers.cookie || 'NONE');
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const payload = verifyJwt(token);
+      if (payload && payload.sub) {
+        try {
+          const dbUser = await storage.getUser(payload.sub);
+          if (dbUser) {
+            console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id}`);
+            res.setHeader('X-Auth-Mode', 'jwt');
+            return res.json({
+              loggedIn: true,
+              id: dbUser.id,
+              email: dbUser.email,
+              name: [dbUser.firstName, dbUser.lastName].filter(Boolean).join(" ") || null,
+              firstName: dbUser.firstName,
+              lastName: dbUser.lastName,
+              avatar: dbUser.profileImageUrl,
+              isPremium: dbUser.isPremium || false,
+              authMode: 'jwt',
+            });
+          }
+        } catch (err) {
+          console.error('[AUTH] /api/me jwt DB lookup error:', err);
+        }
+      }
+      console.log(`[AUTH] /api/me authMode=jwt loggedIn=false (invalid token or user not found)`);
+      res.setHeader('X-Auth-Mode', 'jwt');
+      return res.json({ loggedIn: false, isPremium: false, authMode: 'jwt' });
+    }
+
     if (req.isAuthenticated() && req.user) {
       const dbUser = await storage.getUser(req.user.id);
+      console.log(`[AUTH] /api/me authMode=cookie loggedIn=true user=${req.user.id}`);
+      res.setHeader('X-Auth-Mode', 'cookie');
       return res.json({
         loggedIn: true,
         id: req.user.id,
@@ -501,9 +534,12 @@ export function setupGoogleAuth(app: Express): void {
         lastName: req.user.lastName,
         avatar: req.user.profileImageUrl,
         isPremium: dbUser?.isPremium || false,
+        authMode: 'cookie',
       });
     }
-    return res.json({ loggedIn: false, isPremium: false });
+    console.log(`[AUTH] /api/me authMode=cookie loggedIn=false user=none`);
+    res.setHeader('X-Auth-Mode', 'cookie');
+    return res.json({ loggedIn: false, isPremium: false, authMode: 'cookie' });
   });
 
   app.get("/api/auth/me", async (req, res) => {
@@ -521,6 +557,21 @@ export function setupGoogleAuth(app: Express): void {
       });
     }
     return res.json({ loggedIn: false, isPremium: false });
+  });
+
+  app.get("/api/debug/authMode", async (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const payload = verifyJwt(authHeader.substring(7));
+      if (payload?.sub) {
+        return res.json({ authMode: 'jwt', loggedIn: true, userId: payload.sub });
+      }
+      return res.json({ authMode: 'jwt', loggedIn: false, userId: null });
+    }
+    if (req.isAuthenticated() && req.user) {
+      return res.json({ authMode: 'cookie', loggedIn: true, userId: req.user.id });
+    }
+    return res.json({ authMode: 'none', loggedIn: false, userId: null });
   });
 
   app.post("/api/auth/exchange", async (req, res) => {
@@ -590,15 +641,14 @@ export function setupGoogleAuth(app: Express): void {
 
         console.log('[AUTH] Token exchange successful for user:', user.id);
         console.log('[AUTH] req.headers.origin:', req.headers.origin || 'NONE');
-        console.log('[AUTH] SESSION AFTER ASSIGN:', JSON.stringify({
-          id: req.sessionID,
-          passport: (req.session as any)?.passport,
-          cookie: req.session?.cookie,
-        }));
-        console.log('[AUTH] RESPONSE HEADERS:', res.getHeaders());
+
+        const jwtToken = signJwt(user.id);
+        const jwtDecoded = verifyJwt(jwtToken);
+        console.log(`[AUTH] exchange issued jwt userId=${user.id} exp=${jwtDecoded?.exp}`);
 
         return res.json({
           success: true,
+          jwt: jwtToken,
           user: {
             id: user.id,
             email: user.email,

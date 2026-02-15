@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
 const TOKEN_KEY = "sc_auth_token_v2";
+const JWT_KEY = "sc_jwt";
 
 export interface AuthUser {
   id: string;
@@ -16,9 +17,11 @@ export interface AuthUser {
 
 interface AuthState {
   token: string | null;
+  jwt: string | null;
   user: AuthUser | null;
   isValidating: boolean;
   setToken: (token: string) => void;
+  setJwt: (jwt: string | null) => void;
   setUser: (user: AuthUser | null) => void;
   setValidating: (v: boolean) => void;
   logout: () => void;
@@ -29,20 +32,48 @@ export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       token: null,
+      jwt: null,
       user: null,
       isValidating: false,
       setToken: (token) => set({ token }),
+      setJwt: (jwt) => {
+        if (jwt) {
+          localStorage.setItem(JWT_KEY, jwt);
+        } else {
+          localStorage.removeItem(JWT_KEY);
+        }
+        set({ jwt });
+      },
       setUser: (user) => set({ user }),
       setValidating: (isValidating) => set({ isValidating }),
-      logout: () => set({ token: null, user: null }),
-      clear: () => set({ token: null, user: null, isValidating: false }),
+      logout: () => {
+        localStorage.removeItem(JWT_KEY);
+        set({ token: null, jwt: null, user: null });
+      },
+      clear: () => {
+        localStorage.removeItem(JWT_KEY);
+        set({ token: null, jwt: null, user: null, isValidating: false });
+      },
     }),
     {
       name: TOKEN_KEY,
-      partialize: (state) => ({ token: state.token, user: state.user }),
+      partialize: (state) => ({ token: state.token, user: state.user, jwt: state.jwt }),
     }
   )
 );
+
+function getStoredJwt(): string | null {
+  return useAuthStore.getState().jwt || localStorage.getItem(JWT_KEY);
+}
+
+function buildAuthHeaders(): HeadersInit {
+  const jwt = getStoredJwt();
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (jwt) {
+    headers['Authorization'] = `Bearer ${jwt}`;
+  }
+  return headers;
+}
 
 export async function performFullLogout(reason: string): Promise<void> {
   console.log(`[Auth] performFullLogout started — reason: ${reason}`);
@@ -62,6 +93,7 @@ export async function performFullLogout(reason: string): Promise<void> {
   const store = useAuthStore.getState();
   store.clear();
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(JWT_KEY);
   lastKnownIsPremium = null;
 
   const api = (window as any).electronAPI;
@@ -98,6 +130,11 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       return null;
     }
 
+    if (data.jwt) {
+      useAuthStore.getState().setJwt(data.jwt);
+      console.log(`[Auth] saved jwt length=${data.jwt.length}`);
+    }
+
     const user: AuthUser = {
       id: data.user.id || '',
       email: data.user.email || null,
@@ -118,11 +155,17 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
 
 export async function validateToken(token: string): Promise<AuthUser | null> {
   try {
-    console.log('[Auth] Validating session with /api/me');
+    const jwt = getStoredJwt();
+    const useJwt = !!jwt;
+    console.log(`[Auth] Validating session with /api/me (useJwt=${useJwt})`);
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) {
+      headers['Authorization'] = `Bearer ${jwt}`;
+    }
+
     const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       credentials: 'include',
     });
 
@@ -131,9 +174,10 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
       return null;
     }
 
+    const authMode = response.headers.get('X-Auth-Mode');
     const data = await response.json();
-    console.log('[Auth] Session status:', data);
-    
+    console.log(`[Auth] Session status: authMode=${authMode}`, data);
+
     if (data.loggedIn === false) {
       return null;
     }
@@ -163,11 +207,18 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
   const store = useAuthStore.getState();
   const wasPremium = lastKnownIsPremium !== null ? lastKnownIsPremium : (store.user?.isPremium || false);
 
-  console.log('[PremiumFlow] refreshEntitlements start - wasPremium:', wasPremium, 'lastKnownIsPremium:', lastKnownIsPremium);
+  const jwt = getStoredJwt();
+  const useJwt = !!jwt;
+  console.log(`[PremiumFlow] refreshEntitlements start - wasPremium=${wasPremium} lastKnownIsPremium=${lastKnownIsPremium} useJwt=${useJwt}`);
 
   try {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) {
+      headers['Authorization'] = `Bearer ${jwt}`;
+    }
+
     const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       credentials: 'include',
     });
 
@@ -176,8 +227,9 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
       return { upgraded: false, user: null };
     }
 
+    const authMode = response.headers.get('X-Auth-Mode');
     const data = await response.json();
-    console.log(`[PremiumFlow] /api/me status=${response.status} loggedIn=${data.loggedIn} isPremium=${data.isPremium}`);
+    console.log(`[PremiumFlow] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium}`);
 
     if (data.loggedIn === false) {
       return { upgraded: false, user: null };
@@ -197,7 +249,7 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
     lastKnownIsPremium = newUser.isPremium;
 
     store.setUser(newUser);
-    console.log(`[PremiumFlow] refreshEntitlements end upgraded=${upgraded} premium=${newUser.isPremium} wasPremium=${wasPremium}`);
+    console.log(`[PremiumFlow] refreshEntitlements end upgraded=${upgraded} premium=${newUser.isPremium} wasPremium=${wasPremium} authMode=${authMode}`);
 
     return { upgraded, user: newUser };
   } catch (err) {
