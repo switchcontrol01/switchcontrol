@@ -96,41 +96,15 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: isDev // Disable DevTools in production
+      devTools: true,
     }
   });
 
-  // Only open DevTools in development mode
-  if (isDev) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
-  }
-
-  // Block DevTools keyboard shortcuts in production
-  if (!isDev) {
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-      // Block F12
-      if (input.key === 'F12') {
-        event.preventDefault();
-      }
-      // Block Ctrl+Shift+I (Windows/Linux) and Cmd+Option+I (macOS)
-      if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'i') {
-        event.preventDefault();
-      }
-      // Block Ctrl+Shift+J (console)
-      if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'j') {
-        event.preventDefault();
-      }
-      // Block Ctrl+Shift+C (inspect element)
-      if ((input.control || input.meta) && input.shift && input.key.toLowerCase() === 'c') {
-        event.preventDefault();
-      }
-    });
-    
-    // Block context menu (right-click inspect) in production
-    mainWindow.webContents.on('context-menu', (event) => {
-      event.preventDefault();
-    });
-  }
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
   
   // === NAVIGATION GUARDS ===
   // Block navigation to external sites - open in browser instead
