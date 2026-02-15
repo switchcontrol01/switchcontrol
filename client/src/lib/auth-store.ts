@@ -44,12 +44,11 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Full logout that invalidates backend session + clears all local state
-export async function performFullLogout(): Promise<void> {
-  console.log('[Auth] performFullLogout started');
-  
+export async function performFullLogout(reason: string): Promise<void> {
+  console.log(`[Auth] performFullLogout started — reason: ${reason}`);
+  console.trace('[Auth] logout trace');
+
   try {
-    // 1. Call backend to invalidate session and expire cookie
     console.log('[Auth] Calling backend /auth/logout');
     const response = await fetch(`${AUTH_DOMAIN}/auth/logout`, {
       method: 'POST',
@@ -59,24 +58,18 @@ export async function performFullLogout(): Promise<void> {
   } catch (err) {
     console.error('[Auth] Backend logout failed:', err);
   }
-  
-  // 2. Clear Zustand store and persisted localStorage
+
   const store = useAuthStore.getState();
   store.clear();
-  
-  // 3. Clear the persisted storage key
   localStorage.removeItem(TOKEN_KEY);
-  
-  // 4. Reset lastKnownIsPremium
   lastKnownIsPremium = null;
-  
-  // 5. Clear Electron cookies if available
+
   const api = (window as any).electronAPI;
   if (api?.clearAuthCookies) {
-    console.log('[Auth] Clearing Electron cookies');
+    console.log('[Auth] Clearing Electron cookies (explicit sign-out)');
     await api.clearAuthCookies();
   }
-  
+
   console.log('[Auth] performFullLogout completed');
 }
 
@@ -105,7 +98,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       return null;
     }
 
-    return {
+    const user: AuthUser = {
       id: data.user.id || '',
       email: data.user.email || null,
       username: data.user.name || data.user.firstName || null,
@@ -114,6 +107,9 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       isPremium: data.user.isPremium || false,
       loggedIn: true,
     };
+
+    console.log(`[Auth] exchangeToken success, user=${user.id} isPremium=${user.isPremium} ts=${Date.now()}`);
+    return user;
   } catch (err) {
     console.error('[Auth] Token exchange error:', err);
     return null;
@@ -157,16 +153,18 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
   }
 }
 
-// Track last known premium state separately to avoid stale store issues
 let lastKnownIsPremium: boolean | null = null;
+
+export function resetLastKnownPremium() {
+  lastKnownIsPremium = null;
+}
 
 export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: AuthUser | null }> {
   const store = useAuthStore.getState();
-  const previousPlan = store.user?.plan || 'free';
   const wasPremium = lastKnownIsPremium !== null ? lastKnownIsPremium : (store.user?.isPremium || false);
-  
+
   console.log('[PremiumFlow] refreshEntitlements start - wasPremium:', wasPremium, 'lastKnownIsPremium:', lastKnownIsPremium);
-  
+
   try {
     const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
       headers: { 'Content-Type': 'application/json' },
@@ -174,15 +172,14 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
     });
 
     if (!response.ok) {
-      console.error('[PremiumFlow] refreshEntitlements failed:', response.status);
+      console.error(`[PremiumFlow] /api/me status=${response.status} (HTTP error)`);
       return { upgraded: false, user: null };
     }
 
     const data = await response.json();
-    console.log('[PremiumFlow] refreshEntitlements response:', { isPremium: data.isPremium, loggedIn: data.loggedIn });
-    
+    console.log(`[PremiumFlow] /api/me status=${response.status} loggedIn=${data.loggedIn} isPremium=${data.isPremium}`);
+
     if (data.loggedIn === false) {
-      console.log('[PremiumFlow] refreshEntitlements end - not logged in');
       return { upgraded: false, user: null };
     }
 
@@ -197,16 +194,48 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
     };
 
     const upgraded = !wasPremium && newUser.isPremium;
-    
-    // Update lastKnownIsPremium AFTER computing upgraded
     lastKnownIsPremium = newUser.isPremium;
-    
+
     store.setUser(newUser);
     console.log(`[PremiumFlow] refreshEntitlements end upgraded=${upgraded} premium=${newUser.isPremium} wasPremium=${wasPremium}`);
-    
+
     return { upgraded, user: newUser };
   } catch (err) {
     console.error('[PremiumFlow] refreshEntitlements error:', err);
     return { upgraded: false, user: null };
   }
+}
+
+export async function retryRefreshEntitlements(opts?: {
+  attempts?: number;
+  delayMs?: number;
+  initialDelayMs?: number;
+}): Promise<{ ok: boolean; upgraded: boolean; user: AuthUser | null; reason?: string }> {
+  const { attempts = 6, delayMs = 500, initialDelayMs = 300 } = opts || {};
+
+  console.log(`[PremiumFlow] retryRefreshEntitlements starting — initialDelay=${initialDelayMs}ms, attempts=${attempts}, delay=${delayMs}ms`);
+
+  if (initialDelayMs > 0) {
+    await new Promise(r => setTimeout(r, initialDelayMs));
+  }
+
+  for (let i = 0; i < attempts; i++) {
+    if (i > 0) {
+      console.log(`[PremiumFlow] /api/me retry wait ${delayMs}ms...`);
+      await new Promise(r => setTimeout(r, delayMs));
+    }
+
+    console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts}`);
+    const result = await refreshEntitlements();
+
+    if (result.user && result.user.loggedIn) {
+      console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=true isPremium=${result.user.isPremium} upgraded=${result.upgraded}`);
+      return { ok: true, upgraded: result.upgraded, user: result.user };
+    }
+
+    console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=false, retrying...`);
+  }
+
+  console.warn(`[PremiumFlow] /api/me still loggedIn=false after ${attempts} attempts`);
+  return { ok: false, upgraded: false, user: null, reason: 'not_logged_in_after_retries' };
 }

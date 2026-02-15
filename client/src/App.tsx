@@ -1,4 +1,4 @@
-import { useEffect, useState, createContext, useContext, useCallback } from "react";
+import React, { useEffect, useState, createContext, useContext, useCallback } from "react";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -11,7 +11,7 @@ import { PremiumUpgradeAnimation, shouldShowPremiumAnimation } from "@/component
 import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, performFullLogout } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout } from "@/lib/auth-store";
 import { usePremiumActivation } from "@/lib/premium-activation-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 
@@ -225,105 +225,112 @@ function ElectronAppContent() {
     return () => clearTimeout(splashTimer);
   }, []);
 
+  const handlePremiumUpgradeRef = React.useRef(handlePremiumUpgrade);
+  handlePremiumUpgradeRef.current = handlePremiumUpgrade;
+
   useEffect(() => {
-    if (isElectron) {
-      console.log('[App] Registering deep link auth callback');
-      const api = (window as any).electronAPI;
-      
-      api.auth.onCallback(async (url: string) => {
-        console.log('[TEMP-LOG] deep-link callback fired');
-        console.log('[PremiumFlow] deep-link received:', url);
-        
-        try {
-          const parsed = new URL(url);
-          const newToken = parsed.searchParams.get('token');
-          const provider = parsed.searchParams.get('provider');
-          const premiumActivated = parsed.searchParams.get('premium_activated') === 'true';
-          
-          console.log('[PremiumFlow] token exchange start - Token:', newToken ? 'present' : 'missing', 'Provider:', provider, 'Premium:', premiumActivated);
-          
-          if (premiumActivated && user?.loggedIn) {
-            console.log('[PremiumFlow] Premium purchase return detected, refreshing entitlements...');
-            
-            // Retry logic for webhook processing delay
-            const maxRetries = 5;
-            const retryDelays = [0, 1500, 3000, 5000, 8000]; // Immediate, then 1.5s, 3s, 5s, 8s
-            
-            for (let attempt = 0; attempt < maxRetries; attempt++) {
-              if (attempt > 0) {
-                console.log(`[PremiumFlow] Retry ${attempt}/${maxRetries - 1} - waiting ${retryDelays[attempt]}ms...`);
-                await new Promise(resolve => setTimeout(resolve, retryDelays[attempt]));
-              }
-              
-              const result = await refreshEntitlements();
-              console.log(`[PremiumFlow] premiumJustActivated=${result.upgraded}`);
-              if (result.upgraded) {
-                console.log('[PremiumFlow] Premium upgrade confirmed on attempt', attempt + 1);
-                console.log('[PremiumFlow] playing animation');
-                handlePremiumUpgrade();
-                return;
-              }
-              
-              if (result.user?.isPremium) {
-                // User is already premium, no animation needed but confirm state
-                console.log('[PremiumFlow] User already premium, no upgrade animation needed');
-                return;
-              }
-            }
-            
-            console.warn('[PremiumFlow] Premium upgrade not detected after all retries - showing pending modal');
-            setShowPendingActivation(true);
+    if (!isElectron) return;
+    console.log('[App] Registering deep link auth callback (once)');
+    const api = (window as any).electronAPI;
+
+    api.auth.onCallback(async (url: string) => {
+      console.log('[TEMP-LOG] deep-link callback fired');
+      console.log('[PremiumFlow] deep-link received:', url);
+
+      try {
+        const parsed = new URL(url);
+        const newToken = parsed.searchParams.get('token');
+        const provider = parsed.searchParams.get('provider');
+        const premiumActivated = parsed.searchParams.get('premium_activated') === 'true';
+        const currentUser = useAuthStore.getState().user;
+
+        console.log('[PremiumFlow] parsed — token:', newToken ? 'present' : 'missing', 'provider:', provider, 'premiumActivated:', premiumActivated, 'currentUserLoggedIn:', currentUser?.loggedIn);
+
+        if (premiumActivated && currentUser?.loggedIn) {
+          console.log('[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements with retries...');
+
+          const result = await retryRefreshEntitlements({
+            attempts: 6,
+            delayMs: 1500,
+            initialDelayMs: 500,
+          });
+
+          if (result.ok && result.upgraded) {
+            console.log('[PremiumFlow] Premium upgrade confirmed via retries — playing animation');
+            handlePremiumUpgradeRef.current();
             return;
           }
-          
-          if (newToken) {
-            setValidating(true);
-            storeLogout();
-            
-            const exchangedUser = await exchangeToken(newToken);
-            
-            if (exchangedUser) {
-              setToken(newToken);
-              setUser(exchangedUser);
-              console.log('[App] Token exchanged, user authenticated:', exchangedUser.id);
-              
-              // Check if first login for this user
-              const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
-              const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-              
-              if (!hasBeenWelcomed) {
-                setIsFirstLogin(true);
-                localStorage.setItem(welcomeKey, 'true');
-                setPhase("welcome");
-              } else {
-                setPhase("authenticated");
-                setLocation("/dashboard");
-              }
-              
-              if (premiumActivated && exchangedUser.isPremium) {
-                handlePremiumUpgrade();
-              }
+
+          if (result.ok && result.user?.isPremium) {
+            console.log('[PremiumFlow] User already premium, no upgrade animation needed');
+            return;
+          }
+
+          console.warn('[PremiumFlow] Premium not confirmed after retries — showing pending modal');
+          setShowPendingActivation(true);
+          return;
+        }
+
+        if (newToken) {
+          console.log('[Auth] exchangeToken starting — DO NOT clear store beforehand');
+          useAuthStore.getState().setValidating(true);
+
+          const exchangedUser = await exchangeToken(newToken);
+
+          if (exchangedUser) {
+            useAuthStore.getState().setToken(newToken);
+            useAuthStore.getState().setUser(exchangedUser);
+            console.log(`[Auth] exchangeToken success, now validating /api/me in 300ms — user=${exchangedUser.id} provider=${provider} ts=${Date.now()}`);
+
+            const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
+            const hasBeenWelcomed = localStorage.getItem(welcomeKey);
+
+            if (!hasBeenWelcomed) {
+              setIsFirstLogin(true);
+              localStorage.setItem(welcomeKey, 'true');
+              setPhase("welcome");
             } else {
-              console.error('[App] Token exchange failed');
-              storeLogout();
-              setPhase("unauthenticated");
+              setPhase("authenticated");
+              setLocation("/dashboard");
             }
-            setValidating(false);
+
+            if (premiumActivated) {
+              console.log('[PremiumFlow] Token exchange + premiumActivated — validating premium with retries...');
+              const premResult = await retryRefreshEntitlements({
+                attempts: 6,
+                delayMs: 1500,
+                initialDelayMs: 300,
+              });
+              if (premResult.ok && premResult.upgraded) {
+                console.log('[PremiumFlow] Premium confirmed after login — playing animation');
+                handlePremiumUpgradeRef.current();
+              } else if (premResult.ok && premResult.user?.isPremium) {
+                console.log('[PremiumFlow] Already premium after login, no animation');
+              } else {
+                console.warn('[PremiumFlow] Premium not confirmed after login retries — showing pending');
+                setShowPendingActivation(true);
+              }
+            }
           } else {
-            storeLogout();
+            console.error('[App] Token exchange failed — setting unauthenticated (NO cookie clear)');
+            useAuthStore.getState().clear();
             setPhase("unauthenticated");
           }
-        } catch (err) {
-          console.error('[App] Error parsing auth callback:', err);
-          setValidating(false);
+          useAuthStore.getState().setValidating(false);
+        } else if (!premiumActivated) {
+          console.log('[App] Deep link with no token and no premium flag — going to login');
+          setPhase("unauthenticated");
         }
-      });
+      } catch (err) {
+        console.error('[App] Error parsing auth callback:', err);
+        useAuthStore.getState().setValidating(false);
+      }
+    });
 
-      return () => {
-        (window as any).electronAPI?.auth?.removeCallbackListener?.();
-      };
-    }
-  }, [setToken, setUser, setLocation, setValidating, handlePremiumUpgrade, user?.loggedIn, storeLogout]);
+    return () => {
+      (window as any).electronAPI?.auth?.removeCallbackListener?.();
+    };
+  }, []);
 
   useEffect(() => {
     if (!splashDone) return;
@@ -371,7 +378,7 @@ function ElectronAppContent() {
             setPhase("authenticated");
           }
         } else {
-          console.log('[App] Token exchange failed, clearing');
+          console.log('[App] Boot: token exchange failed — clearing store (NO cookie clear, NO performFullLogout)');
           storeLogout();
           setPhase("unauthenticated");
         }
@@ -384,8 +391,8 @@ function ElectronAppContent() {
   }, [splashDone]);
 
   const handleLogout = async () => {
-    console.log('[Auth] Electron logout initiated');
-    await performFullLogout();
+    console.log('[Auth] logout called because user_clicked_signout triggeredBy=handleLogout');
+    await performFullLogout('user_clicked_signout');
     setPhase("unauthenticated");
     setLocation("/");
   };
@@ -538,14 +545,13 @@ function WebsiteContent() {
   }, []);
 
   const handleLogout = async () => {
-    console.log('[Auth] Website logout initiated');
+    console.log('[Auth] logout called because user_clicked_signout triggeredBy=WebsiteApp.handleLogout');
     try {
       await fetch('/auth/logout', { method: 'POST', credentials: 'include' });
       console.log('[Auth] Backend session invalidated');
     } catch (err) {
       console.error('[Auth] Logout failed:', err);
     }
-    // Clear local storage
     localStorage.removeItem('sc_auth_token_v2');
     setUser(null);
     window.location.href = '/';
