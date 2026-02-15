@@ -1,0 +1,255 @@
+Right now your system works functionally. Now we tighten experience quality and remove weak spots.
+
+We’re going to structure this properly so Replit cannot half-do it again.
+
+
+---
+
+PHASE 1 — Deep Link Must Auto-Open Properly
+
+You want: Click “Go to app” → App opens instantly.
+
+Reality
+
+Browsers will not auto-open without user gesture. But the button click counts. So we implement a proper protocol redirect with fallback.
+
+Tell Replit:
+
+Fix “Go to app” deep link so it reliably opens installed desktop app.
+
+Requirements:
+
+1) On button click:
+   Immediately run:
+   window.location.href = `switchcontrol://premium?source=web&ts=${Date.now()}`
+
+2) Add fallback:
+   setTimeout(() => {
+     window.location.href = "/download?from=premium";
+   }, 1500);
+
+3) Do NOT use React router navigation for this.
+   Must use window.location.
+
+4) No async await before setting location.
+
+Show final button handler code.
+
+If this doesn’t open the app, the protocol registration in Electron is wrong. Then we fix that.
+
+
+---
+
+PHASE 2 — Premium Unlock Animation Must Feel $100 SaaS
+
+Right now it probably: • Appears • Plays • Ends
+
+That’s basic.
+
+You want: Impact. Weight. Anticipation. Afterglow.
+
+Here is exactly what to tell Replit.
+
+
+---
+
+Lock Animation Spec (Non-Negotiable)
+
+Paste this:
+
+Upgrade PremiumUpgradeAnimation to high-end animation.
+
+Animation Phases:
+
+PHASE 1 — Anticipation (250ms)
+- Lock slightly scales down (0.96)
+- Glow intensifies
+- Subtle vibration 2px left/right
+
+PHASE 2 — Impact (500ms)
+- Lock shakes quickly (short amplitude)
+- Then snaps scale to 1.12
+- Particle burst from center (12–20 particles)
+- Play unlock sound
+
+PHASE 3 — Crown Morph (400ms)
+- Crossfade from no-crown logo to crown logo
+- Crown layer slides down 8px while fading in
+- Final glow pulse
+
+PHASE 4 — Settle (600ms)
+- Scale returns to 1
+- Glow reduces to stable subtle halo
+
+Constraints:
+- Use only transform + opacity
+- No heavy blur on mobile
+- Use cubic-bezier(0.22,1,0.36,1)
+- Total time 1.4–1.8 seconds
+
+Provide:
+- Updated TSX
+- CSS keyframes
+- Screenshot of devtools animation timeline
+
+
+---
+
+PHASE 3 — Sound Design
+
+Sound is small but powerful.
+
+Tell Replit:
+
+Add sound effects:
+
+1) lock-click.wav (soft metallic click) at animation start
+2) unlock-whoosh.wav at impact phase
+
+Implementation:
+- Preload Audio objects
+- Call audio.play() in animation phase callbacks
+- Fail silently if blocked
+- Volume = 0.35
+
+Do not autoplay on page load.
+
+In Electron this will work instantly. On web it works if user has interacted already.
+
+
+---
+
+PHASE 4 — Guided Tour Must Attach to Sidebar
+
+Right now it’s just a rectangle box.
+
+That is amateur.
+
+We fix it properly.
+
+Tell Replit:
+
+Upgrade GuidedTour to anchor to sidebar.
+
+Steps:
+
+1) Add data-tour attributes to sidebar items:
+   data-tour="optimize"
+   data-tour="network"
+   data-tour="bios"
+   etc.
+
+2) GuidedTour must:
+   - Highlight target element with animated halo
+   - Dim background
+   - Animate tooltip with blur-in + translateY
+   - Show step count 1/5
+   - Next / Back buttons
+
+3) Mobile:
+   - Tooltip becomes bottom sheet
+   - Highlight still visible
+
+4) Do NOT check server flag inside GuidedTour.
+   Premium tour is allowed once right after animation.
+   Only use localStorage to mark completion.
+
+
+---
+
+PHASE 5 — Scroll Blur Reveal That Actually Works
+
+Your blur likely didn’t work because:
+
+• IntersectionObserver threshold wrong
+• CSS not using filter
+• Mobile disables blur
+• reveal class never applied
+
+Here’s what should exist:
+
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(40px);
+  filter: blur(12px);
+  transition:
+    opacity 0.6s ease,
+    transform 0.6s ease,
+    filter 0.6s ease;
+}
+
+[data-reveal].visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+And JS:
+
+const observer = new IntersectionObserver(
+  entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add("visible");
+      }
+    });
+  },
+  { threshold: 0.2 }
+);
+
+document.querySelectorAll("[data-reveal]").forEach(el => observer.observe(el));
+
+If Replit didn’t implement blur, they probably only animated opacity.
+
+
+---
+
+PHASE 6 — Landing Page Background Must Feel Alive
+
+You want: • Moving gradient mesh • Subtle animated blobs • Not epilepsy
+
+Tell Replit:
+
+Improve landing background:
+
+- Add animated gradient mesh layer (slow 20s loop)
+- Add subtle moving blob shapes with 30s float
+- Add faint grain texture overlay
+- Ensure GPU safe
+- Reduce effect intensity on screens < 768px
+
+No random color swaps.
+Keep brand purple / cyan palette.
+
+
+---
+
+Now Important
+
+Before doing anything else:
+
+1. Confirm deep link works.
+
+
+2. Confirm animation plays clean.
+
+
+3. Confirm tour anchors to sidebar.
+
+
+4. Then polish visuals.
+
+
+
+Do not let Replit touch 15 files at once again.
+
+
+---
+
+Now answer me this:
+
+Do you want the unlock animation to: A) Feel cyberpunk explosive B) Feel luxury smooth C) Feel minimal Apple-like
+
+Pick one. That defines motion language.
+
+Then I’ll refine the animation personality exactly.
