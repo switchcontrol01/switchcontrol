@@ -1,14 +1,18 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
 
 if (!JWT_SECRET) {
   if (process.env.NODE_ENV === "production") {
-    console.error("[FATAL] JWT_SECRET environment variable is required in production. Exiting.");
+    console.error("[FATAL] Neither JWT_SECRET nor SESSION_SECRET is set. Exiting.");
     process.exit(1);
   } else {
     console.warn("[AUTH] JWT_SECRET not set — using insecure dev fallback. DO NOT use in production.");
   }
+}
+
+if (!process.env.JWT_SECRET && process.env.SESSION_SECRET) {
+  console.log("[AUTH] JWT_SECRET not set — using SESSION_SECRET for JWT signing.");
 }
 
 function getSecret(): string {
