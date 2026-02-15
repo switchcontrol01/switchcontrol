@@ -68,6 +68,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Auth cookie management
   clearAuthCookies: () => ipcRenderer.invoke('auth:clearCookies'),
+
+  // Debug: dump Electron cookies for switchcontrol.org
+  debugCookies: () => ipcRenderer.invoke('auth:debugCookies'),
 });
 
 window.addEventListener('DOMContentLoaded', () => {

@@ -282,6 +282,11 @@ function ElectronAppContent() {
             useAuthStore.getState().setUser(exchangedUser);
             console.log(`[Auth] exchangeToken success, now validating /api/me in 300ms — user=${exchangedUser.id} provider=${provider} ts=${Date.now()}`);
 
+            if ((window as any).electronAPI?.debugCookies) {
+              const cookies = await (window as any).electronAPI.debugCookies();
+              console.log('[Auth][RENDERER] Electron cookies after exchangeToken:', cookies);
+            }
+
             const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
             const hasBeenWelcomed = localStorage.getItem(welcomeKey);
 

@@ -756,9 +756,30 @@ ipcMain.handle('auth:clearCookies', async () => {
   }
 });
 
+ipcMain.handle('auth:debugCookies', async () => {
+  const { session } = require('electron');
+  const cookies = await session.defaultSession.cookies.get({
+    domain: 'switchcontrol.org'
+  });
+
+  console.log('[Auth][MAIN] cookies found:', cookies.length);
+
+  return cookies.map(c => ({
+    name: c.name,
+    domain: c.domain,
+    path: c.path,
+    secure: c.secure,
+    httpOnly: c.httpOnly,
+    sameSite: c.sameSite,
+    expirationDate: c.expirationDate
+  }));
+});
+
 app.whenReady().then(() => {
   console.log('[TEMP-LOG] app.whenReady() fired, setting protocol and creating window');
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
+  const isDefault = app.isDefaultProtocolClient('switchcontrol');
+  console.log('[DeepLink][MAIN] protocol registered:', isDefault);
   createWindow();
 });
 
