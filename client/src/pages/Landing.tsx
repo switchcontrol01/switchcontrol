@@ -602,7 +602,7 @@ export default function Landing() {
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[hsl(260,20%,6%)] via-[hsl(260,18%,8%)] to-[hsl(260,20%,6%)] relative page-enter animated-mesh-bg">
+    <div className="min-h-screen bg-gradient-to-b from-[hsl(260,20%,6%)] via-[hsl(260,18%,8%)] to-[hsl(260,20%,6%)] relative page-enter">
       <PageBackground />
       <GlowBlobs />
       <GrainOverlay />
@@ -624,7 +624,7 @@ export default function Landing() {
               <AnimateIn delay={150}>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6 animate-hero-float">
                   Unlock Your PC's{" "}
-                  <span className="gradient-text-shimmer">
+                  <span className="bg-gradient-to-r from-[hsl(270,60%,55%)] via-[hsl(280,65%,65%)] to-[hsl(190,90%,50%)] bg-clip-text text-transparent">
                     True Potential
                   </span>
                 </h1>
@@ -692,7 +692,7 @@ export default function Landing() {
             
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
               {FEATURES.map((feature, i) => (
-                <Reveal key={feature.title} delay={i * 0.15}>
+                <Reveal key={feature.title} delay={i * 0.1}>
                   <Card className="animated-border tilt-card bg-[hsl(270,60%,55%,0.05)] border-[hsl(270,60%,55%,0.15)] hover:border-[hsl(270,60%,55%,0.4)] hover:bg-[hsl(270,60%,55%,0.08)] hover:shadow-lg hover:shadow-[hsl(270,60%,55%,0.15)] transition-all duration-300 h-full group rounded-xl overflow-hidden">
                     <CardContent className="p-6 relative z-10">
                       <div className="size-12 rounded-lg bg-[hsl(270,60%,55%,0.15)] group-hover:bg-[hsl(270,60%,55%,0.25)] group-hover:shadow-lg group-hover:shadow-[hsl(270,60%,55%,0.2)] flex items-center justify-center mb-4 transition-all duration-300">
