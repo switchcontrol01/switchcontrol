@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings as SettingsIcon, Save, RotateCcw, FolderOpen, ExternalLink, Volume2 } from "lucide-react";
+import { Settings as SettingsIcon, Save, RotateCcw, FolderOpen, ExternalLink, Volume2, Mail, Copy, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
+import { useAppAuth } from "@/App";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -27,9 +28,12 @@ function TikTokIcon({ className }: { className?: string }) {
   );
 }
 
+const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
+
 export default function Settings() {
   const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled, soundEffectsEnabled, setSoundEffectsEnabled } = useStore();
   const { toast } = useToast();
+  const { isPremium } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
 
   const handleSave = () => {
@@ -157,6 +161,54 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+
+          {isPremium && (
+            <Card className="bg-card/50 border-emerald-500/20" data-tour="settings-email">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Crown className="size-5 text-amber-400" />
+                  Priority Support
+                </CardTitle>
+                <CardDescription>As a Premium member, you get direct priority email support.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-4">
+                  <div className="size-10 rounded-lg bg-emerald-500/15 flex items-center justify-center shrink-0">
+                    <Mail className="size-5 text-emerald-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-emerald-400/70 font-medium uppercase tracking-wider mb-1">Priority Email</p>
+                    <p className="text-sm text-white font-mono select-all" data-testid="text-support-email">{SUPPORT_EMAIL}</p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-white/40 hover:text-white/80"
+                      onClick={() => {
+                        navigator.clipboard.writeText(SUPPORT_EMAIL);
+                        toast({ title: "Copied", description: "Email address copied to clipboard." });
+                      }}
+                      data-testid="button-copy-email"
+                    >
+                      <Copy className="size-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 text-emerald-400/60 hover:text-emerald-400"
+                      asChild
+                    >
+                      <a href={`mailto:${SUPPORT_EMAIL}`} data-testid="link-mailto-support">
+                        <ExternalLink className="size-4" />
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">We typically reply within 24 hours.</p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Danger Zone */}
           <Card className="bg-red-500/5 border-red-500/10">

@@ -16,6 +16,20 @@ function getCtx(): AudioContext | null {
   return audioCtx;
 }
 
+let preloaded = false;
+export function preloadAudio(): void {
+  if (preloaded) return;
+  preloaded = true;
+  const ctx = getCtx();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0, ctx.currentTime);
+  osc.connect(g).connect(ctx.destination);
+  osc.start();
+  osc.stop(ctx.currentTime + 0.01);
+}
+
 function getSoundEnabled(): boolean {
   try {
     const raw = localStorage.getItem('sc_sound_effects');
@@ -217,6 +231,33 @@ export function playMetallicSnap(): void {
   body.connect(bg).connect(ctx.destination);
   body.start(now);
   body.stop(now + 0.2);
+}
+
+export function playSuccessChime(): void {
+  if (!shouldPlay()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const vol = MAX_VOLUME * 0.25;
+
+  const notes = [
+    { freq: 880, delay: 0, dur: 0.25 },
+    { freq: 1320, delay: 0.06, dur: 0.3 },
+  ];
+
+  notes.forEach(({ freq, delay, dur }) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + delay);
+    g.gain.setValueAtTime(0, now + delay);
+    g.gain.linearRampToValueAtTime(vol, now + delay + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, now + delay + dur);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now + delay);
+    osc.stop(now + delay + dur + 0.05);
+  });
 }
 
 export function playPremiumChime(): void {

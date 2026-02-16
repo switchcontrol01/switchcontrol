@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
-import { ExternalLink, Download } from "lucide-react";
+import { ExternalLink, Download, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { playSuccessChime } from "@/lib/premium-audio";
 
 type PageState = "loading" | "success" | "error";
-type AnimPhase = "idle" | "stroke" | "check" | "glow" | "text" | "buttons" | "ready";
+type AnimPhase = "idle" | "stroke" | "check" | "glow" | "confetti" | "text" | "buttons" | "ready";
 
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() =>
@@ -17,36 +18,6 @@ function usePrefersReducedMotion() {
     return () => mq.removeEventListener("change", handler);
   }, []);
   return reduced;
-}
-
-function playActivationChime() {
-  try {
-    const ctx = new AudioContext();
-    const now = ctx.currentTime;
-
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(880, now);
-    osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
-    gain1.gain.setValueAtTime(0.06, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-    osc1.connect(gain1).connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.25);
-
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(1760, now + 0.06);
-    gain2.gain.setValueAtTime(0.04, now + 0.06);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-    osc2.connect(gain2).connect(ctx.destination);
-    osc2.start(now + 0.06);
-    osc2.stop(now + 0.35);
-
-    setTimeout(() => ctx.close(), 500);
-  } catch {}
 }
 
 function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
@@ -62,57 +33,54 @@ function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
     const t1 = setTimeout(() => setPhase("check"), 1200);
     const t2 = setTimeout(() => {
       setPhase("glow");
-      playActivationChime();
+      playSuccessChime();
     }, 1700);
-    const t3 = setTimeout(() => setPhase("text"), 2100);
-    const t4 = setTimeout(() => setPhase("buttons"), 2600);
-    const t5 = setTimeout(() => setPhase("ready"), 3000);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
+    const t3 = setTimeout(() => setPhase("confetti"), 2000);
+    const t4 = setTimeout(() => setPhase("text"), 2400);
+    const t5 = setTimeout(() => setPhase("buttons"), 2900);
+    const t6 = setTimeout(() => setPhase("ready"), 3300);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); clearTimeout(t6); };
   }, [trigger, reducedMotion]);
 
   return phase;
 }
 
-function GridOverlay() {
-  return (
-    <div className="fixed inset-0 pointer-events-none" style={{ opacity: 0.03 }}>
-      <svg width="100%" height="100%">
-        <defs>
-          <pattern id="pgrid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#pgrid)" />
-      </svg>
-    </div>
-  );
-}
+const PHASE_ORDER: AnimPhase[] = ["idle", "stroke", "check", "glow", "confetti", "text", "buttons", "ready"];
 
-function FloatingParticles() {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    size: 1 + Math.random() * 2,
-    delay: Math.random() * 8,
-    duration: 6 + Math.random() * 6,
-    opacity: 0.15 + Math.random() * 0.25,
-  }));
+function ConfettiBurst({ active }: { active: boolean }) {
+  const particles = useMemo(() =>
+    Array.from({ length: 30 }, (_, i) => ({
+      id: i,
+      x: (Math.random() - 0.5) * 300,
+      y: -(100 + Math.random() * 200),
+      rotate: Math.random() * 720 - 360,
+      scale: 0.4 + Math.random() * 0.8,
+      delay: Math.random() * 0.3,
+      duration: 0.8 + Math.random() * 0.6,
+      hue: [260, 280, 300, 330, 40, 50][Math.floor(Math.random() * 6)],
+      type: Math.random() > 0.5 ? 'circle' : 'rect',
+      size: 3 + Math.random() * 4,
+    })),
+  []);
+
+  if (!active) return null;
 
   return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+    <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {particles.map((p) => (
         <div
           key={p.id}
-          className="absolute rounded-full"
+          className="absolute left-1/2 top-1/2"
           style={{
-            left: p.left,
-            top: p.top,
             width: p.size,
-            height: p.size,
-            background: `rgba(168, 132, 255, ${p.opacity})`,
-            animation: `pParticleFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
-          }}
+            height: p.type === 'rect' ? p.size * 1.5 : p.size,
+            borderRadius: p.type === 'circle' ? '50%' : '1px',
+            background: `hsl(${p.hue}, 80%, 65%)`,
+            animation: `confettiFall ${p.duration}s cubic-bezier(0.22, 1, 0.36, 1) ${p.delay}s forwards`,
+            '--cx': `${p.x}px`,
+            '--cy': `${p.y}px`,
+            '--cr': `${p.rotate}deg`,
+          } as any}
         />
       ))}
     </div>
@@ -120,7 +88,7 @@ function FloatingParticles() {
 }
 
 function CheckAnimation({ phase }: { phase: AnimPhase }) {
-  const phaseIndex = ["idle", "stroke", "check", "glow", "text", "buttons", "ready"].indexOf(phase);
+  const phaseIndex = PHASE_ORDER.indexOf(phase);
   const showStroke = phaseIndex >= 1;
   const showCheck = phaseIndex >= 2;
   const showGlow = phaseIndex >= 3;
@@ -128,14 +96,24 @@ function CheckAnimation({ phase }: { phase: AnimPhase }) {
   return (
     <div className="relative w-24 h-24 mx-auto mb-8">
       {showGlow && (
-        <div
-          className="absolute inset-0 rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(168,132,255,0.3) 0%, transparent 70%)",
-            animation: "pGlowPulse 2s ease-in-out infinite",
-            transform: "scale(2)",
-          }}
-        />
+        <>
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: "radial-gradient(circle, rgba(168,132,255,0.35) 0%, transparent 70%)",
+              animation: "pGlowPulse 2s ease-in-out infinite",
+              transform: "scale(2.2)",
+            }}
+          />
+          <div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: "radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 60%)",
+              animation: "pGlowPulse 2.5s ease-in-out 0.3s infinite",
+              transform: "scale(3)",
+            }}
+          />
+        </>
       )}
 
       <svg viewBox="0 0 96 96" className="w-24 h-24 relative z-10">
@@ -146,7 +124,7 @@ function CheckAnimation({ phase }: { phase: AnimPhase }) {
           r="42"
           fill="none"
           stroke="url(#pStrokeGrad)"
-          strokeWidth="2"
+          strokeWidth="2.5"
           strokeLinecap="round"
           strokeDasharray={264}
           strokeDashoffset={showStroke ? 0 : 264}
@@ -172,6 +150,37 @@ function CheckAnimation({ phase }: { phase: AnimPhase }) {
           </linearGradient>
         </defs>
       </svg>
+    </div>
+  );
+}
+
+function FloatingParticles() {
+  const particles = Array.from({ length: 24 }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    size: 1 + Math.random() * 2.5,
+    delay: Math.random() * 8,
+    duration: 6 + Math.random() * 6,
+    opacity: 0.15 + Math.random() * 0.25,
+  }));
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            left: p.left,
+            top: p.top,
+            width: p.size,
+            height: p.size,
+            background: `rgba(168, 132, 255, ${p.opacity})`,
+            animation: `pParticleFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -232,9 +241,10 @@ export default function PremiumSuccess() {
   const reducedMotion = usePrefersReducedMotion();
   const animPhase = useAnimSequence(status === "success", reducedMotion);
 
-  const phaseIndex = ["idle", "stroke", "check", "glow", "text", "buttons", "ready"].indexOf(animPhase);
-  const showText = phaseIndex >= 4;
-  const showButtons = phaseIndex >= 5;
+  const phaseIndex = PHASE_ORDER.indexOf(animPhase);
+  const showConfetti = phaseIndex >= 4;
+  const showText = phaseIndex >= 5;
+  const showButtons = phaseIndex >= 6;
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -260,14 +270,13 @@ export default function PremiumSuccess() {
           setError("Payment not completed");
         }
       })
-      .catch((err) => {
+      .catch(() => {
         setStatus("error");
         setError("Failed to verify payment");
       });
   }, [navigate, queryClient]);
 
   const handleOpenApp = useCallback(() => {
-    console.log("[PremiumFlow] Opening desktop app via protocol deep-link");
     window.location.href = `switchcontrol://auth/success?premium_activated=true&source=web&ts=${Date.now()}`;
   }, []);
 
@@ -299,6 +308,23 @@ export default function PremiumSuccess() {
         @keyframes pLoadingPulse {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 0.8; }
+        }
+        @keyframes confettiFall {
+          0% { transform: translate(0, 0) rotate(0deg) scale(0); opacity: 1; }
+          30% { opacity: 1; }
+          100% { transform: translate(var(--cx), var(--cy)) rotate(var(--cr)) scale(1); opacity: 0; }
+        }
+        @keyframes glowBorderRotate {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
+        @keyframes gentleFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-6px); }
+        }
+        @keyframes shimmerGradient {
+          0% { background-position: -200% 50%; }
+          100% { background-position: 200% 50%; }
         }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after {
@@ -334,12 +360,22 @@ export default function PremiumSuccess() {
         />
       </div>
 
-      <GridOverlay />
+      <div className="fixed inset-0 pointer-events-none" style={{ opacity: 0.03 }}>
+        <svg width="100%" height="100%">
+          <defs>
+            <pattern id="pgrid" width="60" height="60" patternUnits="userSpaceOnUse">
+              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#pgrid)" />
+        </svg>
+      </div>
+
       <FloatingParticles />
 
       <div className="relative z-10 w-full max-w-md px-6">
         {status === "loading" && (
-          <div className="text-center">
+          <div className="text-center" style={{ animation: "gentleFloat 3s ease-in-out infinite" }}>
             <div className="relative w-16 h-16 mx-auto mb-8">
               <svg viewBox="0 0 64 64" className="w-16 h-16">
                 <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(168,132,255,0.1)" strokeWidth="1.5" />
@@ -368,48 +404,97 @@ export default function PremiumSuccess() {
         )}
 
         {status === "success" && (
-          <div className="text-center">
-            <CheckAnimation phase={animPhase} />
-
+          <div className="relative">
             <div
+              className="absolute -inset-px rounded-2xl pointer-events-none"
               style={{
+                background: showText
+                  ? "linear-gradient(90deg, rgba(139,92,246,0.4), rgba(168,132,255,0.6), rgba(6,182,212,0.4), rgba(139,92,246,0.4))"
+                  : "transparent",
+                backgroundSize: "200% 100%",
+                animation: showText ? "glowBorderRotate 3s linear infinite" : "none",
                 opacity: showText ? 1 : 0,
-                transform: showText ? "translateY(0)" : "translateY(12px)",
-                transition: "all 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+                transition: "opacity 0.6s ease",
+                filter: "blur(1px)",
               }}
-            >
-              <p
-                className="text-xs text-purple-300/60 tracking-widest uppercase mb-3"
-                style={{ letterSpacing: "0.25em" }}
-              >
-                Premium Activated
-              </p>
-              <h1 className="text-2xl font-semibold text-white/90 mb-2 tracking-tight">
-                System Upgraded
-              </h1>
-              <p className="text-sm text-white/35 leading-relaxed max-w-xs mx-auto">
-                Your SwitchControl system has been upgraded. All premium optimizations are now unlocked.
-              </p>
-            </div>
+            />
 
             <div
-              className="mt-10 space-y-3"
+              className="relative rounded-2xl bg-[#0a0812]/90 backdrop-blur-xl p-8 text-center border border-purple-500/10"
               style={{
-                opacity: showButtons ? 1 : 0,
-                transform: showButtons ? "translateY(0)" : "translateY(16px)",
-                transition: "all 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s",
+                animation: showText ? "gentleFloat 4s ease-in-out infinite" : "none",
+                boxShadow: showText
+                  ? "0 0 60px -10px rgba(139,92,246,0.15), 0 0 30px -5px rgba(168,132,255,0.1)"
+                  : "none",
               }}
             >
-              <LaunchButton onClick={handleOpenApp} />
+              <ConfettiBurst active={showConfetti} />
 
-              <button
-                onClick={() => navigate("/download")}
-                className="w-full h-11 rounded-lg border border-white/[0.06] bg-transparent text-white/30 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/50 hover:border-white/10 flex items-center justify-center gap-2"
-                data-testid="button-goto-download"
+              <CheckAnimation phase={animPhase} />
+
+              <div
+                style={{
+                  opacity: showText ? 1 : 0,
+                  transform: showText ? "translateY(0)" : "translateY(12px)",
+                  transition: "all 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
               >
-                <Download className="size-3.5" />
-                Download App First
-              </button>
+                <p
+                  className="text-xs tracking-widest uppercase mb-3 font-semibold"
+                  style={{
+                    letterSpacing: "0.25em",
+                    background: "linear-gradient(90deg, rgba(168,132,255,0.8), rgba(139,92,246,1), rgba(6,182,212,0.8))",
+                    backgroundClip: "text",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  Premium Activated
+                </p>
+                <h1 className="text-2xl font-bold text-white/90 mb-2 tracking-tight">
+                  System Upgraded
+                </h1>
+                <p className="text-sm text-white/35 leading-relaxed max-w-xs mx-auto">
+                  Your SwitchControl system has been upgraded. All premium optimizations are now unlocked.
+                </p>
+              </div>
+
+              <div className="mt-3 flex items-center justify-center gap-4">
+                {["Power Plan", "BIOS Advisor", "Priority Support"].map((feat, i) => (
+                  <div
+                    key={feat}
+                    className="flex items-center gap-1.5 text-[11px] text-white/30"
+                    style={{
+                      opacity: showText ? 1 : 0,
+                      transform: showText ? "translateY(0)" : "translateY(8px)",
+                      transition: `all 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${0.1 + i * 0.08}s`,
+                    }}
+                  >
+                    <Check className="size-3 text-purple-400/60" />
+                    {feat}
+                  </div>
+                ))}
+              </div>
+
+              <div
+                className="mt-8 space-y-3"
+                style={{
+                  opacity: showButtons ? 1 : 0,
+                  transform: showButtons ? "translateY(0)" : "translateY(16px)",
+                  transition: "all 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s",
+                }}
+              >
+                <LaunchButton onClick={handleOpenApp} />
+
+                <button
+                  onClick={() => navigate("/download")}
+                  className="w-full h-11 rounded-lg border border-white/[0.06] bg-transparent text-white/30 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/50 hover:border-white/10 flex items-center justify-center gap-2"
+                  data-testid="button-goto-download"
+                >
+                  <Download className="size-3.5" />
+                  Download App First
+                </button>
+              </div>
             </div>
           </div>
         )}

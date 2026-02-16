@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
+import { preloadAudio } from "@/lib/premium-audio";
 import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
@@ -195,6 +196,13 @@ function ElectronAppContent() {
       };
     }
   }, [showUpgradeAnimation, showPremiumTour]);
+
+  useEffect(() => {
+    const warmAudio = () => { preloadAudio(); window.removeEventListener('click', warmAudio); window.removeEventListener('keydown', warmAudio); };
+    window.addEventListener('click', warmAudio, { once: true });
+    window.addEventListener('keydown', warmAudio, { once: true });
+    return () => { window.removeEventListener('click', warmAudio); window.removeEventListener('keydown', warmAudio); };
+  }, []);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {

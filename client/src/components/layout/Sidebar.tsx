@@ -48,7 +48,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", icon: LayoutDashboard, href: "/dashboard", tourId: "dashboard" },
   { label: "Tweaks", icon: Settings, href: "/tweaks", tourId: "tweaks" },
-  { label: "Power Plan", icon: Zap, href: "/power-plan", isPremium: true },
+  { label: "Power Plan", icon: Zap, href: "/power-plan", isPremium: true, tourId: "power-plan" },
   { label: "App Booster", icon: Rocket, href: "/app-booster" },
   { label: "Focus Mode", icon: Moon, href: "/focus" },
   { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true, tourId: "network" },

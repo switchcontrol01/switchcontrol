@@ -125,6 +125,24 @@ shared/
 - Discord community link
 - TikTok social link
 
+### Premium Audio System
+- **Shared AudioContext**: Single persistent `AudioContext` in `client/src/lib/premium-audio.ts`
+- **Preloading**: `preloadAudio()` called on first user click/keydown to warm the context
+- **Sound Effects**: cinematic hum, rising tone, pulse tick, metallic snap, premium chime, success chime
+- **Controls**: Sound toggle in Settings (default ON), persisted via Zustand + `sc_sound_effects` localStorage
+- **Safety**: Respects `prefers-reduced-motion` and sound toggle; max volume 0.4
+
+### Premium Guided Tour
+- **Step Order**: Power Plan → Network Tweaks → BIOS Advisor → AI Advisor → Settings → Priority Email → Priority Support Unlocked
+- **Trigger**: Only after premium unlock animation completes (via `triggerPremiumTour()`)
+- **Replay Prevention**: localStorage `sc_premium_tour_completed`, only triggerable after server-backed unlock animation
+- **Navigation**: Auto-navigates to correct route per step (dashboard → settings)
+- **Tour Selectors**: `data-tour="power-plan"`, `data-tour="network"`, `data-tour="bios-advisor"`, `data-tour="ai-advisor"`, `data-tour="settings"`, `data-tour="settings-email"`
+
+### Priority Support
+- **Email**: `switchcontrol67@gmail.com` visible ONLY to premium users in Settings
+- **Features**: Copyable, mailto link, labeled "Priority Support"
+
 ### Notes
 - All system optimization actions are **simulated** - no real Windows registry or system changes occur
 - The "Requires local agent" badge indicates features that would need a native Windows component in production

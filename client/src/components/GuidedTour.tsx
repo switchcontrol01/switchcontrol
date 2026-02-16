@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronRight, ChevronLeft, Sparkles, Cpu, Crown } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Zap, Wifi, Cpu, Sparkles, Settings, Mail, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useHashLocation } from 'wouter/use-hash-location';
 
 interface TourStep {
   id: string;
@@ -9,15 +10,25 @@ interface TourStep {
   description: string;
   icon: React.ReactNode;
   tourSelector: string;
+  route?: string;
 }
 
 const PREMIUM_TOUR_STEPS: TourStep[] = [
   {
-    id: 'ai-advisor',
-    title: 'AI Advisor',
-    description: 'Your personal AI-powered optimization assistant. It scans your system and recommends the best tweaks for your hardware — available exclusively for Premium users.',
-    icon: <Sparkles className="w-5 h-5 text-purple-400" />,
-    tourSelector: '[data-tour="ai-advisor"]',
+    id: 'power-plan',
+    title: 'Power Plan',
+    description: 'Fine-tune your Windows power settings for maximum gaming performance. Choose from optimized profiles or create custom overrides tailored to your hardware.',
+    icon: <Zap className="w-5 h-5 text-amber-400" />,
+    tourSelector: '[data-tour="power-plan"]',
+    route: '/dashboard',
+  },
+  {
+    id: 'network-tweaks',
+    title: 'Network Tweaks',
+    description: 'Reduce latency and packet loss with advanced TCP/IP, UDP, DNS, and SMB optimizations. Premium-only network stack tuning for competitive gaming.',
+    icon: <Wifi className="w-5 h-5 text-cyan-400" />,
+    tourSelector: '[data-tour="network"]',
+    route: '/dashboard',
   },
   {
     id: 'bios-advisor',
@@ -25,13 +36,39 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     description: 'Expert BIOS configuration guidance tailored to your specific motherboard and CPU. Get safe, performance-tested recommendations for your exact setup.',
     icon: <Cpu className="w-5 h-5 text-cyan-400" />,
     tourSelector: '[data-tour="bios-advisor"]',
+    route: '/dashboard',
   },
   {
-    id: 'advanced-premium-tweaks',
-    title: 'Advanced Premium Tweaks',
-    description: 'Unlock the full library of advanced system optimizations — deep registry tweaks, network stack tuning, and performance profiles that free users can\'t access.',
+    id: 'ai-advisor',
+    title: 'AI Advisor',
+    description: 'Your personal AI-powered optimization assistant. It scans your system and recommends the best tweaks for your hardware — available exclusively for Premium users.',
+    icon: <Sparkles className="w-5 h-5 text-purple-400" />,
+    tourSelector: '[data-tour="ai-advisor"]',
+    route: '/dashboard',
+  },
+  {
+    id: 'settings',
+    title: 'Settings',
+    description: 'Manage your app preferences, sound effects, enhanced sensors, and account details — all in one place.',
+    icon: <Settings className="w-5 h-5 text-gray-400" />,
+    tourSelector: '[data-tour="settings"]',
+    route: '/dashboard',
+  },
+  {
+    id: 'support-email',
+    title: 'Priority Email',
+    description: 'Your dedicated support line — reach us anytime at switchcontrol67@gmail.com. We typically reply within 24 hours.',
+    icon: <Mail className="w-5 h-5 text-emerald-400" />,
+    tourSelector: '[data-tour="settings-email"]',
+    route: '/settings',
+  },
+  {
+    id: 'priority-support-unlocked',
+    title: 'Priority Support Unlocked',
+    description: 'You now have direct access to our team. If you ever need help with tweaks, configs, or troubleshooting — we\'re one email away. Enjoy your Premium experience.',
     icon: <Crown className="w-5 h-5 text-amber-400" />,
-    tourSelector: '[data-tour="advanced-premium-tweaks"]',
+    tourSelector: '[data-tour="settings-email"]',
+    route: '/settings',
   },
 ];
 
@@ -48,7 +85,9 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
   const [dismissed, setDismissed] = useState(false);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [animatingStep, setAnimatingStep] = useState(false);
+  const [navigating, setNavigating] = useState(false);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const [, setLocation] = useHashLocation();
 
   useEffect(() => {
     if (localStorage.getItem(PREMIUM_TOUR_KEY) === 'true') {
@@ -68,7 +107,23 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
   }, []);
 
   useEffect(() => {
-    if (!show || dismissed) return;
+    if (!show || dismissed || navigating) return;
+    const step = PREMIUM_TOUR_STEPS[currentStep];
+    if (!step) return;
+
+    if (step.route) {
+      const currentHash = window.location.hash.replace('#', '') || '/';
+      if (currentHash !== step.route) {
+        setNavigating(true);
+        setLocation(step.route);
+        const timer = setTimeout(() => {
+          setNavigating(false);
+          measureTarget(currentStep);
+        }, 400);
+        return () => clearTimeout(timer);
+      }
+    }
+
     measureTarget(currentStep);
 
     const handleResize = () => measureTarget(currentStep);
@@ -78,7 +133,7 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
       window.removeEventListener('resize', handleResize);
       clearInterval(interval);
     };
-  }, [show, dismissed, currentStep, measureTarget]);
+  }, [show, dismissed, currentStep, measureTarget, navigating, setLocation]);
 
   const changeStep = (next: number) => {
     setAnimatingStep(true);
@@ -113,6 +168,8 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
   const step = PREMIUM_TOUR_STEPS[currentStep];
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
   const total = PREMIUM_TOUR_STEPS.length;
+
+  const isLastStep = currentStep === total - 1;
 
   const tooltipTop = targetRect
     ? Math.max(16, targetRect.top + targetRect.height / 2 - 90)
@@ -305,7 +362,7 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
                   className="bg-purple-600 hover:bg-purple-700 h-8 px-4 shadow-lg shadow-purple-900/30"
                   data-testid="premium-tour-next"
                 >
-                  {currentStep === total - 1 ? 'Done' : 'Next'}
+                  {isLastStep ? 'Done' : 'Next'}
                   <ChevronRight className="w-4 h-4 ml-1" />
                 </Button>
               </div>

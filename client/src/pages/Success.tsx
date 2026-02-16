@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { playSuccessChime } from "@/lib/premium-audio";
 
 type ConfirmState = "loading" | "success" | "error";
 type AnimPhase = "idle" | "stroke" | "check" | "glow" | "text" | "buttons" | "ready";
@@ -20,36 +21,6 @@ function usePrefersReducedMotion() {
   return reduced;
 }
 
-function playActivationChime() {
-  try {
-    const ctx = new AudioContext();
-    const now = ctx.currentTime;
-
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(880, now);
-    osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
-    gain1.gain.setValueAtTime(0.06, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
-    osc1.connect(gain1).connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.25);
-
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(1760, now + 0.06);
-    gain2.gain.setValueAtTime(0.04, now + 0.06);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-    osc2.connect(gain2).connect(ctx.destination);
-    osc2.start(now + 0.06);
-    osc2.stop(now + 0.35);
-
-    setTimeout(() => ctx.close(), 500);
-  } catch {}
-}
-
 function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
   const [phase, setPhase] = useState<AnimPhase>("idle");
 
@@ -63,7 +34,7 @@ function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
     const t1 = setTimeout(() => setPhase("check"), 1200);
     const t2 = setTimeout(() => {
       setPhase("glow");
-      playActivationChime();
+      playSuccessChime();
     }, 1700);
     const t3 = setTimeout(() => setPhase("text"), 2100);
     const t4 = setTimeout(() => setPhase("buttons"), 2600);
