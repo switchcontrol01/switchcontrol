@@ -256,23 +256,34 @@ export default function PremiumSuccess() {
       return;
     }
 
+    const startTime = Date.now();
+    const MIN_LOADING_MS = 1200;
+
     fetch(`/api/stripe/session?session_id=${sessionId}`, {
       credentials: "include",
     })
       .then((res) => res.json())
       .then((data) => {
-        if (data.payment_status === "paid") {
-          setStatus("success");
-          queryClient.invalidateQueries({ queryKey: ["/api/user/premium-status"] });
-          queryClient.invalidateQueries({ queryKey: ["/api/me"] });
-        } else {
-          setStatus("error");
-          setError("Payment not completed");
-        }
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+        setTimeout(() => {
+          if (data.payment_status === "paid") {
+            setStatus("success");
+            queryClient.invalidateQueries({ queryKey: ["/api/user/premium-status"] });
+            queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+          } else {
+            setStatus("error");
+            setError("Payment not completed");
+          }
+        }, remaining);
       })
       .catch(() => {
-        setStatus("error");
-        setError("Failed to verify payment");
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
+        setTimeout(() => {
+          setStatus("error");
+          setError("Failed to verify payment");
+        }, remaining);
       });
   }, [navigate, queryClient]);
 

@@ -142,6 +142,16 @@ body {
   overflow-x: hidden;
 }
 
+/* Remove focus outlines for mouse/touch users - only show for keyboard */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
 /* Animated background container */
 .animated-bg {
   position: fixed;
@@ -513,7 +523,7 @@ body {
     radial-gradient(ellipse 50% 60% at 80% 70%, hsl(190 90% 50% / 0.05) 0%, transparent 50%),
     radial-gradient(ellipse 70% 40% at 50% 50%, hsl(280 55% 50% / 0.06) 0%, transparent 50%);
   background-size: 200% 200%;
-  animation: meshGradientShift 20s ease-in-out infinite;
+  animation: meshGradientShift 10s ease-in-out infinite;
   will-change: background-position;
 }
 

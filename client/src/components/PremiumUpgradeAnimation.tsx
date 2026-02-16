@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import scLogo from '@/assets/premium/sc-logo.png';
 import {
   playCinematicHum,
   playRisingTone,
@@ -16,10 +15,13 @@ interface PremiumUpgradeAnimationProps {
 
 type Phase =
   | 'idle'
-  | 'dark-activation'
-  | 'energy-build'
-  | 'premium-surge'
-  | 'confirmation'
+  | 'darken'
+  | 'lock-appear'
+  | 'glow-build'
+  | 'unlock-snap'
+  | 'shockwave'
+  | 'crown-reveal'
+  | 'text-reveal'
   | 'exiting'
   | 'done';
 
@@ -35,9 +37,8 @@ const FEATURES = [
 
 export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnimationProps) {
   const [phase, setPhase] = useState<Phase>('idle');
-  const [statusText, setStatusText] = useState('');
-  const [pulseCount, setPulseCount] = useState(0);
   const [visibleFeatures, setVisibleFeatures] = useState(0);
+  const [lockUnlocked, setLockUnlocked] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<{ stop: () => void } | null>(null);
   const risingRef = useRef<{ stop: () => void } | null>(null);
@@ -47,13 +48,13 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   []);
 
   const particles = useMemo(() =>
-    Array.from({ length: 20 }, (_, i) => ({
+    Array.from({ length: 30 }, (_, i) => ({
       id: i,
-      angle: (i / 20) * Math.PI * 2 + (Math.random() - 0.5) * 0.3,
-      dist: 70 + Math.random() * 100,
-      delay: Math.random() * 0.15,
-      dur: 0.4 + Math.random() * 0.3,
-      size: 2 + Math.random() * 3,
+      angle: (i / 30) * Math.PI * 2 + (Math.random() - 0.5) * 0.3,
+      dist: 80 + Math.random() * 140,
+      delay: Math.random() * 0.2,
+      dur: 0.5 + Math.random() * 0.4,
+      size: 2 + Math.random() * 4,
       hue: 250 + Math.random() * 60,
     })),
   []);
@@ -70,16 +71,15 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   useEffect(() => {
     if (!show) {
       setPhase('idle');
-      setStatusText('');
-      setPulseCount(0);
       setVisibleFeatures(0);
+      setLockUnlocked(false);
       return;
     }
 
     if (prefersReduced) {
-      setPhase('confirmation');
-      setStatusText('');
+      setPhase('crown-reveal');
       setVisibleFeatures(FEATURES.length);
+      setLockUnlocked(true);
       const t = setTimeout(() => {
         setPhase('done');
         onComplete();
@@ -91,49 +91,63 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
     const t: ReturnType<typeof setTimeout>[] = [];
     timersRef.current = t;
 
-    setPhase('dark-activation');
-    t.push(setTimeout(() => {
-      audioRef.current = playCinematicHum(1.4);
-    }, 150));
+    // Phase 1: Screen darkens (0-600ms)
+    setPhase('darken');
 
+    // Phase 2: Lock icon appears with ambient hum (600ms)
     t.push(setTimeout(() => {
-      setPhase('energy-build');
-      setStatusText('Activating Premium');
+      setPhase('lock-appear');
+      audioRef.current = playCinematicHum(2.0);
+    }, 600));
+
+    // Phase 3: Glow builds around lock (1800ms)
+    t.push(setTimeout(() => {
+      setPhase('glow-build');
       risingRef.current = playRisingTone(2.0);
-    }, 1400));
+    }, 1800));
 
-    t.push(setTimeout(() => { playPulseTick(); setPulseCount(1); }, 1800));
-    t.push(setTimeout(() => { playPulseTick(); setPulseCount(2); }, 2250));
-    t.push(setTimeout(() => { setStatusText('Finalizing Upgrade'); }, 2400));
-    t.push(setTimeout(() => { playPulseTick(); setPulseCount(3); }, 2700));
+    // Pulse ticks during glow build
+    t.push(setTimeout(() => { playPulseTick(); }, 2200));
+    t.push(setTimeout(() => { playPulseTick(); }, 2700));
+    t.push(setTimeout(() => { playPulseTick(); }, 3100));
 
+    // Phase 4: Lock snaps open (3400ms)
     t.push(setTimeout(() => {
-      setPhase('premium-surge');
-      setStatusText('');
+      setPhase('unlock-snap');
+      setLockUnlocked(true);
       risingRef.current?.stop();
       playMetallicSnap();
-    }, 3500));
+    }, 3400));
 
+    // Phase 5: Shockwave ripple (3700ms)
     t.push(setTimeout(() => {
-      playPremiumChime();
+      setPhase('shockwave');
     }, 3700));
 
+    // Phase 6: Crown reveals (4200ms)
     t.push(setTimeout(() => {
-      setPhase('confirmation');
-    }, 4500));
+      setPhase('crown-reveal');
+      playPremiumChime();
+    }, 4200));
+
+    // Phase 7: Text and features stagger in (4800ms)
+    t.push(setTimeout(() => {
+      setPhase('text-reveal');
+    }, 4800));
 
     FEATURES.forEach((_, i) => {
-      t.push(setTimeout(() => setVisibleFeatures(i + 1), 4800 + i * 150));
+      t.push(setTimeout(() => setVisibleFeatures(i + 1), 5100 + i * 150));
     });
 
+    // Phase 8: Exit (6200ms)
     t.push(setTimeout(() => {
       setPhase('exiting');
-    }, 6000));
+    }, 6200));
 
     t.push(setTimeout(() => {
       setPhase('done');
       onComplete();
-    }, 6500));
+    }, 6800));
 
     return () => {
       t.forEach(clearTimeout);
@@ -145,18 +159,16 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   if (!show && phase === 'idle') return null;
   const isActive = phase !== 'idle' && phase !== 'done';
 
-  const logoGlow =
-    phase === 'dark-activation' ? 'drop-shadow(0 0 15px rgba(139,92,246,0.3))' :
-    phase === 'energy-build' ? 'drop-shadow(0 0 30px rgba(139,92,246,0.6)) brightness(1.15)' :
-    phase === 'premium-surge' ? 'drop-shadow(0 0 50px rgba(139,92,246,0.9)) drop-shadow(0 0 20px rgba(255,215,0,0.5)) brightness(1.4)' :
-    'drop-shadow(0 0 25px rgba(139,92,246,0.5)) brightness(1.1)';
+  const phaseIndex = [
+    'idle', 'darken', 'lock-appear', 'glow-build', 'unlock-snap',
+    'shockwave', 'crown-reveal', 'text-reveal', 'exiting', 'done'
+  ].indexOf(phase);
 
-  const logoScale =
-    phase === 'dark-activation' ? 0.92 :
-    phase === 'energy-build' ? 1.0 :
-    phase === 'premium-surge' ? 1.12 :
-    phase === 'confirmation' ? 1.0 :
-    phase === 'exiting' ? 0.9 : 1;
+  const showLock = phaseIndex >= 2 && phaseIndex <= 5;
+  const showGlowBuild = phaseIndex >= 3 && phaseIndex <= 5;
+  const showShockwave = phaseIndex >= 5;
+  const showCrown = phaseIndex >= 6;
+  const showText = phaseIndex >= 7;
 
   return (
     <AnimatePresence>
@@ -166,72 +178,81 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
           initial={{ opacity: 0 }}
           animate={{ opacity: phase === 'exiting' ? 0 : 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: phase === 'exiting' ? 0.5 : 0.3 }}
+          transition={{ duration: phase === 'exiting' ? 0.6 : 0.4 }}
           onClick={skip}
+          data-testid="premium-upgrade-animation"
         >
+          {/* Dark background */}
           <motion.div
             className="absolute inset-0"
             style={{
-              background: 'radial-gradient(ellipse at center, rgba(10,5,20,0.95) 0%, rgba(0,0,0,0.98) 100%)',
+              background: 'radial-gradient(ellipse at center, rgba(10,5,20,0.96) 0%, rgba(0,0,0,0.99) 100%)',
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.4 }}
+            transition={{ duration: 0.5 }}
           />
 
+          {/* Ambient gradient */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: phaseIndex >= 3 ? 0.8 : 0.3 }}
+            transition={{ duration: 1.5 }}
             style={{
-              background: 'radial-gradient(circle at 30% 20%, rgba(139,92,246,0.06) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(6,182,212,0.04) 0%, transparent 50%)',
+              background: 'radial-gradient(circle at 30% 20%, rgba(139,92,246,0.08) 0%, transparent 50%), radial-gradient(circle at 70% 80%, rgba(6,182,212,0.05) 0%, transparent 50%)',
             }}
           />
 
           <div className="relative flex flex-col items-center">
-            <div className="relative">
+
+            {/* ========== LOCK ICON SECTION ========== */}
+            <div className="relative" style={{ width: 160, height: 160 }}>
+
+              {/* Glow ring during glow-build */}
               <AnimatePresence>
-                {(phase === 'energy-build' || phase === 'dark-activation') && (
+                {showGlowBuild && !showShockwave && (
                   <motion.div
-                    className="absolute inset-0 m-auto rounded-full pointer-events-none"
+                    className="absolute pointer-events-none"
                     style={{
-                      width: 220,
-                      height: 220,
+                      width: 240,
+                      height: 240,
                       top: '50%',
                       left: '50%',
-                      transform: 'translate(-50%, -50%)',
                     }}
-                    initial={{ opacity: 0, scale: 0.6 }}
+                    initial={{ opacity: 0, scale: 0.6, x: '-50%', y: '-50%' }}
                     animate={{
-                      opacity: phase === 'energy-build' ? [0.3, 0.6, 0.3] : 0.15,
-                      scale: phase === 'energy-build' ? 1 : 0.8,
-                      rotate: phase === 'energy-build' ? 360 : 0,
+                      opacity: [0.3, 0.7, 0.3],
+                      scale: 1,
+                      rotate: 360,
                     }}
                     exit={{ opacity: 0, scale: 1.5 }}
                     transition={{
-                      opacity: { duration: 2, repeat: Infinity, ease: 'easeInOut' },
+                      opacity: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
                       rotate: { duration: 4, repeat: Infinity, ease: 'linear' },
                       scale: { duration: 0.6, ease: [...EASE_LUXURY] },
                     }}
                   >
-                    <svg viewBox="0 0 220 220" className="w-full h-full">
+                    <svg viewBox="0 0 240 240" className="w-full h-full">
                       <defs>
-                        <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <linearGradient id="unlockRingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                           <stop offset="0%" stopColor="rgba(139,92,246,0.8)" />
                           <stop offset="50%" stopColor="rgba(6,182,212,0.6)" />
                           <stop offset="100%" stopColor="rgba(139,92,246,0.8)" />
                         </linearGradient>
                       </defs>
                       <circle
-                        cx="110" cy="110" r="100"
+                        cx="120" cy="120" r="110"
                         fill="none"
-                        stroke="url(#ringGrad)"
+                        stroke="url(#unlockRingGrad)"
                         strokeWidth="2"
                         strokeDasharray="12 8"
                         opacity="0.7"
                       />
                       <circle
-                        cx="110" cy="110" r="90"
+                        cx="120" cy="120" r="100"
                         fill="none"
-                        stroke="rgba(139,92,246,0.2)"
+                        stroke="rgba(139,92,246,0.15)"
                         strokeWidth="1"
                       />
                     </svg>
@@ -239,8 +260,36 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 )}
               </AnimatePresence>
 
+              {/* Pulse rings during glow-build */}
+              {showGlowBuild && !showShockwave && (
+                <>
+                  {[1, 2, 3].map((n) => (
+                    <motion.div
+                      key={`pulse-${n}`}
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        width: 160,
+                        height: 160,
+                        top: '50%',
+                        left: '50%',
+                        border: '1px solid rgba(139,92,246,0.35)',
+                      }}
+                      initial={{ opacity: 0.7, scale: 0.5, x: '-50%', y: '-50%' }}
+                      animate={{ opacity: 0, scale: 2.5 }}
+                      transition={{
+                        duration: 1.5,
+                        delay: n * 0.5,
+                        repeat: Infinity,
+                        ease: 'easeOut',
+                      }}
+                    />
+                  ))}
+                </>
+              )}
+
+              {/* Shockwave ripple */}
               <AnimatePresence>
-                {phase === 'premium-surge' && (
+                {showShockwave && (
                   <>
                     <motion.div
                       className="absolute rounded-full pointer-events-none"
@@ -249,33 +298,26 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         height: 300,
                         top: '50%',
                         left: '50%',
-                        background: 'radial-gradient(circle, rgba(255,215,0,0.4) 0%, rgba(139,92,246,0.2) 40%, transparent 65%)',
+                        background: 'radial-gradient(circle, rgba(255,215,0,0.35) 0%, rgba(139,92,246,0.15) 40%, transparent 65%)',
                       }}
                       initial={{ opacity: 0, scale: 0.2, x: '-50%', y: '-50%' }}
-                      animate={{ opacity: [0, 1, 0.3], scale: [0.2, 1.8, 2.2] }}
+                      animate={{ opacity: [0, 1, 0], scale: [0.2, 2.5, 3.5] }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.6, ease: 'easeOut' }}
+                      transition={{ duration: 0.8, ease: 'easeOut' }}
                     />
                     <motion.div
                       className="absolute rounded-full pointer-events-none"
                       style={{
-                        width: 180,
-                        height: 180,
+                        width: 200,
+                        height: 200,
                         top: '50%',
                         left: '50%',
-                        background: 'radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 50%)',
+                        border: '2px solid rgba(255,215,0,0.4)',
                       }}
-                      initial={{ opacity: 0, scale: 0.1, x: '-50%', y: '-50%' }}
-                      animate={{ opacity: [0, 0.9, 0], scale: [0.1, 2, 2.5] }}
-                      transition={{ duration: 0.45, ease: 'easeOut' }}
+                      initial={{ opacity: 0, scale: 0.3, x: '-50%', y: '-50%' }}
+                      animate={{ opacity: [0, 0.8, 0], scale: [0.3, 3, 4] }}
+                      transition={{ duration: 0.9, ease: 'easeOut' }}
                     />
-                  </>
-                )}
-              </AnimatePresence>
-
-              {[1, 2, 3].map((n) => (
-                <AnimatePresence key={n}>
-                  {pulseCount >= n && phase === 'energy-build' && (
                     <motion.div
                       className="absolute rounded-full pointer-events-none"
                       style={{
@@ -283,20 +325,20 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         height: 160,
                         top: '50%',
                         left: '50%',
-                        border: '1px solid rgba(139,92,246,0.4)',
+                        background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 50%)',
                       }}
-                      initial={{ opacity: 0.8, scale: 0.5, x: '-50%', y: '-50%' }}
-                      animate={{ opacity: 0, scale: 2 }}
-                      exit={{ opacity: 0 }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      initial={{ opacity: 0, scale: 0.1, x: '-50%', y: '-50%' }}
+                      animate={{ opacity: [0, 0.9, 0], scale: [0.1, 2.5, 3] }}
+                      transition={{ duration: 0.5, ease: 'easeOut' }}
                     />
-                  )}
-                </AnimatePresence>
-              ))}
+                  </>
+                )}
+              </AnimatePresence>
 
+              {/* Particle burst on unlock */}
               <AnimatePresence>
-                {phase === 'premium-surge' && (
-                  <div className="absolute inset-0 pointer-events-none overflow-visible" style={{ top: '50%', left: '50%', width: 0, height: 0 }}>
+                {(phase === 'unlock-snap' || phase === 'shockwave') && (
+                  <div className="absolute pointer-events-none overflow-visible" style={{ top: '50%', left: '50%', width: 0, height: 0 }}>
                     {particles.map((p) => (
                       <motion.div
                         key={p.id}
@@ -325,73 +367,188 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 )}
               </AnimatePresence>
 
-              <motion.div
-                className="relative"
-                animate={{
-                  scale: logoScale,
-                  filter: logoGlow,
-                }}
-                transition={{
-                  scale: { duration: phase === 'premium-surge' ? 0.15 : 0.6, ease: [...EASE_LUXURY] },
-                  filter: { duration: 0.4 },
-                }}
-              >
-                <motion.img
-                  src={scLogo}
-                  alt="SwitchControl"
-                  className="w-40 h-40 object-contain rounded-2xl"
-                  initial={{ opacity: 0, scale: 0.85 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, ease: [...EASE_LUXURY] }}
-                />
-
-                <AnimatePresence>
-                  {phase === 'premium-surge' && (
+              {/* LOCK ICON */}
+              <AnimatePresence>
+                {showLock && (
+                  <motion.div
+                    className="absolute inset-0 flex items-center justify-center"
+                    initial={{ opacity: 0, scale: 0.5 }}
+                    animate={{
+                      opacity: 1,
+                      scale: lockUnlocked ? 1.15 : 1,
+                    }}
+                    exit={{ opacity: 0, scale: 1.5 }}
+                    transition={{
+                      opacity: { duration: 0.5 },
+                      scale: { duration: lockUnlocked ? 0.15 : 0.6, ease: [...EASE_LUXURY] },
+                    }}
+                  >
                     <motion.div
-                      className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: [0, 0.9, 0] }}
-                      transition={{ duration: 0.55 }}
+                      style={{
+                        filter: showGlowBuild
+                          ? 'drop-shadow(0 0 30px rgba(139,92,246,0.7)) drop-shadow(0 0 60px rgba(139,92,246,0.3))'
+                          : 'drop-shadow(0 0 15px rgba(139,92,246,0.4))',
+                      }}
+                      animate={lockUnlocked ? {
+                        x: [0, -4, 4, -3, 3, 0],
+                      } : {}}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+                        <motion.path
+                          d="M6 10V7C6 4.79086 7.79086 3 10 3H14C16.2091 3 18 4.79086 18 7V10"
+                          stroke="rgba(168,132,255,0.9)"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          animate={lockUnlocked ? {
+                            d: "M6 10V7C6 4.79086 7.79086 3 10 3H14C16.2091 3 18 4.79086 18 7V7",
+                            rotate: -35,
+                          } : {}}
+                          transition={{ duration: 0.25, ease: 'easeOut' }}
+                          style={{ originX: '75%', originY: '42%' }}
+                        />
+                        <rect
+                          x="4" y="10" width="16" height="12" rx="2"
+                          stroke="rgba(168,132,255,0.9)"
+                          strokeWidth="1.8"
+                          fill="none"
+                        />
+                        <motion.circle
+                          cx="12" cy="15" r="1.5"
+                          fill="rgba(168,132,255,0.9)"
+                          animate={lockUnlocked ? {
+                            fill: 'rgba(255,215,0,0.9)',
+                            scale: 1.3,
+                          } : {}}
+                          transition={{ duration: 0.2, delay: 0.1 }}
+                        />
+                        <motion.path
+                          d="M12 16.5V18.5"
+                          stroke="rgba(168,132,255,0.9)"
+                          strokeWidth="1.8"
+                          strokeLinecap="round"
+                          animate={lockUnlocked ? { opacity: 0 } : { opacity: 1 }}
+                          transition={{ duration: 0.15 }}
+                        />
+                      </svg>
+                    </motion.div>
+
+                    {/* Metal shimmer sweep on lock */}
+                    {showGlowBuild && !lockUnlocked && (
+                      <motion.div
+                        className="absolute inset-0 overflow-hidden pointer-events-none"
+                        style={{ borderRadius: 16 }}
+                      >
+                        <motion.div
+                          className="absolute inset-0"
+                          style={{
+                            background: 'linear-gradient(100deg, transparent 0%, rgba(255,215,0,0.3) 42%, rgba(255,255,255,0.5) 50%, rgba(255,215,0,0.3) 58%, transparent 100%)',
+                            transform: 'skewX(-20deg)',
+                          }}
+                          animate={{ x: ['-200%', '200%'] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.5 }}
+                        />
+                      </motion.div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* CROWN ICON - appears after shockwave */}
+              <AnimatePresence>
+                {showCrown && (
+                  <motion.div
+                    className="absolute inset-0 flex items-center justify-center"
+                    initial={{ opacity: 0, scale: 0.3, rotate: -15 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{
+                      duration: 0.6,
+                      type: 'spring',
+                      stiffness: 200,
+                      damping: 15,
+                    }}
+                  >
+                    <motion.div
+                      animate={{
+                        filter: [
+                          'drop-shadow(0 0 20px rgba(255,215,0,0.4)) drop-shadow(0 0 40px rgba(139,92,246,0.3))',
+                          'drop-shadow(0 0 35px rgba(255,215,0,0.7)) drop-shadow(0 0 60px rgba(139,92,246,0.5))',
+                          'drop-shadow(0 0 20px rgba(255,215,0,0.4)) drop-shadow(0 0 40px rgba(139,92,246,0.3))',
+                        ],
+                      }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+                        <motion.path
+                          d="M2 20h20L19 8l-4.5 5L12 4l-2.5 9L5 8l-3 12z"
+                          fill="url(#crownGrad)"
+                          stroke="rgba(255,215,0,0.6)"
+                          strokeWidth="0.5"
+                          initial={{ pathLength: 0 }}
+                          animate={{ pathLength: 1 }}
+                          transition={{ duration: 0.5 }}
+                        />
+                        <motion.path
+                          d="M2 20h20"
+                          stroke="rgba(255,215,0,0.8)"
+                          strokeWidth="1"
+                          strokeLinecap="round"
+                        />
+                        <defs>
+                          <linearGradient id="crownGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="rgba(255,215,0,0.9)" />
+                            <stop offset="50%" stopColor="rgba(255,180,0,0.8)" />
+                            <stop offset="100%" stopColor="rgba(255,215,0,0.9)" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                    </motion.div>
+
+                    {/* Crown shimmer */}
+                    <motion.div
+                      className="absolute inset-0 overflow-hidden pointer-events-none"
                     >
                       <motion.div
                         className="absolute inset-0"
                         style={{
-                          background: 'linear-gradient(100deg, transparent 0%, rgba(255,215,0,0.5) 42%, rgba(255,255,255,0.7) 50%, rgba(255,215,0,0.5) 58%, transparent 100%)',
+                          background: 'linear-gradient(100deg, transparent 0%, rgba(255,215,0,0.4) 42%, rgba(255,255,255,0.6) 50%, rgba(255,215,0,0.4) 58%, transparent 100%)',
                           transform: 'skewX(-20deg)',
                         }}
                         initial={{ x: '-200%' }}
                         animate={{ x: '200%' }}
-                        transition={{ duration: 0.5, ease: 'easeOut' }}
+                        transition={{ duration: 0.7, delay: 0.3, ease: 'easeOut' }}
                       />
                     </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
+              {/* Background glow behind crown */}
               <AnimatePresence>
-                {(phase === 'confirmation' || phase === 'exiting') && (
+                {showCrown && (
                   <motion.div
                     className="absolute -z-10 rounded-full"
                     style={{
-                      width: 280,
-                      height: 280,
+                      width: 320,
+                      height: 320,
                       top: '50%',
                       left: '50%',
-                      background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(168,85,247,0.08) 45%, transparent 65%)',
+                      background: 'radial-gradient(circle, rgba(255,215,0,0.15) 0%, rgba(139,92,246,0.1) 40%, transparent 65%)',
                     }}
-                    initial={{ opacity: 0, scale: 0.4, x: '-50%', y: '-50%' }}
-                    animate={{ opacity: [0, 0.7, 0.4], scale: [0.4, 1.1, 1] }}
+                    initial={{ opacity: 0, scale: 0.3, x: '-50%', y: '-50%' }}
+                    animate={{ opacity: [0, 0.8, 0.5], scale: [0.3, 1.2, 1] }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    transition={{ duration: 0.7, ease: 'easeOut' }}
                   />
                 )}
               </AnimatePresence>
             </div>
 
+            {/* STATUS TEXT during glow-build */}
             <AnimatePresence mode="wait">
-              {statusText && phase === 'energy-build' && (
+              {(phase === 'glow-build') && (
                 <motion.p
-                  key={statusText}
+                  key="activating"
                   className="mt-6 text-sm font-medium tracking-[0.15em] uppercase"
                   style={{ color: 'rgba(139,92,246,0.7)' }}
                   initial={{ opacity: 0, y: 8 }}
@@ -399,24 +556,26 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.4, ease: [...EASE_LUXURY] }}
                 >
-                  {statusText}
+                  Activating Premium
                 </motion.p>
               )}
             </AnimatePresence>
 
+            {/* MAIN TEXT - PREMIUM UNLOCKED */}
             <AnimatePresence>
-              {(phase === 'premium-surge' || phase === 'confirmation' || phase === 'exiting') && (
+              {(showCrown || phase === 'exiting') && (
                 <motion.div
                   className="mt-8 text-center"
-                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                  animate={{ opacity: phase === 'exiting' ? 0.5 : 1, y: 0, scale: 1 }}
+                  initial={{ opacity: 0, y: 24, scale: 0.9 }}
+                  animate={{ opacity: phase === 'exiting' ? 0.4 : 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.5, ease: [...EASE_LUXURY] }}
+                  transition={{ duration: 0.6, ease: [...EASE_LUXURY] }}
                 >
                   <motion.h2
                     className="text-2xl md:text-3xl font-bold tracking-tight"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(168,85,247,1) 0%, rgba(255,255,255,0.95) 50%, rgba(6,182,212,0.9) 100%)',
+                      background: 'linear-gradient(135deg, rgba(255,215,0,1) 0%, rgba(255,255,255,0.95) 40%, rgba(168,85,247,1) 70%, rgba(6,182,212,0.9) 100%)',
+                      backgroundSize: '200% 200%',
                       backgroundClip: 'text',
                       WebkitBackgroundClip: 'text',
                       WebkitTextFillColor: 'transparent',
@@ -424,7 +583,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     animate={{
                       backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
                     }}
-                    transition={{ duration: 3, ease: 'linear', repeat: Infinity }}
+                    transition={{ duration: 4, ease: 'linear', repeat: Infinity }}
                   >
                     PREMIUM UNLOCKED
                   </motion.h2>
@@ -432,7 +591,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     className="text-white/50 text-sm mt-1 tracking-wide"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
                   >
                     Power. Speed. Control.
                   </motion.p>
@@ -440,8 +599,9 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
               )}
             </AnimatePresence>
 
+            {/* FEATURES LIST - stagger in */}
             <AnimatePresence>
-              {phase === 'confirmation' && visibleFeatures > 0 && (
+              {showText && visibleFeatures > 0 && (
                 <motion.div
                   className="mt-6 flex flex-col items-center gap-1.5"
                   initial={{ opacity: 0 }}
@@ -461,10 +621,10 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         className="w-1.5 h-1.5 rounded-full"
                         style={{
                           background: i < 3
-                            ? 'rgba(139,92,246,0.8)'
+                            ? 'rgba(255,215,0,0.8)'
                             : i === 3
                             ? 'rgba(6,182,212,0.8)'
-                            : 'rgba(168,85,247,0.6)',
+                            : 'rgba(168,85,247,0.7)',
                         }}
                       />
                       <span className="text-white/60 font-medium">{feat}</span>
@@ -475,10 +635,11 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
             </AnimatePresence>
           </div>
 
+          {/* Skip hint */}
           <motion.div
             className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/20 text-xs tracking-wide"
             initial={{ opacity: 0 }}
-            animate={{ opacity: phase === 'confirmation' ? 0.4 : 0 }}
+            animate={{ opacity: showText ? 0.4 : 0 }}
             transition={{ duration: 0.3, delay: 0.5 }}
           >
             Click anywhere to skip

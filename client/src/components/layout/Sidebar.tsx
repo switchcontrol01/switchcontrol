@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -64,6 +65,16 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar() {
   const [location, setLocation] = useLocation();
   const { user, isPremium, logout } = useAuth();
+
+  useEffect(() => {
+    const handleWindowBlur = () => {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+    };
+    window.addEventListener('blur', handleWindowBlur);
+    return () => window.removeEventListener('blur', handleWindowBlur);
+  }, []);
   
   const currentPath = location === "/" ? "/dashboard" : location;
   

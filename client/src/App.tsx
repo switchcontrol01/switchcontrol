@@ -464,6 +464,7 @@ function ElectronAppContent() {
       
       {showTour && (
         <OnboardingTour
+          isFirstTime={isFirstLogin}
           onComplete={() => {
             setShowTour(false);
             if (user?.id) {

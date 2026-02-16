@@ -74,9 +74,10 @@ const tourSteps: TourStep[] = [
 interface OnboardingTourProps {
   onComplete: () => void;
   onSkip: () => void;
+  isFirstTime?: boolean;
 }
 
-export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
+export function OnboardingTour({ onComplete, onSkip, isFirstTime = true }: OnboardingTourProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [targetRect, setTargetRect] = useState<DOMRect | null>(null);
   const [isVisible, setIsVisible] = useState(true);
@@ -120,6 +121,11 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
   const handleSkip = () => {
     setIsVisible(false);
     setTimeout(onSkip, 300);
+  };
+
+  const handleComplete = () => {
+    setIsVisible(false);
+    setTimeout(onComplete, 300);
   };
 
   const getTooltipPosition = () => {
@@ -173,6 +179,9 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
           className="fixed inset-0 z-[100]"
+          onClick={(e) => {
+            if (!isFirstTime && e.target === e.currentTarget) handleComplete();
+          }}
           data-testid="onboarding-tour"
         >
           <svg 
@@ -276,13 +285,15 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
                       </p>
                     </div>
                   </div>
-                  <button
-                    onClick={handleSkip}
-                    className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-white"
-                    data-testid="tour-skip"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
+                  {!isFirstTime && (
+                    <button
+                      onClick={handleSkip}
+                      className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-white"
+                      data-testid="tour-skip"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
                 </div>
 
                 <motion.p 
@@ -342,20 +353,22 @@ export function OnboardingTour({ onComplete, onSkip }: OnboardingTourProps) {
             )}
           </motion.div>
 
-          <motion.div
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-          >
-            <button
-              onClick={handleSkip}
-              className="text-sm text-muted-foreground hover:text-white transition-colors underline-offset-4 hover:underline"
-              data-testid="tour-skip-bottom"
+          {!isFirstTime && (
+            <motion.div
+              className="fixed bottom-6 left-1/2 -translate-x-1/2 pointer-events-auto"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
             >
-              Skip tour
-            </button>
-          </motion.div>
+              <button
+                onClick={handleSkip}
+                className="text-sm text-muted-foreground hover:text-white transition-colors underline-offset-4 hover:underline"
+                data-testid="tour-skip-bottom"
+              >
+                Skip tour
+              </button>
+            </motion.div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>
