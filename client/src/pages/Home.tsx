@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
+import { playRamClear, playScanBeep } from "@/lib/premium-audio";
 
 
 interface DiskInfo {
@@ -354,6 +355,7 @@ export default function Home() {
 
   const handleAIScan = async () => {
     if (cooldownSeconds > 0) return;
+    playScanBeep();
     setScanError(null);
     setScanning(true);
     try {
@@ -431,7 +433,7 @@ export default function Home() {
                 icon={MemoryStick}
                 progress={ramPercent}
                 actionLabel="Clear RAM"
-                onAction={clearRam}
+                onAction={() => { playRamClear(); clearRam(); }}
                 className="border-primary/20 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.2)]"
               />
             </motion.div>

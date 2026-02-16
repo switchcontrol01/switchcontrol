@@ -233,6 +233,135 @@ export function playMetallicSnap(): void {
   body.stop(now + 0.2);
 }
 
+export function playToggleOn(): void {
+  if (!shouldPlay()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const vol = MAX_VOLUME * 0.2;
+
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(600, now);
+  osc.frequency.exponentialRampToValueAtTime(900, now + 0.08);
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.15);
+}
+
+export function playToggleOff(): void {
+  if (!shouldPlay()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const vol = MAX_VOLUME * 0.15;
+
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(700, now);
+  osc.frequency.exponentialRampToValueAtTime(400, now + 0.08);
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.12);
+}
+
+export function playNavClick(): void {
+  if (!shouldPlay()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const vol = MAX_VOLUME * 0.12;
+
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(1200, now);
+  osc.frequency.exponentialRampToValueAtTime(800, now + 0.04);
+  g.gain.setValueAtTime(vol, now);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.08);
+}
+
+export function playRamClear(): void {
+  if (!shouldPlay()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const vol = MAX_VOLUME * 0.25;
+
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(300, now);
+  osc.frequency.exponentialRampToValueAtTime(1200, now + 0.25);
+  osc.frequency.exponentialRampToValueAtTime(600, now + 0.4);
+  g.gain.setValueAtTime(0, now);
+  g.gain.linearRampToValueAtTime(vol, now + 0.05);
+  g.gain.setValueAtTime(vol * 0.8, now + 0.25);
+  g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+  osc.connect(g).connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + 0.55);
+
+  const shimLen = Math.floor(ctx.sampleRate * 0.3);
+  const shimBuf = ctx.createBuffer(1, shimLen, ctx.sampleRate);
+  const sd = shimBuf.getChannelData(0);
+  for (let i = 0; i < shimLen; i++) {
+    sd[i] = (Math.random() * 2 - 1) * 0.01 * Math.pow(1 - i / shimLen, 2);
+  }
+  const shim = ctx.createBufferSource();
+  shim.buffer = shimBuf;
+  const hpf = ctx.createBiquadFilter();
+  hpf.type = 'highpass';
+  hpf.frequency.value = 4000;
+  const sg = ctx.createGain();
+  sg.gain.setValueAtTime(vol * 0.4, now + 0.1);
+  sg.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+  shim.connect(hpf).connect(sg).connect(ctx.destination);
+  shim.start(now + 0.1);
+  shim.stop(now + 0.5);
+}
+
+export function playScanBeep(): void {
+  if (!shouldPlay()) return;
+  const ctx = getCtx();
+  if (!ctx) return;
+
+  const now = ctx.currentTime;
+  const vol = MAX_VOLUME * 0.18;
+
+  const notes = [
+    { freq: 880, delay: 0 },
+    { freq: 1100, delay: 0.08 },
+    { freq: 1320, delay: 0.16 },
+  ];
+
+  notes.forEach(({ freq, delay }) => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now + delay);
+    g.gain.setValueAtTime(0, now + delay);
+    g.gain.linearRampToValueAtTime(vol, now + delay + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.001, now + delay + 0.1);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now + delay);
+    osc.stop(now + delay + 0.12);
+  });
+}
+
 export function playSuccessChime(): void {
   if (!shouldPlay()) return;
   const ctx = getCtx();

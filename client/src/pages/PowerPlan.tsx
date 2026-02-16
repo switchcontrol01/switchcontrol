@@ -31,6 +31,7 @@ import {
   Crown,
   Battery
 } from "lucide-react";
+import { playToggleOn, playToggleOff } from "@/lib/premium-audio";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
 import { PremiumSurface } from "@/components/ui/premium-surface";
@@ -304,7 +305,13 @@ export default function PowerPlan() {
   };
 
   const toggleOverride = (id: string) => {
-    const newOverrides = { ...state.overrides, [id]: !state.overrides[id] };
+    const newValue = !state.overrides[id];
+    const newOverrides = { ...state.overrides, [id]: newValue };
+    if (newValue) {
+      playToggleOn();
+    } else {
+      playToggleOff();
+    }
     updateState({ overrides: newOverrides });
     applyAction(
       `${newOverrides[id] ? 'Enabled' : 'Disabled'} ${OVERRIDE_TOGGLES.find(t => t.id === id)?.name}`,

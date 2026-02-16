@@ -128,7 +128,9 @@ shared/
 ### Premium Audio System
 - **Shared AudioContext**: Single persistent `AudioContext` in `client/src/lib/premium-audio.ts`
 - **Preloading**: `preloadAudio()` called on first user click/keydown to warm the context
-- **Sound Effects**: cinematic hum, rising tone, pulse tick, metallic snap, premium chime, success chime
+- **Premium Sounds**: cinematic hum, rising tone, pulse tick, metallic snap, premium chime, success chime
+- **UI Sounds**: toggle on/off (pitch up/down), nav click (soft tap), RAM clear (whoosh), AI scan (triple beep)
+- **Integration Points**: Sidebar nav, TweakCard toggles, NetworkTweaks toggles, PowerPlan toggles, Dashboard RAM clear + AI scan
 - **Controls**: Sound toggle in Settings (default ON), persisted via Zustand + `sc_sound_effects` localStorage
 - **Safety**: Respects `prefers-reduced-motion` and sound toggle; max volume 0.4
 
