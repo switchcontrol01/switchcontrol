@@ -735,8 +735,6 @@ export function setupGoogleAuth(app: Express): void {
         console.log('[AUTH] req.headers.origin:', req.headers.origin || 'NONE');
 
         const jwtToken = signJwt(user.id);
-        console.log(`[DEBUG] JWT about to be issued for user: ${user.id}`);
-        console.log(`[DEBUG] JWT value: ${jwtToken}`);
         console.log(`[JWT] issued for user: ${user.id}`);
 
         return res.json({
