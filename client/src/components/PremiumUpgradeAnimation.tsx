@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import logoImg from '@/assets/logo.png';
 import {
   playCinematicHum,
   playRisingTone,
@@ -20,24 +21,15 @@ type Phase =
   | 'glow-build'
   | 'unlock-snap'
   | 'shockwave'
-  | 'crown-reveal'
+  | 'logo-reveal'
   | 'text-reveal'
   | 'exiting'
   | 'done';
 
 const EASE_LUXURY = [0.22, 1, 0.36, 1] as const;
 
-const FEATURES = [
-  'Power Plan',
-  'Network Tweaks',
-  'BIOS Advisor',
-  'AI Advisor',
-  'Priority Support',
-];
-
 export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnimationProps) {
   const [phase, setPhase] = useState<Phase>('idle');
-  const [visibleFeatures, setVisibleFeatures] = useState(0);
   const [lockUnlocked, setLockUnlocked] = useState(false);
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<{ stop: () => void } | null>(null);
@@ -71,14 +63,12 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   useEffect(() => {
     if (!show) {
       setPhase('idle');
-      setVisibleFeatures(0);
       setLockUnlocked(false);
       return;
     }
 
     if (prefersReduced) {
-      setPhase('crown-reveal');
-      setVisibleFeatures(FEATURES.length);
+      setPhase('logo-reveal');
       setLockUnlocked(true);
       const t = setTimeout(() => {
         setPhase('done');
@@ -91,27 +81,22 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
     const t: ReturnType<typeof setTimeout>[] = [];
     timersRef.current = t;
 
-    // Phase 1: Screen darkens (0-600ms)
     setPhase('darken');
 
-    // Phase 2: Lock icon appears with ambient hum (600ms)
     t.push(setTimeout(() => {
       setPhase('lock-appear');
       audioRef.current = playCinematicHum(2.0);
     }, 600));
 
-    // Phase 3: Glow builds around lock (1800ms)
     t.push(setTimeout(() => {
       setPhase('glow-build');
       risingRef.current = playRisingTone(2.0);
     }, 1800));
 
-    // Pulse ticks during glow build
     t.push(setTimeout(() => { playPulseTick(); }, 2200));
     t.push(setTimeout(() => { playPulseTick(); }, 2700));
     t.push(setTimeout(() => { playPulseTick(); }, 3100));
 
-    // Phase 4: Lock snaps open (3400ms)
     t.push(setTimeout(() => {
       setPhase('unlock-snap');
       setLockUnlocked(true);
@@ -119,27 +104,19 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
       playMetallicSnap();
     }, 3400));
 
-    // Phase 5: Shockwave ripple (3700ms)
     t.push(setTimeout(() => {
       setPhase('shockwave');
     }, 3700));
 
-    // Phase 6: Crown reveals (4200ms)
     t.push(setTimeout(() => {
-      setPhase('crown-reveal');
+      setPhase('logo-reveal');
       playPremiumChime();
     }, 4200));
 
-    // Phase 7: Text and features stagger in (4800ms)
     t.push(setTimeout(() => {
       setPhase('text-reveal');
     }, 4800));
 
-    FEATURES.forEach((_, i) => {
-      t.push(setTimeout(() => setVisibleFeatures(i + 1), 5100 + i * 150));
-    });
-
-    // Phase 8: Exit (6200ms)
     t.push(setTimeout(() => {
       setPhase('exiting');
     }, 6200));
@@ -161,13 +138,13 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
   const phaseIndex = [
     'idle', 'darken', 'lock-appear', 'glow-build', 'unlock-snap',
-    'shockwave', 'crown-reveal', 'text-reveal', 'exiting', 'done'
+    'shockwave', 'logo-reveal', 'text-reveal', 'exiting', 'done'
   ].indexOf(phase);
 
   const showLock = phaseIndex >= 2 && phaseIndex <= 5;
   const showGlowBuild = phaseIndex >= 3 && phaseIndex <= 5;
   const showShockwave = phaseIndex >= 5;
-  const showCrown = phaseIndex >= 6;
+  const showLogo = phaseIndex >= 6;
   const showText = phaseIndex >= 7;
 
   return (
@@ -182,7 +159,6 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
           onClick={skip}
           data-testid="premium-upgrade-animation"
         >
-          {/* Dark background */}
           <motion.div
             className="absolute inset-0"
             style={{
@@ -193,7 +169,6 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
             transition={{ duration: 0.5 }}
           />
 
-          {/* Ambient gradient */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
             initial={{ opacity: 0 }}
@@ -206,10 +181,8 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
           <div className="relative flex flex-col items-center">
 
-            {/* ========== LOCK ICON SECTION ========== */}
-            <div className="relative" style={{ width: 160, height: 160 }}>
+            <div className="relative" style={{ width: 160, height: 200 }}>
 
-              {/* Glow ring during glow-build */}
               <AnimatePresence>
                 {showGlowBuild && !showShockwave && (
                   <motion.div
@@ -217,7 +190,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     style={{
                       width: 240,
                       height: 240,
-                      top: '50%',
+                      top: '40%',
                       left: '50%',
                     }}
                     initial={{ opacity: 0, scale: 0.6, x: '-50%', y: '-50%' }}
@@ -260,7 +233,6 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 )}
               </AnimatePresence>
 
-              {/* Pulse rings during glow-build */}
               {showGlowBuild && !showShockwave && (
                 <>
                   {[1, 2, 3].map((n) => (
@@ -270,7 +242,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                       style={{
                         width: 160,
                         height: 160,
-                        top: '50%',
+                        top: '40%',
                         left: '50%',
                         border: '1px solid rgba(139,92,246,0.35)',
                       }}
@@ -287,7 +259,6 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 </>
               )}
 
-              {/* Shockwave ripple */}
               <AnimatePresence>
                 {showShockwave && (
                   <>
@@ -296,9 +267,9 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                       style={{
                         width: 300,
                         height: 300,
-                        top: '50%',
+                        top: '40%',
                         left: '50%',
-                        background: 'radial-gradient(circle, rgba(255,215,0,0.35) 0%, rgba(139,92,246,0.15) 40%, transparent 65%)',
+                        background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, rgba(168,85,247,0.15) 40%, transparent 65%)',
                       }}
                       initial={{ opacity: 0, scale: 0.2, x: '-50%', y: '-50%' }}
                       animate={{ opacity: [0, 1, 0], scale: [0.2, 2.5, 3.5] }}
@@ -310,9 +281,9 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                       style={{
                         width: 200,
                         height: 200,
-                        top: '50%',
+                        top: '40%',
                         left: '50%',
-                        border: '2px solid rgba(255,215,0,0.4)',
+                        border: '2px solid rgba(139,92,246,0.5)',
                       }}
                       initial={{ opacity: 0, scale: 0.3, x: '-50%', y: '-50%' }}
                       animate={{ opacity: [0, 0.8, 0], scale: [0.3, 3, 4] }}
@@ -323,7 +294,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                       style={{
                         width: 160,
                         height: 160,
-                        top: '50%',
+                        top: '40%',
                         left: '50%',
                         background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 50%)',
                       }}
@@ -335,10 +306,9 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 )}
               </AnimatePresence>
 
-              {/* Particle burst on unlock */}
               <AnimatePresence>
                 {(phase === 'unlock-snap' || phase === 'shockwave') && (
-                  <div className="absolute pointer-events-none overflow-visible" style={{ top: '50%', left: '50%', width: 0, height: 0 }}>
+                  <div className="absolute pointer-events-none overflow-visible" style={{ top: '40%', left: '50%', width: 0, height: 0 }}>
                     {particles.map((p) => (
                       <motion.div
                         key={p.id}
@@ -367,17 +337,18 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 )}
               </AnimatePresence>
 
-              {/* LOCK ICON */}
               <AnimatePresence>
                 {showLock && (
                   <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
-                    initial={{ opacity: 0, scale: 0.5 }}
+                    className="absolute flex items-center justify-center"
+                    style={{ top: 0, left: '50%', width: 80, height: 80 }}
+                    initial={{ opacity: 0, scale: 0.5, x: '-50%' }}
                     animate={{
                       opacity: 1,
                       scale: lockUnlocked ? 1.15 : 1,
+                      x: '-50%',
                     }}
-                    exit={{ opacity: 0, scale: 1.5 }}
+                    exit={{ opacity: 0, scale: 1.5, x: '-50%' }}
                     transition={{
                       opacity: { duration: 0.5 },
                       scale: { duration: lockUnlocked ? 0.15 : 0.6, ease: [...EASE_LUXURY] },
@@ -394,7 +365,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                       } : {}}
                       transition={{ duration: 0.3 }}
                     >
-                      <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
+                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
                         <motion.path
                           d="M6 10V7C6 4.79086 7.79086 3 10 3H14C16.2091 3 18 4.79086 18 7V10"
                           stroke="rgba(168,132,255,0.9)"
@@ -417,7 +388,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                           cx="12" cy="15" r="1.5"
                           fill="rgba(168,132,255,0.9)"
                           animate={lockUnlocked ? {
-                            fill: 'rgba(255,215,0,0.9)',
+                            fill: 'rgba(139,92,246,1)',
                             scale: 1.3,
                           } : {}}
                           transition={{ duration: 0.2, delay: 0.1 }}
@@ -433,7 +404,6 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                       </svg>
                     </motion.div>
 
-                    {/* Metal shimmer sweep on lock */}
                     {showGlowBuild && !lockUnlocked && (
                       <motion.div
                         className="absolute inset-0 overflow-hidden pointer-events-none"
@@ -442,7 +412,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         <motion.div
                           className="absolute inset-0"
                           style={{
-                            background: 'linear-gradient(100deg, transparent 0%, rgba(255,215,0,0.3) 42%, rgba(255,255,255,0.5) 50%, rgba(255,215,0,0.3) 58%, transparent 100%)',
+                            background: 'linear-gradient(100deg, transparent 0%, rgba(139,92,246,0.3) 42%, rgba(255,255,255,0.5) 50%, rgba(139,92,246,0.3) 58%, transparent 100%)',
                             transform: 'skewX(-20deg)',
                           }}
                           animate={{ x: ['-200%', '200%'] }}
@@ -454,13 +424,13 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 )}
               </AnimatePresence>
 
-              {/* CROWN ICON - appears after shockwave */}
               <AnimatePresence>
-                {showCrown && (
+                {showLogo && (
                   <motion.div
-                    className="absolute inset-0 flex items-center justify-center"
-                    initial={{ opacity: 0, scale: 0.3, rotate: -15 }}
-                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    className="absolute flex items-center justify-center"
+                    style={{ top: 20, left: '50%', width: 160, height: 160 }}
+                    initial={{ opacity: 0, scale: 0.3, x: '-50%' }}
+                    animate={{ opacity: 1, scale: 1, x: '-50%' }}
                     transition={{
                       duration: 0.6,
                       type: 'spring',
@@ -471,47 +441,28 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     <motion.div
                       animate={{
                         filter: [
-                          'drop-shadow(0 0 20px rgba(255,215,0,0.4)) drop-shadow(0 0 40px rgba(139,92,246,0.3))',
-                          'drop-shadow(0 0 35px rgba(255,215,0,0.7)) drop-shadow(0 0 60px rgba(139,92,246,0.5))',
-                          'drop-shadow(0 0 20px rgba(255,215,0,0.4)) drop-shadow(0 0 40px rgba(139,92,246,0.3))',
+                          'drop-shadow(0 0 20px rgba(139,92,246,0.4)) drop-shadow(0 0 40px rgba(139,92,246,0.2))',
+                          'drop-shadow(0 0 35px rgba(139,92,246,0.7)) drop-shadow(0 0 60px rgba(139,92,246,0.4))',
+                          'drop-shadow(0 0 20px rgba(139,92,246,0.4)) drop-shadow(0 0 40px rgba(139,92,246,0.2))',
                         ],
                       }}
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                     >
-                      <svg width="80" height="80" viewBox="0 0 24 24" fill="none">
-                        <motion.path
-                          d="M2 20h20L19 8l-4.5 5L12 4l-2.5 9L5 8l-3 12z"
-                          fill="url(#crownGrad)"
-                          stroke="rgba(255,215,0,0.6)"
-                          strokeWidth="0.5"
-                          initial={{ pathLength: 0 }}
-                          animate={{ pathLength: 1 }}
-                          transition={{ duration: 0.5 }}
-                        />
-                        <motion.path
-                          d="M2 20h20"
-                          stroke="rgba(255,215,0,0.8)"
-                          strokeWidth="1"
-                          strokeLinecap="round"
-                        />
-                        <defs>
-                          <linearGradient id="crownGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                            <stop offset="0%" stopColor="rgba(255,215,0,0.9)" />
-                            <stop offset="50%" stopColor="rgba(255,180,0,0.8)" />
-                            <stop offset="100%" stopColor="rgba(255,215,0,0.9)" />
-                          </linearGradient>
-                        </defs>
-                      </svg>
+                      <img
+                        src={logoImg}
+                        alt="SwitchControl"
+                        className="w-24 h-24 object-contain"
+                        draggable={false}
+                      />
                     </motion.div>
 
-                    {/* Crown shimmer */}
                     <motion.div
-                      className="absolute inset-0 overflow-hidden pointer-events-none"
+                      className="absolute inset-0 overflow-hidden pointer-events-none rounded-full"
                     >
                       <motion.div
                         className="absolute inset-0"
                         style={{
-                          background: 'linear-gradient(100deg, transparent 0%, rgba(255,215,0,0.4) 42%, rgba(255,255,255,0.6) 50%, rgba(255,215,0,0.4) 58%, transparent 100%)',
+                          background: 'linear-gradient(100deg, transparent 0%, rgba(139,92,246,0.3) 42%, rgba(255,255,255,0.5) 50%, rgba(139,92,246,0.3) 58%, transparent 100%)',
                           transform: 'skewX(-20deg)',
                         }}
                         initial={{ x: '-200%' }}
@@ -523,17 +474,16 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                 )}
               </AnimatePresence>
 
-              {/* Background glow behind crown */}
               <AnimatePresence>
-                {showCrown && (
+                {showLogo && (
                   <motion.div
                     className="absolute -z-10 rounded-full"
                     style={{
                       width: 320,
                       height: 320,
-                      top: '50%',
+                      top: '40%',
                       left: '50%',
-                      background: 'radial-gradient(circle, rgba(255,215,0,0.15) 0%, rgba(139,92,246,0.1) 40%, transparent 65%)',
+                      background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(168,85,247,0.1) 40%, transparent 65%)',
                     }}
                     initial={{ opacity: 0, scale: 0.3, x: '-50%', y: '-50%' }}
                     animate={{ opacity: [0, 0.8, 0.5], scale: [0.3, 1.2, 1] }}
@@ -544,7 +494,6 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
               </AnimatePresence>
             </div>
 
-            {/* STATUS TEXT during glow-build */}
             <AnimatePresence mode="wait">
               {(phase === 'glow-build') && (
                 <motion.p
@@ -561,9 +510,8 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
               )}
             </AnimatePresence>
 
-            {/* MAIN TEXT - PREMIUM UNLOCKED */}
             <AnimatePresence>
-              {(showCrown || phase === 'exiting') && (
+              {(showLogo || phase === 'exiting') && (
                 <motion.div
                   className="mt-8 text-center"
                   initial={{ opacity: 0, y: 24, scale: 0.9 }}
@@ -571,10 +519,19 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.6, ease: [...EASE_LUXURY] }}
                 >
+                  <motion.p
+                    className="text-xs font-medium tracking-[0.2em] uppercase mb-2"
+                    style={{ color: 'rgba(139,92,246,0.7)' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.1, duration: 0.4 }}
+                  >
+                    PREMIUM ACTIVATED
+                  </motion.p>
                   <motion.h2
                     className="text-2xl md:text-3xl font-bold tracking-tight"
                     style={{
-                      background: 'linear-gradient(135deg, rgba(255,215,0,1) 0%, rgba(255,255,255,0.95) 40%, rgba(168,85,247,1) 70%, rgba(6,182,212,0.9) 100%)',
+                      background: 'linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(168,85,247,1) 50%, rgba(139,92,246,0.9) 100%)',
                       backgroundSize: '200% 200%',
                       backgroundClip: 'text',
                       WebkitBackgroundClip: 'text',
@@ -585,57 +542,29 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     }}
                     transition={{ duration: 4, ease: 'linear', repeat: Infinity }}
                   >
-                    PREMIUM UNLOCKED
+                    System Upgraded
                   </motion.h2>
                   <motion.p
-                    className="text-white/50 text-sm mt-1 tracking-wide"
+                    className="text-white/40 text-sm mt-2 tracking-wide"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.3, duration: 0.5 }}
                   >
-                    Power. Speed. Control.
+                    Your SwitchControl system has been upgraded.
                   </motion.p>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* FEATURES LIST - stagger in */}
-            <AnimatePresence>
-              {showText && visibleFeatures > 0 && (
-                <motion.div
-                  className="mt-6 flex flex-col items-center gap-1.5"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  {FEATURES.slice(0, visibleFeatures).map((feat, i) => (
-                    <motion.div
-                      key={feat}
-                      className="flex items-center gap-2 text-sm"
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.3, ease: [...EASE_LUXURY] }}
-                    >
-                      <motion.div
-                        className="w-1.5 h-1.5 rounded-full"
-                        style={{
-                          background: i < 3
-                            ? 'rgba(255,215,0,0.8)'
-                            : i === 3
-                            ? 'rgba(6,182,212,0.8)'
-                            : 'rgba(168,85,247,0.7)',
-                        }}
-                      />
-                      <span className="text-white/60 font-medium">{feat}</span>
-                    </motion.div>
-                  ))}
+                  <motion.p
+                    className="text-white/40 text-sm tracking-wide"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                  >
+                    All premium optimizations are now unlocked.
+                  </motion.p>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Skip hint */}
           <motion.div
             className="absolute bottom-8 left-1/2 -translate-x-1/2 text-white/20 text-xs tracking-wide"
             initial={{ opacity: 0 }}

@@ -132,7 +132,10 @@ function ElectronAppContent() {
     await postUnlockSeen();
     console.log('[PremiumFlow] Unlock marked as seen on server + store');
     setShowUpgradeAnimation(false);
-    triggerPremiumTour();
+    setTimeout(() => {
+      console.log('[PremiumFlow] Starting premium guided tour after animation');
+      triggerPremiumTour();
+    }, 400);
   }, [triggerPremiumTour]);
 
   useEffect(() => {

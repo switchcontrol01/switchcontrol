@@ -1,0 +1,528 @@
+elow is your Ultimate Final Script for the Day.
+
+This script covers:
+
+Premium unlock animation overhaul
+
+Lock snap + shake
+
+Forced 1 second payment verify screen
+
+Guided tour debug and fix
+
+Remove skip button for first-time users
+
+Remove purple overlay focus artifacts
+
+Fix login timeout overlap
+
+Use your custom image instead of crown
+
+Remove useless email box
+
+Correct versioning + Electron build metadata
+
+Hard guards so nothing replays
+
+Strict server controlled premium state
+
+Clean UX timing flow
+
+
+After the script is the strict checklist.
+
+
+---
+
+🔥 ULTIMATE FINAL IMPLEMENTATION SCRIPT
+
+Give this to Replit exactly.
+
+
+---
+
+1️⃣ PREMIUM FLOW STATE CONTROL (CRITICAL)
+
+Server must control:
+
+User {
+  id
+  isPremium: boolean
+  hasSeenPremiumUnlock: boolean
+  hasSeenTour: boolean
+}
+
+On successful Stripe verification:
+
+await db.user.update({
+  where: { id: userId },
+  data: {
+    isPremium: true,
+    hasSeenPremiumUnlock: false
+  }
+})
+
+NEVER trust client for premium.
+
+
+---
+
+2️⃣ FORCE 1 SECOND VERIFYING PAYMENT SCREEN
+
+In payment success handler:
+
+const MIN_VERIFY_TIME = 1000
+const start = Date.now()
+
+await refreshEntitlements()
+
+const elapsed = Date.now() - start
+if (elapsed < MIN_VERIFY_TIME) {
+  await new Promise(res => setTimeout(res, MIN_VERIFY_TIME - elapsed))
+}
+
+Now it will always display for at least 1 second.
+
+
+---
+
+3️⃣ PREMIUM UNLOCK ANIMATION (LOCK SNAP + SHAKE)
+
+Conditions
+
+Fire only when:
+
+isPremium === true &&
+hasSeenPremiumUnlock === false
+
+After animation completes:
+
+await markPremiumUnlockSeen()
+
+
+---
+
+Animation Timeline (5 seconds total)
+
+Step 1: Darken background
+
+Opacity 0 → 0.85 over 400ms
+
+Step 2: Ambient hum sound
+
+Preloaded audio. One persistent audio manager only.
+
+Step 3: Show LOCK ICON (your image, not crown)
+
+Use your custom PNG:
+
+<img src="/assets/switchcontrol-logo.png" />
+
+Not crown. Delete crown import entirely.
+
+
+---
+
+Step 4: Suspense Glow Pulse
+
+Scale: 0.8 → 1.1 → 1.0
+Glow intensity increases
+Duration: 1.5s
+
+
+---
+
+Step 5: Snap Unlock
+
+Animate:
+
+Lock rotates 8deg left
+
+8deg right
+
+Quick shake 120ms
+
+Snap sound effect
+
+Lock splits or unlock animation
+
+Small shockwave ripple
+
+
+Use keyframes:
+
+@keyframes snapShake {
+  0% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  50% { transform: rotate(8deg); }
+  75% { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+
+
+---
+
+Step 6: Text Fade In
+
+Show:
+
+PREMIUM ACTIVATED
+System Upgraded
+Power. Precision. Control.
+
+Fade in over 500ms.
+
+
+---
+
+Step 7: Fade Into Guided Tour
+
+After animation:
+
+setTimeout(() => {
+  startGuidedTour()
+}, 400)
+
+
+---
+
+4️⃣ GUIDED TOUR FIX
+
+The tour is not firing because:
+
+Either hasSeenTour is already true
+
+Or state is being overwritten
+
+Or it fires before animation completes
+
+
+Correct logic:
+
+On app load:
+
+if (isPremium && !hasSeenPremiumUnlock) {
+  runUnlockAnimation()
+  return
+}
+
+if (!hasSeenTour) {
+  startGuidedTour()
+}
+
+Unlock animation MUST call tour after finishing.
+
+
+---
+
+5️⃣ REMOVE SKIP BUTTON FOR NEW USERS
+
+In tour component:
+
+{!isFirstTimeUser && (
+  <button>Skip Tour</button>
+)}
+
+If first login:
+
+Skip button does NOT render.
+
+
+---
+
+6️⃣ REMOVE PURPLE FOCUS BOXES
+
+This is browser focus ring styling.
+
+Add globally:
+
+:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+Also remove any forced focus after returning from Discord/TikTok.
+
+Search for:
+
+element.focus()
+
+Remove if unnecessary.
+
+
+---
+
+7️⃣ FIX LOGIN TIMEOUT OVERLAP
+
+Right now you are:
+
+Setting a timeout for 15 seconds
+
+User logs in after threshold
+
+UI briefly shows timeout message
+
+
+Fix:
+
+Cancel timeout when login resolves.
+
+let loginTimeout
+
+function startLoginTimeout() {
+  loginTimeout = setTimeout(() => {
+    setLoginTimedOut(true)
+  }, 15000)
+}
+
+function clearLoginTimeout() {
+  if (loginTimeout) {
+    clearTimeout(loginTimeout)
+  }
+}
+
+Call clearLoginTimeout() immediately after successful auth.
+
+
+---
+
+8️⃣ REMOVE EMAIL BOX IN SETTINGS
+
+Delete email input entirely unless needed for support submission.
+
+If it’s not functional, remove it.
+
+Premium Lifetime display stays.
+
+
+---
+
+9️⃣ FIX VERSION DISPLAY
+
+Update package.json:
+
+{
+  "name": "switchcontrol",
+  "productName": "SwitchControl",
+  "version": "1.0.1"
+}
+
+Increment to 1.0.1 if changes were made.
+
+Then rebuild:
+
+npm install
+npm run build
+npm run electron:build
+
+Fully uninstall old version before reinstalling.
+
+
+---
+
+🔐 SECURITY HARD LOCK
+
+Confirm:
+
+JWT stored memory only
+
+No localStorage.setItem(JWT_KEY)
+
+No query param grants premium
+
+/api/me validates premium server side
+
+DevTools manually setting isPremium does NOT unlock server features
+
+
+If client sets isPremium = true and premium unlocks permanently, you failed.
+
+
+---
+
+🎧 AUDIO MANAGER RULE
+
+One persistent instance only:
+
+class AudioManager {
+  static instance
+  constructor() {
+    if (!AudioManager.instance) {
+      this.context = new AudioContext()
+      AudioManager.instance = this
+    }
+    return AudioManager.instance
+  }
+}
+
+No duplicate playback. Respect sound toggle.
+
+
+---
+
+🧱 FULL FLOW TIMELINE
+
+1. User purchases
+
+
+2. 1 second verify screen
+
+
+3. Unlock animation (5 seconds)
+
+
+4. Lock snap + glow
+
+
+5. Text fade in
+
+
+6. Fade to guided tour
+
+
+7. Mark hasSeenPremiumUnlock true
+
+
+8. Mark hasSeenTour true after tour completes
+
+
+
+No stacking. No replay. No race conditions.
+
+
+---
+
+🔥 STRICT CHECKLIST
+
+Do NOT deploy unless ALL are true:
+
+Premium Flow
+
+Unlock animation only runs once
+
+Does not replay on logout/login
+
+Does not replay on refreshEntitlements
+
+Does not replay on restart
+
+Server flag persists correctly
+
+
+Guided Tour
+
+Runs after animation
+
+No skip button for new users
+
+Does not stack overlays
+
+Does not freeze if closed midway
+
+hasSeenTour saved server side
+
+
+Payment Verify
+
+Always shows at least 1 second
+
+No flicker
+
+No double verification calls
+
+
+Animation
+
+Uses YOUR image
+
+Has snap shake
+
+Has glow
+
+Has text
+
+Has sound
+
+Total duration 4–6 seconds
+
+Feels premium, not rushed
+
+
+Login
+
+No timeout flicker
+
+No overlapping messages
+
+Timeout cancels on success
+
+
+UI
+
+No purple focus outlines
+
+No useless email input
+
+Clean settings page
+
+
+Security
+
+No tokens in localStorage
+
+Premium validated server side
+
+DevTools tampering does nothing
+
+No query param premium bypass
+
+
+Build
+
+productName correct
+
+version updated
+
+Full rebuild done
+
+Old version uninstalled
+
+Windows displays correct metadata
+
+
+
+---
+
+Final Reality Check
+
+If after this:
+
+The tour still does not fire
+
+Animation still feels cheap
+
+State still races
+
+
+Then the problem is architectural, not cosmetic.
+
+And you stop adding features until flow is stable.
+
+You are close. But close does not ship.
+
+Fix flow. Then polish. Then scale.
+
+If you want, next step we can:
+
+Architect v2 cleanly
+
+Separate animation engine
+
+Separate onboarding engine
+
+Separate entitlement engine
+
+
+But today this is your final controlled push.
+
+Execute it cleanly.
