@@ -21,10 +21,14 @@ interface AuthState {
   jwt: string | null;
   user: AuthUser | null;
   isValidating: boolean;
+  oauthDeepLinkReceived: boolean;
+  oauthError: string | null;
   setToken: (token: string) => void;
   setJwt: (jwt: string | null) => void;
   setUser: (user: AuthUser | null) => void;
   setValidating: (v: boolean) => void;
+  setOauthDeepLinkReceived: (v: boolean) => void;
+  setOauthError: (err: string | null) => void;
   logout: () => void;
   clear: () => void;
 }
@@ -36,6 +40,8 @@ export const useAuthStore = create<AuthState>()(
       jwt: null,
       user: null,
       isValidating: false,
+      oauthDeepLinkReceived: false,
+      oauthError: null,
       setToken: (token) => set({ token }),
       setJwt: (jwt) => {
         if (jwt) {
@@ -47,13 +53,15 @@ export const useAuthStore = create<AuthState>()(
       },
       setUser: (user) => set({ user }),
       setValidating: (isValidating) => set({ isValidating }),
+      setOauthDeepLinkReceived: (oauthDeepLinkReceived) => set({ oauthDeepLinkReceived }),
+      setOauthError: (oauthError) => set({ oauthError }),
       logout: () => {
         localStorage.removeItem(JWT_KEY);
         set({ token: null, jwt: null, user: null });
       },
       clear: () => {
         localStorage.removeItem(JWT_KEY);
-        set({ token: null, jwt: null, user: null, isValidating: false });
+        set({ token: null, jwt: null, user: null, isValidating: false, oauthDeepLinkReceived: false, oauthError: null });
       },
     }),
     {

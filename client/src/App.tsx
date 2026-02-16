@@ -218,6 +218,7 @@ function ElectronAppContent() {
 
     api.auth.onCallback(async (url: string) => {
       console.log('[PremiumFlow] deep-link received:', url);
+      useAuthStore.getState().setOauthDeepLinkReceived(true);
 
       try {
         const parsed = new URL(url);
@@ -251,7 +252,14 @@ function ElectronAppContent() {
           console.log('[Auth] exchangeToken starting — DO NOT clear store beforehand');
           useAuthStore.getState().setValidating(true);
 
-          const exchangedUser = await exchangeToken(newToken);
+          const EXCHANGE_TIMEOUT_MS = 15_000;
+          const exchangedUser = await Promise.race([
+            exchangeToken(newToken),
+            new Promise<null>((resolve) => setTimeout(() => {
+              console.warn('[Auth] exchangeToken timed out after', EXCHANGE_TIMEOUT_MS, 'ms');
+              resolve(null);
+            }, EXCHANGE_TIMEOUT_MS)),
+          ]);
 
           if (exchangedUser) {
             useAuthStore.getState().setToken(newToken);
@@ -293,15 +301,19 @@ function ElectronAppContent() {
             console.error('[App] Token exchange failed — setting unauthenticated (NO cookie clear)');
             useAuthStore.getState().clear();
             setPhase("unauthenticated");
+            useAuthStore.getState().setOauthError('Login failed. Please try again.');
           }
           useAuthStore.getState().setValidating(false);
         } else if (!premiumActivated) {
           console.log('[App] Deep link with no token and no premium flag — going to login');
+          useAuthStore.getState().setOauthError('Login cancelled or timed out');
           setPhase("unauthenticated");
         }
       } catch (err) {
         console.error('[App] Error parsing auth callback:', err);
+        useAuthStore.getState().setOauthError('Login failed. Please try again.');
         useAuthStore.getState().setValidating(false);
+        setPhase("unauthenticated");
       }
     });
 

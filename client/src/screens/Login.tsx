@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/lib/auth-store";
 import logoImg from "@/assets/logo.png";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
+const OAUTH_TIMEOUT_MS = 15_000;
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -49,6 +51,44 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number }>>([]);
+  const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { oauthDeepLinkReceived, oauthError } = useAuthStore();
+
+  const clearOAuthTimeout = useCallback(() => {
+    if (oauthTimeoutRef.current) {
+      clearTimeout(oauthTimeoutRef.current);
+      oauthTimeoutRef.current = null;
+      console.log('[Login] OAuth timeout cleared');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (oauthDeepLinkReceived) {
+      console.log('[Login] Deep link received — clearing timeout and loading state');
+      clearOAuthTimeout();
+      if (isLoading) {
+        setIsLoading(null);
+        setError(null);
+      }
+      useAuthStore.getState().setOauthDeepLinkReceived(false);
+    }
+  }, [oauthDeepLinkReceived, isLoading, clearOAuthTimeout]);
+
+  useEffect(() => {
+    if (oauthError) {
+      console.log('[Login] OAuth error from store:', oauthError);
+      clearOAuthTimeout();
+      setIsLoading(null);
+      setError(oauthError);
+      useAuthStore.getState().setOauthError(null);
+    }
+  }, [oauthError, clearOAuthTimeout]);
+
+  useEffect(() => {
+    return () => {
+      clearOAuthTimeout();
+    };
+  }, [clearOAuthTimeout]);
 
   useEffect(() => {
     const newParticles = Array.from({ length: 30 }, (_, i) => ({
@@ -64,6 +104,7 @@ export default function Login() {
   const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
     setError(null);
+    useAuthStore.getState().setOauthDeepLinkReceived(false);
     
     const api = (window as any).electronAPI;
     const isElectron = api?.isElectron && api?.openExternal;
@@ -73,6 +114,15 @@ export default function Login() {
       console.log('[Login] Opening external auth URL:', authUrl);
       try {
         await api.openExternal(authUrl);
+
+        clearOAuthTimeout();
+        oauthTimeoutRef.current = setTimeout(() => {
+          console.warn('[Login] OAuth timeout — no deep link received within', OAUTH_TIMEOUT_MS, 'ms');
+          setIsLoading(null);
+          setError("Login cancelled or timed out");
+          oauthTimeoutRef.current = null;
+        }, OAUTH_TIMEOUT_MS);
+        console.log(`[Login] OAuth timeout started (${OAUTH_TIMEOUT_MS}ms)`);
       } catch (err) {
         console.error('[Login] Failed to open auth URL:', err);
         setError("Failed to open browser. Please try again.");
@@ -211,15 +261,19 @@ export default function Login() {
             </div>
           </div>
 
-          {error && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"
-            >
-              {error}
-            </motion.div>
-          )}
+          <AnimatePresence>
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: -10, height: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"
+              >
+                {error}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="relative space-y-3">
             <motion.div 
