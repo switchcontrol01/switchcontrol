@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -64,10 +64,9 @@ function saveState(state) {
 
 function runPowerShell(command) {
   return new Promise((resolve, reject) => {
-    const safeCommand = command.replace(/"/g, '\\"');
-    const psCommand = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "try { ${safeCommand}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }"`;
+    const wrappedCommand = `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
     
-    exec(psCommand, { timeout: 30000 }, (error, stdout, stderr) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', wrappedCommand], { timeout: 30000 }, (error, stdout, stderr) => {
       if (error) {
         const errorMsg = stderr?.trim() || stdout?.trim() || error.message;
         console.error('[TweakExecutor] PowerShell error:', errorMsg);
@@ -81,10 +80,7 @@ function runPowerShell(command) {
 
 function checkPowerShell(command) {
   return new Promise((resolve) => {
-    const safeCommand = command.replace(/"/g, '\\"');
-    const psCommand = `powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "${safeCommand}"`;
-    
-    exec(psCommand, { timeout: 10000 }, (error, stdout) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command], { timeout: 10000 }, (error, stdout) => {
       if (error) {
         resolve(false);
       } else {
