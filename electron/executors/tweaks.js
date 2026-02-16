@@ -1,4 +1,4 @@
-const { exec, execFile } = require('child_process');
+const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
@@ -20,8 +20,7 @@ const RESULT_CONTRACT = {
 
 function execPowerShell(command) {
   return new Promise((resolve, reject) => {
-    const psCommand = `powershell -NoProfile -ExecutionPolicy Bypass -Command "${command.replace(/"/g, '\\"')}"`;
-    exec(psCommand, { timeout: 30000 }, (error, stdout, stderr) => {
+    execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], { timeout: 30000 }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(stderr || error.message));
       } else {
@@ -33,8 +32,8 @@ function execPowerShell(command) {
 
 function setRegistryValue(keyPath, valueName, value, type = 'REG_DWORD') {
   return new Promise((resolve, reject) => {
-    const command = `reg add "${keyPath}" /v "${valueName}" /t ${type} /d ${value} /f`;
-    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+    const args = ['add', keyPath, '/v', valueName, '/t', type, '/d', String(value), '/f'];
+    execFile('reg', args, { timeout: 10000 }, (error, stdout, stderr) => {
       if (error) {
         reject(new Error(stderr || error.message));
       } else {
@@ -46,8 +45,8 @@ function setRegistryValue(keyPath, valueName, value, type = 'REG_DWORD') {
 
 function deleteRegistryValue(keyPath, valueName) {
   return new Promise((resolve, reject) => {
-    const command = `reg delete "${keyPath}" /v "${valueName}" /f`;
-    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+    const args = ['delete', keyPath, '/v', valueName, '/f'];
+    execFile('reg', args, { timeout: 10000 }, (error, stdout, stderr) => {
       if (error && !stderr.includes('does not exist')) {
         reject(new Error(stderr || error.message));
       } else {
@@ -59,8 +58,8 @@ function deleteRegistryValue(keyPath, valueName) {
 
 function getRegistryValue(keyPath, valueName) {
   return new Promise((resolve, reject) => {
-    const command = `reg query "${keyPath}" /v "${valueName}"`;
-    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+    const args = ['query', keyPath, '/v', valueName];
+    execFile('reg', args, { timeout: 10000 }, (error, stdout, stderr) => {
       if (error) {
         resolve(null);
       } else {
