@@ -1,22 +1,240 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useLocation } from "wouter";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, Loader2, XCircle, ExternalLink, Download } from "lucide-react";
-import { motion, useMotion } from "@/lib/motion";
+import { ExternalLink, Download } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
-function openDesktopApp() {
-  console.log('[PremiumFlow] Opening desktop app via protocol deep-link');
-  window.location.href = `switchcontrol://auth/success?premium_activated=true&source=web&ts=${Date.now()}`;
+type PageState = "loading" | "success" | "error";
+type AnimPhase = "idle" | "stroke" | "check" | "glow" | "text" | "buttons" | "ready";
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return reduced;
+}
+
+function playActivationChime() {
+  try {
+    const ctx = new AudioContext();
+    const now = ctx.currentTime;
+
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(880, now);
+    osc1.frequency.exponentialRampToValueAtTime(1320, now + 0.08);
+    gain1.gain.setValueAtTime(0.06, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc1.connect(gain1).connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.25);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(1760, now + 0.06);
+    gain2.gain.setValueAtTime(0.04, now + 0.06);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc2.connect(gain2).connect(ctx.destination);
+    osc2.start(now + 0.06);
+    osc2.stop(now + 0.35);
+
+    setTimeout(() => ctx.close(), 500);
+  } catch {}
+}
+
+function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
+  const [phase, setPhase] = useState<AnimPhase>("idle");
+
+  useEffect(() => {
+    if (!trigger) return;
+    if (reducedMotion) {
+      setPhase("ready");
+      return;
+    }
+    setPhase("stroke");
+    const t1 = setTimeout(() => setPhase("check"), 1200);
+    const t2 = setTimeout(() => {
+      setPhase("glow");
+      playActivationChime();
+    }, 1700);
+    const t3 = setTimeout(() => setPhase("text"), 2100);
+    const t4 = setTimeout(() => setPhase("buttons"), 2600);
+    const t5 = setTimeout(() => setPhase("ready"), 3000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); };
+  }, [trigger, reducedMotion]);
+
+  return phase;
+}
+
+function GridOverlay() {
+  return (
+    <div className="fixed inset-0 pointer-events-none" style={{ opacity: 0.03 }}>
+      <svg width="100%" height="100%">
+        <defs>
+          <pattern id="pgrid" width="60" height="60" patternUnits="userSpaceOnUse">
+            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#pgrid)" />
+      </svg>
+    </div>
+  );
+}
+
+function FloatingParticles() {
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    left: `${Math.random() * 100}%`,
+    top: `${Math.random() * 100}%`,
+    size: 1 + Math.random() * 2,
+    delay: Math.random() * 8,
+    duration: 6 + Math.random() * 6,
+    opacity: 0.15 + Math.random() * 0.25,
+  }));
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          className="absolute rounded-full"
+          style={{
+            left: p.left,
+            top: p.top,
+            width: p.size,
+            height: p.size,
+            background: `rgba(168, 132, 255, ${p.opacity})`,
+            animation: `pParticleFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function CheckAnimation({ phase }: { phase: AnimPhase }) {
+  const phaseIndex = ["idle", "stroke", "check", "glow", "text", "buttons", "ready"].indexOf(phase);
+  const showStroke = phaseIndex >= 1;
+  const showCheck = phaseIndex >= 2;
+  const showGlow = phaseIndex >= 3;
+
+  return (
+    <div className="relative w-24 h-24 mx-auto mb-8">
+      {showGlow && (
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: "radial-gradient(circle, rgba(168,132,255,0.3) 0%, transparent 70%)",
+            animation: "pGlowPulse 2s ease-in-out infinite",
+            transform: "scale(2)",
+          }}
+        />
+      )}
+
+      <svg viewBox="0 0 96 96" className="w-24 h-24 relative z-10">
+        <circle cx="48" cy="48" r="42" fill="none" stroke="rgba(168,132,255,0.15)" strokeWidth="1.5" />
+        <circle
+          cx="48"
+          cy="48"
+          r="42"
+          fill="none"
+          stroke="url(#pStrokeGrad)"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeDasharray={264}
+          strokeDashoffset={showStroke ? 0 : 264}
+          transform="rotate(-90 48 48)"
+          style={{ transition: "stroke-dashoffset 1.1s cubic-bezier(0.22, 1, 0.36, 1)" }}
+        />
+        <path
+          d="M 30 50 L 42 62 L 66 36"
+          fill="none"
+          stroke={showCheck ? "rgba(168,132,255,1)" : "transparent"}
+          strokeWidth="3"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeDasharray="60"
+          strokeDashoffset={showCheck ? 0 : 60}
+          style={{ transition: "stroke-dashoffset 0.4s cubic-bezier(0.22, 1, 0.36, 1), stroke 0.2s" }}
+        />
+        <defs>
+          <linearGradient id="pStrokeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#a884ff" />
+            <stop offset="50%" stopColor="#c49bff" />
+            <stop offset="100%" stopColor="#d4a8ff" stopOpacity="0.6" />
+          </linearGradient>
+        </defs>
+      </svg>
+    </div>
+  );
+}
+
+function LaunchButton({ onClick }: { onClick: () => void }) {
+  const [launching, setLaunching] = useState(false);
+
+  const handleClick = useCallback(() => {
+    if (launching) return;
+    onClick();
+    setLaunching(true);
+  }, [onClick, launching]);
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={launching}
+      data-testid="button-open-app"
+      className="group relative w-full h-14 rounded-xl border border-purple-500/30 bg-white/[0.03] backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-purple-400/50 hover:bg-white/[0.05] disabled:pointer-events-none"
+      style={{
+        boxShadow: launching
+          ? "0 0 40px rgba(168,132,255,0.4), inset 0 0 20px rgba(168,132,255,0.1)"
+          : "0 0 20px rgba(168,132,255,0.08), inset 0 0 10px rgba(168,132,255,0.03)",
+      }}
+    >
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        style={{
+          background: "linear-gradient(105deg, transparent 40%, rgba(168,132,255,0.06) 45%, rgba(168,132,255,0.12) 50%, rgba(168,132,255,0.06) 55%, transparent 60%)",
+          animation: "pShineSweep 3s ease-in-out infinite",
+        }}
+      />
+
+      <div className="relative z-10 flex items-center justify-center gap-2.5 text-white/90 font-medium tracking-wide">
+        {launching ? (
+          <>
+            <div className="size-4 border-2 border-purple-300/60 border-t-transparent rounded-full animate-spin" />
+            <span className="text-sm" style={{ animation: "pFadeInUp 0.2s ease-out" }}>
+              Launching desktop client…
+            </span>
+          </>
+        ) : (
+          <>
+            <ExternalLink className="size-4 text-purple-300/80 transition-transform duration-300 group-hover:translate-x-0.5" />
+            <span className="text-sm">Open SwitchControl</span>
+          </>
+        )}
+      </div>
+    </button>
+  );
 }
 
 export default function PremiumSuccess() {
-  const { prefersReducedMotion } = useMotion();
   const [, navigate] = useLocation();
-  const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
+  const [status, setStatus] = useState<PageState>("loading");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const reducedMotion = usePrefersReducedMotion();
+  const animPhase = useAnimSequence(status === "success", reducedMotion);
+
+  const phaseIndex = ["idle", "stroke", "check", "glow", "text", "buttons", "ready"].indexOf(animPhase);
+  const showText = phaseIndex >= 4;
+  const showButtons = phaseIndex >= 5;
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -33,7 +251,6 @@ export default function PremiumSuccess() {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log("Session verification:", data);
         if (data.payment_status === "paid") {
           setStatus("success");
           queryClient.invalidateQueries({ queryKey: ["/api/user/premium-status"] });
@@ -44,109 +261,188 @@ export default function PremiumSuccess() {
         }
       })
       .catch((err) => {
-        console.error("Session verification error:", err);
         setStatus("error");
         setError("Failed to verify payment");
       });
   }, [navigate, queryClient]);
 
+  const handleOpenApp = useCallback(() => {
+    console.log("[PremiumFlow] Opening desktop app via protocol deep-link");
+    window.location.href = `switchcontrol://auth/success?premium_activated=true&source=web&ts=${Date.now()}`;
+  }, []);
+
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4">
-      <div 
-        className="fixed inset-0 opacity-40"
-        style={{
-          background: 'linear-gradient(-45deg, #0f0a1e, #1a0a2e, #0a1628, #0f1a2e, #1a0f2e)',
-          backgroundSize: '400% 400%',
-          animation: prefersReducedMotion ? 'none' : 'gradientShift 24s ease infinite',
-        }}
-      />
-      
+    <div className="fixed inset-0 bg-[#07060b] flex items-center justify-center overflow-hidden">
       <style>{`
-        @keyframes gradientShift {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+        @keyframes pMeshDrift {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(30px, -20px) scale(1.05); }
+          50% { transform: translate(-20px, 15px) scale(0.98); }
+          75% { transform: translate(15px, 25px) scale(1.02); }
+        }
+        @keyframes pParticleFloat {
+          0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
+          50% { transform: translateY(-30px) scale(1.3); opacity: 0.5; }
+        }
+        @keyframes pGlowPulse {
+          0%, 100% { opacity: 0.6; transform: scale(2); }
+          50% { opacity: 1; transform: scale(2.2); }
+        }
+        @keyframes pShineSweep {
+          0% { transform: translateX(-200%); }
+          100% { transform: translateX(200%); }
+        }
+        @keyframes pFadeInUp {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pLoadingPulse {
+          0%, 100% { opacity: 0.4; }
+          50% { opacity: 0.8; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          *, *::before, *::after {
+            animation-duration: 0.01ms !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.01ms !important;
+          }
         }
       `}</style>
-      
-      <motion.div
-        initial={{ opacity: 0, scale: prefersReducedMotion ? 0.98 : 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
-        className="relative z-10"
+
+      <div className="fixed inset-0">
+        <div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            width: 500,
+            height: 500,
+            left: "20%",
+            top: "30%",
+            background: "radial-gradient(circle, rgba(100,60,180,0.08), transparent 70%)",
+            animation: "pMeshDrift 20s ease-in-out infinite",
+          }}
+        />
+        <div
+          className="absolute rounded-full blur-3xl"
+          style={{
+            width: 400,
+            height: 400,
+            right: "15%",
+            bottom: "20%",
+            background: "radial-gradient(circle, rgba(80,50,160,0.06), transparent 70%)",
+            animation: "pMeshDrift 16s ease-in-out 3s infinite reverse",
+          }}
+        />
+      </div>
+
+      <GridOverlay />
+      <FloatingParticles />
+
+      <div className="relative z-10 w-full max-w-md px-6">
+        {status === "loading" && (
+          <div className="text-center">
+            <div className="relative w-16 h-16 mx-auto mb-8">
+              <svg viewBox="0 0 64 64" className="w-16 h-16">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(168,132,255,0.1)" strokeWidth="1.5" />
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  fill="none"
+                  stroke="rgba(168,132,255,0.5)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="40 136"
+                  transform="rotate(-90 32 32)"
+                  className="animate-spin"
+                  style={{ animationDuration: "1.2s" }}
+                />
+              </svg>
+            </div>
+            <p
+              className="text-sm text-white/40 tracking-widest uppercase"
+              style={{ letterSpacing: "0.2em", animation: "pLoadingPulse 2s ease-in-out infinite" }}
+            >
+              Verifying payment
+            </p>
+          </div>
+        )}
+
+        {status === "success" && (
+          <div className="text-center">
+            <CheckAnimation phase={animPhase} />
+
+            <div
+              style={{
+                opacity: showText ? 1 : 0,
+                transform: showText ? "translateY(0)" : "translateY(12px)",
+                transition: "all 0.6s cubic-bezier(0.22, 1, 0.36, 1)",
+              }}
+            >
+              <p
+                className="text-xs text-purple-300/60 tracking-widest uppercase mb-3"
+                style={{ letterSpacing: "0.25em" }}
+              >
+                Premium Activated
+              </p>
+              <h1 className="text-2xl font-semibold text-white/90 mb-2 tracking-tight">
+                System Upgraded
+              </h1>
+              <p className="text-sm text-white/35 leading-relaxed max-w-xs mx-auto">
+                Your SwitchControl system has been upgraded. All premium optimizations are now unlocked.
+              </p>
+            </div>
+
+            <div
+              className="mt-10 space-y-3"
+              style={{
+                opacity: showButtons ? 1 : 0,
+                transform: showButtons ? "translateY(0)" : "translateY(16px)",
+                transition: "all 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.1s",
+              }}
+            >
+              <LaunchButton onClick={handleOpenApp} />
+
+              <button
+                onClick={() => navigate("/download")}
+                className="w-full h-11 rounded-lg border border-white/[0.06] bg-transparent text-white/30 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/50 hover:border-white/10 flex items-center justify-center gap-2"
+                data-testid="button-goto-download"
+              >
+                <Download className="size-3.5" />
+                Download App First
+              </button>
+            </div>
+          </div>
+        )}
+
+        {status === "error" && (
+          <div className="text-center">
+            <div className="relative w-20 h-20 mx-auto mb-6">
+              <svg viewBox="0 0 80 80" className="w-20 h-20">
+                <circle cx="40" cy="40" r="36" fill="none" stroke="rgba(239,68,68,0.2)" strokeWidth="1.5" />
+                <path d="M 28 28 L 52 52 M 52 28 L 28 52" stroke="rgba(239,68,68,0.7)" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+            </div>
+            <p className="text-xs text-red-400/50 tracking-widest uppercase mb-3" style={{ letterSpacing: "0.2em" }}>
+              Verification Failed
+            </p>
+            <p className="text-sm text-white/40 mb-8 max-w-xs mx-auto">{error}</p>
+            <button
+              onClick={() => navigate("/pricing")}
+              className="h-11 px-8 rounded-lg border border-white/[0.08] text-white/40 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/60 hover:border-white/15"
+              data-testid="button-back-pricing"
+            >
+              Back to pricing
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-white/10 tracking-widest uppercase"
+        style={{ letterSpacing: "0.3em" }}
       >
-        <Card className="bg-white/5 border-white/10 backdrop-blur-sm max-w-md w-full">
-          <CardContent className="p-8 text-center">
-            {status === "loading" && (
-              <>
-                <Loader2 className="size-16 text-primary mx-auto mb-4 animate-spin" />
-                <h1 className="text-2xl font-bold text-white mb-2">Verifying Payment...</h1>
-                <p className="text-muted-foreground">Please wait while we confirm your purchase.</p>
-              </>
-            )}
-            
-            {status === "success" && (
-              <>
-                <CheckCircle className="size-16 text-emerald-400 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-white mb-2">Welcome to Premium!</h1>
-                <p className="text-muted-foreground mb-6">
-                  Your payment was successful. You now have lifetime access to all premium features.
-                </p>
-                
-                <div className="space-y-3 mb-4">
-                  <Button 
-                    onClick={openDesktopApp}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-semibold"
-                    data-testid="button-open-app"
-                  >
-                    <ExternalLink className="size-4 mr-2" />
-                    Open SwitchControl App
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate("/download")}
-                    className="w-full border-white/20"
-                    data-testid="button-goto-download"
-                  >
-                    <Download className="size-4 mr-2" />
-                    Download App First
-                  </Button>
-                </div>
-                
-                <p className="text-xs text-muted-foreground">
-                  If you already have SwitchControl installed, click "Open App" to activate Premium instantly.
-                </p>
-              </>
-            )}
-            
-            {status === "error" && (
-              <>
-                <XCircle className="size-16 text-red-400 mx-auto mb-4" />
-                <h1 className="text-2xl font-bold text-white mb-2">Something Went Wrong</h1>
-                <p className="text-muted-foreground mb-6">
-                  {error || "We couldn't verify your payment. Please contact support if you were charged."}
-                </p>
-                <div className="flex gap-3 justify-center">
-                  <Button 
-                    variant="outline"
-                    onClick={() => navigate("/pricing")}
-                    className="border-white/20"
-                    data-testid="button-back-pricing"
-                  >
-                    Back to Pricing
-                  </Button>
-                  <Button 
-                    onClick={() => window.location.reload()}
-                    className="bg-primary hover:bg-primary/90"
-                    data-testid="button-retry"
-                  >
-                    Try Again
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
+        SwitchControl
+      </div>
     </div>
   );
 }
