@@ -493,7 +493,6 @@ export function setupGoogleAuth(app: Express): void {
     const authHeader = req.headers.authorization;
     const hasBearer = !!(authHeader && authHeader.startsWith('Bearer '));
     const hasCookie = req.isAuthenticated() && !!req.user;
-    console.log(`[AUTH] /api/me — Authorization header: ${hasBearer ? 'present' : 'missing'}, cookie session: ${hasCookie ? 'present' : 'missing'}`);
 
     if (hasBearer) {
       const token = authHeader!.substring(7);

@@ -168,7 +168,6 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
   try {
     const jwt = getStoredJwt();
     const useJwt = !!jwt;
-    console.log(`[Auth] Validating session with /api/me (useJwt=${useJwt})`);
 
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (jwt) {
@@ -213,7 +212,6 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
   const store = useAuthStore.getState();
 
   const jwt = getStoredJwt();
-  console.log(`[PremiumFlow] refreshEntitlements start useJwt=${!!jwt}`);
 
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
