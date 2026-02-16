@@ -7,11 +7,8 @@ import { motion, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
 
 function openDesktopApp() {
-  console.log('[PremiumFlow] Opening desktop app via deep-link');
-  window.location.href = `switchcontrol://premium?source=web&ts=${Date.now()}`;
-  setTimeout(() => {
-    window.location.href = "/download?from=premium";
-  }, 1500);
+  console.log('[PremiumFlow] Opening desktop app via protocol deep-link');
+  window.location.href = `switchcontrol://auth/success?premium_activated=true&source=web&ts=${Date.now()}`;
 }
 
 type ConfirmState = "loading" | "success" | "error";
