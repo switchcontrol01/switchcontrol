@@ -31,8 +31,8 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
 
     try {
       const result = await refreshEntitlements();
-      if (result.upgraded && onUpgrade) {
-        console.log('[Entitlement] User upgraded to premium!');
+      if (result.user?.isPremium && onUpgrade) {
+        console.log('[Entitlement] User is premium, triggering onUpgrade callback');
         onUpgrade();
       }
     } catch (err) {

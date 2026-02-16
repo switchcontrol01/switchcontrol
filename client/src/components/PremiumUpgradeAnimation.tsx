@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logoNoCrown from '@/assets/premium/logo-no-crown.png';
 import logoWithCrown from '@/assets/premium/logo-with-crown.png';
-import { useAuthStore } from '@/lib/auth-store';
 
 interface PremiumUpgradeAnimationProps {
   show: boolean;
@@ -11,7 +10,6 @@ interface PremiumUpgradeAnimationProps {
 
 type AnimationPhase = 'idle' | 'suspense' | 'impact' | 'crown-morph' | 'settle' | 'done';
 
-const ANIMATION_SHOWN_KEY = 'sc_premium_animation_shown';
 const LUXURY_EASE = [0.22, 1, 0.36, 1] as const;
 
 export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnimationProps) {
@@ -568,13 +566,3 @@ function UnlockIcon() {
   );
 }
 
-export function shouldShowPremiumAnimation(): boolean {
-  const user = useAuthStore.getState().user;
-  const hasSeenServer = user?.hasSeenPremiumUnlock === true;
-  const alreadyShownLocal = localStorage.getItem(ANIMATION_SHOWN_KEY) === 'true';
-  return !hasSeenServer && !alreadyShownLocal;
-}
-
-export function resetPremiumAnimationFlag(): void {
-  localStorage.removeItem(ANIMATION_SHOWN_KEY);
-}

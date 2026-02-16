@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
-import { PremiumUpgradeAnimation, shouldShowPremiumAnimation } from "@/components/PremiumUpgradeAnimation";
+import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
 import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
@@ -114,23 +114,22 @@ function ElectronAppContent() {
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
 
-  const handlePremiumUpgrade = useCallback(() => {
-    console.log('[TEMP-LOG] handlePremiumUpgrade called');
-    console.log('[App] Premium upgrade detected!');
-    if (shouldShowPremiumAnimation()) {
-      console.log('[TEMP-LOG] shouldShowPremiumAnimation=true, setting showUpgradeAnimation=true');
-      setShowUpgradeAnimation(true);
-    } else {
-      console.log('[App] Animation already shown, skipping');
-      triggerPremiumTour();
-    }
-  }, [triggerPremiumTour]);
-
   const triggerActivation = usePremiumActivation((s) => s.triggerActivation);
+
+  useEffect(() => {
+    if (phase !== 'authenticated') return;
+    console.log(`[PremiumFlow] Checking unlock animation: isPremium=${user?.isPremium} hasSeenPremiumUnlock=${user?.hasSeenPremiumUnlock}`);
+    if (user?.isPremium && !user?.hasSeenPremiumUnlock) {
+      console.log('[PremiumFlow] Unlock animation triggered');
+      setShowUpgradeAnimation(true);
+    }
+  }, [user, phase]);
   
   const handleUpgradeAnimationComplete = useCallback(async () => {
+    console.log('[PremiumFlow] Animation complete — marking seen');
     setShowUpgradeAnimation(false);
     await postUnlockSeen();
+    console.log('[PremiumFlow] Unlock marked as seen');
     triggerActivation();
     triggerPremiumTour();
   }, [triggerPremiumTour, triggerActivation]);
@@ -140,28 +139,14 @@ function ElectronAppContent() {
 
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
-        console.log('[App] App focused, refreshing entitlements...');
-        // Clear any stuck focus states
-        if (document.activeElement instanceof HTMLElement) {
-          document.activeElement.blur();
-        }
-        const result = await refreshEntitlements();
-        if (result.upgraded) {
-          handlePremiumUpgrade();
-        }
+        console.log('[App] App visible, refreshing entitlements...');
+        await refreshEntitlements();
       }
     };
 
     const handleFocus = async () => {
       console.log('[App] Window focused, refreshing entitlements...');
-      // Clear any stuck focus states
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-      const result = await refreshEntitlements();
-      if (result.upgraded) {
-        handlePremiumUpgrade();
-      }
+      await refreshEntitlements();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -171,37 +156,29 @@ function ElectronAppContent() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, [user?.loggedIn, phase, handlePremiumUpgrade]);
+  }, [user?.loggedIn, phase]);
 
-  // Electron window focus event - clear any stuck UI states and force reflow
   useEffect(() => {
     if (!isElectron) return;
     
     const api = (window as any).electronAPI;
     
     const resetUIState = () => {
+      if (showUpgradeAnimation) {
+        console.log('[App] Focus reset skipped — premium animation active');
+        return;
+      }
       console.log('[App] Resetting UI state on focus');
       
-      // Blur any focused element
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
       
-      // Force reflow to clear any stuck visual states
-      const root = document.getElementById('root');
-      if (root) {
-        root.style.display = 'none';
-        void root.offsetHeight; // Force reflow
-        root.style.display = '';
-      }
-      
-      // Clear any stuck overlay classes
       document.querySelectorAll('[data-overlay]').forEach(el => {
         (el as HTMLElement).style.pointerEvents = '';
         (el as HTMLElement).style.opacity = '';
       });
       
-      // Remove any stuck focus rings
       document.querySelectorAll('.ring-2, .ring-primary, [class*="focus:ring"]').forEach(el => {
         (el as HTMLElement).blur();
       });
@@ -209,7 +186,7 @@ function ElectronAppContent() {
     
     if (api?.onWindowFocus) {
       api.onWindowFocus(() => {
-        console.log('[App] Electron window focus - clearing UI state');
+        console.log('[App] Electron window focus');
         resetUIState();
       });
       
@@ -217,7 +194,7 @@ function ElectronAppContent() {
         api.removeWindowFocusListener?.();
       };
     }
-  }, []);
+  }, [showUpgradeAnimation]);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
@@ -226,16 +203,12 @@ function ElectronAppContent() {
     return () => clearTimeout(splashTimer);
   }, []);
 
-  const handlePremiumUpgradeRef = React.useRef(handlePremiumUpgrade);
-  handlePremiumUpgradeRef.current = handlePremiumUpgrade;
-
   useEffect(() => {
     if (!isElectron) return;
     console.log('[App] Registering deep link auth callback (once)');
     const api = (window as any).electronAPI;
 
     api.auth.onCallback(async (url: string) => {
-      console.log('[TEMP-LOG] deep-link callback fired');
       console.log('[PremiumFlow] deep-link received:', url);
 
       try {
@@ -256,14 +229,8 @@ function ElectronAppContent() {
             initialDelayMs: 500,
           });
 
-          if (result.ok && result.upgraded) {
-            console.log('[PremiumFlow] Premium upgrade confirmed via retries — playing animation');
-            handlePremiumUpgradeRef.current();
-            return;
-          }
-
           if (result.ok && result.user?.isPremium) {
-            console.log('[PremiumFlow] User already premium, no upgrade animation needed');
+            console.log('[PremiumFlow] Premium confirmed — entitlement useEffect will handle animation');
             return;
           }
 
@@ -281,7 +248,7 @@ function ElectronAppContent() {
           if (exchangedUser) {
             useAuthStore.getState().setToken(newToken);
             useAuthStore.getState().setUser(exchangedUser);
-            console.log(`[Auth] exchangeToken success, now validating /api/me in 300ms — user=${exchangedUser.id} provider=${provider} ts=${Date.now()}`);
+            console.log(`[Auth] exchangeToken success — user=${exchangedUser.id} provider=${provider} ts=${Date.now()}`);
 
             if ((window as any).electronAPI?.debugCookies) {
               const cookies = await (window as any).electronAPI.debugCookies();
@@ -301,17 +268,14 @@ function ElectronAppContent() {
             }
 
             if (premiumActivated) {
-              console.log('[PremiumFlow] Token exchange + premiumActivated — validating premium with retries...');
+              console.log('[PremiumFlow] Token exchange + premiumActivated — retrying until premium confirmed...');
               const premResult = await retryRefreshEntitlements({
                 attempts: 30,
                 delayMs: 1000,
                 initialDelayMs: 300,
               });
-              if (premResult.ok && premResult.upgraded) {
-                console.log('[PremiumFlow] Premium confirmed after login — playing animation');
-                handlePremiumUpgradeRef.current();
-              } else if (premResult.ok && premResult.user?.isPremium) {
-                console.log('[PremiumFlow] Already premium after login, no animation');
+              if (premResult.ok && premResult.user?.isPremium) {
+                console.log('[PremiumFlow] Premium confirmed after login — entitlement useEffect will handle animation');
               } else {
                 console.warn('[PremiumFlow] Premium not confirmed after login retries — showing pending');
                 setShowPendingActivation(true);
@@ -509,7 +473,6 @@ function ElectronAppContent() {
         show={showPendingActivation}
         onUpgradeDetected={() => {
           setShowPendingActivation(false);
-          handlePremiumUpgrade();
         }}
         onDismiss={() => setShowPendingActivation(false)}
       />

@@ -95,7 +95,6 @@ export async function performFullLogout(reason: string): Promise<void> {
   store.clear();
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(JWT_KEY);
-  lastKnownIsPremium = null;
 
   const api = (window as any).electronAPI;
   if (api?.clearAuthCookies) {
@@ -202,19 +201,11 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
   }
 }
 
-let lastKnownIsPremium: boolean | null = null;
-
-export function resetLastKnownPremium() {
-  lastKnownIsPremium = null;
-}
-
-export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: AuthUser | null }> {
+export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> {
   const store = useAuthStore.getState();
-  const wasPremium = lastKnownIsPremium !== null ? lastKnownIsPremium : (store.user?.isPremium || false);
 
   const jwt = getStoredJwt();
-  const useJwt = !!jwt;
-  console.log(`[PremiumFlow] refreshEntitlements start - wasPremium=${wasPremium} lastKnownIsPremium=${lastKnownIsPremium} useJwt=${useJwt}`);
+  console.log(`[PremiumFlow] refreshEntitlements start useJwt=${!!jwt}`);
 
   try {
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
@@ -229,7 +220,7 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
 
     if (!response.ok) {
       console.error(`[PremiumFlow] /api/me status=${response.status} (HTTP error)`);
-      return { upgraded: false, user: null };
+      return { user: null };
     }
 
     const authMode = response.headers.get('X-Auth-Mode');
@@ -237,7 +228,7 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
     console.log(`[PremiumFlow] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} hasSeenPremiumUnlock=${data.hasSeenPremiumUnlock}`);
 
     if (data.loggedIn === false) {
-      return { upgraded: false, user: null };
+      return { user: null };
     }
 
     const newUser: AuthUser = {
@@ -251,16 +242,13 @@ export async function refreshEntitlements(): Promise<{ upgraded: boolean; user: 
       loggedIn: true,
     };
 
-    const upgraded = !wasPremium && newUser.isPremium;
-    lastKnownIsPremium = newUser.isPremium;
-
     store.setUser(newUser);
-    console.log(`[PremiumFlow] refreshEntitlements end upgraded=${upgraded} premium=${newUser.isPremium} wasPremium=${wasPremium} authMode=${authMode}`);
+    console.log(`[PremiumFlow] refreshEntitlements end isPremium=${newUser.isPremium} hasSeenPremiumUnlock=${newUser.hasSeenPremiumUnlock} authMode=${authMode}`);
 
-    return { upgraded, user: newUser };
+    return { user: newUser };
   } catch (err) {
     console.error('[PremiumFlow] refreshEntitlements error:', err);
-    return { upgraded: false, user: null };
+    return { user: null };
   }
 }
 
@@ -268,7 +256,7 @@ export async function retryRefreshEntitlements(opts?: {
   attempts?: number;
   delayMs?: number;
   initialDelayMs?: number;
-}): Promise<{ ok: boolean; upgraded: boolean; user: AuthUser | null; reason?: string }> {
+}): Promise<{ ok: boolean; user: AuthUser | null; reason?: string }> {
   const { attempts = 6, delayMs = 500, initialDelayMs = 300 } = opts || {};
 
   console.log(`[PremiumFlow] retryRefreshEntitlements starting — initialDelay=${initialDelayMs}ms, attempts=${attempts}, delay=${delayMs}ms`);
@@ -287,15 +275,15 @@ export async function retryRefreshEntitlements(opts?: {
     const result = await refreshEntitlements();
 
     if (result.user && result.user.loggedIn) {
-      console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=true isPremium=${result.user.isPremium} upgraded=${result.upgraded}`);
-      return { ok: true, upgraded: result.upgraded, user: result.user };
+      console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=true isPremium=${result.user.isPremium} hasSeenPremiumUnlock=${result.user.hasSeenPremiumUnlock}`);
+      return { ok: true, user: result.user };
     }
 
     console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=false, retrying...`);
   }
 
   console.warn(`[PremiumFlow] /api/me still loggedIn=false after ${attempts} attempts`);
-  return { ok: false, upgraded: false, user: null, reason: 'not_logged_in_after_retries' };
+  return { ok: false, user: null, reason: 'not_logged_in_after_retries' };
 }
 
 export async function postUnlockSeen(): Promise<boolean> {

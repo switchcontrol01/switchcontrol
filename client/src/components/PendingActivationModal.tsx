@@ -19,7 +19,7 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
     console.log('[PendingActivation] Checking premium status...');
     const result = await refreshEntitlements();
     
-    if (result.upgraded || result.user?.isPremium) {
+    if (result.user?.isPremium) {
       console.log('[PendingActivation] Premium detected!');
       setStatus('syncing');
       onUpgradeDetected();
