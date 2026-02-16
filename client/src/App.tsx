@@ -6,13 +6,11 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
-import { PremiumUnlockAnimation } from "@/components/PremiumUnlockAnimation";
 import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
 import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen } from "@/lib/auth-store";
-import { usePremiumActivation } from "@/lib/premium-activation-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 
 import Splash from "@/screens/Splash";
@@ -114,25 +112,27 @@ function ElectronAppContent() {
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
 
-  const triggerActivation = usePremiumActivation((s) => s.triggerActivation);
-
   useEffect(() => {
     if (phase !== 'authenticated') return;
-    console.log(`[PremiumFlow] Checking unlock animation: isPremium=${user?.isPremium} hasSeenPremiumUnlock=${user?.hasSeenPremiumUnlock}`);
-    if (user?.isPremium && !user?.hasSeenPremiumUnlock) {
-      console.log('[PremiumFlow] Unlock animation triggered');
+    console.log(`[PremiumFlow] entitlement truth: isPremium=${user?.isPremium} hasSeenPremiumUnlock=${user?.hasSeenPremiumUnlock}`);
+    console.log(`[PremiumFlow] showUpgradeAnimation=${showUpgradeAnimation}`);
+    if (
+      user?.isPremium === true &&
+      user?.hasSeenPremiumUnlock === false &&
+      !showUpgradeAnimation
+    ) {
+      console.log('[PremiumFlow] Unlock animation triggered — entitlement truth ONLY path');
       setShowUpgradeAnimation(true);
     }
   }, [user, phase]);
   
   const handleUpgradeAnimationComplete = useCallback(async () => {
-    console.log('[PremiumFlow] Animation complete — marking seen');
-    setShowUpgradeAnimation(false);
+    console.log('[PremiumFlow] Animation complete — posting unlock-seen');
     await postUnlockSeen();
-    console.log('[PremiumFlow] Unlock marked as seen');
-    triggerActivation();
+    console.log('[PremiumFlow] Unlock marked as seen on server + store');
+    setShowUpgradeAnimation(false);
     triggerPremiumTour();
-  }, [triggerPremiumTour, triggerActivation]);
+  }, [triggerPremiumTour]);
 
   useEffect(() => {
     if (!user?.loggedIn || phase !== 'authenticated') return;
@@ -164,8 +164,8 @@ function ElectronAppContent() {
     const api = (window as any).electronAPI;
     
     const resetUIState = () => {
-      if (showUpgradeAnimation) {
-        console.log('[App] Focus reset skipped — premium animation active');
+      if (showUpgradeAnimation || showPremiumTour) {
+        console.log('[App] Focus reset skipped — premium animation or tour active');
         return;
       }
       console.log('[App] Resetting UI state on focus');
@@ -194,7 +194,7 @@ function ElectronAppContent() {
         api.removeWindowFocusListener?.();
       };
     }
-  }, [showUpgradeAnimation]);
+  }, [showUpgradeAnimation, showPremiumTour]);
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
@@ -568,7 +568,6 @@ export default function App() {
             <WebsiteContent />
           )}
           <Toaster />
-          <PremiumUnlockAnimation />
         </TooltipProvider>
       </MotionProvider>
     </QueryClientProvider>

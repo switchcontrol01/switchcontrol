@@ -202,12 +202,12 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
     timers.push(setTimeout(() => {
       setIsExiting(true);
-    }, 1850));
+    }, 2000));
 
     timers.push(setTimeout(() => {
       setPhase('done');
       onComplete();
-    }, 2400));
+    }, 2700));
 
     return () => {
       timers.forEach(clearTimeout);

@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PremiumBadge } from "@/components/ui/animated-crown";
 import { openPricing } from "@/lib/pricing";
 import { useTweakExecutor, isTierATweak, isElectronWithTweaks } from "@/hooks/use-tweak-executor";
-import { usePremiumActivation } from "@/lib/premium-activation-store";
+
 
 interface TweakCardProps {
   tweak: Tweak;
@@ -170,26 +170,15 @@ function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose:
 export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   const [open, setOpen] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
-  const [showActivationGlow, setShowActivationGlow] = useState(false);
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   const { executeTweak, executing, isElectron } = useTweakExecutor();
-  
-  const justActivated = usePremiumActivation((s) => s.justActivated);
   
   const isPremiumTweak = isTweakPremium(tweak.id);
   const isLocked = isPremiumTweak && !isPremium;
   const isExecuting = executing === tweak.id;
   const isTierA = isTierATweak(tweak.id);
   const isRealTweak = isElectron && isTierA;
-  
-  useEffect(() => {
-    if (justActivated && isPremium && isPremiumTweak) {
-      setShowActivationGlow(true);
-      const timer = setTimeout(() => setShowActivationGlow(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [justActivated, isPremium, isPremiumTweak]);
 
   const closeModal = useCallback(() => {
     setOpen(false);
@@ -240,7 +229,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
             isEnabled 
               ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.15)]" 
               : "hover:bg-white/5",
-            showActivationGlow && "ring-2 ring-purple-500/60 shadow-[0_0_25px_rgba(139,92,246,0.35)]"
+            false
           )}
           hoverEffect={false}
         >

@@ -2,14 +2,12 @@ import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore, refreshEntitlements } from '@/lib/auth-store';
 
 interface UseEntitlementRefreshOptions {
-  onUpgrade?: () => void;
   refreshOnFocus?: boolean;
   refreshOnMount?: boolean;
 }
 
 export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}) {
   const { 
-    onUpgrade, 
     refreshOnFocus = true, 
     refreshOnMount = true 
   } = options;
@@ -30,17 +28,13 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
     lastRefreshTime.current = now;
 
     try {
-      const result = await refreshEntitlements();
-      if (result.user?.isPremium && onUpgrade) {
-        console.log('[Entitlement] User is premium, triggering onUpgrade callback');
-        onUpgrade();
-      }
+      await refreshEntitlements();
     } catch (err) {
       console.error('[Entitlement] Refresh failed:', err);
     } finally {
       isRefreshing.current = false;
     }
-  }, [user?.loggedIn, onUpgrade]);
+  }, [user?.loggedIn]);
 
   useEffect(() => {
     if (refreshOnMount && user?.loggedIn) {
