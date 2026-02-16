@@ -5,6 +5,11 @@ const AUTH_DOMAIN = "https://switchcontrol.org";
 const TOKEN_KEY = "sc_auth_token_v2";
 const JWT_KEY = "sc_jwt";
 
+if (typeof window !== 'undefined') {
+  localStorage.removeItem(JWT_KEY);
+  localStorage.removeItem('sc_auth_token_v1');
+}
+
 export interface AuthUser {
   id: string;
   email: string | null;
@@ -43,36 +48,27 @@ export const useAuthStore = create<AuthState>()(
       oauthDeepLinkReceived: false,
       oauthError: null,
       setToken: (token) => set({ token }),
-      setJwt: (jwt) => {
-        if (jwt) {
-          localStorage.setItem(JWT_KEY, jwt);
-        } else {
-          localStorage.removeItem(JWT_KEY);
-        }
-        set({ jwt });
-      },
+      setJwt: (jwt) => set({ jwt }),
       setUser: (user) => set({ user }),
       setValidating: (isValidating) => set({ isValidating }),
       setOauthDeepLinkReceived: (oauthDeepLinkReceived) => set({ oauthDeepLinkReceived }),
       setOauthError: (oauthError) => set({ oauthError }),
       logout: () => {
-        localStorage.removeItem(JWT_KEY);
         set({ token: null, jwt: null, user: null });
       },
       clear: () => {
-        localStorage.removeItem(JWT_KEY);
         set({ token: null, jwt: null, user: null, isValidating: false, oauthDeepLinkReceived: false, oauthError: null });
       },
     }),
     {
       name: TOKEN_KEY,
-      partialize: (state) => ({ token: state.token, user: state.user, jwt: state.jwt }),
+      partialize: (state) => ({ user: state.user }),
     }
   )
 );
 
 function getStoredJwt(): string | null {
-  return useAuthStore.getState().jwt || localStorage.getItem(JWT_KEY);
+  return useAuthStore.getState().jwt;
 }
 
 function buildAuthHeaders(): HeadersInit {
@@ -101,8 +97,6 @@ export async function performFullLogout(reason: string): Promise<void> {
 
   const store = useAuthStore.getState();
   store.clear();
-  localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(JWT_KEY);
 
   const api = (window as any).electronAPI;
   if (api?.clearAuthCookies) {
@@ -140,7 +134,7 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
 
     if (data.jwt) {
       useAuthStore.getState().setJwt(data.jwt);
-      console.log(`[JWT] saved to localStorage — key=sc_jwt length=${data.jwt.length}`);
+      console.log(`[JWT] saved to memory — length=${data.jwt.length}`);
     } else {
       console.warn('[JWT] exchange response did NOT contain jwt field');
     }

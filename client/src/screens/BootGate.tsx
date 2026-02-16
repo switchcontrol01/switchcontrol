@@ -4,11 +4,8 @@ import Login from "./Login";
 
 type BootPhase = "splash" | "login" | "app";
 
-const AUTH_TOKEN_KEY = "sc_auth_token_v1";
-
 function isAuthenticated(): boolean {
-  const token = localStorage.getItem(AUTH_TOKEN_KEY);
-  return !!token && token.startsWith("mock_token_");
+  return false;
 }
 
 interface BootGateProps {

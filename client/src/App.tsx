@@ -542,7 +542,6 @@ function WebsiteContent() {
     } catch (err) {
       console.error('[Auth] Logout failed:', err);
     }
-    localStorage.removeItem('sc_auth_token_v2');
     setUser(null);
     window.location.href = '/';
   };

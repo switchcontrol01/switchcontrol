@@ -247,8 +247,7 @@ export default function Home() {
   const getUserDisplayName = (): string => {
     if (user?.firstName) return user.firstName;
     if (user?.name) return user.name.split(' ')[0];
-    const token = localStorage.getItem('sc_auth_token_v1');
-    return token ? 'User' : 'Guest';
+    return 'Guest';
   };
   
   const specsLoadedRef = useRef(false);
