@@ -1,4 +1,4 @@
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { app } = require('electron');
