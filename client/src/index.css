@@ -509,6 +509,44 @@ body {
   will-change: transform;
 }
 
+/* App background scan lines - vertical rain effect */
+@keyframes scanlineFall {
+  0% { transform: translateY(-100%); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(250%); opacity: 0; }
+}
+
+.app-scanline-fall {
+  animation: scanlineFall 6s linear infinite;
+  will-change: transform;
+}
+
+/* Grid overlay subtle breathing */
+@keyframes gridBreathe {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 1.1; }
+}
+
+.app-grid-overlay {
+  animation: gridBreathe 8s ease-in-out infinite;
+}
+
+.app-grid-overlay-fine {
+  animation: gridBreathe 12s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+/* Pulsing center vignette */
+@keyframes pulseVignette {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.app-pulse-vignette {
+  animation: pulseVignette 6s ease-in-out infinite;
+}
+
 /* Animated gradient mesh - slow ambient motion */
 @keyframes meshGradientShift {
   0%, 100% { background-position: 0% 0%; }
@@ -951,6 +989,19 @@ body {
   .animate-contour-3,
   .animate-contour-4 {
     animation-duration: 50s;
+  }
+
+  .app-scanline-fall {
+    animation: none;
+  }
+
+  .app-grid-overlay,
+  .app-grid-overlay-fine {
+    animation: none;
+  }
+
+  .app-pulse-vignette {
+    animation: none;
   }
   
   .animate-pulse-slow {
