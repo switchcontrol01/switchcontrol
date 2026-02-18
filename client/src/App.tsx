@@ -108,25 +108,33 @@ function ElectronAppContent() {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [showTour, setShowTour] = useState(false);
   const [showUpgradeAnimation, setShowUpgradeAnimation] = useState(false);
+  const [unlockAnimationFired, setUnlockAnimationFired] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const { showTour: showPremiumTour, triggerTour: triggerPremiumTour, completeTour: completePremiumTour } = usePremiumTourState();
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
+  const prevIsPremiumRef = React.useRef<boolean | null>(null);
 
   useEffect(() => {
     if (phase !== 'authenticated') return;
     if (!user?.loggedIn) return;
-    console.log(`[PremiumFlow] entitlement truth: isPremium=${user?.isPremium} hasSeenPremiumUnlock=${user?.hasSeenPremiumUnlock}`);
-    console.log(`[PremiumFlow] showUpgradeAnimation=${showUpgradeAnimation}`);
+    if (user.hasSeenPremiumUnlock) return;
+    if (unlockAnimationFired) return;
+    if (showUpgradeAnimation) return;
+
+    const wasPremium = prevIsPremiumRef.current;
+    prevIsPremiumRef.current = user.isPremium;
+
     if (
-      user?.isPremium === true &&
-      user?.hasSeenPremiumUnlock === false &&
-      !showUpgradeAnimation
+      user.isPremium === true &&
+      user.hasSeenPremiumUnlock === false &&
+      (wasPremium === false || wasPremium === null)
     ) {
-      console.log('[PremiumFlow] Unlock animation triggered — entitlement truth ONLY path');
+      console.log(`[PremiumFlow] Unlock animation triggered — transition wasPremium=${wasPremium} → isPremium=true`);
+      setUnlockAnimationFired(true);
       setShowUpgradeAnimation(true);
     }
-  }, [user, phase]);
+  }, [user?.isPremium, user?.hasSeenPremiumUnlock, user?.loggedIn, phase, unlockAnimationFired, showUpgradeAnimation]);
   
   const handleUpgradeAnimationComplete = useCallback(async () => {
     console.log('[PremiumFlow] Animation complete — posting unlock-seen');

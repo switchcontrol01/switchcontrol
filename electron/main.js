@@ -351,6 +351,42 @@ ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('app:getPlatform', () => process.platform);
 ipcMain.handle('app:isPackaged', () => app.isPackaged);
 
+ipcMain.handle('app:resetData', async () => {
+  try {
+    const fs = require('fs');
+    const userDataPath = app.getPath('userData');
+    console.log('[Reset] Clearing userData directory:', userDataPath);
+    const entries = fs.readdirSync(userDataPath);
+    for (const entry of entries) {
+      const fullPath = path.join(userDataPath, entry);
+      try {
+        fs.rmSync(fullPath, { recursive: true, force: true });
+      } catch (e) {
+        console.warn('[Reset] Could not delete:', fullPath, e.message);
+      }
+    }
+    console.log('[Reset] userData cleared — relaunching app');
+    app.relaunch();
+    app.exit(0);
+  } catch (err) {
+    console.error('[Reset] Error:', err);
+  }
+});
+
+ipcMain.handle('app:openLogs', async () => {
+  try {
+    const fs = require('fs');
+    const logPath = path.join(app.getPath('userData'), 'logs');
+    if (!fs.existsSync(logPath)) {
+      fs.mkdirSync(logPath, { recursive: true });
+    }
+    console.log('[Logs] Opening log directory:', logPath);
+    shell.openPath(logPath);
+  } catch (err) {
+    console.error('[Logs] Error opening log directory:', err);
+  }
+});
+
 // Window controls
 ipcMain.handle('window:minimize', () => mainWindow?.minimize());
 ipcMain.handle('window:maximize', () => {

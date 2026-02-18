@@ -11,6 +11,7 @@ import { Settings as SettingsIcon, Save, RotateCcw, FolderOpen, ExternalLink, Vo
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
+import { useAuthStore } from "@/lib/auth-store";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -33,8 +34,8 @@ const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 export default function Settings() {
   const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled, soundEffectsEnabled, setSoundEffectsEnabled } = useStore();
   const { toast } = useToast();
-  const { isPremium } = useAppAuth();
-  const isElectron = typeof window !== 'undefined' && window.electronAPI?.isElectron;
+  const { isPremium, user } = useAppAuth();
+  const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
   const handleSave = () => {
     toast({
@@ -146,10 +147,12 @@ export default function Settings() {
               <CardDescription>Your license details.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label>Email</Label>
-                <Input value={account.email} readOnly className="bg-muted/50" />
-              </div>
+              {user?.email && (
+                <div className="grid gap-2">
+                  <Label>Account Email</Label>
+                  <Input value={user.email} readOnly disabled className="bg-muted/50 text-muted-foreground" data-testid="input-account-email" />
+                </div>
+              )}
               <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-md">
                 <div className="space-y-0.5">
                   <span className="text-sm font-medium text-emerald-400">Premium (Lifetime)</span>
@@ -217,11 +220,38 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col sm:flex-row gap-3">
-                 <Button variant="outline" onClick={resetData} className="border-red-500/20 hover:bg-red-500/10 text-red-400">
+                 <Button
+                   variant="outline"
+                   onClick={async () => {
+                     resetData();
+                     localStorage.clear();
+                     sessionStorage.clear();
+                     useAuthStore.getState().clear();
+                     if (isElectron && (window as any).electronAPI?.resetAppData) {
+                       await (window as any).electronAPI.resetAppData();
+                     } else {
+                       toast({ title: "App Data Reset", description: "All local data has been cleared. Reloading..." });
+                       setTimeout(() => window.location.reload(), 500);
+                     }
+                   }}
+                   className="border-red-500/20 hover:bg-red-500/10 text-red-400"
+                   data-testid="button-reset-data"
+                 >
                    <RotateCcw className="size-4 mr-2" />
                    Reset App Data
                  </Button>
-                 <Button variant="outline" className="border-border/50">
+                 <Button
+                   variant="outline"
+                   className="border-border/50"
+                   data-testid="button-open-logs"
+                   onClick={async () => {
+                     if (isElectron && (window as any).electronAPI?.openLogs) {
+                       await (window as any).electronAPI.openLogs();
+                     } else {
+                       toast({ title: "Not Available", description: "Log directory is only accessible in the desktop app." });
+                     }
+                   }}
+                 >
                    <FolderOpen className="size-4 mr-2" />
                    Open Log Directory
                  </Button>

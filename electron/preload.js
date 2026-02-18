@@ -66,6 +66,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
+  // App data management
+  resetAppData: () => ipcRenderer.invoke('app:resetData'),
+  openLogs: () => ipcRenderer.invoke('app:openLogs'),
+
   // Auth cookie management
   clearAuthCookies: () => ipcRenderer.invoke('auth:clearCookies'),
 
