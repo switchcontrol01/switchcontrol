@@ -88,6 +88,9 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
         if (res?.error) {
           toast({ title: "Memory clean failed", description: res.message || "An error occurred.", variant: "destructive" });
+          setCleaning(false);
+          cleaningRef.current = false;
+          lockRef.current = false;
           return;
         }
 
@@ -127,14 +130,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
   };
 
   const handleClose = useCallback((v: boolean) => {
-    console.log("[DEBUG] HANDLE CLOSE CALLED, v:", v);
-    console.log("[DEBUG] CLEANING STATE:", cleaning);
-    console.log("[DEBUG] CLEANING REF:", cleaningRef.current);
-    if (cleaningRef.current) {
-      console.log("[DEBUG] CLOSE BLOCKED — cleaningRef is true");
-      return;
-    }
-    console.log("[DEBUG] CLOSE PROCEEDING — calling onOpenChange(", v, ")");
+    if (cleaningRef.current) return;
     onOpenChange(v);
     if (!v) {
       setTimeout(() => {
@@ -142,7 +138,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
         setShowDetails(false);
       }, 300);
     }
-  }, [onOpenChange, cleaning]);
+  }, [onOpenChange]);
 
   const stagger = {
     hidden: { opacity: 0, y: 12 },
