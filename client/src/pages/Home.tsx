@@ -21,9 +21,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
-import { playRamClear, playScanBeep } from "@/lib/premium-audio";
+
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
+import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligenceModal";
 
 
 interface DiskInfo {
@@ -109,7 +110,6 @@ function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardPr
   };
 
   const handleAnalyze = () => {
-    playScanBeep();
     if (report) {
       reRunAdvisor(appContext);
     } else {
@@ -307,8 +307,8 @@ export default function Home() {
   const [applyingFixId, setApplyingFixId] = useState<string | null>(null);
   const [memCleanerOpen, setMemCleanerOpen] = useState(false);
   const [cpuModalOpen, setCpuModalOpen] = useState(false);
+  const [memIntelOpen, setMemIntelOpen] = useState(false);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const cpuCardRef = useRef<HTMLDivElement>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
   useRevealOnScroll();
@@ -499,6 +499,7 @@ export default function Home() {
                 total={stats.totalRamGb}
                 unit="GB"
                 icon={MemoryStick}
+                onIconClick={() => setMemIntelOpen(true)}
                 progress={ramPercent}
                 actionLabel="Clear RAM"
                 onAction={() => setMemCleanerOpen(true)}
@@ -507,7 +508,6 @@ export default function Home() {
             </motion.div>
             
             <motion.div 
-              ref={cpuCardRef}
               variants={staggerItem}
               initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -695,7 +695,10 @@ export default function Home() {
         cpuName={stats.cpuName}
         coreCount={stats.cpuCores}
         threadCount={stats.cpuThreads}
-        anchorRef={cpuCardRef}
+      />
+      <MemoryIntelligenceModal
+        open={memIntelOpen}
+        onOpenChange={setMemIntelOpen}
       />
     </AppLayout>
   );

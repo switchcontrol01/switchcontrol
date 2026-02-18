@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { ExternalLink, Download, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { playSuccessChime } from "@/lib/premium-audio";
+
 
 type PageState = "loading" | "success" | "error";
 type AnimPhase = "idle" | "stroke" | "check" | "glow" | "confetti" | "text" | "buttons" | "ready";
@@ -33,7 +33,6 @@ function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
     const t1 = setTimeout(() => setPhase("check"), 1200);
     const t2 = setTimeout(() => {
       setPhase("glow");
-      playSuccessChime();
     }, 1700);
     const t3 = setTimeout(() => setPhase("confetti"), 2000);
     const t4 = setTimeout(() => setPhase("text"), 2400);

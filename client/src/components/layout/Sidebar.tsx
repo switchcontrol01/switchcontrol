@@ -20,7 +20,7 @@ import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { playNavClick } from "@/lib/premium-audio";
+
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -84,7 +84,6 @@ export function Sidebar() {
   const avatarUrl = user?.avatar;
 
   const navigate = (href: string) => {
-    playNavClick();
     setLocation(href);
   };
 

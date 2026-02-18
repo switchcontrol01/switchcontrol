@@ -142,14 +142,11 @@ shared/
 - Discord community link
 - TikTok social link
 
-### Premium Audio System
-- **Shared AudioContext**: Single persistent `AudioContext` in `client/src/lib/premium-audio.ts`
-- **Preloading**: `preloadAudio()` called on first user click/keydown to warm the context
-- **Premium Sounds**: cinematic hum, rising tone, pulse tick, metallic snap, premium chime, success chime
-- **UI Sounds**: toggle on/off (pitch up/down), nav click (soft tap), RAM clear (whoosh), AI scan (triple beep)
-- **Integration Points**: Sidebar nav, TweakCard toggles, NetworkTweaks toggles, PowerPlan toggles, Dashboard RAM clear + AI scan
-- **Controls**: Sound toggle in Settings (default ON), persisted via Zustand + `sc_sound_effects` localStorage
-- **Safety**: Respects `prefers-reduced-motion` and sound toggle; max volume 0.4
+### Shared Modal System
+- **Component**: `client/src/components/ui/GlassModalLayout.tsx`
+- **Visual**: bg-[#0c0c14]/95, border-white/10, backdrop-blur-xl, rounded-2xl, spring animation
+- **Modals Using It**: MemoryCleanerModal, CpuCoresModal, MemoryIntelligenceModal
+- **Behavior**: Unified escape handling, backdrop click close, body scroll lock, blocked prop for in-progress states
 
 ### AppFlow State Machine (client/src/App.tsx)
 - **Type**: `"none" | "firstTime" | "premiumUnlock" | "premiumTour"`

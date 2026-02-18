@@ -72,7 +72,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   {
     id: 'settings',
     title: 'Settings',
-    description: 'Manage your app preferences, sound effects, enhanced sensors, and account details — all in one place.',
+    description: 'Manage your app preferences, enhanced sensors, and account details — all in one place.',
     icon: <Settings className="w-5 h-5 text-gray-400" />,
     targetSelector: '[data-tour="settings"]',
     route: '/dashboard',

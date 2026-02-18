@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings as SettingsIcon, Save, RotateCcw, Trash2, FolderOpen, ExternalLink, Volume2, Mail, Copy, Crown } from "lucide-react";
+import { Settings as SettingsIcon, Save, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
@@ -34,7 +34,7 @@ function TikTokIcon({ className }: { className?: string }) {
 const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 
 export default function Settings() {
-  const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled, soundEffectsEnabled, setSoundEffectsEnabled } = useStore();
+  const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled } = useStore();
   const { toast } = useToast();
   const { isPremium, user, factoryReset } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
@@ -90,29 +90,6 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">Stop polling stats when app is in background.</p>
                 </div>
                 <Switch defaultChecked />
-              </div>
-              <Separator className="bg-border/50" />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label className="flex items-center gap-2">
-                    <Volume2 className="size-4 text-purple-400" />
-                    Enable Sound Effects
-                  </Label>
-                  <p className="text-xs text-muted-foreground">Play audio feedback for premium animations and system events.</p>
-                </div>
-                <Switch
-                  checked={soundEffectsEnabled}
-                  onCheckedChange={(checked) => {
-                    setSoundEffectsEnabled(checked);
-                    toast({
-                      title: checked ? "Sound Effects Enabled" : "Sound Effects Disabled",
-                      description: checked
-                        ? "Audio feedback is now active."
-                        : "All sound effects are muted.",
-                    });
-                  }}
-                  data-testid="toggle-sound-effects"
-                />
               </div>
               {isElectron && (
                 <>

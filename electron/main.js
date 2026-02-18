@@ -657,6 +657,35 @@ ipcMain.handle('system:getAllDisks', async () => {
 
 // Telemetry - 3-tier merge: systeminformation baseline → nvidia-smi → LHM overlay
 // null means unavailable, never undefined
+ipcMain.handle('telemetry:getMemoryDetails', async () => {
+  try {
+    const mem = await si.mem();
+    const processes = await si.processes();
+
+    const topProcesses = processes.list
+      .sort((a, b) => b.memRss - a.memRss)
+      .slice(0, 5)
+      .map(p => ({
+        name: p.name,
+        pid: p.pid,
+        memoryMB: Math.round(p.memRss / 1024 / 1024),
+      }));
+
+    return {
+      total: mem.total,
+      used: mem.used,
+      free: mem.free,
+      available: mem.available,
+      active: mem.active,
+      compressed: mem.compressed || 0,
+      processes: topProcesses,
+    };
+  } catch (e) {
+    console.error('[DEBUG] telemetry:getMemoryDetails error:', e.message);
+    return null;
+  }
+});
+
 ipcMain.handle('telemetry:getCpuCores', async () => {
   try {
     const load = await si.currentLoad();

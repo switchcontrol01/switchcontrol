@@ -10,7 +10,7 @@ import { isTweakPremium } from "@/lib/premium-config";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumBadge } from "@/components/ui/animated-crown";
 import { openPricing } from "@/lib/pricing";
-import { playToggleOn, playToggleOff } from "@/lib/premium-audio";
+
 import { useTweakExecutor, isTierATweak, isElectronWithTweaks } from "@/hooks/use-tweak-executor";
 
 
@@ -198,11 +198,9 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
     if (isRealTweak) {
       const success = await executeTweak(tweak.id, isEnabled);
       if (success) {
-        isEnabled ? playToggleOff() : playToggleOn();
         onToggle();
       }
     } else {
-      isEnabled ? playToggleOff() : playToggleOn();
       onToggle();
     }
   }, [isLocked, isRealTweak, executeTweak, tweak.id, isEnabled, onToggle, setOpen]);

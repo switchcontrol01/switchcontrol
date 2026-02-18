@@ -29,7 +29,7 @@ import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/use-auth";
 import { Link } from "wouter";
-import { playToggleOn, playToggleOff } from "@/lib/premium-audio";
+
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
@@ -289,10 +289,8 @@ export default function NetworkTweaks() {
       const next = new Set(prev);
       if (next.has(id)) {
         next.delete(id);
-        playToggleOff();
       } else {
         next.add(id);
-        playToggleOn();
       }
       localStorage.setItem("networkTweaksEnabled", JSON.stringify(Array.from(next)));
       return next;

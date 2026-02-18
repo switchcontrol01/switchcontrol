@@ -1,13 +1,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import logoImg from '@/assets/logo.png';
-import {
-  playCinematicHum,
-  playRisingTone,
-  playPulseTick,
-  playMetallicSnap,
-  playPremiumChime,
-} from '@/lib/premium-audio';
+
 
 interface PremiumUpgradeAnimationProps {
   show: boolean;
@@ -85,23 +79,21 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
     t.push(setTimeout(() => {
       setPhase('lock-appear');
-      audioRef.current = playCinematicHum(2.0);
+      
     }, 600));
 
     t.push(setTimeout(() => {
       setPhase('glow-build');
-      risingRef.current = playRisingTone(2.0);
+      
     }, 1800));
 
-    t.push(setTimeout(() => { playPulseTick(); }, 2200));
-    t.push(setTimeout(() => { playPulseTick(); }, 2700));
-    t.push(setTimeout(() => { playPulseTick(); }, 3100));
+    
 
     t.push(setTimeout(() => {
       setPhase('unlock-snap');
       setLockUnlocked(true);
       risingRef.current?.stop();
-      playMetallicSnap();
+      
     }, 3400));
 
     t.push(setTimeout(() => {
@@ -110,7 +102,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
     t.push(setTimeout(() => {
       setPhase('logo-reveal');
-      playPremiumChime();
+      
     }, 4200));
 
     t.push(setTimeout(() => {

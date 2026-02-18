@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { playSuccessChime } from "@/lib/premium-audio";
+
 
 type ConfirmState = "loading" | "success" | "error";
 type AnimPhase = "idle" | "stroke" | "check" | "glow" | "text" | "buttons" | "ready";
@@ -34,7 +34,6 @@ function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
     const t1 = setTimeout(() => setPhase("check"), 1200);
     const t2 = setTimeout(() => {
       setPhase("glow");
-      playSuccessChime();
     }, 1700);
     const t3 = setTimeout(() => setPhase("text"), 2100);
     const t4 = setTimeout(() => setPhase("buttons"), 2600);
