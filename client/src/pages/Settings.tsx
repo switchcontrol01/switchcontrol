@@ -223,14 +223,27 @@ export default function Settings() {
                  <Button
                    variant="outline"
                    onClick={async () => {
+                     const authSnapshot = {
+                       user: useAuthStore.getState().user,
+                       token: useAuthStore.getState().token,
+                       jwt: (useAuthStore.getState() as any).jwt,
+                     };
                      resetData();
                      localStorage.clear();
                      sessionStorage.clear();
-                     useAuthStore.getState().clear();
+                     if (authSnapshot.token) {
+                       useAuthStore.getState().setToken(authSnapshot.token);
+                     }
+                     if (authSnapshot.jwt) {
+                       useAuthStore.getState().setJwt(authSnapshot.jwt);
+                     }
+                     if (authSnapshot.user) {
+                       useAuthStore.getState().setUser(authSnapshot.user);
+                     }
                      if (isElectron && (window as any).electronAPI?.resetAppData) {
                        await (window as any).electronAPI.resetAppData();
                      } else {
-                       toast({ title: "App Data Reset", description: "All local data has been cleared. Reloading..." });
+                       toast({ title: "App Data Reset", description: "UI settings have been cleared. Reloading..." });
                        setTimeout(() => window.location.reload(), 500);
                      }
                    }}

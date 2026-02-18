@@ -8,10 +8,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
 import { preloadAudio } from "@/lib/premium-audio";
-import { GuidedTour, usePremiumTourState } from "@/components/GuidedTour";
+import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen } from "@/lib/auth-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 
 import Splash from "@/screens/Splash";
@@ -102,64 +102,65 @@ function WebsiteRoutes() {
   );
 }
 
+type AppFlow = "none" | "firstTime" | "premiumUnlock" | "premiumTour";
+
 function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
-  const [showTour, setShowTour] = useState(false);
-  const [showUpgradeAnimation, setShowUpgradeAnimation] = useState(false);
-  const [unlockAnimationFired, setUnlockAnimationFired] = useState(false);
+  const [activeFlow, setActiveFlow] = useState<AppFlow>("none");
   const [showPendingActivation, setShowPendingActivation] = useState(false);
-  const { showTour: showPremiumTour, triggerTour: triggerPremiumTour, completeTour: completePremiumTour } = usePremiumTourState();
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
-  const prevIsPremiumRef = React.useRef<boolean | null>(null);
 
   useEffect(() => {
-    if (phase !== 'authenticated') return;
     if (!user?.loggedIn) return;
-    if (user.hasSeenPremiumUnlock) return;
-    if (unlockAnimationFired) return;
-    if (showUpgradeAnimation) return;
+    if (phase !== "authenticated") return;
+    if (activeFlow !== "none") return;
 
-    const wasPremium = prevIsPremiumRef.current;
-    prevIsPremiumRef.current = user.isPremium;
+    const userId = user.id;
+    const tourKey = `sc_tour_completed_${userId}`;
+    const isFirstTimeUser = !localStorage.getItem(tourKey);
 
-    if (
-      user.isPremium === true &&
-      user.hasSeenPremiumUnlock === false &&
-      (wasPremium === false || wasPremium === null)
-    ) {
-      console.log(`[PremiumFlow] Unlock animation triggered — transition wasPremium=${wasPremium} → isPremium=true`);
-      setUnlockAnimationFired(true);
-      setShowUpgradeAnimation(true);
+    if (isFirstTimeUser && isFirstLogin) {
+      console.log('[AppFlow] PRIORITY 1: First-time onboarding tour');
+      setActiveFlow("firstTime");
+      return;
     }
-  }, [user?.isPremium, user?.hasSeenPremiumUnlock, user?.loggedIn, phase, unlockAnimationFired, showUpgradeAnimation]);
-  
-  const handleUpgradeAnimationComplete = useCallback(async () => {
-    console.log('[PremiumFlow] Animation complete — posting unlock-seen');
-    await postUnlockSeen();
-    console.log('[PremiumFlow] Unlock marked as seen on server + store');
-    setShowUpgradeAnimation(false);
-    setTimeout(() => {
-      console.log('[PremiumFlow] Starting premium guided tour after animation');
-      triggerPremiumTour();
-    }, 400);
-  }, [triggerPremiumTour]);
+
+    if (user.isPremium === true && user.hasSeenPremiumUnlock === false) {
+      console.log('[AppFlow] PRIORITY 2: Premium unlock animation');
+      setActiveFlow("premiumUnlock");
+      return;
+    }
+
+    if (user.isPremium === true && user.hasSeenPremiumTour === false) {
+      console.log('[AppFlow] PRIORITY 3: Premium guided tour');
+      setActiveFlow("premiumTour");
+      return;
+    }
+  }, [user?.loggedIn, user?.isPremium, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, phase, activeFlow, isFirstLogin]);
+
+  const activeFlowRef = React.useRef<AppFlow>(activeFlow);
+  activeFlowRef.current = activeFlow;
 
   useEffect(() => {
     if (!user?.loggedIn || phase !== 'authenticated') return;
 
     const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && activeFlowRef.current === "none") {
         console.log('[App] App visible, refreshing entitlements...');
         await refreshEntitlements();
       }
     };
 
     const handleFocus = async () => {
-      console.log('[App] Window focused, refreshing entitlements...');
-      await refreshEntitlements();
+      if (activeFlowRef.current === "none") {
+        console.log('[App] Window focused, refreshing entitlements...');
+        await refreshEntitlements();
+      } else {
+        console.log('[App] Window focused but flow active, skipping refresh');
+      }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -177,8 +178,8 @@ function ElectronAppContent() {
     const api = (window as any).electronAPI;
     
     const resetUIState = () => {
-      if (showUpgradeAnimation || showPremiumTour) {
-        console.log('[App] Focus reset skipped — premium animation or tour active');
+      if (activeFlow !== "none") {
+        console.log('[App] Focus reset skipped — flow active:', activeFlow);
         return;
       }
       console.log('[App] Resetting UI state on focus');
@@ -207,7 +208,7 @@ function ElectronAppContent() {
         api.removeWindowFocusListener?.();
       };
     }
-  }, [showUpgradeAnimation, showPremiumTour]);
+  }, [activeFlow]);
 
   useEffect(() => {
     const warmAudio = () => { preloadAudio(); window.removeEventListener('click', warmAudio); window.removeEventListener('keydown', warmAudio); };
@@ -448,12 +449,6 @@ function ElectronAppContent() {
               onComplete={() => {
                 setPhase("authenticated");
                 setLocation("/dashboard");
-                if (isFirstLogin) {
-                  const tourKey = `sc_tour_completed_${user?.id}`;
-                  if (!localStorage.getItem(tourKey)) {
-                    setTimeout(() => setShowTour(true), 800);
-                  }
-                }
               }}
             />
           </motion.div>
@@ -474,32 +469,41 @@ function ElectronAppContent() {
         )}
       </AnimatePresence>
       
-      {showTour && (
+      {activeFlow === "firstTime" && (
         <OnboardingTour
           isFirstTime={isFirstLogin}
           onComplete={() => {
-            setShowTour(false);
             if (user?.id) {
               localStorage.setItem(`sc_tour_completed_${user.id}`, 'true');
             }
+            setActiveFlow("none");
           }}
           onSkip={() => {
-            setShowTour(false);
             if (user?.id) {
               localStorage.setItem(`sc_tour_completed_${user.id}`, 'true');
             }
+            setActiveFlow("none");
           }}
         />
       )}
       
       <PremiumUpgradeAnimation 
-        show={showUpgradeAnimation} 
-        onComplete={handleUpgradeAnimationComplete} 
+        show={activeFlow === "premiumUnlock"} 
+        onComplete={async () => {
+          console.log('[AppFlow] Unlock animation complete — posting unlock-seen');
+          await postUnlockSeen();
+          console.log('[AppFlow] Unlock marked as seen — transitioning to premiumTour');
+          setActiveFlow("premiumTour");
+        }} 
       />
       
       <GuidedTour 
-        show={showPremiumTour} 
-        onComplete={completePremiumTour} 
+        show={activeFlow === "premiumTour"} 
+        onComplete={async () => {
+          console.log('[AppFlow] Premium tour complete — posting tour-seen');
+          await postTourSeen();
+          setActiveFlow("none");
+        }} 
       />
       
       <PendingActivationModal

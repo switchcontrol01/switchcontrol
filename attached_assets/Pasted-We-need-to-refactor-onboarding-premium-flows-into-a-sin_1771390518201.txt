@@ -1,0 +1,118 @@
+We need to refactor onboarding + premium flows into a single controlled state machine.
+Current issue: Reset App Data causes: • first-time tour • premium unlock animation • premium tour
+to all trigger simultaneously.
+This must be structurally fixed.
+Do NOT touch: • Stripe logic
+• Auth endpoints
+• Server entitlement logic
+Only refactor client flow control.
+OBJECTIVE
+Implement a single exclusive App Flow Controller in client/src/App.tsx.
+Only ONE flow may run at a time.
+Priority order:
+First-time onboarding
+Premium unlock animation
+Premium guided tour
+They must never overlap.
+STEP 1 — Add AppFlow state
+In App.tsx, add:
+Ts
+Copy code
+type AppFlow =
+  | "none"
+  | "firstTime"
+  | "premiumUnlock"
+  | "premiumTour"
+
+const [activeFlow, setActiveFlow] = useState<AppFlow>("none")
+Remove any independent useEffects that directly trigger: • first time tour • premium unlock • premium tour
+STEP 2 — Centralize trigger logic
+Add ONE effect:
+Ts
+Copy code
+useEffect(() => {
+  if (!user?.loggedIn) return
+  if (phase !== "authenticated") return
+  if (!user) return
+  if (activeFlow !== "none") return
+
+  // PRIORITY 1: First time user
+  if (isFirstTimeUser()) {
+    setActiveFlow("firstTime")
+    return
+  }
+
+  // PRIORITY 2: Premium unlock (once per lifetime)
+  if (
+    user.isPremium === true &&
+    user.hasSeenPremiumUnlock === false
+  ) {
+    setActiveFlow("premiumUnlock")
+    return
+  }
+
+  // PRIORITY 3: Premium tour (once)
+  if (
+    user.isPremium === true &&
+    !hasSeenPremiumTour()
+  ) {
+    setActiveFlow("premiumTour")
+    return
+  }
+
+}, [
+  user?.loggedIn,
+  user?.isPremium,
+  user?.hasSeenPremiumUnlock,
+  phase,
+  activeFlow
+])
+Do NOT depend on entire user object.
+STEP 3 — Render flows exclusively
+Replace existing render triggers with:
+Tsx
+Copy code
+{activeFlow === "firstTime" && (
+  <FirstTimeTour
+    onComplete={() => setActiveFlow("none")}
+  />
+)}
+
+{activeFlow === "premiumUnlock" && (
+  <UnlockAnimation
+    onComplete={async () => {
+      await postUnlockSeen()
+      setActiveFlow("premiumTour")
+    }}
+  />
+)}
+
+{activeFlow === "premiumTour" && (
+  <GuidedTour
+    show
+    onComplete={() => setActiveFlow("none")}
+  />
+)}
+No other component should independently trigger these.
+STEP 4 — Fix Reset App Data behavior
+Reset must NOT wipe entitlement state.
+Modify reset logic:
+Do NOT clear: • user.isPremium • user.hasSeenPremiumUnlock • server flags
+Reset should only clear: • localStorage • sessionStorage • non-auth UI settings • logs
+If reset currently clears the auth store entirely, refactor it.
+If full logout is desired, then flows should NOT trigger until authenticated again.
+STEP 5 — Enforce lifetime unlock rule
+Unlock animation must only ever show once per account lifetime.
+That means: Only rely on user.hasSeenPremiumUnlock from server.
+Do NOT use localStorage for unlock state.
+If undefined, coerce to boolean in refreshEntitlements:
+Ts
+Copy code
+hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock
+Never allow undefined.
+STEP 6 — Add hydration guard
+Ensure no flow triggers during boot:
+Flow effect must return early if: • phase !== "authenticated" • user === null • user.loggedIn === false
+RESULT REQUIREMENTS
+After refactor:
+• Reset App Data does NOT cause overlapping flows • Only one flow runs at any time • Unlock animation plays once per lifetime • Premium tour plays once • First-time tour plays once • No black screen • No overlay stacking

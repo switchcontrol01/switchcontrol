@@ -134,10 +134,18 @@ shared/
 - **Controls**: Sound toggle in Settings (default ON), persisted via Zustand + `sc_sound_effects` localStorage
 - **Safety**: Respects `prefers-reduced-motion` and sound toggle; max volume 0.4
 
+### AppFlow State Machine (client/src/App.tsx)
+- **Type**: `"none" | "firstTime" | "premiumUnlock" | "premiumTour"`
+- **Exclusive**: Only ONE flow runs at a time; centralized useEffect with priority ordering
+- **Priority Order**: 1) First-time onboarding → 2) Premium unlock animation → 3) Premium guided tour
+- **Hydration Guard**: Effect returns early if `phase !== "authenticated"`, `!user.loggedIn`, or `activeFlow !== "none"`
+- **Entitlement Refresh**: Paused during active flows (visibility/focus handlers check `activeFlowRef`)
+- **Reset App Data**: Preserves auth state (user, token, jwt) across localStorage/sessionStorage clear
+
 ### Premium Guided Tour
 - **Step Order**: Power Plan → Network Tweaks → BIOS Advisor → AI Advisor → Settings → Priority Email → Priority Support Unlocked
-- **Trigger**: Only after premium unlock animation completes (via `triggerPremiumTour()`)
-- **Replay Prevention**: localStorage `sc_premium_tour_completed`, only triggerable after server-backed unlock animation
+- **Trigger**: Controlled by AppFlow state machine (`activeFlow === "premiumTour"`)
+- **Replay Prevention**: Server-driven via `user.hasSeenPremiumTour` flag; `postTourSeen()` called on completion
 - **Navigation**: Auto-navigates to correct route per step (dashboard → settings)
 - **Tour Selectors**: `data-tour="power-plan"`, `data-tour="network"`, `data-tour="bios-advisor"`, `data-tour="ai-advisor"`, `data-tour="settings"`, `data-tour="settings-email"`
 
