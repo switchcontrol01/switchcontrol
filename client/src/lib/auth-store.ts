@@ -8,6 +8,7 @@ const JWT_KEY = "sc_jwt";
 if (typeof window !== 'undefined') {
   localStorage.removeItem(JWT_KEY);
   localStorage.removeItem('sc_auth_token_v1');
+  localStorage.removeItem('sc_premium_tour_completed');
 }
 
 export interface AuthUser {
@@ -18,6 +19,7 @@ export interface AuthUser {
   plan: string;
   isPremium: boolean;
   hasSeenPremiumUnlock: boolean;
+  hasSeenPremiumTour: boolean;
   loggedIn: boolean;
 }
 
@@ -147,10 +149,11 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       plan: data.user.isPremium ? 'premium' : 'free',
       isPremium: data.user.isPremium || false,
       hasSeenPremiumUnlock: !!data.user.hasSeenPremiumUnlock,
+      hasSeenPremiumTour: !!data.user.hasSeenPremiumTour,
       loggedIn: true,
     };
 
-    console.log(`[Auth] exchangeToken success, user=${user.id} isPremium=${user.isPremium} hasSeenPremiumUnlock=${user.hasSeenPremiumUnlock} ts=${Date.now()}`);
+    console.log(`[Auth] exchangeToken success, user=${user.id} isPremium=${user.isPremium} hasSeenPremiumUnlock=${user.hasSeenPremiumUnlock} hasSeenPremiumTour=${user.hasSeenPremiumTour} ts=${Date.now()}`);
     return user;
   } catch (err) {
     console.error('[Auth] Token exchange error:', err);
@@ -194,6 +197,7 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
       plan: data.isPremium ? 'premium' : 'free',
       isPremium: data.isPremium || false,
       hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
+      hasSeenPremiumTour: !!data.hasSeenPremiumTour,
       loggedIn: true,
     };
   } catch (err) {
@@ -239,11 +243,12 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
       plan: data.isPremium ? 'premium' : 'free',
       isPremium: data.isPremium || false,
       hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
+      hasSeenPremiumTour: !!data.hasSeenPremiumTour,
       loggedIn: true,
     };
 
     store.setUser(newUser);
-    console.log(`[PremiumFlow] refreshEntitlements end isPremium=${newUser.isPremium} hasSeenPremiumUnlock=${newUser.hasSeenPremiumUnlock} authMode=${authMode}`);
+    console.log(`[PremiumFlow] refreshEntitlements end isPremium=${newUser.isPremium} hasSeenPremiumUnlock=${newUser.hasSeenPremiumUnlock} hasSeenPremiumTour=${newUser.hasSeenPremiumTour} authMode=${authMode}`);
 
     return { user: newUser };
   } catch (err) {
@@ -316,6 +321,40 @@ export async function postUnlockSeen(): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('[PremiumUnlock] unlock-seen error:', err);
+    return false;
+  }
+}
+
+export async function postTourSeen(): Promise<boolean> {
+  try {
+    const jwt = getStoredJwt();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) {
+      headers['Authorization'] = `Bearer ${jwt}`;
+    }
+
+    console.log('[PremiumTour] posting tour-seen...');
+    const response = await fetch(`${AUTH_DOMAIN}/api/premium/tour-seen`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.error(`[PremiumTour] tour-seen failed status=${response.status}`);
+      return false;
+    }
+
+    console.log('[PremiumTour] tour-seen success');
+
+    const store = useAuthStore.getState();
+    if (store.user) {
+      store.setUser({ ...store.user, hasSeenPremiumTour: true });
+    }
+
+    return true;
+  } catch (err) {
+    console.error('[PremiumTour] tour-seen error:', err);
     return false;
   }
 }

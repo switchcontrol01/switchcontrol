@@ -1,0 +1,98 @@
+🔒 SwitchControl Premium Tour Refactor – Server Driven
+We are removing ALL localStorage gating for the premium tour.
+The premium tour must be 100% server-driven using a new user field: hasSeenPremiumTour.
+Follow these steps exactly. Do not refactor unrelated code.
+1️⃣ Backend Changes
+A) Add field to user model
+Add:
+Copy code
+
+hasSeenPremiumTour: boolean (default false)
+If SQL:
+Copy code
+
+ALTER TABLE users ADD COLUMN hasSeenPremiumTour BOOLEAN NOT NULL DEFAULT FALSE;
+If Mongo: Add to schema with default false.
+B) Include in /api/me
+Modify /api/me so it returns:
+Copy code
+
+hasSeenPremiumTour
+Example response fields must include:
+Copy code
+
+isPremium
+hasSeenPremiumUnlock
+hasSeenPremiumTour
+C) Add endpoint
+Create:
+Copy code
+
+POST /api/premium/tour-seen
+Requirements:
+Must require authentication
+Must set hasSeenPremiumTour = true
+Must return { ok: true }
+Do NOT modify any other entitlement logic.
+2️⃣ Client Changes
+A) Update AuthUser interface
+File: client/src/lib/auth-store.ts
+Add:
+Copy code
+
+hasSeenPremiumTour: boolean;
+B) Update refreshEntitlements()
+Inside the mapping where newUser is built, add:
+Copy code
+
+hasSeenPremiumTour: !!data.hasSeenPremiumTour,
+Update console logs to print it as well.
+C) Add helper
+In auth-store.ts create:
+Copy code
+
+export async function postTourSeen()
+It should:
+Call /api/premium/tour-seen
+On success update store.user.hasSeenPremiumTour = true
+Log success/failure
+Do not alter unlock logic.
+3️⃣ Remove localStorage gating
+File: client/src/components/GuidedTour.tsx
+REMOVE:
+All use of PREMIUM_TOUR_KEY
+All localStorage.getItem(...)
+All localStorage.setItem(...)
+All render guards that check localStorage
+There must be ZERO references to localStorage for premium tour.
+4️⃣ New Tour Trigger Logic
+Inside usePremiumTourState():
+Tour must trigger ONLY if:
+Copy code
+
+user?.isPremium === true
+AND
+user?.hasSeenPremiumTour === false
+On complete:
+Call postTourSeen()
+Then hide tour
+5️⃣ Temporary Migration
+In App startup:
+Copy code
+
+localStorage.removeItem('sc_premium_tour_completed');
+Keep for now.
+6️⃣ Do NOT Touch
+Unlock animation logic
+hasSeenPremiumUnlock logic
+refreshEntitlements retry logic
+Stripe logic
+Auth flow
+Only implement server-driven tour state.
+7️⃣ After Implementation
+Confirm:
+/api/me returns hasSeenPremiumTour
+POST /api/premium/tour-seen works
+Tour plays once only
+On app restart it does not replay
+On different machine it does not replay

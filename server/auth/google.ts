@@ -515,6 +515,7 @@ export function setupGoogleAuth(app: Express): void {
               avatar: dbUser.profileImageUrl,
               isPremium: dbUser.isPremium || false,
               hasSeenPremiumUnlock: dbUser.hasSeenPremiumUnlock || false,
+              hasSeenPremiumTour: dbUser.hasSeenPremiumTour || false,
               authMode: 'jwt',
             });
           }
@@ -527,7 +528,7 @@ export function setupGoogleAuth(app: Express): void {
       }
       console.log(`[AUTH] /api/me authMode=jwt loggedIn=false`);
       res.setHeader('X-Auth-Mode', 'jwt');
-      return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, authMode: 'jwt' });
+      return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, authMode: 'jwt' });
     }
 
     if (hasCookie) {
@@ -545,13 +546,14 @@ export function setupGoogleAuth(app: Express): void {
         avatar: req.user!.profileImageUrl,
         isPremium: dbUser?.isPremium || false,
         hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
+        hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
         authMode: 'cookie',
       });
     }
 
     console.log(`[AUTH] no auth provided — returning loggedIn=false`);
     res.setHeader('X-Auth-Mode', 'none');
-    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, authMode: 'none' });
+    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, authMode: 'none' });
   });
 
   app.get("/api/auth/me", async (req, res) => {
@@ -567,9 +569,10 @@ export function setupGoogleAuth(app: Express): void {
         avatar: req.user.profileImageUrl,
         isPremium: dbUser?.isPremium || false,
         hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
+        hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
       });
     }
-    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false });
+    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false });
   });
 
   app.post("/api/premium/unlock-seen", async (req, res) => {
@@ -612,6 +615,50 @@ export function setupGoogleAuth(app: Express): void {
       return res.json({ success: true });
     } catch (err) {
       console.error('[PremiumUnlock] error:', err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/premium/tour-seen", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let userId: string | null = null;
+      let authMode = 'none';
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const payload = verifyJwt(authHeader.substring(7));
+        if (payload?.sub) {
+          userId = payload.sub;
+          authMode = 'jwt';
+        }
+      } else if (req.isAuthenticated() && req.user) {
+        userId = req.user.id;
+        authMode = 'cookie';
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      const dbUser = await storage.getUser(userId);
+      if (!dbUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      if (!dbUser.isPremium) {
+        return res.status(400).json({ error: "User is not premium" });
+      }
+
+      if (!dbUser.hasSeenPremiumTour) {
+        await storage.markPremiumTourSeen(userId);
+        console.log(`[PremiumTour] mark tour seen user=${userId} authMode=${authMode}`);
+      } else {
+        console.log(`[PremiumTour] already seen user=${userId} authMode=${authMode} (idempotent)`);
+      }
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error('[PremiumTour] error:', err);
       return res.status(500).json({ error: "Internal server error" });
     }
   });

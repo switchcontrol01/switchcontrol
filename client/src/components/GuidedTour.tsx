@@ -12,6 +12,7 @@ import {
   Crown 
 } from 'lucide-react';
 import { useHashLocation } from 'wouter/use-hash-location';
+import { useAuthStore, postTourSeen } from '@/lib/auth-store';
 
 interface TourStep {
   id: string;
@@ -89,8 +90,6 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-const PREMIUM_TOUR_KEY = 'sc_premium_tour_completed';
-
 interface GuidedTourProps {
   show: boolean;
   onComplete: () => void;
@@ -154,12 +153,11 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
   };
 
   const handleComplete = () => {
-    localStorage.setItem(PREMIUM_TOUR_KEY, 'true');
     setIsVisible(false);
     setTimeout(onComplete, 300);
   };
 
-  if (!show || localStorage.getItem(PREMIUM_TOUR_KEY) === 'true') return null;
+  if (!show) return null;
 
   const total = PREMIUM_TOUR_STEPS.length;
   const isLastStep = currentStep === total - 1;
@@ -367,16 +365,18 @@ export function usePremiumTourState() {
   const [showTour, setShowTour] = useState(false);
 
   const triggerTour = useCallback(() => {
-    if (localStorage.getItem(PREMIUM_TOUR_KEY) !== 'true') {
-      console.log('[PremiumTour] Triggering premium guided tour');
+    const user = useAuthStore.getState().user;
+    if (user?.isPremium === true && user?.hasSeenPremiumTour === false) {
+      console.log('[PremiumTour] Triggering premium guided tour (server-driven)');
       setShowTour(true);
     } else {
-      console.log('[PremiumTour] Tour already completed, skipping');
+      console.log(`[PremiumTour] Tour skipped — isPremium=${user?.isPremium} hasSeenPremiumTour=${user?.hasSeenPremiumTour}`);
     }
   }, []);
 
-  const completeTour = useCallback(() => {
-    console.log('[PremiumTour] Tour completed');
+  const completeTour = useCallback(async () => {
+    console.log('[PremiumTour] Tour completed — posting tour-seen to server');
+    await postTourSeen();
     setShowTour(false);
   }, []);
 

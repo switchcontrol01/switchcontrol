@@ -15,6 +15,13 @@
       "when": 1771147337209,
       "tag": "0001_left_whiplash",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1771385121108,
+      "tag": "0002_old_tana_nile",
+      "breakpoints": true
     }
   ]
 }

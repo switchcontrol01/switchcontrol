@@ -525,6 +525,7 @@ function WebsiteContent() {
               plan: data.isPremium ? 'premium' : 'free',
               isPremium: data.isPremium,
               hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
+              hasSeenPremiumTour: !!data.hasSeenPremiumTour,
               loggedIn: true,
             });
           }
