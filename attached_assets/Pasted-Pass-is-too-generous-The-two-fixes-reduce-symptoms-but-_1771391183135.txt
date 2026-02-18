@@ -1,0 +1,161 @@
+Pass is too generous. The two “fixes” reduce symptoms, but they bake in a bad product decision and they still leave a real race that can replay flows.
+
+Here’s the truth:
+
+1) “Reset App Data preserves jwt” is logically wrong
+
+A button called Reset App Data should not silently keep you logged in. That is not a reset, that is “clear local cache and keep session”.
+
+Right now you are mixing two different actions:
+
+Reset app settings (keep login, clear UI prefs, clear local flags)
+
+Factory reset (wipe everything, log out, fresh start)
+
+
+If you keep jwt while clearing local flags, you create the exact bug you described:
+
+app comes back authenticated
+
+local “seen” flags are gone
+
+premium flow and first time flow both think they should run
+
+overlap and black screen
+
+
+So you need to pick.
+
+Bulletproof fix
+
+Make two buttons, not one:
+
+Reset app settings: clears local UI settings, keeps auth, does NOT clear “first time” and “premium seen” gates unless they are server backed.
+
+Sign out + factory reset: clears token and jwt, deletes userData, relaunches, no flows because user is logged out.
+
+
+If you refuse two buttons, then “Reset App Data” must be factory reset. No jwt preservation.
+
+2) Pausing entitlement refresh during flows is good, but not sufficient
+
+Skipping refresh while activeFlow !== "none" prevents mid-flow mutation. Good.
+
+But you still have a startup race after reset or cold boot:
+
+on boot, user might be temporarily null or partial
+
+isPremium can be true before hasSeenPremiumUnlock is fetched
+
+flow logic might fire based on incomplete state
+
+
+Bulletproof gating rule
+
+No flow is allowed to start until:
+
+user is authenticated AND
+
+entitlements have completed a first fetch for this session (a “hydrated” flag)
+
+
+You need a boolean like entitlementsReady that flips true only after refreshEntitlements() resolves at least once. Then:
+
+Premium unlock can only trigger if entitlementsReady === true
+
+First time onboarding can only trigger if entitlementsReady === true
+
+
+This kills the “both start on boot” problem at the root.
+
+3) “Only ever show once per account lifetime” requires server truth
+
+If you want “once per account lifetime”, you cannot rely on local storage. Reset will wipe it.
+
+So you need:
+
+a server field like hasSeenPremiumUnlock tied to the account
+
+you already have that, good
+
+
+But you must enforce:
+
+after reset, the client must NOT assume hasSeenPremiumUnlock === false until entitlements are loaded
+
+and once the animation plays, you must immediately persist server side before allowing any re-render to re-trigger
+
+
+Concrete rule
+
+Premium animation triggers only when ALL are true:
+
+entitlementsReady === true
+
+user.isPremium === true
+
+user.hasSeenPremiumUnlock === false
+
+activeFlow === "none"
+
+unlockAnimationFiredThisSession === false
+
+
+On animation complete:
+
+call postUnlockSeen() to server
+
+set unlockAnimationFiredThisSession = true
+
+set local optimistic hasSeenPremiumUnlock = true in store immediately so the UI cannot re-trigger while server responds
+
+
+4) Your reset must explicitly set a “safe boot” state
+
+When reset happens, you want zero overlays, zero flows, no black screen.
+
+Do this before relaunch or reload:
+
+set activeFlow = "none"
+
+clear any overlay booleans
+
+set unlockAnimationFiredThisSession = true just for that shutdown cycle
+
+optionally set a one-shot flag suppressFlowsOnce = true that the App.tsx flow engine consumes on next boot and then clears
+
+
+If you do a factory reset (logout), you do not need suppress flags because user is logged out.
+
+What to tell Replit, exactly
+
+Copy this:
+
+“Reset App Data preserving jwt is wrong. Split into two actions: Reset Settings (keeps auth) and Factory Reset (logs out). If we keep one button, it must be factory reset and must not restore jwt/token.”
+
+“Add entitlementsReady and block ALL flows until entitlementsReady is true.”
+
+“Premium unlock: trigger only when entitlementsReady && isPremium && hasSeenPremiumUnlock===false && activeFlow===none && not fired this session.”
+
+“On premium animation complete: optimistically set hasSeenPremiumUnlock true locally immediately and call server to persist.”
+
+“On reset: force activeFlow to none and clear overlays before reload/relaunch so no black screen overlaps.”
+
+
+Quick sanity test you run after changes
+
+1. Fresh install, login, not premium: only first time flow runs once. Close app. Reopen. No flow.
+
+
+2. Upgrade to premium: premium animation plays once. Close app. Reopen. Never plays again.
+
+
+3. Hit Reset Settings: stays logged in, no flows start, no overlays.
+
+
+4. Hit Factory Reset: logged out after relaunch, no flows start until login.
+
+
+
+If any of those fail, the implementation is still not correct.
+

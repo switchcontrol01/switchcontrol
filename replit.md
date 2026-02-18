@@ -139,8 +139,11 @@ shared/
 - **Exclusive**: Only ONE flow runs at a time; centralized useEffect with priority ordering
 - **Priority Order**: 1) First-time onboarding → 2) Premium unlock animation → 3) Premium guided tour
 - **Hydration Guard**: Effect returns early if `phase !== "authenticated"`, `!user.loggedIn`, or `activeFlow !== "none"`
+- **Entitlements Ready Gate**: `entitlementsReady` boolean flips true only after first `refreshEntitlements()` resolves; ALL flows blocked until hydrated
+- **Unlock Session Guard**: `unlockFiredThisSessionRef` prevents re-triggering unlock animation within a single app session
+- **Optimistic Local Update**: On unlock complete, `hasSeenPremiumUnlock` set true locally before server call
 - **Entitlement Refresh**: Paused during active flows (visibility/focus handlers check `activeFlowRef`)
-- **Reset App Data**: Preserves auth state (user, token, jwt) across localStorage/sessionStorage clear
+- **Reset App Data**: Two buttons: "Reset Settings" (keeps auth, clears UI) and "Factory Reset" (logs out, wipes everything)
 
 ### Premium Guided Tour
 - **Step Order**: Power Plan → Network Tweaks → BIOS Advisor → AI Advisor → Settings → Priority Email → Priority Support Unlocked

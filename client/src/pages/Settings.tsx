@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings as SettingsIcon, Save, RotateCcw, FolderOpen, ExternalLink, Volume2, Mail, Copy, Crown } from "lucide-react";
+import { Settings as SettingsIcon, Save, RotateCcw, Trash2, FolderOpen, ExternalLink, Volume2, Mail, Copy, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAuthStore, performFullLogout } from "@/lib/auth-store";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -213,61 +213,69 @@ export default function Settings() {
             </Card>
           )}
 
-          {/* Danger Zone */}
+          {/* Data Management */}
           <Card className="bg-red-500/5 border-red-500/10">
             <CardHeader>
               <CardTitle className="text-red-400">Data Management</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex flex-col sm:flex-row gap-3">
-                 <Button
-                   variant="outline"
-                   onClick={async () => {
-                     const authSnapshot = {
-                       user: useAuthStore.getState().user,
-                       token: useAuthStore.getState().token,
-                       jwt: (useAuthStore.getState() as any).jwt,
-                     };
-                     resetData();
-                     localStorage.clear();
-                     sessionStorage.clear();
-                     if (authSnapshot.token) {
-                       useAuthStore.getState().setToken(authSnapshot.token);
-                     }
-                     if (authSnapshot.jwt) {
-                       useAuthStore.getState().setJwt(authSnapshot.jwt);
-                     }
-                     if (authSnapshot.user) {
-                       useAuthStore.getState().setUser(authSnapshot.user);
-                     }
-                     if (isElectron && (window as any).electronAPI?.resetAppData) {
-                       await (window as any).electronAPI.resetAppData();
-                     } else {
-                       toast({ title: "App Data Reset", description: "UI settings have been cleared. Reloading..." });
-                       setTimeout(() => window.location.reload(), 500);
-                     }
-                   }}
-                   className="border-red-500/20 hover:bg-red-500/10 text-red-400"
-                   data-testid="button-reset-data"
-                 >
-                   <RotateCcw className="size-4 mr-2" />
-                   Reset App Data
-                 </Button>
-                 <Button
-                   variant="outline"
-                   className="border-border/50"
-                   data-testid="button-open-logs"
-                   onClick={async () => {
-                     if (isElectron && (window as any).electronAPI?.openLogs) {
-                       await (window as any).electronAPI.openLogs();
-                     } else {
-                       toast({ title: "Not Available", description: "Log directory is only accessible in the desktop app." });
-                     }
-                   }}
-                 >
-                   <FolderOpen className="size-4 mr-2" />
-                   Open Log Directory
-                 </Button>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      resetData();
+                      toast({ title: "Settings Reset", description: "Your preferences have been restored to defaults. You are still logged in." });
+                    }}
+                    className="border-border/50 hover:bg-muted/50 text-white w-fit"
+                    data-testid="button-reset-settings"
+                  >
+                    <RotateCcw className="size-4 mr-2" />
+                    Reset Settings
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Resets UI preferences to defaults. Keeps your login and premium status.</p>
+                </div>
+                <Separator className="bg-border/30" />
+                <div className="flex flex-col gap-1.5">
+                  <Button
+                    variant="outline"
+                    onClick={async () => {
+                      document.querySelectorAll('[class*="fixed"][class*="z-"]').forEach(el => {
+                        (el as HTMLElement).style.display = 'none';
+                      });
+                      await performFullLogout('factory_reset');
+                      localStorage.clear();
+                      sessionStorage.clear();
+                      if (isElectron && (window as any).electronAPI?.resetAppData) {
+                        await (window as any).electronAPI.resetAppData();
+                      } else {
+                        window.location.reload();
+                      }
+                    }}
+                    className="border-red-500/20 hover:bg-red-500/10 text-red-400 w-fit"
+                    data-testid="button-factory-reset"
+                  >
+                    <Trash2 className="size-4 mr-2" />
+                    Factory Reset
+                  </Button>
+                  <p className="text-xs text-muted-foreground">Logs you out and wipes all local data. You will need to sign in again.</p>
+                </div>
+                <Separator className="bg-border/30" />
+                <Button
+                  variant="outline"
+                  className="border-border/50 w-fit"
+                  data-testid="button-open-logs"
+                  onClick={async () => {
+                    if (isElectron && (window as any).electronAPI?.openLogs) {
+                      await (window as any).electronAPI.openLogs();
+                    } else {
+                      toast({ title: "Not Available", description: "Log directory is only accessible in the desktop app." });
+                    }
+                  }}
+                >
+                  <FolderOpen className="size-4 mr-2" />
+                  Open Log Directory
+                </Button>
               </div>
             </CardContent>
           </Card>

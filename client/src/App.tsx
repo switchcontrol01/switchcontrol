@@ -109,13 +109,34 @@ function ElectronAppContent() {
   const [splashDone, setSplashDone] = useState(false);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [activeFlow, setActiveFlow] = useState<AppFlow>("none");
+  const [entitlementsReady, setEntitlementsReady] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
+  const unlockFiredThisSessionRef = React.useRef(false);
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
 
   useEffect(() => {
+    if (phase !== 'authenticated') return;
+    if (!user?.loggedIn) return;
+    if (entitlementsReady) return;
+
+    console.log('[AppFlow] Hydrating entitlements for this session...');
+    refreshEntitlements()
+      .then((result) => {
+        console.log('[AppFlow] Entitlements hydrated — isPremium:', result.user?.isPremium, 'hasSeenPremiumUnlock:', result.user?.hasSeenPremiumUnlock);
+      })
+      .catch((err) => {
+        console.warn('[AppFlow] Entitlement hydration failed, using cached state:', err);
+      })
+      .finally(() => {
+        setEntitlementsReady(true);
+      });
+  }, [phase, user?.loggedIn, entitlementsReady]);
+
+  useEffect(() => {
     if (!user?.loggedIn) return;
     if (phase !== "authenticated") return;
+    if (!entitlementsReady) return;
     if (activeFlow !== "none") return;
 
     const userId = user.id;
@@ -128,8 +149,13 @@ function ElectronAppContent() {
       return;
     }
 
-    if (user.isPremium === true && user.hasSeenPremiumUnlock === false) {
+    if (
+      user.isPremium === true &&
+      user.hasSeenPremiumUnlock === false &&
+      !unlockFiredThisSessionRef.current
+    ) {
       console.log('[AppFlow] PRIORITY 2: Premium unlock animation');
+      unlockFiredThisSessionRef.current = true;
       setActiveFlow("premiumUnlock");
       return;
     }
@@ -139,7 +165,7 @@ function ElectronAppContent() {
       setActiveFlow("premiumTour");
       return;
     }
-  }, [user?.loggedIn, user?.isPremium, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, phase, activeFlow, isFirstLogin]);
+  }, [user?.loggedIn, user?.isPremium, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, phase, activeFlow, isFirstLogin, entitlementsReady]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;
@@ -490,9 +516,14 @@ function ElectronAppContent() {
       <PremiumUpgradeAnimation 
         show={activeFlow === "premiumUnlock"} 
         onComplete={async () => {
-          console.log('[AppFlow] Unlock animation complete — posting unlock-seen');
+          console.log('[AppFlow] Unlock animation complete — setting optimistic local flag');
+          const store = useAuthStore.getState();
+          if (store.user) {
+            store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
+          }
+          console.log('[AppFlow] Posting unlock-seen to server');
           await postUnlockSeen();
-          console.log('[AppFlow] Unlock marked as seen — transitioning to premiumTour');
+          console.log('[AppFlow] Unlock persisted — transitioning to premiumTour');
           setActiveFlow("premiumTour");
         }} 
       />
