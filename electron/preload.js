@@ -6,8 +6,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App info
   getVersion: () => ipcRenderer.invoke('app:getVersion'),
+  getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
   getPlatform: () => ipcRenderer.invoke('app:getPlatform'),
   isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
+  getDeviceId: () => ipcRenderer.invoke('app:getDeviceId'),
 
   // Auth callbacks (deep-link handling)
   auth: {

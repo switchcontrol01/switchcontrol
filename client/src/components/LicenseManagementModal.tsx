@@ -37,8 +37,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   const [lastSync, setLastSync] = useState<string | null>(null);
   const [appVersion, setAppVersion] = useState("1.0.0");
   const [platform, setPlatform] = useState("Web");
-
-  const deviceId = generateDeviceHash(userId);
+  const [deviceId, setDeviceId] = useState(() => generateDeviceHash(userId));
 
   useEffect(() => {
     if (!open) {
@@ -58,6 +57,9 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       }
       if (api?.getAppVersion) {
         api.getAppVersion().then((v: string) => setAppVersion(v));
+      }
+      if (api?.getDeviceId) {
+        api.getDeviceId().then((id: string) => { if (id) setDeviceId(id); });
       }
     }
   }, [open]);
@@ -105,13 +107,16 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   };
 
   const handleContactSupport = () => {
-    const subject = encodeURIComponent(`SwitchControl License Issue – Device ${deviceId || "UNKNOWN"}`);
-    const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${subject}`;
+    const subject = encodeURIComponent(`SwitchControl Support – Device ${deviceId || "UNKNOWN"}`);
+    const body = encodeURIComponent(
+      `\n\n--- Do not edit below this line ---\nDevice ID: ${deviceId || "UNKNOWN"}\nApp Version: ${appVersion}\nPlatform: ${platform}\n`
+    );
+    const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
 
     if (isElectron && (window as any).electronAPI?.openExternal) {
       (window as any).electronAPI.openExternal(mailtoUrl);
     } else {
-      window.open(mailtoUrl, "_blank");
+      window.location.href = mailtoUrl;
     }
   };
 

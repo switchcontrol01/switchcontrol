@@ -36,7 +36,17 @@ export function collectAppSignals(storeState: {
   }
 
   try {
-    signals.deviceIdShort = { value: generateDeviceHash(storeState.userId), source: "browser" };
+    const api = (window as any).electronAPI;
+    if (api?.getDeviceId) {
+      signals.deviceIdShort = { value: "pending", source: "electron" };
+      api.getDeviceId().then((id: string) => {
+        signals.deviceIdShort = { value: id || generateDeviceHash(storeState.userId), source: "electron" };
+      }).catch(() => {
+        signals.deviceIdShort = { value: generateDeviceHash(storeState.userId), source: "browser" };
+      });
+    } else {
+      signals.deviceIdShort = { value: generateDeviceHash(storeState.userId), source: "browser" };
+    }
   } catch {
     signals.deviceIdShort = { value: null, source: "browser", error: "Failed to generate device ID" };
   }

@@ -348,10 +348,44 @@ function parseLhmData(data) {
   return result;
 }
 
+// Persistent Device ID — generated once, stored forever in userData
+function getOrCreateDeviceId() {
+  const fs = require('fs');
+  const crypto = require('crypto');
+  const deviceIdPath = path.join(app.getPath('userData'), 'device-id.json');
+  
+  try {
+    if (fs.existsSync(deviceIdPath)) {
+      const data = JSON.parse(fs.readFileSync(deviceIdPath, 'utf-8'));
+      if (data.deviceId && typeof data.deviceId === 'string') {
+        return data.deviceId;
+      }
+    }
+  } catch (e) {
+    console.warn('[DeviceID] Failed to read existing device ID:', e.message);
+  }
+  
+  const deviceId = crypto.randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase();
+  try {
+    fs.writeFileSync(deviceIdPath, JSON.stringify({ deviceId, createdAt: new Date().toISOString() }), 'utf-8');
+    console.log('[DeviceID] Generated and saved new device ID:', deviceId);
+  } catch (e) {
+    console.error('[DeviceID] Failed to save device ID:', e.message);
+  }
+  return deviceId;
+}
+
+let cachedDeviceId = null;
+
 // App info handlers
 ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('app:getPlatform', () => process.platform);
 ipcMain.handle('app:isPackaged', () => app.isPackaged);
+
+ipcMain.handle('app:getDeviceId', () => {
+  if (!cachedDeviceId) cachedDeviceId = getOrCreateDeviceId();
+  return cachedDeviceId;
+});
 
 // Memory cleaner - calls native Rust helper
 ipcMain.handle('memory:clean', async (event, mode) => {
@@ -402,8 +436,13 @@ ipcMain.handle('app:resetData', async () => {
     const fs = require('fs');
     const userDataPath = app.getPath('userData');
     console.log('[Reset] Clearing userData directory:', userDataPath);
+    const preserveFiles = new Set(['device-id.json']);
     const entries = fs.readdirSync(userDataPath);
     for (const entry of entries) {
+      if (preserveFiles.has(entry)) {
+        console.log('[Reset] Preserving:', entry);
+        continue;
+      }
       const fullPath = path.join(userDataPath, entry);
       try {
         fs.rmSync(fullPath, { recursive: true, force: true });
@@ -875,6 +914,28 @@ app.whenReady().then(() => {
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   const isDefault = app.isDefaultProtocolClient('switchcontrol');
   console.log('[DeepLink][MAIN] protocol registered:', isDefault);
+
+  // Persist session cookies across restarts by extending their lifetime
+  const { session } = require('electron');
+  const ses = session.defaultSession;
+  ses.cookies.on('changed', (event, cookie, cause, removed) => {
+    if (!removed && cookie.session && cookie.domain && cookie.domain.includes('switchcontrol.org')) {
+      // Session cookies (no expiry) don't survive restart — persist them for 30 days
+      const persistedCookie = {
+        url: `https://${cookie.domain.replace(/^\./, '')}${cookie.path || '/'}`,
+        name: cookie.name,
+        value: cookie.value,
+        domain: cookie.domain,
+        path: cookie.path || '/',
+        secure: cookie.secure,
+        httpOnly: cookie.httpOnly,
+        sameSite: cookie.sameSite || 'no_restriction',
+        expirationDate: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
+      };
+      ses.cookies.set(persistedCookie).catch(() => {});
+    }
+  });
+
   createWindow();
 });
 
