@@ -4,7 +4,9 @@ import { LiveGraph } from "@/components/dashboard/LiveGraph";
 import { StorageCards } from "@/components/dashboard/StorageCards";
 import { DashboardHeaderParticles } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
-import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Info, Lock, Crown } from "lucide-react";
+import { useAdvisorStore } from "@/stores/advisorStore";
+import type { Finding } from "@/advisor/types";
+import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Info, Lock, Crown, CheckCircle2, AlertTriangle, Wrench, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "wouter";
@@ -62,31 +64,70 @@ interface SystemSpecs {
 }
 
 
-interface AIAdvisorCardProps {
-  isPremium: boolean;
-  scanning: boolean;
-  latestAIScan: any;
-  onScan: () => void;
-  cooldownSeconds: number;
-  scanError: string | null;
+function getScoreColor(score: number): string {
+  if (score >= 85) return "text-emerald-400";
+  if (score >= 60) return "text-amber-400";
+  return "text-red-400";
 }
 
-function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeconds, scanError }: AIAdvisorCardProps) {
-  const mockRecommendations = [
-    { id: "1", action: "Disable Windows Search indexing for game drives", tag: "Safe" },
-    { id: "2", action: "Enable Hardware-accelerated GPU scheduling", tag: "Safe" },
-    { id: "3", action: "Disable Superfetch for SSD optimization", tag: "Advanced" },
-  ];
+function getScoreBg(score: number): string {
+  if (score >= 85) return "bg-emerald-500/10 border-emerald-500/20";
+  if (score >= 60) return "bg-amber-500/10 border-amber-500/20";
+  return "bg-red-500/10 border-red-500/20";
+}
 
-  const isOnCooldown = cooldownSeconds > 0;
-  const isOptimized = latestAIScan?.optimized === true;
+function getSeverityColor(severity: string): string {
+  if (severity === "critical") return "text-red-400";
+  if (severity === "recommended") return "text-amber-400";
+  return "text-blue-400";
+}
+
+function getSeverityLabel(severity: string): string {
+  if (severity === "critical") return "Critical";
+  if (severity === "recommended") return "Rec";
+  return "Info";
+}
+
+interface AIAdvisorCardProps {
+  isPremium: boolean;
+  onApplyFix: (finding: Finding) => void;
+  applyingFixId: string | null;
+}
+
+function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardProps) {
+  const { runState, report, error, runAdvisor, reRunAdvisor } = useAdvisorStore();
+  const { tweaks, account } = useStore();
+  const { user } = useAuth();
+
+  const appContext = {
+    tweaks,
+    account: { stats: { tweaksApplied: account.stats.tweaksApplied, lastScan: account.stats.lastScan } },
+    isPremium,
+    userId: user?.id || "anonymous",
+  };
+
+  const handleAnalyze = () => {
+    playScanBeep();
+    if (report) {
+      reRunAdvisor(appContext);
+    } else {
+      runAdvisor(appContext);
+    }
+  };
+
+  const isRunning = runState === "initializing" || runState === "collecting" || runState === "evaluating";
+  const hasReport = report && (runState === "ready" || runState === "degraded");
+  const isOptimized = report && report.score >= 90 && report.topFailed.length === 0;
+
+  const progressLabel = runState === "initializing" ? "Initializing Advisor..." :
+    runState === "collecting" ? "Collecting signals..." :
+    runState === "evaluating" ? "Evaluating rules..." : "";
 
   const cardContent = (
     <Card className={cn(
       "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full transition-all duration-500",
-      !isPremium && "opacity-60 blur-[2px]",
-      false
-    )}>
+      !isPremium && "opacity-60 blur-[2px]"
+    )} data-testid="card-ai-advisor">
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
           <Sparkles className="size-4 text-primary animate-pulse" />
@@ -99,70 +140,109 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
           AI Advisor
           {!isPremium && <PremiumBadge className="ml-1" />}
         </CardTitle>
-        <CardDescription className="text-[10px]">ML-driven consistency analysis</CardDescription>
+        <CardDescription className="text-[10px]">Rule-based system analysis</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isPremium ? (
           <>
-            {!latestAIScan && !scanning && !scanError ? (
+            {runState === "idle" && !report ? (
               <div className="py-6 text-center space-y-4">
-                <p className="text-xs text-muted-foreground px-4">Run an AI scan to get personalized optimization recommendations.</p>
-                <Button onClick={onScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
-                  Run AI Scan
+                <p className="text-xs text-muted-foreground px-4">Analyze your system configuration against optimization rules.</p>
+                <Button onClick={handleAnalyze} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-run-advisor">
+                  <Shield className="size-3.5 mr-1.5" />
+                  Analyze System
                 </Button>
               </div>
-            ) : !latestAIScan && !scanning && scanError ? (
+            ) : runState === "error" ? (
               <div className="py-6 text-center space-y-4">
-                <p className="text-xs text-amber-400 px-4">{scanError}</p>
-                <Button onClick={onScan} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20">
+                <p className="text-xs text-amber-400 px-4">{error || "Analysis failed unexpectedly."}</p>
+                <Button onClick={handleAnalyze} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-retry-advisor">
                   Try Again
                 </Button>
               </div>
-            ) : scanning ? (
-              <div className="py-8 flex flex-col items-center justify-center space-y-3">
+            ) : isRunning ? (
+              <div className="py-6 flex flex-col items-center justify-center space-y-3">
                 <Loader2 className="size-6 text-primary animate-spin" />
-                <span className="text-xs text-muted-foreground animate-pulse">Analyzing system state...</span>
-              </div>
-            ) : latestAIScan && (
-              <div className="space-y-3 animate-in fade-in duration-500">
-                <div className={cn(
-                  "p-2.5 rounded-lg border",
-                  isOptimized 
-                    ? "bg-emerald-500/10 border-emerald-500/20" 
-                    : "bg-white/5 border-white/10"
-                )}>
-                  <p className={cn(
-                    "text-[11px] leading-relaxed",
-                    isOptimized ? "text-emerald-400" : "text-white/90"
-                  )}>{latestAIScan.summary}</p>
+                <span className="text-xs text-muted-foreground animate-pulse">{progressLabel}</span>
+                <div className="w-full max-w-[160px]">
+                  <Progress value={runState === "initializing" ? 20 : runState === "collecting" ? 55 : 85} className="h-1" />
                 </div>
-                {!isOptimized && latestAIScan.recommendations?.length > 0 && (
+              </div>
+            ) : hasReport ? (
+              <div className="space-y-3 animate-in fade-in duration-500">
+                <div className={cn("p-3 rounded-lg border text-center", getScoreBg(report.score))}>
+                  <div className={cn("text-2xl font-bold tabular-nums", getScoreColor(report.score))} data-testid="text-advisor-score">
+                    {report.score}
+                  </div>
+                  <p className={cn("text-[10px] mt-0.5", getScoreColor(report.score))}>
+                    {isOptimized ? "System Optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Significant Issues Found"}
+                  </p>
+                </div>
+
+                {runState === "degraded" && (
+                  <div className="flex items-center gap-1.5 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
+                    <AlertTriangle className="size-3 text-amber-400 shrink-0" />
+                    <span className="text-[10px] text-amber-400">Limited analysis. Some signals unavailable.</span>
+                  </div>
+                )}
+
+                {report.topFailed.length > 0 && (
                   <div className="space-y-1.5">
-                    {latestAIScan.recommendations.map((rec: any) => (
-                      <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors">
-                        <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
-                        <span className={cn(
-                          "text-[9px] font-bold uppercase px-1 rounded",
-                          rec.tag === "Safe" ? "text-emerald-400" : 
-                          rec.tag === "Advanced" ? "text-blue-400" : "text-amber-400"
-                        )}>
-                          {rec.tag === "Safe" ? "Safe" : rec.tag === "Advanced" ? "Adv" : "Agent"}
-                        </span>
+                    {report.topFailed.map((finding) => (
+                      <div key={finding.ruleId} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors" data-testid={`finding-${finding.ruleId}`}>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-[10px] text-muted-foreground block truncate">{finding.message}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={cn("text-[9px] font-bold uppercase px-1 rounded", getSeverityColor(finding.severity))}>
+                            {getSeverityLabel(finding.severity)}
+                          </span>
+                          {finding.fix && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1.5 text-[9px] text-primary hover:text-primary hover:bg-primary/10"
+                              onClick={() => onApplyFix(finding)}
+                              disabled={applyingFixId === finding.ruleId}
+                              data-testid={`button-fix-${finding.ruleId}`}
+                            >
+                              {applyingFixId === finding.ruleId ? (
+                                <Loader2 className="size-2.5 animate-spin" />
+                              ) : (
+                                <Wrench className="size-2.5" />
+                              )}
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
                 )}
-                {scanError && (
-                  <p className="text-[10px] text-amber-400 text-center">{scanError}</p>
-                )}
-                <Button 
-                  onClick={onScan} 
-                  variant="ghost" 
-                  size="sm" 
+
+                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+                  <span>{report.findings.filter(f => f.status === "pass").length}/{report.findings.length} rules passed</span>
+                  <span className="text-border">|</span>
+                  <span>{report.signalsHealth.collected}/{report.signalsHealth.total} signals</span>
+                </div>
+
+                <Button
+                  onClick={handleAnalyze}
+                  variant="ghost"
+                  size="sm"
                   className="w-full text-[10px] h-7 hover:bg-white/5"
-                  disabled={isOnCooldown || scanning}
+                  disabled={isRunning}
+                  data-testid="button-rescan-advisor"
                 >
-                  {isOnCooldown ? `Wait ${cooldownSeconds}s` : 'Rescan System'}
+                  <RotateCcw className="size-3 mr-1.5" />
+                  Rescan System
+                </Button>
+              </div>
+            ) : (
+              <div className="py-6 text-center space-y-4">
+                <p className="text-xs text-muted-foreground px-4">Analyze your system configuration against optimization rules.</p>
+                <Button onClick={handleAnalyze} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-run-advisor">
+                  <Shield className="size-3.5 mr-1.5" />
+                  Analyze System
                 </Button>
               </div>
             )}
@@ -170,16 +250,17 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
         ) : (
           <div className="space-y-3">
             <div className="p-2.5 rounded-lg bg-white/5 border border-white/10">
-              <p className="text-[11px] leading-relaxed text-white/90">System analysis reveals 3 optimization opportunities for improved gaming performance.</p>
+              <p className="text-[11px] leading-relaxed text-white/90">System analysis reveals optimization opportunities for improved gaming performance.</p>
             </div>
             <div className="space-y-1.5">
-              {mockRecommendations.map((rec) => (
+              {[
+                { id: "1", action: "Disable Windows Search indexing for game drives", tag: "Safe" },
+                { id: "2", action: "Enable Hardware-accelerated GPU scheduling", tag: "Safe" },
+                { id: "3", action: "Disable Superfetch for SSD optimization", tag: "Advanced" },
+              ].map((rec) => (
                 <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded">
                   <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
-                  <span className={cn(
-                    "text-[9px] font-bold uppercase px-1 rounded",
-                    rec.tag === "Safe" ? "text-emerald-400" : "text-blue-400"
-                  )}>
+                  <span className={cn("text-[9px] font-bold uppercase px-1 rounded", rec.tag === "Safe" ? "text-emerald-400" : "text-blue-400")}>
                     {rec.tag === "Safe" ? "Safe" : "Adv"}
                   </span>
                 </div>
@@ -187,10 +268,10 @@ function AIAdvisorCard({ isPremium, scanning, latestAIScan, onScan, cooldownSeco
             </div>
           </div>
         )}
-        
+
         <div className="pt-2 border-t border-border/50 flex items-center gap-1.5 opacity-40">
           <Info className="size-2.5" />
-          <span className="text-[9px]">Recommendations are simulated until agent is installed.</span>
+          <span className="text-[9px]">Analysis runs locally. No server required.</span>
         </div>
       </CardContent>
     </Card>
@@ -217,33 +298,16 @@ function getGreeting(): string {
 }
 
 export default function Home() {
-  const { stats, account, clearRam, runAIScan, latestAIScan, setStats } = useStore();
-  const [scanning, setScanning] = useState(false);
+  const { stats, account, clearRam, setStats, tweaks, setTweak } = useStore();
+  const { reRunAdvisor } = useAdvisorStore();
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
-  const [cooldownSeconds, setCooldownSeconds] = useState(0);
-  const [scanError, setScanError] = useState<string | null>(null);
+  const [applyingFixId, setApplyingFixId] = useState<string | null>(null);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const cooldownIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
   useRevealOnScroll();
-  
-  useEffect(() => {
-    if (cooldownSeconds <= 0) return;
-    
-    cooldownIntervalRef.current = setInterval(() => {
-      setCooldownSeconds(prev => Math.max(0, prev - 1));
-    }, 1000);
-    
-    return () => {
-      if (cooldownIntervalRef.current) {
-        clearInterval(cooldownIntervalRef.current);
-        cooldownIntervalRef.current = null;
-      }
-    };
-  }, [cooldownSeconds]);
   
   const getUserDisplayName = (): string => {
     if (user?.firstName) return user.firstName;
@@ -353,22 +417,22 @@ export default function Home() {
   const currentDiskName = selectedDisk?.mount ?? stats.diskName;
   const diskPercent = currentDiskTotal > 0 ? (currentDiskUsed / currentDiskTotal) * 100 : 0;
 
-  const handleAIScan = async () => {
-    if (cooldownSeconds > 0) return;
-    playScanBeep();
-    setScanError(null);
-    setScanning(true);
+  const handleApplyFix = async (finding: Finding) => {
+    if (!finding.fix || finding.fix.type !== "app_tweak") return;
+    setApplyingFixId(finding.ruleId);
     try {
-      await runAIScan();
-    } catch (error: any) {
-      if (error?.remainingSeconds) {
-        setCooldownSeconds(error.remainingSeconds);
-        setScanError(null);
-      } else {
-        setScanError(error?.message || 'Scan failed');
-      }
+      setTweak(finding.fix.tweakId, finding.fix.enable);
+      await new Promise((r) => setTimeout(r, 500));
+      const appContext = {
+        tweaks: { ...tweaks, [finding.fix!.tweakId]: finding.fix!.enable },
+        account: { stats: { tweaksApplied: account.stats.tweaksApplied, lastScan: account.stats.lastScan } },
+        isPremium,
+        userId: user?.id || "anonymous",
+      };
+      await reRunAdvisor(appContext);
+    } finally {
+      setApplyingFixId(null);
     }
-    setScanning(false);
   };
 
   const totalTweaks = TWEAKS_DATA.length;
@@ -585,12 +649,9 @@ export default function Home() {
             data-tour="ai-advisor"
           >
             <AIAdvisorCard 
-              isPremium={isPremium} 
-              scanning={scanning} 
-              latestAIScan={latestAIScan} 
-              onScan={handleAIScan}
-              cooldownSeconds={cooldownSeconds}
-              scanError={scanError}
+              isPremium={isPremium}
+              onApplyFix={handleApplyFix}
+              applyingFixId={applyingFixId}
             />
           </motion.div>
 
