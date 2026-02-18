@@ -63,7 +63,7 @@ shared/
 ```
 
 ### Key Features by Page
-- **Dashboard**: System stats, RAM clearing simulation, AI advisor scan, live telemetry graphs
+- **Dashboard**: System stats, RAM clearing simulation, AI advisor scan, live telemetry graphs, CPU per-core morph modal
 - **Tweaks**: Categorized system optimization toggles with search, filters, and info modals
 - **Network Tweaks**: SMB, TCP/IP, UDP, DNS, and Security network optimizations
 - **Power Plan**: Power profile selection with custom overrides
@@ -98,7 +98,7 @@ shared/
   - `electron/tweak-executor.js`: Registry/PowerShell tweak execution
 - **API Namespaces**:
   - `electronAPI.system`: getInfo, getSpecs, getRamUsage, getAllDisks
-  - `electronAPI.telemetry`: getLive, getEnhanced (real CPU/RAM/temp data)
+  - `electronAPI.telemetry`: getLive, getEnhanced (real CPU/RAM/temp data), getCpuCores (per-core load array)
   - `electronAPI.tweaks`: execute, checkStatus, syncAll, getLocalState
   - `electronAPI.memory`: clean(mode) — calls native Rust helper for RAM trimming
   - `electronAPI.auth`: onCallback, removeCallbackListener (deep-link OAuth)
