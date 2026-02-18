@@ -88,6 +88,11 @@ fn get_working_set_mb(handle: HANDLE) -> Option<f64> {
 }
 
 fn main() {
+    std::panic::set_hook(Box::new(|info| {
+        let msg = format!("{{\"error\":true,\"message\":\"panic: {}\"}}", info);
+        eprintln!("{}", msg);
+    }));
+
     let args: Vec<String> = env::args().collect();
     let mode = if args.len() >= 3 && args[1] == "--mode" {
         args[2].clone()
@@ -96,9 +101,9 @@ fn main() {
     };
 
     let threshold_mb: f64 = match mode.as_str() {
-        "smart" => 150.0,
-        "advanced" => 80.0,
-        _ => 0.0, // safe: trim all eligible
+        "safe" => 200.0,
+        "smart" => 100.0,
+        _ => 0.0, // advanced: trim all eligible (most aggressive)
     };
 
     let start = Instant::now();
@@ -163,13 +168,11 @@ fn main() {
                         trimmed += 1;
                         total_freed += freed;
 
-                        if mode != "safe" {
-                            top.push(TrimmedProcess {
-                                name: name.clone(),
-                                pid,
-                                mb_freed: (freed * 10.0).round() / 10.0,
-                            });
-                        }
+                        top.push(TrimmedProcess {
+                            name: name.clone(),
+                            pid,
+                            mb_freed: (freed * 10.0).round() / 10.0,
+                        });
                     }
                 } else {
                     errors += 1;

@@ -108,11 +108,11 @@ shared/
 
 ### Native RAM Cleaner
 - **Rust Helper**: `electron/native/sc_memory/` — Windows binary using safe Win32 APIs (EmptyWorkingSet)
-- **Modes**: safe (all eligible), smart (>=150MB threshold), advanced (>=80MB threshold)
+- **Modes**: safe (>=200MB, gentle), smart (>=100MB, balanced), advanced (all eligible, most aggressive)
 - **Safety**: Never kills processes, denylist for critical/system/anti-cheat processes, no admin required
 - **Output**: JSON via stdout with processes_scanned, processes_trimmed, estimated_mb_freed, top_trimmed, execution_ms
 - **Build**: `cargo build --release` → `electron/bin/sc_memory.exe`, bundled via electron-builder extraResources
-- **IPC**: `memory:clean` handler in main.js, 12s timeout, JSON parse validation
+- **IPC**: `memory:clean` handler in main.js, 10s hard timeout, JSON parse validation
 - **UI**: `MemoryCleanerModal` component — 3 mode selector, 900ms minimum loader, results display with expandable details
 - **Browser Fallback**: Simulated results when Electron API not available (prototype mode)
 - **Concurrency**: Lock ref prevents double-run

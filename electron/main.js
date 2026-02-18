@@ -377,7 +377,7 @@ ipcMain.handle('memory:clean', async (event, mode) => {
 
   return new Promise((resolve) => {
     const { execFile } = require('child_process');
-    const child = execFile(exePath, ['--mode', mode], { timeout: 12000 }, (err, stdout, stderr) => {
+    const child = execFile(exePath, ['--mode', mode], { timeout: 10000 }, (err, stdout, stderr) => {
       if (err) {
         console.error('[Memory] Helper error:', err.message);
         if (stderr) console.error('[Memory] stderr:', stderr);

@@ -28,9 +28,9 @@ interface MemoryCleanerModalProps {
 }
 
 const MODES: { id: CleanMode; label: string; desc: string; icon: typeof Shield }[] = [
-  { id: "safe", label: "Safe", desc: "Gentle cleanup. Trims all eligible processes.", icon: Shield },
-  { id: "smart", label: "Smart", desc: "Only processes using 150+ MB. Best balance.", icon: Zap },
-  { id: "advanced", label: "Advanced", desc: "Processes using 80+ MB. Maximum reclaim.", icon: Rocket },
+  { id: "safe", label: "Safe", desc: "Gentle cleanup. Only processes using 200+ MB.", icon: Shield },
+  { id: "smart", label: "Smart", desc: "Processes using 100+ MB. Good balance.", icon: Zap },
+  { id: "advanced", label: "Advanced", desc: "Trims all eligible processes. Maximum reclaim.", icon: Rocket },
 ];
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -113,9 +113,12 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className="bg-[#0c0c14] border-border/50 max-w-sm backdrop-blur-xl"
+        className={cn("bg-[#0c0c14] border-border/50 max-w-sm backdrop-blur-xl", cleaning && "[&>button]:hidden")}
         data-testid="modal-memory-cleaner"
         onClick={(e) => e.stopPropagation()}
+        onEscapeKeyDown={(e) => { if (cleaning) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (cleaning) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (cleaning) e.preventDefault(); }}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
@@ -184,7 +187,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
               <div className="text-center space-y-1">
                 <p className="text-sm font-medium text-white">Optimizing memory...</p>
                 <p className="text-[10px] text-muted-foreground">
-                  {selectedMode === "safe" ? "Trimming all eligible processes" : selectedMode === "smart" ? "Targeting large memory consumers" : "Deep memory optimization in progress"}
+                  {selectedMode === "safe" ? "Trimming large memory consumers" : selectedMode === "smart" ? "Targeting medium+ memory usage" : "Deep scan — trimming all eligible processes"}
                 </p>
               </div>
               <Progress value={65} className="h-1 w-2/3" />
