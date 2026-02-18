@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -41,20 +41,22 @@ function AnimatedCounter({ value, duration = 800 }: { value: number; duration?: 
   const startTime = useRef<number | null>(null);
   const rafId = useRef<number>(0);
 
-  useEffect(() => {
+  const animateRef = useRef<(timestamp: number) => void>();
+  animateRef.current = (timestamp: number) => {
+    if (!startTime.current) startTime.current = timestamp;
+    const progress = Math.min((timestamp - startTime.current) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    setDisplay(parseFloat((eased * value).toFixed(1)));
+    if (progress < 1) {
+      rafId.current = requestAnimationFrame(animateRef.current!);
+    }
+  };
+
+  if (display === 0 && value > 0) {
     startTime.current = null;
-    const animate = (timestamp: number) => {
-      if (!startTime.current) startTime.current = timestamp;
-      const progress = Math.min((timestamp - startTime.current) / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(parseFloat((eased * value).toFixed(1)));
-      if (progress < 1) {
-        rafId.current = requestAnimationFrame(animate);
-      }
-    };
-    rafId.current = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(rafId.current);
-  }, [value, duration]);
+    cancelAnimationFrame(rafId.current);
+    rafId.current = requestAnimationFrame(animateRef.current);
+  }
 
   return <>{display}</>;
 }
@@ -65,14 +67,12 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
   const [result, setResult] = useState<CleanResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const lockRef = useRef(false);
-  const cleaningRef = useRef(false);
   const { toast } = useToast();
   const { clearRam, setStats } = useStore();
 
   const handleClean = async () => {
     if (lockRef.current) return;
     lockRef.current = true;
-    cleaningRef.current = true;
     setCleaning(true);
     setResult(null);
     setShowDetails(false);
@@ -88,9 +88,6 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
         if (res?.error) {
           toast({ title: "Memory clean failed", description: res.message || "An error occurred.", variant: "destructive" });
-          setCleaning(false);
-          cleaningRef.current = false;
-          lockRef.current = false;
           return;
         }
 
@@ -120,25 +117,19 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
     } catch (err: any) {
       toast({ title: "Memory clean failed", description: "An unexpected error occurred.", variant: "destructive" });
     } finally {
-      console.log("[DEBUG] CLEANING FINISHED — resetting refs");
-      console.log("[DEBUG] cleaningRef was:", cleaningRef.current, "lockRef was:", lockRef.current);
       setCleaning(false);
-      cleaningRef.current = false;
       lockRef.current = false;
-      console.log("[DEBUG] cleaningRef now:", cleaningRef.current, "lockRef now:", lockRef.current);
     }
   };
 
-  const handleClose = useCallback((v: boolean) => {
-    if (cleaningRef.current) return;
-    onOpenChange(v);
-    if (!v) {
-      setTimeout(() => {
-        setResult(null);
-        setShowDetails(false);
-      }, 300);
-    }
-  }, [onOpenChange]);
+  const handleClose = useCallback(() => {
+    if (cleaning) return;
+    onOpenChange(false);
+    setTimeout(() => {
+      setResult(null);
+      setShowDetails(false);
+    }, 300);
+  }, [onOpenChange, cleaning]);
 
   const stagger = {
     hidden: { opacity: 0, y: 12 },
@@ -150,17 +141,23 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) {
+          handleClose();
+        }
+      }}
+    >
       <DialogContent
         className={cn(
           "bg-[#0c0c14] border-border/50 max-w-sm backdrop-blur-xl overflow-hidden",
           cleaning && "[&>button]:pointer-events-none [&>button]:opacity-0"
         )}
         data-testid="modal-memory-cleaner"
-        onClick={(e) => e.stopPropagation()}
-        onEscapeKeyDown={(e) => { if (cleaningRef.current) e.preventDefault(); }}
-        onPointerDownOutside={(e) => { if (cleaningRef.current) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (cleaningRef.current) e.preventDefault(); }}
+        onEscapeKeyDown={(e) => { if (cleaning) e.preventDefault(); }}
+        onPointerDownOutside={(e) => { if (cleaning) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (cleaning) e.preventDefault(); }}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
@@ -347,7 +344,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                     variant="outline"
                     size="sm"
                     className="flex-1 text-xs border-border/40 hover:bg-white/5"
-                    onClick={() => handleClose(false)}
+                    onClick={handleClose}
                     data-testid="button-close-cleaner"
                   >
                     Done

@@ -63,13 +63,14 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: TOKEN_KEY,
-      partialize: (state) => ({ user: state.user, jwt: state.jwt }),
+      partialize: (state) => ({ user: state.user, jwt: state.jwt, token: state.token }),
     }
   )
 );
 
 if (typeof window !== 'undefined') {
-  console.log("[AUTH BOOT] persisted jwt length:", useAuthStore.getState().jwt?.length);
+  const _bootState = useAuthStore.getState();
+  console.log("[AUTH BOOT] persisted jwt length:", _bootState.jwt?.length, "token present:", !!_bootState.token, "user present:", !!_bootState.user);
 }
 
 function getStoredJwt(): string | null {

@@ -119,7 +119,7 @@ function ElectronAppContent() {
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
-  const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
+  const { token, jwt, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
 
   useEffect(() => {
@@ -380,17 +380,15 @@ function ElectronAppContent() {
     if (!splashDone) return;
 
     const checkAuth = async () => {
-      // Boot logging for auth state
-      console.log('[Auth] Boot: token present:', !!token, 'user present:', !!user, 'premium:', user?.isPremium);
-      
-      // For Electron, use stored user data (cookies don't work cross-origin)
-      if (token && user) {
+      const hasCredential = !!(token || jwt);
+      console.log('[Auth] Boot: token present:', !!token, 'jwt present:', !!jwt, 'user present:', !!user, 'premium:', user?.isPremium);
+
+      if (hasCredential && user) {
         console.log('[Auth] Using stored user data:', user.id, 'isPremium:', user.isPremium);
-        
-        // Check if first time for this user
+
         const welcomeKey = `sc_welcomed_${user.id}`;
         const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-        
+
         if (!hasBeenWelcomed) {
           console.log('[App] First time user detected, showing welcome');
           setIsFirstLogin(true);
@@ -399,20 +397,18 @@ function ElectronAppContent() {
         } else {
           setPhase("authenticated");
         }
-      } else if (token && !user) {
-        // Token exists but no user - try to exchange again
-        console.log('[App] Token exists but no user, re-exchanging...');
+      } else if (hasCredential && !user) {
+        console.log('[App] Credential exists but no user, re-exchanging...');
         setValidating(true);
-        const exchangedUser = await exchangeToken(token);
+        const exchangedUser = token ? await exchangeToken(token) : await validateToken('jwt');
         setValidating(false);
-        
+
         if (exchangedUser) {
           setUser(exchangedUser);
-          
-          // Check if first time for this user
+
           const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
           const hasBeenWelcomed = localStorage.getItem(welcomeKey);
-          
+
           if (!hasBeenWelcomed) {
             console.log('[App] First time user detected, showing welcome');
             setIsFirstLogin(true);
@@ -422,7 +418,7 @@ function ElectronAppContent() {
             setPhase("authenticated");
           }
         } else {
-          console.log('[App] Boot: token exchange failed — clearing store (NO cookie clear, NO performFullLogout)');
+          console.log('[App] Boot: credential validation failed — clearing store');
           storeLogout();
           setPhase("unauthenticated");
         }
