@@ -12,6 +12,8 @@ import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
 import { useAuthStore } from "@/lib/auth-store";
+import { LicenseManagementModal } from "@/components/LicenseManagementModal";
+import { useState } from "react";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -36,6 +38,7 @@ export default function Settings() {
   const { toast } = useToast();
   const { isPremium, user, factoryReset } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
+  const [licenseModalOpen, setLicenseModalOpen] = useState(false);
 
   const handleSave = () => {
     toast({
@@ -158,7 +161,13 @@ export default function Settings() {
                   <span className="text-sm font-medium text-emerald-400">Premium (Lifetime)</span>
                   <p className="text-xs text-emerald-500/70">One-time purchase - Lifetime access</p>
                 </div>
-                <Button variant="outline" size="sm" className="border-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="border-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                  onClick={() => setLicenseModalOpen(true)}
+                  data-testid="button-manage-license"
+                >
                   Manage
                 </Button>
               </div>
@@ -335,6 +344,13 @@ export default function Settings() {
           </Card>
         </div>
       </div>
+
+      <LicenseManagementModal
+        open={licenseModalOpen}
+        onOpenChange={setLicenseModalOpen}
+        isPremium={isPremium}
+        userId={user?.id || ""}
+      />
     </AppLayout>
   );
 }

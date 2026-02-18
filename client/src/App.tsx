@@ -49,6 +49,7 @@ interface AppAuthContextValue {
   isPremium: boolean;
   logout: () => void;
   factoryReset: () => Promise<void>;
+  safeRefreshEntitlements: () => Promise<{ user: AuthUser | null }>;
 }
 
 const AppAuthContext = createContext<AppAuthContextValue>({
@@ -56,6 +57,7 @@ const AppAuthContext = createContext<AppAuthContextValue>({
   isPremium: false,
   logout: () => {},
   factoryReset: async () => {},
+  safeRefreshEntitlements: async () => ({ user: null }),
 });
 
 export function useAppAuth() {
@@ -116,6 +118,7 @@ function ElectronAppContent() {
   const [entitlementsOk, setEntitlementsOk] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const unlockFiredThisSessionRef = React.useRef(false);
+  const suppressFlowsRef = React.useRef(false);
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
 
@@ -144,6 +147,7 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (isResetting) return;
+    if (suppressFlowsRef.current) return;
     if (!user?.loggedIn) return;
     if (phase !== "authenticated") return;
     if (activeFlow !== "none") return;
@@ -437,6 +441,16 @@ function ElectronAppContent() {
     setLocation("/");
   };
 
+  const handleSafeRefreshEntitlements = useCallback(async () => {
+    suppressFlowsRef.current = true;
+    try {
+      const result = await refreshEntitlements();
+      return result;
+    } finally {
+      setTimeout(() => { suppressFlowsRef.current = false; }, 500);
+    }
+  }, []);
+
   const handleFactoryReset = async () => {
     console.log('[AppFlow] Factory reset — kill switch activated');
     setIsResetting(true);
@@ -456,6 +470,7 @@ function ElectronAppContent() {
     isPremium: user?.isPremium ?? false,
     logout: handleLogout,
     factoryReset: handleFactoryReset,
+    safeRefreshEntitlements: handleSafeRefreshEntitlements,
   };
 
   return (
@@ -636,6 +651,7 @@ function WebsiteContent() {
       sessionStorage.clear();
       window.location.reload();
     },
+    safeRefreshEntitlements: async () => ({ user: null }),
   };
 
   if (isLoading) {
