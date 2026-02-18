@@ -1,0 +1,105 @@
+Not fully bulletproof yet. It’s closer, but there are two weak spots that can still bite you.
+
+1) The “safe boot reset” overlay hide is a hack and it can fail
+
+querySelectorAll('[class*="fixed"][class*="z-"]') is fragile.
+
+It can miss overlays that are not using those class fragments.
+
+It can hide legit UI and leave you in a weird half-state.
+
+It does not stop React state from still thinking a flow is active.
+
+
+What you actually need is a real kill switch in state, not DOM surgery.
+
+The correct fix
+
+Add a single global boolean like isResetting (or suppressFlowsUntil) in the same place as activeFlow and gate every overlay render on it.
+
+Rules:
+
+When Factory Reset starts: set isResetting=true and set activeFlow="none" before logout or reload.
+
+Render logic: if isResetting then render NO overlays, NO tours, NO premium animation, no dim background.
+
+After restart, initial state sets isResetting=false.
+
+
+If you already have an AppFlow state machine, this should be one line in the flow decision: if resetting, do nothing.
+
+DOM hiding is a band-aid. State kill switch is bulletproof.
+
+2) entitlementsReady flipping true in finally() can cause wrong flows
+
+Making it always true avoids hangs, but it can start flows using stale or incomplete entitlements. That reintroduces the “wrong thing plays on boot” class of bugs, just less often.
+
+Better approach
+
+Use a 2-stage readiness:
+
+entitlementsAttempted (true after first attempt)
+
+entitlementsOk (true only if refresh succeeded)
+
+
+Flow gating:
+
+Premium unlock requires entitlementsOk === true (not just attempted).
+
+First-time tour can run with attempted === true if it only depends on local flags, but if it depends on server flags, require ok.
+
+
+If you insist on one flag, then at least:
+
+On failure, set entitlementsReady=true BUT also set canShowPremiumUnlock=false for that session. Premium unlock must never fire off cached guesses.
+
+
+3) “Only ever show once per account lifetime” is satisfied only if server flag is real
+
+Your condition relies on hasSeenPremiumUnlock being accurate from server. Good. But you must ensure the optimistic local set writes to the same store field the UI reads, and that store persists across rerenders in the same session.
+
+Also: unlockFiredThisSessionRef is fine, but don’t call it “once per session” in tasks. You want once per account lifetime. The account lifetime guarantee is the server flag.
+
+4) Reset Settings not clearing localStorage is correct, but check what resetData touches
+
+If resetData() resets flags that determine first-time onboarding, you can still retrigger tours even without touching localStorage.
+
+So confirm:
+
+Onboarding “seen” is not in the zustand UI store reset.
+
+Premium “seen” is not in UI store at all, it is server flag only.
+
+
+If either is in the UI store, you will still replay.
+
+Your acceptance tests are not “conceptual”. Run them in Electron.
+
+You need to run these in the packaged app, not dev browser.
+
+Minimum test script:
+
+1. Login non-premium, close, reopen: no onboarding replay.
+
+
+2. Upgrade premium, see animation once, close, reopen: never again.
+
+
+3. Reset Settings: still logged in, no overlays, no tour, no premium animation.
+
+
+4. Factory Reset while an overlay is active: screen should immediately go clean, then logout+relaunch, no black background hang.
+
+
+
+What to tell Replit next
+
+Remove DOM selector overlay hiding. Replace with isResetting state kill switch plus activeFlow="none" set before reset.
+
+Split entitlement readiness into attempted vs ok. Premium unlock requires ok.
+
+Verify resetData does not clear onboarding/premium gates.
+
+
+If you paste the new App.tsx sections where overlays render and where Factory Reset is triggered, I’ll tell you exactly where to put the kill switch and the two-stage entitlement flags.

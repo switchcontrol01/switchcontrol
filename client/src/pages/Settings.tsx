@@ -11,7 +11,7 @@ import { Settings as SettingsIcon, Save, RotateCcw, Trash2, FolderOpen, External
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
-import { useAuthStore, performFullLogout } from "@/lib/auth-store";
+import { useAuthStore } from "@/lib/auth-store";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -34,7 +34,7 @@ const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 export default function Settings() {
   const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled, soundEffectsEnabled, setSoundEffectsEnabled } = useStore();
   const { toast } = useToast();
-  const { isPremium, user } = useAppAuth();
+  const { isPremium, user, factoryReset } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
   const handleSave = () => {
@@ -239,19 +239,7 @@ export default function Settings() {
                 <div className="flex flex-col gap-1.5">
                   <Button
                     variant="outline"
-                    onClick={async () => {
-                      document.querySelectorAll('[class*="fixed"][class*="z-"]').forEach(el => {
-                        (el as HTMLElement).style.display = 'none';
-                      });
-                      await performFullLogout('factory_reset');
-                      localStorage.clear();
-                      sessionStorage.clear();
-                      if (isElectron && (window as any).electronAPI?.resetAppData) {
-                        await (window as any).electronAPI.resetAppData();
-                      } else {
-                        window.location.reload();
-                      }
-                    }}
+                    onClick={() => factoryReset()}
                     className="border-red-500/20 hover:bg-red-500/10 text-red-400 w-fit"
                     data-testid="button-factory-reset"
                   >

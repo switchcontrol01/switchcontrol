@@ -139,11 +139,13 @@ shared/
 - **Exclusive**: Only ONE flow runs at a time; centralized useEffect with priority ordering
 - **Priority Order**: 1) First-time onboarding → 2) Premium unlock animation → 3) Premium guided tour
 - **Hydration Guard**: Effect returns early if `phase !== "authenticated"`, `!user.loggedIn`, or `activeFlow !== "none"`
-- **Entitlements Ready Gate**: `entitlementsReady` boolean flips true only after first `refreshEntitlements()` resolves; ALL flows blocked until hydrated
+- **Two-Stage Entitlements**: `entitlementsAttempted` (true after first attempt), `entitlementsOk` (true only on success). First-time tour requires `attempted`; premium unlock/tour require `ok`.
 - **Unlock Session Guard**: `unlockFiredThisSessionRef` prevents re-triggering unlock animation within a single app session
 - **Optimistic Local Update**: On unlock complete, `hasSeenPremiumUnlock` set true locally before server call
+- **Kill Switch**: `isResetting` boolean — when true, ALL overlays unmount and flow decision effect returns early. Set by `factoryReset()` before logout.
 - **Entitlement Refresh**: Paused during active flows (visibility/focus handlers check `activeFlowRef`)
-- **Reset App Data**: Two buttons: "Reset Settings" (keeps auth, clears UI) and "Factory Reset" (logs out, wipes everything)
+- **Reset App Data**: Two buttons: "Reset Settings" (keeps auth, clears UI via zustand resetData only) and "Factory Reset" (kill switch → performFullLogout → clear storages → reload/relaunch)
+- **resetData Safety**: Only resets tweaks, history, stats, latestAIScan, account.stats. Does NOT touch onboarding (`sc_tour_completed_*`, `sc_welcomed_*`) or premium server flags.
 
 ### Premium Guided Tour
 - **Step Order**: Power Plan → Network Tweaks → BIOS Advisor → AI Advisor → Settings → Priority Email → Priority Support Unlocked

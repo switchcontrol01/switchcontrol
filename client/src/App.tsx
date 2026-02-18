@@ -48,12 +48,14 @@ interface AppAuthContextValue {
   user: AuthUser | null;
   isPremium: boolean;
   logout: () => void;
+  factoryReset: () => Promise<void>;
 }
 
 const AppAuthContext = createContext<AppAuthContextValue>({
   user: null,
   isPremium: false,
   logout: () => {},
+  factoryReset: async () => {},
 });
 
 export function useAppAuth() {
@@ -109,7 +111,9 @@ function ElectronAppContent() {
   const [splashDone, setSplashDone] = useState(false);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [activeFlow, setActiveFlow] = useState<AppFlow>("none");
-  const [entitlementsReady, setEntitlementsReady] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [entitlementsAttempted, setEntitlementsAttempted] = useState(false);
+  const [entitlementsOk, setEntitlementsOk] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const { token, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
@@ -118,36 +122,43 @@ function ElectronAppContent() {
   useEffect(() => {
     if (phase !== 'authenticated') return;
     if (!user?.loggedIn) return;
-    if (entitlementsReady) return;
+    if (entitlementsAttempted) return;
 
     console.log('[AppFlow] Hydrating entitlements for this session...');
     refreshEntitlements()
       .then((result) => {
         console.log('[AppFlow] Entitlements hydrated — isPremium:', result.user?.isPremium, 'hasSeenPremiumUnlock:', result.user?.hasSeenPremiumUnlock);
+        if (result.user) {
+          setEntitlementsOk(true);
+        } else {
+          console.warn('[AppFlow] Entitlement hydration returned no user — entitlementsOk stays false');
+        }
       })
       .catch((err) => {
-        console.warn('[AppFlow] Entitlement hydration failed, using cached state:', err);
+        console.warn('[AppFlow] Entitlement hydration failed — entitlementsOk stays false:', err);
       })
       .finally(() => {
-        setEntitlementsReady(true);
+        setEntitlementsAttempted(true);
       });
-  }, [phase, user?.loggedIn, entitlementsReady]);
+  }, [phase, user?.loggedIn, entitlementsAttempted]);
 
   useEffect(() => {
+    if (isResetting) return;
     if (!user?.loggedIn) return;
     if (phase !== "authenticated") return;
-    if (!entitlementsReady) return;
     if (activeFlow !== "none") return;
 
     const userId = user.id;
     const tourKey = `sc_tour_completed_${userId}`;
     const isFirstTimeUser = !localStorage.getItem(tourKey);
 
-    if (isFirstTimeUser && isFirstLogin) {
+    if (isFirstTimeUser && isFirstLogin && entitlementsAttempted) {
       console.log('[AppFlow] PRIORITY 1: First-time onboarding tour');
       setActiveFlow("firstTime");
       return;
     }
+
+    if (!entitlementsOk) return;
 
     if (
       user.isPremium === true &&
@@ -165,7 +176,7 @@ function ElectronAppContent() {
       setActiveFlow("premiumTour");
       return;
     }
-  }, [user?.loggedIn, user?.isPremium, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, phase, activeFlow, isFirstLogin, entitlementsReady]);
+  }, [user?.loggedIn, user?.isPremium, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;
@@ -426,10 +437,25 @@ function ElectronAppContent() {
     setLocation("/");
   };
 
+  const handleFactoryReset = async () => {
+    console.log('[AppFlow] Factory reset — kill switch activated');
+    setIsResetting(true);
+    setActiveFlow("none");
+    await performFullLogout('factory_reset');
+    localStorage.clear();
+    sessionStorage.clear();
+    if (isElectron && (window as any).electronAPI?.resetAppData) {
+      await (window as any).electronAPI.resetAppData();
+    } else {
+      window.location.reload();
+    }
+  };
+
   const authContextValue: AppAuthContextValue = {
     user: user,
     isPremium: user?.isPremium ?? false,
     logout: handleLogout,
+    factoryReset: handleFactoryReset,
   };
 
   return (
@@ -495,7 +521,7 @@ function ElectronAppContent() {
         )}
       </AnimatePresence>
       
-      {activeFlow === "firstTime" && (
+      {!isResetting && activeFlow === "firstTime" && (
         <OnboardingTour
           isFirstTime={isFirstLogin}
           onComplete={() => {
@@ -513,37 +539,43 @@ function ElectronAppContent() {
         />
       )}
       
-      <PremiumUpgradeAnimation 
-        show={activeFlow === "premiumUnlock"} 
-        onComplete={async () => {
-          console.log('[AppFlow] Unlock animation complete — setting optimistic local flag');
-          const store = useAuthStore.getState();
-          if (store.user) {
-            store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
-          }
-          console.log('[AppFlow] Posting unlock-seen to server');
-          await postUnlockSeen();
-          console.log('[AppFlow] Unlock persisted — transitioning to premiumTour');
-          setActiveFlow("premiumTour");
-        }} 
-      />
+      {!isResetting && (
+        <PremiumUpgradeAnimation 
+          show={activeFlow === "premiumUnlock"} 
+          onComplete={async () => {
+            console.log('[AppFlow] Unlock animation complete — setting optimistic local flag');
+            const store = useAuthStore.getState();
+            if (store.user) {
+              store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
+            }
+            console.log('[AppFlow] Posting unlock-seen to server');
+            await postUnlockSeen();
+            console.log('[AppFlow] Unlock persisted — transitioning to premiumTour');
+            setActiveFlow("premiumTour");
+          }} 
+        />
+      )}
       
-      <GuidedTour 
-        show={activeFlow === "premiumTour"} 
-        onComplete={async () => {
-          console.log('[AppFlow] Premium tour complete — posting tour-seen');
-          await postTourSeen();
-          setActiveFlow("none");
-        }} 
-      />
+      {!isResetting && (
+        <GuidedTour 
+          show={activeFlow === "premiumTour"} 
+          onComplete={async () => {
+            console.log('[AppFlow] Premium tour complete — posting tour-seen');
+            await postTourSeen();
+            setActiveFlow("none");
+          }} 
+        />
+      )}
       
-      <PendingActivationModal
-        show={showPendingActivation}
-        onUpgradeDetected={() => {
-          setShowPendingActivation(false);
-        }}
-        onDismiss={() => setShowPendingActivation(false)}
-      />
+      {!isResetting && (
+        <PendingActivationModal
+          show={showPendingActivation}
+          onUpgradeDetected={() => {
+            setShowPendingActivation(false);
+          }}
+          onDismiss={() => setShowPendingActivation(false)}
+        />
+      )}
     </AppAuthContext.Provider>
   );
 }
@@ -599,6 +631,11 @@ function WebsiteContent() {
     user,
     isPremium: user?.isPremium ?? false,
     logout: handleLogout,
+    factoryReset: async () => {
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.reload();
+    },
   };
 
   if (isLoading) {
