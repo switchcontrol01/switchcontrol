@@ -117,14 +117,24 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
     } catch (err: any) {
       toast({ title: "Memory clean failed", description: "An unexpected error occurred.", variant: "destructive" });
     } finally {
+      console.log("[DEBUG] CLEANING FINISHED — resetting refs");
+      console.log("[DEBUG] cleaningRef was:", cleaningRef.current, "lockRef was:", lockRef.current);
       setCleaning(false);
       cleaningRef.current = false;
       lockRef.current = false;
+      console.log("[DEBUG] cleaningRef now:", cleaningRef.current, "lockRef now:", lockRef.current);
     }
   };
 
   const handleClose = useCallback((v: boolean) => {
-    if (cleaningRef.current) return;
+    console.log("[DEBUG] HANDLE CLOSE CALLED, v:", v);
+    console.log("[DEBUG] CLEANING STATE:", cleaning);
+    console.log("[DEBUG] CLEANING REF:", cleaningRef.current);
+    if (cleaningRef.current) {
+      console.log("[DEBUG] CLOSE BLOCKED — cleaningRef is true");
+      return;
+    }
+    console.log("[DEBUG] CLOSE PROCEEDING — calling onOpenChange(", v, ")");
     onOpenChange(v);
     if (!v) {
       setTimeout(() => {
@@ -132,7 +142,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
         setShowDetails(false);
       }, 300);
     }
-  }, [onOpenChange]);
+  }, [onOpenChange, cleaning]);
 
   const stagger = {
     hidden: { opacity: 0, y: 12 },

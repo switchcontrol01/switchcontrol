@@ -485,9 +485,14 @@ ipcMain.handle('window:close', () => mainWindow?.close());
 
 // External links
 ipcMain.handle('open-external', (event, url) => {
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    console.log('[External] Opening URL in browser:', url);
-    shell.openExternal(url);
+  console.log('[DEBUG] IPC open-external received, url:', url);
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) {
+    console.log('[DEBUG] IPC CONTACT SUPPORT / EXTERNAL — opening:', url);
+    shell.openExternal(url)
+      .then(() => console.log('[DEBUG] MAILTO/URL OPENED OK'))
+      .catch(err => console.error('[DEBUG] MAILTO/URL ERROR:', err));
+  } else {
+    console.log('[DEBUG] IPC open-external REJECTED — unsupported protocol:', url);
   }
 });
 
@@ -861,6 +866,7 @@ ipcMain.handle('tweak:getInfo', () => {
 
 // Auth: Clear cookies for the backend domain
 ipcMain.handle('auth:clearCookies', async () => {
+  console.log('[DEBUG] AUTH CLEAR COOKIES CALLED');
   console.log('[TEMP-LOG] auth:clearCookies IPC called');
   try {
     const { session } = require('electron');
@@ -910,16 +916,46 @@ ipcMain.handle('auth:debugCookies', async () => {
 });
 
 app.whenReady().then(() => {
+  console.log('[DEBUG] ========== APP START ==========');
   console.log('[TEMP-LOG] app.whenReady() fired, setting protocol and creating window');
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   const isDefault = app.isDefaultProtocolClient('switchcontrol');
   console.log('[DeepLink][MAIN] protocol registered:', isDefault);
 
-  // Persist session cookies across restarts by extending their lifetime
+  // DEBUG ISSUE 1: Log all cookies on app ready
   const { session } = require('electron');
   const ses = session.defaultSession;
+
+  ses.cookies.get({}).then(cookies => {
+    console.log('[DEBUG] COOKIES ON START — total count:', cookies.length);
+    cookies.forEach(c => {
+      console.log('[DEBUG] COOKIE:', JSON.stringify({
+        name: c.name,
+        domain: c.domain,
+        path: c.path,
+        secure: c.secure,
+        httpOnly: c.httpOnly,
+        session: c.session,
+        expirationDate: c.expirationDate,
+        sameSite: c.sameSite
+      }));
+    });
+  }).catch(err => console.error('[DEBUG] COOKIE READ ERROR:', err));
+
+  // Persist session cookies across restarts by extending their lifetime
   ses.cookies.on('changed', (event, cookie, cause, removed) => {
+    // DEBUG ISSUE 1: Log every cookie change
+    console.log('[DEBUG] COOKIE CHANGED:', JSON.stringify({
+      name: cookie.name,
+      domain: cookie.domain,
+      session: cookie.session,
+      cause: cause,
+      removed: removed,
+      expirationDate: cookie.expirationDate
+    }));
+
     if (!removed && cookie.session && cookie.domain && cookie.domain.includes('switchcontrol.org')) {
+      console.log('[DEBUG] PERSISTING session cookie:', cookie.name, 'domain:', cookie.domain);
       // Session cookies (no expiry) don't survive restart — persist them for 30 days
       const persistedCookie = {
         url: `https://${cookie.domain.replace(/^\./, '')}${cookie.path || '/'}`,
@@ -932,7 +968,9 @@ app.whenReady().then(() => {
         sameSite: cookie.sameSite || 'no_restriction',
         expirationDate: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
       };
-      ses.cookies.set(persistedCookie).catch(() => {});
+      ses.cookies.set(persistedCookie)
+        .then(() => console.log('[DEBUG] COOKIE PERSISTED OK:', cookie.name))
+        .catch(err => console.error('[DEBUG] COOKIE PERSIST FAIL:', cookie.name, err));
     }
   });
 

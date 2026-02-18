@@ -107,15 +107,25 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   };
 
   const handleContactSupport = () => {
+    console.log("[DEBUG] CONTACT SUPPORT CLICKED");
+    console.log("[DEBUG] DEVICE ID:", deviceId);
+    console.log("[DEBUG] IS ELECTRON:", isElectron);
+    console.log("[DEBUG] HAS openExternal:", !!(window as any).electronAPI?.openExternal);
+
     const subject = encodeURIComponent(`SwitchControl Support – Device ${deviceId || "UNKNOWN"}`);
     const body = encodeURIComponent(
       `\n\n--- Do not edit below this line ---\nDevice ID: ${deviceId || "UNKNOWN"}\nApp Version: ${appVersion}\nPlatform: ${platform}\n`
     );
     const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
+    console.log("[DEBUG] MAILTO URL:", mailtoUrl);
 
     if (isElectron && (window as any).electronAPI?.openExternal) {
-      (window as any).electronAPI.openExternal(mailtoUrl);
+      console.log("[DEBUG] Calling electronAPI.openExternal with mailto");
+      (window as any).electronAPI.openExternal(mailtoUrl)
+        .then(() => console.log("[DEBUG] openExternal resolved"))
+        .catch((err: any) => console.error("[DEBUG] openExternal rejected:", err));
     } else {
+      console.log("[DEBUG] Falling back to window.location.href");
       window.location.href = mailtoUrl;
     }
   };
