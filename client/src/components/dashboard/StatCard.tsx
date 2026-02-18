@@ -14,6 +14,7 @@ interface StatCardProps {
   progress?: number;
   actionLabel?: string;
   onAction?: () => void;
+  onIconClick?: () => void;
   subtext?: string;
   className?: string;
 }
@@ -27,6 +28,7 @@ export function StatCard({
   progress,
   actionLabel,
   onAction,
+  onIconClick,
   subtext,
   className,
 }: StatCardProps) {
@@ -37,7 +39,20 @@ export function StatCard({
           <div className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
             {title}
           </div>
-          <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+          {onIconClick ? (
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={onIconClick}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onIconClick(); }}
+              className="cursor-pointer hover:scale-125 active:scale-95 transition-transform duration-200"
+              data-testid="button-icon-click"
+            >
+              <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+            </div>
+          ) : (
+            <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+          )}
         </div>
         <div>
           <div className="flex items-end justify-between">
@@ -78,7 +93,6 @@ export function StatCard({
         </div>
       </div>
       
-      {/* Decorative gradient blob */}
       <div className="absolute -right-12 -top-12 h-32 w-32 bg-primary/10 blur-3xl rounded-full pointer-events-none group-hover:bg-primary/20 transition-colors duration-500" />
     </GlassCard>
   );

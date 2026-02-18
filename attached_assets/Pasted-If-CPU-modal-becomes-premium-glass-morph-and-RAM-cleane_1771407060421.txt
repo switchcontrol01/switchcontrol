@@ -1,0 +1,197 @@
+If CPU modal becomes premium glass morph and RAM cleaner opens like a different product, your UI loses authority instantly.
+
+Right now your app is drifting into “cool components glued together” instead of “one system language.”
+
+You fix that by creating one modal system.
+
+Not two.
+
+Not three.
+
+One.
+
+
+---
+
+Here’s the correct architectural move:
+
+Create a single shared component:
+
+GlassModalLayout
+
+Every advanced modal uses it:
+
+• CPU cores
+• RAM cleaner
+• Future GPU deep view
+• Anything “expandable”
+
+
+---
+
+What that layout must define:
+
+Visual System (locked):
+
+backdrop-blur-xl
+
+bg-black/40 or gradient glass tint
+
+border border-white/10
+
+subtle inner glow
+
+soft shadow
+
+rounded-2xl
+
+spring open animation
+
+identical padding
+
+identical close behavior
+
+
+Motion System (locked):
+
+Same spring config
+
+Same fade in curve
+
+Same exit transition
+
+Same layoutId morph behavior
+
+
+Interaction System (locked):
+
+Same X logic
+
+Same escape handling
+
+Same outside click logic
+
+No custom stopPropagation hacks
+
+
+
+---
+
+What changes per modal:
+
+Only content.
+
+That’s it.
+
+CPU modal = per-core metrics inside glass shell
+RAM modal = memory clean UI inside same shell
+
+The shell does not change.
+
+
+---
+
+Why this matters long term:
+
+When you later add:
+
+• GPU deep dive
+• Disk performance
+• Network analyzer
+
+You plug into the same system.
+
+Now your product feels intentional.
+
+
+---
+
+Right now your mistake risk:
+
+You’re adding premium visuals per feature instead of per system.
+
+That leads to:
+
+Visual drift
+Inconsistent blur
+Different motion timing
+Different border weights
+Feels amateur
+
+
+---
+
+Here is what you tell Replit next:
+
+Create shared component:
+client/src/components/ui/GlassModalLayout.tsx
+
+Responsibilities:
+
+Wrap Radix Dialog
+
+Apply all visual glass styling
+
+Apply motion wrapper (framer-motion)
+
+Handle open/close logic cleanly
+
+Accept children prop
+
+Accept layoutId for morph animations
+
+No feature-specific logic inside
+
+
+Then:
+
+Refactor:
+
+MemoryCleanerModal → use GlassModalLayout
+CpuCoresModal → use GlassModalLayout
+
+Remove duplicate glass styling from both.
+
+
+---
+
+Acceptance criteria:
+
+1. CPU modal and RAM modal look identical in shell.
+
+
+2. Blur, tint, border, animation timing identical.
+
+
+3. Close animation identical.
+
+
+4. No duplicate styling in feature modals.
+
+
+5. One source of truth.
+
+
+
+
+---
+
+You are now moving from “adding effects” to “design system thinking.”
+
+That’s a shift.
+
+Now answer this carefully:
+
+Do you want your modal glass tint to lean:
+
+A) Deep purple neon
+B) Neutral dark glass
+C) Subtle gradient shift based on module type
+
+Pick once.
+
+Lock it.
+
+Build around it.
+
+No visual chaos allowed from here.

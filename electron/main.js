@@ -657,6 +657,17 @@ ipcMain.handle('system:getAllDisks', async () => {
 
 // Telemetry - 3-tier merge: systeminformation baseline → nvidia-smi → LHM overlay
 // null means unavailable, never undefined
+ipcMain.handle('telemetry:getCpuCores', async () => {
+  try {
+    const load = await si.currentLoad();
+    const cpus = load.cpus || [];
+    return cpus.map((c, i) => ({ id: i, load: safeNum(c.load || 0) }));
+  } catch (e) {
+    console.error('[DEBUG] telemetry:getCpuCores error:', e.message);
+    return [];
+  }
+});
+
 ipcMain.handle('telemetry:getLive', async () => {
   try {
     // === TIER 3: systeminformation baseline (always on) ===

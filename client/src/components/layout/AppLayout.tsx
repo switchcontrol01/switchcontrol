@@ -2,6 +2,7 @@ import { Sidebar } from "./Sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { motion, AnimatePresence, useMotion, easing, timing } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
+import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { useLocation } from "wouter";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-x-hidden">
       <AppBackground />
+      <SpotlightEffect />
       <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />

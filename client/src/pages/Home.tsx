@@ -23,6 +23,7 @@ import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { playRamClear, playScanBeep } from "@/lib/premium-audio";
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
+import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
 
 
 interface DiskInfo {
@@ -305,7 +306,9 @@ export default function Home() {
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
   const [applyingFixId, setApplyingFixId] = useState<string | null>(null);
   const [memCleanerOpen, setMemCleanerOpen] = useState(false);
+  const [cpuModalOpen, setCpuModalOpen] = useState(false);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const cpuCardRef = useRef<HTMLDivElement>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
   useRevealOnScroll();
@@ -504,6 +507,7 @@ export default function Home() {
             </motion.div>
             
             <motion.div 
+              ref={cpuCardRef}
               variants={staggerItem}
               initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -513,6 +517,7 @@ export default function Home() {
                 title="CPU"
                 value={stats.cpuName}
                 icon={Cpu}
+                onIconClick={() => setCpuModalOpen(true)}
                 subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
                 className="border-blue-500/20 shadow-[0_0_20px_-10px_hsl(210_100%_50%/0.1)]"
               />
@@ -684,6 +689,14 @@ export default function Home() {
       </div>
 
       <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />
+      <CpuCoresModal
+        open={cpuModalOpen}
+        onOpenChange={setCpuModalOpen}
+        cpuName={stats.cpuName}
+        coreCount={stats.cpuCores}
+        threadCount={stats.cpuThreads}
+        anchorRef={cpuCardRef}
+      />
     </AppLayout>
   );
 }
