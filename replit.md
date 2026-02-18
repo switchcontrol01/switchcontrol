@@ -145,10 +145,11 @@ shared/
 ### Shared Modal System
 - **Component**: `client/src/components/ui/GlassModalLayout.tsx`
 - **Visual**: bg-[#0c0c14]/95, border-white/10, backdrop-blur-xl, rounded-2xl, spring animation
-- **Modals Using It**: MemoryCleanerModal, CpuCoresModal, MemoryIntelligenceModal, GpuModal
+- **Modals Using It**: MemoryCleanerModal, CpuCoresModal, MemoryIntelligenceModal, GpuModal, DiskTelemetryModal
 - **Behavior**: Unified escape handling, backdrop click close, body scroll lock, blocked prop for in-progress states
-- **Accent Colors**: CPU=purple, RAM=teal, GPU=cyan
+- **Accent Colors**: CPU=purple, RAM=teal, GPU=cyan, Disk=amber
 - **GPU Modal**: 800ms polling, 30-sample rolling buffer, VRAM pressure warning >90%, no mock data (desktop only)
+- **Disk Modal**: 800ms polling, 30-sample rolling buffer, dual read/write sparkline, low space warning >90%, no mock data
 
 ### AppFlow State Machine (client/src/App.tsx)
 - **Type**: `"none" | "firstTime" | "premiumUnlock" | "premiumTour"`

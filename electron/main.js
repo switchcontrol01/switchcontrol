@@ -657,6 +657,30 @@ ipcMain.handle('system:getAllDisks', async () => {
 
 // Telemetry - 3-tier merge: systeminformation baseline → nvidia-smi → LHM overlay
 // null means unavailable, never undefined
+ipcMain.handle('telemetry:getDisk', async () => {
+  try {
+    const fs = await si.fsSize();
+    const io = await si.disksIO();
+
+    const cDrive = fs.find(d => d.mount === 'C:');
+    if (!cDrive) return null;
+
+    const result = {
+      size: cDrive.size,
+      used: cDrive.used,
+      usePercent: cDrive.use,
+    };
+
+    if (io && io.rBytes !== undefined) result.readBytes = io.rBytes;
+    if (io && io.wBytes !== undefined) result.writeBytes = io.wBytes;
+
+    return result;
+  } catch (e) {
+    console.error('[DEBUG] telemetry:getDisk error:', e.message);
+    return null;
+  }
+});
+
 ipcMain.handle('telemetry:getGpu', async () => {
   try {
     const g = await si.graphics();

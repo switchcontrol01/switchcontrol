@@ -26,6 +26,7 @@ import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
 import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligenceModal";
 import { GpuModal } from "@/components/dashboard/GpuModal";
+import { DiskTelemetryModal } from "@/components/dashboard/DiskTelemetryModal";
 
 
 interface DiskInfo {
@@ -310,6 +311,7 @@ export default function Home() {
   const [cpuModalOpen, setCpuModalOpen] = useState(false);
   const [memIntelOpen, setMemIntelOpen] = useState(false);
   const [gpuModalOpen, setGpuModalOpen] = useState(false);
+  const [diskModalOpen, setDiskModalOpen] = useState(false);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
@@ -572,8 +574,10 @@ export default function Home() {
                 total={currentDiskTotal}
                 unit="GB"
                 icon={HardDrive}
+                onIconClick={() => setDiskModalOpen(true)}
                 progress={diskPercent}
                 subtext={selectedDisk?.name || stats.diskName}
+                className="border-amber-500/20 shadow-[0_0_20px_-10px_hsl(40_100%_50%/0.1)]"
               />
             </motion.div>
           </motion.div>
@@ -706,6 +710,10 @@ export default function Home() {
       <GpuModal
         open={gpuModalOpen}
         onOpenChange={setGpuModalOpen}
+      />
+      <DiskTelemetryModal
+        open={diskModalOpen}
+        onOpenChange={setDiskModalOpen}
       />
     </AppLayout>
   );
