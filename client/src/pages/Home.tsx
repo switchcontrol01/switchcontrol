@@ -6,7 +6,7 @@ import { DashboardHeaderParticles } from "@/components/DashboardHeaderParticles"
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
 import type { Finding } from "@/advisor/types";
-import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Info, Lock, Crown, CheckCircle2, AlertTriangle, Wrench, RotateCcw } from "lucide-react";
+import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Lock, Crown, CheckCircle2, AlertTriangle, Wrench, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "wouter";
@@ -117,7 +117,7 @@ function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardPr
 
   const isRunning = runState === "initializing" || runState === "collecting" || runState === "evaluating";
   const hasReport = report && (runState === "ready" || runState === "degraded");
-  const isOptimized = report && report.score >= 90 && report.topFailed.length === 0;
+  const isOptimized = report && (report.score >= 95 || report.topFailed.length === 0);
 
   const progressLabel = runState === "initializing" ? "Initializing Advisor..." :
     runState === "collecting" ? "Collecting signals..." :
@@ -175,8 +175,11 @@ function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardPr
                     {report.score}
                   </div>
                   <p className={cn("text-[10px] mt-0.5", getScoreColor(report.score))}>
-                    {isOptimized ? "System Optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Significant Issues Found"}
+                    {isOptimized ? "You're fully optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Significant Issues Found"}
                   </p>
+                  {isOptimized && (
+                    <p className="text-[9px] text-emerald-400/70 mt-1">No critical issues detected.</p>
+                  )}
                 </div>
 
                 {runState === "degraded" && (
@@ -233,8 +236,8 @@ function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardPr
                   disabled={isRunning}
                   data-testid="button-rescan-advisor"
                 >
-                  <RotateCcw className="size-3 mr-1.5" />
-                  Rescan System
+                  {isRunning ? <Loader2 className="size-3 mr-1.5 animate-spin" /> : <RotateCcw className="size-3 mr-1.5" />}
+                  {isRunning ? "Scanning..." : "Rescan System"}
                 </Button>
               </div>
             ) : (
@@ -269,10 +272,6 @@ function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardPr
           </div>
         )}
 
-        <div className="pt-2 border-t border-border/50 flex items-center gap-1.5 opacity-40">
-          <Info className="size-2.5" />
-          <span className="text-[9px]">Analysis runs locally. No server required.</span>
-        </div>
       </CardContent>
     </Card>
   );

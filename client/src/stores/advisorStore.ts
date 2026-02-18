@@ -105,7 +105,7 @@ export const useAdvisorStore = create<AdvisorState>()(
           return state.runAdvisor(appContext);
         }
 
-        set({ runState: "evaluating" });
+        set({ runState: "collecting", report: null, error: null });
 
         const [systemSignals, networkSignals] = await Promise.all([
           collectSystemSignals(),
@@ -119,7 +119,8 @@ export const useAdvisorStore = create<AdvisorState>()(
           app: appSignals,
         };
 
-        await delay(300);
+        set({ runState: "evaluating" });
+        await delay(400);
 
         const report = evaluate(signals, bundledRuleset as Ruleset);
         const now = new Date().toISOString();

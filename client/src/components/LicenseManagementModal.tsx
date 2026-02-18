@@ -7,7 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAppAuth } from "@/App";
 import { Shield, RefreshCw, RotateCcw, Mail, CheckCircle2, Monitor, Loader2, Copy } from "lucide-react";
 
-const SUPPORT_EMAIL = "support@switchcontrol.com";
+const SUPPORT_EMAIL = "Switchcontrol67@gmail.com";
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 
 interface LicenseManagementModalProps {
@@ -105,20 +105,41 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   };
 
   const handleContactSupport = () => {
-    const subject = encodeURIComponent(`SwitchControl License Issue – ${deviceId}`);
+    const subject = encodeURIComponent(`SwitchControl License Issue – Device ${deviceId || "UNKNOWN"}`);
     const mailtoUrl = `mailto:${SUPPORT_EMAIL}?subject=${subject}`;
 
     if (isElectron && (window as any).electronAPI?.openExternal) {
       (window as any).electronAPI.openExternal(mailtoUrl);
     } else {
-      navigator.clipboard.writeText(SUPPORT_EMAIL);
-      toast({ title: "Email Copied", description: `${SUPPORT_EMAIL} copied to clipboard.` });
+      window.open(mailtoUrl, "_blank");
     }
   };
 
+  const handleClose = () => onOpenChange(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  if (!open) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#0c0c14] border-border/50 max-w-md backdrop-blur-xl" data-testid="modal-license-management">
+      <DialogContent
+        className="bg-[#0c0c14] border-border/50 max-w-md backdrop-blur-xl"
+        data-testid="modal-license-management"
+        onInteractOutside={handleClose}
+        onEscapeKeyDown={(e) => { e.preventDefault(); handleClose(); }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
             <Shield className="size-5 text-emerald-400" />
