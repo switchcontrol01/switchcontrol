@@ -63,6 +63,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getInfo: () => ipcRenderer.invoke('tweak:getInfo'),
   },
 
+  // Memory cleaner
+  memory: {
+    clean: (mode) => ipcRenderer.invoke('memory:clean', mode),
+  },
+
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 

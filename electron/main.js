@@ -353,6 +353,50 @@ ipcMain.handle('app:getVersion', () => app.getVersion());
 ipcMain.handle('app:getPlatform', () => process.platform);
 ipcMain.handle('app:isPackaged', () => app.isPackaged);
 
+// Memory cleaner - calls native Rust helper
+ipcMain.handle('memory:clean', async (event, mode) => {
+  const validModes = ['safe', 'smart', 'advanced'];
+  if (!validModes.includes(mode)) {
+    return { error: true, message: 'Invalid mode. Use safe, smart, or advanced.' };
+  }
+
+  const exeName = 'sc_memory.exe';
+  let exePath;
+
+  if (app.isPackaged) {
+    exePath = path.join(process.resourcesPath, 'bin', exeName);
+  } else {
+    exePath = path.join(__dirname, 'bin', exeName);
+  }
+
+  const fs = require('fs');
+  if (!fs.existsSync(exePath)) {
+    console.error('[Memory] Helper not found at:', exePath);
+    return { error: true, message: 'Memory helper not found. Feature requires the desktop app.' };
+  }
+
+  return new Promise((resolve) => {
+    const { execFile } = require('child_process');
+    const child = execFile(exePath, ['--mode', mode], { timeout: 12000 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('[Memory] Helper error:', err.message);
+        if (stderr) console.error('[Memory] stderr:', stderr);
+        resolve({ error: true, message: 'Memory clean failed: ' + (err.killed ? 'timeout' : err.message) });
+        return;
+      }
+
+      try {
+        const result = JSON.parse(stdout.trim());
+        console.log(`[Memory] ${mode} mode: scanned=${result.processes_scanned} trimmed=${result.processes_trimmed} freed=${result.estimated_mb_freed}MB`);
+        resolve(result);
+      } catch (parseErr) {
+        console.error('[Memory] Invalid JSON output:', stdout);
+        resolve({ error: true, message: 'Memory clean returned invalid data.' });
+      }
+    });
+  });
+});
+
 ipcMain.handle('app:resetData', async () => {
   try {
     const fs = require('fs');
