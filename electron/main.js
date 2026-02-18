@@ -5,6 +5,7 @@ const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
 
+app.setName('SwitchControl');
 const isDev = !app.isPackaged;
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
@@ -86,6 +87,7 @@ app.on('open-url', (event, url) => {
 
 function createWindow() {
   mainWindow = new BrowserWindow({
+    title: 'SwitchControl',
     width: 1280,
     height: 800,
     show: false,
