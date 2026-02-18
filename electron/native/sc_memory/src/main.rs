@@ -79,7 +79,7 @@ fn get_working_set_mb(handle: HANDLE) -> Option<f64> {
     let mut counters = PROCESS_MEMORY_COUNTERS::default();
     counters.cb = std::mem::size_of::<PROCESS_MEMORY_COUNTERS>() as u32;
     unsafe {
-        if GetProcessMemoryInfo(handle, &mut counters, counters.cb).is_ok() {
+        if GetProcessMemoryInfo(handle, &mut counters, counters.cb).as_bool() {
             Some(counters.WorkingSetSize as f64 / (1024.0 * 1024.0))
         } else {
             None
@@ -134,7 +134,7 @@ fn main() {
     let mut entry = PROCESSENTRY32W::default();
     entry.dwSize = std::mem::size_of::<PROCESSENTRY32W>() as u32;
 
-    let mut has_entry = unsafe { Process32FirstW(snapshot, &mut entry).is_ok() };
+    let mut has_entry = unsafe { Process32FirstW(snapshot, &mut entry).as_bool() };
 
     while has_entry {
         let pid = entry.th32ProcessID;
@@ -143,7 +143,7 @@ fn main() {
         scanned += 1;
 
         if pid < 100 || is_denied(&name) {
-            has_entry = unsafe { Process32NextW(snapshot, &mut entry).is_ok() };
+            has_entry = unsafe { Process32NextW(snapshot, &mut entry).as_bool() };
             continue;
         }
 
@@ -154,11 +154,11 @@ fn main() {
 
                 if before < threshold_mb {
                     unsafe { let _ = CloseHandle(handle); }
-                    has_entry = unsafe { Process32NextW(snapshot, &mut entry).is_ok() };
+                    has_entry = unsafe { Process32NextW(snapshot, &mut entry).as_bool() };
                     continue;
                 }
 
-                let trim_ok = unsafe { K32EmptyWorkingSet(handle).is_ok() };
+                let trim_ok = unsafe { K32EmptyWorkingSet(handle).as_bool() };
 
                 if trim_ok {
                     let after = get_working_set_mb(handle).unwrap_or(before);
@@ -185,7 +185,7 @@ fn main() {
             }
         }
 
-        has_entry = unsafe { Process32NextW(snapshot, &mut entry).is_ok() };
+        has_entry = unsafe { Process32NextW(snapshot, &mut entry).as_bool() };
     }
 
     unsafe { let _ = CloseHandle(snapshot); }
