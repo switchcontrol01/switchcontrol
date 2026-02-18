@@ -6,7 +6,6 @@ const TOKEN_KEY = "sc_auth_token_v2";
 const JWT_KEY = "sc_jwt";
 
 if (typeof window !== 'undefined') {
-  localStorage.removeItem(JWT_KEY);
   localStorage.removeItem('sc_auth_token_v1');
   localStorage.removeItem('sc_premium_tour_completed');
 }
@@ -64,10 +63,14 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: TOKEN_KEY,
-      partialize: (state) => ({ user: state.user }),
+      partialize: (state) => ({ user: state.user, jwt: state.jwt }),
     }
   )
 );
+
+if (typeof window !== 'undefined') {
+  console.log("[AUTH BOOT] persisted jwt length:", useAuthStore.getState().jwt?.length);
+}
 
 function getStoredJwt(): string | null {
   return useAuthStore.getState().jwt;
