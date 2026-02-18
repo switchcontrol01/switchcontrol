@@ -1,0 +1,179 @@
+🔥 SWITCHCONTROL — MEMORY INTELLIGENCE MODAL (PREMIUM GLASS)
+We are implementing a Memory Intelligence Modal.
+It must:
+• Match the exact glass styling of CpuCoresModal
+• Use identical layout, motion system, blur, glow, border, and animation
+• NOT reuse the Clear RAM modal
+• NOT create a different design language
+• Be fully animated and premium
+This is monitoring, not an action panel.
+PART 1 — IPC (Main Process)
+Install if missing:
+Copy code
+
+npm install systeminformation
+In main process:
+Js
+Copy code
+const si = require("systeminformation");
+
+ipcMain.handle("telemetry:getMemoryDetails", async () => {
+  const mem = await si.mem();
+  const processes = await si.processes();
+
+  const topProcesses = processes.list
+    .sort((a, b) => b.memRss - a.memRss)
+    .slice(0, 5)
+    .map(p => ({
+      name: p.name,
+      pid: p.pid,
+      memoryMB: Math.round(p.memRss / 1024 / 1024),
+    }));
+
+  return {
+    total: mem.total,
+    used: mem.used,
+    free: mem.free,
+    available: mem.available,
+    active: mem.active,
+    compressed: mem.compressed || 0,
+    processes: topProcesses,
+  };
+});
+PART 2 — Preload
+Expose securely:
+Js
+Copy code
+contextBridge.exposeInMainWorld("electronAPI", {
+  telemetry: {
+    getMemoryDetails: () => ipcRenderer.invoke("telemetry:getMemoryDetails"),
+  }
+});
+Do NOT expose ipcRenderer directly.
+PART 3 — RAM Icon Clickable
+In Home.tsx:
+Tsx
+Copy code
+const [ramModalOpen, setRamModalOpen] = useState(false);
+Wrap the existing RAM icon:
+Tsx
+Copy code
+<button
+  onClick={() => setRamModalOpen(true)}
+  className="relative transition-transform duration-200 hover:scale-110 active:scale-95"
+>
+  <MemoryIcon />
+</button>
+Render modal:
+Tsx
+Copy code
+<MemoryIntelligenceModal
+  open={ramModalOpen}
+  onOpenChange={setRamModalOpen}
+/>
+PART 4 — MemoryIntelligenceModal.tsx
+Must match CpuCoresModal styling EXACTLY:
+• backdrop-blur-xl
+• bg-black/40
+• border border-white/10
+• rounded-2xl
+• spring open animation
+• smooth bar interpolation
+• glass glow
+Install framer-motion if missing.
+Tsx
+Copy code
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+
+export function MemoryIntelligenceModal({ open, onOpenChange }) {
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const interval = setInterval(async () => {
+      const res = await window.electronAPI.telemetry.getMemoryDetails();
+      setData(res);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [open]);
+
+  if (!data) return null;
+
+  const usedPercent = (data.used / data.total) * 100;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl">
+
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ type: "spring", stiffness: 120 }}
+          className="space-y-8"
+        >
+          <h2 className="text-xl font-semibold">Memory Intelligence</h2>
+
+          {/* Memory Usage */}
+          <div>
+            <div className="flex justify-between mb-2 text-sm">
+              <span>Used</span>
+              <span>{usedPercent.toFixed(1)}%</span>
+            </div>
+
+            <motion.div
+              className="h-4 rounded-full bg-gradient-to-r from-cyan-400 to-teal-500"
+              animate={{ width: `${usedPercent}%` }}
+              transition={{ duration: 0.6 }}
+            />
+          </div>
+
+          {/* Breakdown */}
+          <div className="grid grid-cols-2 gap-4 text-sm opacity-80">
+            <div>Total: {(data.total / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+            <div>Available: {(data.available / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+            <div>Active: {(data.active / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+            <div>Compressed: {(data.compressed / 1024 / 1024 / 1024).toFixed(1)} GB</div>
+          </div>
+
+          {/* Top Processes */}
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium opacity-70">Top Memory Usage</h3>
+
+            {data.processes.map((proc, i) => (
+              <div key={i}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span>{proc.name}</span>
+                  <span>{proc.memoryMB} MB</span>
+                </div>
+
+                <motion.div
+                  className="h-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+                  animate={{ width: `${Math.min(proc.memoryMB / 2000 * 100, 100)}%` }}
+                  transition={{ duration: 0.6 }}
+                />
+              </div>
+            ))}
+          </div>
+
+        </motion.div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+DESIGN RULES (MANDATORY)
+• Must use same glass class as CPU modal
+• Must use same open animation
+• Must use same border and blur
+• No different background color
+• No card shape deviation
+• No box shadow differences
+• Same modal shell
+Only internal gradients may vary.
+OPTIONAL PREMIUM UPGRADE
+If memory usage > 80 percent: • Add subtle cyan glow on modal border • Display “Memory Pressure High” in header
+No aggressive red.
+Controlled premium behavior only.
