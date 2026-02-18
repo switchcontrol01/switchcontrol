@@ -115,6 +115,7 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (phase !== 'authenticated') return;
+    if (!user?.loggedIn) return;
     console.log(`[PremiumFlow] entitlement truth: isPremium=${user?.isPremium} hasSeenPremiumUnlock=${user?.hasSeenPremiumUnlock}`);
     console.log(`[PremiumFlow] showUpgradeAnimation=${showUpgradeAnimation}`);
     if (
