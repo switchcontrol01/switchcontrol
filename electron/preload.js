@@ -56,6 +56,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getEnhanced: () => ipcRenderer.invoke('telemetry:getEnhanced'),
     getCpuCores: () => ipcRenderer.invoke('telemetry:getCpuCores'),
     getMemoryDetails: () => ipcRenderer.invoke('telemetry:getMemoryDetails'),
+    getGpu: () => ipcRenderer.invoke('telemetry:getGpu'),
   },
 
   // Tweaks

@@ -50,7 +50,7 @@ function CoreBar({ core, index }: { core: CpuCore; index: number }) {
               ? "bg-gradient-to-r from-red-500 to-red-400"
               : isHigh
               ? "bg-gradient-to-r from-amber-500 to-amber-400"
-              : "bg-gradient-to-r from-blue-500 to-cyan-400"
+              : "bg-gradient-to-r from-purple-500 to-violet-400"
           )}
           initial={{ width: 0 }}
           animate={{ width: `${load}%` }}
@@ -123,7 +123,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
       onOpenChange={onOpenChange}
       title={
         <>
-          <Cpu className="size-5 text-blue-400" />
+          <Cpu className="size-5 text-purple-400" />
           CPU Core Monitor
         </>
       }
@@ -141,7 +141,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
               ? "border-red-500/30 bg-red-500/5"
               : isHighAvg
               ? "border-amber-500/30 bg-amber-500/5"
-              : "border-blue-500/30 bg-blue-500/5"
+              : "border-purple-500/30 bg-purple-500/5"
           )}
         >
           {isCriticalAvg && (
@@ -150,7 +150,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
           <p
             className={cn(
               "text-2xl font-bold tabular-nums relative z-10",
-              isCriticalAvg ? "text-red-400" : isHighAvg ? "text-amber-400" : "text-blue-400"
+              isCriticalAvg ? "text-red-400" : isHighAvg ? "text-amber-400" : "text-purple-400"
             )}
             data-testid="text-avg-cpu-load"
           >

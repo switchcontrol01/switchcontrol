@@ -25,6 +25,7 @@ import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
 import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligenceModal";
+import { GpuModal } from "@/components/dashboard/GpuModal";
 
 
 interface DiskInfo {
@@ -308,6 +309,7 @@ export default function Home() {
   const [memCleanerOpen, setMemCleanerOpen] = useState(false);
   const [cpuModalOpen, setCpuModalOpen] = useState(false);
   const [memIntelOpen, setMemIntelOpen] = useState(false);
+  const [gpuModalOpen, setGpuModalOpen] = useState(false);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
@@ -503,7 +505,7 @@ export default function Home() {
                 progress={ramPercent}
                 actionLabel="Clear RAM"
                 onAction={() => setMemCleanerOpen(true)}
-                className="border-primary/20 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.2)]"
+                className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
               />
             </motion.div>
             
@@ -519,7 +521,7 @@ export default function Home() {
                 icon={Cpu}
                 onIconClick={() => setCpuModalOpen(true)}
                 subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
-                className="border-blue-500/20 shadow-[0_0_20px_-10px_hsl(210_100%_50%/0.1)]"
+                className="border-purple-500/20 shadow-[0_0_20px_-10px_hsl(270_100%_50%/0.1)]"
               />
             </motion.div>
             
@@ -533,8 +535,9 @@ export default function Home() {
                 title="GPU"
                 value={stats.gpuName}
                 icon={Activity}
+                onIconClick={() => setGpuModalOpen(true)}
                 subtext={`${stats.vramGb} GB VRAM`}
-                className="border-red-500/20 shadow-[0_0_20px_-10px_hsl(0_100%_50%/0.1)]"
+                className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
               />
             </motion.div>
             
@@ -699,6 +702,10 @@ export default function Home() {
       <MemoryIntelligenceModal
         open={memIntelOpen}
         onOpenChange={setMemIntelOpen}
+      />
+      <GpuModal
+        open={gpuModalOpen}
+        onOpenChange={setGpuModalOpen}
       />
     </AppLayout>
   );

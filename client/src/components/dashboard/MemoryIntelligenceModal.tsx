@@ -41,7 +41,7 @@ function ProcessBar({ proc, maxMB, index }: { proc: { name: string; pid: number;
       </div>
       <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
         <motion.div
-          className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500"
+          className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400"
           initial={{ width: 0 }}
           animate={{ width: `${pct}%` }}
           transition={{ type: "spring", stiffness: 120, damping: 20 }}
@@ -115,10 +115,10 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
       onOpenChange={onOpenChange}
       title={
         <>
-          <MemoryStick className={cn("size-5", isHighPressure ? "text-cyan-400" : "text-primary")} />
+          <MemoryStick className={cn("size-5", isHighPressure ? "text-red-400" : "text-teal-400")} />
           Memory Intelligence
           {isHighPressure && (
-            <span className="text-[9px] ml-1 px-1.5 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 font-medium">
+            <span className="text-[9px] ml-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 font-medium">
               High Pressure
             </span>
           )}
@@ -136,17 +136,17 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
             className={cn(
               "relative p-4 rounded-lg border text-center space-y-2 overflow-hidden",
               isHighPressure
-                ? "border-cyan-500/30 bg-cyan-500/5"
-                : "border-primary/30 bg-primary/5"
+                ? "border-red-500/30 bg-red-500/5"
+                : "border-teal-500/30 bg-teal-500/5"
             )}
           >
             {isHighPressure && (
-              <div className="absolute inset-0 rounded-lg animate-pulse opacity-20 bg-cyan-500/20" />
+              <div className="absolute inset-0 rounded-lg animate-pulse opacity-20 bg-red-500/20" />
             )}
             <p
               className={cn(
                 "text-2xl font-bold tabular-nums relative z-10",
-                isHighPressure ? "text-cyan-400" : "text-primary"
+                isHighPressure ? "text-red-400" : "text-teal-400"
               )}
               data-testid="text-memory-usage-pct"
             >
@@ -159,8 +159,8 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
                 className={cn(
                   "h-full rounded-full",
                   isHighPressure
-                    ? "bg-gradient-to-r from-cyan-500 to-teal-400"
-                    : "bg-gradient-to-r from-primary to-purple-400"
+                    ? "bg-gradient-to-r from-red-500 to-orange-400"
+                    : "bg-gradient-to-r from-teal-500 to-emerald-400"
                 )}
                 initial={{ width: 0 }}
                 animate={{ width: `${usedPercent}%` }}

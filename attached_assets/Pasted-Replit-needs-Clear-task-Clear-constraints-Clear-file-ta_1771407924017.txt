@@ -1,0 +1,174 @@
+Replit needs:
+
+• Clear task
+• Clear constraints
+• Clear file targets
+• No philosophy
+
+You think like a founder. Replit executes like a contractor.
+
+So give it this instead:
+
+
+---
+
+Script To Send Replit
+
+We are implementing GPU telemetry modal using systeminformation only.
+
+Strict rules:
+
+Use si.graphics()
+
+Do not fabricate data
+
+Do not display fields that are undefined
+
+Do not show “N/A”
+
+Poll only when modal is open
+
+Poll every 800ms
+
+Stop polling on close
+
+
+
+---
+
+1️⃣ Main Process
+
+Ensure systeminformation is installed.
+
+Add IPC handler:
+
+ipcMain.handle("telemetry:getGpu", async () => {
+  const si = require("systeminformation");
+  const g = await si.graphics();
+  if (!g.controllers.length) return null;
+
+  const c = g.controllers[0];
+
+  return {
+    model: c.model,
+    driverVersion: c.driverVersion,
+    vram: c.vram,
+    memoryUsed: c.memoryUsed,
+    load: c.utilizationGpu ?? c.load,
+    temperature: c.temperatureGpu,
+    powerDraw: c.powerDraw,
+    clockCore: c.clockCore,
+    clockMemory: c.clockMemory
+  };
+});
+
+No transformations.
+
+
+---
+
+2️⃣ Preload
+
+Expose:
+
+telemetry: {
+  getGpu: () => ipcRenderer.invoke("telemetry:getGpu"),
+}
+
+
+---
+
+3️⃣ Create GlassTelemetryModal Base Component
+
+Shared by:
+
+CpuCoresModal
+
+RamModal
+
+GpuModal
+
+
+Must include:
+
+backdrop-blur-xl
+
+bg-black/40
+
+border border-white/10
+
+rounded-2xl
+
+spring open animation
+
+fade in/out
+
+
+All telemetry modals must use this base wrapper.
+
+
+---
+
+4️⃣ GpuModal Implementation
+
+When open:
+
+Start interval 800ms
+
+Call window.electronAPI.telemetry.getGpu()
+
+Push into rolling 30 sample buffer
+
+Stop interval when closed
+
+
+Render:
+
+Top Section:
+
+GPU model
+
+Driver version
+
+Load %
+
+
+VRAM section: Render only if memoryUsed !== undefined
+
+Temperature section: Render only if temperature !== undefined
+
+Clock + power rows: Render each only if value exists
+
+No empty labels. No placeholders.
+
+
+---
+
+5️⃣ VRAM Pressure
+
+Only if memoryUsed exists:
+
+const pressure = memoryUsed / vram;
+
+If pressure > 0.9: Render subtle warning text.
+
+No auto actions.
+
+
+---
+
+6️⃣ Design Rules
+
+All telemetry modals must match visually.
+
+Only accent color changes:
+
+CPU purple
+
+RAM teal
+
+GPU cyan
+
+
+No layout differences.
+

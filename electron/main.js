@@ -657,6 +657,31 @@ ipcMain.handle('system:getAllDisks', async () => {
 
 // Telemetry - 3-tier merge: systeminformation baseline → nvidia-smi → LHM overlay
 // null means unavailable, never undefined
+ipcMain.handle('telemetry:getGpu', async () => {
+  try {
+    const g = await si.graphics();
+    if (!g.controllers.length) return null;
+
+    const c = g.controllers[0];
+    const result = { model: c.model };
+
+    if (c.driverVersion !== undefined) result.driverVersion = c.driverVersion;
+    if (c.vram !== undefined) result.vram = c.vram;
+    if (c.memoryUsed !== undefined) result.memoryUsed = c.memoryUsed;
+    const load = c.utilizationGpu ?? c.load;
+    if (load !== undefined) result.load = load;
+    if (c.temperatureGpu !== undefined) result.temperature = c.temperatureGpu;
+    if (c.powerDraw !== undefined) result.powerDraw = c.powerDraw;
+    if (c.clockCore !== undefined) result.clockCore = c.clockCore;
+    if (c.clockMemory !== undefined) result.clockMemory = c.clockMemory;
+
+    return result;
+  } catch (e) {
+    console.error('[DEBUG] telemetry:getGpu error:', e.message);
+    return null;
+  }
+});
+
 ipcMain.handle('telemetry:getMemoryDetails', async () => {
   try {
     const mem = await si.mem();
