@@ -1,0 +1,121 @@
+Message to Replit (copy paste exactly)
+Implement a fully local, deterministic AI Advisor system with zero blocking network dependency.
+Do NOT simulate AI. Everything must be rule based and grounded in detected signals.
+Create the following structure:
+1. Advisor Store (zustand)
+File: client/src/stores/advisorStore.ts
+State:
+runState: "idle" | "initializing" | "collecting" | "evaluating" | "ready" | "degraded" | "error"
+report: AdvisorReport | null
+lastRunAt: string | null
+error: string | null
+Actions:
+runAdvisor()
+reRunAdvisor()
+clearAdvisor()
+runAdvisor flow:
+set runState = "initializing"
+wait 600ms
+set runState = "collecting"
+collect signals
+set runState = "evaluating"
+evaluate rules
+set report
+set runState = "ready"
+Never block on network.
+2. Signals Types
+File: client/src/advisor/types.ts
+Define:
+SignalValue Signals Rule Ruleset Finding AdvisorReport
+Use strict types. Unknown values must be null + error string.
+3. Signal Collectors
+Folder: client/src/advisor/collectors/
+Implement minimal stable collectors first:
+systemCollector.ts
+gameMode (registry)
+powerPlanName
+windowsBuild
+memoryIntegrity
+hags
+networkCollector.ts
+activeAdapterName
+interruptModeration
+tcpAutoTuning
+appCollector.ts
+appVersion
+deviceIdShort
+tweaksApplied
+lastTweakApplyAt
+isPremium
+If any collector fails:
+do NOT throw
+return value null + error
+advisor must still continue
+4. Bundled Ruleset
+File: client/src/advisor/ruleset/bundled.ruleset.json
+Create 15 initial rules max:
+Examples:
+Rule: power_plan_performance Fail if powerPlanName != "Ultimate Performance" or your custom plan Severity: critical Weight: 10
+Rule: game_mode_enabled Fail if system.gameMode != "on" Severity: recommended
+Rule: interrupt_moderation_disabled Fail if network.interruptModeration != "off" Severity: critical
+Rule: tcp_auto_tuning_normal Fail if tcpAutoTuning != "normal"
+Rule: memory_integrity_disabled Fail if memoryIntegrity == "on" Risk: medium
+Do not create fake rules. Only rules you can detect.
+5. Rule Engine
+File: client/src/advisor/engine.ts
+Function evaluate(signals, ruleset):
+For each rule:
+If required signals missing → status = "unknown"
+If condition matches fail → status = "fail"
+Else → status = "pass"
+Scoring:
+Start 100
+Subtract rule.maxPoints on fail
+Subtract 25 percent maxPoints on unknown
+Clamp 0–100
+Return AdvisorReport:
+score
+top 5 failed rules
+full findings list
+signalsHealth.degraded if any collector returned error
+6. Advisor UI
+Component: AdvisorCard.tsx
+States:
+Idle → show Analyze button
+initializing → "Initializing Advisor..."
+collecting → progress UI
+evaluating → short progress
+ready → show score + summary
+degraded → show banner: "Limited analysis. Some signals unavailable."
+Never show "Cannot connect to server". This is a local system.
+7. Fix Runner
+For rules with fix.type = "app_tweak":
+call existing tweak handler
+after fix:
+re-collect affected signals only
+re-run evaluate
+show toast "Verified"
+Fix must NOT:
+trigger premium flows
+change activeFlow
+affect onboarding state
+8. Flow Safety
+Advisor must not modify:
+activeFlow
+hasSeenPremiumUnlock
+hasSeenPremiumTour
+onboarding keys
+It is read-only unless a user presses Fix.
+9. No Server Dependency
+Remove current "Cannot connect to server" state. Replace with:
+Only show error if collectors totally fail.
+Advisor must function fully offline.
+10. Acceptance Criteria
+All must pass:
+Works with internet disconnected
+Running advisor does not trigger any premium flow
+Applying one fix updates score
+Reset Settings does not affect advisor state
+Factory Reset clears advisor state on relaunch
+Do not modify auth or Stripe logic.
+That is the real implementation brief.
