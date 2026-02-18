@@ -8,7 +8,8 @@
   "scripts": {
     "start": "electron .",
     "prebuild": "node scripts/ensure-assets.js && node scripts/ensure-dist.js",
-    "dist:win": "npm run prebuild && electron-builder --win"
+    "build:native": "cd native/sc_memory && cargo build --release && cp target/release/sc_memory.exe ../../bin/sc_memory.exe",
+    "dist:win": "npm run prebuild && npm run build:native && electron-builder --win"
   },
 
   "dependencies": {
@@ -39,6 +40,11 @@
       {
         "from": "dist-frontend",
         "to": "dist"
+      },
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": ["**/*"]
       }
     ],
 

@@ -22,6 +22,7 @@ import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { playRamClear, playScanBeep } from "@/lib/premium-audio";
+import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 
 
 interface DiskInfo {
@@ -303,6 +304,7 @@ export default function Home() {
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
   const [applyingFixId, setApplyingFixId] = useState<string | null>(null);
+  const [memCleanerOpen, setMemCleanerOpen] = useState(false);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
@@ -496,7 +498,7 @@ export default function Home() {
                 icon={MemoryStick}
                 progress={ramPercent}
                 actionLabel="Clear RAM"
-                onAction={() => { playRamClear(); clearRam(); }}
+                onAction={() => setMemCleanerOpen(true)}
                 className="border-primary/20 shadow-[0_0_20px_-10px_hsl(var(--primary)/0.2)]"
               />
             </motion.div>
@@ -680,6 +682,8 @@ export default function Home() {
           </motion.div>
         </motion.div>
       </div>
+
+      <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />
     </AppLayout>
   );
 }
