@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -66,13 +66,11 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
   const [cleaning, setCleaning] = useState(false);
   const [result, setResult] = useState<CleanResult | null>(null);
   const [showDetails, setShowDetails] = useState(false);
-  const lockRef = useRef(false);
   const { toast } = useToast();
   const { clearRam, setStats } = useStore();
 
   const handleClean = async () => {
-    if (lockRef.current) return;
-    lockRef.current = true;
+    if (cleaning) return;
     setCleaning(true);
     setResult(null);
     setShowDetails(false);
@@ -118,18 +116,8 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
       toast({ title: "Memory clean failed", description: "An unexpected error occurred.", variant: "destructive" });
     } finally {
       setCleaning(false);
-      lockRef.current = false;
     }
   };
-
-  const handleClose = useCallback(() => {
-    if (cleaning) return;
-    onOpenChange(false);
-    setTimeout(() => {
-      setResult(null);
-      setShowDetails(false);
-    }, 300);
-  }, [onOpenChange, cleaning]);
 
   const stagger = {
     hidden: { opacity: 0, y: 12 },
@@ -143,21 +131,20 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
   return (
     <Dialog
       open={open}
-      onOpenChange={(v) => {
-        if (!v) {
-          handleClose();
+      onOpenChange={(next) => {
+        if (cleaning) return;
+        onOpenChange(next);
+        if (!next) {
+          setTimeout(() => {
+            setResult(null);
+            setShowDetails(false);
+          }, 300);
         }
       }}
     >
       <DialogContent
-        className={cn(
-          "bg-[#0c0c14] border-border/50 max-w-sm backdrop-blur-xl overflow-hidden",
-          cleaning && "[&>button]:pointer-events-none [&>button]:opacity-0"
-        )}
+        className="bg-[#0c0c14] border-border/50 max-w-sm backdrop-blur-xl overflow-hidden"
         data-testid="modal-memory-cleaner"
-        onEscapeKeyDown={(e) => { if (cleaning) e.preventDefault(); }}
-        onPointerDownOutside={(e) => { if (cleaning) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (cleaning) e.preventDefault(); }}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-white">
@@ -189,6 +176,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.06, type: "spring", stiffness: 400, damping: 28 }}
                         onClick={() => setSelectedMode(mode.id)}
+                        disabled={cleaning}
                         className={cn(
                           "w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-all",
                           selectedMode === mode.id
@@ -218,6 +206,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
                 <Button
                   onClick={handleClean}
+                  disabled={cleaning}
                   className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20 mt-4"
                   data-testid="button-start-clean"
                 >
@@ -344,7 +333,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                     variant="outline"
                     size="sm"
                     className="flex-1 text-xs border-border/40 hover:bg-white/5"
-                    onClick={handleClose}
+                    onClick={() => onOpenChange(false)}
                     data-testid="button-close-cleaner"
                   >
                     Done
