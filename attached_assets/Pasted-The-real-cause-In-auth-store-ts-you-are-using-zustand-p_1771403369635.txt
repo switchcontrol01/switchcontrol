@@ -1,0 +1,46 @@
+The real cause
+In auth-store.ts you are using zustand persist, but you only persist:
+Ts
+Copy code
+partialize: (state) => ({ user: state.user })
+So after restart:
+jwt is gone
+token is gone
+user might exist, but it is meaningless without a valid auth credential
+your app boots, sees no jwt, and treats you as logged out
+Your console log even says:
+[JWT] saved to memory
+Memory dies when the app closes. So you lose the JWT every time.
+Also, you had this at the top:
+Ts
+Copy code
+localStorage.removeItem(JWT_KEY);
+If that is still present anywhere in your current build, it will literally delete your auth on every load. That is instant logout.
+What needs to be fixed
+Pick ONE auth method and persist it properly.
+You have two options:
+Option A (fastest): Persist JWT in zustand storage
+Change persist to include jwt:
+Ts
+Copy code
+partialize: (state) => ({ user: state.user, jwt: state.jwt })
+Then on boot, jwt exists, validateToken() sends Bearer jwt, and you stay logged in.
+This is the quickest fix.
+Downside: jwt ends up in localStorage which is not ideal security wise, but for a desktop Electron app it is common early stage.
+Option B (better): Use cookies only, stop relying on jwt for boot
+If your backend sets session cookies during /api/auth/exchange and they persist, then you can ignore jwt and just call /api/me with credentials: "include".
+But your implementation already tried cookie persistence and you still got logged out before, so I do not trust cookies alone yet unless you confirm cookies persist after restart in Electron.
+What I would do
+Do Option A now. It will fix your pain immediately.
+Then later, if you want “real” security, move JWT into Electron main process secure storage (keytar) and expose getJwt() via IPC. But that is extra work and you are trying to ship.
+One more thing you must verify
+After applying Option A, you must confirm on app boot you see:
+a log that jwt exists in the store
+/api/me returns 200 without doing OAuth again
+If it still asks you to log in, then something else is clearing storage on startup or you are creating a new storage key each time.
+Action steps to give Replit
+Tell Replit to do exactly this:
+Remove any code that calls localStorage.removeItem(JWT_KEY) on startup.
+Update zustand persist partialize to include jwt.
+Add a boot log that prints whether jwt exists: length only, not the token.
+Rebuild Electron, login once, close app, reopen, confirm you stay logged in.
