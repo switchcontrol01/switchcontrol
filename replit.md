@@ -70,14 +70,19 @@ shared/
 - **History**: Action log with JSON export capability
 - **Settings**: Account preferences and app configuration
 
-### AI Advisor System
-- **Cooldown**: 60-second cooldown between AI scans (enforced server-side using latest aiScans timestamp)
-- **Dynamic Messages**: Three-tier message system based on tweaksApplied count:
-  - `early` (<5 tweaks): Suggests many optimizations
-  - `mid` (5-10 tweaks): Partial optimization messages
-  - `optimized` (10+ tweaks): System is fully optimized
-- **Randomized Recommendations**: Pulls from pools in `server/lib/aiMessages.ts`
-- **Frontend State**: Countdown timer, disabled button during cooldown, green styling for optimized state
+### AI Advisor System (Local Rule Engine)
+- **Architecture**: Fully local, deterministic, zero server dependency
+- **Store**: `client/src/stores/advisorStore.ts` (zustand with persistence)
+- **Run States**: idle → initializing → collecting → evaluating → ready/degraded/error
+- **Signal Collectors** (`client/src/advisor/collectors/`):
+  - `systemCollector.ts`: gameMode, powerPlanName, windowsBuild, memoryIntegrity, hags (via electronAPI or fallback)
+  - `networkCollector.ts`: activeAdapterName, interruptModeration, tcpAutoTuning (via electronAPI)
+  - `appCollector.ts`: appVersion, deviceIdShort, tweaksApplied, lastTweakApplyAt, isPremium (from store/browser)
+- **Rule Engine**: `client/src/advisor/engine.ts` — evaluates signals against bundled ruleset, scoring 0–100
+- **Ruleset**: `client/src/advisor/ruleset/bundled.ruleset.json` — 15 rules with severity levels (critical/recommended/informational)
+- **Fix Runner**: Rules with `fix.type = "app_tweak"` invoke existing tweak handler, then re-evaluate and update score
+- **Flow Safety**: Advisor is read-only; does NOT modify activeFlow, premium flags, or onboarding state
+- **Reset Behavior**: Factory Reset clears advisor state (localStorage.clear). Reset Settings does NOT affect advisor state.
 
 ### Premium Redirect System
 - All "Unlock Premium" / "Get Premium" buttons open `https://switchcontrol.org/pricing` in external browser
