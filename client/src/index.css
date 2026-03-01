@@ -441,11 +441,50 @@ body {
   will-change: transform;
 }
 
+@keyframes mockupFloat {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  50% { transform: translate3d(0, -10px, 0); }
+}
+
+.animate-mockup-float {
+  animation: mockupFloat 6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes mockupReflectionSweep {
+  0% { transform: translateX(-120%) skewX(-15deg); }
+  100% { transform: translateX(220%) skewX(-15deg); }
+}
+
+.mockup-reflection-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.06) 30%,
+    rgba(255, 255, 255, 0.12) 50%,
+    rgba(255, 255, 255, 0.06) 70%,
+    transparent 100%
+  );
+  transform: translateX(-120%) skewX(-15deg);
+  animation: mockupReflectionSweep 10s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-hero-float,
   .animate-hero-float-slow,
-  .animate-pill-float {
+  .animate-pill-float,
+  .animate-mockup-float {
     animation-duration: 12s;
+  }
+
+  .mockup-reflection-sweep {
+    animation: none;
+    display: none;
   }
 }
 
@@ -1284,9 +1323,62 @@ textarea,
 .ws-glow-drift-2 { animation: wsGlowDrift2 28s ease-in-out infinite; will-change: transform; }
 .ws-glow-drift-3 { animation: wsGlowDrift3 20s ease-in-out infinite; will-change: transform; }
 
+/* Sun streak beam animations */
+@keyframes sunStreakDrift1 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 1; }
+  30% { transform: translate3d(15px, -10px, 0) rotate(0.5deg); opacity: 0.85; }
+  60% { transform: translate3d(-8px, 12px, 0) rotate(-0.3deg); opacity: 1; }
+}
+@keyframes sunStreakDrift2 {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.7; }
+  50% { transform: translate3d(-20px, 8px, 0); opacity: 0.9; }
+}
+@keyframes sunStreakDrift3 {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.5; }
+  40% { transform: translate3d(10px, -6px, 0); opacity: 0.65; }
+  80% { transform: translate3d(-5px, 4px, 0); opacity: 0.45; }
+}
+.ws-sun-streak-1 { animation: sunStreakDrift1 20s ease-in-out infinite; will-change: transform, opacity; }
+.ws-sun-streak-2 { animation: sunStreakDrift2 25s ease-in-out infinite; will-change: transform, opacity; }
+.ws-sun-streak-3 { animation: sunStreakDrift3 30s ease-in-out infinite; will-change: transform, opacity; }
+
+/* Floating particles */
+.ws-particle {
+  animation:
+    particleFloat var(--particle-speed, 20s) ease-in-out infinite,
+    particleTwinkle 4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+/* Hero headline light sweep */
+@keyframes heroLightSweep {
+  0% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+.ws-hero-light-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.ws-hero-light-sweep::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(180,220,255,0.15) 30%, rgba(255,255,255,0.2) 50%, rgba(180,220,255,0.15) 70%, transparent);
+  animation: heroLightSweep 8s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .ws-drift-1, .ws-drift-2, .ws-drift-3,
-  .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3 {
+  .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3,
+  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3,
+  .ws-particle,
+  .ws-hero-light-sweep::after {
     animation: none;
   }
 }

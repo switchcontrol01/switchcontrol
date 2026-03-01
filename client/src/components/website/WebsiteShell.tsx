@@ -54,24 +54,18 @@ function FullHeader() {
     <motion.header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-        scrolled
-          ? "border-b border-white/[0.06]"
-          : "border-b border-transparent"
+        "bg-white/[0.06] backdrop-blur-xl border-b border-white/[0.12]"
       )}
       style={{
-        background: scrolled
-          ? "linear-gradient(180deg, hsl(260 25% 6% / 0.85) 0%, hsl(260 22% 7% / 0.75) 100%)"
-          : "transparent",
-        backdropFilter: scrolled ? "blur(20px) saturate(1.2)" : "none",
-        WebkitBackdropFilter: scrolled ? "blur(20px) saturate(1.2)" : "none",
         boxShadow: scrolled
-          ? "0 1px 0 0 rgba(255,255,255,0.03), 0 4px 30px rgba(0,0,0,0.4), inset 0 -1px 0 0 rgba(139,92,246,0.06)"
-          : "none",
+          ? "0 10px 35px rgba(0,0,0,0.55), 0 1px 0 0 rgba(255,255,255,0.03), inset 0 -1px 0 0 rgba(139,92,246,0.06)"
+          : "0 10px 35px rgba(0,0,0,0.55)",
       }}
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
     >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <BrandLogo size="lg" linkTo="/" />
@@ -81,7 +75,7 @@ function FullHeader() {
               <a
                 key={link.label}
                 href={link.href}
-                className="relative text-sm text-white/40 hover:text-white/80 transition-colors duration-300 tracking-wide py-1 group"
+                className="relative text-sm text-white/80 hover:text-white transition-colors duration-300 tracking-wide py-1 group"
               >
                 {link.label}
                 <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
@@ -151,7 +145,7 @@ function FullHeader() {
               <a
                 key={link.label}
                 href={link.href}
-                className="block text-sm text-white/60 hover:text-white transition-colors py-2"
+                className="block text-sm text-white/80 hover:text-white transition-colors py-2"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
@@ -197,18 +191,17 @@ function FullHeader() {
 function InnerHeader() {
   return (
     <header
-      className="relative z-10 border-b border-white/[0.05]"
+      className="relative z-10 bg-white/[0.06] backdrop-blur-xl border-b border-white/[0.12]"
       style={{
-        background: "linear-gradient(180deg, hsl(260 25% 6% / 0.6) 0%, transparent 100%)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
+        boxShadow: "0 10px 35px rgba(0,0,0,0.55)",
       }}
     >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm"
+            className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors text-sm"
           >
             <ArrowLeft className="size-4" />
             Back to home
@@ -309,7 +302,7 @@ export function WebsiteShell({ children, variant = "full", bgVariant, showFooter
   const resolvedBgVariant = bgVariant || (variant === "full" ? "landing" : "landing");
 
   return (
-    <div className="min-h-screen relative bg-[hsl(260,25%,4%)]">
+    <div className="min-h-screen relative bg-[#040508]">
       <WebsiteBackground variant={resolvedBgVariant} />
 
       {variant === "full" && <FullHeader />}

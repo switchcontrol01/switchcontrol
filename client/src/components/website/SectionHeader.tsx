@@ -30,7 +30,7 @@ export function SectionHeader({ pill, pillIcon, title, titleAccent, subtitle, al
           </span>
         )}
         <h2 className={cn(
-          "text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-[1.15]",
+          "text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-[1.15]",
           subtitle && "mb-5"
         )}>
           {title}
@@ -45,7 +45,7 @@ export function SectionHeader({ pill, pillIcon, title, titleAccent, subtitle, al
         </h2>
         {subtitle && (
           <p className={cn(
-            "text-base md:text-lg text-white/40 leading-relaxed",
+            "text-base md:text-lg font-medium text-white/40 leading-relaxed",
             align === "center" && "max-w-2xl mx-auto"
           )}>
             {subtitle}

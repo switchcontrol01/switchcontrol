@@ -6,6 +6,7 @@ import { motion, useMotion } from "@/lib/motion";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlassPanel } from "@/components/website/GlassPanel";
 import { GlowButton } from "@/components/website/GlowButton";
+import { SectionGlow } from "@/components/website/WebsiteBackground";
 import faviconImg from "@/assets/favicon.png";
 
 export default function DownloadPage() {
@@ -41,7 +42,8 @@ export default function DownloadPage() {
         }
       `}</style>
 
-      <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)]">
+      <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)] relative">
+        <SectionGlow color="purple" intensity="strong" />
         <GlassPanel variant="elevated" glow="purple" className="w-full max-w-lg p-0">
           <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
             <div className="flex justify-center mb-4">
@@ -73,7 +75,8 @@ export default function DownloadPage() {
             </p>
           </div>
 
-          <div className="p-6 sm:p-8 space-y-6">
+          <div className="p-6 sm:p-8 space-y-6 relative">
+            <SectionGlow color="cyan" intensity="strong" />
             <div className="space-y-3">
               <div className="flex items-center gap-3 text-sm text-white/50">
                 <CheckCircle className="size-4 text-emerald-400 shrink-0" />

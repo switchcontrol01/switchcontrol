@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
 import { ComparisonSlider } from "@/components/ComparisonSlider";
-import { HeroBackground, ScrollIndicator } from "@/components/HeroBackground";
+import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
 import { UIExploration } from "@/components/UIExploration";
@@ -33,6 +33,62 @@ import { GlowButton } from "@/components/website/GlowButton";
 import { GhostButton } from "@/components/website/GhostButton";
 import { SectionHeader } from "@/components/website/SectionHeader";
 import { SectionDivider } from "@/components/website/SectionDivider";
+import { SectionGlow } from "@/components/website/WebsiteBackground";
+
+function HeroTiltContainer({ children }: { children: React.ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+  const tiltRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
+  const animRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (isMobile) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const handleMouseMove = (e: globalThis.MouseEvent) => {
+      const rect = el.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      tiltRef.current.targetX = ((e.clientY - centerY) / (rect.height / 2)) * -4;
+      tiltRef.current.targetY = ((e.clientX - centerX) / (rect.width / 2)) * 6;
+    };
+
+    const handleMouseLeave = () => {
+      tiltRef.current.targetX = 0;
+      tiltRef.current.targetY = 0;
+    };
+
+    const animate = () => {
+      const t = tiltRef.current;
+      t.x += (t.targetX - t.x) * 0.06;
+      t.y += (t.targetY - t.y) * 0.06;
+      if (el) {
+        el.style.transform = `perspective(1200px) rotateX(${t.x}deg) rotateY(${t.y}deg)`;
+      }
+      animRef.current = requestAnimationFrame(animate);
+    };
+
+    el.addEventListener("mousemove", handleMouseMove);
+    el.addEventListener("mouseleave", handleMouseLeave);
+    animRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      el.removeEventListener("mousemove", handleMouseMove);
+      el.removeEventListener("mouseleave", handleMouseLeave);
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [isMobile]);
+
+  return (
+    <div
+      ref={containerRef}
+      style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+    >
+      {children}
+    </div>
+  );
+}
 
 const FEATURES = [
   {
@@ -211,10 +267,16 @@ function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
 
 function HeroAppMockup() {
   return (
-    <div className="ws-hero-mockup relative">
+    <div className="ws-hero-mockup relative animate-mockup-float">
       <div className="absolute -inset-8 bg-gradient-to-br from-primary/20 via-transparent to-[hsl(190,80%,50%,0.1)] rounded-3xl blur-3xl pointer-events-none" />
 
+      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-16 rounded-full pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsl(190 90% 50% / 0.5), transparent 70%)', filter: 'blur(70px)' }} />
+
       <div className="relative rounded-xl overflow-hidden border border-white/[0.1] bg-[hsl(260,22%,8%)] shadow-2xl shadow-black/50">
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
+          <div className="mockup-reflection-sweep" />
+        </div>
+
         <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
           <div className="flex gap-1.5">
             <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
@@ -280,7 +342,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
 
   return (
     <motion.div
-      className="border-b border-white/[0.05] last:border-b-0"
+      className="border-b border-white/[0.05] last:border-b-0 rounded-lg hover:bg-white/[0.03] hover:-translate-y-0.5 transition-all duration-200 px-2"
       initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: index * 0.04 }}
@@ -333,23 +395,25 @@ export default function Landing() {
         {/* ──── Hero ──── */}
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
+          <HeroTiltContainer>
           <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">
             <div className="text-center">
               <AnimateIn delay={0}>
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-10 tracking-wider uppercase">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-10">
                   <Activity className="size-3 text-primary/70" />
-                  Performance Engineering
+                  Engineering your PC for a competitive advantage.
                 </span>
               </AnimateIn>
 
               <AnimateIn delay={100}>
-                <h1 className="mb-7 leading-[1.05] tracking-tight">
-                  <span className="block text-4xl md:text-6xl lg:text-7xl xl:text-[5.5rem] font-extralight text-white/60">
+                <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
+                  <div className="ws-hero-light-sweep" />
+                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-semibold text-white/80">
                     Your PC is holding
                   </span>
-                  <span className="block text-4xl md:text-6xl lg:text-7xl xl:text-[5.5rem] font-extralight text-white/60">
+                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-semibold text-white/80">
                     you back.{" "}
-                    <span className="font-bold text-white bg-gradient-to-r from-white via-white to-[hsl(190,80%,50%)] bg-clip-text text-transparent">
+                    <span className="font-black bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
                       Fix it.
                     </span>
                   </span>
@@ -357,7 +421,7 @@ export default function Landing() {
               </AnimateIn>
 
               <AnimateIn delay={250}>
-                <p className="text-base md:text-lg text-white/35 mb-10 max-w-xl mx-auto leading-relaxed">
+                <p className="text-base md:text-lg font-medium text-white/45 mb-10 max-w-xl mx-auto leading-relaxed">
                   Lower input delay, stable FPS, cleaner network.
                   One app. Real results.
                 </p>
@@ -381,24 +445,20 @@ export default function Landing() {
               </AnimateIn>
 
               <AnimateIn delay={500}>
-                <div className="max-w-2xl mx-auto">
+                <div className="max-w-2xl mx-auto" style={{ transform: "translateZ(40px)" }}>
                   <HeroAppMockup />
                 </div>
               </AnimateIn>
             </div>
           </div>
+          </HeroTiltContainer>
 
-          <div className="relative z-10 flex justify-center pb-8">
-            <AnimateIn delay={800}>
-              <ScrollIndicator />
-            </AnimateIn>
-          </div>
-
-          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-[hsl(260,22%,7%)] to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-[#040508] to-transparent pointer-events-none" />
         </section>
 
         {/* ──── Three-column Feature Strip (like ToDesktop) ──── */}
         <section className="py-12 md:py-16 relative" data-reveal>
+          <SectionGlow color="purple" intensity="normal" />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
               {[
@@ -423,6 +483,7 @@ export default function Landing() {
 
         {/* ──── Stats ──── */}
         <section className="py-12 md:py-16 relative" data-reveal>
+          <SectionGlow color="cyan" intensity="normal" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent pointer-events-none" />
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-white/[0.04]">
@@ -475,7 +536,7 @@ export default function Landing() {
             <Reveal className="text-center mb-8">
               <div className="inline-flex items-center gap-2 mb-4">
                 <Layers className="size-5 text-primary/60" />
-                <h3 className="text-2xl md:text-3xl font-bold text-white">Explore All Modules</h3>
+                <h3 className="text-2xl md:text-3xl font-extrabold text-white">Explore All Modules</h3>
               </div>
               <p className="text-white/35 max-w-xl mx-auto text-sm">
                 Click on any module to see what it does.
@@ -490,6 +551,7 @@ export default function Landing() {
 
         {/* ──── BIOS Advisor ──── */}
         <section className="py-24 md:py-32 relative overflow-hidden" data-reveal>
+          <SectionGlow color="mixed" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 60% 40%, hsl(270 55% 45% / 0.04) 0%, transparent 70%)" }} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-primary/[0.05] blur-[180px] pointer-events-none" />
           <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[hsl(190,80%,40%,0.04)] blur-[120px] pointer-events-none" />
@@ -616,6 +678,7 @@ export default function Landing() {
 
         {/* ──── Comparison Sliders ──── */}
         <section className="py-24 md:py-32 relative" data-reveal>
+          <SectionGlow color="cyan" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 50%, hsl(190 70% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
@@ -663,13 +726,14 @@ export default function Landing() {
 
         {/* ──── Social Proof ──── */}
         <section className="py-20 relative" data-reveal>
+          <SectionGlow color="purple" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(270 50% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center">
               <p className="text-xs text-white/25 tracking-widest uppercase mb-6">Built for competitive players</p>
               <h2 className="text-2xl md:text-3xl leading-snug mb-4">
-                <span className="font-extralight text-white/50">New for 2026.</span>{" "}
-                <span className="font-bold text-white">Faster, smarter, safer.</span>
+                <span className="font-medium text-white/50">New for 2026.</span>{" "}
+                <span className="font-extrabold text-white">Faster, smarter, safer.</span>
               </h2>
               <p className="text-white/30 leading-relaxed text-sm max-w-lg mx-auto">
                 We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.
@@ -738,6 +802,7 @@ export default function Landing() {
 
         {/* ──── FAQ ──── */}
         <section id="faq" className="py-24 md:py-32 relative" data-reveal>
+          <SectionGlow color="mixed" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 50% 40%, hsl(270 50% 45% / 0.04) 0%, transparent 70%)" }} />
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <SectionHeader title="Frequently Asked" titleAccent="Questions" />
@@ -755,12 +820,13 @@ export default function Landing() {
 
         {/* ──── Final CTA ──── */}
         <section className="py-24 md:py-32 relative" data-reveal>
+          <SectionGlow color="cyan" intensity="strong" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent pointer-events-none" />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
             <Reveal>
               <h2 className="text-3xl md:text-4xl lg:text-5xl leading-tight mb-5">
-                <span className="font-extralight text-white/50">Stop losing frames.</span>{" "}
-                <span className="font-bold text-white">Start winning.</span>
+                <span className="font-medium text-white/50">Stop losing frames.</span>{" "}
+                <span className="font-extrabold text-white">Start winning.</span>
               </h2>
               <p className="text-white/30 mb-10 max-w-md mx-auto leading-relaxed text-sm">
                 Download SwitchControl and see the difference in your next match.

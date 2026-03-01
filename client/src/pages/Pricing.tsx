@@ -23,6 +23,7 @@ import { GlassPanel } from "@/components/website/GlassPanel";
 import { SectionHeader } from "@/components/website/SectionHeader";
 import { SectionDivider } from "@/components/website/SectionDivider";
 import { GlowButton } from "@/components/website/GlowButton";
+import { SectionGlow } from "@/components/website/WebsiteBackground";
 
 const FREE_FEATURES = [
   "System monitoring",
@@ -95,7 +96,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   return (
     <GlassPanel
       variant={isOpen ? "elevated" : "default"}
-      className="overflow-hidden"
+      className="overflow-hidden hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all"
     >
       <button
         onClick={() => setIsOpen(!isOpen)}
@@ -193,7 +194,8 @@ export default function Pricing() {
         <link rel="canonical" href="https://switchcontrol.org/pricing" />
       </Helmet>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 relative">
+        <SectionGlow color="purple" intensity="strong" />
         <div id="pricing-top"></div>
 
         <SectionHeader
@@ -302,7 +304,8 @@ export default function Pricing() {
 
         <SectionDivider className="my-20" />
 
-        <section className="max-w-4xl mx-auto">
+        <section className="max-w-4xl mx-auto relative">
+          <SectionGlow color="cyan" intensity="strong" />
           <SectionHeader
             title="Free vs Premium"
             subtitle="See exactly what you get with each plan."
@@ -354,6 +357,7 @@ export default function Pricing() {
         <SectionDivider className="my-20" />
 
         <section className="max-w-3xl mx-auto relative">
+          <SectionGlow color="mixed" intensity="strong" />
           <div className="absolute inset-0 -inset-x-12 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 50% 40%, hsl(270 50% 45% / 0.03) 0%, transparent 70%)" }} />
           <SectionHeader
             title="Frequently Asked Questions"
@@ -369,7 +373,8 @@ export default function Pricing() {
         <SectionDivider className="my-16" />
 
         <Reveal>
-          <div className="text-center pb-8">
+          <div className="text-center pb-8 relative">
+            <SectionGlow color="purple" intensity="strong" />
             <p className="text-white/40 mb-4">Still have questions?</p>
             <a 
               href={SOCIAL_LINKS.discord}

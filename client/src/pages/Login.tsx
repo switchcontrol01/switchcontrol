@@ -5,6 +5,7 @@ import { LoginParticles } from "@/components/LoginParticles";
 import { SpotlightCursor } from "@/components/SpotlightCursor";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlassPanel } from "@/components/website/GlassPanel";
+import { SectionGlow } from "@/components/website/WebsiteBackground";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -53,6 +54,7 @@ export default function Login() {
       </div>
 
       <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)] relative z-10">
+        <SectionGlow color="purple" intensity="strong" />
         <AnimateIn>
           <GlassPanel variant="elevated" glow="purple" className="w-full max-w-md p-0">
             <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
@@ -66,7 +68,8 @@ export default function Login() {
               <h1 className="text-2xl font-bold text-white" data-testid="text-login-title">Welcome to {brand.name}</h1>
               <p className="text-sm text-white/50 mt-1">Sign in to access your optimization dashboard</p>
             </div>
-            <div className="p-6 sm:p-8 space-y-4">
+            <div className="p-6 sm:p-8 space-y-4 relative">
+              <SectionGlow color="cyan" intensity="strong" />
               <p className="text-sm text-center text-white/40 mb-4">
                 Sign in securely with your preferred account
               </p>
