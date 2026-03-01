@@ -1,0 +1,179 @@
+Goal: Fix the listed UX issues without adding fluff. Keep the same design language everywhere: matte dark + neon glass + subtle motion. No cheap effects, no random gradients. Everything should feel intentionally premium.
+
+------------------------------------------------------------
+A) LOGIN FLOW: Stop the 15s timeout when browser is closed early
+Problem:
+- Current login waits until the 15s timeout even if the user closes the OAuth browser tab/window or the user cancels sign-in.
+Requirement:
+- If the user closes the external login window or exits the browser early, the app must immediately stop waiting and return to the login screen with a clean "Sign in cancelled" state (no scary error).
+Rules:
+- Do not show "cannot display" or "N/A" style messages.
+- No broken loading state. No zombie polling.
+Implementation options (pick the cleanest based on current code):
+1) If using an internal Electron BrowserWindow for auth:
+   - Listen for `win.on("closed")` and resolve the auth promise as cancelled.
+   - Also listen for `webContents.on("did-navigate")` / token callback. If not reached and window closes, treat as cancelled.
+2) If using `shell.openExternal` to system browser:
+   - Add a lightweight local callback server or deep-link scheme listener already in place.
+   - When auth starts, create an AbortController.
+   - Add a "Cancel" action in the app UI which aborts immediately.
+   - Detect premature cancel by:
+     - if auth browser never hits callback within X seconds AND user triggers app focus or cancel, abort without waiting for 15s.
+   - Minimum acceptable: Add an explicit cancel button that cancels instantly. Best: Detect cancel when user closes an in-app auth window.
+
+Acceptance checks:
+- Start login, close browser immediately: app returns to idle state in under 1 second.
+- Start login, complete login: works as before.
+- Start login, do nothing: timeout still works and shows a calm retry prompt.
+- No memory leak: repeated login attempts do not stack timers or listeners.
+
+------------------------------------------------------------
+B) TOURS: Consistency + ending + Discord CTA
+Problems:
+- Premium tour styling differs from intro tour (purple top line).
+- Premium tour ends in Settings instead of returning to Dashboard.
+- Needs Discord CTA at end.
+- Scrolling feels instant and janky (no smooth scroll).
+Requirements:
+1) Unify tour component:
+   - There must be one TourShell component used by both intro and premium tours.
+   - Same border, same top accent, same padding, same step dots, same button style.
+   - Premium tour only changes content and the highlighted selectors, not UI chrome.
+   - Remove the purple top line discrepancy.
+2) End behavior:
+   - When the premium tour finishes, animate fade-out and automatically navigate back to Dashboard.
+   - Do not leave the user stuck in Settings.
+3) Add Discord CTA as the final step for both tours:
+   - Copy: "Join the Discord for updates, announcements, and premium giveaways."
+   - Add a single button: "Join Discord"
+   - Clicking opens external link using safe openExternal allowlist (https only).
+4) Smooth highlight scrolling:
+   - When a step targets an element offscreen, use smooth scroll into view:
+     - `element.scrollIntoView({ behavior: "smooth", block: "center" })`
+   - Add a small delay so the tooltip animation matches scroll completion.
+
+Acceptance checks:
+- Both tours look identical in UI styling.
+- Premium tour ends by returning to Dashboard automatically.
+- Discord step is last and link works.
+- Highlight transitions never snap. They smoothly reposition.
+
+------------------------------------------------------------
+C) NO TEXT SELECTION: Make UI feel premium
+Problems:
+- User can highlight/copy text on login page and tours and other UI cards.
+Requirement:
+- Disable text selection in UI surfaces where it feels wrong:
+  - Login modal/card
+  - Tour tooltip
+  - Dashboard cards and small modals
+  - Buttons, labels, nav items
+- Keep text selection enabled in:
+  - Inputs, textareas
+  - Code blocks (if any)
+  - License key / device id fields where copying is intended (make it explicit with a copy button)
+
+Implementation:
+- Add a global utility class:
+  - `select-none` for most UI chrome
+  - Use `select-text` only on inputs and explicit copy areas
+- For copyable fields: disable selection but provide copy icon button that copies value.
+
+Acceptance checks:
+- Dragging mouse over login and tour text does not highlight.
+- Copy still works only where it should via copy button.
+
+------------------------------------------------------------
+D) TOUR BACKGROUND: Make it lively, not dull
+Problem:
+- Tour intro background feels bland compared to welcome animation.
+Requirement:
+- Add a subtle animated background layer behind tours:
+  - keep it calm: slow moving gradient/orb + very soft noise
+  - no heavy particles unless already in design system
+  - respect reduced motion
+Implementation:
+- Reuse the global background stack if it exists:
+  - Spotlight, noise, soft orb drift
+- For the Tour overlay, add a dim layer with slight blur and a slow animated glow bloom behind the tooltip.
+
+Acceptance checks:
+- Tour overlay feels alive but not distracting.
+- No FPS drop. No stutter.
+
+------------------------------------------------------------
+E) GLASS CONSISTENCY: Every small modal and info box must match
+Problem:
+- Some misc boxes are flat or inconsistent (settings license modal, tweak info panels, etc).
+Requirement:
+- Create a single shared GlassSurface component and use it everywhere:
+  - modals
+  - info panels
+  - small dashboards
+  - tweak detail panels
+Rules:
+- Same blur, same border, same rounding, same shadow, same motion.
+- Accent colors can vary per category but the surface style must not change.
+
+Implementation:
+- `GlassSurface` base styles:
+  - backdrop blur
+  - translucent fill
+  - subtle border
+  - soft inner highlight
+  - hover micro-lift where appropriate
+- Ensure all buttons use unified GlowButton/GhostButton.
+
+Acceptance checks:
+- Open multiple modals: they all look like one product system, not different widgets.
+
+------------------------------------------------------------
+F) GPU MODAL: It opens but shows no data
+Problem:
+- GPU icon works but modal displays nothing or fails to render telemetry.
+Likely causes:
+- IPC handler not returning expected shape
+- renderer expecting different keys
+- load field mismatch (`utilizationGpu` vs `load`)
+- memoryUsed sometimes undefined and UI not handling it correctly
+Requirement:
+- Fix GPU telemetry fetch and render only available fields, with clean conditional rendering.
+- No "N/A" lines. If a metric missing, omit the row/section.
+
+Implementation checklist:
+1) Confirm IPC handler exists: `telemetry:getGpu`
+2) Return shape must be consistent:
+   - model
+   - driverVersion
+   - vram
+   - memoryUsed (optional)
+   - load (optional)
+   - temperature (optional)
+   - powerDraw (optional)
+   - clockCore (optional)
+   - clockMemory (optional)
+3) In renderer:
+   - if GPU data is null: close modal quietly and do nothing (or don’t open).
+   - if load is undefined: omit load bar
+   - if memoryUsed undefined: omit VRAM section and VRAM line on graph
+4) Add 30-sample rolling buffer for graph with polling 800ms.
+
+Acceptance checks:
+- On machines with GPU telemetry: GPU modal shows model and at least one metric.
+- No empty skeleton forever. No broken layout.
+
+------------------------------------------------------------
+Deliverables:
+1) Commit that fixes login cancel behavior
+2) TourShell unified, premium tour matches intro, ends on dashboard, includes Discord step
+3) Global non-selectable UI with explicit copy buttons where needed
+4) Tour background upgraded with subtle motion
+5) GlassSurface applied to all modals/info boxes
+6) GPU telemetry modal fixed with conditional rendering
+7) Add docs/polish-qa.md with pass/fail for:
+   - login cancel
+   - tour end behavior
+   - discord link
+   - no text selection
+   - glass consistency
+   - gpu telemetry visible

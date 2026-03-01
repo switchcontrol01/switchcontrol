@@ -1,0 +1,249 @@
+GOAL
+Redesign the entire website UI across EVERY existing route/page in this repo in one pass.
+Do not ask me to verify pages one-by-one. You must enumerate all routes automatically and update them all.
+
+ABSOLUTE RULES
+1) Do not add a blog or any pages that do not already exist.
+2) Do not remove or rewrite content meaning: keep sections, pricing, benchmarks, images, copy, and info architecture intact. You may re-layout, restyle, and re-componentize only.
+3) One cohesive design system: matte dark base + neon glass accents + depth. Every page must match. No exceptions.
+4) Must work on mobile. Must be tested on desktop + mobile for every route.
+5) No fake data, no “N/A”, no placeholders. If something is unavailable, do not render that block.
+6) Performance matters: no heavy particle spam, no janky scroll, no massive GPU filters.
+
+REFERENCE STYLE (match the layout + emotion of the provided images)
+Use these images as the visual target:
+- Dark premium hero stages with layered glow and depth (orb gradients, soft bloom).
+- Glass panels with blur, thin borders, inner highlights, subtle noise grain.
+- Intentional typography hierarchy: big bold hero headline, controlled subtext width, strong spacing rhythm.
+- Slow, cinematic motion: fade + slide, scale + blur-in, hover micro-motion. No chaotic motion.
+- Sections feel “designed”, not templated: asymmetry, staggered cards, clear hierarchy, visual anchors.
+
+Layout guidance from the images:
+- Hero: centered or left-aligned headline, short subheadline, 1–2 primary CTAs, followed by a proof row.
+- Mid sections: alternating chapters with a big statement, then 2–3 feature cards, then a showcase block.
+- Showcase: large visual container blocks with depth (glow rim, gradient mesh behind).
+- Footer: minimal, premium, clean, consistent spacing.
+- Use “chapter” separators: subtle horizontal gradients, faint grid contour lines, soft light cones.
+
+DO NOT COPY any external website. This is vibe + structure only.
+
+STEP 0 — INVENTORY EVERYTHING AUTOMATICALLY (non-negotiable)
+Find routing source:
+- Search for react-router usage (createBrowserRouter, Routes, Route, RouterProvider) or Next.js pages/app router.
+- Identify the single source of truth for routes.
+
+Create ROUTE INVENTORY files:
+A) docs/route-inventory.json
+- Must include every route path and the component file that renders it.
+- Include nested routes, dynamic routes, redirects, index routes, 404/not-found, error boundaries.
+
+B) docs/route-inventory.md
+- Readable list of: route path -> file path -> page name.
+
+How:
+- Use ripgrep to find router definitions and page exports.
+- If react-router: parse the route config and list each path and element component import.
+- If Next.js: enumerate /pages or /app route mappings.
+- Confirm there are NO missing routes by checking for orphaned page components.
+
+STOP CONDITION:
+Do not begin redesign edits until route inventory is created and complete.
+
+STEP 1 — CREATE A SINGLE DESIGN SYSTEM USED EVERYWHERE
+1) Global tokens (CSS variables + Tailwind usage)
+Create a design token file and apply globally:
+- Background layers: base, mid haze, top bloom
+- Glass surface: background opacity, blur amount, border color, inner highlight
+- Glow: accent glow (purple/cyan/teal), soft ambient glow
+- Typography: hero, h2, h3, body, caption
+- Radii: consistent rounded corners
+- Shadows: soft + premium only (no harsh drop shadows)
+
+2) Global background stack (must be consistent across all pages)
+Build these primitives first, then use everywhere:
+- BackgroundStage: layered gradient mesh + subtle grid contour + soft orbs
+- SpotlightOverlay: desktop only mouse-follow radial light, pointer-events none
+- NoiseOverlay: subtle film grain
+- ParticleLayer: ultra subtle. Disabled on mobile and respects reduced motion
+- PageTransitionWrapper: consistent page entrance/exit motion
+
+3) Reusable UI primitives (build BEFORE editing pages)
+- LayoutShell: shared header + footer + page wrapper + max widths + spacing
+- GlassCard: consistent glass style for cards/blocks
+- MattePanel: for legal pages readability (privacy, terms)
+- GlowButton: primary CTA with glow and hover micro-motion
+- GhostButton: secondary CTA minimal
+- SectionHeader: consistent section title + subtitle + spacing
+- FeatureGrid: 2–3 columns desktop, 1 column mobile, staggered reveal
+- ShowcaseBlock: larger “hero-like” section container with depth
+- StatRow / ProofRow: for trust, metrics, benchmark proof where present
+- Divider: subtle gradient divider and spacing
+
+4) Motion system (Framer Motion)
+Single motion language only:
+- page enter: opacity 0 -> 1, y 12 -> 0, blur 6 -> 0, duration 0.45–0.6
+- section reveal: fade-up only
+- card hover: scale 1.00 -> 1.02, translateY -2, duration 0.18
+- stagger lists: 60–90ms per item
+- respects prefers-reduced-motion (disable spotlight + particles + heavy transitions)
+
+5) Responsive system
+- Define breakpoints and spacing scale
+- Mobile-first layout: no horizontal scroll ever
+- Tap targets >= 44px
+- Avoid hover-only interactions; ensure touch equivalents
+
+STEP 2 — APPLY THE SYSTEM TO EVERY ROUTE (ALL OF THEM)
+For each route component in docs/route-inventory.json:
+- Wrap with LayoutShell
+- Replace ad-hoc layout and random styles with the primitives above
+- Keep content and meaning identical, but restructure into premium chapters:
+
+Standard chapter structure (adapt per page content):
+1) HeroStage:
+   - headline + subheadline + CTAs
+   - optional image/visual container with depth (glow rim, gradient mesh)
+2) ProofRow (if the page has proof/benchmarks/trust):
+   - stats, logos, benchmark cards, highlights
+3) FeatureChapters:
+   - big statement + 2–3 feature cards
+   - alternating layout: left text then right visual, then swap
+4) ShowcaseBlocks:
+   - product shots, screenshots, UI showcase, or benchmark visuals
+5) Pricing:
+   - keep exact pricing content and tiers
+   - premium pricing cards with consistent glass style
+6) FAQ:
+   - keep exact questions/answers
+7) Footer:
+   - consistent on every page
+
+Design consistency rules:
+- All glass surfaces share the same blur, border, corner radius, and inner highlights.
+- Accent colors are controlled:
+  - Purple = primary brand accent
+  - Cyan = secondary accent
+  - Teal = tertiary accent
+Use sparingly. No rainbow mess.
+
+STEP 3 — REMOVE “AI TEMPLATE” LOOK (make it feel designed)
+Hard requirements:
+- No repetitive identical cards with same spacing across the entire site.
+- Break symmetry intentionally: one large feature card + two smaller, or offset grids.
+- Use visual anchors: hero glow orb, section spotlight, big showcase container.
+- Typography must have hierarchy:
+  - hero is large and confident
+  - subhead is constrained width for readability
+  - section titles have consistent spacing rhythm
+- Spacing must be intentional:
+  - consistent vertical rhythm
+  - generous whitespace
+- No generic stock gradients. Use layered subtle gradients and depth.
+
+STEP 4 — MAKE IT FEEL EXPENSIVE (depth, emotion, glow)
+Implement premium depth techniques used in the reference images:
+- Soft ambient bloom behind hero headline
+- Contour grid with low opacity, masked with gradients
+- Glass with inner highlight border (like a thin rim light)
+- Subtle noise layer across the whole page
+- Light cones or “orb” glows behind major sections
+- CTA buttons with controlled glow and shine sweep (subtle, not cheesy)
+
+Must be subtle and controlled:
+- no fast looping animations
+- no huge moving backgrounds on mobile
+
+STEP 5 — TECHNICAL SAFETY + PERFORMANCE
+- SpotlightOverlay:
+  - desktop only
+  - throttle mouse move using requestAnimationFrame
+  - pointer-events none
+- Particles:
+  - disabled on touch devices
+  - disabled on prefers-reduced-motion
+  - keep particle count low
+- Avoid heavy blur stacks on large full-screen layers on low-end devices.
+- Ensure smooth scrolling:
+  - if tour scroll exists, use smooth scroll behavior and avoid instant jumps
+
+STEP 6 — LEGAL PAGES MUST BE READABLE (privacy/terms/etc)
+For legal pages:
+- use MattePanel (less transparent) for text
+- keep headings and spacing clean
+- ensure contrast meets accessibility
+- no distracting motion
+
+STEP 7 — BUILD A SINGLE QA SYSTEM AND DO NOT STOP UNTIL IT PASSES
+Create docs/qa-checklist.md and fill it out.
+It must include:
+A) Global checks (applies to all routes)
+B) Per-route checks for desktop
+C) Per-route checks for mobile
+D) Performance checks
+E) Motion checks
+F) Accessibility checks
+
+Also create:
+- docs/redesign-summary.md (what changed, confirm content preserved)
+
+DELIVERABLES REQUIRED BEFORE STOPPING
+1) docs/route-inventory.json and docs/route-inventory.md
+2) New primitives in a shared components folder and used everywhere
+3) Every route updated to the new design system
+4) docs/qa-checklist.md completed with pass status for each route (desktop + mobile)
+5) docs/redesign-summary.md confirming no content was removed
+
+FINAL QA CHECKLIST (MUST COMPLETE AND MARK PASS/FAIL)
+Create docs/qa-checklist.md with the following template and fill it in:
+
+GLOBAL (Site-wide)
+- [ ] Consistent LayoutShell on all routes
+- [ ] BackgroundStage consistent on all routes
+- [ ] Spotlight works on desktop, disabled on mobile/touch
+- [ ] NoiseOverlay subtle and consistent
+- [ ] ParticleLayer disabled on mobile and respects reduced motion
+- [ ] Typography hierarchy consistent (hero, h2, h3, body)
+- [ ] GlassCard style consistent (blur, border, radius, inner highlight)
+- [ ] Buttons consistent (GlowButton + GhostButton)
+- [ ] No fake UI blocks, no “N/A”, no placeholders
+- [ ] No horizontal scroll on any route
+- [ ] Footer consistent across all pages
+
+DESKTOP PER ROUTE (repeat for each route in route-inventory)
+For each route:
+- [ ] Hero layout matches premium chapter structure
+- [ ] Sections reveal smoothly (no jank)
+- [ ] Hover states feel premium and consistent
+- [ ] CTAs visible, spacing intentional
+- [ ] Images scale properly and keep aspect
+- [ ] No layout shift during load
+
+MOBILE PER ROUTE (repeat for each route in route-inventory)
+For each route:
+- [ ] No horizontal scroll
+- [ ] Tap targets >= 44px
+- [ ] Typography readable, no cramped text
+- [ ] Cards stack cleanly (1 column)
+- [ ] Spotlight disabled, particles reduced/off
+- [ ] Animations reduced and do not lag
+- [ ] CTAs accessible and not off-screen
+
+PERFORMANCE
+- [ ] Lighthouse or equivalent basic check shows no severe performance regressions
+- [ ] No heavy continuous animations on mobile
+- [ ] Scroll is smooth on long pages
+- [ ] Background layers not causing high GPU usage
+
+MOTION + REDUCED MOTION
+- [ ] prefers-reduced-motion disables spotlight/particles and simplifies transitions
+- [ ] Transitions are slow and intentional (no chaotic motion)
+
+ACCESSIBILITY BASELINE
+- [ ] Text contrast acceptable
+- [ ] Focus states visible on keyboard nav
+- [ ] Buttons/links are reachable and labeled
+
+STOP CONDITION
+Do not stop until EVERY checkbox is marked PASS and any FAIL has a note + fix applied.
+
+Do not ask me to approve one page at a time. Inventory, execute across all pages, then QA across all pages.

@@ -1,0 +1,96 @@
+CONTEXT: WHY THIS REDESIGN IS HAPPENING
+
+This is not a cosmetic refresh. The current website has serious perception and structural problems that must be fixed.
+
+CURRENT PROBLEMS
+
+1) The site looks “AI generated”
+- Generic layout patterns
+- Default spacing and card grids
+- No strong hierarchy
+- No visual depth model
+- No intentional lighting or material logic
+- Repetitive sections that feel templated
+
+2) It feels flat and 2D
+- No layered background system
+- No consistent glass material
+- No light source logic
+- No depth stack (foreground / midground / background)
+- No contour, noise, glow, or atmosphere layers
+
+3) Weak emotional impact
+- No cinematic hero stage
+- No dramatic reveal motion
+- No visual anchors
+- CTAs do not feel premium
+- No tension, build-up, or visual progression
+
+4) Motion feels cheap or inconsistent
+- Default transitions
+- Sections appear without intention
+- Scroll feels abrupt in places
+- No unified motion language
+- No reduced-motion handling
+
+5) Pages are inconsistent
+- Different spacing logic per page
+- Different card styles
+- Different shadows
+- No single layout system
+- No single component system
+
+6) Mobile experience is not premium
+- Visuals feel compressed
+- Some animations do not adapt properly
+- No clear mobile-first thought process
+- No structured QA across all routes
+
+7) The brand does not feel like a $20,000 product
+The goal is to create a website that:
+- Feels intentional
+- Feels engineered
+- Has depth, glow, subtle luxury
+- Feels premium but controlled
+- Feels like a serious product, not a template
+
+WHY WE ARE DOING THIS
+
+We are elevating the product positioning.
+
+SwitchControl is not a hobby project. The website must:
+- Signal quality immediately in 3 seconds
+- Feel original
+- Feel technically competent
+- Feel engineered and premium
+- Maintain performance and responsiveness
+
+This redesign is about:
+- Cohesion
+- Emotional impact
+- Depth and material realism
+- Motion discipline
+- Design system integrity
+
+WHAT MUST NOT HAPPEN
+
+- Do not apply random glows everywhere.
+- Do not add decorative clutter.
+- Do not make everything animate at once.
+- Do not introduce inconsistent spacing.
+- Do not add new pages unless they already exist.
+- Do not change content meaning.
+
+WHAT SUCCESS LOOKS LIKE
+
+When finished:
+- Every route looks like it belongs to the same system.
+- The hero stage feels cinematic.
+- Depth is obvious but subtle.
+- Cards feel like floating glass panels with controlled light.
+- Motion feels engineered.
+- Mobile feels deliberate, not compressed.
+- No page feels like a template.
+
+This is a full structural elevation, not a theme swap.
+Treat it as rebuilding the experience layer of the product.
