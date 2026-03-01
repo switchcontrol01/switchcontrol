@@ -149,7 +149,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="bg-[#0c0c14] border-border/50 max-w-md backdrop-blur-xl"
+        className="max-w-md"
         data-testid="modal-license-management"
         onInteractOutside={handleClose}
         onEscapeKeyDown={(e) => { e.preventDefault(); handleClose(); }}

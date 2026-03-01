@@ -1,6 +1,8 @@
 {
   "name": "switchcontrol-electron",
   "version": "1.0.0",
+  "description": "Elite Windows performance optimization suite",
+  "author": "SwitchTech",
   "private": true,
   "main": "main.js",
   "type": "commonjs",

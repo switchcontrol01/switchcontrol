@@ -52,58 +52,81 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number }>>([]);
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { oauthDeepLinkReceived, oauthError } = useAuthStore();
 
-  const clearOAuthTimeout = useCallback(() => {
+  const clearAllTimers = useCallback(() => {
     if (oauthTimeoutRef.current) {
       clearTimeout(oauthTimeoutRef.current);
       oauthTimeoutRef.current = null;
-      console.log('[Login] OAuth timeout cleared');
     }
+    if (focusTimerRef.current) {
+      clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = null;
+    }
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+    console.log('[Login] All timers and listeners cleared');
   }, []);
 
   useEffect(() => {
     if (oauthDeepLinkReceived) {
       console.log('[Login] Deep link received — clearing timeout and loading state');
-      clearOAuthTimeout();
+      clearAllTimers();
       if (isLoading) {
         setIsLoading(null);
         setError(null);
       }
       useAuthStore.getState().setOauthDeepLinkReceived(false);
     }
-  }, [oauthDeepLinkReceived, isLoading, clearOAuthTimeout]);
+  }, [oauthDeepLinkReceived, isLoading, clearAllTimers]);
 
   useEffect(() => {
     if (oauthError) {
       console.log('[Login] OAuth error from store:', oauthError);
-      clearOAuthTimeout();
+      clearAllTimers();
       setIsLoading(null);
       setError(oauthError);
       useAuthStore.getState().setOauthError(null);
     }
-  }, [oauthError, clearOAuthTimeout]);
+  }, [oauthError, clearAllTimers]);
 
   useEffect(() => {
     return () => {
-      clearOAuthTimeout();
+      clearAllTimers();
     };
-  }, [clearOAuthTimeout]);
+  }, [clearAllTimers]);
 
   useEffect(() => {
     if (!isLoading) return;
 
+    const controller = new AbortController();
+    abortRef.current = controller;
     let focusCount = 0;
+
     const handleFocus = () => {
+      if (controller.signal.aborted) return;
       focusCount++;
-      if (focusCount >= 2 && isLoading && !useAuthStore.getState().oauthDeepLinkReceived) {
-        console.log('[Login] App regained focus without deep link — likely browser closed');
+      if (focusCount >= 2 && !useAuthStore.getState().oauthDeepLinkReceived) {
+        console.log('[Login] App regained focus without deep link — auto-cancelling');
+        focusTimerRef.current = setTimeout(() => {
+          if (!controller.signal.aborted && !useAuthStore.getState().oauthDeepLinkReceived) {
+            clearAllTimers();
+            setIsLoading(null);
+            setError("Login window was closed. Please try again.");
+          }
+        }, 500);
       }
     };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  }, [isLoading]);
+    window.addEventListener('focus', handleFocus, { signal: controller.signal });
+    return () => {
+      controller.abort();
+    };
+  }, [isLoading, clearAllTimers]);
 
   useEffect(() => {
     const newParticles = Array.from({ length: 30 }, (_, i) => ({
@@ -118,10 +141,10 @@ export default function Login() {
 
   const handleCancel = useCallback(() => {
     console.log('[Login] User cancelled login');
-    clearOAuthTimeout();
+    clearAllTimers();
     setIsLoading(null);
     setError(null);
-  }, [clearOAuthTimeout]);
+  }, [clearAllTimers]);
 
   const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
@@ -137,7 +160,7 @@ export default function Login() {
       try {
         await api.openExternal(authUrl);
 
-        clearOAuthTimeout();
+        clearAllTimers();
         oauthTimeoutRef.current = setTimeout(() => {
           console.warn('[Login] OAuth timeout — no deep link received within', OAUTH_TIMEOUT_MS, 'ms');
           setIsLoading(null);
@@ -316,9 +339,9 @@ export default function Login() {
                   </div>
                   <motion.button
                     onClick={handleCancel}
-                    className="text-sm text-muted-foreground hover:text-white transition-colors px-4 py-2 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    className="text-sm font-medium text-white/90 hover:text-white transition-all duration-150 px-6 py-2.5 rounded-xl border border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 shadow-sm"
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
                     data-testid="button-login-cancel"
                   >
                     Cancel

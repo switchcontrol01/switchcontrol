@@ -104,7 +104,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     title: 'Welcome to Premium',
     description: 'You now have access to the full SwitchControl suite. Let us show you what is unlocked.',
     icon: <Crown className="w-5 h-5 text-amber-400" />,
-    targetSelector: '[data-tour="dashboard"]',
+    targetSelector: '[data-tour="dashboard-hero"]',
     route: '/dashboard',
   },
   {
@@ -120,16 +120,16 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     title: 'Network Tweaks',
     description: 'Reduce latency and packet loss with advanced TCP/IP, UDP, DNS, and SMB optimizations. Premium-only network stack tuning for competitive gaming.',
     icon: <Wifi className="w-5 h-5 text-cyan-400" />,
-    targetSelector: '[data-tour="network"]',
-    route: '/dashboard',
+    targetSelector: '[data-tour="network-content"]',
+    route: '/network',
   },
   {
     id: 'bios-advisor',
     title: 'BIOS Intelligence',
     description: 'Expert BIOS configuration guidance tailored to your specific motherboard and CPU. Get safe, performance-tested recommendations for your exact setup.',
     icon: <Cpu className="w-5 h-5 text-cyan-400" />,
-    targetSelector: '[data-tour="bios-advisor"]',
-    route: '/dashboard',
+    targetSelector: '[data-tour="bios-content"]',
+    route: '/bios-advisor',
   },
   {
     id: 'ai-advisor',
@@ -144,7 +144,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     title: 'Premium Activated',
     description: 'Everything is unlocked. Priority support, advanced telemetry, and full optimization control are now yours. Enjoy your Premium experience.',
     icon: <Crown className="w-5 h-5 text-amber-400" />,
-    targetSelector: '[data-tour="dashboard"]',
+    targetSelector: '[data-tour="dashboard-hero"]',
     route: '/dashboard',
     action: <StagedUnlockAnimation />,
   },
@@ -153,7 +153,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     title: 'Join the Community',
     description: 'Join the Discord for updates, announcements, and premium giveaways.',
     icon: <DiscordIcon className="w-5 h-5 text-[#5865F2]" />,
-    targetSelector: '[data-tour="dashboard"]',
+    targetSelector: '[data-tour="dashboard-hero"]',
     route: '/dashboard',
     action: (
       <button

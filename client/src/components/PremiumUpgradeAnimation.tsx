@@ -13,6 +13,7 @@ type Phase =
   | 'darken'
   | 'lock-appear'
   | 'glow-build'
+  | 'shake-buildup'
   | 'unlock-snap'
   | 'shockwave'
   | 'logo-reveal'
@@ -34,14 +35,25 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   []);
 
   const particles = useMemo(() =>
-    Array.from({ length: 30 }, (_, i) => ({
+    Array.from({ length: 45 }, (_, i) => ({
       id: i,
-      angle: (i / 30) * Math.PI * 2 + (Math.random() - 0.5) * 0.3,
-      dist: 80 + Math.random() * 140,
-      delay: Math.random() * 0.2,
-      dur: 0.5 + Math.random() * 0.4,
-      size: 2 + Math.random() * 4,
+      angle: (i / 45) * Math.PI * 2 + (Math.random() - 0.5) * 0.3,
+      dist: 70 + Math.random() * 160,
+      delay: Math.random() * 0.25,
+      dur: 0.5 + Math.random() * 0.5,
+      size: 2 + Math.random() * 5,
       hue: 250 + Math.random() * 60,
+    })),
+  []);
+
+  const sparkTrails = useMemo(() =>
+    Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      angle: (i / 12) * Math.PI * 2,
+      dist: 120 + Math.random() * 80,
+      delay: Math.random() * 0.1,
+      dur: 0.6 + Math.random() * 0.3,
+      size: 1 + Math.random() * 2,
     })),
   []);
 
@@ -79,35 +91,33 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
     t.push(setTimeout(() => {
       setPhase('lock-appear');
-      
-    }, 600));
+    }, 500));
 
     t.push(setTimeout(() => {
       setPhase('glow-build');
-      
-    }, 1800));
+    }, 1500));
 
-    
+    t.push(setTimeout(() => {
+      setPhase('shake-buildup');
+    }, 2800));
 
     t.push(setTimeout(() => {
       setPhase('unlock-snap');
       setLockUnlocked(true);
       risingRef.current?.stop();
-      
-    }, 3400));
+    }, 3500));
 
     t.push(setTimeout(() => {
       setPhase('shockwave');
-    }, 3700));
+    }, 3800));
 
     t.push(setTimeout(() => {
       setPhase('logo-reveal');
-      
-    }, 4200));
+    }, 4300));
 
     t.push(setTimeout(() => {
       setPhase('text-reveal');
-    }, 4800));
+    }, 4900));
 
     t.push(setTimeout(() => {
       setPhase('exiting');
@@ -129,15 +139,16 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   const isActive = phase !== 'idle' && phase !== 'done';
 
   const phaseIndex = [
-    'idle', 'darken', 'lock-appear', 'glow-build', 'unlock-snap',
+    'idle', 'darken', 'lock-appear', 'glow-build', 'shake-buildup', 'unlock-snap',
     'shockwave', 'logo-reveal', 'text-reveal', 'exiting', 'done'
   ].indexOf(phase);
 
-  const showLock = phaseIndex >= 2 && phaseIndex <= 5;
-  const showGlowBuild = phaseIndex >= 3 && phaseIndex <= 5;
-  const showShockwave = phaseIndex >= 5;
-  const showLogo = phaseIndex >= 6;
-  const showText = phaseIndex >= 7;
+  const showLock = phaseIndex >= 2 && phaseIndex <= 6;
+  const showGlowBuild = phaseIndex >= 3 && phaseIndex <= 6;
+  const showShakeBuildup = phaseIndex >= 4 && phaseIndex <= 5;
+  const showShockwave = phaseIndex >= 6;
+  const showLogo = phaseIndex >= 7;
+  const showText = phaseIndex >= 8;
 
   return (
     <AnimatePresence>
@@ -188,13 +199,13 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     initial={{ opacity: 0, scale: 0.6, x: '-50%', y: '-50%' }}
                     animate={{
                       opacity: [0.3, 0.7, 0.3],
-                      scale: 1,
+                      scale: showShakeBuildup ? 1.1 : 1,
                       rotate: 360,
                     }}
                     exit={{ opacity: 0, scale: 1.5 }}
                     transition={{
-                      opacity: { duration: 1.5, repeat: Infinity, ease: 'easeInOut' },
-                      rotate: { duration: 4, repeat: Infinity, ease: 'linear' },
+                      opacity: { duration: showShakeBuildup ? 0.8 : 1.5, repeat: Infinity, ease: 'easeInOut' },
+                      rotate: { duration: showShakeBuildup ? 2 : 4, repeat: Infinity, ease: 'linear' },
                       scale: { duration: 0.6, ease: [...EASE_LUXURY] },
                     }}
                   >
@@ -236,13 +247,13 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         height: 160,
                         top: '40%',
                         left: '50%',
-                        border: '1px solid rgba(139,92,246,0.35)',
+                        border: `1px solid rgba(139,92,246,${showShakeBuildup ? 0.5 : 0.35})`,
                       }}
                       initial={{ opacity: 0.7, scale: 0.5, x: '-50%', y: '-50%' }}
-                      animate={{ opacity: 0, scale: 2.5 }}
+                      animate={{ opacity: 0, scale: showShakeBuildup ? 3 : 2.5 }}
                       transition={{
-                        duration: 1.5,
-                        delay: n * 0.5,
+                        duration: showShakeBuildup ? 1 : 1.5,
+                        delay: n * (showShakeBuildup ? 0.3 : 0.5),
                         repeat: Infinity,
                         ease: 'easeOut',
                       }}
@@ -261,12 +272,12 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         height: 300,
                         top: '40%',
                         left: '50%',
-                        background: 'radial-gradient(circle, rgba(139,92,246,0.35) 0%, rgba(168,85,247,0.15) 40%, transparent 65%)',
+                        background: 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, rgba(168,85,247,0.2) 40%, transparent 65%)',
                       }}
                       initial={{ opacity: 0, scale: 0.2, x: '-50%', y: '-50%' }}
-                      animate={{ opacity: [0, 1, 0], scale: [0.2, 2.5, 3.5] }}
+                      animate={{ opacity: [0, 1, 0], scale: [0.2, 3, 4] }}
                       exit={{ opacity: 0 }}
-                      transition={{ duration: 0.8, ease: 'easeOut' }}
+                      transition={{ duration: 0.9, ease: 'easeOut' }}
                     />
                     <motion.div
                       className="absolute rounded-full pointer-events-none"
@@ -275,11 +286,11 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         height: 200,
                         top: '40%',
                         left: '50%',
-                        border: '2px solid rgba(139,92,246,0.5)',
+                        border: '2px solid rgba(139,92,246,0.6)',
                       }}
                       initial={{ opacity: 0, scale: 0.3, x: '-50%', y: '-50%' }}
-                      animate={{ opacity: [0, 0.8, 0], scale: [0.3, 3, 4] }}
-                      transition={{ duration: 0.9, ease: 'easeOut' }}
+                      animate={{ opacity: [0, 0.8, 0], scale: [0.3, 3.5, 4.5] }}
+                      transition={{ duration: 1, ease: 'easeOut' }}
                     />
                     <motion.div
                       className="absolute rounded-full pointer-events-none"
@@ -288,11 +299,24 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         height: 160,
                         top: '40%',
                         left: '50%',
-                        background: 'radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 50%)',
+                        background: 'radial-gradient(circle, rgba(255,255,255,0.35) 0%, transparent 50%)',
                       }}
                       initial={{ opacity: 0, scale: 0.1, x: '-50%', y: '-50%' }}
-                      animate={{ opacity: [0, 0.9, 0], scale: [0.1, 2.5, 3] }}
+                      animate={{ opacity: [0, 1, 0], scale: [0.1, 2.5, 3] }}
                       transition={{ duration: 0.5, ease: 'easeOut' }}
+                    />
+                    <motion.div
+                      className="absolute rounded-full pointer-events-none"
+                      style={{
+                        width: 100,
+                        height: 100,
+                        top: '40%',
+                        left: '50%',
+                        border: '1px solid rgba(6,182,212,0.4)',
+                      }}
+                      initial={{ opacity: 0, scale: 0.5, x: '-50%', y: '-50%' }}
+                      animate={{ opacity: [0, 0.6, 0], scale: [0.5, 4, 5] }}
+                      transition={{ duration: 1.1, delay: 0.1, ease: 'easeOut' }}
                     />
                   </>
                 )}
@@ -315,13 +339,39 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         animate={{
                           x: Math.cos(p.angle) * p.dist,
                           y: Math.sin(p.angle) * p.dist,
-                          opacity: [0, 1, 0.6, 0],
-                          scale: [0, 1.5, 1, 0],
+                          opacity: [0, 1, 0.8, 0],
+                          scale: [0, 1.8, 1, 0],
                         }}
                         transition={{
                           duration: p.dur,
                           delay: p.delay,
                           ease: [...EASE_LUXURY],
+                        }}
+                      />
+                    ))}
+                    {sparkTrails.map((s) => (
+                      <motion.div
+                        key={`trail-${s.id}`}
+                        className="absolute"
+                        style={{
+                          width: s.size,
+                          height: s.size * 8,
+                          background: `linear-gradient(to bottom, rgba(255,255,255,0.9), rgba(139,92,246,0.6), transparent)`,
+                          borderRadius: '50%',
+                          transformOrigin: 'center top',
+                          rotate: `${(s.angle * 180) / Math.PI + 90}deg`,
+                        }}
+                        initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+                        animate={{
+                          x: Math.cos(s.angle) * s.dist,
+                          y: Math.sin(s.angle) * s.dist,
+                          opacity: [0, 0.8, 0],
+                          scale: [0, 1.5, 0],
+                        }}
+                        transition={{
+                          duration: s.dur,
+                          delay: s.delay,
+                          ease: 'easeOut',
                         }}
                       />
                     ))}
@@ -337,25 +387,45 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     initial={{ opacity: 0, scale: 0.5, x: '-50%' }}
                     animate={{
                       opacity: 1,
-                      scale: lockUnlocked ? 1.15 : 1,
+                      scale: lockUnlocked ? 1.2 : (showShakeBuildup ? [1, 1.06, 1, 1.06, 1] : 1),
                       x: '-50%',
                     }}
                     exit={{ opacity: 0, scale: 1.5, x: '-50%' }}
                     transition={{
                       opacity: { duration: 0.5 },
-                      scale: { duration: lockUnlocked ? 0.15 : 0.6, ease: [...EASE_LUXURY] },
+                      scale: lockUnlocked
+                        ? { duration: 0.15, ease: [...EASE_LUXURY] }
+                        : showShakeBuildup
+                          ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }
+                          : { duration: 0.6, ease: [...EASE_LUXURY] },
                     }}
                   >
                     <motion.div
                       style={{
                         filter: showGlowBuild
-                          ? 'drop-shadow(0 0 30px rgba(139,92,246,0.7)) drop-shadow(0 0 60px rgba(139,92,246,0.3))'
+                          ? showShakeBuildup
+                            ? 'drop-shadow(0 0 40px rgba(139,92,246,0.8)) drop-shadow(0 0 80px rgba(139,92,246,0.4))'
+                            : 'drop-shadow(0 0 30px rgba(139,92,246,0.7)) drop-shadow(0 0 60px rgba(139,92,246,0.3))'
                           : 'drop-shadow(0 0 15px rgba(139,92,246,0.4))',
                       }}
-                      animate={lockUnlocked ? {
-                        x: [0, -4, 4, -3, 3, 0],
-                      } : {}}
-                      transition={{ duration: 0.3 }}
+                      animate={
+                        lockUnlocked
+                          ? { x: [0, -6, 6, -5, 5, -3, 3, 0] }
+                          : showShakeBuildup
+                            ? { x: [0, -2, 2, -3, 3, -2, 2, 0], y: [0, -1, 1, -1, 1, 0] }
+                            : phase === 'lock-appear'
+                              ? { scale: [1, 1.04, 1] }
+                              : {}
+                      }
+                      transition={
+                        lockUnlocked
+                          ? { duration: 0.35, ease: 'easeOut' }
+                          : showShakeBuildup
+                            ? { duration: 0.4, repeat: Infinity, ease: 'easeInOut' }
+                            : phase === 'lock-appear'
+                              ? { duration: 2, repeat: Infinity, ease: 'easeInOut' }
+                              : {}
+                      }
                     >
                       <svg width="64" height="64" viewBox="0 0 24 24" fill="none">
                         <motion.path
@@ -382,8 +452,13 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                           animate={lockUnlocked ? {
                             fill: 'rgba(139,92,246,1)',
                             scale: 1.3,
+                          } : showShakeBuildup ? {
+                            fill: ['rgba(168,132,255,0.9)', 'rgba(200,160,255,1)', 'rgba(168,132,255,0.9)'],
                           } : {}}
-                          transition={{ duration: 0.2, delay: 0.1 }}
+                          transition={showShakeBuildup
+                            ? { duration: 0.6, repeat: Infinity, ease: 'easeInOut' }
+                            : { duration: 0.2, delay: 0.1 }
+                          }
                         />
                         <motion.path
                           d="M12 16.5V18.5"
@@ -408,7 +483,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                             transform: 'skewX(-20deg)',
                           }}
                           animate={{ x: ['-200%', '200%'] }}
-                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.5 }}
+                          transition={{ duration: showShakeBuildup ? 0.8 : 1.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: showShakeBuildup ? 0.1 : 0.5 }}
                         />
                       </motion.div>
                     )}
@@ -487,17 +562,23 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
             </div>
 
             <AnimatePresence mode="wait">
-              {(phase === 'glow-build') && (
+              {(phase === 'glow-build' || phase === 'shake-buildup') && (
                 <motion.p
                   key="activating"
                   className="mt-6 text-sm font-medium tracking-[0.15em] uppercase"
                   style={{ color: 'rgba(139,92,246,0.7)' }}
                   initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  animate={{
+                    opacity: phase === 'shake-buildup' ? [0.7, 1, 0.7] : 1,
+                    y: 0,
+                  }}
                   exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.4, ease: [...EASE_LUXURY] }}
+                  transition={phase === 'shake-buildup'
+                    ? { opacity: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' }, y: { duration: 0.4 } }
+                    : { duration: 0.4, ease: [...EASE_LUXURY] }
+                  }
                 >
-                  Activating Premium
+                  {phase === 'shake-buildup' ? 'Unlocking…' : 'Activating Premium'}
                 </motion.p>
               )}
             </AnimatePresence>

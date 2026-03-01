@@ -1067,23 +1067,9 @@ body {
 }
 
 /* Global non-selectable UI chrome */
-body {
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-input,
-textarea,
-[contenteditable="true"],
-.select-text,
-code,
-pre {
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-/* Electron App Structure - CRITICAL for frameless window */
 .app-root {
+  user-select: none;
+  -webkit-user-select: none;
   width: 100%;
   height: 100vh;
   display: flex;
@@ -1092,25 +1078,94 @@ pre {
   overflow: hidden;
 }
 
+input,
+textarea,
+[contenteditable],
+.select-text {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .titlebar {
-  height: 32px;
-  min-height: 32px;
-  -webkit-app-region: drag;
   flex-shrink: 0;
   z-index: 9999;
   position: relative;
-  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
-  border-bottom: 1px solid rgba(255,255,255,0.04);
-  backdrop-filter: blur(16px);
+}
+
+.titlebar-strip {
+  height: 36px;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  position: relative;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.045) 0%,
+    rgba(255, 255, 255, 0.015) 60%,
+    transparent 100%
+  );
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.titlebar-drag-region {
+  position: absolute;
+  inset: 0;
+  -webkit-app-region: drag;
 }
 
 .titlebar-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  padding-right: 4px;
+  position: relative;
+  z-index: 1;
   -webkit-app-region: no-drag;
+}
+
+.titlebar-btn {
+  width: 36px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+  -webkit-app-region: no-drag;
+}
+
+.titlebar-btn:hover {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.15);
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.15);
+}
+
+.titlebar-btn:hover svg {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.titlebar-btn-close:hover {
+  background: rgba(239, 68, 68, 0.35);
+  border-color: rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+.titlebar-btn-close:hover svg {
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .app-content {
   flex: 1;
-  height: calc(100vh - 32px);
+  height: calc(100vh - 36px);
   overflow: auto;
   position: relative;
 }

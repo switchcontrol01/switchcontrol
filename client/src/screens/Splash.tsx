@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "@/assets/logo.png";
+import { getTagline } from "@/lib/taglines";
 
 interface SplashProps {
   onComplete: () => void;
@@ -9,6 +10,7 @@ interface SplashProps {
 export default function Splash({ onComplete }: SplashProps) {
   const [phase, setPhase] = useState<"logo" | "fadeout">("logo");
   const [progress, setProgress] = useState(0);
+  const tagline = useMemo(() => getTagline(), []);
 
   useEffect(() => {
     const logoTimer = setTimeout(() => {
@@ -192,12 +194,13 @@ export default function Splash({ onComplete }: SplashProps) {
             </motion.h1>
 
             <motion.p
-              className="text-sm text-muted-foreground"
+              className="text-sm text-muted-foreground max-w-xs text-center leading-relaxed"
+              data-testid="text-splash-tagline"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.5 }}
             >
-              Gaming optimization suite
+              {tagline}
             </motion.p>
 
             {/* Progress bar */}

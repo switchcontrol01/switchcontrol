@@ -74,14 +74,12 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
       const api = (window as any).electronAPI;
       if (api?.telemetry?.getGpu) {
         const res = await api.telemetry.getGpu();
-        if (!res) {
-          onOpenChange(false);
-          return;
-        }
+        if (!res) return;
         setData(res);
-        if (res.load !== undefined) {
+        const loadVal = res.load;
+        if (loadVal !== undefined && loadVal !== null && Number.isFinite(Number(loadVal))) {
           setLoadHistory(prev => {
-            const next = [...prev, res.load];
+            const next = [...prev, Number(loadVal)];
             return next.length > BUFFER_SIZE ? next.slice(-BUFFER_SIZE) : next;
           });
         }
@@ -89,7 +87,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
     } catch {
       // silently fail
     }
-  }, [onOpenChange]);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -134,7 +132,14 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
       description={data ? `${data.model}${data.driverVersion ? ` — Driver ${data.driverVersion}` : ""}` : "Loading..."}
       testId="modal-gpu"
     >
-      {data ? (
+      {!isElectron ? (
+        <div className="py-8 flex flex-col items-center justify-center gap-2">
+          <GpuIcon className="size-8 text-muted-foreground/50" />
+          <div className="text-sm text-muted-foreground" data-testid="text-gpu-desktop-required">
+            GPU telemetry requires the desktop app.
+          </div>
+        </div>
+      ) : data ? (
         <div className="space-y-4">
           {loadPct !== null && (
             <motion.div
@@ -201,25 +206,34 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             </motion.div>
           )}
 
-          <div className="grid grid-cols-2 gap-2">
-            {(() => {
-              const tiles: { label: string; value: string | number; unit?: string }[] = [];
-              if (data.temperature !== undefined) tiles.push({ label: "Temperature", value: data.temperature, unit: "°C" });
-              if (data.powerDraw !== undefined) tiles.push({ label: "Power Draw", value: data.powerDraw, unit: "W" });
-              if (data.clockCore !== undefined) tiles.push({ label: "Core Clock", value: data.clockCore, unit: "MHz" });
-              if (data.clockMemory !== undefined) tiles.push({ label: "Mem Clock", value: data.clockMemory, unit: "MHz" });
-              return tiles.map((t, i) => (
-                <StatTile key={t.label} label={t.label} value={t.value} unit={t.unit} delay={0.2 + i * 0.04} />
-              ));
-            })()}
-          </div>
+          {(() => {
+            const tiles: { label: string; value: string | number; unit?: string }[] = [];
+            if (data.temperature !== undefined) tiles.push({ label: "Temperature", value: data.temperature, unit: "°C" });
+            if (data.powerDraw !== undefined) tiles.push({ label: "Power Draw", value: data.powerDraw, unit: "W" });
+            if (data.clockCore !== undefined) tiles.push({ label: "Core Clock", value: data.clockCore, unit: "MHz" });
+            if (data.clockMemory !== undefined) tiles.push({ label: "Mem Clock", value: data.clockMemory, unit: "MHz" });
+            if (tiles.length === 0) return null;
+            return (
+              <div className="grid grid-cols-2 gap-2">
+                {tiles.map((t, i) => (
+                  <StatTile key={t.label} label={t.label} value={t.value} unit={t.unit} delay={0.2 + i * 0.04} />
+                ))}
+              </div>
+            );
+          })()}
+
+          {loadPct === null && (data.memoryUsed === undefined || data.vram === undefined) && data.temperature === undefined && data.powerDraw === undefined && data.clockCore === undefined && data.clockMemory === undefined && (
+            <div className="py-4 text-center text-sm text-muted-foreground" data-testid="text-gpu-limited">
+              Detailed metrics unavailable for this GPU. Model detected: {data.model}
+            </div>
+          )}
 
         </div>
       ) : (
         <div className="py-8 flex flex-col items-center justify-center gap-2">
-          <GpuIcon className="size-8 text-muted-foreground/50" />
-          <div className="text-sm text-muted-foreground">
-            {isElectron ? "Loading GPU data..." : "GPU telemetry requires the desktop app."}
+          <GpuIcon className="size-8 text-muted-foreground/50 animate-pulse" />
+          <div className="text-sm text-muted-foreground" data-testid="text-gpu-loading">
+            Loading GPU data...
           </div>
         </div>
       )}

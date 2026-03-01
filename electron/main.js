@@ -687,17 +687,47 @@ ipcMain.handle('telemetry:getGpu', async () => {
     if (!g.controllers.length) return null;
 
     const c = g.controllers[0];
-    const result = { model: c.model };
+    const result = { model: c.model || 'Unknown GPU' };
 
-    if (c.driverVersion !== undefined) result.driverVersion = c.driverVersion;
-    if (c.vram !== undefined) result.vram = c.vram;
-    if (c.memoryUsed !== undefined) result.memoryUsed = c.memoryUsed;
-    const load = c.utilizationGpu ?? c.load;
-    if (load !== undefined) result.load = load;
-    if (c.temperatureGpu !== undefined) result.temperature = c.temperatureGpu;
-    if (c.powerDraw !== undefined) result.powerDraw = c.powerDraw;
-    if (c.clockCore !== undefined) result.clockCore = c.clockCore;
-    if (c.clockMemory !== undefined) result.clockMemory = c.clockMemory;
+    if (c.driverVersion) result.driverVersion = c.driverVersion;
+    if (c.vram != null && c.vram > 0) result.vram = c.vram;
+    if (c.memoryUsed != null && c.memoryUsed > 0) result.memoryUsed = c.memoryUsed;
+
+    const siLoad = c.utilizationGpu ?? c.load;
+    if (siLoad != null && Number.isFinite(Number(siLoad))) {
+      result.load = safeNum(siLoad);
+    }
+
+    if (c.temperatureGpu != null && Number.isFinite(Number(c.temperatureGpu)) && c.temperatureGpu > 0) {
+      result.temperature = safeNum(c.temperatureGpu);
+    }
+
+    if (c.powerDraw != null && Number.isFinite(Number(c.powerDraw)) && c.powerDraw > 0) {
+      result.powerDraw = safeNum(c.powerDraw);
+    }
+    if (c.clockCore != null && Number.isFinite(Number(c.clockCore)) && c.clockCore > 0) {
+      result.clockCore = safeNum(c.clockCore, 0);
+    }
+    if (c.clockMemory != null && Number.isFinite(Number(c.clockMemory)) && c.clockMemory > 0) {
+      result.clockMemory = safeNum(c.clockMemory, 0);
+    }
+
+    if (isNvidiaGpu(g)) {
+      try {
+        const [nvTemp, nvLoad] = await Promise.all([
+          result.temperature == null ? getNvidiaGpuTemp() : Promise.resolve(null),
+          result.load == null ? getNvidiaGpuLoad() : Promise.resolve(null),
+        ]);
+        if (nvTemp != null && result.temperature == null) result.temperature = nvTemp;
+        if (nvLoad != null && result.load == null) result.load = nvLoad;
+      } catch (_) {}
+    }
+
+    const lhm = await getLhmTelemetry();
+    if (lhm) {
+      if (lhm.gpuTemp != null && result.temperature == null) result.temperature = lhm.gpuTemp;
+      if (lhm.gpuLoad != null && result.load == null) result.load = lhm.gpuLoad;
+    }
 
     return result;
   } catch (e) {

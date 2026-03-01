@@ -2,6 +2,8 @@
   "appId": "com.switchcontrol.desktop",
   "productName": "SwitchControl",
   "executableName": "SwitchControl",
+  "description": "Elite Windows performance optimization suite",
+  "author": "SwitchTech",
   "directories": {
     "output": "release"
   },

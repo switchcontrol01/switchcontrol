@@ -33,8 +33,9 @@ The application is structured into `client/src` (frontend components, hooks, uti
 - **HeroBackground**: Simplified — gradient glow + two subtle animated blobs + noise grain. No SVG waves, no particles, no contour lines.
 - **Typography Pattern**: Mixed font weights (font-extralight for context text, font-bold for emphasis) used across hero, social proof, and CTA sections.
 - **Modals**: A shared `GlassModalLayout` component provides a consistent visual style (dark translucent background, blurred border) and behavior (escape handling, backdrop close, scroll lock) for various interactive modals (e.g., Memory Cleaner, CPU Cores).
-- **Window Controls**: Custom-styled window control buttons with glass-blended appearance for Electron desktop builds.
-- **Global Text Selection**: `user-select: none` is applied globally for a premium feel, with exceptions for input fields and copyable text.
+- **Window Controls**: Custom-styled window control buttons with glass-blended appearance for Electron desktop builds. Embedded glass titlebar strip with 36px hit area, hover glow + micro-scale, drag region on titlebar.
+- **Global Text Selection**: `user-select: none` is applied globally on `.app-root` for a premium feel, with exceptions for input fields, textareas, contenteditable, and `.select-text` class.
+- **Glass Consistency**: All modals use unified glass tokens: `bg-[#0c0c14]/95 backdrop-blur-xl border-white/10 rounded-2xl`. Applied to Dialog base, PremiumModal, LicenseManagementModal, PendingActivationModal, TweakCard overlays.
 
 ### Key Features
 - **Dashboard**: Displays system stats, simulates RAM clearing, initiates AI advisor scans, and shows live telemetry graphs (CPU, RAM).

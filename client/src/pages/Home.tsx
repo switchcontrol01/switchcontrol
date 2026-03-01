@@ -453,7 +453,7 @@ export default function Home() {
     <AppLayout>
       <div className="space-y-8">
         {/* Header with particles */}
-        <div className="relative">
+        <div className="relative" data-tour="dashboard-hero">
           <DashboardHeaderParticles />
           <div className="flex items-center justify-between relative z-10">
             <div>

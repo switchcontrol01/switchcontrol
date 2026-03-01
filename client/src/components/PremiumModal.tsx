@@ -22,7 +22,7 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
   
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card/95 backdrop-blur-xl border-white/10">
+      <DialogContent className="sm:max-w-md">
         <DialogHeader className="text-center">
           <motion.div 
             className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-4"

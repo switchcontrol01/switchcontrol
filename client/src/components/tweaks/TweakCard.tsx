@@ -104,7 +104,7 @@ function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose:
   return (
     <>
       <motion.div 
-        className="fixed inset-0 z-50 bg-black/30 backdrop-blur-[1px] pointer-events-auto"
+        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm pointer-events-auto"
         onClick={triggerAttentionAnimation}
         variants={modalBackdrop}
         initial="initial"
@@ -119,7 +119,7 @@ function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose:
         exit="exit"
       >
         <motion.div 
-          className="relative w-full max-w-sm bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] rounded-2xl p-6 pointer-events-auto"
+          className="relative w-full max-w-sm bg-[#0c0c14]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/40 pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
           animate={isAnimating ? {
             scale: [1, 1.03, 1],

@@ -20,34 +20,38 @@ export function WindowControls() {
   };
 
   return (
-    <div className="titlebar-controls fixed top-0 right-0 z-[9999] flex items-center h-8 gap-0.5 pr-1">
-      <motion.button
-        onClick={handleMinimize}
-        className="w-9 h-7 flex items-center justify-center rounded-lg bg-white/[0.03] backdrop-blur-md border border-white/[0.04] transition-colors duration-150"
-        whileHover={{ scale: 1.06, backgroundColor: "rgba(168, 85, 247, 0.15)" }}
-        whileTap={{ scale: 0.95 }}
-        data-testid="window-minimize"
-      >
-        <Minus className="w-3.5 h-3.5 text-white/60" />
-      </motion.button>
-      <motion.button
-        onClick={handleMaximize}
-        className="w-9 h-7 flex items-center justify-center rounded-lg bg-white/[0.03] backdrop-blur-md border border-white/[0.04] transition-colors duration-150"
-        whileHover={{ scale: 1.06, backgroundColor: "rgba(168, 85, 247, 0.15)" }}
-        whileTap={{ scale: 0.95 }}
-        data-testid="window-maximize"
-      >
-        <Square className="w-2.5 h-2.5 text-white/60" />
-      </motion.button>
-      <motion.button
-        onClick={handleClose}
-        className="w-9 h-7 flex items-center justify-center rounded-lg bg-white/[0.03] backdrop-blur-md border border-white/[0.04] transition-colors duration-150"
-        whileHover={{ scale: 1.06, backgroundColor: "rgba(239, 68, 68, 0.4)" }}
-        whileTap={{ scale: 0.95 }}
-        data-testid="window-close"
-      >
-        <X className="w-3.5 h-3.5 text-white/60" />
-      </motion.button>
+    <div className="titlebar-strip">
+      <div className="titlebar-drag-region" />
+
+      <div className="titlebar-controls">
+        <motion.button
+          onClick={handleMinimize}
+          className="titlebar-btn"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          data-testid="window-minimize"
+        >
+          <Minus className="w-3.5 h-3.5 text-white/60 group-hover:text-white/90 transition-colors" />
+        </motion.button>
+        <motion.button
+          onClick={handleMaximize}
+          className="titlebar-btn"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          data-testid="window-maximize"
+        >
+          <Square className="w-2.5 h-2.5 text-white/60 group-hover:text-white/90 transition-colors" />
+        </motion.button>
+        <motion.button
+          onClick={handleClose}
+          className="titlebar-btn titlebar-btn-close"
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.92 }}
+          data-testid="window-close"
+        >
+          <X className="w-3.5 h-3.5 text-white/60 transition-colors" />
+        </motion.button>
+      </div>
     </div>
   );
 }
