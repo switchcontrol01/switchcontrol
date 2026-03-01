@@ -111,10 +111,7 @@ function PacketRoute({ className }: { className?: string }) {
 
 interface BgImageConfig {
   src: string;
-  position: string;
   opacity: number;
-  blur?: string;
-  size?: string;
 }
 
 const VARIANT_CONFIG: Record<BackgroundVariant, {
@@ -146,8 +143,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: true,
     bgImages: [
-      { src: heroBackdrop, position: "top-0 left-0 right-0", opacity: 0.09, size: "100% auto" },
-      { src: circuitTech, position: "top-[50%] left-0 right-0", opacity: 0.05, blur: "blur-[2px]", size: "100% auto" },
+      { src: heroBackdrop, opacity: 0.05 },
+      { src: circuitTech, opacity: 0.03 },
     ],
     particles: true,
   },
@@ -169,8 +166,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: true,
     bgImages: [
-      { src: perfDashboard, position: "top-[10%] left-0 right-0", opacity: 0.07, size: "100% auto" },
-      { src: networkFlow, position: "bottom-[5%] left-0 right-0", opacity: 0.04, blur: "blur-[3px]", size: "100% auto" },
+      { src: perfDashboard, opacity: 0.04 },
+      { src: networkFlow, opacity: 0.03 },
     ],
     particles: true,
   },
@@ -190,7 +187,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: hardwareDetail, position: "top-[15%] left-[10%] right-0", opacity: 0.07, size: "90% auto" },
+      { src: hardwareDetail, opacity: 0.04 },
     ],
     particles: true,
   },
@@ -209,7 +206,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: circuitTech, position: "top-[20%] left-0 right-0", opacity: 0.035, blur: "blur-[3px]", size: "100% auto" },
+      { src: circuitTech, opacity: 0.03 },
     ],
     particles: false,
   },
@@ -226,7 +223,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: networkFlow, position: "top-[30%] left-0 right-0", opacity: 0.025, blur: "blur-[4px]", size: "100% auto" },
+      { src: networkFlow, opacity: 0.02 },
     ],
     particles: false,
   },
@@ -246,7 +243,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: perfDashboard, position: "top-[20%] left-0 right-0", opacity: 0.07, size: "100% auto" },
+      { src: perfDashboard, opacity: 0.04 },
     ],
     particles: true,
   },
@@ -330,25 +327,17 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
       {config.bgImages.map((img, i) => (
         <div
           key={i}
-          className={cn("absolute", img.position, img.blur)}
+          className="absolute inset-0 pointer-events-none"
           style={{
+            backgroundImage: `url(${img.src})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
             opacity: img.opacity,
             mixBlendMode: "screen",
-            transform: `translateY(${i % 2 === 0 ? -parallaxOffset * 0.4 : parallaxOffset * 0.3}px)`,
+            filter: "blur(8px) contrast(1.2)",
+            transform: `rotate(-3deg) scale(1.05) translateY(${i % 2 === 0 ? -parallaxOffset * 0.4 : parallaxOffset * 0.3}px)`,
           }}
-        >
-          <img
-            src={img.src}
-            alt=""
-            className="w-full h-auto"
-            style={{
-              objectFit: "cover",
-              objectPosition: "center",
-              ...(img.size ? { width: img.size.split(" ")[0] } : {}),
-            }}
-            loading="lazy"
-          />
-        </div>
+        />
       ))}
 
       <div
@@ -358,7 +347,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-10%",
           width: "120%",
           height: "80%",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(180,140,255,0.04) 15%, transparent 40%)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(180,140,255,0.07) 15%, transparent 40%)",
           opacity: beamFade,
           transform: `translateY(${-parallaxOffset * 0.2}px)`,
         }}
@@ -371,7 +360,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "5%",
           width: "60%",
           height: "70%",
-          background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(140,180,255,0.03) 20%, transparent 45%)",
+          background: "linear-gradient(145deg, rgba(255,255,255,0.10) 0%, rgba(140,180,255,0.05) 20%, transparent 45%)",
           opacity: beamFade * 0.7,
           transform: `translateY(${-parallaxOffset * 0.15}px)`,
         }}
@@ -384,7 +373,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "50%",
           height: "90%",
-          background: "linear-gradient(125deg, rgba(200,180,255,0.05) 0%, rgba(130,200,255,0.02) 25%, transparent 50%)",
+          background: "linear-gradient(125deg, rgba(200,180,255,0.07) 0%, rgba(130,200,255,0.03) 25%, transparent 50%)",
           opacity: beamFade * 0.5,
           transform: `translateY(${-parallaxOffset * 0.1}px)`,
         }}
@@ -397,7 +386,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "60%",
           height: "50%",
-          background: "radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.12) 0%, rgba(180,140,255,0.08) 20%, rgba(120,80,200,0.04) 40%, transparent 65%)",
+          background: "radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.20) 0%, rgba(180,140,255,0.14) 20%, rgba(120,80,200,0.06) 40%, transparent 65%)",
           opacity: beamFade,
         }}
       />

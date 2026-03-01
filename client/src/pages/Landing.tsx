@@ -34,56 +34,15 @@ import { GhostButton } from "@/components/website/GhostButton";
 import { SectionHeader } from "@/components/website/SectionHeader";
 import { SectionDivider } from "@/components/website/SectionDivider";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
+import { useMomentumScroll } from "@/hooks/useMomentumScroll";
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-  const tiltRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
-  const animRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (isMobile) return;
-    const el = containerRef.current;
-    if (!el) return;
-
-    const handleMouseMove = (e: globalThis.MouseEvent) => {
-      const rect = el.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
-      tiltRef.current.targetX = ((e.clientY - centerY) / (rect.height / 2)) * -4;
-      tiltRef.current.targetY = ((e.clientX - centerX) / (rect.width / 2)) * 6;
-    };
-
-    const handleMouseLeave = () => {
-      tiltRef.current.targetX = 0;
-      tiltRef.current.targetY = 0;
-    };
-
-    const animate = () => {
-      const t = tiltRef.current;
-      t.x += (t.targetX - t.x) * 0.06;
-      t.y += (t.targetY - t.y) * 0.06;
-      if (el) {
-        el.style.transform = `perspective(1200px) rotateX(${t.x}deg) rotateY(${t.y}deg)`;
-      }
-      animRef.current = requestAnimationFrame(animate);
-    };
-
-    el.addEventListener("mousemove", handleMouseMove);
-    el.addEventListener("mouseleave", handleMouseLeave);
-    animRef.current = requestAnimationFrame(animate);
-
-    return () => {
-      el.removeEventListener("mousemove", handleMouseMove);
-      el.removeEventListener("mouseleave", handleMouseLeave);
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
-  }, [isMobile]);
-
   return (
     <div
-      ref={containerRef}
-      style={{ transformStyle: "preserve-3d", willChange: "transform" }}
+      style={{
+        transformStyle: "preserve-3d",
+        transform: "perspective(1200px) rotateX(2deg)",
+      }}
     >
       {children}
     </div>
@@ -179,6 +138,7 @@ function CountingNumber({
   const numericValue = parseInt(value.replace(/[^\d]/g, ""), 10);
   const [displayValue, setDisplayValue] = useState<string | null>(null);
   const hasAnimated = useRef(false);
+  const elRef = useRef<HTMLSpanElement>(null);
 
   useEffect(() => {
     if (hasAnimated.current) {
@@ -189,35 +149,54 @@ function CountingNumber({
       setDisplayValue(value);
       return;
     }
-    const timer = setTimeout(() => {
-      if (hasAnimated.current) return;
-      hasAnimated.current = true;
-      setDisplayValue("0");
-      const duration = prefersReducedMotion ? 600 : 1200;
-      const startTime = performance.now();
-      const animate = (currentTime: number) => {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        const current = Math.round(numericValue * eased);
-        setDisplayValue(current.toString());
-        if (progress < 1) requestAnimationFrame(animate);
-        else setDisplayValue(numericValue.toString());
-      };
-      requestAnimationFrame(animate);
-    }, startDelay);
-    return () => clearTimeout(timer);
+
+    const el = elRef.current;
+    if (!el) return;
+
+    let timerId: ReturnType<typeof setTimeout> | null = null;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || hasAnimated.current) return;
+        observer.disconnect();
+
+        timerId = setTimeout(() => {
+          if (hasAnimated.current) return;
+          hasAnimated.current = true;
+          setDisplayValue("0");
+          const duration = prefersReducedMotion ? 600 : 1200;
+          const startTime = performance.now();
+          const animate = (currentTime: number) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            const current = Math.round(numericValue * eased);
+            setDisplayValue(current.toString());
+            if (progress < 1) requestAnimationFrame(animate);
+            else setDisplayValue(numericValue.toString());
+          };
+          requestAnimationFrame(animate);
+        }, startDelay);
+      },
+      { threshold: 0.3 }
+    );
+
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      if (timerId) clearTimeout(timerId);
+    };
   }, [value, numericValue, prefersReducedMotion, startDelay]);
 
   if (displayValue === null) {
     return (
-      <span style={{ visibility: "hidden" }}>
+      <span ref={elRef} style={{ visibility: "hidden" }}>
         {prefix}0{suffix}
       </span>
     );
   }
   return (
-    <span>
+    <span ref={elRef}>
       {prefix}
       {displayValue}
       {suffix}
@@ -265,54 +244,125 @@ function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
   );
 }
 
+function AnimatedBar({ target, color, delay }: { target: number; color: string; delay: number }) {
+  const [width, setWidth] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          observer.disconnect();
+          setTimeout(() => setWidth(target), delay);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target, delay]);
+
+  return (
+    <div ref={ref} className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+      <div
+        className={cn("h-full rounded-full transition-all duration-1000 ease-out", color)}
+        style={{ width: `${width}%` }}
+      />
+    </div>
+  );
+}
+
+function MockupCounter({ target, suffix = "" }: { target: number; suffix: string }) {
+  const [val, setVal] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const animated = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting || animated.current) return;
+        animated.current = true;
+        observer.disconnect();
+        const duration = 1000;
+        const start = performance.now();
+        const animate = (now: number) => {
+          const p = Math.min((now - start) / duration, 1);
+          const eased = 1 - Math.pow(1 - p, 3);
+          setVal(Math.round(target * eased));
+          if (p < 1) requestAnimationFrame(animate);
+        };
+        requestAnimationFrame(animate);
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [target]);
+
+  return <span ref={ref}>{val}{suffix}</span>;
+}
+
 function HeroAppMockup() {
+  const METRICS = [
+    { label: "CPU", target: 4, color: "bg-emerald-500", textColor: "text-emerald-400" },
+    { label: "RAM", target: 38, color: "bg-sky-500", textColor: "text-sky-400" },
+    { label: "GPU", target: 2, color: "bg-violet-500", textColor: "text-violet-400" },
+  ];
+
   return (
     <div className="ws-hero-mockup relative animate-mockup-float">
-      <div className="absolute -inset-8 bg-gradient-to-br from-primary/20 via-transparent to-[hsl(190,80%,50%,0.1)] rounded-3xl blur-3xl pointer-events-none" />
+      <div className="absolute -inset-8 bg-gradient-to-br from-primary/25 via-transparent to-[hsl(190,80%,50%,0.15)] rounded-3xl blur-3xl pointer-events-none" />
 
       <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-16 rounded-full pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsl(190 90% 50% / 0.5), transparent 70%)', filter: 'blur(70px)' }} />
 
-      <div className="relative rounded-xl overflow-hidden border border-white/[0.1] bg-[hsl(260,22%,8%)] shadow-2xl shadow-black/50">
+      <div className="relative rounded-xl overflow-hidden border border-white/[0.12] bg-[hsl(260,22%,8%)] shadow-2xl shadow-black/50">
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
           <div className="mockup-reflection-sweep" />
         </div>
 
         <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
           <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
+            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
           </div>
           <div className="flex-1 text-center">
-            <span className="text-[10px] text-white/20 tracking-wider uppercase">SwitchControl</span>
+            <span className="text-[10px] text-white/30 tracking-wider uppercase font-medium">SwitchControl</span>
           </div>
         </div>
 
         <div className="p-4 space-y-3">
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "CPU", value: "4%", color: "bg-emerald-500" },
-              { label: "RAM", value: "38%", color: "bg-sky-500" },
-              { label: "GPU", value: "2%", color: "bg-violet-500" },
-            ].map((m) => (
-              <div key={m.label} className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.04]">
-                <div className="text-[9px] text-white/30 mb-1">{m.label}</div>
-                <div className="text-sm font-bold text-white/80">{m.value}</div>
-                <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
-                  <div className={cn("h-full rounded-full", m.color)} style={{ width: m.value }} />
+            {METRICS.map((m, i) => (
+              <div key={m.label} className="bg-white/[0.04] rounded-lg p-2.5 border border-white/[0.06]">
+                <div className="text-[9px] text-white/40 mb-1 uppercase tracking-wide">{m.label}</div>
+                <div className={cn("text-sm font-bold", m.textColor)}>
+                  <MockupCounter target={m.target} suffix="%" />
                 </div>
+                <AnimatedBar target={m.target} color={m.color} delay={i * 200 + 400} />
               </div>
             ))}
           </div>
 
-          <div className="bg-white/[0.03] rounded-lg p-3 border border-white/[0.04]">
+          <div className="bg-white/[0.04] rounded-lg p-3 border border-white/[0.06]">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-white/30 tracking-wide uppercase">Active Tweaks</span>
+              <span className="text-[10px] text-white/40 tracking-wide uppercase">Active Tweaks</span>
               <span className="text-[10px] text-emerald-400 font-medium">12 / 38</span>
             </div>
             <div className="flex gap-1">
               {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="flex-1 h-1.5 rounded-full bg-emerald-500/40" />
+                <div
+                  key={i}
+                  className="flex-1 h-1.5 rounded-full mockup-tweak-bar"
+                  style={{
+                    background: "linear-gradient(90deg, hsl(160 80% 45% / 0.5), hsl(170 80% 50% / 0.4))",
+                    animationDelay: `${i * 0.15}s`,
+                  }}
+                />
               ))}
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i + 12} className="flex-1 h-1.5 rounded-full bg-white/[0.04]" />
@@ -321,13 +371,17 @@ function HeroAppMockup() {
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.04]">
-              <div className="text-[9px] text-white/25 mb-0.5">Latency</div>
-              <div className="text-base font-bold text-emerald-400">-12ms</div>
+            <div className="bg-white/[0.04] rounded-lg p-2.5 border border-white/[0.06]">
+              <div className="text-[9px] text-white/35 mb-0.5">Latency</div>
+              <div className="text-base font-bold text-emerald-400">
+                -<MockupCounter target={12} suffix="ms" />
+              </div>
             </div>
-            <div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.04]">
-              <div className="text-[9px] text-white/25 mb-0.5">FPS Stability</div>
-              <div className="text-base font-bold text-[hsl(190,85%,50%)]">+15%</div>
+            <div className="bg-white/[0.04] rounded-lg p-2.5 border border-white/[0.06]">
+              <div className="text-[9px] text-white/35 mb-0.5">FPS Stability</div>
+              <div className="text-base font-bold text-[hsl(190,85%,50%)]">
+                +<MockupCounter target={15} suffix="%" />
+              </div>
             </div>
           </div>
         </div>
@@ -380,6 +434,7 @@ export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   const { user } = useAuth();
   useRevealOnScroll();
+  useMomentumScroll();
 
   const handleAuthAwareClick = (e: MouseEvent) => {
     if (user) {
