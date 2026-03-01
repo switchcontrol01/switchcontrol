@@ -1192,21 +1192,23 @@ pre {
 /* Website shell blob animations */
 @keyframes websiteBlob1 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  33% { transform: translate3d(40px, -30px, 0) scale(1.05); }
-  66% { transform: translate3d(-20px, 20px, 0) scale(0.95); }
+  25% { transform: translate3d(50px, -40px, 0) scale(1.08); }
+  50% { transform: translate3d(-30px, 30px, 0) scale(0.95); }
+  75% { transform: translate3d(20px, -10px, 0) scale(1.03); }
 }
 @keyframes websiteBlob2 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(-50px, 30px, 0) scale(1.08); }
+  30% { transform: translate3d(-60px, 40px, 0) scale(1.1); }
+  70% { transform: translate3d(40px, -20px, 0) scale(0.93); }
 }
 @keyframes websiteBlob3 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  40% { transform: translate3d(30px, -25px, 0) scale(1.03); }
-  80% { transform: translate3d(-20px, 15px, 0) scale(0.97); }
+  40% { transform: translate3d(35px, -30px, 0) scale(1.05); }
+  80% { transform: translate3d(-25px, 20px, 0) scale(0.96); }
 }
-.website-blob-1 { animation: websiteBlob1 20s ease-in-out infinite; will-change: transform; }
-.website-blob-2 { animation: websiteBlob2 25s ease-in-out infinite; will-change: transform; }
-.website-blob-3 { animation: websiteBlob3 18s ease-in-out infinite; will-change: transform; }
+.website-blob-1 { animation: websiteBlob1 22s ease-in-out infinite; will-change: transform; }
+.website-blob-2 { animation: websiteBlob2 28s ease-in-out infinite; will-change: transform; }
+.website-blob-3 { animation: websiteBlob3 20s ease-in-out infinite; will-change: transform; }
 
 @media (prefers-reduced-motion: reduce) {
   .website-blob-1,
@@ -1216,12 +1218,57 @@ pre {
   }
 }
 
+/* Perspective grid for website background */
+.ws-perspective-grid {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 80px 80px;
+  mask-image: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(0,0,0,0.4) 10%,
+    rgba(0,0,0,0.15) 40%,
+    transparent 70%
+  );
+  -webkit-mask-image: linear-gradient(to bottom,
+    transparent 0%,
+    rgba(0,0,0,0.4) 10%,
+    rgba(0,0,0,0.15) 40%,
+    transparent 70%
+  );
+}
+
+/* Website hero app mockup */
+@keyframes heroMockupFloat {
+  0%, 100% { transform: perspective(1200px) rotateX(2deg) rotateY(-3deg) translateY(0); }
+  50% { transform: perspective(1200px) rotateX(2deg) rotateY(-3deg) translateY(-10px); }
+}
+.ws-hero-mockup {
+  animation: heroMockupFloat 6s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-hero-mockup { animation: none; transform: perspective(1200px) rotateX(2deg) rotateY(-3deg); }
+}
+
+/* Website ambient section glow */
+.ws-section-glow {
+  position: relative;
+}
+.ws-section-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 40% at 50% 30%, hsl(270 50% 45% / 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
 /* Website page entrance */
 @keyframes wsPageEnter {
   from {
     opacity: 0;
-    transform: translateY(12px);
-    filter: blur(4px);
+    transform: translateY(16px);
+    filter: blur(6px);
   }
   to {
     opacity: 1;
@@ -1230,8 +1277,20 @@ pre {
   }
 }
 .ws-page-enter {
-  animation: wsPageEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: wsPageEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .ws-page-enter { animation: none; opacity: 1; }
+}
+
+/* Stat card glow pulse */
+@keyframes statGlow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+.ws-stat-glow {
+  animation: statGlow 3s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-stat-glow { animation: none; opacity: 0.5; }
 }

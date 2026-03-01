@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, type MouseEvent } from "react";
+import { useState, useEffect, useRef, type MouseEvent } from "react";
 import { Link } from "wouter";
 import {
   Zap,
@@ -12,6 +12,8 @@ import {
   Cpu,
   MemoryStick,
   Radio,
+  Activity,
+  Layers,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
@@ -35,26 +37,38 @@ const FEATURES = [
     icon: Zap,
     title: "System Tweaks",
     description: "38+ registry and system optimizations to reduce latency and improve responsiveness.",
+    accent: "from-amber-500/20 to-amber-600/5",
+    iconColor: "text-amber-400",
+    iconBg: "bg-amber-500/10 group-hover:bg-amber-500/20",
   },
   {
     icon: Clock,
     title: "Network Optimization",
     description: "TCP/IP, UDP, and DNS tweaks to minimize ping and maximize throughput.",
+    accent: "from-sky-500/20 to-sky-600/5",
+    iconColor: "text-sky-400",
+    iconBg: "bg-sky-500/10 group-hover:bg-sky-500/20",
   },
   {
     icon: Shield,
     title: "Safe & Reversible",
     description: "Every tweak can be reverted. We never touch critical system files.",
+    accent: "from-emerald-500/20 to-emerald-600/5",
+    iconColor: "text-emerald-400",
+    iconBg: "bg-emerald-500/10 group-hover:bg-emerald-500/20",
   },
   {
     icon: Gauge,
     title: "Performance Monitoring",
     description: "Real-time system telemetry to track your optimization gains.",
+    accent: "from-violet-500/20 to-violet-600/5",
+    iconColor: "text-violet-400",
+    iconBg: "bg-violet-500/10 group-hover:bg-violet-500/20",
   },
 ];
 
 const STATS = [
-  { label: "Average Latency Reduction", value: "-12ms", change: "ping" },
+  { label: "Avg Latency Reduction", value: "-12ms", change: "ping" },
   { label: "Input Delay Improvement", value: "-8ms", change: "input" },
   { label: "FPS Stability", value: "+15%", change: "fps" },
   { label: "1% Low FPS Gain", value: "+22%", change: "lows" },
@@ -154,30 +168,6 @@ function CountingNumber({
 }
 
 function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
-  const [hasShimmered, setHasShimmered] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (hasShimmered) return;
-    const el = ref.current;
-    if (!el) return;
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      setTimeout(() => setHasShimmered(true), index * 100);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasShimmered) {
-          setTimeout(() => setHasShimmered(true), index * 100);
-        }
-      },
-      { threshold: 0.1, rootMargin: "50px 0px 0px 0px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [index, hasShimmered]);
-
   const isNegative = stat.value.startsWith("-");
   const numericPart = stat.value.replace(/[^\d]/g, "");
   const prefix = stat.value.startsWith("-") ? "-" : "+";
@@ -185,30 +175,100 @@ function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
 
   return (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay: index * 0.1 }}
+      transition={{ duration: 0.5, delay: index * 0.12 }}
       viewport={{ once: true, amount: 0.2 }}
-      whileHover={{ scale: 1.02, y: -2 }}
+      className="group"
     >
-      <GlassPanel variant="elevated" hover className="text-center p-6 md:p-8 relative overflow-hidden group cursor-default">
-        {hasShimmered && <div className="absolute inset-0 animate-shimmer pointer-events-none" />}
+      <div className="relative text-center p-6 md:p-8">
+        <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
         <div
           className={cn(
-            "relative text-4xl md:text-5xl font-bold mb-3 transition-colors duration-300",
+            "relative text-4xl sm:text-5xl md:text-6xl font-bold mb-3 tracking-tight transition-colors duration-500",
             isNegative
               ? "text-emerald-400 group-hover:text-emerald-300"
-              : "text-[hsl(190,90%,50%)] group-hover:text-[hsl(190,90%,60%)]"
+              : "text-[hsl(190,85%,50%)] group-hover:text-[hsl(190,85%,60%)]"
           )}
         >
-          <CountingNumber value={numericPart} prefix={prefix} suffix={suffix} startDelay={index * 100 + 500} />
+          <CountingNumber value={numericPart} prefix={prefix} suffix={suffix} startDelay={index * 100 + 300} />
         </div>
-        <div className="relative text-sm md:text-base text-white/45 group-hover:text-white/65 transition-colors">
+        <div className="relative text-xs sm:text-sm text-white/35 group-hover:text-white/50 transition-colors tracking-wide uppercase">
           {stat.label}
         </div>
-      </GlassPanel>
+        <div className={cn(
+          "absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none",
+          isNegative
+            ? "bg-gradient-to-b from-emerald-500/[0.03] to-transparent"
+            : "bg-gradient-to-b from-sky-500/[0.03] to-transparent"
+        )} />
+      </div>
     </motion.div>
+  );
+}
+
+function HeroAppMockup() {
+  return (
+    <div className="ws-hero-mockup relative">
+      <div className="absolute -inset-8 bg-gradient-to-br from-primary/20 via-transparent to-[hsl(190,80%,50%,0.1)] rounded-3xl blur-3xl pointer-events-none" />
+
+      <div className="relative rounded-xl overflow-hidden border border-white/[0.1] bg-[hsl(260,22%,8%)] shadow-2xl shadow-black/50">
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
+          <div className="flex gap-1.5">
+            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+            <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
+          </div>
+          <div className="flex-1 text-center">
+            <span className="text-[10px] text-white/20 tracking-wider uppercase">SwitchControl</span>
+          </div>
+        </div>
+
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-3 gap-2">
+            {[
+              { label: "CPU", value: "4%", color: "bg-emerald-500" },
+              { label: "RAM", value: "38%", color: "bg-sky-500" },
+              { label: "GPU", value: "2%", color: "bg-violet-500" },
+            ].map((m) => (
+              <div key={m.label} className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.04]">
+                <div className="text-[9px] text-white/30 mb-1">{m.label}</div>
+                <div className="text-sm font-bold text-white/80">{m.value}</div>
+                <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                  <div className={cn("h-full rounded-full", m.color)} style={{ width: m.value }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white/[0.03] rounded-lg p-3 border border-white/[0.04]">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[10px] text-white/30 tracking-wide uppercase">Active Tweaks</span>
+              <span className="text-[10px] text-emerald-400 font-medium">12 / 38</span>
+            </div>
+            <div className="flex gap-1">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="flex-1 h-1.5 rounded-full bg-emerald-500/40" />
+              ))}
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i + 12} className="flex-1 h-1.5 rounded-full bg-white/[0.04]" />
+              ))}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.04]">
+              <div className="text-[9px] text-white/25 mb-0.5">Latency</div>
+              <div className="text-base font-bold text-emerald-400">-12ms</div>
+            </div>
+            <div className="bg-white/[0.03] rounded-lg p-2.5 border border-white/[0.04]">
+              <div className="text-[9px] text-white/25 mb-0.5">FPS Stability</div>
+              <div className="text-base font-bold text-[hsl(190,85%,50%)]">+15%</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -218,23 +278,23 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
 
   return (
     <motion.div
-      className="border-b border-white/[0.06]"
+      className="border-b border-white/[0.05] last:border-b-0"
       initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
       whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: index * 0.05 }}
+      transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: index * 0.04 }}
       viewport={{ once: true, amount: 0.2 }}
     >
       <button
-        className="w-full py-5 flex items-center justify-between text-left group"
+        className="w-full py-6 flex items-center justify-between text-left group"
         onClick={() => setIsOpen(!isOpen)}
         data-testid={`faq-${question.slice(0, 20).toLowerCase().replace(/\s/g, "-")}`}
       >
-        <span className="font-medium text-white/90 group-hover:text-primary transition-colors pr-4">{question}</span>
+        <span className="font-medium text-white/80 group-hover:text-white transition-colors pr-4 text-[15px]">{question}</span>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
           transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
         >
-          <ChevronDown className="size-5 text-white/30 shrink-0" />
+          <ChevronDown className="size-4 text-white/25 shrink-0" />
         </motion.div>
       </button>
       <motion.div
@@ -246,7 +306,7 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
         transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
         className="overflow-hidden"
       >
-        <div className="pb-5 text-white/45 text-sm leading-relaxed">{answer}</div>
+        <div className="pb-6 text-white/40 text-sm leading-relaxed">{answer}</div>
       </motion.div>
     </motion.div>
   );
@@ -268,97 +328,123 @@ export default function Landing() {
   return (
     <WebsiteShell variant="full" showFooter>
       <main className="ws-page-enter">
-        {/* Hero */}
+        {/* ──── Hero ──── */}
         <section className="relative overflow-hidden">
           <HeroBackground />
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-28 md:py-36 lg:py-44 relative">
-            <div className="text-center max-w-4xl mx-auto">
-              <AnimateIn delay={0}>
-                <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-8">
-                  <Star className="size-3 fill-primary text-primary" />
-                  New release 2026
-                </span>
-              </AnimateIn>
-
-              <AnimateIn delay={150}>
-                <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.1]">
-                  Unlock Your PC's{" "}
-                  <span className="bg-gradient-to-r from-[hsl(270,60%,55%)] via-[hsl(280,65%,65%)] to-[hsl(190,90%,50%)] bg-clip-text text-transparent">
-                    True Potential
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12 md:pt-28 md:pb-16 lg:pt-36 lg:pb-20 relative">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+              <div className="text-center lg:text-left">
+                <AnimateIn delay={0}>
+                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-8 tracking-wide">
+                    <Star className="size-3 fill-primary/80 text-primary/80" />
+                    New release 2026
                   </span>
-                </h1>
-              </AnimateIn>
+                </AnimateIn>
+
+                <AnimateIn delay={100}>
+                  <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.08]">
+                    Unlock Your{" "}
+                    <br className="hidden sm:block" />
+                    PC's{" "}
+                    <span className="bg-gradient-to-r from-[hsl(270,55%,55%)] via-[hsl(280,60%,62%)] to-[hsl(190,80%,50%)] bg-clip-text text-transparent">
+                      True Potential
+                    </span>
+                  </h1>
+                </AnimateIn>
+
+                <AnimateIn delay={250}>
+                  <p className="text-base md:text-lg text-white/40 mb-10 max-w-lg mx-auto lg:mx-0 leading-relaxed">
+                    Windows PC optimization app built for competitive gamers.
+                    Lower input delay, stable FPS, cleaner network.
+                  </p>
+                </AnimateIn>
+
+                <AnimateIn delay={400}>
+                  <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
+                    <GlowButton
+                      variant="cyan"
+                      size="lg"
+                      onClick={handleAuthAwareClick}
+                      data-testid="button-try-free"
+                    >
+                      Try Free
+                      <ArrowRight className="size-4" />
+                    </GlowButton>
+                    <Link href="/pricing">
+                      <GhostButton size="lg">See Pricing</GhostButton>
+                    </Link>
+                  </div>
+                </AnimateIn>
+              </div>
 
               <AnimateIn delay={300}>
-                <p className="text-lg md:text-xl text-white/45 mb-10 max-w-2xl mx-auto leading-relaxed">
-                  Windows PC tweak app focused on lower delay and stable FPS.
-                </p>
-              </AnimateIn>
-
-              <AnimateIn delay={450}>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                  <GlowButton
-                    variant="cyan"
-                    size="lg"
-                    onClick={handleAuthAwareClick}
-                    data-testid="button-try-free"
-                  >
-                    Try Free
-                    <ArrowRight className="size-4" />
-                  </GlowButton>
-                  <Link href="/pricing">
-                    <GhostButton size="lg">See Pricing</GhostButton>
-                  </Link>
+                <div className="hidden lg:block">
+                  <HeroAppMockup />
                 </div>
               </AnimateIn>
             </div>
           </div>
+
+          <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-[hsl(260,22%,7%)] to-transparent pointer-events-none" />
         </section>
 
-        {/* Stats */}
-        <section className="py-16 relative" data-reveal>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        {/* ──── Stats ──── */}
+        <section className="py-12 md:py-16 relative" data-reveal>
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-white/[0.04]">
               {STATS.map((stat, i) => (
                 <StatCard key={stat.label} stat={stat} index={i} />
               ))}
             </div>
-            <p className="text-center text-xs text-white/25 mt-8">
-              *Based on internal testing. Results may vary depending on hardware and configuration.
+            <p className="text-center text-[11px] text-white/20 mt-6 tracking-wide">
+              Based on internal testing. Results vary by hardware.
             </p>
           </div>
         </section>
 
-        <SectionDivider />
+        <SectionDivider glow />
 
-        {/* Features */}
-        <section id="features" className="py-24 relative" data-reveal>
+        {/* ──── Features ──── */}
+        <section id="features" className="py-24 md:py-32 relative ws-section-glow" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
-              title="Everything You Need to Dominate"
+              title="Everything You Need"
+              titleAccent="to Dominate"
               subtitle="Comprehensive optimization tools designed for competitive gamers who demand the best performance."
             />
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 mb-16">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
               {FEATURES.map((feature, i) => (
                 <Reveal key={feature.title} delay={i * 0.08}>
-                  <GlassPanel hover className="p-6 h-full group">
-                    <div className="size-12 rounded-xl bg-primary/10 group-hover:bg-primary/20 flex items-center justify-center mb-4 transition-all duration-300 group-hover:shadow-lg group-hover:shadow-primary/15">
-                      <feature.icon className="size-6 text-primary" />
-                    </div>
-                    <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
-                    <p className="text-sm text-white/40 group-hover:text-white/55 transition-colors leading-relaxed">
-                      {feature.description}
-                    </p>
-                  </GlassPanel>
+                  <div className="group relative h-full">
+                    <div className={cn(
+                      "absolute inset-0 rounded-2xl bg-gradient-to-b opacity-0 group-hover:opacity-100 transition-opacity duration-500",
+                      feature.accent
+                    )} />
+                    <GlassPanel hover className="p-6 h-full relative">
+                      <div className={cn(
+                        "size-11 rounded-xl flex items-center justify-center mb-5 transition-all duration-300",
+                        feature.iconBg
+                      )}>
+                        <feature.icon className={cn("size-5", feature.iconColor)} />
+                      </div>
+                      <h3 className="font-semibold text-white mb-2 text-[15px]">{feature.title}</h3>
+                      <p className="text-sm text-white/35 group-hover:text-white/50 transition-colors leading-relaxed">
+                        {feature.description}
+                      </p>
+                    </GlassPanel>
+                  </div>
                 </Reveal>
               ))}
             </div>
 
             <Reveal className="text-center mb-8">
-              <h3 className="text-2xl font-bold text-white mb-4">Explore All Modules</h3>
-              <p className="text-white/40 max-w-xl mx-auto">
-                Click on any module to see what it does. Each tool is designed for maximum impact.
+              <div className="inline-flex items-center gap-2 mb-4">
+                <Layers className="size-5 text-primary/60" />
+                <h3 className="text-2xl md:text-3xl font-bold text-white">Explore All Modules</h3>
+              </div>
+              <p className="text-white/35 max-w-xl mx-auto text-sm">
+                Click on any module to see what it does.
               </p>
             </Reveal>
 
@@ -368,42 +454,44 @@ export default function Landing() {
 
         <SectionDivider />
 
-        {/* BIOS Advisor */}
-        <section className="py-24 relative overflow-hidden" data-reveal>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full bg-primary/[0.06] blur-[150px] pointer-events-none" />
+        {/* ──── BIOS Advisor ──── */}
+        <section className="py-24 md:py-32 relative overflow-hidden" data-reveal>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-primary/[0.05] blur-[180px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[hsl(190,80%,40%,0.04)] blur-[120px] pointer-events-none" />
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <SectionHeader
               pill="Premium Feature"
               pillIcon={<Crown className="size-3" />}
-              title="Premium BIOS Advisor"
+              title="BIOS Advisor"
+              titleAccent="Premium"
               subtitle="Firmware-level intelligence for latency, stability, and competitive performance."
             />
 
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <Reveal className="space-y-6">
-                <p className="text-white/75 text-lg leading-relaxed">
+                <p className="text-white/70 text-lg leading-relaxed">
                   Most performance tools stop at the operating system.{" "}
                   <span className="text-white font-medium">SwitchControl goes deeper.</span>
                 </p>
-                <p className="text-white/40 leading-relaxed">
+                <p className="text-white/35 leading-relaxed">
                   The BIOS Advisor analyzes firmware behavior that directly impacts latency, scheduling, and frametime
                   consistency — without unsafe presets or blind toggles.
                 </p>
 
-                <div className="grid grid-cols-2 gap-3 pt-4">
+                <div className="grid grid-cols-2 gap-3 pt-2">
                   {[
-                    { icon: Cpu, label: "CPU Scheduling" },
-                    { icon: Zap, label: "Power & Voltage" },
-                    { icon: MemoryStick, label: "Memory & Fabric" },
-                    { icon: Radio, label: "Signal Integrity" },
+                    { icon: Cpu, label: "CPU Scheduling", color: "text-amber-400" },
+                    { icon: Zap, label: "Power & Voltage", color: "text-yellow-400" },
+                    { icon: MemoryStick, label: "Memory & Fabric", color: "text-sky-400" },
+                    { icon: Radio, label: "Signal Integrity", color: "text-violet-400" },
                   ].map((item) => (
-                    <GlassPanel key={item.label} className="flex items-center gap-3 p-3">
-                      <div className="p-2 rounded-lg bg-primary/15">
-                        <item.icon className="w-4 h-4 text-primary" />
+                    <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
+                      <div className="p-1.5 rounded-lg bg-white/[0.04]">
+                        <item.icon className={cn("w-4 h-4", item.color)} />
                       </div>
-                      <span className="text-sm text-white/70">{item.label}</span>
-                    </GlassPanel>
+                      <span className="text-sm text-white/60">{item.label}</span>
+                    </div>
                   ))}
                 </div>
 
@@ -419,8 +507,8 @@ export default function Landing() {
 
               <Reveal delay={0.2}>
                 <div className="relative">
-                  <div className="absolute -inset-4 bg-gradient-to-br from-primary/15 to-transparent rounded-2xl blur-xl" />
-                  <div className="relative space-y-3">
+                  <div className="absolute -inset-6 bg-gradient-to-br from-primary/12 via-transparent to-[hsl(190,80%,50%,0.05)] rounded-3xl blur-2xl" />
+                  <div className="relative space-y-2.5">
                     {[
                       {
                         name: "XMP / EXPO",
@@ -458,28 +546,28 @@ export default function Landing() {
                         initial={{ opacity: 0, x: 20 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
-                        transition={{ delay: i * 0.1, duration: 0.4 }}
+                        transition={{ delay: i * 0.08, duration: 0.4 }}
                       >
-                        <GlassPanel className="p-4">
-                          <div className="flex items-center justify-between mb-2">
+                        <div className="p-4 rounded-xl bg-white/[0.025] border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
+                          <div className="flex items-center justify-between mb-1.5">
                             <span className="font-medium text-white text-sm">{setting.name}</span>
                             <span
                               className={cn(
-                                "text-xs px-2 py-0.5 rounded-full",
+                                "text-[10px] px-2 py-0.5 rounded-full font-medium tracking-wide",
                                 setting.impact === "High"
-                                  ? "bg-red-500/15 text-red-400 border border-red-500/20"
-                                  : "bg-amber-500/15 text-amber-400 border border-amber-500/20"
+                                  ? "bg-red-500/10 text-red-400 border border-red-500/15"
+                                  : "bg-amber-500/10 text-amber-400 border border-amber-500/15"
                               )}
                             >
-                              {setting.impact} Impact
+                              {setting.impact}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-white/35">
-                            <span className="text-primary">{setting.status}</span>
-                            <span className="text-white/15">|</span>
+                          <div className="flex items-center gap-2 text-xs text-white/30">
+                            <span className="text-primary/80">{setting.status}</span>
+                            <span className="text-white/10">|</span>
                             <span>{setting.desc}</span>
                           </div>
-                        </GlassPanel>
+                        </div>
                       </motion.div>
                     ))}
                   </div>
@@ -489,13 +577,14 @@ export default function Landing() {
           </div>
         </section>
 
-        <SectionDivider />
+        <SectionDivider glow />
 
-        {/* Comparison Sliders */}
-        <section className="py-24 relative" data-reveal>
+        {/* ──── Comparison Sliders ──── */}
+        <section className="py-24 md:py-32 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
-              title="Real Results, Real Improvements"
+              title="Real Results,"
+              titleAccent="Real Improvements"
               subtitle="Drag the sliders to compare before and after optimization results."
             />
 
@@ -536,51 +625,53 @@ export default function Landing() {
 
         <SectionDivider />
 
-        {/* Social Proof */}
-        <section className="py-24 relative" data-reveal>
+        {/* ──── Social Proof ──── */}
+        <section className="py-20 relative" data-reveal>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center">
-              <GlassPanel variant="elevated" glow="purple" className="max-w-2xl mx-auto p-8 md:p-12">
+              <div className="max-w-2xl mx-auto">
                 <div className="flex justify-center gap-1 mb-6">
-                  <Star className="size-5 text-primary fill-primary" />
-                  <Star className="size-5 text-primary fill-primary" />
-                  <Star className="size-5 text-primary fill-primary" />
+                  {[...Array(3)].map((_, i) => (
+                    <Star key={i} className="size-4 text-primary/60 fill-primary/60" />
+                  ))}
                 </div>
                 <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">New Release 2026</h2>
-                <p className="text-white/40 leading-relaxed">
+                <p className="text-white/35 leading-relaxed text-sm">
                   SwitchControl is our latest release with enhanced optimization features. We're actively improving
                   based on real user feedback.
                 </p>
-              </GlassPanel>
+              </div>
             </Reveal>
           </div>
         </section>
 
-        {/* What is SwitchControl */}
+        {/* ──── What is SwitchControl ──── */}
         <WhatIsSwitchControl />
 
-        {/* UI Exploration */}
+        {/* ──── UI Exploration ──── */}
         <UIExploration />
 
-        <SectionDivider />
+        <SectionDivider glow />
 
-        {/* Pricing Preview */}
-        <section id="pricing" className="py-24 relative" data-reveal>
+        {/* ──── Pricing Preview ──── */}
+        <section id="pricing" className="py-24 md:py-32 relative ws-section-glow" data-reveal>
           <div id="pricing-top"></div>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
-              title="Simple, One-Time Pricing"
-              subtitle="One-time purchase. Pay once, get premium features forever."
+              title="Simple,"
+              titleAccent="One-Time Pricing"
+              subtitle="Pay once, get premium features forever. No subscriptions."
             />
 
             <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
               <Reveal direction="left">
                 <GlassPanel hover className="p-8 h-full">
                   <h3 className="text-xl font-bold text-white mb-2">Free</h3>
-                  <div className="text-3xl font-bold text-white mb-4">
-                    $0 <span className="text-sm font-normal text-white/35">forever</span>
+                  <div className="text-3xl font-bold text-white mb-1">
+                    $0
                   </div>
-                  <p className="text-white/40 text-sm mb-6">Essential optimization tools</p>
+                  <p className="text-white/30 text-sm mb-6">forever</p>
+                  <p className="text-white/40 text-sm mb-8">Essential optimization tools</p>
                   <GhostButton className="w-full" onClick={handleAuthAwareClick} data-testid="button-get-started-pricing">
                     Get Started
                   </GhostButton>
@@ -588,16 +679,17 @@ export default function Landing() {
               </Reveal>
 
               <Reveal direction="right">
-                <GlassPanel variant="elevated" glow="purple" className="p-8 h-full relative overflow-hidden">
-                  <div className="absolute top-0 right-0 bg-primary text-white text-xs font-medium px-3 py-1.5 rounded-bl-xl flex items-center gap-1">
+                <GlassPanel variant="elevated" glow="purple" className="p-8 h-full relative overflow-hidden" style={{ borderColor: 'hsl(270 55% 50% / 0.3)' }}>
+                  <div className="absolute top-0 right-0 bg-gradient-to-r from-[hsl(270,55%,50%)] to-[hsl(280,50%,45%)] text-white text-[10px] font-semibold px-3 py-1.5 rounded-bl-xl flex items-center gap-1 tracking-wide uppercase">
                     <Crown className="size-3" />
                     Best Value
                   </div>
                   <h3 className="text-xl font-bold text-white mb-2">Premium</h3>
-                  <div className="text-3xl font-bold text-white mb-4">
-                    $50 <span className="text-sm font-normal text-white/35">one-time</span>
+                  <div className="text-3xl font-bold text-white mb-1">
+                    $50
                   </div>
-                  <p className="text-white/40 text-sm mb-6">Lifetime access to all features</p>
+                  <p className="text-white/30 text-sm mb-6">one-time</p>
+                  <p className="text-white/40 text-sm mb-8">Lifetime access to all features</p>
                   <Link href="/pricing">
                     <GlowButton variant="cyan" className="w-full">
                       Get Premium
@@ -611,28 +703,36 @@ export default function Landing() {
 
         <SectionDivider />
 
-        {/* FAQ */}
-        <section id="faq" className="py-24 relative" data-reveal>
+        {/* ──── FAQ ──── */}
+        <section id="faq" className="py-24 md:py-32 relative" data-reveal>
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <SectionHeader title="Frequently Asked Questions" />
+            <SectionHeader title="Frequently Asked" titleAccent="Questions" />
 
-            <div>
+            <GlassPanel variant="matte" className="p-6 md:p-8">
               {FAQ_ITEMS.map((item, i) => (
                 <FAQItem key={item.question} question={item.question} answer={item.answer} index={i} />
               ))}
-            </div>
+            </GlassPanel>
           </div>
         </section>
 
-        <SectionDivider />
+        <SectionDivider glow />
 
-        {/* Final CTA */}
-        <section className="py-24 relative" data-reveal>
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        {/* ──── Final CTA ──── */}
+        <section className="py-24 md:py-32 relative" data-reveal>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent pointer-events-none" />
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
             <Reveal>
-              <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">Ready to Optimize Your Gaming?</h2>
-              <p className="text-white/40 mb-10 max-w-2xl mx-auto leading-relaxed">
-                Join thousands of competitive gamers who trust SwitchControl for their system optimization needs.
+              <Activity className="size-8 text-primary/40 mx-auto mb-6" />
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-5 leading-tight">
+                Ready to{" "}
+                <span className="bg-gradient-to-r from-primary via-[hsl(280,60%,60%)] to-[hsl(190,80%,50%)] bg-clip-text text-transparent">
+                  Optimize
+                </span>
+                ?
+              </h2>
+              <p className="text-white/35 mb-10 max-w-lg mx-auto leading-relaxed">
+                Join competitive gamers who trust SwitchControl for system optimization.
               </p>
               <GlowButton
                 variant="cyan"

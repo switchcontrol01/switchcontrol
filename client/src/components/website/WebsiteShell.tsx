@@ -53,63 +53,56 @@ function WebsiteBackground() {
         className="absolute inset-0"
         style={{
           background: `
-            radial-gradient(ellipse 80% 50% at 20% 15%, hsl(270 60% 55% / 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 80% 60%, hsl(280 55% 50% / 0.08) 0%, transparent 50%),
-            linear-gradient(180deg, hsl(260 20% 6%) 0%, hsl(260 18% 5%) 50%, hsl(260 20% 4%) 100%)
+            radial-gradient(ellipse 120% 60% at 50% -10%, hsl(270 55% 40% / 0.25) 0%, transparent 55%),
+            radial-gradient(ellipse 80% 50% at 10% 20%, hsl(260 60% 50% / 0.12) 0%, transparent 50%),
+            radial-gradient(ellipse 60% 40% at 90% 70%, hsl(280 50% 45% / 0.10) 0%, transparent 50%),
+            radial-gradient(ellipse 50% 30% at 70% 10%, hsl(190 80% 50% / 0.06) 0%, transparent 50%),
+            linear-gradient(180deg, hsl(260 22% 7%) 0%, hsl(260 18% 5%) 40%, hsl(260 20% 4%) 100%)
           `,
         }}
       />
 
       <div
-        className="absolute rounded-full blur-[120px] w-[500px] h-[500px] opacity-[0.12] website-blob-1"
+        className="absolute rounded-full blur-[140px] w-[600px] h-[600px] opacity-[0.18] website-blob-1"
         style={{
-          top: "10%",
-          left: "10%",
-          background: "radial-gradient(circle, hsl(270 60% 55%) 0%, transparent 70%)",
+          top: "5%",
+          left: "5%",
+          background: "radial-gradient(circle, hsl(270 55% 50%) 0%, hsl(280 60% 40%) 50%, transparent 70%)",
         }}
       />
       <div
-        className="absolute rounded-full blur-[100px] w-[400px] h-[400px] opacity-[0.08] website-blob-2"
+        className="absolute rounded-full blur-[120px] w-[500px] h-[500px] opacity-[0.12] website-blob-2"
         style={{
-          top: "50%",
-          right: "5%",
-          background: "radial-gradient(circle, hsl(280 55% 50%) 0%, transparent 70%)",
+          top: "45%",
+          right: "0%",
+          background: "radial-gradient(circle, hsl(280 50% 45%) 0%, hsl(290 40% 35%) 50%, transparent 70%)",
         }}
       />
       <div
-        className="absolute rounded-full blur-[80px] w-[350px] h-[350px] opacity-[0.06] website-blob-3"
+        className="absolute rounded-full blur-[100px] w-[400px] h-[400px] opacity-[0.08] website-blob-3"
         style={{
-          bottom: "15%",
-          left: "25%",
-          background: "radial-gradient(circle, hsl(260 50% 45%) 0%, transparent 70%)",
+          bottom: "10%",
+          left: "20%",
+          background: "radial-gradient(circle, hsl(260 45% 40%) 0%, transparent 70%)",
         }}
       />
 
       {!isMobile && (
         <div
-          className="absolute w-[600px] h-[600px] rounded-full opacity-[0.04] transition-transform duration-1000 ease-out"
+          className="absolute w-[700px] h-[700px] rounded-full transition-all duration-[1500ms] ease-out"
           style={{
             left: `${mousePos.x * 100}%`,
             top: `${mousePos.y * 100}%`,
             transform: "translate(-50%, -50%)",
-            background: "radial-gradient(circle, hsl(270 60% 65%) 0%, transparent 70%)",
+            background: "radial-gradient(circle, hsl(270 60% 60% / 0.07) 0%, hsl(280 50% 50% / 0.03) 40%, transparent 70%)",
           }}
         />
       )}
 
-      <div className="absolute inset-0 pointer-events-none" style={{ opacity: 0.025 }}>
-        <svg width="100%" height="100%">
-          <defs>
-            <pattern id="ws-grid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#ws-grid)" />
-        </svg>
-      </div>
+      <div className="absolute inset-0 pointer-events-none ws-perspective-grid" />
 
       <div
-        className="absolute inset-0 pointer-events-none opacity-[0.018]"
+        className="absolute inset-0 pointer-events-none opacity-[0.022]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
         }}
@@ -146,7 +139,7 @@ function FullHeader() {
       className={cn(
         "fixed top-0 left-0 right-0 z-50 border-b transition-all duration-500",
         scrolled
-          ? "bg-[hsl(260,20%,6%,0.85)] backdrop-blur-2xl border-white/[0.08] shadow-lg shadow-black/30"
+          ? "bg-[hsl(260,22%,7%,0.8)] backdrop-blur-2xl border-white/[0.06] shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
           : "bg-transparent border-transparent"
       )}
       initial={{ y: -80, opacity: 0 }}
@@ -162,7 +155,7 @@ function FullHeader() {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm text-white/50 hover:text-white transition-colors duration-200"
+                className="text-sm text-white/45 hover:text-white transition-colors duration-200 tracking-wide"
               >
                 {link.label}
               </a>
@@ -191,7 +184,7 @@ function FullHeader() {
             ) : (
               <>
                 <Link href="/login">
-                  <button className="text-sm text-white/50 hover:text-white transition-colors px-4 py-2">
+                  <button className="text-sm text-white/45 hover:text-white transition-colors px-4 py-2 tracking-wide">
                     Log in
                   </button>
                 </Link>
@@ -216,7 +209,7 @@ function FullHeader() {
 
       {mobileMenuOpen && (
         <motion.div
-          className="md:hidden bg-[hsl(260,20%,6%,0.95)] backdrop-blur-2xl border-t border-white/[0.06]"
+          className="md:hidden bg-[hsl(260,22%,7%,0.95)] backdrop-blur-2xl border-t border-white/[0.06]"
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
@@ -288,31 +281,32 @@ function InnerHeader() {
 
 function WebsiteFooter() {
   return (
-    <footer className="relative z-10 border-t border-white/[0.06]">
+    <footer className="relative z-10 border-t border-white/[0.05]">
+      <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
           <div className="col-span-2 md:col-span-1">
             <BrandLogo size="md" className="mb-4" linkTo="/" />
-            <p className="text-sm text-white/35 leading-relaxed">
+            <p className="text-sm text-white/30 leading-relaxed">
               Windows PC optimization focused on lower delay and stable FPS.
             </p>
           </div>
 
           <div>
-            <h4 className="font-medium text-white/70 mb-4 text-sm tracking-wide">Product</h4>
+            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">Product</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <a href="#features" className="text-white/35 hover:text-white/70 transition-colors">
+                <a href="#features" className="text-white/30 hover:text-white/60 transition-colors">
                   Features
                 </a>
               </li>
               <li>
-                <Link href="/pricing" className="text-white/35 hover:text-white/70 transition-colors">
+                <Link href="/pricing" className="text-white/30 hover:text-white/60 transition-colors">
                   Pricing
                 </Link>
               </li>
               <li>
-                <a href="#faq" className="text-white/35 hover:text-white/70 transition-colors">
+                <a href="#faq" className="text-white/30 hover:text-white/60 transition-colors">
                   FAQ
                 </a>
               </li>
@@ -320,15 +314,15 @@ function WebsiteFooter() {
           </div>
 
           <div>
-            <h4 className="font-medium text-white/70 mb-4 text-sm tracking-wide">Legal</h4>
+            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">Legal</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/terms" className="text-white/35 hover:text-white/70 transition-colors">
+                <Link href="/terms" className="text-white/30 hover:text-white/60 transition-colors">
                   Terms of Service
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="text-white/35 hover:text-white/70 transition-colors">
+                <Link href="/privacy" className="text-white/30 hover:text-white/60 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
@@ -336,12 +330,12 @@ function WebsiteFooter() {
           </div>
 
           <div>
-            <h4 className="font-medium text-white/70 mb-4 text-sm tracking-wide">Support</h4>
+            <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">Support</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
                 <a
                   href="mailto:switchcontrol67@gmail.com"
-                  className="text-white/35 hover:text-white/70 transition-colors"
+                  className="text-white/30 hover:text-white/60 transition-colors"
                 >
                   Contact
                 </a>
@@ -351,7 +345,7 @@ function WebsiteFooter() {
                   href={SOCIAL_LINKS.discord}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-white/35 hover:text-white/70 transition-colors"
+                  className="text-white/30 hover:text-white/60 transition-colors"
                 >
                   Discord
                 </a>
@@ -361,8 +355,8 @@ function WebsiteFooter() {
         </div>
 
         <div className="mt-10 pt-8 border-t border-white/[0.04]">
-          <p className="text-center text-xs text-white/20 tracking-wider">
-            &copy; {new Date().getFullYear()} {brand.name}. All rights reserved.
+          <p className="text-center text-xs text-white/15 tracking-widest uppercase">
+            &copy; {new Date().getFullYear()} {brand.name}
           </p>
         </div>
       </div>
@@ -372,7 +366,7 @@ function WebsiteFooter() {
 
 export function WebsiteShell({ children, variant = "full", showFooter = true, className }: WebsiteShellProps) {
   return (
-    <div className="min-h-screen relative bg-[hsl(260,20%,6%)]">
+    <div className="min-h-screen relative bg-[hsl(260,22%,7%)]">
       <WebsiteBackground />
 
       {variant === "full" && <FullHeader />}
