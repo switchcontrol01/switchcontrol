@@ -1188,3 +1188,50 @@ pre {
   animation: loginContourDrift 20s ease-in-out infinite;
   will-change: transform;
 }
+
+/* Website shell blob animations */
+@keyframes websiteBlob1 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(40px, -30px, 0) scale(1.05); }
+  66% { transform: translate3d(-20px, 20px, 0) scale(0.95); }
+}
+@keyframes websiteBlob2 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(-50px, 30px, 0) scale(1.08); }
+}
+@keyframes websiteBlob3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  40% { transform: translate3d(30px, -25px, 0) scale(1.03); }
+  80% { transform: translate3d(-20px, 15px, 0) scale(0.97); }
+}
+.website-blob-1 { animation: websiteBlob1 20s ease-in-out infinite; will-change: transform; }
+.website-blob-2 { animation: websiteBlob2 25s ease-in-out infinite; will-change: transform; }
+.website-blob-3 { animation: websiteBlob3 18s ease-in-out infinite; will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  .website-blob-1,
+  .website-blob-2,
+  .website-blob-3 {
+    animation: none;
+  }
+}
+
+/* Website page entrance */
+@keyframes wsPageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.ws-page-enter {
+  animation: wsPageEnter 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-page-enter { animation: none; opacity: 1; }
+}

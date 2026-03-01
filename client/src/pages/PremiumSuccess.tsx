@@ -291,7 +291,7 @@ export default function PremiumSuccess() {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-[#07060b] flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 bg-[hsl(260,20%,4%)] flex items-center justify-center overflow-hidden">
       <style>{`
         @keyframes pMeshDrift {
           0%, 100% { transform: translate(0, 0) scale(1); }

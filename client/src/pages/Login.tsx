@@ -1,11 +1,10 @@
 import { Link, useSearch } from "wouter";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft } from "lucide-react";
 import { brand } from "@/config/brand";
 import AnimateIn from "@/components/AnimateIn";
 import { LoginParticles } from "@/components/LoginParticles";
 import { SpotlightCursor } from "@/components/SpotlightCursor";
+import { WebsiteShell } from "@/components/website/WebsiteShell";
+import { GlassPanel } from "@/components/website/GlassPanel";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -47,22 +46,16 @@ export default function Login() {
   const discordAuthUrl = `/auth/discord?next=${encodeURIComponent(next)}`;
   
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black via-zinc-950 to-black flex flex-col relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent pointer-events-none" />
-      <LoginParticles />
-      <SpotlightCursor />
-      
-      <header className="relative z-10 p-4">
-        <Link href="/" className="inline-flex items-center gap-2 text-muted-foreground hover:text-white transition-colors">
-          <ArrowLeft className="size-4" />
-          Back to home
-        </Link>
-      </header>
+    <WebsiteShell variant="inner" showFooter={false}>
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <LoginParticles />
+        <SpotlightCursor />
+      </div>
 
-      <main className="flex-1 flex items-center justify-center p-4 relative z-10">
+      <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)] relative z-10">
         <AnimateIn>
-          <Card className="w-full max-w-md bg-black/50 border-white/10 backdrop-blur-xl">
-            <CardHeader className="text-center">
+          <GlassPanel variant="elevated" glow="purple" className="w-full max-w-md p-0">
+            <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
               <div className="flex justify-center mb-4">
                 <img 
                   src={brand.icon} 
@@ -70,48 +63,48 @@ export default function Login() {
                   className="w-16 h-16 rounded-xl shadow-lg shadow-primary/30"
                 />
               </div>
-              <CardTitle className="text-2xl text-white">Welcome to {brand.name}</CardTitle>
-              <CardDescription>Sign in to access your optimization dashboard</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-sm text-center text-muted-foreground mb-4">
+              <h1 className="text-2xl font-bold text-white" data-testid="text-login-title">Welcome to {brand.name}</h1>
+              <p className="text-sm text-white/50 mt-1">Sign in to access your optimization dashboard</p>
+            </div>
+            <div className="p-6 sm:p-8 space-y-4">
+              <p className="text-sm text-center text-white/40 mb-4">
                 Sign in securely with your preferred account
               </p>
               
               <a href={googleAuthUrl} className="block">
-                <Button 
-                  className="w-full bg-white hover:bg-gray-100 text-gray-900 h-14 text-base font-medium"
+                <button 
+                  className="w-full bg-white hover:bg-gray-100 text-gray-900 h-14 text-base font-medium rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                   data-testid="button-login-google"
                 >
-                  <GoogleIcon className="size-5 mr-3" />
+                  <GoogleIcon className="size-5" />
                   Continue with Google
-                </Button>
+                </button>
               </a>
 
               <a href={discordAuthUrl} className="block">
-                <Button 
-                  className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white h-14 text-base font-medium"
+                <button 
+                  className="w-full bg-[#5865F2] hover:bg-[#4752C4] text-white h-14 text-base font-medium rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
                   data-testid="button-login-discord"
                 >
-                  <DiscordIcon className="size-5 mr-3" />
+                  <DiscordIcon className="size-5" />
                   Continue with Discord
-                </Button>
+                </button>
               </a>
               
-              <p className="text-xs text-center text-muted-foreground mt-6">
+              <p className="text-xs text-center text-white/35 mt-6">
                 Your data is protected and never shared.
               </p>
               
-              <p className="text-xs text-muted-foreground text-center mt-2">
+              <p className="text-xs text-white/30 text-center mt-2">
                 By continuing, you agree to our{" "}
                 <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
                 {" "}and{" "}
                 <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassPanel>
         </AnimateIn>
       </main>
-    </div>
+    </WebsiteShell>
   );
 }
