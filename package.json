@@ -1,6 +1,8 @@
 {
   "name": "switchcontrol",
   "version": "1.0.0",
+  "description": "Elite Windows performance optimization suite",
+  "author": "SwitchTech",
   "private": true,
   "type": "module",
   "scripts": {
