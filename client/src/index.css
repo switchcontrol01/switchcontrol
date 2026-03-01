@@ -1238,17 +1238,36 @@ pre {
   );
 }
 
-/* Website hero app mockup */
+/* Website hero app mockup — centered below hero text like ToDesktop */
 @keyframes heroMockupFloat {
-  0%, 100% { transform: perspective(1200px) rotateX(2deg) rotateY(-3deg) translateY(0); }
-  50% { transform: perspective(1200px) rotateX(2deg) rotateY(-3deg) translateY(-10px); }
+  0%, 100% { transform: perspective(1200px) rotateX(4deg) translateY(0); }
+  50% { transform: perspective(1200px) rotateX(4deg) translateY(-12px); }
 }
 .ws-hero-mockup {
   animation: heroMockupFloat 6s ease-in-out infinite;
   will-change: transform;
+  filter: drop-shadow(0 40px 80px rgba(0,0,0,0.5));
 }
 @media (prefers-reduced-motion: reduce) {
-  .ws-hero-mockup { animation: none; transform: perspective(1200px) rotateX(2deg) rotateY(-3deg); }
+  .ws-hero-mockup { animation: none; transform: perspective(1200px) rotateX(4deg); }
+}
+
+/* Scroll indicator dot */
+@keyframes scrollDot {
+  0%, 100% { transform: translateY(0); opacity: 0.3; }
+  50% { transform: translateY(6px); opacity: 0.8; }
+}
+
+/* Hero three-column strip divider */
+.ws-feature-strip-divider {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    hsl(270 50% 50% / 0.15) 20%,
+    hsl(40 60% 60% / 0.25) 50%,
+    hsl(270 50% 50% / 0.15) 80%,
+    transparent 100%
+  );
 }
 
 /* Website ambient section glow */

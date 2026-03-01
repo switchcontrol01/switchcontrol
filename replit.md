@@ -23,9 +23,15 @@ Key data models include `userSettings` (preferences, tier), `appliedTweaks` (ena
 The application is structured into `client/src` (frontend components, hooks, utilities, pages), `server/` (Express entry, routes, database), and `shared/` (Drizzle schema, auth models).
 
 ### UI/UX Design
-- **WebsiteShell**: Provides a consistent layout with three variants (full, inner, minimal), featuring an animated background with glow blobs, SVG grid, fractal noise, and a mouse-follow spotlight. It includes a sticky, blur-effect header and a shared footer.
+- **WebsiteShell**: Provides a consistent layout with three variants (full, inner, minimal), featuring an animated background with glow blobs, perspective grid, fractal noise, and a mouse-follow spotlight. It includes a sticky, blur-effect header and a shared footer. All 8 website routes use this shell.
 - **GlassPanel**: A versatile glass-effect component with different material variants (default, elevated, matte) and optional glow accents or hover effects.
-- **GlowButton**: Primary call-to-action button with a glow rim and micro-animations.
+- **GlowButton**: Primary call-to-action button with a glow rim and micro-animations. Variants: primary, cyan. Sizes: default, sm, lg.
+- **GhostButton**: Secondary CTA with minimal border styling.
+- **SectionHeader**: Consistent title + subtitle + optional `titleAccent` (gradient accent text) + optional pill badge.
+- **SectionDivider**: Horizontal gradient divider with optional `glow` prop.
+- **Landing Hero**: Centered layout with mixed font weights (extralight + bold, inspired by HackerRank). App mockup centered below text with perspective float animation (inspired by ToDesktop). Three-column feature strip below hero. ScrollIndicator at bottom.
+- **HeroBackground**: Simplified — gradient glow + two subtle animated blobs + noise grain. No SVG waves, no particles, no contour lines.
+- **Typography Pattern**: Mixed font weights (font-extralight for context text, font-bold for emphasis) used across hero, social proof, and CTA sections.
 - **Modals**: A shared `GlassModalLayout` component provides a consistent visual style (dark translucent background, blurred border) and behavior (escape handling, backdrop close, scroll lock) for various interactive modals (e.g., Memory Cleaner, CPU Cores).
 - **Window Controls**: Custom-styled window control buttons with glass-blended appearance for Electron desktop builds.
 - **Global Text Selection**: `user-select: none` is applied globally for a premium feel, with exceptions for input fields and copyable text.

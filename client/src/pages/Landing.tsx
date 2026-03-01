@@ -14,12 +14,15 @@ import {
   Radio,
   Activity,
   Layers,
+  Monitor,
+  Wifi,
+  Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
 import { ComparisonSlider } from "@/components/ComparisonSlider";
-import { HeroBackground } from "@/components/HeroBackground";
+import { HeroBackground, ScrollIndicator } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
 import { UIExploration } from "@/components/UIExploration";
@@ -329,63 +332,94 @@ export default function Landing() {
     <WebsiteShell variant="full" showFooter>
       <main className="ws-page-enter">
         {/* ──── Hero ──── */}
-        <section className="relative overflow-hidden">
+        <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12 md:pt-28 md:pb-16 lg:pt-36 lg:pb-20 relative">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-              <div className="text-center lg:text-left">
-                <AnimateIn delay={0}>
-                  <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-8 tracking-wide">
-                    <Star className="size-3 fill-primary/80 text-primary/80" />
-                    New release 2026
+          <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">
+            <div className="text-center">
+              <AnimateIn delay={0}>
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-10 tracking-wider uppercase">
+                  <Star className="size-3 fill-primary/80 text-primary/80" />
+                  Windows optimization for gamers
+                </span>
+              </AnimateIn>
+
+              <AnimateIn delay={100}>
+                <h1 className="mb-7 leading-[1.05] tracking-tight">
+                  <span className="block text-4xl md:text-6xl lg:text-7xl xl:text-[5.5rem] font-extralight text-white/60">
+                    Your PC is holding
                   </span>
-                </AnimateIn>
-
-                <AnimateIn delay={100}>
-                  <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.08]">
-                    Unlock Your{" "}
-                    <br className="hidden sm:block" />
-                    PC's{" "}
-                    <span className="bg-gradient-to-r from-[hsl(270,55%,55%)] via-[hsl(280,60%,62%)] to-[hsl(190,80%,50%)] bg-clip-text text-transparent">
-                      True Potential
+                  <span className="block text-4xl md:text-6xl lg:text-7xl xl:text-[5.5rem] font-extralight text-white/60">
+                    you back.{" "}
+                    <span className="font-bold text-white bg-gradient-to-r from-white via-white to-[hsl(190,80%,50%)] bg-clip-text text-transparent">
+                      Fix it.
                     </span>
-                  </h1>
-                </AnimateIn>
+                  </span>
+                </h1>
+              </AnimateIn>
 
-                <AnimateIn delay={250}>
-                  <p className="text-base md:text-lg text-white/40 mb-10 max-w-lg mx-auto lg:mx-0 leading-relaxed">
-                    Windows PC optimization app built for competitive gamers.
-                    Lower input delay, stable FPS, cleaner network.
-                  </p>
-                </AnimateIn>
+              <AnimateIn delay={250}>
+                <p className="text-base md:text-lg text-white/35 mb-10 max-w-xl mx-auto leading-relaxed">
+                  Lower input delay, stable FPS, cleaner network.
+                  One app. Real results.
+                </p>
+              </AnimateIn>
 
-                <AnimateIn delay={400}>
-                  <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3">
-                    <GlowButton
-                      variant="cyan"
-                      size="lg"
-                      onClick={handleAuthAwareClick}
-                      data-testid="button-try-free"
-                    >
-                      Try Free
-                      <ArrowRight className="size-4" />
-                    </GlowButton>
-                    <Link href="/pricing">
-                      <GhostButton size="lg">See Pricing</GhostButton>
-                    </Link>
-                  </div>
-                </AnimateIn>
-              </div>
+              <AnimateIn delay={400}>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
+                  <GlowButton
+                    variant="cyan"
+                    size="lg"
+                    onClick={handleAuthAwareClick}
+                    data-testid="button-try-free"
+                  >
+                    Try Free
+                    <ArrowRight className="size-4" />
+                  </GlowButton>
+                  <Link href="/pricing">
+                    <GhostButton size="lg">See Pricing</GhostButton>
+                  </Link>
+                </div>
+              </AnimateIn>
 
-              <AnimateIn delay={300}>
-                <div className="hidden lg:block">
+              <AnimateIn delay={500}>
+                <div className="max-w-2xl mx-auto">
                   <HeroAppMockup />
                 </div>
               </AnimateIn>
             </div>
           </div>
 
-          <div className="absolute bottom-0 inset-x-0 h-32 bg-gradient-to-t from-[hsl(260,22%,7%)] to-transparent pointer-events-none" />
+          <div className="relative z-10 flex justify-center pb-8">
+            <AnimateIn delay={800}>
+              <ScrollIndicator />
+            </AnimateIn>
+          </div>
+
+          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-[hsl(260,22%,7%)] to-transparent pointer-events-none" />
+        </section>
+
+        {/* ──── Three-column Feature Strip (like ToDesktop) ──── */}
+        <section className="py-12 md:py-16 relative" data-reveal>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
+              {[
+                { icon: Monitor, title: "System Tweaks", desc: "38+ optimizations to reduce latency and boost responsiveness." },
+                { icon: Wifi, title: "Network Optimizer", desc: "TCP, UDP, DNS tuning for lower ping and stable connections." },
+                { icon: Lock, title: "Safe & Reversible", desc: "Every change can be reverted. No critical files touched." },
+              ].map((item, i) => (
+                <Reveal key={item.title} delay={i * 0.1}>
+                  <div className="flex flex-col items-center">
+                    <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
+                      <item.icon className="size-5 text-white/50" />
+                    </div>
+                    <h3 className="font-semibold text-white text-sm mb-2">{item.title}</h3>
+                    <p className="text-white/30 text-sm leading-relaxed max-w-[220px]">{item.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
+            </div>
+            <div className="ws-feature-strip-divider mt-12" />
+          </div>
         </section>
 
         {/* ──── Stats ──── */}
@@ -627,20 +661,16 @@ export default function Landing() {
 
         {/* ──── Social Proof ──── */}
         <section className="py-20 relative" data-reveal>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center">
-              <div className="max-w-2xl mx-auto">
-                <div className="flex justify-center gap-1 mb-6">
-                  {[...Array(3)].map((_, i) => (
-                    <Star key={i} className="size-4 text-primary/60 fill-primary/60" />
-                  ))}
-                </div>
-                <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">New Release 2026</h2>
-                <p className="text-white/35 leading-relaxed text-sm">
-                  SwitchControl is our latest release with enhanced optimization features. We're actively improving
-                  based on real user feedback.
-                </p>
-              </div>
+              <p className="text-xs text-white/25 tracking-widest uppercase mb-6">Built for competitive players</p>
+              <h2 className="text-2xl md:text-3xl leading-snug mb-4">
+                <span className="font-extralight text-white/50">New for 2026.</span>{" "}
+                <span className="font-bold text-white">Faster, smarter, safer.</span>
+              </h2>
+              <p className="text-white/30 leading-relaxed text-sm max-w-lg mx-auto">
+                We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.
+              </p>
             </Reveal>
           </div>
         </section>
@@ -720,19 +750,15 @@ export default function Landing() {
 
         {/* ──── Final CTA ──── */}
         <section className="py-24 md:py-32 relative" data-reveal>
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent pointer-events-none" />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
             <Reveal>
-              <Activity className="size-8 text-primary/40 mx-auto mb-6" />
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-5 leading-tight">
-                Ready to{" "}
-                <span className="bg-gradient-to-r from-primary via-[hsl(280,60%,60%)] to-[hsl(190,80%,50%)] bg-clip-text text-transparent">
-                  Optimize
-                </span>
-                ?
+              <h2 className="text-3xl md:text-4xl lg:text-5xl leading-tight mb-5">
+                <span className="font-extralight text-white/50">Stop losing frames.</span>{" "}
+                <span className="font-bold text-white">Start winning.</span>
               </h2>
-              <p className="text-white/35 mb-10 max-w-lg mx-auto leading-relaxed">
-                Join competitive gamers who trust SwitchControl for system optimization.
+              <p className="text-white/30 mb-10 max-w-md mx-auto leading-relaxed text-sm">
+                Download SwitchControl and see the difference in your next match.
               </p>
               <GlowButton
                 variant="cyan"
