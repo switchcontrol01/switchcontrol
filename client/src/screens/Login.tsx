@@ -91,6 +91,21 @@ export default function Login() {
   }, [clearOAuthTimeout]);
 
   useEffect(() => {
+    if (!isLoading) return;
+
+    let focusCount = 0;
+    const handleFocus = () => {
+      focusCount++;
+      if (focusCount >= 2 && isLoading && !useAuthStore.getState().oauthDeepLinkReceived) {
+        console.log('[Login] App regained focus without deep link — likely browser closed');
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, [isLoading]);
+
+  useEffect(() => {
     const newParticles = Array.from({ length: 30 }, (_, i) => ({
       id: i,
       delay: Math.random() * 5,
@@ -100,6 +115,13 @@ export default function Login() {
     }));
     setParticles(newParticles);
   }, []);
+
+  const handleCancel = useCallback(() => {
+    console.log('[Login] User cancelled login');
+    clearOAuthTimeout();
+    setIsLoading(null);
+    setError(null);
+  }, [clearOAuthTimeout]);
 
   const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
@@ -276,53 +298,77 @@ export default function Login() {
           </AnimatePresence>
 
           <div className="relative space-y-3">
-            <motion.div 
-              whileHover={{ scale: 1.02 }} 
-              whileTap={{ scale: 0.98 }}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4 }}
-            >
-              <Button
-                onClick={() => handleLogin("google")}
-                disabled={isLoading !== null}
-                className="w-full h-12 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
-                data-testid="button-login-google"
-              >
-                {isLoading === "google" ? (
-                  <div className="w-5 h-5 border-2 border-gray-400 border-t-gray-900 rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <GoogleIcon className="w-5 h-5 mr-3" />
-                    Continue with Google
-                  </>
-                )}
-              </Button>
-            </motion.div>
+            <AnimatePresence mode="wait">
+              {isLoading ? (
+                <motion.div
+                  key="loading"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="flex flex-col items-center gap-4 py-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
+                    <span className="text-sm text-muted-foreground">
+                      Waiting for {isLoading === "google" ? "Google" : "Discord"} sign-in...
+                    </span>
+                  </div>
+                  <motion.button
+                    onClick={handleCancel}
+                    className="text-sm text-muted-foreground hover:text-white transition-colors px-4 py-2 rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    data-testid="button-login-cancel"
+                  >
+                    Cancel
+                  </motion.button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="buttons"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-3"
+                >
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.4 }}
+                  >
+                    <Button
+                      onClick={() => handleLogin("google")}
+                      className="w-full h-12 bg-white hover:bg-gray-100 text-gray-900 font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl"
+                      data-testid="button-login-google"
+                    >
+                      <GoogleIcon className="w-5 h-5 mr-3" />
+                      Continue with Google
+                    </Button>
+                  </motion.div>
 
-            <motion.div 
-              whileHover={{ scale: 1.02 }} 
-              whileTap={{ scale: 0.98 }}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <Button
-                onClick={() => handleLogin("discord")}
-                disabled={isLoading !== null}
-                className="w-full h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-[#5865F2]/20"
-                data-testid="button-login-discord"
-              >
-                {isLoading === "discord" ? (
-                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <DiscordIcon className="w-5 h-5 mr-3" />
-                    Continue with Discord
-                  </>
-                )}
-              </Button>
-            </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <Button
+                      onClick={() => handleLogin("discord")}
+                      className="w-full h-12 bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:shadow-[#5865F2]/20"
+                      data-testid="button-login-discord"
+                    >
+                      <DiscordIcon className="w-5 h-5 mr-3" />
+                      Continue with Discord
+                    </Button>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <motion.p 
