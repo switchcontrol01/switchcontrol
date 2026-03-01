@@ -164,12 +164,37 @@ shared/
 - **Reset App Data**: Two buttons: "Reset Settings" (keeps auth, clears UI via zustand resetData only) and "Factory Reset" (kill switch → performFullLogout → clear storages → reload/relaunch)
 - **resetData Safety**: Only resets tweaks, history, stats, latestAIScan, account.stats. Does NOT touch onboarding (`sc_tour_completed_*`, `sc_welcomed_*`) or premium server flags.
 
-### Premium Guided Tour
-- **Step Order**: Power Plan → Network Tweaks → BIOS Advisor → AI Advisor → Settings → Priority Email → Priority Support Unlocked
-- **Trigger**: Controlled by AppFlow state machine (`activeFlow === "premiumTour"`)
+### Unified Tour System
+- **TourShell**: `client/src/components/TourShell.tsx` — shared component for both onboarding and premium tours
+- **OnboardingTour**: `client/src/components/OnboardingTour.tsx` — uses TourShell, 7 steps including Discord CTA
+- **GuidedTour (Premium)**: `client/src/components/GuidedTour.tsx` — uses TourShell, 7 steps with narrative flow + staged lock→unlock animation + Discord CTA
+- **Tour Features**:
+  - Custom smooth scroll (rAF-based cubic ease, 600ms duration)
+  - Animated spotlight position (spring transitions, no remount)
+  - Subtle animated background glow behind overlay
+  - Unified timing: fadeOut 220ms, scroll 600ms, spotlight 250ms, tooltip spring
+  - Both tours end by returning to Dashboard (not Settings)
+  - Discord CTA as final step for both tours
+  - Staged lock→unlock animation: shake → glow buildup → crossfade → particle burst → spring settle (1.4s total)
+- **Premium Tour Step Order**: Welcome → Power Plan → Network Tweaks → BIOS Intelligence → Full System Visibility → Premium Activated (unlock anim) → Join Discord
+- **Onboarding Step Order**: Dashboard → BIOS Advisor → Tweaks → Network → Security → Settings → Join Discord
+- **Trigger**: Controlled by AppFlow state machine (`activeFlow === "premiumTour"` or `"firstTime"`)
 - **Replay Prevention**: Server-driven via `user.hasSeenPremiumTour` flag; `postTourSeen()` called on completion
-- **Navigation**: Auto-navigates to correct route per step (dashboard → settings)
-- **Tour Selectors**: `data-tour="power-plan"`, `data-tour="network"`, `data-tour="bios-advisor"`, `data-tour="ai-advisor"`, `data-tour="settings"`, `data-tour="settings-email"`
+
+### Dynamic Startup Taglines
+- **Module**: `client/src/lib/taglines.ts`
+- **Behavior**: Rotating performance-focused taglines on Dashboard hero, random per load, never repeats consecutively (localStorage guard)
+- **Used in**: `client/src/pages/Home.tsx` via `useDashboardTagline()` hook
+
+### Window Controls
+- **Component**: `client/src/components/WindowControls.tsx`
+- **Style**: Glass-blended buttons with backdrop blur, rounded corners, subtle border
+- **Hover**: Scale 1.06 + purple glow (close button gets red glow)
+- **Titlebar**: Glass gradient background with bottom border, 32px height
+
+### Global Text Selection
+- **Policy**: `user-select: none` on body for premium feel; `user-select: text` on inputs, textareas, code blocks, and `.select-text` class
+- **Copyable Fields**: Disabled selection but provide explicit copy buttons (device ID, license key, email)
 
 ### Priority Support
 - **Email**: `switchcontrol67@gmail.com` visible ONLY to premium users in Settings

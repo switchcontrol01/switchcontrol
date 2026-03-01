@@ -21,6 +21,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
+import { useDashboardTagline } from "@/lib/taglines";
 
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
@@ -459,7 +460,7 @@ export default function Home() {
               <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-[hsl(270,60%,75%)] to-white/60 bg-clip-text text-transparent">
                 Good {getGreeting()}, {getUserDisplayName()} {isPremium && <span className="text-2xl">👑</span>}
               </h1>
-              <p className="text-muted-foreground mt-1">System status is optimal. Optimization consistency prioritized.</p>
+              <p className="text-muted-foreground mt-1" data-testid="text-dashboard-tagline">{useDashboardTagline()}</p>
             </div>
             <div className="flex items-center gap-3">
                <Link href="/history">

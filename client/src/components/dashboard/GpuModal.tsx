@@ -74,20 +74,22 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
       const api = (window as any).electronAPI;
       if (api?.telemetry?.getGpu) {
         const res = await api.telemetry.getGpu();
-        if (res) {
-          setData(res);
-          if (res.load !== undefined) {
-            setLoadHistory(prev => {
-              const next = [...prev, res.load];
-              return next.length > BUFFER_SIZE ? next.slice(-BUFFER_SIZE) : next;
-            });
-          }
+        if (!res) {
+          onOpenChange(false);
+          return;
+        }
+        setData(res);
+        if (res.load !== undefined) {
+          setLoadHistory(prev => {
+            const next = [...prev, res.load];
+            return next.length > BUFFER_SIZE ? next.slice(-BUFFER_SIZE) : next;
+          });
         }
       }
     } catch {
       // silently fail
     }
-  }, []);
+  }, [onOpenChange]);
 
   useEffect(() => {
     if (!open) {

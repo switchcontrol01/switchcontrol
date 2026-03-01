@@ -1066,6 +1066,22 @@ body {
   }
 }
 
+/* Global non-selectable UI chrome */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable="true"],
+.select-text,
+code,
+pre {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
 /* Electron App Structure - CRITICAL for frameless window */
 .app-root {
   width: 100%;
@@ -1083,9 +1099,11 @@ body {
   flex-shrink: 0;
   z-index: 9999;
   position: relative;
+  background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, transparent 100%);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  backdrop-filter: blur(16px);
 }
 
-/* Window control buttons inside titlebar must NOT be draggable */
 .titlebar-controls {
   -webkit-app-region: no-drag;
 }
