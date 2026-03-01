@@ -246,64 +246,41 @@ function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
 
 function AnimatedBar({ target, color, delay }: { target: number; color: string; delay: number }) {
   const [width, setWidth] = useState(0);
-  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          observer.disconnect();
-          setTimeout(() => setWidth(target), delay);
-        }
-      },
-      { threshold: 0.3 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
+    const timer = setTimeout(() => setWidth(target), delay + 800);
+    return () => clearTimeout(timer);
   }, [target, delay]);
 
   return (
-    <div ref={ref} className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+    <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
       <div
-        className={cn("h-full rounded-full transition-all duration-1000 ease-out", color)}
+        className={cn("h-full rounded-full transition-all duration-[1200ms] ease-out", color)}
         style={{ width: `${width}%` }}
       />
     </div>
   );
 }
 
-function MockupCounter({ target, suffix = "" }: { target: number; suffix: string }) {
+function MockupCounter({ target, suffix = "", delay = 800 }: { target: number; suffix: string; delay?: number }) {
   const [val, setVal] = useState(0);
-  const ref = useRef<HTMLSpanElement>(null);
-  const animated = useRef(false);
 
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting || animated.current) return;
-        animated.current = true;
-        observer.disconnect();
-        const duration = 1000;
-        const start = performance.now();
-        const animate = (now: number) => {
-          const p = Math.min((now - start) / duration, 1);
-          const eased = 1 - Math.pow(1 - p, 3);
-          setVal(Math.round(target * eased));
-          if (p < 1) requestAnimationFrame(animate);
-        };
-        requestAnimationFrame(animate);
-      },
-      { threshold: 0.3 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [target]);
+    const timer = setTimeout(() => {
+      const duration = 1200;
+      const start = performance.now();
+      const animate = (now: number) => {
+        const p = Math.min((now - start) / duration, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setVal(Math.round(target * eased));
+        if (p < 1) requestAnimationFrame(animate);
+      };
+      requestAnimationFrame(animate);
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [target, delay]);
 
-  return <span ref={ref}>{val}{suffix}</span>;
+  return <span>{val}{suffix}</span>;
 }
 
 function HeroAppMockup() {
@@ -462,11 +439,10 @@ export default function Landing() {
 
               <AnimateIn delay={100}>
                 <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
-                  <div className="ws-hero-light-sweep" />
-                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-semibold text-white/80">
+                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white">
                     Your PC is holding
                   </span>
-                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-semibold text-white/80">
+                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white">
                     you back.{" "}
                     <span className="font-black bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
                       Fix it.
@@ -508,7 +484,7 @@ export default function Landing() {
           </div>
           </HeroTiltContainer>
 
-          <div className="absolute bottom-0 inset-x-0 h-40 bg-gradient-to-t from-[#040508] to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 inset-x-0 h-64 bg-gradient-to-t from-[#040508] via-[#040508]/60 to-transparent pointer-events-none" />
         </section>
 
         {/* ──── Three-column Feature Strip (like ToDesktop) ──── */}

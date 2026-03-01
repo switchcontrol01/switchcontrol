@@ -75,7 +75,7 @@ function FullHeader() {
               <a
                 key={link.label}
                 href={link.href}
-                className="relative text-sm text-white/80 hover:text-white transition-colors duration-300 tracking-wide py-1 group"
+                className="relative text-sm font-semibold text-white/80 hover:text-white transition-colors duration-300 tracking-wide py-1 group"
               >
                 {link.label}
                 <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />

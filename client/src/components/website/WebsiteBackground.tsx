@@ -143,8 +143,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: true,
     bgImages: [
-      { src: heroBackdrop, opacity: 0.05 },
-      { src: circuitTech, opacity: 0.03 },
+      { src: heroBackdrop, opacity: 0.08 },
+      { src: circuitTech, opacity: 0.06 },
     ],
     particles: true,
   },
@@ -166,8 +166,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: true,
     bgImages: [
-      { src: perfDashboard, opacity: 0.04 },
-      { src: networkFlow, opacity: 0.03 },
+      { src: perfDashboard, opacity: 0.07 },
+      { src: networkFlow, opacity: 0.05 },
     ],
     particles: true,
   },
@@ -187,7 +187,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: hardwareDetail, opacity: 0.04 },
+      { src: hardwareDetail, opacity: 0.07 },
     ],
     particles: true,
   },
@@ -206,7 +206,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: circuitTech, opacity: 0.03 },
+      { src: circuitTech, opacity: 0.05 },
     ],
     particles: false,
   },
@@ -223,7 +223,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: networkFlow, opacity: 0.02 },
+      { src: networkFlow, opacity: 0.04 },
     ],
     particles: false,
   },
@@ -243,7 +243,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: false,
     bgImages: [
-      { src: perfDashboard, opacity: 0.04 },
+      { src: perfDashboard, opacity: 0.06 },
     ],
     particles: true,
   },
@@ -347,7 +347,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-10%",
           width: "120%",
           height: "80%",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(180,140,255,0.07) 15%, transparent 40%)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(180,140,255,0.10) 15%, transparent 40%)",
           opacity: beamFade,
           transform: `translateY(${-parallaxOffset * 0.2}px)`,
         }}
@@ -360,7 +360,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "5%",
           width: "60%",
           height: "70%",
-          background: "linear-gradient(145deg, rgba(255,255,255,0.10) 0%, rgba(140,180,255,0.05) 20%, transparent 45%)",
+          background: "linear-gradient(145deg, rgba(255,255,255,0.12) 0%, rgba(140,180,255,0.06) 20%, transparent 45%)",
           opacity: beamFade * 0.7,
           transform: `translateY(${-parallaxOffset * 0.15}px)`,
         }}
@@ -373,7 +373,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "50%",
           height: "90%",
-          background: "linear-gradient(125deg, rgba(200,180,255,0.07) 0%, rgba(130,200,255,0.03) 25%, transparent 50%)",
+          background: "linear-gradient(125deg, rgba(200,180,255,0.09) 0%, rgba(130,200,255,0.04) 25%, transparent 50%)",
           opacity: beamFade * 0.5,
           transform: `translateY(${-parallaxOffset * 0.1}px)`,
         }}
@@ -386,7 +386,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "60%",
           height: "50%",
-          background: "radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.20) 0%, rgba(180,140,255,0.14) 20%, rgba(120,80,200,0.06) 40%, transparent 65%)",
+          background: "radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.25) 0%, rgba(180,140,255,0.18) 20%, rgba(120,80,200,0.08) 40%, transparent 65%)",
           opacity: beamFade,
         }}
       />

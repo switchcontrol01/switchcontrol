@@ -7,58 +7,61 @@ export function useMomentumScroll() {
     if (isMobile) return;
 
     let velocity = 0;
-    let lastScrollTime = 0;
     let rafId: number | null = null;
     let isCoasting = false;
+    let lastWheelTime = 0;
 
-    const decay = 0.92;
-    const minVelocity = 0.5;
+    const decay = 0.95;
+    const minVelocity = 0.3;
 
     const coast = () => {
+      velocity *= decay;
       if (Math.abs(velocity) < minVelocity) {
         isCoasting = false;
+        velocity = 0;
         return;
       }
-      velocity *= decay;
       window.scrollBy(0, velocity);
       rafId = requestAnimationFrame(coast);
     };
 
     const handleWheel = (e: WheelEvent) => {
-      lastScrollTime = performance.now();
-      velocity = e.deltaY * 0.15;
+      const now = performance.now();
+      const dt = now - lastWheelTime;
+      lastWheelTime = now;
 
       if (isCoasting && rafId !== null) {
         cancelAnimationFrame(rafId);
+        isCoasting = false;
       }
-      isCoasting = false;
+
+      if (dt < 200) {
+        velocity = velocity * 0.6 + e.deltaY * 0.08;
+      } else {
+        velocity = e.deltaY * 0.08;
+      }
     };
 
-    const handleScrollEnd = () => {
-      const now = performance.now();
-      if (now - lastScrollTime > 50 && !isCoasting && Math.abs(velocity) > minVelocity) {
+    const handleWheelEnd = () => {
+      if (!isCoasting && Math.abs(velocity) > minVelocity) {
         isCoasting = true;
         rafId = requestAnimationFrame(coast);
       }
     };
 
-    let checkInterval: ReturnType<typeof setInterval>;
-
-    const startCheck = () => {
-      checkInterval = setInterval(() => {
-        if (performance.now() - lastScrollTime > 50 && !isCoasting) {
-          handleScrollEnd();
-        }
-      }, 60);
+    let endTimer: ReturnType<typeof setTimeout>;
+    const wrappedWheel = (e: WheelEvent) => {
+      handleWheel(e);
+      clearTimeout(endTimer);
+      endTimer = setTimeout(handleWheelEnd, 80);
     };
 
-    window.addEventListener("wheel", handleWheel, { passive: true });
-    startCheck();
+    window.addEventListener("wheel", wrappedWheel, { passive: true });
 
     return () => {
-      window.removeEventListener("wheel", handleWheel);
+      window.removeEventListener("wheel", wrappedWheel);
       if (rafId !== null) cancelAnimationFrame(rafId);
-      clearInterval(checkInterval);
+      clearTimeout(endTimer);
     };
   }, []);
 }
