@@ -1,0 +1,80 @@
+GOAL:
+Full website depth redesign across ALL public routes. The site currently looks flat (mostly a single gradient). I need layered cinematic depth everywhere, consistent and premium, with brand-relevant technical motifs (latency, frames, network, CPU tuning). No gamer cringe. No corny copy. No “Windows optimization for gamers” style pills.
+
+ROUTES:
+/ (Landing.tsx)
+/pricing (Pricing.tsx)
+/download (Download.tsx)
+/login (Login.tsx)
+/terms (Terms.tsx)
+/privacy (Privacy.tsx)
+/success (Success.tsx)
+/premium-success (PremiumSuccess.tsx)
+
+NON-NEGOTIABLE VISUAL REQUIREMENTS:
+1) Every page must have the same multi-layer background system, not just Landing.
+2) The background must include depth layers beyond color: technical SVG overlays (PCB traces, node graphs, frametime waveform, packet routes), subtle glass silhouettes, glow hotspots, noise, vignette, spotlight.
+3) Add motion: slow drifting layers, subtle parallax on scroll, section glow transitions.
+4) Typography: bigger, cleaner, confident. Remove any playful or childish fonts. No handwritten look.
+5) Remove or redesign “scroll to explore” if it looks pointless. Only keep it if it clearly communicates scroll and is animated tastefully.
+6) FAQ card and other bland grey blocks must become premium glass surfaces with inner glow, edge lighting, and background context behind them.
+
+IMPLEMENTATION PLAN:
+A) Create a new reusable component:
+client/src/components/website/WebsiteBackground.tsx
+It renders the layered background and accepts a “variant” prop for different page moods: "landing" | "pricing" | "download" | "auth" | "legal" | "success".
+This component must include:
+- base gradient layer
+- vignette + noise overlay
+- 2-3 SVG overlay layers (different opacity) chosen by variant:
+  - pcb-traces.svg
+  - node-graph.svg
+  - frametime-wave.svg
+  - packet-route.svg
+  - topo-lines.svg
+- 2 blurred “hardware silhouette” divs (NOT literal photos): use CSS shapes + gradients to imply components (chip outline, heatsink fins, NIC ports). Very subtle.
+- SpotlightEffect integration with mild strength
+- Motion: use CSS keyframes for slow drift on overlays (15s to 40s loops). Use small transforms only.
+- Parallax: on scroll, set CSS variable --scroll-y and move 1-2 layers slightly.
+
+B) Add SVG assets:
+Create inline SVG components or svg files under:
+client/src/assets/bg/
+Create minimal line-art style SVGs. Keep them subtle.
+No huge icons. Think “technical blueprint”.
+
+C) Wire it across pages:
+In WebsiteShell or the top-level page wrapper, ensure WebsiteBackground is present for ALL routes.
+Each page passes the correct variant prop.
+Do not break existing layout.
+
+D) Improve section transitions:
+Add ambient glow “bands” between sections, so scrolling feels like moving through a space, not flat blocks.
+Use absolute positioned gradients behind sections with blur.
+
+E) Fix header:
+Header must feel premium: glass bar, subtle border, slight glow, better spacing, hover states.
+No cheap grey bar.
+
+F) Fix FAQ:
+FAQ container must be glass, translucent, with depth behind it (pattern visible through).
+Add subtle hover expand animation.
+
+G) Final pass:
+Verify all routes still return 200.
+Check mobile responsiveness.
+Ensure background does not reduce text readability on legal pages: legal pages should use a slightly more matte panel for long text.
+
+DELIVERABLE:
+Commit changes across:
+- WebsiteBackground.tsx
+- new SVG assets
+- updated WebsiteShell or App wrapper
+- updates to all 8 pages to use consistent background + section glow transitions
+- any necessary CSS keyframes in index.css
+
+IMPORTANT STYLE CONSTRAINTS:
+- No corny marketing phrases
+- No gamer slang
+- Keep it premium, technical, confident
+- Background must imply performance engineering: latency, frames, network, system tuning

@@ -6,7 +6,6 @@ import {
   Clock,
   Gauge,
   ChevronDown,
-  Star,
   ArrowRight,
   Crown,
   Cpu,
@@ -329,7 +328,7 @@ export default function Landing() {
   };
 
   return (
-    <WebsiteShell variant="full" showFooter>
+    <WebsiteShell variant="full" bgVariant="landing" showFooter>
       <main className="ws-page-enter">
         {/* ──── Hero ──── */}
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
@@ -338,8 +337,8 @@ export default function Landing() {
             <div className="text-center">
               <AnimateIn delay={0}>
                 <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-10 tracking-wider uppercase">
-                  <Star className="size-3 fill-primary/80 text-primary/80" />
-                  Windows optimization for gamers
+                  <Activity className="size-3 text-primary/70" />
+                  Performance Engineering
                 </span>
               </AnimateIn>
 
@@ -424,6 +423,7 @@ export default function Landing() {
 
         {/* ──── Stats ──── */}
         <section className="py-12 md:py-16 relative" data-reveal>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent pointer-events-none" />
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-white/[0.04]">
               {STATS.map((stat, i) => (
@@ -490,6 +490,7 @@ export default function Landing() {
 
         {/* ──── BIOS Advisor ──── */}
         <section className="py-24 md:py-32 relative overflow-hidden" data-reveal>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 60% 40%, hsl(270 55% 45% / 0.04) 0%, transparent 70%)" }} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-primary/[0.05] blur-[180px] pointer-events-none" />
           <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[hsl(190,80%,40%,0.04)] blur-[120px] pointer-events-none" />
 
@@ -615,6 +616,7 @@ export default function Landing() {
 
         {/* ──── Comparison Sliders ──── */}
         <section className="py-24 md:py-32 relative" data-reveal>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 50%, hsl(190 70% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
               title="Real Results,"
@@ -661,6 +663,7 @@ export default function Landing() {
 
         {/* ──── Social Proof ──── */}
         <section className="py-20 relative" data-reveal>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(270 50% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center">
               <p className="text-xs text-white/25 tracking-widest uppercase mb-6">Built for competitive players</p>
@@ -735,10 +738,12 @@ export default function Landing() {
 
         {/* ──── FAQ ──── */}
         <section id="faq" className="py-24 md:py-32 relative" data-reveal>
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 50% 40%, hsl(270 50% 45% / 0.04) 0%, transparent 70%)" }} />
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <SectionHeader title="Frequently Asked" titleAccent="Questions" />
 
-            <GlassPanel variant="matte" className="p-6 md:p-8">
+            <GlassPanel variant="elevated" className="p-6 md:p-8 relative overflow-hidden">
+              <div className="absolute inset-0 pointer-events-none opacity-[0.015]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
               {FAQ_ITEMS.map((item, i) => (
                 <FAQItem key={item.question} question={item.question} answer={item.answer} index={i} />
               ))}

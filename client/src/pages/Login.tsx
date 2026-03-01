@@ -46,7 +46,7 @@ export default function Login() {
   const discordAuthUrl = `/auth/discord?next=${encodeURIComponent(next)}`;
   
   return (
-    <WebsiteShell variant="inner" showFooter={false}>
+    <WebsiteShell variant="inner" bgVariant="auth" showFooter={false}>
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <LoginParticles />
         <SpotlightCursor />

@@ -14,101 +14,17 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { GlowButton } from "./GlowButton";
+import { WebsiteBackground } from "./WebsiteBackground";
+import type { ComponentProps } from "react";
+
+type BgVariant = ComponentProps<typeof WebsiteBackground>["variant"];
 
 interface WebsiteShellProps {
   children: ReactNode;
   variant?: "full" | "inner" | "minimal";
+  bgVariant?: BgVariant;
   showFooter?: boolean;
   className?: string;
-}
-
-function WebsiteBackground() {
-  const [mousePos, setMousePos] = useState({ x: 0.5, y: 0.3 });
-  const rafRef = useRef<number | null>(null);
-  const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (rafRef.current !== null || isMobile) return;
-    rafRef.current = requestAnimationFrame(() => {
-      setMousePos({
-        x: e.clientX / window.innerWidth,
-        y: e.clientY / window.innerHeight,
-      });
-      rafRef.current = null;
-    });
-  }, [isMobile]);
-
-  useEffect(() => {
-    if (isMobile) return;
-    window.addEventListener("mousemove", handleMouseMove, { passive: true });
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
-    };
-  }, [handleMouseMove, isMobile]);
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-      <div
-        className="absolute inset-0"
-        style={{
-          background: `
-            radial-gradient(ellipse 120% 60% at 50% -10%, hsl(270 55% 40% / 0.25) 0%, transparent 55%),
-            radial-gradient(ellipse 80% 50% at 10% 20%, hsl(260 60% 50% / 0.12) 0%, transparent 50%),
-            radial-gradient(ellipse 60% 40% at 90% 70%, hsl(280 50% 45% / 0.10) 0%, transparent 50%),
-            radial-gradient(ellipse 50% 30% at 70% 10%, hsl(190 80% 50% / 0.06) 0%, transparent 50%),
-            linear-gradient(180deg, hsl(260 22% 7%) 0%, hsl(260 18% 5%) 40%, hsl(260 20% 4%) 100%)
-          `,
-        }}
-      />
-
-      <div
-        className="absolute rounded-full blur-[140px] w-[600px] h-[600px] opacity-[0.18] website-blob-1"
-        style={{
-          top: "5%",
-          left: "5%",
-          background: "radial-gradient(circle, hsl(270 55% 50%) 0%, hsl(280 60% 40%) 50%, transparent 70%)",
-        }}
-      />
-      <div
-        className="absolute rounded-full blur-[120px] w-[500px] h-[500px] opacity-[0.12] website-blob-2"
-        style={{
-          top: "45%",
-          right: "0%",
-          background: "radial-gradient(circle, hsl(280 50% 45%) 0%, hsl(290 40% 35%) 50%, transparent 70%)",
-        }}
-      />
-      <div
-        className="absolute rounded-full blur-[100px] w-[400px] h-[400px] opacity-[0.08] website-blob-3"
-        style={{
-          bottom: "10%",
-          left: "20%",
-          background: "radial-gradient(circle, hsl(260 45% 40%) 0%, transparent 70%)",
-        }}
-      />
-
-      {!isMobile && (
-        <div
-          className="absolute w-[700px] h-[700px] rounded-full transition-all duration-[1500ms] ease-out"
-          style={{
-            left: `${mousePos.x * 100}%`,
-            top: `${mousePos.y * 100}%`,
-            transform: "translate(-50%, -50%)",
-            background: "radial-gradient(circle, hsl(270 60% 60% / 0.07) 0%, hsl(280 50% 50% / 0.03) 40%, transparent 70%)",
-          }}
-        />
-      )}
-
-      <div className="absolute inset-0 pointer-events-none ws-perspective-grid" />
-
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.022]"
-        style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")`,
-        }}
-      />
-    </div>
-  );
 }
 
 const NAV_LINKS = [
@@ -137,11 +53,21 @@ function FullHeader() {
   return (
     <motion.header
       className={cn(
-        "fixed top-0 left-0 right-0 z-50 border-b transition-all duration-500",
+        "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
         scrolled
-          ? "bg-[hsl(260,22%,7%,0.8)] backdrop-blur-2xl border-white/[0.06] shadow-[0_4px_30px_rgba(0,0,0,0.4)]"
-          : "bg-transparent border-transparent"
+          ? "border-b border-white/[0.06]"
+          : "border-b border-transparent"
       )}
+      style={{
+        background: scrolled
+          ? "linear-gradient(180deg, hsl(260 25% 6% / 0.85) 0%, hsl(260 22% 7% / 0.75) 100%)"
+          : "transparent",
+        backdropFilter: scrolled ? "blur(20px) saturate(1.2)" : "none",
+        WebkitBackdropFilter: scrolled ? "blur(20px) saturate(1.2)" : "none",
+        boxShadow: scrolled
+          ? "0 1px 0 0 rgba(255,255,255,0.03), 0 4px 30px rgba(0,0,0,0.4), inset 0 -1px 0 0 rgba(139,92,246,0.06)"
+          : "none",
+      }}
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -155,9 +81,10 @@ function FullHeader() {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm text-white/45 hover:text-white transition-colors duration-200 tracking-wide"
+                className="relative text-sm text-white/40 hover:text-white/80 transition-colors duration-300 tracking-wide py-1 group"
               >
                 {link.label}
+                <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
               </a>
             ))}
           </nav>
@@ -184,7 +111,7 @@ function FullHeader() {
             ) : (
               <>
                 <Link href="/login">
-                  <button className="text-sm text-white/45 hover:text-white transition-colors px-4 py-2 tracking-wide">
+                  <button className="text-sm text-white/40 hover:text-white/70 transition-colors px-4 py-2 tracking-wide">
                     Log in
                   </button>
                 </Link>
@@ -209,7 +136,12 @@ function FullHeader() {
 
       {mobileMenuOpen && (
         <motion.div
-          className="md:hidden bg-[hsl(260,22%,7%,0.95)] backdrop-blur-2xl border-t border-white/[0.06]"
+          className="md:hidden border-t border-white/[0.06]"
+          style={{
+            background: "linear-gradient(180deg, hsl(260 25% 6% / 0.95) 0%, hsl(260 22% 7% / 0.9) 100%)",
+            backdropFilter: "blur(24px)",
+            WebkitBackdropFilter: "blur(24px)",
+          }}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
@@ -264,16 +196,25 @@ function FullHeader() {
 
 function InnerHeader() {
   return (
-    <header className="relative z-10 p-4 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm"
-        >
-          <ArrowLeft className="size-4" />
-          Back to home
-        </Link>
-        <BrandLogo size="sm" linkTo="/" />
+    <header
+      className="relative z-10 border-b border-white/[0.05]"
+      style={{
+        background: "linear-gradient(180deg, hsl(260 25% 6% / 0.6) 0%, transparent 100%)",
+        backdropFilter: "blur(12px)",
+        WebkitBackdropFilter: "blur(12px)",
+      }}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center justify-between">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-white/40 hover:text-white/70 transition-colors text-sm"
+          >
+            <ArrowLeft className="size-4" />
+            Back to home
+          </Link>
+          <BrandLogo size="sm" linkTo="/" />
+        </div>
       </div>
     </header>
   );
@@ -364,10 +305,12 @@ function WebsiteFooter() {
   );
 }
 
-export function WebsiteShell({ children, variant = "full", showFooter = true, className }: WebsiteShellProps) {
+export function WebsiteShell({ children, variant = "full", bgVariant, showFooter = true, className }: WebsiteShellProps) {
+  const resolvedBgVariant = bgVariant || (variant === "full" ? "landing" : "landing");
+
   return (
-    <div className="min-h-screen relative bg-[hsl(260,22%,7%)]">
-      <WebsiteBackground />
+    <div className="min-h-screen relative bg-[hsl(260,25%,4%)]">
+      <WebsiteBackground variant={resolvedBgVariant} />
 
       {variant === "full" && <FullHeader />}
       {variant === "inner" && <InnerHeader />}

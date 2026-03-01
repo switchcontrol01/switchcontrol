@@ -67,15 +67,14 @@ export function ScrollIndicator() {
 
   return (
     <button
-      className="flex flex-col items-center gap-2 cursor-pointer bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 rounded-full p-2"
+      className="flex flex-col items-center gap-1.5 cursor-pointer bg-transparent border-none outline-none focus:ring-2 focus:ring-primary/50 rounded-full p-2 group"
       onClick={() => window.scrollTo({ top: window.innerHeight, behavior: 'smooth' })}
-      aria-label="Scroll down to explore features"
+      aria-label="Scroll down"
       data-testid="button-scroll-indicator"
     >
-      <span className="text-xs text-white/25">Scroll to explore</span>
-      <div className="w-5 h-8 rounded-full border border-white/15 flex justify-center pt-2">
+      <div className="w-[18px] h-7 rounded-full border border-white/10 group-hover:border-white/20 transition-colors flex justify-center pt-1.5">
         <div
-          className="w-0.5 h-1.5 rounded-full bg-white/30"
+          className="w-0.5 h-1.5 rounded-full bg-white/25"
           style={{
             animation: prefersReducedMotion ? 'none' : 'scrollDot 1.8s ease-in-out infinite',
           }}

@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { ExternalLink, Download, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { WebsiteBackground } from "@/components/website/WebsiteBackground";
 
 
 type PageState = "loading" | "success" | "error";
@@ -154,34 +155,7 @@ function CheckAnimation({ phase }: { phase: AnimPhase }) {
 }
 
 function FloatingParticles() {
-  const particles = Array.from({ length: 24 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    size: 1 + Math.random() * 2.5,
-    delay: Math.random() * 8,
-    duration: 6 + Math.random() * 6,
-    opacity: 0.15 + Math.random() * 0.25,
-  }));
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-full"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            background: `rgba(168, 132, 255, ${p.opacity})`,
-            animation: `pParticleFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
-          }}
-        />
-      ))}
-    </div>
-  );
+  return null;
 }
 
 function LaunchButton({ onClick }: { onClick: () => void }) {
@@ -291,18 +265,8 @@ export default function PremiumSuccess() {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-[hsl(260,20%,4%)] flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 bg-[hsl(260,25%,4%)] flex items-center justify-center overflow-hidden">
       <style>{`
-        @keyframes pMeshDrift {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          25% { transform: translate(30px, -20px) scale(1.05); }
-          50% { transform: translate(-20px, 15px) scale(0.98); }
-          75% { transform: translate(15px, 25px) scale(1.02); }
-        }
-        @keyframes pParticleFloat {
-          0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
-          50% { transform: translateY(-30px) scale(1.3); opacity: 0.5; }
-        }
         @keyframes pGlowPulse {
           0%, 100% { opacity: 0.6; transform: scale(2); }
           50% { opacity: 1; transform: scale(2.2); }
@@ -332,10 +296,6 @@ export default function PremiumSuccess() {
           0%, 100% { transform: translateY(0); }
           50% { transform: translateY(-6px); }
         }
-        @keyframes shimmerGradient {
-          0% { background-position: -200% 50%; }
-          100% { background-position: 200% 50%; }
-        }
         @media (prefers-reduced-motion: reduce) {
           *, *::before, *::after {
             animation-duration: 0.01ms !important;
@@ -345,43 +305,7 @@ export default function PremiumSuccess() {
         }
       `}</style>
 
-      <div className="fixed inset-0">
-        <div
-          className="absolute rounded-full blur-3xl"
-          style={{
-            width: 500,
-            height: 500,
-            left: "20%",
-            top: "30%",
-            background: "radial-gradient(circle, rgba(100,60,180,0.08), transparent 70%)",
-            animation: "pMeshDrift 20s ease-in-out infinite",
-          }}
-        />
-        <div
-          className="absolute rounded-full blur-3xl"
-          style={{
-            width: 400,
-            height: 400,
-            right: "15%",
-            bottom: "20%",
-            background: "radial-gradient(circle, rgba(80,50,160,0.06), transparent 70%)",
-            animation: "pMeshDrift 16s ease-in-out 3s infinite reverse",
-          }}
-        />
-      </div>
-
-      <div className="fixed inset-0 pointer-events-none" style={{ opacity: 0.03 }}>
-        <svg width="100%" height="100%">
-          <defs>
-            <pattern id="pgrid" width="60" height="60" patternUnits="userSpaceOnUse">
-              <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
-            </pattern>
-          </defs>
-          <rect width="100%" height="100%" fill="url(#pgrid)" />
-        </svg>
-      </div>
-
-      <FloatingParticles />
+      <WebsiteBackground variant="success" />
 
       <div className="relative z-10 w-full max-w-md px-6">
         {status === "loading" && (

@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, Download } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { WebsiteBackground } from "@/components/website/WebsiteBackground";
 
 
 type ConfirmState = "loading" | "success" | "error";
@@ -44,51 +45,6 @@ function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
   return phase;
 }
 
-function GridOverlay() {
-  return (
-    <div className="fixed inset-0 pointer-events-none" style={{ opacity: 0.03 }}>
-      <svg width="100%" height="100%">
-        <defs>
-          <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-            <path d="M 60 0 L 0 0 0 60" fill="none" stroke="white" strokeWidth="0.5" />
-          </pattern>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
-      </svg>
-    </div>
-  );
-}
-
-function FloatingParticles() {
-  const particles = Array.from({ length: 20 }, (_, i) => ({
-    id: i,
-    left: `${Math.random() * 100}%`,
-    top: `${Math.random() * 100}%`,
-    size: 1 + Math.random() * 2,
-    delay: Math.random() * 8,
-    duration: 6 + Math.random() * 6,
-    opacity: 0.15 + Math.random() * 0.25,
-  }));
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {particles.map((p) => (
-        <div
-          key={p.id}
-          className="absolute rounded-full"
-          style={{
-            left: p.left,
-            top: p.top,
-            width: p.size,
-            height: p.size,
-            background: `rgba(168, 132, 255, ${p.opacity})`,
-            animation: `particleFloat ${p.duration}s ease-in-out ${p.delay}s infinite`,
-          }}
-        />
-      ))}
-    </div>
-  );
-}
 
 function CheckAnimation({ phase }: { phase: AnimPhase }) {
   const phaseIndex = ["idle", "stroke", "check", "glow", "text", "buttons", "ready"].indexOf(phase);
@@ -277,18 +233,8 @@ export default function Success() {
   }, []);
 
   return (
-    <div className="fixed inset-0 bg-[hsl(260,20%,4%)] flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 bg-[hsl(260,25%,4%)] flex items-center justify-center overflow-hidden">
       <style>{`
-        @keyframes meshDrift {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          25% { transform: translate(30px, -20px) scale(1.05); }
-          50% { transform: translate(-20px, 15px) scale(0.98); }
-          75% { transform: translate(15px, 25px) scale(1.02); }
-        }
-        @keyframes particleFloat {
-          0%, 100% { transform: translateY(0) scale(1); opacity: 0.2; }
-          50% { transform: translateY(-30px) scale(1.3); opacity: 0.5; }
-        }
         @keyframes glowPulse {
           0%, 100% { opacity: 0.6; transform: scale(2); }
           50% { opacity: 1; transform: scale(2.2); }
@@ -300,10 +246,6 @@ export default function Success() {
         @keyframes fadeInUp {
           from { opacity: 0; transform: translateY(8px); }
           to { opacity: 1; transform: translateY(0); }
-        }
-        @keyframes breathingBorder {
-          0%, 100% { opacity: 0.3; }
-          50% { opacity: 0.6; }
         }
         @keyframes loadingPulse {
           0%, 100% { opacity: 0.4; }
@@ -318,33 +260,7 @@ export default function Success() {
         }
       `}</style>
 
-      <div className="fixed inset-0">
-        <div
-          className="absolute rounded-full blur-3xl"
-          style={{
-            width: 500,
-            height: 500,
-            left: "20%",
-            top: "30%",
-            background: "radial-gradient(circle, rgba(100,60,180,0.08), transparent 70%)",
-            animation: "meshDrift 20s ease-in-out infinite",
-          }}
-        />
-        <div
-          className="absolute rounded-full blur-3xl"
-          style={{
-            width: 400,
-            height: 400,
-            right: "15%",
-            bottom: "20%",
-            background: "radial-gradient(circle, rgba(80,50,160,0.06), transparent 70%)",
-            animation: "meshDrift 16s ease-in-out 3s infinite reverse",
-          }}
-        />
-      </div>
-
-      <GridOverlay />
-      <FloatingParticles />
+      <WebsiteBackground variant="success" />
 
       <div className="relative z-10 w-full max-w-md px-6">
         {state === "loading" && (

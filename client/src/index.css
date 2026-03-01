@@ -1244,53 +1244,51 @@ textarea,
   will-change: transform;
 }
 
-/* Website shell blob animations */
-@keyframes websiteBlob1 {
+/* Website background — SVG overlay drift animations */
+@keyframes wsDrift1 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  25% { transform: translate3d(50px, -40px, 0) scale(1.08); }
-  50% { transform: translate3d(-30px, 30px, 0) scale(0.95); }
-  75% { transform: translate3d(20px, -10px, 0) scale(1.03); }
+  33% { transform: translate3d(12px, -8px, 0) scale(1.01); }
+  66% { transform: translate3d(-8px, 6px, 0) scale(0.99); }
 }
-@keyframes websiteBlob2 {
+@keyframes wsDrift2 {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-10px, 12px, 0) rotate(0.3deg); }
+}
+@keyframes wsDrift3 {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  40% { transform: translate3d(6px, -4px, 0); }
+  80% { transform: translate3d(-4px, 8px, 0); }
+}
+.ws-drift-1 { animation: wsDrift1 25s ease-in-out infinite; will-change: transform; }
+.ws-drift-2 { animation: wsDrift2 32s ease-in-out infinite; will-change: transform; }
+.ws-drift-3 { animation: wsDrift3 18s ease-in-out infinite; will-change: transform; }
+
+/* Website background — glow hotspot drift */
+@keyframes wsGlowDrift1 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  30% { transform: translate3d(-60px, 40px, 0) scale(1.1); }
-  70% { transform: translate3d(40px, -20px, 0) scale(0.93); }
+  25% { transform: translate3d(40px, -30px, 0) scale(1.06); }
+  50% { transform: translate3d(-25px, 25px, 0) scale(0.95); }
+  75% { transform: translate3d(15px, -10px, 0) scale(1.02); }
 }
-@keyframes websiteBlob3 {
+@keyframes wsGlowDrift2 {
   0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  40% { transform: translate3d(35px, -30px, 0) scale(1.05); }
-  80% { transform: translate3d(-25px, 20px, 0) scale(0.96); }
+  30% { transform: translate3d(-50px, 35px, 0) scale(1.08); }
+  70% { transform: translate3d(35px, -15px, 0) scale(0.93); }
 }
-.website-blob-1 { animation: websiteBlob1 22s ease-in-out infinite; will-change: transform; }
-.website-blob-2 { animation: websiteBlob2 28s ease-in-out infinite; will-change: transform; }
-.website-blob-3 { animation: websiteBlob3 20s ease-in-out infinite; will-change: transform; }
+@keyframes wsGlowDrift3 {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  40% { transform: translate3d(30px, -25px, 0) scale(1.04); }
+  80% { transform: translate3d(-20px, 18px, 0) scale(0.97); }
+}
+.ws-glow-drift-1 { animation: wsGlowDrift1 22s ease-in-out infinite; will-change: transform; }
+.ws-glow-drift-2 { animation: wsGlowDrift2 28s ease-in-out infinite; will-change: transform; }
+.ws-glow-drift-3 { animation: wsGlowDrift3 20s ease-in-out infinite; will-change: transform; }
 
 @media (prefers-reduced-motion: reduce) {
-  .website-blob-1,
-  .website-blob-2,
-  .website-blob-3 {
+  .ws-drift-1, .ws-drift-2, .ws-drift-3,
+  .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3 {
     animation: none;
   }
-}
-
-/* Perspective grid for website background */
-.ws-perspective-grid {
-  background-image:
-    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
-  background-size: 80px 80px;
-  mask-image: linear-gradient(to bottom,
-    transparent 0%,
-    rgba(0,0,0,0.4) 10%,
-    rgba(0,0,0,0.15) 40%,
-    transparent 70%
-  );
-  -webkit-mask-image: linear-gradient(to bottom,
-    transparent 0%,
-    rgba(0,0,0,0.4) 10%,
-    rgba(0,0,0,0.15) 40%,
-    transparent 70%
-  );
 }
 
 /* Website hero app mockup — centered below hero text like ToDesktop */

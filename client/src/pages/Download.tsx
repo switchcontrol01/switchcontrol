@@ -13,7 +13,7 @@ export default function DownloadPage() {
   const { prefersReducedMotion } = useMotion();
 
   return (
-    <WebsiteShell variant="inner" showFooter={false}>
+    <WebsiteShell variant="inner" bgVariant="download" showFooter={false}>
       <style>{`
         @keyframes logoFloat {
           0%, 100% { transform: translateY(0px); }

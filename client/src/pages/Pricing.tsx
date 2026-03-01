@@ -188,7 +188,7 @@ export default function Pricing() {
   };
 
   return (
-    <WebsiteShell variant="inner">
+    <WebsiteShell variant="inner" bgVariant="pricing">
       <Helmet>
         <link rel="canonical" href="https://switchcontrol.org/pricing" />
       </Helmet>
@@ -353,12 +353,13 @@ export default function Pricing() {
 
         <SectionDivider className="my-20" />
 
-        <section className="max-w-3xl mx-auto">
+        <section className="max-w-3xl mx-auto relative">
+          <div className="absolute inset-0 -inset-x-12 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 50% 40%, hsl(270 50% 45% / 0.03) 0%, transparent 70%)" }} />
           <SectionHeader
             title="Frequently Asked Questions"
           />
 
-          <div className="space-y-3">
+          <div className="space-y-3 relative">
             {FAQ_ITEMS.map((item) => (
               <FAQItem key={item.question} question={item.question} answer={item.answer} />
             ))}
