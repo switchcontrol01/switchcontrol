@@ -283,29 +283,62 @@ function MockupCounter({ target, suffix = "", delay = 800 }: { target: number; s
   return <span>{val}{suffix}</span>;
 }
 
+function LiveMockupValue({ base, range, suffix, interval = 2000 }: { base: number; range: number; suffix: string; interval?: number }) {
+  const [val, setVal] = useState(base);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setVal(base + Math.floor(Math.random() * range));
+    }, interval);
+    return () => clearInterval(id);
+  }, [base, range, interval]);
+  return <span>{val}{suffix}</span>;
+}
+
+function LiveBar({ base, range, color, interval = 2500 }: { base: number; range: number; color: string; interval?: number }) {
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const t1 = setTimeout(() => setWidth(base), 800);
+    const id = setInterval(() => {
+      setWidth(base + Math.floor(Math.random() * range));
+    }, interval);
+    return () => { clearTimeout(t1); clearInterval(id); };
+  }, [base, range, interval]);
+  return (
+    <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className={cn("h-full rounded-full transition-all duration-700 ease-out", color)} style={{ width: `${width}%` }} />
+    </div>
+  );
+}
+
 function HeroAppMockup() {
-  const METRICS = [
-    { label: "CPU", target: 4, color: "bg-emerald-500", textColor: "text-emerald-400" },
-    { label: "RAM", target: 38, color: "bg-sky-500", textColor: "text-sky-400" },
-    { label: "GPU", target: 2, color: "bg-violet-500", textColor: "text-violet-400" },
-  ];
+  const [tweakCount, setTweakCount] = useState(12);
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTweakCount(prev => {
+        const next = prev + (Math.random() > 0.5 ? 1 : -1);
+        return Math.max(10, Math.min(16, next));
+      });
+    }, 3000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="ws-hero-mockup relative animate-mockup-float">
-      <div className="absolute -inset-8 bg-gradient-to-br from-primary/25 via-transparent to-[hsl(190,80%,50%,0.15)] rounded-3xl blur-3xl pointer-events-none" />
+      <div className="absolute -inset-12 rounded-3xl blur-[60px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 60%, hsl(270 60% 50% / 0.25), hsl(190 80% 50% / 0.12), transparent 70%)' }} />
 
-      <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-3/4 h-16 rounded-full pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsl(190 90% 50% / 0.5), transparent 70%)', filter: 'blur(70px)' }} />
+      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%] h-20 rounded-full pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsl(190 90% 50% / 0.6), transparent 70%)', filter: 'blur(80px)' }} />
 
-      <div className="relative rounded-xl overflow-hidden border border-white/[0.12] bg-[hsl(260,22%,8%)] shadow-2xl shadow-black/50">
+      <div className="relative rounded-xl overflow-hidden border border-white/[0.15] bg-[hsl(260,22%,6%)] shadow-2xl shadow-primary/20">
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
           <div className="mockup-reflection-sweep" />
         </div>
+        <div className="absolute inset-0 pointer-events-none mockup-edge-glow rounded-xl" />
 
         <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
           <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
           </div>
           <div className="flex-1 text-center">
             <span className="text-[10px] text-white/30 tracking-wider uppercase font-medium">SwitchControl</span>
@@ -314,50 +347,54 @@ function HeroAppMockup() {
 
         <div className="p-4 space-y-3">
           <div className="grid grid-cols-3 gap-2">
-            {METRICS.map((m, i) => (
-              <div key={m.label} className="bg-white/[0.04] rounded-lg p-2.5 border border-white/[0.06]">
-                <div className="text-[9px] text-white/40 mb-1 uppercase tracking-wide">{m.label}</div>
-                <div className={cn("text-sm font-bold", m.textColor)}>
-                  <MockupCounter target={m.target} suffix="%" />
+            {[
+              { label: "CPU", base: 3, range: 8, color: "bg-emerald-500", textColor: "text-emerald-400", barInterval: 2000 },
+              { label: "RAM", base: 34, range: 10, color: "bg-sky-500", textColor: "text-sky-400", barInterval: 3000 },
+              { label: "GPU", base: 1, range: 6, color: "bg-violet-500", textColor: "text-violet-400", barInterval: 2500 },
+            ].map((m) => (
+              <div key={m.label} className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
+                <div className="text-[9px] text-white/50 mb-1 uppercase tracking-wide font-medium">{m.label}</div>
+                <div className={cn("text-sm font-bold transition-all duration-500", m.textColor)}>
+                  <LiveMockupValue base={m.base} range={m.range} suffix="%" interval={m.barInterval} />
                 </div>
-                <AnimatedBar target={m.target} color={m.color} delay={i * 200 + 400} />
+                <LiveBar base={m.base} range={m.range} color={m.color} interval={m.barInterval} />
               </div>
             ))}
           </div>
 
-          <div className="bg-white/[0.04] rounded-lg p-3 border border-white/[0.06]">
+          <div className="bg-white/[0.05] rounded-lg p-3 border border-white/[0.08]">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-white/40 tracking-wide uppercase">Active Tweaks</span>
-              <span className="text-[10px] text-emerald-400 font-medium">12 / 38</span>
+              <span className="text-[10px] text-white/50 tracking-wide uppercase font-medium">Active Tweaks</span>
+              <span className="text-[10px] text-emerald-400 font-semibold transition-all duration-500">{tweakCount} / 38</span>
             </div>
             <div className="flex gap-1">
-              {Array.from({ length: 12 }).map((_, i) => (
+              {Array.from({ length: 20 }).map((_, i) => (
                 <div
                   key={i}
-                  className="flex-1 h-1.5 rounded-full mockup-tweak-bar"
-                  style={{
-                    background: "linear-gradient(90deg, hsl(160 80% 45% / 0.5), hsl(170 80% 50% / 0.4))",
-                    animationDelay: `${i * 0.15}s`,
-                  }}
+                  className={cn(
+                    "flex-1 h-1.5 rounded-full transition-all duration-500",
+                    i < tweakCount ? "mockup-tweak-bar" : "bg-white/[0.04]"
+                  )}
+                  style={i < tweakCount ? {
+                    background: "linear-gradient(90deg, hsl(160 80% 45% / 0.6), hsl(170 80% 50% / 0.5))",
+                    animationDelay: `${i * 0.12}s`,
+                  } : undefined}
                 />
-              ))}
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i + 12} className="flex-1 h-1.5 rounded-full bg-white/[0.04]" />
               ))}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/[0.04] rounded-lg p-2.5 border border-white/[0.06]">
-              <div className="text-[9px] text-white/35 mb-0.5">Latency</div>
+            <div className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
+              <div className="text-[9px] text-white/40 mb-0.5 font-medium">Latency</div>
               <div className="text-base font-bold text-emerald-400">
-                -<MockupCounter target={12} suffix="ms" />
+                -<LiveMockupValue base={8} range={8} suffix="ms" interval={2200} />
               </div>
             </div>
-            <div className="bg-white/[0.04] rounded-lg p-2.5 border border-white/[0.06]">
-              <div className="text-[9px] text-white/35 mb-0.5">FPS Stability</div>
+            <div className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
+              <div className="text-[9px] text-white/40 mb-0.5 font-medium">FPS Stability</div>
               <div className="text-base font-bold text-[hsl(190,85%,50%)]">
-                +<MockupCounter target={15} suffix="%" />
+                +<LiveMockupValue base={12} range={10} suffix="%" interval={2800} />
               </div>
             </div>
           </div>
@@ -439,12 +476,12 @@ export default function Landing() {
 
               <AnimateIn delay={100}>
                 <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
-                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white">
-                    Your PC is holding
+                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
+                    Your PC <span className="font-light italic text-white/70">is holding</span>
                   </span>
-                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white">
-                    you back.{" "}
-                    <span className="font-black bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
+                    <span className="font-light italic text-white/70">you</span> back.{" "}
+                    <span className="font-black bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent hero-accent-glow">
                       Fix it.
                     </span>
                   </span>
