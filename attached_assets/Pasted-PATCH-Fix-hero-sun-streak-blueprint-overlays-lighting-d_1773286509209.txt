@@ -1,0 +1,179 @@
+PATCH: Fix hero sun streak, blueprint overlays, lighting depth, and section seam
+
+PROBLEM
+The landing page visuals are not behaving correctly.
+
+Issues observed:
+
+1. The sun streak light does not illuminate the hero headline.
+2. Blueprint overlay images are barely visible.
+3. Lighting appears to come only from the top-left.
+4. A hard seam exists between sections.
+5. Hero light sweep is too weak to be visible.
+
+These problems are caused by layering order, opacity values, and background stacking.
+
+---
+
+A) Fix sun streak layering
+
+File:
+client/src/pages/Landing.tsx
+
+The sun streak elements must be placed inside the hero section container,
+above the background layer but below the headline.
+
+Correct structure:
+
+<section className="relative overflow-hidden">
+
+  <WebsiteBackground />
+
+  <div className="absolute inset-0 pointer-events-none ws-sun-streak-1"></div>
+  <div className="absolute inset-0 pointer-events-none ws-sun-streak-2"></div>
+  <div className="absolute inset-0 pointer-events-none ws-sun-streak-3"></div>
+
+  <HeroContent />
+
+</section>
+
+This ensures the light streak interacts with hero elements.
+
+---
+
+B) Increase blueprint overlay visibility
+
+File:
+client/src/components/website/BlueprintImageOverlay.tsx
+
+Adjust opacity and blur.
+
+Replace:
+
+opacity: 0.055 – 0.08
+blur: 5px – 8px
+mix-blend-mode: screen
+
+With:
+
+opacity: 0.14
+blur: 2px
+mix-blend-mode: soft-light
+
+Example:
+
+style={{
+  mixBlendMode: "soft-light",
+  opacity: 0.14,
+  filter: "blur(2px)"
+}}
+
+This will allow blueprint lines to remain subtle but visible.
+
+---
+
+C) Add multi-direction lighting
+
+File:
+client/src/components/website/WebsiteBackground.tsx
+
+Add two additional directional glows.
+
+Inside glowHotspots add:
+
+{
+  color: "hsl(260 60% 50%)",
+  size: "600px",
+  position: "top-[20%] right-[10%]",
+  opacity: 0.18
+},
+{
+  color: "hsl(200 80% 40%)",
+  size: "500px",
+  position: "bottom-[10%] left-[40%]",
+  opacity: 0.12
+}
+
+This creates cross-lighting instead of single-direction light.
+
+---
+
+D) Strengthen hero light sweep
+
+File:
+client/src/index.css
+
+Find:
+
+.ws-hero-light-sweep::after
+
+Current opacity max:
+
+0.012
+
+Change to:
+
+0.08
+
+Also increase sweep width:
+
+background-size: 250% 100%
+
+This allows the light sweep to visibly pass across the headline.
+
+---
+
+E) Remove section seam
+
+File:
+client/src/pages/Landing.tsx
+
+Search for sections containing:
+
+bg-background
+bg-[#040508]
+bg-card
+
+Remove those backgrounds.
+
+Sections must inherit the global background.
+
+Example change:
+
+<section className="relative">
+
+instead of
+
+<section className="relative bg-background">
+
+---
+
+F) Strengthen section glow blend
+
+File:
+client/src/index.css
+
+Update:
+
+.ws-section-glow::before
+
+Replace gradient with:
+
+background: radial-gradient(
+  circle at 50% 30%,
+  rgba(140,100,255,0.45),
+  transparent 70%
+);
+
+This smooths transitions between sections.
+
+---
+
+CHECKLIST
+
+[ ] Sun streak visibly hits hero headline
+[ ] Blueprint overlays visible but subtle
+[ ] Lighting comes from multiple directions
+[ ] Hero light sweep visible across text
+[ ] Section seam removed
+[ ] No console errors
