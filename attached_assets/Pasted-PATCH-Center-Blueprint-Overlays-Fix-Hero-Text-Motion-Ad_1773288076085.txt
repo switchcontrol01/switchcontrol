@@ -1,0 +1,177 @@
+PATCH: Center Blueprint Overlays + Fix Hero Text Motion + Add Second Sun Streak
+PROBLEM
+Current issues on the landing page:
+Blueprint overlays appear but sit in awkward positions.
+They do not align to the page center or balance the composition.
+Hero headline motion only works on mobile.
+Hero text has no light sheen.
+Only one sun streak exists. Lighting feels one-sided.
+We will fix layout balance and hero animation.
+STEP 1 — REPOSITION BLUEPRINT OVERLAYS
+File
+Copy code
+
+client/src/components/website/BlueprintImageOverlay.tsx
+The overlays must follow a balanced composition layout.
+Goal layout:
+Copy code
+
+Left overlay: upper-left quadrant
+Right overlay: lower-right quadrant
+Center overlay: middle center faint
+Update positioning rules.
+LEFT OVERLAY
+Place slightly above hero midpoint.
+Copy code
+
+left: 8%
+top: 18%
+transform: translate(-10%, -10%)
+Opacity:
+Copy code
+
+0.14
+RIGHT OVERLAY
+Place lower and slightly inward.
+Copy code
+
+right: 6%
+top: 42%
+transform: translate(10%, 0%)
+Opacity:
+Copy code
+
+0.11
+CENTER OVERLAY
+The faint center overlay should sit behind the hero mockup.
+Copy code
+
+left: 50%
+top: 50%
+transform: translate(-50%, -50%)
+Opacity:
+Copy code
+
+0.08
+Scale it slightly larger.
+Copy code
+
+scale(1.15)
+STEP 2 — ENABLE HERO TEXT FLOAT ON DESKTOP
+File
+Copy code
+
+client/src/index.css
+Add hero float animation.
+Copy code
+
+@keyframes heroTextFloat {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0px); }
+}
+Create class:
+Copy code
+
+.hero-text-float {
+  animation: heroTextFloat 8s ease-in-out infinite;
+}
+APPLY IT
+File
+Copy code
+
+client/src/pages/Landing.tsx
+Wrap the hero headline container:
+Copy code
+
+<div className="hero-text-float">
+  <h1>...</h1>
+</div>
+Make sure this is not inside a mobile-only wrapper.
+Check if there is:
+Copy code
+
+md:hidden
+lg:hidden
+Remove any responsive class disabling the animation.
+STEP 3 — ADD HERO TEXT SHINE SWEEP
+File
+Copy code
+
+client/src/index.css
+Add light sweep animation.
+Copy code
+
+@keyframes heroShine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+Apply gradient mask.
+Copy code
+
+.hero-text-shine {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.9),
+    rgba(255,255,255,0.3),
+    rgba(255,255,255,0.9)
+  );
+
+  background-size: 200% auto;
+
+  -webkit-background-clip: text;
+  color: transparent;
+
+  animation: heroShine 6s linear infinite;
+}
+Apply to only the “Fix it.” text.
+Example:
+Copy code
+
+<span className="hero-text-shine">Fix it.</span>
+STEP 4 — ADD SECOND SUN STREAK (BOTTOM RIGHT)
+File
+Copy code
+
+client/src/index.css
+Add a new sun streak.
+Copy code
+
+.ws-sun-streak-4
+Position:
+Copy code
+
+bottom: -10%
+right: -5%
+transform: rotate(-30deg)
+Opacity:
+Copy code
+
+0.10
+Animation:
+Copy code
+
+sunStreakDrift2
+This gives lighting from two directions:
+• top left
+• bottom right
+This improves depth.
+STEP 5 — VERIFY LAYER STACK
+Ensure correct visual order.
+Copy code
+
+background gradients
+background images
+blueprint overlays
+svg trace overlays
+sun streaks
+hero text
+hero mockup
+Blueprint overlays must be below text but above gradients.
+EXPECTED RESULT
+After this patch:
+• overlays appear balanced left/center/right
+• hero text floats subtly on desktop
+• "Fix it" text has light sweep shine
+• lighting comes from two angles
+• composition feels balanced

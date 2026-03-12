@@ -383,6 +383,19 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
       />
 
       <div
+        className="absolute ws-sun-streak-4"
+        style={{
+          bottom: "-10%",
+          right: "-5%",
+          width: "60%",
+          height: "70%",
+          background: "linear-gradient(315deg, rgba(255,255,255,0.12) 0%, rgba(140,180,255,0.08) 15%, transparent 40%)",
+          opacity: beamFade * 0.4,
+          transform: `rotate(-30deg) translateY(${parallaxOffset * 0.1}px)`,
+        }}
+      />
+
+      <div
         className="absolute"
         style={{
           top: "-5%",

@@ -21,9 +21,9 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-chip"
         style={{
           position: "absolute",
-          top: "10%",
-          left: "52%",
-          transform: "translateX(-10%) rotate(-10deg)",
+          top: "18%",
+          left: "8%",
+          transform: "translate(-10%, -10%) rotate(-10deg)",
           width: "34vw",
           maxWidth: "520px",
           opacity: 0.14 * mobileOpacityScale,
@@ -46,11 +46,11 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-graphs"
         style={{
           position: "absolute",
-          top: "24%",
-          right: "-6%",
+          top: "42%",
+          right: "6%",
+          transform: "translate(10%, 0%) rotate(6deg)",
           width: "42vw",
           maxWidth: "720px",
-          transform: "rotate(6deg)",
           opacity: 0.11 * mobileOpacityScale,
           filter: "blur(3px)",
           mixBlendMode: "screen",
@@ -71,12 +71,12 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-parts"
         style={{
           position: "absolute",
-          bottom: "-6%",
-          left: "-8%",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%) rotate(-4deg) scale(1.15)",
           width: "40vw",
           maxWidth: "700px",
-          transform: "rotate(-4deg)",
-          opacity: 0.10 * mobileOpacityScale,
+          opacity: 0.08 * mobileOpacityScale,
           filter: "blur(3px)",
           mixBlendMode: "screen",
           willChange: "transform",

@@ -1387,6 +1387,7 @@ textarea,
 .ws-sun-streak-1 { animation: sunStreakDrift1 20s ease-in-out infinite; will-change: transform, opacity; }
 .ws-sun-streak-2 { animation: sunStreakDrift2 25s ease-in-out infinite; will-change: transform, opacity; }
 .ws-sun-streak-3 { animation: sunStreakDrift3 30s ease-in-out infinite; will-change: transform, opacity; }
+.ws-sun-streak-4 { animation: sunStreakDrift2 22s ease-in-out infinite; will-change: transform, opacity; }
 
 /* Floating particles */
 .ws-particle {
@@ -1423,7 +1424,7 @@ textarea,
 @media (prefers-reduced-motion: reduce) {
   .ws-drift-1, .ws-drift-2, .ws-drift-3,
   .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3,
-  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3,
+  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3, .ws-sun-streak-4,
   .ws-particle,
   .ws-hero-light-sweep::after {
     animation: none;
@@ -1483,6 +1484,32 @@ textarea,
   inset: 0;
   background: radial-gradient(ellipse 80% 60% at 50% 30%, hsl(270 50% 50% / 0.10) 0%, transparent 70%);
   pointer-events: none;
+}
+
+/* Hero text shine sweep */
+@keyframes heroShine {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+.hero-text-shine {
+  background: linear-gradient(
+    90deg,
+    rgba(103, 232, 249, 0.9),
+    rgba(216, 180, 254, 0.9),
+    rgba(249, 168, 212, 0.9),
+    rgba(255, 255, 255, 1),
+    rgba(103, 232, 249, 0.9),
+    rgba(216, 180, 254, 0.9),
+    rgba(249, 168, 212, 0.9)
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: heroShine 6s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-text-shine { animation: none; }
 }
 
 /* Hero headline subtle float */
