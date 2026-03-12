@@ -587,36 +587,34 @@ export default function Landing() {
         </section>
 
         {/* ──── Feature Strip + Stats (unified section) ──── */}
-        <section className="relative pb-12 md:pb-16 -mt-24 pt-24" data-reveal>
+        <section className="relative pb-12 md:pb-16 -mt-24 pt-24 overflow-hidden" data-reveal>
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 20%, hsl(270 50% 45% / 0.05) 0%, transparent 70%)" }} />
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8">
-            <div className="relative">
-              <div className="hidden md:block pointer-events-none absolute inset-0 overflow-visible" aria-hidden="true">
-                <div className="sun-streak sun-streak-left" />
-                <div className="sun-streak sun-streak-center" />
-                <div className="sun-streak sun-streak-right" />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center relative z-[1]">
-                {[
-                  { icon: Monitor, title: "System Tweaks", desc: "38+ optimizations to reduce latency and boost responsiveness.", animated: false },
-                  { icon: Wifi, title: "Network Optimizer", desc: "TCP, UDP, DNS tuning for lower ping and stable connections.", animated: false },
-                  { icon: Lock, title: "Safe & Reversible", desc: "Every change can be reverted. No critical files touched.", animated: true },
-                ].map((item, i) => (
-                  <Reveal key={item.title} delay={i * 0.1}>
-                    <div className="flex flex-col items-center">
-                      <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
-                        {item.animated ? (
-                          <AnimatedLockIcon className="size-5 text-white/50" />
-                        ) : (
-                          <item.icon className="size-5 text-white/50" />
-                        )}
-                      </div>
-                      <h3 className="font-semibold text-white text-sm mb-2">{item.title}</h3>
-                      <p className="text-white/30 text-sm leading-relaxed max-w-[220px]">{item.desc}</p>
+          <div className="hidden md:block pointer-events-none absolute inset-0" aria-hidden="true">
+            <div className="sun-streak sun-streak-left" />
+            <div className="sun-streak sun-streak-center" />
+            <div className="sun-streak sun-streak-right" />
+          </div>
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8 relative z-[1]">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
+              {[
+                { icon: Monitor, title: "System Tweaks", desc: "38+ optimizations to reduce latency and boost responsiveness.", animated: false },
+                { icon: Wifi, title: "Network Optimizer", desc: "TCP, UDP, DNS tuning for lower ping and stable connections.", animated: false },
+                { icon: Lock, title: "Safe & Reversible", desc: "Every change can be reverted. No critical files touched.", animated: true },
+              ].map((item, i) => (
+                <Reveal key={item.title} delay={i * 0.1}>
+                  <div className="flex flex-col items-center">
+                    <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
+                      {item.animated ? (
+                        <AnimatedLockIcon className="size-5 text-white/50" />
+                      ) : (
+                        <item.icon className="size-5 text-white/50" />
+                      )}
                     </div>
-                  </Reveal>
-                ))}
-              </div>
+                    <h3 className="font-semibold text-white text-sm mb-2">{item.title}</h3>
+                    <p className="text-white/30 text-sm leading-relaxed max-w-[220px]">{item.desc}</p>
+                  </div>
+                </Reveal>
+              ))}
             </div>
           </div>
 
