@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type MouseEvent } from "react";
+import { useState, useEffect, useRef, useCallback, type MouseEvent } from "react";
 import { Link } from "wouter";
 import {
   Zap,
@@ -16,6 +16,7 @@ import {
   Monitor,
   Wifi,
   Lock,
+  LockOpen,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
@@ -455,6 +456,48 @@ function FAQItem({ question, answer, index }: { question: string; answer: string
   );
 }
 
+function AnimatedLockIcon({ className }: { className?: string }) {
+  const [locked, setLocked] = useState(false);
+  const [shake, setShake] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const hasTriggered = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || hasTriggered.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !hasTriggered.current) {
+          hasTriggered.current = true;
+          observer.disconnect();
+          setTimeout(() => {
+            setLocked(true);
+            setShake(true);
+            setTimeout(() => setShake(false), 500);
+          }, 600);
+        }
+      },
+      { threshold: 0.5 }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className={cn("relative", shake && "animate-lock-shake")}>
+      <div className="relative" style={{ transition: 'transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>
+        {locked ? (
+          <Lock className={className} />
+        ) : (
+          <LockOpen className={className} />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   const { user } = useAuth();
@@ -549,14 +592,18 @@ export default function Landing() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
               {[
-                { icon: Monitor, title: "System Tweaks", desc: "38+ optimizations to reduce latency and boost responsiveness." },
-                { icon: Wifi, title: "Network Optimizer", desc: "TCP, UDP, DNS tuning for lower ping and stable connections." },
-                { icon: Lock, title: "Safe & Reversible", desc: "Every change can be reverted. No critical files touched." },
+                { icon: Monitor, title: "System Tweaks", desc: "38+ optimizations to reduce latency and boost responsiveness.", animated: false },
+                { icon: Wifi, title: "Network Optimizer", desc: "TCP, UDP, DNS tuning for lower ping and stable connections.", animated: false },
+                { icon: Lock, title: "Safe & Reversible", desc: "Every change can be reverted. No critical files touched.", animated: true },
               ].map((item, i) => (
                 <Reveal key={item.title} delay={i * 0.1}>
                   <div className="flex flex-col items-center">
                     <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
-                      <item.icon className="size-5 text-white/50" />
+                      {item.animated ? (
+                        <AnimatedLockIcon className="size-5 text-white/50" />
+                      ) : (
+                        <item.icon className="size-5 text-white/50" />
+                      )}
                     </div>
                     <h3 className="font-semibold text-white text-sm mb-2">{item.title}</h3>
                     <p className="text-white/30 text-sm leading-relaxed max-w-[220px]">{item.desc}</p>
