@@ -1,0 +1,124 @@
+PATCH: Add scroll-reactive telemetry line to the landing page
+
+PROBLEM
+The landing page already has strong atmosphere, but the background still feels too static during scroll.
+
+A subtle telemetry line that reacts to scroll will make the page feel more alive, technical, and premium.
+
+AIM
+Add a thin animated telemetry / signal line to the landing page background that shifts slightly with scroll and feels like a live performance trace.
+
+This must be subtle.
+It must not become a flashy chart.
+It must support the hero and page atmosphere.
+
+WHAT WE ARE ACHIEVING
+When the user scrolls:
+- a faint telemetry waveform in the background shifts gently
+- the page feels more alive and engineered
+- the motion reinforces the technical/performance identity
+- the effect remains lightweight and premium
+
+IMPLEMENTATION
+
+STEP 1 — Create TelemetryLineOverlay component
+
+Create file:
+
+client/src/components/website/TelemetryLineOverlay.tsx
+
+Build a lightweight SVG overlay component.
+
+Requirements:
+- absolutely positioned
+- pointer-events none
+- stretches across hero width
+- very low visual weight
+- uses 1 primary waveform and optionally 1 secondary faint waveform
+
+Suggested placement:
+- centered horizontally
+- vertically around lower hero / upper mid-page area
+- behind content, not over text
+
+Rules:
+- no giant graph
+- no thick strokes
+- no large oscillations
+- no bright solid fills
+
+Use a path-based waveform with glow-like stroke styling.
+
+STEP 2 — Make it react to scroll
+
+Inside the component:
+- track window scrollY
+- convert it to a subtle transform value
+- move the waveform a small amount on X and Y
+- optionally vary opacity slightly
+
+Movement limits:
+- X shift max about 20px
+- Y shift max about 16px
+- scale max about 1.02
+
+This must feel ambient, not obviously interactive.
+
+STEP 3 — Add CSS glow treatment
+
+File:
+
+client/src/index.css
+
+Add classes for telemetry overlay.
+
+Requirements:
+- cyan/purple tinted stroke
+- low opacity
+- blur via filter or drop-shadow
+- one brighter line and one softer support line
+
+Suggested style behavior:
+- main line: clearer
+- secondary line: softer and thinner
+- both remain subtle
+
+STEP 4 — Mount it in Landing page hero stack
+
+File:
+
+client/src/pages/Landing.tsx
+
+Mount TelemetryLineOverlay:
+- above WebsiteBackground
+- below hero text and mockup
+- inside hero section only
+
+Correct layering order:
+1. WebsiteBackground
+2. blueprint overlays / environmental effects
+3. telemetry line overlay
+4. hero content
+5. any headline sweep / hero-specific glow
+
+STEP 5 — Mobile safety
+
+On mobile:
+- reduce opacity
+- disable scroll-reactive movement if needed
+- keep it mostly static
+
+DO NOT DO
+- do not make it look like a stock chart
+- do not make it sit on top of text
+- do not use sharp bright neon at full opacity
+- do not make it move aggressively
+- do not create FPS-heavy continuous recalculation
+
+CHECKLIST
+[ ] Telemetry line visible in hero atmosphere
+[ ] Scroll changes line position subtly
+[ ] Text remains readable
+[ ] Effect feels premium, not gimmicky
+[ ] Mobile remains stable
+[ ] No console errors

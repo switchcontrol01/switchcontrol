@@ -1,0 +1,113 @@
+PATCH: Add premium reflection sweep across hero mockup
+
+PROBLEM
+The hero mockup is good, but it still looks too flat and static.
+
+It needs a premium reflective sweep, similar to a high-end glass display or GPU shroud light pass.
+
+AIM
+Add a soft reflection sweep across the hero mockup so it feels more physical, polished, and expensive.
+
+This should feel like light moving across glass.
+
+WHAT WE ARE ACHIEVING
+The hero mockup should:
+- feel more dimensional
+- feel like a premium UI surface
+- catch light during idle motion
+- reinforce the polished SaaS / hardware aesthetic
+
+IMPLEMENTATION
+
+STEP 1 — Add reflection overlay element inside mockup wrapper
+
+File:
+
+client/src/pages/Landing.tsx
+
+Locate the main hero mockup wrapper.
+
+Inside that wrapper, add a reflection overlay layer.
+
+Rules:
+- absolutely positioned
+- inset 0
+- pointer-events none
+- clipped to the mockup border radius
+- sits above mockup content but below any outer glow
+
+The reflection should be:
+- diagonal
+- soft
+- semi-transparent
+- narrow enough to feel like a light pass
+
+STEP 2 — Add sweep animation
+
+File:
+
+client/src/index.css
+
+Add a new keyframe animation for reflection sweep.
+
+Behavior:
+- starts off-screen left
+- sweeps diagonally across the mockup
+- exits off-screen right
+- repeats slowly
+
+Timing:
+- around 8s to 12s loop
+- smooth easing
+- no jerky start/stop
+
+The reflection should not always be visible.
+It should appear, pass, then disappear.
+
+STEP 3 — Reflection visual design
+
+Use a layered gradient band.
+
+Requirements:
+- white core very soft
+- subtle cyan/purple tint around it
+- blurred edges
+- low opacity
+
+This should feel like:
+- glass reflection
+- not a loading bar
+- not a wipe transition
+
+STEP 4 — Strengthen mockup light response
+
+While adding the reflection, slightly improve the mockup surface feel:
+- preserve current float animation
+- keep under-glow
+- allow reflection to feel integrated with the same lighting system
+
+Do not resize the mockup.
+Do not break current tilt/float behavior.
+
+STEP 5 — Mobile safety
+
+On mobile:
+- either disable reflection
+- or reduce opacity and frequency heavily
+
+This is a desktop-first polish effect.
+
+DO NOT DO
+- do not make the reflection thick
+- do not make it bright enough to hide UI inside the mockup
+- do not turn it into a wipe
+- do not use hard edges
+- do not animate too fast
+
+CHECKLIST
+[ ] Reflection sweep passes across mockup cleanly
+[ ] Mockup feels more premium and dimensional
+[ ] Reflection stays subtle
+[ ] Existing float/glow still works
+[ ] Mobile remains stable
+[ ] No console errors

@@ -35,6 +35,7 @@ import { GhostButton } from "@/components/website/GhostButton";
 import { SectionHeader } from "@/components/website/SectionHeader";
 import { SectionDivider } from "@/components/website/SectionDivider";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
+import { TelemetryLineOverlay } from "@/components/website/TelemetryLineOverlay";
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
   return (
@@ -476,6 +477,8 @@ export default function Landing() {
           <div className="absolute inset-0 pointer-events-none ws-sun-streak-1"></div>
           <div className="absolute inset-0 pointer-events-none ws-sun-streak-2"></div>
           <div className="absolute inset-0 pointer-events-none ws-sun-streak-3"></div>
+
+          <TelemetryLineOverlay />
 
           <HeroTiltContainer>
           <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">

@@ -1518,6 +1518,24 @@ button, a, nav, header, footer, label {
   .bp-chip, .bp-graphs, .bp-parts { animation: none !important; }
 }
 
+/* Telemetry line overlay */
+.ws-telemetry-line-primary {
+  filter: drop-shadow(0 0 6px hsl(190 80% 55% / 0.3)) drop-shadow(0 0 20px hsl(270 50% 55% / 0.15));
+}
+.ws-telemetry-line-secondary {
+  filter: drop-shadow(0 0 4px hsl(270 50% 60% / 0.2));
+}
+@media (max-width: 768px) {
+  .ws-telemetry-line-primary { filter: drop-shadow(0 0 3px hsl(190 80% 55% / 0.15)); }
+  .ws-telemetry-line-secondary { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-telemetry-line-primary,
+  .ws-telemetry-line-secondary {
+    transition: none !important;
+  }
+}
+
 @keyframes bpChipDrift {
   0%, 100% { transform: translateX(-10%) rotate(-10deg) translate(0, 0) scale(1); }
   33% { transform: translateX(-10%) rotate(-10deg) translate(12px, -8px) scale(1.02); }
