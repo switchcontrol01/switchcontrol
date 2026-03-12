@@ -452,9 +452,10 @@ body {
 }
 
 @keyframes mockupReflectionSweep {
-  0% { transform: translateX(-120%) skewX(-15deg); }
-  40% { transform: translateX(220%) skewX(-15deg); }
-  100% { transform: translateX(220%) skewX(-15deg); }
+  0% { transform: translateX(-150%) skewX(-15deg); opacity: 0; }
+  5% { opacity: 1; }
+  50% { transform: translateX(250%) skewX(-15deg); opacity: 0; }
+  100% { transform: translateX(250%) skewX(-15deg); opacity: 0; }
 }
 
 .mockup-reflection-sweep {
@@ -474,9 +475,10 @@ body {
     transparent 100%
   );
   filter: blur(1px);
-  transform: translateX(-120%) skewX(-18deg);
-  animation: mockupReflectionSweep 4s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  animation-delay: 0.5s;
+  transform: translateX(-150%) skewX(-18deg);
+  opacity: 0;
+  animation: mockupReflectionSweep 3s ease-in-out infinite;
+  animation-delay: 0.4s;
 }
 
 .mockup-reflection-sweep-secondary {
@@ -496,9 +498,10 @@ body {
     transparent 100%
   );
   filter: blur(2px);
-  transform: translateX(-120%) skewX(-12deg);
-  animation: mockupReflectionSweep 6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-  animation-delay: 2s;
+  transform: translateX(-150%) skewX(-12deg);
+  opacity: 0;
+  animation: mockupReflectionSweep 3s ease-in-out infinite;
+  animation-delay: 1.8s;
 }
 
 .mockup-surface-highlight {
@@ -528,7 +531,7 @@ body {
 
   .mockup-reflection-sweep,
   .mockup-reflection-sweep-secondary {
-    animation: mockupReflectionSweep 8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation: mockupReflectionSweep 6s ease-in-out infinite;
   }
 }
 
