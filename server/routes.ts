@@ -8,6 +8,7 @@ import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "
 import { isPremiumTweakById } from "../shared/tweak-tiers";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
+import aiRouter from "./routes/ai";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -16,6 +17,8 @@ export async function registerRoutes(
   
   setupGoogleAuth(app);
   setupDiscordAuth(app);
+
+  app.use("/api/ai", aiRouter);
 
   app.get("/api/csrf-token", (req, res) => {
     const token = req.cookies?._csrf || generateCsrfToken();

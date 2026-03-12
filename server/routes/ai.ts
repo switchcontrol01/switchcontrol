@@ -7,7 +7,7 @@ const aiRouter = Router();
 
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
-  max: parseInt(process.env.AI_RATE_LIMIT_PER_MIN || "20", 10),
+  max: parseInt(process.env.AI_RATE_LIMIT_PER_MIN || "10", 10),
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: "Too many AI requests. Please wait a minute and try again." },
@@ -169,17 +169,38 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
       return res.status(502).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    let advice: AiAdviceResponse;
+    let rawAdvice: any;
     try {
-      advice = JSON.parse(raw);
+      rawAdvice = JSON.parse(raw);
     } catch {
       console.error("[AI] Failed to parse AI response as JSON");
       return res.status(502).json({ error: "AI returned invalid format. Please try again." });
     }
 
-    if (!advice.summary || !Array.isArray(advice.topFindings) || !Array.isArray(advice.actions)) {
+    if (!rawAdvice.summary || !Array.isArray(rawAdvice.topFindings) || !Array.isArray(rawAdvice.actions)) {
       return res.status(502).json({ error: "AI response missing required fields. Please try again." });
     }
+
+    const severityValues = ["low", "med", "high"] as const;
+    const isSeverity = (v: any): v is "low" | "med" | "high" => severityValues.includes(v);
+
+    const advice: AiAdviceResponse = {
+      summary: String(rawAdvice.summary || ""),
+      topFindings: (Array.isArray(rawAdvice.topFindings) ? rawAdvice.topFindings : []).map((f: any) => ({
+        title: String(f?.title || "Finding"),
+        evidence: String(f?.evidence || ""),
+        severity: isSeverity(f?.severity) ? f.severity : "med",
+      })),
+      actions: (Array.isArray(rawAdvice.actions) ? rawAdvice.actions : []).map((a: any) => ({
+        title: String(a?.title || "Action"),
+        why: String(a?.why || ""),
+        steps: Array.isArray(a?.steps) ? a.steps.map((s: any) => String(s)) : [],
+        risk: isSeverity(a?.risk) ? a.risk : "med",
+        reversible: typeof a?.reversible === "boolean" ? a.reversible : true,
+      })),
+      warnings: Array.isArray(rawAdvice.warnings) ? rawAdvice.warnings.map((w: any) => String(w)) : [],
+      followUps: Array.isArray(rawAdvice.followUps) ? rawAdvice.followUps.map((f: any) => String(f)) : [],
+    };
 
     console.log(`[AI] Advice generated for ${parsed.data.system.cpu} / ${parsed.data.system.gpu} — goal: ${parsed.data.goal}`);
 

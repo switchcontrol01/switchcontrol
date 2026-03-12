@@ -48,7 +48,10 @@ The application is structured into `client/src` (frontend components, hooks, uti
 - **History**: Logs simulated actions with JSON export.
 - **Settings**: Manages account preferences and app configuration.
 
-### AI Advisor System
+### AI Advisor System (Phase 1 - OpenAI)
+Server-side OpenAI integration at `POST /api/ai/advice` (`server/routes/ai.ts`). Takes structured system specs (CPU, GPU, RAM, etc.), telemetry data, goal, and game — returns structured JSON advice (summary, findings, actions, warnings, follow-ups). Uses `gpt-4o-mini` by default (configurable via `AI_MODEL` env var). Rate-limited per IP (20/min default, configurable via `AI_RATE_LIMIT_PER_MIN`). Input validated with Zod. API key stored in Replit Secrets (`OPENAI_API_KEY`). Client page at `/ai-advisor` (`client/src/pages/AiAdvisor.tsx`).
+
+### Local Rule Engine (Dashboard AI)
 A fully local, deterministic rule engine evaluates system and application signals against a bundled ruleset (`bundled.ruleset.json`). It provides recommendations (critical, recommended, informational) and can trigger app-tweak fixes. The advisor is read-only and does not modify core application state.
 
 ### Electron Desktop App
@@ -77,6 +80,7 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 - **date-fns**: For date formatting.
 - **Zod**: For schema validation of API requests.
 - **Framer Motion**: For rich animations.
+- **OpenAI**: For AI Advisor server-side API calls (gpt-4o-mini).
 
 ### Replit-Specific Integrations
 - `@replit/vite-plugin-runtime-error-modal`

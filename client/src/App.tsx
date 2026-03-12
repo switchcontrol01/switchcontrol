@@ -28,6 +28,7 @@ import FocusMode from "@/pages/FocusMode";
 import Debloater from "@/pages/Debloater";
 import StartupApps from "@/pages/StartupApps";
 import BiosAdvisor from "@/pages/BiosAdvisor";
+import AiAdvisor from "@/pages/AiAdvisor";
 import Security from "@/pages/Security";
 import Tweaks from "@/pages/Tweaks";
 import History from "@/pages/History";
@@ -78,6 +79,7 @@ function ElectronAppRoutes() {
       <Route path="/debloat" component={Debloater} />
       <Route path="/startup" component={StartupApps} />
       <Route path="/bios-advisor" component={BiosAdvisor} />
+      <Route path="/ai-advisor" component={AiAdvisor} />
       <Route path="/security" component={Security} />
       <Route path="/history" component={History} />
       <Route path="/settings" component={Settings} />
