@@ -1425,7 +1425,9 @@ textarea,
 @media (prefers-reduced-motion: reduce) {
   .ws-drift-1, .ws-drift-2, .ws-drift-3,
   .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3,
-  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3, .ws-sun-streak-4, .ws-sun-streak-bp,
+  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3, .ws-sun-streak-4,
+  .ws-sun-streak-bp, .ws-sun-streak-bp-right, .ws-sun-streak-bp-center,
+  .bp-float-1, .bp-float-2, .bp-float-3,
   .ws-particle,
   .ws-hero-light-sweep::after {
     animation: none;
@@ -1662,26 +1664,35 @@ button, a, nav, header, footer, label {
   }
 }
 
-@keyframes bpChipDrift {
-  0% { transform: translate(-8%, -6%) rotate(-14deg) translate(0, 0) scale(1); }
-  20% { transform: translate(-8%, -6%) rotate(-13deg) translate(18px, -16px) scale(1.03); }
-  45% { transform: translate(-8%, -6%) rotate(-14.5deg) translate(-12px, 14px) scale(1.01); }
-  70% { transform: translate(-8%, -6%) rotate(-13.5deg) translate(10px, -8px) scale(1.04); }
-  100% { transform: translate(-8%, -6%) rotate(-14deg) translate(0, 0) scale(1); }
+@keyframes bpFloat1 {
+  0%, 100% { transform: translate(-8%, -6%) rotate(-14deg) translateY(0px) scale(1); }
+  25% { transform: translate(-8%, -6%) rotate(-12.5deg) translateY(-20px) scale(1.03); }
+  50% { transform: translate(-8%, -6%) rotate(-15deg) translateY(4px) scale(1.01); }
+  75% { transform: translate(-8%, -6%) rotate(-13deg) translateY(-14px) scale(1.04); }
 }
 
-@keyframes bpGraphsDrift {
-  0% { transform: translate(6%, 4%) rotate(7deg) translate(0, 0) scale(1); }
-  25% { transform: translate(6%, 4%) rotate(8deg) translate(-22px, 12px) scale(1.02); }
-  50% { transform: translate(6%, 4%) rotate(6.5deg) translate(16px, -10px) scale(1.04); }
-  75% { transform: translate(6%, 4%) rotate(7.5deg) translate(-8px, 6px) scale(1.01); }
-  100% { transform: translate(6%, 4%) rotate(7deg) translate(0, 0) scale(1); }
+@keyframes bpFloat2 {
+  0%, 100% { transform: translate(6%, 4%) rotate(7deg) translateY(0px) scale(1); }
+  30% { transform: translate(6%, 4%) rotate(8.5deg) translateY(-18px) scale(1.03); }
+  55% { transform: translate(6%, 4%) rotate(6deg) translateY(6px) scale(1.01); }
+  80% { transform: translate(6%, 4%) rotate(8deg) translateY(-12px) scale(1.04); }
 }
 
-@keyframes bpPartsDrift {
-  0% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(0, 0); }
-  20% { transform: translate(-50%, -50%) rotate(-1.5deg) scale(1.14) translate(14px, -18px); }
-  45% { transform: translate(-50%, -50%) rotate(-2.5deg) scale(1.11) translate(-12px, 14px); }
-  70% { transform: translate(-50%, -50%) rotate(-1.8deg) scale(1.15) translate(8px, -10px); }
-  100% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(0, 0); }
+@keyframes bpFloat3 {
+  0%, 100% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translateY(0px); }
+  20% { transform: translate(-50%, -50%) rotate(-1deg) scale(1.15) translateY(-22px); }
+  50% { transform: translate(-50%, -50%) rotate(-3deg) scale(1.11) translateY(8px); }
+  75% { transform: translate(-50%, -50%) rotate(-1.5deg) scale(1.14) translateY(-16px); }
 }
+
+.bp-float-1 { animation: bpFloat1 10s ease-in-out infinite; }
+.bp-float-2 { animation: bpFloat2 12s ease-in-out infinite; }
+.bp-float-3 { animation: bpFloat3 14s ease-in-out infinite; }
+
+@keyframes bpStreakPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+.ws-sun-streak-bp { animation: bpStreakPulse 6s ease-in-out infinite, sunStreakDrift1 18s ease-in-out infinite; will-change: transform, opacity; }
+.ws-sun-streak-bp-right { animation: bpStreakPulse 8s ease-in-out infinite, sunStreakDrift2 20s ease-in-out infinite; will-change: transform, opacity; }
+.ws-sun-streak-bp-center { animation: bpStreakPulse 10s ease-in-out infinite, sunStreakDrift3 24s ease-in-out infinite; will-change: transform, opacity; }

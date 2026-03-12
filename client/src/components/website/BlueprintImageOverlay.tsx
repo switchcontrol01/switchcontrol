@@ -18,7 +18,7 @@ export function BlueprintImageOverlay() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       <div
-        className="bp-layer bp-chip"
+        className="bp-layer bp-chip bp-float-1"
         style={{
           position: "absolute",
           top: "20%",
@@ -30,7 +30,6 @@ export function BlueprintImageOverlay() {
           filter: "blur(2px)",
           mixBlendMode: "screen",
           willChange: "transform",
-          animation: reduced ? "none" : "bpChipDrift 26s ease-in-out infinite",
         }}
       >
         <img
@@ -47,12 +46,12 @@ export function BlueprintImageOverlay() {
           className="ws-sun-streak-bp"
           style={{
             position: "absolute",
-            top: "18%",
+            top: "10%",
             left: "-8%",
             width: "55%",
             height: "45%",
-            background: "linear-gradient(140deg, rgba(255,255,255,0.16) 0%, rgba(180,210,255,0.10) 20%, rgba(140,180,255,0.05) 40%, transparent 60%)",
-            filter: "blur(18px)",
+            background: "linear-gradient(140deg, rgba(255,255,255,0.18) 0%, rgba(180,210,255,0.12) 20%, rgba(140,180,255,0.06) 40%, transparent 60%)",
+            filter: "blur(14px)",
             mixBlendMode: "screen",
             opacity: 1,
             pointerEvents: "none",
@@ -61,10 +60,10 @@ export function BlueprintImageOverlay() {
       )}
 
       <div
-        className="bp-layer bp-graphs"
+        className="bp-layer bp-graphs bp-float-2"
         style={{
           position: "absolute",
-          top: "50%",
+          top: "32%",
           right: "7%",
           transform: "translate(6%, 4%) rotate(7deg)",
           width: "42vw",
@@ -73,7 +72,6 @@ export function BlueprintImageOverlay() {
           filter: "blur(3px)",
           mixBlendMode: "screen",
           willChange: "transform",
-          animation: reduced ? "none" : "bpGraphsDrift 32s ease-in-out infinite",
         }}
       >
         <img
@@ -85,11 +83,29 @@ export function BlueprintImageOverlay() {
         />
       </div>
 
+      {!reduced && (
+        <div
+          className="ws-sun-streak-bp-right"
+          style={{
+            position: "absolute",
+            top: "22%",
+            right: "-10%",
+            width: "55%",
+            height: "40%",
+            background: "linear-gradient(220deg, rgba(255,255,255,0.16) 0%, rgba(160,200,255,0.10) 20%, rgba(120,160,255,0.05) 40%, transparent 60%)",
+            filter: "blur(14px)",
+            mixBlendMode: "screen",
+            opacity: 1,
+            pointerEvents: "none",
+          }}
+        />
+      )}
+
       <div
-        className="bp-layer bp-parts"
+        className="bp-layer bp-parts bp-float-3"
         style={{
           position: "absolute",
-          top: "62%",
+          top: "52%",
           left: "50%",
           transform: "translate(-50%, -50%) rotate(-2deg) scale(1.12)",
           width: "40vw",
@@ -98,7 +114,6 @@ export function BlueprintImageOverlay() {
           filter: "blur(3px)",
           mixBlendMode: "screen",
           willChange: "transform",
-          animation: reduced ? "none" : "bpPartsDrift 38s ease-in-out infinite",
         }}
       >
         <img
@@ -109,6 +124,24 @@ export function BlueprintImageOverlay() {
           loading="lazy"
         />
       </div>
+
+      {!reduced && (
+        <div
+          className="ws-sun-streak-bp-center"
+          style={{
+            position: "absolute",
+            top: "40%",
+            left: "20%",
+            width: "60%",
+            height: "35%",
+            background: "linear-gradient(160deg, rgba(200,220,255,0.10) 0%, rgba(255,255,255,0.08) 30%, transparent 55%)",
+            filter: "blur(20px)",
+            mixBlendMode: "screen",
+            opacity: 1,
+            pointerEvents: "none",
+          }}
+        />
+      )}
 
       {!reduced && (
         <>
