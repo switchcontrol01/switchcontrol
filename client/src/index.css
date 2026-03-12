@@ -526,8 +526,7 @@ body {
 
   .mockup-reflection-sweep,
   .mockup-reflection-sweep-secondary {
-    animation: none;
-    display: none;
+    animation: mockupReflectionSweep 20s cubic-bezier(0.4, 0, 0.2, 1) infinite;
   }
 }
 
@@ -1423,11 +1422,26 @@ textarea,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ws-drift-1, .ws-drift-2, .ws-drift-3,
-  .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3,
-  .ws-particle,
+  .ws-drift-1, .ws-drift-2, .ws-drift-3 {
+    animation-duration: 60s;
+  }
+  .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3 {
+    animation-duration: 50s;
+  }
+  .ws-particle {
+    animation-duration: 40s;
+  }
   .ws-hero-light-sweep::after {
-    animation: none;
+    animation-duration: 16s;
+  }
+  .ws-hero-text-float {
+    animation-duration: 16s;
+  }
+  .hero-text-light-catch {
+    animation-duration: 16s;
+  }
+  .hero-text-shine {
+    animation-duration: 12s;
   }
 }
 
@@ -1442,7 +1456,7 @@ textarea,
   filter: drop-shadow(0 40px 80px rgba(0,0,0,0.5));
 }
 @media (prefers-reduced-motion: reduce) {
-  .ws-hero-mockup { animation: none; transform: perspective(1200px) rotateX(2deg); }
+  .ws-hero-mockup { animation: heroMockupFloat 12s ease-in-out infinite; }
 }
 
 @keyframes mockupTweakPulse {
@@ -1453,7 +1467,7 @@ textarea,
   animation: mockupTweakPulse 3s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .mockup-tweak-bar { animation: none; }
+  .mockup-tweak-bar { animation: mockupTweakPulse 6s ease-in-out infinite; }
 }
 
 /* Scroll indicator dot */
@@ -1519,6 +1533,26 @@ textarea,
   0% { background-position: -200% center; }
   100% { background-position: 200% center; }
 }
+.hero-text-glow {
+  text-shadow: 0 0 30px rgba(139, 92, 246, 0.15), 0 0 60px rgba(139, 92, 246, 0.08);
+}
+
+.hero-accent-glow {
+  filter: drop-shadow(0 0 18px rgba(103, 232, 249, 0.4)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.25));
+}
+
+.mockup-card-glow {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.04), 0 0 20px -8px rgba(139, 92, 246, 0.15);
+  transition: box-shadow 0.4s ease;
+}
+.mockup-card-glow:hover {
+  box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.06), 0 0 30px -6px rgba(139, 92, 246, 0.25);
+}
+
+.mockup-edge-glow {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 0 40px -10px rgba(139, 92, 246, 0.2), 0 0 80px -20px rgba(103, 232, 249, 0.1);
+}
+
 .hero-text-shine {
   background: linear-gradient(
     90deg,
@@ -1576,7 +1610,7 @@ textarea,
   animation: statGlow 3s ease-in-out infinite;
 }
 @media (prefers-reduced-motion: reduce) {
-  .ws-stat-glow { animation: none; opacity: 0.5; }
+  .ws-stat-glow { animation: statGlow 6s ease-in-out infinite; }
 }
 
 /* ===== Website premium feel: no accidental selection/drag ===== */
@@ -1618,8 +1652,9 @@ button, a, nav, header, footer, label {
   .bp-layer { animation: none; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .beam-b, .beam-c { animation: none; }
+@media (prefers-reduced-motion: reduce) and (min-width: 769px) {
+  .beam-b { animation: beamB 36s ease-in-out infinite; }
+  .beam-c { animation: beamC 44s ease-in-out infinite; }
 }
 
 /* Telemetry line overlay */

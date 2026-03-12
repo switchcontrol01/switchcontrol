@@ -11,7 +11,7 @@ export function SpotlightCursor() {
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024 || 'ontouchstart' in window);
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
     };
     
     checkMobile();
@@ -67,7 +67,27 @@ export function SpotlightCursor() {
     };
   }, [isMobile, prefersReducedMotion]);
 
-  if (isMobile || prefersReducedMotion) return null;
+  if (isMobile) return null;
+
+  if (prefersReducedMotion) {
+    return (
+      <div
+        className="fixed pointer-events-none"
+        style={{
+          left: position.x,
+          top: position.y,
+          width: 600,
+          height: 600,
+          transform: 'translate(-50%, -50%)',
+          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.04) 0%, rgba(139, 92, 246, 0.01) 30%, transparent 70%)',
+          opacity: isVisible ? 0.7 : 0,
+          zIndex: 1,
+          transition: 'left 0.5s ease-out, top 0.5s ease-out, opacity 0.5s',
+        }}
+        aria-hidden="true"
+      />
+    );
+  }
 
   return (
     <div
