@@ -1481,8 +1481,21 @@ textarea,
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 30%, rgba(140,100,255,0.45), transparent 70%);
+  background: radial-gradient(ellipse 80% 60% at 50% 30%, hsl(270 50% 50% / 0.10) 0%, transparent 70%);
   pointer-events: none;
+}
+
+/* Hero headline subtle float */
+@keyframes heroTextFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.ws-hero-text-float {
+  animation: heroTextFloat 8s ease-in-out infinite;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ws-hero-text-float { animation: none; }
 }
 
 /* Website page entrance */

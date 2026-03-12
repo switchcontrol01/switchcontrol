@@ -343,8 +343,6 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
         />
       ))}
 
-      {variant === "landing" && <BlueprintImageOverlay />}
-
       <div
         className="absolute ws-sun-streak-1"
         style={{
@@ -460,6 +458,8 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           <overlay.Component className="w-full h-full" />
         </div>
       ))}
+
+      {variant === "landing" && <BlueprintImageOverlay />}
 
       {config.glowHotspots.map((spot, i) => (
         <div

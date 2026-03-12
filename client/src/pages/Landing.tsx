@@ -493,17 +493,19 @@ export default function Landing() {
               </AnimateIn>
 
               <AnimateIn delay={100}>
-                <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
-                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
-                    Your PC <span className="font-light italic text-white/70">is holding</span>
-                  </span>
-                  <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
-                    <span className="font-light italic text-white/70">you</span> back.{" "}
-                    <span className="font-black bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent hero-accent-glow">
-                      Fix it.
+                <div className="ws-hero-text-float">
+                  <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
+                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
+                      Your PC <span className="font-light italic text-white/70">is holding</span>
                     </span>
-                  </span>
-                </h1>
+                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
+                      <span className="font-light italic text-white/70">you</span> back.{" "}
+                      <span className="font-black bg-gradient-to-r from-cyan-300 via-purple-300 to-pink-300 bg-clip-text text-transparent hero-accent-glow">
+                        Fix it.
+                      </span>
+                    </span>
+                  </h1>
+                </div>
               </AnimateIn>
 
               <AnimateIn delay={250}>
