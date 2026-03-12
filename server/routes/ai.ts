@@ -15,6 +15,8 @@ const aiLimiter = rateLimit({
   keyGenerator: (req: Request) => {
     const userId = (req as any).session?.userId;
     if (userId) return `user:${userId}`;
+    const raw = req.headers["x-device-id"] as string | undefined;
+    if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `device:${raw}`;
     return req.ip || "unknown";
   },
   message: { error: "Too many AI requests. Please wait a few minutes.", retryAfterSeconds: 300 },
@@ -29,6 +31,8 @@ const aiHourlyLimiter = rateLimit({
   keyGenerator: (req: Request) => {
     const userId = (req as any).session?.userId;
     if (userId) return `hourly:${userId}`;
+    const raw = req.headers["x-device-id"] as string | undefined;
+    if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `hourly:device:${raw}`;
     return `hourly:${req.ip || "unknown"}`;
   },
   message: { error: "Hourly AI request limit reached. Please try again later.", retryAfterSeconds: 3600 },
@@ -156,11 +160,14 @@ USER STATE CLASSIFICATION (you must pick one):
 - "advanced": Most tweaks already optimized, fine-tuning only
 
 RULES:
-1. You MUST reference the user's ACTUAL hardware (CPU model, GPU model, RAM amount) at least 3 times.
-2. Every recommendation must be specific to their hardware, goal, AND current tweak state.
+1. You MUST reference the user's ACTUAL hardware (CPU model, GPU model, RAM amount) at least 3 times. Never say "your CPU" — say the actual model name.
+2. Every recommendation must be evidence-based and specific to their hardware, goal, AND current tweak state. No generic filler like "keep your drivers updated" or "close background apps."
 3. If the user has tweaks disabled that would help their goal, recommend enabling them.
 4. If the user has conflicting tweaks enabled, warn about conflicts.
-5. Output ONLY valid JSON matching this exact schema (no markdown, no code fences):
+5. Prefer reversible actions over irreversible ones. Always mark risk honestly.
+6. Do NOT guess BIOS menu names or paths — different motherboards use different naming. Say "check your BIOS for [feature]" rather than inventing menu paths.
+7. Rank all actions by expected performance impact (highest impact first).
+8. Output ONLY valid JSON matching this exact schema (no markdown, no code fences):
 {
   "summary": "2-3 sentence summary referencing hardware, goal, and current optimization state",
   "userState": "new|partial|over_tweaked|goal_focused|advanced",
@@ -184,15 +191,16 @@ RULES:
   "warnings": ["any cautions specific to their hardware or tweak conflicts"],
   "followUps": ["suggested next investigations"]
 }
-6. Provide 3-6 findings and 3-8 actions, ordered by impact.
-7. For actions that correspond to SwitchControl tweaks, set autoApplyPossible=true and include the tweakId.
-8. For BIOS changes, dangerous registry edits, or motherboard-specific tweaks, set autoApplyPossible=false.
-9. Steps must be concrete Windows instructions (Settings paths, registry keys, or PowerShell commands).
-10. Risk assessment must be honest — if something could cause instability, say "high".
-11. readinessScore: 0 = completely unoptimized, 100 = fully optimized for their goal.
-12. If telemetry shows thermal issues (CPU >85°C or GPU >90°C), prioritize thermal advice.
-13. Tailor advice to the game specified — different games need different optimizations.
-14. Do NOT recommend tweaks that are already enabled unless they should be disabled.`;
+9. Provide 3-6 findings and 3-8 actions, ordered by impact (highest first).
+10. For actions that correspond to SwitchControl tweaks, set autoApplyPossible=true and include the tweakId.
+11. For BIOS changes, dangerous registry edits, or motherboard-specific tweaks, set autoApplyPossible=false.
+12. Steps must be concrete Windows instructions (Settings paths, registry keys, or PowerShell commands).
+13. Risk assessment must be honest — if something could cause instability, say "high".
+14. readinessScore: 0 = completely unoptimized, 100 = fully optimized for their goal.
+15. If telemetry shows thermal issues (CPU >85°C or GPU >90°C), prioritize thermal advice.
+16. Tailor advice to the game specified — different games need different optimizations.
+17. Do NOT recommend tweaks that are already enabled unless they should be disabled.
+18. Never recommend specific overclock values, voltage adjustments, or frequency numbers — these are hardware-specific and dangerous to guess.`;
 
 function buildUserPrompt(data: AdviceRequest): string {
   const t = data.telemetry;
@@ -242,7 +250,23 @@ ${telemetryLines.length > 0 ? `LIVE TELEMETRY:\n${telemetryLines.map(l => `- ${l
 Analyze this system configuration and current tweak state. Provide state-aware optimization advice as JSON.`;
 }
 
+function getValidDeviceId(req: Request): string | null {
+  const raw = req.headers["x-device-id"] as string | undefined;
+  if (!raw || raw.length < 16 || raw.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(raw)) return null;
+  return raw;
+}
+
+function getRequestIdentifier(req: Request): string {
+  const userId = (req as any).session?.userId;
+  if (userId) return `user:${userId}`;
+  const deviceId = getValidDeviceId(req);
+  if (deviceId) return `device:${deviceId}`;
+  return `ip:${req.ip || "unknown"}`;
+}
+
 aiRouter.post("/advice", async (req: Request, res: Response) => {
+  const requestStart = Date.now();
+  const requestId = getRequestIdentifier(req);
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return res.status(503).json({ error: "AI Advisor is not configured. Missing API key." });
@@ -250,6 +274,7 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
 
   const parsed = adviceRequestSchema.safeParse(req.body);
   if (!parsed.success) {
+    console.log(`[AI] ${new Date().toISOString()} | ${requestId} | INVALID_REQUEST | ${Date.now() - requestStart}ms`);
     return res.status(400).json({
       error: "Invalid request data",
       details: parsed.error.issues.map(i => ({
@@ -262,7 +287,7 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
   const cacheKey = getCacheKey(parsed.data);
   const cached = getCached(cacheKey);
   if (cached) {
-    console.log(`[AI] Cache hit for ${parsed.data.system.cpu} / ${parsed.data.goal}`);
+    console.log(`[AI] ${new Date().toISOString()} | ${requestId} | CACHE_HIT | goal=${parsed.data.goal} game=${parsed.data.game} | ${Date.now() - requestStart}ms`);
     return res.json(cached);
   }
 
@@ -332,17 +357,21 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
 
     setCache(cacheKey, advice);
 
-    console.log(`[AI] Advice generated for ${parsed.data.system.cpu} / ${parsed.data.system.gpu} — goal: ${parsed.data.goal}, state: ${advice.userState}, score: ${advice.readinessScore}`);
+    const duration = Date.now() - requestStart;
+    console.log(`[AI] ${new Date().toISOString()} | ${requestId} | OK | goal=${parsed.data.goal} game=${parsed.data.game} state=${advice.userState} score=${advice.readinessScore} | ${duration}ms`);
 
     return res.json(advice);
   } catch (error: any) {
+    const duration = Date.now() - requestStart;
     if (error?.status === 429) {
+      console.log(`[AI] ${new Date().toISOString()} | ${requestId} | OPENAI_RATE_LIMIT | goal=${parsed.data.goal} game=${parsed.data.game} | ${duration}ms`);
       return res.status(429).json({ error: "AI rate limit reached. Please wait a moment." });
     }
     if (error?.status === 401) {
+      console.error(`[AI] ${new Date().toISOString()} | ${requestId} | API_KEY_INVALID | ${duration}ms`);
       return res.status(503).json({ error: "AI API key is invalid or expired." });
     }
-    console.error("[AI] OpenAI error:", error?.message || error);
+    console.error(`[AI] ${new Date().toISOString()} | ${requestId} | ERROR | goal=${parsed.data.goal} game=${parsed.data.game} | ${duration}ms | ${error?.message || "unknown"}`);
     return res.status(500).json({ error: "Failed to get AI advice. Please try again." });
   }
 });
