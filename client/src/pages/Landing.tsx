@@ -340,6 +340,8 @@ function HeroAppMockup() {
       <div className="relative rounded-xl overflow-hidden border border-white/[0.15] bg-[hsl(260,22%,6%)] shadow-2xl shadow-primary/20">
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
           <div className="mockup-reflection-sweep" />
+          <div className="mockup-reflection-sweep-secondary" />
+          <div className="mockup-surface-highlight" />
         </div>
         <div className="absolute inset-0 pointer-events-none mockup-edge-glow rounded-xl" />
 
