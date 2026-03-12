@@ -1,0 +1,187 @@
+ASK: Convert BIOS Advisor from assumption-based scoring into a real firmware behavior analysis engine.
+
+GOAL
+
+The BIOS Advisor must stop implying direct BIOS inspection and instead detect firmware behavior using hardware telemetry and system characteristics.
+
+The system must clearly distinguish:
+
+Detected
+Likely
+Assumed
+Unknown
+
+Do not fabricate certainty.
+
+------------------------------------------------
+
+PART 1 — Add hardware telemetry source
+
+Add LibreHardwareMonitor integration to the Electron layer.
+
+Create a helper executable using LibreHardwareMonitor to expose:
+
+CPU clocks
+CPU package power
+CPU PPT / TDC / EDC
+memory frequency
+memory timings
+logical vs physical cores
+core parking
+package C-state residency
+
+Expose via Electron preload API:
+
+electronAPI.hardwareTelemetry()
+
+Return structured JSON:
+
+{
+ cpuBoostClock,
+ cpuBaseClock,
+ packagePower,
+ ppt,
+ tdc,
+ edc,
+ memoryFrequency,
+ memoryTimings,
+ physicalCores,
+ logicalCores,
+ cStateResidency
+}
+
+------------------------------------------------
+
+PART 2 — Firmware detection engine
+
+Create firmwareAnalyzer.ts
+
+Input:
+
+system specs
+hardware telemetry
+memory data
+CPU thread data
+
+Detect:
+
+EXPO / XMP
+memoryFrequency >= rated speed
+
+SMT
+logicalCores > physicalCores
+
+PBO
+boostClock > stock boost OR ppt > stock limits
+
+C-States
+package idle residency > threshold
+
+Return structured result:
+
+{
+ setting,
+ status,
+ confidence,
+ reason
+}
+
+Example:
+
+{
+ setting: "EXPO",
+ status: "Detected",
+ confidence: 0.95,
+ reason: "Memory running at 6000MT/s above JEDEC base"
+}
+
+------------------------------------------------
+
+PART 3 — BIOS Advisor UI changes
+
+Modify BiosAdvisor.tsx
+
+Add detection label system:
+
+Detected
+Likely
+Assumed
+Unknown
+
+Show confidence percent.
+
+Example card:
+
+EXPO
+Status: Detected
+Confidence: 95%
+Reason: Memory operating at EXPO rated speed.
+
+------------------------------------------------
+
+PART 4 — Real rescan system
+
+Remove simulated scan timers.
+
+On rescan:
+
+Collect fresh telemetry
+Run firmwareAnalyzer
+Store scan input hash.
+
+If identical hash:
+
+Display message:
+
+"No detectable firmware-related behavior changes since last scan."
+
+------------------------------------------------
+
+PART 5 — Optional BIOS photo scan
+
+Add optional upload button.
+
+User can upload BIOS screenshot.
+
+Send image to OpenAI vision API.
+
+Extract:
+
+PBO
+EXPO
+SMT
+C-States
+
+Map detected values into firmwareAnalyzer results.
+
+Mark them as:
+
+User Verified
+
+------------------------------------------------
+
+PART 6 — AI explanation layer
+
+AI should explain firmware state.
+
+Prompt must include:
+
+hardware specs
+detected firmware behavior
+confidence levels
+
+AI must explain:
+
+why each firmware setting matters
+expected impact on latency
+expected impact on frametime stability
+
+------------------------------------------------
+
+FINAL RESULT
+
+BIOS Advisor becomes:
+
+Firmware Behavior Analyzer
+
+Instead of pretending to read BIOS, it intelligently infers firmware configuration using real hardware telemetry and optional user input.

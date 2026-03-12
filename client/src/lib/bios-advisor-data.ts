@@ -1,6 +1,6 @@
 export type BiosImpact = "High" | "Medium" | "Low";
 export type BiosRisk = "High" | "Medium" | "Low";
-export type DetectionStatus = "Detected" | "Assumed" | "Unknown";
+export type DetectionStatus = "Detected" | "Likely" | "Assumed" | "Unknown" | "User Verified";
 export type AffectsType = "Latency" | "Frametime" | "Stability" | "Power" | "Thermals";
 
 export interface MotherboardPath {
@@ -51,7 +51,9 @@ export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
 
   settings.forEach((setting) => {
     const confidenceMultiplier = 
+      setting.detectionStatus === "User Verified" ? 1.0 :
       setting.detectionStatus === "Detected" ? 1.0 :
+      setting.detectionStatus === "Likely" ? 0.8 :
       setting.detectionStatus === "Assumed" ? 0.6 : 0.2;
 
     latencyTotal += setting.latencyScore * confidenceMultiplier;
@@ -829,15 +831,15 @@ export function getRankedOpportunities(): BiosOpportunity[] {
     .sort((a, b) => b.scoreGain - a.scoreGain);
 }
 
-export function getCategoryScores(): Record<string, { score: number; max: number }> {
+export function getCategoryScores(settings: BiosSetting[] = BIOS_SETTINGS): Record<string, { score: number; max: number }> {
   const categories: Record<string, { total: number; max: number }> = {};
   BIOS_CATEGORIES.forEach(cat => { categories[cat] = { total: 0, max: 0 }; });
 
-  BIOS_SETTINGS.forEach(s => {
+  settings.forEach(s => {
     const gain = Math.max(0, s.latencyScore) * 0.55 + Math.max(0, s.frametimeScore) * 0.35 + Math.max(0, s.stabilityScore) * 0.10;
     if (gain > 0 && categories[s.category]) {
       categories[s.category].max += gain;
-      const confidence = s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Assumed" ? 0.6 : 0.3;
+      const confidence = s.detectionStatus === "User Verified" ? 1.0 : s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Likely" ? 0.8 : s.detectionStatus === "Assumed" ? 0.6 : 0.3;
       categories[s.category].total += gain * confidence;
     }
   });
@@ -861,9 +863,9 @@ export interface CategoryBreakdown {
   explanation: string;
 }
 
-export function getCategoryBreakdowns(): CategoryBreakdown[] {
+export function getCategoryBreakdowns(allSettings: BiosSetting[] = BIOS_SETTINGS): CategoryBreakdown[] {
   return BIOS_CATEGORIES.map(category => {
-    const settings = getSettingsByCategory(category);
+    const settings = allSettings.filter(s => s.category === category);
     const detected = settings.filter(s => s.detectionStatus === "Detected").length;
 
     let total = 0;
@@ -872,7 +874,7 @@ export function getCategoryBreakdowns(): CategoryBreakdown[] {
       const gain = Math.max(0, s.latencyScore) * 0.55 + Math.max(0, s.frametimeScore) * 0.35 + Math.max(0, s.stabilityScore) * 0.10;
       if (gain > 0) {
         max += gain;
-        const confidence = s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Assumed" ? 0.6 : 0.3;
+        const confidence = s.detectionStatus === "User Verified" ? 1.0 : s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Likely" ? 0.8 : s.detectionStatus === "Assumed" ? 0.6 : 0.3;
         total += gain * confidence;
       }
     });

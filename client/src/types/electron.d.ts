@@ -75,6 +75,24 @@ interface EnhancedTelemetry {
   timestamp: number;
 }
 
+interface HardwareTelemetryData {
+  cpuBoostClock: number | null;
+  cpuBaseClock: number | null;
+  packagePower: number | null;
+  ppt: number | null;
+  tdc: number | null;
+  edc: number | null;
+  memoryFrequency: number | null;
+  memoryTimings: string | null;
+  physicalCores: number | null;
+  logicalCores: number | null;
+  cStateResidency: number | null;
+  cpuModel: string;
+  gpuModel: string;
+  ramTotalGB: number;
+  rebarSupported: boolean | null;
+}
+
 interface TweakResult {
   success: boolean;
   requiresReboot: boolean;
@@ -149,6 +167,7 @@ declare global {
       telemetry: {
         getLive: () => Promise<LiveTelemetry>;
         getEnhanced: () => Promise<EnhancedTelemetry>;
+        getHardwareTelemetry: () => Promise<HardwareTelemetryData>;
       };
       
       tweaks: {

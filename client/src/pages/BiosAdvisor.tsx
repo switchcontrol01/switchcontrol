@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,8 @@ import {
   Cpu, Zap, MemoryStick, Radio, ChevronRight, AlertTriangle, 
   CheckCircle, HelpCircle, Shield,
   Activity, TrendingUp, Info, ExternalLink,
-  Sparkles, Loader2, ChevronDown, BookOpen, Target
+  Sparkles, Loader2, ChevronDown, BookOpen, Target,
+  Upload, Camera, Eye, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
@@ -19,6 +20,7 @@ import {
   BIOS_CATEGORIES, 
   BiosSetting, 
   BiosCategory,
+  DetectionStatus,
   calculateBiosScores,
   getSettingsByCategory,
   getOptimizationLevel,
@@ -26,18 +28,26 @@ import {
   getCategoryScores,
   getCategoryBreakdowns,
   getFirmwareInputs,
-  getRandomScanDuration,
   generateBiosExplanation,
   BIOS_ACCESS_INSTRUCTIONS,
   DISCLAIMER,
   DETECTION_DISCLAIMER,
-  getScanSource,
-  computeScanHash
 } from "@/lib/bios-advisor-data";
+import {
+  type HardwareTelemetry,
+  type FirmwareDetection,
+  analyzeFirmware,
+  applyDetectionsToSettings,
+  computeAnalysisHash,
+  buildTelemetryFromStore,
+  collectElectronTelemetry,
+  getDetectionSummary,
+} from "@/lib/firmware-analyzer";
+import { useStore } from "@/lib/store";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 
-type ScanState = "idle" | "initializing" | "collecting" | "evaluating" | "complete";
+type ScanState = "idle" | "collecting" | "analyzing" | "explaining" | "complete";
 
 const CATEGORY_ICONS: Record<BiosCategory, React.ElementType> = {
   "CPU Scheduling & Latency": Cpu,
@@ -64,6 +74,22 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Easy: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   Moderate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   Advanced: "bg-red-500/20 text-red-400 border-red-500/30",
+};
+
+const STATUS_COLORS: Record<DetectionStatus, string> = {
+  "User Verified": "text-cyan-400",
+  "Detected": "text-emerald-400",
+  "Likely": "text-blue-400",
+  "Assumed": "text-amber-400",
+  "Unknown": "text-muted-foreground",
+};
+
+const STATUS_ICONS: Record<DetectionStatus, React.ElementType> = {
+  "User Verified": Eye,
+  "Detected": CheckCircle,
+  "Likely": Activity,
+  "Assumed": AlertTriangle,
+  "Unknown": HelpCircle,
 };
 
 function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: number; color: string; delay?: number }) {
@@ -104,7 +130,20 @@ function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: 
   );
 }
 
-function BiosSettingCard({ setting, index }: { setting: BiosSetting; index: number }) {
+function ConfidenceBadge({ confidence }: { confidence: number }) {
+  const pct = Math.round(confidence * 100);
+  const color = pct >= 85 ? "text-emerald-400 border-emerald-500/25" :
+                pct >= 65 ? "text-blue-400 border-blue-500/25" :
+                pct >= 45 ? "text-amber-400 border-amber-500/25" :
+                "text-muted-foreground border-white/10";
+  return (
+    <Badge variant="outline" className={cn("text-[9px] font-mono", color)}>
+      {pct}%
+    </Badge>
+  );
+}
+
+function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; detection?: FirmwareDetection; index: number }) {
   const [expanded, setExpanded] = useState(false);
   const { prefersReducedMotion } = useMotion();
   
@@ -114,14 +153,9 @@ function BiosSettingCard({ setting, index }: { setting: BiosSetting; index: numb
     Low: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
   };
   
-  const statusColors = {
-    Detected: "text-emerald-400",
-    Assumed: "text-amber-400",
-    Unknown: "text-muted-foreground"
-  };
-  
-  const StatusIcon = setting.detectionStatus === "Detected" ? CheckCircle : 
-                     setting.detectionStatus === "Assumed" ? AlertTriangle : HelpCircle;
+  const status = detection?.status ?? setting.detectionStatus;
+  const StatusIcon = STATUS_ICONS[status];
+  const statusColor = STATUS_COLORS[status];
 
   return (
     <motion.div
@@ -150,11 +184,15 @@ function BiosSettingCard({ setting, index }: { setting: BiosSetting; index: numb
                 </Badge>
               </div>
               <div className="flex items-center gap-2 text-xs">
-                <StatusIcon className={cn("w-3.5 h-3.5", statusColors[setting.detectionStatus])} />
-                <span className={statusColors[setting.detectionStatus]}>
-                  {setting.detectionStatus === "Unknown" ? "Detection not supported yet" : setting.detectionStatus}
+                <StatusIcon className={cn("w-3.5 h-3.5", statusColor)} />
+                <span className={statusColor}>
+                  {status}
                 </span>
+                {detection && <ConfidenceBadge confidence={detection.confidence} />}
               </div>
+              {detection?.reason && (
+                <p className="text-[10px] text-white/50 mt-1 line-clamp-1">{detection.reason}</p>
+              )}
             </div>
             <motion.div animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
               <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-white transition-colors" />
@@ -171,6 +209,22 @@ function BiosSettingCard({ setting, index }: { setting: BiosSetting; index: numb
                 className="overflow-hidden"
               >
                 <div className="pt-4 space-y-4 border-t border-white/10 mt-4">
+                  {detection && (
+                    <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
+                      <h4 className="text-xs font-medium text-cyan-400 mb-1 flex items-center gap-1">
+                        <Eye className="w-3 h-3" /> Detection Detail
+                      </h4>
+                      <p className="text-xs text-white/80">{detection.reason}</p>
+                      {detection.detectedValue && (
+                        <p className="text-[10px] text-cyan-300/70 mt-1">Value: {detection.detectedValue}</p>
+                      )}
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[10px] text-white/50">Confidence:</span>
+                        <ConfidenceBadge confidence={detection.confidence} />
+                      </div>
+                    </div>
+                  )}
+
                   <div>
                     <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">What it is</h4>
                     <p className="text-sm text-white/80">{setting.whatItIs}</p>
@@ -323,10 +377,10 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
 
 function ScanProgress({ state }: { state: ScanState }) {
   const progressMap: Record<ScanState, number> = {
-    idle: 0, initializing: 15, collecting: 50, evaluating: 80, complete: 100
+    idle: 0, collecting: 30, analyzing: 65, explaining: 85, complete: 100
   };
   const labelMap: Record<ScanState, string> = {
-    idle: "", initializing: "Initializing firmware scanner...", collecting: "Collecting hardware data...", evaluating: "Evaluating BIOS configuration...", complete: "Scan complete"
+    idle: "", collecting: "Collecting hardware telemetry...", analyzing: "Running firmware behavior analysis...", explaining: "Generating AI explanation...", complete: "Analysis complete"
   };
 
   if (state === "idle" || state === "complete") return null;
@@ -346,54 +400,215 @@ function ScanProgress({ state }: { state: ScanState }) {
   );
 }
 
+interface AiExplanation {
+  overview: string;
+  settingExplanations: { settingId: string; explanation: string; impact: string }[];
+  recommendations: string[];
+  confidenceNote: string;
+}
+
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
+  const { stats } = useStore();
   
   const [scanState, setScanState] = useState<ScanState>("idle");
   const [hasScanned, setHasScanned] = useState(false);
   const [activeCategory, setActiveCategory] = useState<BiosCategory>("CPU Scheduling & Latency");
   const [activeTab, setActiveTab] = useState<"opportunities" | "settings">("opportunities");
   
-  const scores = useMemo(() => calculateBiosScores(BIOS_SETTINGS), []);
-  const opportunities = useMemo(() => getRankedOpportunities(), []);
-  const categoryScores = useMemo(() => getCategoryScores(), []);
-  const categoryBreakdowns = useMemo(() => getCategoryBreakdowns(), []);
-  const firmwareInputs = useMemo(() => getFirmwareInputs(), []);
+  const [detections, setDetections] = useState<FirmwareDetection[]>([]);
+  const [photoDetections, setPhotoDetections] = useState<FirmwareDetection[]>([]);
+  const [lastTelemetry, setLastTelemetry] = useState<HardwareTelemetry | null>(null);
+  const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
+  const [previousScanHash, setPreviousScanHash] = useState<string | null>(null);
+  const [scanChanged, setScanChanged] = useState<boolean | null>(null);
+  const [previousScore, setPreviousScore] = useState<number | null>(null);
+  const [showFirmwareInputs, setShowFirmwareInputs] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<AiExplanation | null>(null);
+  const [aiExplainLoading, setAiExplainLoading] = useState(false);
+  const [photoUploading, setPhotoUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [telemetrySource, setTelemetrySource] = useState<"electron" | "web-inferred">("web-inferred");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const allDetections = useMemo(() => {
+    const map = new Map<string, FirmwareDetection>();
+    for (const d of detections) map.set(d.settingId, d);
+    for (const d of photoDetections) map.set(d.settingId, d);
+    return Array.from(map.values());
+  }, [detections, photoDetections]);
+
+  const analyzedSettings = useMemo(
+    () => applyDetectionsToSettings(BIOS_SETTINGS, detections, photoDetections),
+    [detections, photoDetections]
+  );
+
+  const scores = useMemo(() => calculateBiosScores(analyzedSettings), [analyzedSettings]);
+  const opportunities = useMemo(() => {
+    return analyzedSettings
+      .map(setting => ({
+        setting,
+        scoreGain: Math.round(
+          Math.max(0, setting.latencyScore) * 0.55 +
+          Math.max(0, setting.frametimeScore) * 0.35 +
+          Math.max(0, setting.stabilityScore) * 0.10
+        ),
+        difficulty: (setting.risk === "High" ? "Advanced" : setting.risk === "Medium" && setting.impact === "High" ? "Moderate" : setting.risk === "Low" && setting.impact !== "High" ? "Easy" : "Moderate") as "Easy" | "Moderate" | "Advanced",
+      }))
+      .filter(o => o.scoreGain > 0)
+      .sort((a, b) => b.scoreGain - a.scoreGain);
+  }, [analyzedSettings]);
+  const categoryScores = useMemo(() => getCategoryScores(analyzedSettings), [analyzedSettings]);
+  const categoryBreakdowns = useMemo(() => getCategoryBreakdowns(analyzedSettings), [analyzedSettings]);
+  const firmwareInputs = useMemo(() => {
+    return analyzedSettings.map(s => {
+      const det = allDetections.find(d => d.settingId === s.id);
+      return {
+        label: s.name,
+        value: det?.detectedValue ?? s.currentValue ?? "Not available",
+        status: det?.status ?? s.detectionStatus,
+        confidence: det?.confidence,
+        category: s.category,
+      };
+    });
+  }, [analyzedSettings, allDetections]);
   const explanation = useMemo(() => generateBiosExplanation(scores, opportunities), [scores, opportunities]);
   const optimizationLevel = useMemo(() => getOptimizationLevel(scores.competitiveReadiness), [scores]);
-  const categorySettings = useMemo(() => getSettingsByCategory(activeCategory), [activeCategory]);
+  const categorySettings = useMemo(() => {
+    return analyzedSettings.filter(s => s.category === activeCategory);
+  }, [analyzedSettings, activeCategory]);
+  
+  const detectionSummary = useMemo(() => getDetectionSummary(allDetections), [allDetections]);
   
   const Container = prefersReducedMotion ? "div" : motion.div;
   const Item = prefersReducedMotion ? "div" : motion.div;
 
-  const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
-  const [previousScanHash, setPreviousScanHash] = useState<string | null>(null);
-  const [scanChanged, setScanChanged] = useState<boolean | null>(null);
-  const [showFirmwareInputs, setShowFirmwareInputs] = useState(false);
-  const [previousScore, setPreviousScore] = useState<number | null>(null);
-  const scanSource = useMemo(() => getScanSource(), []);
-  const detectedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length, []);
-  const assumedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Assumed").length, []);
-  const unknownCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Unknown").length, []);
+  const handleScan = useCallback(async () => {
+    setScanState("collecting");
 
-  const handleScan = useCallback(() => {
-    const timing = getRandomScanDuration();
-    setScanState("initializing");
-    setTimeout(() => setScanState("collecting"), timing.init);
-    setTimeout(() => setScanState("evaluating"), timing.collect);
-    setTimeout(() => {
-      const newHash = computeScanHash();
-      
-      setScanChanged(previousScanHash === null ? null : previousScanHash !== newHash);
-      setPreviousScore(hasScanned ? scores.competitiveReadiness : null);
-      setPreviousScanHash(newHash);
-      setScanState("complete");
-      setHasScanned(true);
-      setLastScanTime(new Date());
-      setTimeout(() => setScanState("idle"), 500);
-    }, timing.total);
-  }, [previousScanHash, hasScanned, scores.competitiveReadiness]);
+    let telemetry: HardwareTelemetry;
+
+    const electronTelemetry = await collectElectronTelemetry();
+    if (electronTelemetry) {
+      telemetry = electronTelemetry;
+      setTelemetrySource("electron");
+    } else {
+      telemetry = buildTelemetryFromStore({
+        cpuModel: stats.cpuName,
+        gpuModel: stats.gpuName,
+        cpuCores: stats.cpuCores,
+        cpuThreads: stats.cpuThreads,
+        ramTotal: stats.totalRamGb,
+        cpuSpeed: stats.cpuSpeed,
+      });
+      setTelemetrySource("web-inferred");
+    }
+
+    setLastTelemetry(telemetry);
+
+    await new Promise(r => setTimeout(r, 400));
+    setScanState("analyzing");
+
+    const newDetections = analyzeFirmware(telemetry);
+    setDetections(newDetections);
+
+    const newHash = computeAnalysisHash(telemetry);
+    setScanChanged(previousScanHash === null ? null : previousScanHash !== newHash);
+    setPreviousScore(hasScanned ? scores.competitiveReadiness : null);
+    setPreviousScanHash(newHash);
+
+    await new Promise(r => setTimeout(r, 300));
+    setScanState("complete");
+    setHasScanned(true);
+    setLastScanTime(new Date());
+    setTimeout(() => setScanState("idle"), 500);
+  }, [previousScanHash, hasScanned, scores.competitiveReadiness, stats]);
+
+  const handlePhotoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ["image/png", "image/jpeg", "image/webp"];
+    if (!validTypes.includes(file.type)) {
+      setPhotoError("Please upload a PNG, JPEG, or WebP image.");
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setPhotoError("Image must be under 10MB.");
+      return;
+    }
+
+    setPhotoUploading(true);
+    setPhotoError(null);
+
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const res = await fetch("/api/bios/photo-scan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Photo scan failed");
+      }
+
+      const data = await res.json();
+      if (data.detections && data.detections.length > 0) {
+        setPhotoDetections(data.detections);
+      } else {
+        setPhotoError("No BIOS settings could be identified in this image. Try a clearer photo.");
+      }
+    } catch (err: any) {
+      setPhotoError(err.message || "Photo analysis failed");
+    } finally {
+      setPhotoUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, []);
+
+  const handleAiExplain = useCallback(async () => {
+    if (allDetections.length === 0) return;
+    setAiExplainLoading(true);
+
+    try {
+      const res = await fetch("/api/bios/explain", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          cpuModel: lastTelemetry?.cpuModel || stats.cpuName || "Unknown CPU",
+          gpuModel: lastTelemetry?.gpuModel || stats.gpuName || "Unknown GPU",
+          ramTotalGB: lastTelemetry?.ramTotalGB || stats.totalRamGb || 16,
+          detections: allDetections,
+          scores: {
+            latency: scores.latency,
+            frametime: scores.frametime,
+            stability: scores.stability,
+            competitiveReadiness: scores.competitiveReadiness,
+          },
+        }),
+      });
+
+      if (!res.ok) throw new Error("Explanation request failed");
+      const data = await res.json();
+      setAiExplanation(data);
+    } catch {
+      setAiExplanation(null);
+    } finally {
+      setAiExplainLoading(false);
+    }
+  }, [allDetections, lastTelemetry, stats, scores]);
 
   const isScanning = scanState !== "idle" && scanState !== "complete";
 
@@ -408,20 +623,39 @@ export default function BiosAdvisor() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-white" data-testid="text-bios-title">BIOS Advisor</h1>
+                <h1 className="text-2xl font-bold text-white" data-testid="text-bios-title">Firmware Behavior Analyzer</h1>
                 <PremiumHeaderBadge isLocked={!isPremium} />
               </div>
               <p className="text-muted-foreground text-sm">
-                Firmware-level analysis for competitive performance optimization
+                Detects firmware configuration from hardware telemetry — no direct BIOS access required
               </p>
             </div>
             
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
               {lastScanTime && (
                 <span className="text-[10px] text-muted-foreground font-mono">
                   Last scan: {lastScanTime.toLocaleTimeString()}
                 </span>
               )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handlePhotoUpload}
+                data-testid="input-bios-photo"
+              />
+              <Button 
+                variant="outline"
+                size="sm"
+                className="text-xs border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={photoUploading}
+                data-testid="button-upload-photo"
+              >
+                {photoUploading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Camera className="w-3.5 h-3.5 mr-1.5" />}
+                {photoUploading ? "Scanning..." : "Upload BIOS Photo"}
+              </Button>
               <Button 
                 onClick={handleScan} 
                 disabled={isScanning}
@@ -434,13 +668,35 @@ export default function BiosAdvisor() {
                 ) : (
                   <Activity className="w-3.5 h-3.5 mr-1.5" />
                 )}
-                {isScanning ? "Scanning..." : hasScanned ? "Re-scan BIOS" : "Run Scan"}
+                {isScanning ? "Analyzing..." : hasScanned ? "Re-analyze" : "Run Analysis"}
               </Button>
             </div>
           </div>
         </Item>
 
         <ScanProgress state={scanState} />
+
+        {photoError && (
+          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+            <div className="flex items-center gap-2 p-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              {photoError}
+              <Button variant="ghost" size="sm" className="ml-auto text-[10px] text-red-300 hover:text-white h-6" onClick={() => setPhotoError(null)}>Dismiss</Button>
+            </div>
+          </Item>
+        )}
+
+        {photoDetections.length > 0 && (
+          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+            <GlassCard className="p-3 bg-cyan-500/5 border-cyan-500/20">
+              <div className="flex items-center gap-2 text-xs">
+                <Eye className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-cyan-400 font-medium">{photoDetections.length} settings verified from BIOS photo</span>
+                <Badge variant="outline" className="text-[9px] text-cyan-400 border-cyan-500/25 ml-auto">User Verified</Badge>
+              </div>
+            </GlassCard>
+          </Item>
+        )}
 
         {hasScanned && (
           <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
@@ -454,39 +710,54 @@ export default function BiosAdvisor() {
                   Detection Summary
                 </h3>
                 <div className="flex items-center gap-3 text-[10px]">
+                  {detectionSummary.userVerified > 0 && (
+                    <span className="flex items-center gap-1 text-cyan-400">
+                      <Eye className="w-3 h-3" />
+                      {detectionSummary.userVerified} Verified
+                    </span>
+                  )}
                   <span className="flex items-center gap-1 text-emerald-400">
                     <CheckCircle className="w-3 h-3" />
-                    {detectedCount} Detected
+                    {detectionSummary.detected} Detected
+                  </span>
+                  <span className="flex items-center gap-1 text-blue-400">
+                    <Activity className="w-3 h-3" />
+                    {detectionSummary.likely} Likely
                   </span>
                   <span className="flex items-center gap-1 text-amber-400">
                     <AlertTriangle className="w-3 h-3" />
-                    {assumedCount} Assumed
+                    {detectionSummary.assumed} Assumed
                   </span>
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <HelpCircle className="w-3 h-3" />
-                    {unknownCount} Unknown
+                    {detectionSummary.unknown} Unknown
                   </span>
                 </div>
-                <Badge variant="outline" className="text-[10px] ml-auto" data-testid="badge-scan-source">
-                  Scan source: {scanSource}
-                </Badge>
+                <div className="flex items-center gap-2 ml-auto">
+                  <Badge variant="outline" className="text-[10px]" data-testid="badge-avg-confidence">
+                    Avg confidence: {detectionSummary.avgConfidence}%
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]" data-testid="badge-scan-source">
+                    Source: {telemetrySource === "electron" ? "Hardware" : "Inferred"}
+                  </Badge>
+                </div>
               </div>
               <div className="flex items-center gap-3 flex-wrap mt-2">
                 {scanChanged === true && (
                   <div className="flex items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex-1">
                     <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-                    Configuration inputs changed. Firmware score recalculated.
+                    Telemetry changed. Firmware analysis recalculated.
                   </div>
                 )}
                 {scanChanged === false && (
                   <div className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/10 text-[11px] text-muted-foreground flex-1">
                     <Info className="w-3.5 h-3.5 shrink-0" />
-                    No detectable firmware-related input changes since last scan.
+                    No detectable firmware-related behavior changes since last scan.
                   </div>
                 )}
                 {lastScanTime && (
                   <span className="text-[10px] text-muted-foreground font-mono">
-                    Scanned: {lastScanTime.toLocaleTimeString()}
+                    Analyzed: {lastScanTime.toLocaleTimeString()}
                     {previousScore !== null && previousScore !== scores.competitiveReadiness && (
                       <span className={cn("ml-2 font-semibold", scores.competitiveReadiness > previousScore ? "text-emerald-400" : "text-red-400")}>
                         {scores.competitiveReadiness > previousScore ? "+" : ""}{scores.competitiveReadiness - previousScore} pts
@@ -519,11 +790,15 @@ export default function BiosAdvisor() {
                       {firmwareInputs.map((input, i) => (
                         <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-white/[0.02] text-[10px]">
                           <span className="text-white/70 flex-1 truncate">{input.label}</span>
-                          <span className="text-white/40 truncate max-w-[120px]">{input.value}</span>
+                          <span className="text-white/40 truncate max-w-[140px]">{input.value}</span>
+                          {input.confidence !== undefined && <ConfidenceBadge confidence={input.confidence} />}
                           <Badge variant="outline" className={cn("text-[9px] shrink-0",
-                            input.status === "Detected" ? "text-emerald-400 border-emerald-500/25" :
-                            input.status === "Assumed" ? "text-amber-400 border-amber-500/25" :
-                            "text-muted-foreground border-white/10"
+                            STATUS_COLORS[input.status as DetectionStatus] || "text-muted-foreground",
+                            input.status === "User Verified" ? "border-cyan-500/25" :
+                            input.status === "Detected" ? "border-emerald-500/25" :
+                            input.status === "Likely" ? "border-blue-500/25" :
+                            input.status === "Assumed" ? "border-amber-500/25" :
+                            "border-white/10"
                           )}>
                             {input.status}
                           </Badge>
@@ -609,7 +884,7 @@ export default function BiosAdvisor() {
                   Firmware Score
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Competitive readiness based on your firmware configuration
+                  Competitive readiness based on detected firmware behavior
                 </p>
                 
                 <div className="flex items-center gap-3 mb-3">
@@ -663,14 +938,72 @@ export default function BiosAdvisor() {
           <GlassCard className="p-5 bg-gradient-to-br from-primary/5 to-cyan-500/5 border-primary/20">
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
-              <div>
-                <h3 className="font-semibold text-white text-sm mb-2 flex items-center gap-2">
-                  AI Firmware Analysis
-                  <Badge className="text-[9px] bg-primary/20 text-primary border-primary/30">Interpretation</Badge>
-                </h3>
-                <div className="text-sm text-white/70 leading-relaxed whitespace-pre-line" data-testid="text-ai-explanation">
-                  {explanation}
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-white text-sm flex items-center gap-2">
+                    AI Firmware Analysis
+                    <Badge className="text-[9px] bg-primary/20 text-primary border-primary/30">
+                      {aiExplanation ? "AI-Powered" : "Local"}
+                    </Badge>
+                  </h3>
+                  {hasScanned && allDetections.length > 0 && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-[10px] h-7 text-primary hover:text-primary hover:bg-primary/10"
+                      onClick={handleAiExplain}
+                      disabled={aiExplainLoading}
+                      data-testid="button-ai-explain"
+                    >
+                      {aiExplainLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                      {aiExplainLoading ? "Analyzing..." : aiExplanation ? "Refresh AI Analysis" : "Get AI Explanation"}
+                    </Button>
+                  )}
                 </div>
+
+                {aiExplanation ? (
+                  <div className="space-y-3">
+                    <p className="text-sm text-white/80 leading-relaxed">{aiExplanation.overview}</p>
+                    
+                    {aiExplanation.settingExplanations.length > 0 && (
+                      <div className="space-y-1.5">
+                        {aiExplanation.settingExplanations.slice(0, 6).map((se, i) => {
+                          const impactColor = se.impact === "positive" ? "text-emerald-400" : se.impact === "negative" ? "text-red-400" : se.impact === "uncertain" ? "text-amber-400" : "text-white/60";
+                          return (
+                            <div key={i} className="flex items-start gap-2 p-2 rounded bg-white/[0.03] text-[11px]">
+                              <div className={cn("w-1.5 h-1.5 rounded-full mt-1.5 shrink-0", impactColor.replace("text-", "bg-"))} />
+                              <div>
+                                <span className="text-white/70 font-medium">{se.settingId}:</span>{" "}
+                                <span className="text-white/60">{se.explanation}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {aiExplanation.recommendations.length > 0 && (
+                      <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                        <h4 className="text-[10px] font-medium text-primary mb-2">Recommendations</h4>
+                        <ul className="space-y-1">
+                          {aiExplanation.recommendations.map((rec, i) => (
+                            <li key={i} className="text-[11px] text-white/70 flex items-start gap-1.5">
+                              <span className="text-primary mt-0.5">•</span> {rec}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {aiExplanation.confidenceNote && (
+                      <p className="text-[10px] text-muted-foreground italic">{aiExplanation.confidenceNote}</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm text-white/70 leading-relaxed whitespace-pre-line" data-testid="text-ai-explanation">
+                    {explanation}
+                  </div>
+                )}
               </div>
             </div>
           </GlassCard>
@@ -743,7 +1076,7 @@ export default function BiosAdvisor() {
                         {category.split(" ")[0]}
                       </span>
                       <Badge variant="secondary" className="text-[10px] ml-auto">
-                        {getSettingsByCategory(category).length}
+                        {analyzedSettings.filter(s => s.category === category).length}
                       </Badge>
                     </TabsTrigger>
                   );
@@ -761,7 +1094,12 @@ export default function BiosAdvisor() {
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
                   >
                     {categorySettings.map((setting, index) => (
-                      <BiosSettingCard key={setting.id} setting={setting} index={index} />
+                      <BiosSettingCard 
+                        key={setting.id} 
+                        setting={setting} 
+                        detection={allDetections.find(d => d.settingId === setting.id)}
+                        index={index} 
+                      />
                     ))}
                   </motion.div>
                 </AnimatePresence>
@@ -791,7 +1129,7 @@ export default function BiosAdvisor() {
         </Item>
       </Container>
       
-      {!isPremium && <PremiumPageOverlay featureName="BIOS Advisor" buttonText="Unlock BIOS Advisor" />}
+      {!isPremium && <PremiumPageOverlay featureName="Firmware Behavior Analyzer" buttonText="Unlock Firmware Analyzer" />}
     </AppLayout>
   );
 }

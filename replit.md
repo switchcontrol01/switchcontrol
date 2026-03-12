@@ -57,8 +57,18 @@ A fully local, deterministic rule engine evaluates system and application signal
 ### Dashboard Bottom Grid
 Three-column layout: System Health card, AI Advisor summary widget (links to `/ai-advisor`), BIOS Score summary card (links to `/bios-advisor`). AI Advisor summary shows last scan score if available, otherwise a CTA. BIOS Score summary shows competitive readiness score, latency/frametime/stability breakdown, and optimization level badge.
 
-### BIOS Advisor
-Premium-only BIOS firmware analysis page at `/bios-advisor` (`client/src/pages/BiosAdvisor.tsx`). Scores firmware configuration (0–100) across categories (CPU, Power, Memory, EMI). Data model in `client/src/lib/bios-advisor-data.ts` with 25+ BIOS settings, each with category, impact, risk, motherboard paths, detection status, and latency/frametime/stability scores. Features: animated scan progress, ranked opportunities with score gain/difficulty/risk, deterministic AI explanation panel, optimization level labels (Basic/Good/Advanced/Competitive), category score breakdowns, expandable setting cards with pros/cons/BIOS paths, detection summary (Detected/Assumed/Unknown counts with explanation), last scan timestamp. No auto-apply — all changes are informational and manual only.
+### BIOS Advisor — Firmware Behavior Analysis Engine
+Premium-only BIOS firmware analysis page at `/bios-advisor` (`client/src/pages/BiosAdvisor.tsx`). Real firmware behavior analysis via `client/src/lib/firmware-analyzer.ts` that detects XMP/EXPO, SMT, PBO, C-States, ReBAR, FCLK, CPPC from hardware telemetry data. Data model in `client/src/lib/bios-advisor-data.ts` with 25+ BIOS settings, each with category, impact, risk, motherboard paths, detection status, and latency/frametime/stability scores.
+
+**Detection Statuses**: User Verified (1.0 confidence) → Detected (1.0) → Likely (0.8) → Assumed (0.6) → Unknown (0.3). Confidence multipliers applied to all scoring functions.
+
+**Firmware Analyzer** (`client/src/lib/firmware-analyzer.ts`): `buildTelemetryFromStore()` creates `HardwareTelemetry` from store stats for web mode; `collectElectronTelemetry()` uses Electron IPC (`getHardwareTelemetry` → `getEnhanced` → `getSpecs` fallback chain) for desktop mode. `analyzeAllSettings()` runs per-setting detection rules against telemetry and produces `FirmwareDetection[]` with `{ settingId, status, confidence, reason, detectedValue }`. Scan tracks telemetry hash to show "No detectable changes" if unchanged.
+
+**BIOS Photo Upload**: Server endpoint `POST /api/bios/photo-scan` (`server/routes/bios.ts`) uses OpenAI Vision (gpt-4o, `detail: "high"`) to extract settings from BIOS screenshots. Rate limited 5 req/5min. Results marked as "User Verified" and merged into firmware detections. JSON body limit set to 12MB for base64 images.
+
+**AI Firmware Explanation**: Server endpoint `POST /api/bios/explain` (`server/routes/bios.ts`) uses gpt-4o-mini to generate hardware-specific AI explanations of firmware state, referencing actual CPU/GPU/RAM and detected settings with confidence levels.
+
+**UI Features**: Confidence % badges per setting, detection label badges (User Verified/Detected/Likely/Assumed/Unknown), category score breakdowns (driven by analyzed settings, not static data), ranked opportunities with score gain/difficulty/risk, optimization level labels, expandable setting cards with pros/cons/BIOS paths. No auto-apply — all changes are informational and manual only.
 
 ### Electron Desktop App
 The Electron app provides a unified `window.electronAPI` interface via `preload.js` for interacting with native system features. It uses the `systeminformation` package for real hardware data (CPU, GPU, RAM), offers native tweak execution (via `tweak-executor.js`), and includes a native Rust-based RAM cleaner.

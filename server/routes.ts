@@ -9,6 +9,7 @@ import { isPremiumTweakById } from "../shared/tweak-tiers";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import aiRouter from "./routes/ai";
+import biosRouter from "./routes/bios";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -19,6 +20,7 @@ export async function registerRoutes(
   setupDiscordAuth(app);
 
   app.use("/api/ai", aiRouter);
+  app.use("/api/bios", biosRouter);
 
   app.get("/api/csrf-token", (req, res) => {
     const token = req.cookies?._csrf || generateCsrfToken();
