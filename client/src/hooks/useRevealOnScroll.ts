@@ -14,18 +14,8 @@ export function useRevealOnScroll({
   once = true,
 }: Options = {}) {
   useEffect(() => {
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
     const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
     if (!els.length) return;
-
-    if (reduceMotion) {
-      els.forEach((el) => el.classList.add("is-visible"));
-      return;
-    }
 
     const io = new IntersectionObserver(
       (entries) => {

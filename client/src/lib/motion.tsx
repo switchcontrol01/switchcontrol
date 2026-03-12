@@ -310,23 +310,17 @@ export function Reveal({
     return () => observer.disconnect();
   }, []);
 
-  // When reduced motion is preferred, show content immediately without animation
-  if (prefersReducedMotion) {
-    return (
-      <div ref={ref} className={cn(className)}>
-        {children}
-      </div>
-    );
-  }
+  const reducedDuration = prefersReducedMotion ? Math.min(duration, 0.3) : duration;
+  const reducedDistance = prefersReducedMotion ? Math.min(distance, 12) : distance;
 
   const getTransform = () => {
     if (isVisible) return 'translate(0, 0)';
     switch (direction) {
-      case 'up': return `translateY(${distance}px)`;
-      case 'down': return `translateY(-${distance}px)`;
-      case 'left': return `translateX(${distance}px)`;
-      case 'right': return `translateX(-${distance}px)`;
-      default: return `translateY(${distance}px)`;
+      case 'up': return `translateY(${reducedDistance}px)`;
+      case 'down': return `translateY(-${reducedDistance}px)`;
+      case 'left': return `translateX(${reducedDistance}px)`;
+      case 'right': return `translateX(-${reducedDistance}px)`;
+      default: return `translateY(${reducedDistance}px)`;
     }
   };
 
@@ -337,8 +331,9 @@ export function Reveal({
       style={{
         opacity: isVisible ? 1 : 0,
         transform: getTransform(),
-        transition: `opacity ${duration}s ease-out ${delay}s, transform ${duration}s ease-out ${delay}s`,
-        willChange: 'opacity, transform',
+        filter: isVisible ? 'blur(0px)' : `blur(${prefersReducedMotion ? 4 : 8}px)`,
+        transition: `opacity ${reducedDuration}s ease-out ${delay}s, transform ${reducedDuration}s ease-out ${delay}s, filter ${reducedDuration}s ease-out ${delay}s`,
+        willChange: 'opacity, transform, filter',
       }}
     >
       {children}

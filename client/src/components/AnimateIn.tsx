@@ -14,17 +14,6 @@ export default function AnimateIn({ children, delay = 0, className = "" }: Anima
   useEffect(() => {
     if (hasTriggered.current) return;
 
-    const reduceMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (reduceMotion) {
-      hasTriggered.current = true;
-      setVisible(true);
-      return;
-    }
-
     const el = ref.current;
     if (!el) {
       hasTriggered.current = true;

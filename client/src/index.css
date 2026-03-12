@@ -798,10 +798,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] {
-    transition: none;
-    opacity: 1;
-    transform: none;
-    filter: none;
+    filter: blur(6px);
+    transform: translate3d(0, 10px, 0);
+    transition-duration: 400ms;
   }
 }
 
@@ -830,10 +829,9 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .animate-in-wrapper {
-    transition: none;
-    opacity: 1;
-    transform: none;
-    filter: none;
+    filter: blur(6px);
+    transform: translate3d(0, 10px, 0);
+    transition-duration: 400ms;
   }
 }
 
