@@ -1388,6 +1388,7 @@ textarea,
 .ws-sun-streak-2 { animation: sunStreakDrift2 25s ease-in-out infinite; will-change: transform, opacity; }
 .ws-sun-streak-3 { animation: sunStreakDrift3 30s ease-in-out infinite; will-change: transform, opacity; }
 .ws-sun-streak-4 { animation: sunStreakDrift2 22s ease-in-out infinite; will-change: transform, opacity; }
+.ws-sun-streak-bp { animation: sunStreakDrift1 18s ease-in-out infinite; will-change: transform, opacity; }
 
 /* Floating particles */
 .ws-particle {
@@ -1424,7 +1425,7 @@ textarea,
 @media (prefers-reduced-motion: reduce) {
   .ws-drift-1, .ws-drift-2, .ws-drift-3,
   .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3,
-  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3, .ws-sun-streak-4,
+  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3, .ws-sun-streak-4, .ws-sun-streak-bp,
   .ws-particle,
   .ws-hero-light-sweep::after {
     animation: none;
@@ -1662,10 +1663,10 @@ button, a, nav, header, footer, label {
 }
 
 @keyframes bpChipDrift {
-  0%, 100% { transform: translate(-8%, -6%) rotate(-10deg) translate(0, 0) scale(1); }
-  30% { transform: translate(-8%, -6%) rotate(-10deg) translate(18px, -14px) scale(1.03); }
-  60% { transform: translate(-8%, -6%) rotate(-10deg) translate(-14px, 12px) scale(1.01); }
-  85% { transform: translate(-8%, -6%) rotate(-10deg) translate(8px, -6px) scale(1.04); }
+  0%, 100% { transform: translate(-8%, -6%) rotate(-14deg) translate(0, 0) scale(1); }
+  30% { transform: translate(-8%, -6%) rotate(-14deg) translate(18px, -14px) scale(1.03); }
+  60% { transform: translate(-8%, -6%) rotate(-14deg) translate(-14px, 12px) scale(1.01); }
+  85% { transform: translate(-8%, -6%) rotate(-14deg) translate(8px, -6px) scale(1.04); }
 }
 
 @keyframes bpGraphsDrift {

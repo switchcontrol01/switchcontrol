@@ -22,8 +22,8 @@ export function BlueprintImageOverlay() {
         style={{
           position: "absolute",
           top: "30%",
-          left: "10%",
-          transform: "translate(-8%, -6%) rotate(-10deg)",
+          left: "4%",
+          transform: "translate(-8%, -6%) rotate(-14deg)",
           width: "34vw",
           maxWidth: "520px",
           opacity: 0.14 * mobileOpacityScale,
@@ -41,6 +41,24 @@ export function BlueprintImageOverlay() {
           loading="lazy"
         />
       </div>
+
+      {!reduced && (
+        <div
+          className="ws-sun-streak-bp"
+          style={{
+            position: "absolute",
+            top: "18%",
+            left: "-8%",
+            width: "55%",
+            height: "45%",
+            background: "linear-gradient(140deg, rgba(255,255,255,0.16) 0%, rgba(180,210,255,0.10) 20%, rgba(140,180,255,0.05) 40%, transparent 60%)",
+            filter: "blur(18px)",
+            mixBlendMode: "screen",
+            opacity: 1,
+            pointerEvents: "none",
+          }}
+        />
+      )}
 
       <div
         className="bp-layer bp-graphs"
