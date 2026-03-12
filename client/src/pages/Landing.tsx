@@ -27,6 +27,7 @@ import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
 import { UIExploration } from "@/components/UIExploration";
 import { useAuth } from "@/components/ProtectedRoute";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
+import { useMomentumScroll } from "@/hooks/useMomentumScroll";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlassPanel } from "@/components/website/GlassPanel";
 import { GlowButton } from "@/components/website/GlowButton";
@@ -447,6 +448,7 @@ export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   const { user } = useAuth();
   useRevealOnScroll();
+  useMomentumScroll();
 
   const handleAuthAwareClick = (e: MouseEvent) => {
     if (user) {
