@@ -91,6 +91,10 @@ interface HardwareTelemetryData {
   gpuModel: string;
   ramTotalGB: number;
   rebarSupported: boolean | null;
+  vcoreVoltage: number | null;
+  cpuTemp: number | null;
+  thermalThrottling: boolean | null;
+  gpuPower: number | null;
 }
 
 interface TweakResult {

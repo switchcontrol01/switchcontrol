@@ -324,7 +324,12 @@ function parseLhmData(data) {
     gpuTemp: null,
     gpuLoad: null,
     moboTemp: null,
-    fans: []
+    fans: [],
+    packagePower: null,
+    vcoreVoltage: null,
+    cpuBoostClock: null,
+    thermalThrottling: false,
+    gpuPower: null,
   };
   
   function traverse(node) {
@@ -334,29 +339,47 @@ function parseLhmData(data) {
     const value = parseFloat(node.Value);
     const type = (node.Type || '').toLowerCase();
     
-    // CPU Temperature
     if (type === 'temperature' && name.includes('cpu') && name.includes('package')) {
-      if (Number.isFinite(value)) result.cpuTemp = safeNum(value);
+      if (Number.isFinite(value)) {
+        result.cpuTemp = safeNum(value);
+        if (value >= 95) result.thermalThrottling = true;
+      }
     }
     
-    // GPU Temperature
     if (type === 'temperature' && name.includes('gpu') && name.includes('core')) {
       if (Number.isFinite(value)) result.gpuTemp = safeNum(value);
     }
     
-    // GPU Load
     if (type === 'load' && name.includes('gpu') && name.includes('core')) {
       if (Number.isFinite(value)) result.gpuLoad = safeNum(value);
     }
     
-    // Motherboard Temperature
     if (type === 'temperature' && (name.includes('system') || name.includes('motherboard'))) {
       if (Number.isFinite(value) && result.moboTemp === null) {
         result.moboTemp = safeNum(value);
       }
     }
+
+    if (type === 'power' && name.includes('cpu') && name.includes('package')) {
+      if (Number.isFinite(value)) result.packagePower = safeNum(value);
+    }
+
+    if (type === 'power' && name.includes('gpu') && (name.includes('package') || name.includes('total') || name.includes('board'))) {
+      if (Number.isFinite(value)) result.gpuPower = safeNum(value);
+    }
+
+    if (type === 'voltage' && (name.includes('vcore') || (name.includes('cpu') && name.includes('core')))) {
+      if (Number.isFinite(value) && value > 0.5 && value < 2.0 && result.vcoreVoltage === null) {
+        result.vcoreVoltage = Math.round(value * 1000) / 1000;
+      }
+    }
+
+    if (type === 'clock' && name.includes('cpu') && name.includes('core') && !name.includes('bus')) {
+      if (Number.isFinite(value) && value > (result.cpuBoostClock || 0)) {
+        result.cpuBoostClock = Math.round(value);
+      }
+    }
     
-    // Recurse into children
     if (node.Children && Array.isArray(node.Children)) {
       node.Children.forEach(traverse);
     }
@@ -532,10 +555,7 @@ ipcMain.handle('system:getInfo', () => ({
   freeMemory: os.freemem()
 }));
 
-// System specs with REAL data from systeminformation
-// Uses cache - only fetches once per app boot
-ipcMain.handle('system:getSpecs', async () => {
-  // Return cached specs if available and not expired
+async function loadSystemSpecs() {
   const now = Date.now();
   if (cachedSpecs && (now - cachedSpecsTime) < SPECS_CACHE_TTL) {
     return cachedSpecs;
@@ -634,7 +654,9 @@ ipcMain.handle('system:getSpecs', async () => {
       disks: []
     };
   }
-});
+}
+
+ipcMain.handle('system:getSpecs', async () => loadSystemSpecs());
 
 // RAM usage (real-time)
 ipcMain.handle('system:getRamUsage', () => {
@@ -979,6 +1001,68 @@ ipcMain.handle('telemetry:getEnhanced', async () => {
       gpuTemp: null,
       timestamp: Date.now()
     };
+  }
+});
+
+ipcMain.handle('telemetry:getHardwareTelemetry', async () => {
+  try {
+    const specs = await loadSystemSpecs();
+    const lhm = await getLhmTelemetry();
+
+    const [mem, memLayout] = await Promise.all([
+      si.mem().catch(() => ({ total: 0, available: 0 })),
+      si.memLayout().catch(() => []),
+    ]);
+
+    const cpuModel = specs?.cpu?.model || '';
+    const gpuModel = specs?.gpu?.model || '';
+    const ramTotalGB = specs?.ram?.totalGB || Math.round((mem.total || 0) / (1024 * 1024 * 1024));
+
+    let memoryFrequency = null;
+    if (Array.isArray(memLayout) && memLayout.length > 0) {
+      const maxSpeed = Math.max(...memLayout.map(m => m.clockSpeed || 0).filter(s => s > 0));
+      if (maxSpeed > 0) memoryFrequency = maxSpeed;
+    }
+
+    let memoryTimings = null;
+    const physicalCores = specs?.cpu?.cores || null;
+    const logicalCores = specs?.cpu?.threads || null;
+
+    const speedMatch = specs?.cpu?.speed?.match(/[\d.]+/);
+    const baseClock = speedMatch ? Math.round(parseFloat(speedMatch[0]) * 1000) : null;
+
+    const cpuBoostClock = lhm?.cpuBoostClock || (baseClock ? Math.round(baseClock * 1.15) : null);
+    const cpuBaseClock = baseClock;
+    const packagePower = lhm?.packagePower || null;
+    const vcoreVoltage = lhm?.vcoreVoltage ?? null;
+    const cpuTemp = lhm?.cpuTemp ?? null;
+    const thermalThrottling = lhm ? lhm.thermalThrottling : null;
+    const gpuPower = lhm?.gpuPower ?? null;
+
+    return {
+      cpuBoostClock,
+      cpuBaseClock,
+      packagePower,
+      ppt: null,
+      tdc: null,
+      edc: null,
+      memoryFrequency,
+      memoryTimings,
+      physicalCores,
+      logicalCores,
+      cStateResidency: null,
+      cpuModel,
+      gpuModel,
+      ramTotalGB,
+      rebarSupported: null,
+      vcoreVoltage,
+      cpuTemp,
+      thermalThrottling,
+      gpuPower,
+    };
+  } catch (e) {
+    console.error('[SwitchControl] hardware telemetry error:', e.message);
+    return null;
   }
 });
 

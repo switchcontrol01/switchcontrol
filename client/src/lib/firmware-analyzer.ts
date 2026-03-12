@@ -17,6 +17,10 @@ export interface HardwareTelemetry {
   gpuModel: string;
   ramTotalGB: number;
   rebarSupported: boolean | null;
+  vcoreVoltage: number | null;
+  cpuTemp: number | null;
+  thermalThrottling: boolean | null;
+  gpuPower: number | null;
 }
 
 export interface FirmwareDetection {
@@ -109,7 +113,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
     } else if (freq > jedecBase) {
       detections.push({
         settingId: "xmp-expo",
-        status: "Likely",
+        status: "Inferred",
         confidence: 0.70,
         reason: `Memory at ${freq}MT/s, slightly above JEDEC ${jedecBase}MT/s — may be partial XMP/EXPO`,
         detectedValue: `Possibly active (${freq}MT/s)`,
@@ -139,7 +143,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       if (boostDiff > 50) {
         detections.push({
           settingId: "pbo",
-          status: "Likely",
+          status: "Inferred",
           confidence: 0.80,
           reason: `Boost clock ${telemetry.cpuBoostClock}MHz exceeds stock ${stockSpecs.boostClock}MHz by ${boostDiff}MHz — PBO likely active`,
           detectedValue: `Active (boost +${boostDiff}MHz over stock)`,
@@ -155,7 +159,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       } else {
         detections.push({
           settingId: "pbo",
-          status: "Assumed",
+          status: "Inferred",
           confidence: 0.50,
           reason: `Boost behavior within stock range — PBO status uncertain`,
           detectedValue: `Unknown (within stock range)`,
@@ -168,7 +172,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       if (pptRatio > 1.1) {
         detections.push({
           settingId: "curve-optimizer",
-          status: "Likely",
+          status: "Inferred",
           confidence: 0.55,
           reason: `Power limits significantly above stock (PPT: ${telemetry.ppt}W) — may indicate Curve Optimizer or manual PBO tuning`,
           detectedValue: `Possibly active (elevated power behavior)`,
@@ -189,7 +193,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
     } else if (telemetry.cStateResidency > 20) {
       detections.push({
         settingId: "global-cstate",
-        status: "Likely",
+        status: "Inferred",
         confidence: 0.75,
         reason: `Moderate C-state residency (${telemetry.cStateResidency}%) — C-states likely limited`,
         detectedValue: `Partially limited (${telemetry.cStateResidency}% residency)`,
@@ -246,7 +250,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
   if (amd && telemetry.physicalCores !== null) {
     detections.push({
       settingId: "cppc",
-      status: "Likely",
+      status: "Inferred",
       confidence: 0.75,
       reason: `AMD Ryzen detected — CPPC is enabled by default on Zen 3+ platforms`,
       detectedValue: "Likely enabled (Ryzen default)",
@@ -254,7 +258,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
 
     detections.push({
       settingId: "cppc-preferred-cores",
-      status: "Likely",
+      status: "Inferred",
       confidence: 0.70,
       reason: `CPPC Preferred Cores typically paired with CPPC on Ryzen`,
       detectedValue: "Likely enabled (paired with CPPC)",
@@ -262,7 +266,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
 
     detections.push({
       settingId: "df-cstates",
-      status: "Assumed",
+      status: "Inferred",
       confidence: 0.55,
       reason: `DF C-States enabled by default on AMD — cannot directly verify from OS`,
       detectedValue: "Assumed enabled (AMD default)",
@@ -276,7 +280,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
     if (isDDR5 && freq <= 6000) {
       detections.push({
         settingId: "fclk-uclk-ratio",
-        status: "Likely",
+        status: "Inferred",
         confidence: 0.70,
         reason: `DDR5 at ${freq}MT/s — FCLK:UCLK likely 1:1 in fabric sweet spot`,
         detectedValue: "Likely 1:1",
@@ -287,7 +291,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       const fclkEstimate = Math.round(freq / 2);
       detections.push({
         settingId: "fclk",
-        status: "Likely",
+        status: "Inferred",
         confidence: 0.65,
         reason: `Estimated FCLK ~${fclkEstimate}MHz based on memory ${freq}MT/s (assuming 1:1 ratio)`,
         detectedValue: `~${fclkEstimate}MHz (estimated)`,
@@ -295,14 +299,89 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
     }
   }
 
-  if (telemetry.packagePower !== null && stockSpecs) {
+  if (telemetry.thermalThrottling !== null) {
     detections.push({
       settingId: "thermal-throttling",
       status: "Detected",
-      confidence: 0.85,
-      reason: `Hardware thermal protection active — package power ${telemetry.packagePower}W within operating limits`,
-      detectedValue: "Active (hardware safety on)",
+      confidence: 0.92,
+      reason: telemetry.thermalThrottling
+        ? `CPU temperature ${telemetry.cpuTemp ? telemetry.cpuTemp + '°C' : 'high'} — thermal throttling detected`
+        : `CPU operating within thermal limits${telemetry.cpuTemp ? ` (${telemetry.cpuTemp}°C)` : ''} — no throttling`,
+      detectedValue: telemetry.thermalThrottling ? "Throttling detected" : "Normal operation",
     });
+  } else if (telemetry.packagePower !== null && stockSpecs) {
+    detections.push({
+      settingId: "thermal-throttling",
+      status: "Inferred",
+      confidence: 0.70,
+      reason: `Package power ${telemetry.packagePower}W — thermal status inferred from power draw`,
+      detectedValue: telemetry.packagePower > stockSpecs.ppt * 0.95 ? "Near power limit" : "Within limits",
+    });
+  }
+
+  if (telemetry.vcoreVoltage !== null && stockSpecs && amd) {
+    const hasPboDetection = detections.some(d => d.settingId === "pbo");
+    if (!hasPboDetection) {
+      if (telemetry.vcoreVoltage > 1.35) {
+        detections.push({
+          settingId: "pbo",
+          status: "Inferred",
+          confidence: 0.75,
+          reason: `VCore at ${telemetry.vcoreVoltage}V — elevated voltage suggests PBO or manual OC active`,
+          detectedValue: `Inferred active (VCore ${telemetry.vcoreVoltage}V)`,
+        });
+      } else if (telemetry.vcoreVoltage < 1.1 && telemetry.vcoreVoltage > 0.5) {
+        detections.push({
+          settingId: "pbo",
+          status: "Inferred",
+          confidence: 0.60,
+          reason: `VCore at ${telemetry.vcoreVoltage}V — low voltage suggests Curve Optimizer or undervolt`,
+          detectedValue: `Possible undervolt (VCore ${telemetry.vcoreVoltage}V)`,
+        });
+      }
+    }
+
+    if (telemetry.vcoreVoltage > 1.35) {
+      const hasCurveDetection = detections.some(d => d.settingId === "curve-optimizer");
+      if (!hasCurveDetection) {
+        detections.push({
+          settingId: "curve-optimizer",
+          status: "Inferred",
+          confidence: 0.55,
+          reason: `Elevated VCore (${telemetry.vcoreVoltage}V) may indicate Curve Optimizer adjustments`,
+          detectedValue: `Possibly active (elevated voltage)`,
+        });
+      }
+    }
+  }
+
+  if (telemetry.packagePower !== null && stockSpecs && amd) {
+    const hasCstateDetection = detections.some(d => d.settingId === "global-cstate");
+    if (!hasCstateDetection) {
+      const powerRatio = telemetry.packagePower / stockSpecs.ppt;
+      if (powerRatio < 0.3) {
+        detections.push({
+          settingId: "global-cstate",
+          status: "Inferred",
+          confidence: 0.60,
+          reason: `Low package power (${telemetry.packagePower}W vs ${stockSpecs.ppt}W limit) — deep C-states likely active`,
+          detectedValue: "Likely enabled (low power draw)",
+        });
+      }
+    }
+  }
+
+  if (telemetry.cpuBoostClock !== null && stockSpecs) {
+    const boostDelta = telemetry.cpuBoostClock - stockSpecs.boostClock;
+    if (boostDelta > 200) {
+      detections.push({
+        settingId: "bclk",
+        status: "Inferred",
+        confidence: 0.55,
+        reason: `Boost clock ${telemetry.cpuBoostClock}MHz is ${boostDelta}MHz above stock — possible BCLK overclock`,
+        detectedValue: `Possibly adjusted (+${boostDelta}MHz)`,
+      });
+    }
   }
 
   return detections;
@@ -353,6 +432,10 @@ export function computeAnalysisHash(telemetry: HardwareTelemetry): string {
     rebar: telemetry.rebarSupported,
     cpu: telemetry.cpuModel,
     gpu: telemetry.gpuModel,
+    vcore: telemetry.vcoreVoltage,
+    cpuTemp: telemetry.cpuTemp,
+    throttle: telemetry.thermalThrottling,
+    gpuPower: telemetry.gpuPower,
   });
   let hash = 0;
   for (let i = 0; i < payload.length; i++) {
@@ -390,6 +473,10 @@ export function buildTelemetryFromStore(stats: {
     gpuModel: stats.gpuModel || "",
     ramTotalGB: stats.ramTotal ?? 0,
     rebarSupported: null,
+    vcoreVoltage: null,
+    cpuTemp: null,
+    thermalThrottling: null,
+    gpuPower: null,
   };
 }
 
@@ -427,6 +514,10 @@ export async function collectElectronTelemetry(): Promise<HardwareTelemetry | nu
       gpuModel: specs.gpu.model,
       ramTotalGB: specs.ram.totalGB,
       rebarSupported: enhanced?.rebarSupported ?? null,
+      vcoreVoltage: enhanced?.vcoreVoltage ?? null,
+      cpuTemp: enhanced?.cpuTemp ?? null,
+      thermalThrottling: enhanced?.thermalThrottling ?? null,
+      gpuPower: enhanced?.gpuPower ?? null,
     };
   } catch {
     return null;
@@ -435,20 +526,18 @@ export async function collectElectronTelemetry(): Promise<HardwareTelemetry | nu
 
 export function getDetectionSummary(detections: FirmwareDetection[]): {
   detected: number;
-  likely: number;
-  assumed: number;
+  inferred: number;
   unknown: number;
-  userVerified: number;
+  userConfirmed: number;
   avgConfidence: number;
 } {
   const detected = detections.filter(d => d.status === "Detected").length;
-  const likely = detections.filter(d => d.status === "Likely").length;
-  const assumed = detections.filter(d => d.status === "Assumed").length;
-  const userVerified = detections.filter(d => d.status === "User Verified").length;
+  const inferred = detections.filter(d => d.status === "Inferred").length;
+  const userConfirmed = detections.filter(d => d.status === "User Confirmed").length;
   const unknown = BIOS_SETTINGS.length - detections.length;
   const avgConfidence = detections.length > 0
     ? Math.round((detections.reduce((sum, d) => sum + d.confidence, 0) / detections.length) * 100)
     : 0;
 
-  return { detected, likely, assumed, unknown, userVerified, avgConfidence };
+  return { detected, inferred, unknown, userConfirmed, avgConfidence };
 }

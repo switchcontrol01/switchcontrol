@@ -1,6 +1,6 @@
 export type BiosImpact = "High" | "Medium" | "Low";
 export type BiosRisk = "High" | "Medium" | "Low";
-export type DetectionStatus = "Detected" | "Likely" | "Assumed" | "Unknown" | "User Verified";
+export type DetectionStatus = "Detected" | "Inferred" | "Unknown" | "User Confirmed";
 export type AffectsType = "Latency" | "Frametime" | "Stability" | "Power" | "Thermals";
 
 export interface MotherboardPath {
@@ -51,10 +51,9 @@ export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
 
   settings.forEach((setting) => {
     const confidenceMultiplier = 
-      setting.detectionStatus === "User Verified" ? 1.0 :
+      setting.detectionStatus === "User Confirmed" ? 1.0 :
       setting.detectionStatus === "Detected" ? 1.0 :
-      setting.detectionStatus === "Likely" ? 0.8 :
-      setting.detectionStatus === "Assumed" ? 0.6 : 0.2;
+      setting.detectionStatus === "Inferred" ? 0.6 : 0.2;
 
     latencyTotal += setting.latencyScore * confidenceMultiplier;
     frametimeTotal += setting.frametimeScore * confidenceMultiplier;
@@ -108,7 +107,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you run a fully fixed overclock and manually manage preferred cores.",
     impact: "High",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely enabled (default on Ryzen)",
     latencyScore: 8,
     frametimeScore: 6,
@@ -132,7 +131,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you are pinning games to specific cores.",
     impact: "High",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely enabled (paired with CPPC)",
     latencyScore: 10,
     frametimeScore: 8,
@@ -204,7 +203,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "Laptops or systems where power matters.",
     impact: "Medium",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely auto (default on most boards)",
     latencyScore: 7,
     frametimeScore: 5,
@@ -227,7 +226,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If your BIOS is unstable with it disabled.",
     impact: "Medium",
     risk: "Medium",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely enabled (default AMD setting)",
     latencyScore: 6,
     frametimeScore: 3,
@@ -343,7 +342,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If your cooler cannot handle sustained boost.",
     impact: "High",
     risk: "Medium",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Inferred from boost clock behavior",
     latencyScore: 5,
     frametimeScore: 8,
@@ -473,7 +472,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you have no idle issues.",
     impact: "Low",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely default (typical current idle)",
     latencyScore: 0,
     frametimeScore: 0,
@@ -520,7 +519,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you cannot stability test.",
     impact: "High",
     risk: "Medium",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely enabled (RAM running above JEDEC)",
     latencyScore: 12,
     frametimeScore: 10,
@@ -567,7 +566,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If it prevents stable boot.",
     impact: "Medium",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely Gear 1 (default at current speed)",
     latencyScore: 6,
     frametimeScore: 4,
@@ -589,7 +588,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If it causes errors.",
     impact: "Medium",
     risk: "Medium",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely enabled (default memory setting)",
     latencyScore: 7,
     frametimeScore: 4,
@@ -633,7 +632,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you get WHEA errors.",
     impact: "High",
     risk: "Medium",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Inferred from memory controller ratio",
     latencyScore: 10,
     frametimeScore: 6,
@@ -656,7 +655,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you need higher RAM speed for other workloads.",
     impact: "High",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely 1:1 (default auto ratio)",
     latencyScore: 8,
     frametimeScore: 5,
@@ -700,7 +699,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you ever get random cold boot failures.",
     impact: "Low",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely auto (default setting)",
     latencyScore: 0,
     frametimeScore: 0,
@@ -724,7 +723,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "Corporate or compliance sensitive environments. External speakers may sound jittery or buzz.",
     impact: "Medium",
     risk: "Low",
-    detectionStatus: "Assumed",
+    detectionStatus: "Inferred",
     currentValue: "Likely enabled (default on most boards)",
     latencyScore: 5,
     frametimeScore: 6,
@@ -839,7 +838,7 @@ export function getCategoryScores(settings: BiosSetting[] = BIOS_SETTINGS): Reco
     const gain = Math.max(0, s.latencyScore) * 0.55 + Math.max(0, s.frametimeScore) * 0.35 + Math.max(0, s.stabilityScore) * 0.10;
     if (gain > 0 && categories[s.category]) {
       categories[s.category].max += gain;
-      const confidence = s.detectionStatus === "User Verified" ? 1.0 : s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Likely" ? 0.8 : s.detectionStatus === "Assumed" ? 0.6 : 0.3;
+      const confidence = s.detectionStatus === "User Confirmed" ? 1.0 : s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Inferred" ? 0.6 : 0.2;
       categories[s.category].total += gain * confidence;
     }
   });
@@ -874,7 +873,7 @@ export function getCategoryBreakdowns(allSettings: BiosSetting[] = BIOS_SETTINGS
       const gain = Math.max(0, s.latencyScore) * 0.55 + Math.max(0, s.frametimeScore) * 0.35 + Math.max(0, s.stabilityScore) * 0.10;
       if (gain > 0) {
         max += gain;
-        const confidence = s.detectionStatus === "User Verified" ? 1.0 : s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Likely" ? 0.8 : s.detectionStatus === "Assumed" ? 0.6 : 0.3;
+        const confidence = s.detectionStatus === "User Confirmed" ? 1.0 : s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Inferred" ? 0.6 : 0.2;
         total += gain * confidence;
       }
     });

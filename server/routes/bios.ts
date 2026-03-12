@@ -109,7 +109,7 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
       .filter((s: any) => s.settingId && typeof s.value === "string")
       .map((s: any) => ({
         settingId: String(s.settingId),
-        status: "User Verified" as const,
+        status: "User Confirmed" as const,
         confidence: typeof s.confidence === "number" ? Math.max(0, Math.min(1, s.confidence)) : 0.85,
         reason: `BIOS photo: ${String(s.reason || s.value)}`,
         detectedValue: String(s.value),

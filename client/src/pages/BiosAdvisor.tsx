@@ -77,18 +77,16 @@ const DIFFICULTY_COLORS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<DetectionStatus, string> = {
-  "User Verified": "text-cyan-400",
+  "User Confirmed": "text-cyan-400",
   "Detected": "text-emerald-400",
-  "Likely": "text-blue-400",
-  "Assumed": "text-amber-400",
+  "Inferred": "text-blue-400",
   "Unknown": "text-muted-foreground",
 };
 
 const STATUS_ICONS: Record<DetectionStatus, React.ElementType> = {
-  "User Verified": Eye,
+  "User Confirmed": Eye,
   "Detected": CheckCircle,
-  "Likely": Activity,
-  "Assumed": AlertTriangle,
+  "Inferred": Activity,
   "Unknown": HelpCircle,
 };
 
@@ -692,7 +690,7 @@ export default function BiosAdvisor() {
               <div className="flex items-center gap-2 text-xs">
                 <Eye className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="text-cyan-400 font-medium">{photoDetections.length} settings verified from BIOS photo</span>
-                <Badge variant="outline" className="text-[9px] text-cyan-400 border-cyan-500/25 ml-auto">User Verified</Badge>
+                <Badge variant="outline" className="text-[9px] text-cyan-400 border-cyan-500/25 ml-auto">User Confirmed</Badge>
               </div>
             </GlassCard>
           </Item>
@@ -710,10 +708,10 @@ export default function BiosAdvisor() {
                   Detection Summary
                 </h3>
                 <div className="flex items-center gap-3 text-[10px]">
-                  {detectionSummary.userVerified > 0 && (
+                  {detectionSummary.userConfirmed > 0 && (
                     <span className="flex items-center gap-1 text-cyan-400">
                       <Eye className="w-3 h-3" />
-                      {detectionSummary.userVerified} Verified
+                      {detectionSummary.userConfirmed} Confirmed
                     </span>
                   )}
                   <span className="flex items-center gap-1 text-emerald-400">
@@ -722,11 +720,7 @@ export default function BiosAdvisor() {
                   </span>
                   <span className="flex items-center gap-1 text-blue-400">
                     <Activity className="w-3 h-3" />
-                    {detectionSummary.likely} Likely
-                  </span>
-                  <span className="flex items-center gap-1 text-amber-400">
-                    <AlertTriangle className="w-3 h-3" />
-                    {detectionSummary.assumed} Assumed
+                    {detectionSummary.inferred} Inferred
                   </span>
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <HelpCircle className="w-3 h-3" />
@@ -794,10 +788,9 @@ export default function BiosAdvisor() {
                           {input.confidence !== undefined && <ConfidenceBadge confidence={input.confidence} />}
                           <Badge variant="outline" className={cn("text-[9px] shrink-0",
                             STATUS_COLORS[input.status as DetectionStatus] || "text-muted-foreground",
-                            input.status === "User Verified" ? "border-cyan-500/25" :
+                            input.status === "User Confirmed" ? "border-cyan-500/25" :
                             input.status === "Detected" ? "border-emerald-500/25" :
-                            input.status === "Likely" ? "border-blue-500/25" :
-                            input.status === "Assumed" ? "border-amber-500/25" :
+                            input.status === "Inferred" ? "border-blue-500/25" :
                             "border-white/10"
                           )}>
                             {input.status}
