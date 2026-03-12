@@ -5,7 +5,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import logoImg from "@/assets/logo.png";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
-const OAUTH_TIMEOUT_MS = 15_000;
+const OAUTH_TIMEOUT_MS = 120_000;
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -52,8 +52,6 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number }>>([]);
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-  const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { oauthDeepLinkReceived, oauthError } = useAuthStore();
 
   const clearAllTimers = useCallback(() => {
@@ -61,28 +59,18 @@ export default function Login() {
       clearTimeout(oauthTimeoutRef.current);
       oauthTimeoutRef.current = null;
     }
-    if (focusTimerRef.current) {
-      clearTimeout(focusTimerRef.current);
-      focusTimerRef.current = null;
-    }
-    if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
-    }
-    console.log('[Login] All timers and listeners cleared');
+    console.log('[Login] All timers cleared');
   }, []);
 
   useEffect(() => {
     if (oauthDeepLinkReceived) {
-      console.log('[Login] Deep link received — clearing timeout and loading state');
+      console.log('[Login] Deep link received — clearing timeout, loading, and error state');
       clearAllTimers();
-      if (isLoading) {
-        setIsLoading(null);
-        setError(null);
-      }
+      setIsLoading(null);
+      setError(null);
       useAuthStore.getState().setOauthDeepLinkReceived(false);
     }
-  }, [oauthDeepLinkReceived, isLoading, clearAllTimers]);
+  }, [oauthDeepLinkReceived, clearAllTimers]);
 
   useEffect(() => {
     if (oauthError) {
@@ -99,34 +87,6 @@ export default function Login() {
       clearAllTimers();
     };
   }, [clearAllTimers]);
-
-  useEffect(() => {
-    if (!isLoading) return;
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    let focusCount = 0;
-
-    const handleFocus = () => {
-      if (controller.signal.aborted) return;
-      focusCount++;
-      if (focusCount >= 2 && !useAuthStore.getState().oauthDeepLinkReceived) {
-        console.log('[Login] App regained focus without deep link — auto-cancelling');
-        focusTimerRef.current = setTimeout(() => {
-          if (!controller.signal.aborted && !useAuthStore.getState().oauthDeepLinkReceived) {
-            clearAllTimers();
-            setIsLoading(null);
-            setError("Login window was closed. Please try again.");
-          }
-        }, 500);
-      }
-    };
-
-    window.addEventListener('focus', handleFocus, { signal: controller.signal });
-    return () => {
-      controller.abort();
-    };
-  }, [isLoading, clearAllTimers]);
 
   useEffect(() => {
     const newParticles = Array.from({ length: 30 }, (_, i) => ({
@@ -162,12 +122,16 @@ export default function Login() {
 
         clearAllTimers();
         oauthTimeoutRef.current = setTimeout(() => {
+          if (useAuthStore.getState().oauthDeepLinkReceived) {
+            console.log('[Login] OAuth timeout fired but deep link already received — ignoring');
+            return;
+          }
           console.warn('[Login] OAuth timeout — no deep link received within', OAUTH_TIMEOUT_MS, 'ms');
           setIsLoading(null);
-          setError("Login cancelled or timed out");
+          setError("Login timed out. Please try again.");
           oauthTimeoutRef.current = null;
         }, OAUTH_TIMEOUT_MS);
-        console.log(`[Login] OAuth timeout started (${OAUTH_TIMEOUT_MS}ms)`);
+        console.log(`[Login] OAuth timeout started (${OAUTH_TIMEOUT_MS / 1000}s)`);
       } catch (err) {
         console.error('[Login] Failed to open auth URL:', err);
         setError("Failed to open browser. Please try again.");

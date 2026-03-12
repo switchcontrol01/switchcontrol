@@ -358,7 +358,7 @@ function ElectronAppContent() {
           useAuthStore.getState().setValidating(false);
         } else if (!premiumActivated) {
           console.log('[App] Deep link with no token and no premium flag — going to login');
-          useAuthStore.getState().setOauthError('Login cancelled or timed out');
+          useAuthStore.getState().setOauthError('Login failed — no authentication token received.');
           setPhase("unauthenticated");
         }
       } catch (err) {
