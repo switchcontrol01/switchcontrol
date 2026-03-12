@@ -4,6 +4,7 @@ import type { Express } from "express";
 import { db, isNoDbMode } from "../db";
 import { users } from "@shared/models/auth";
 import { eq, or } from "drizzle-orm";
+import { generateElectronCode } from "./google";
 
 const DISCORD_SCOPES = ["identify", "email"];
 
@@ -154,17 +155,20 @@ export function setupDiscordAuth(app: Express): void {
     console.log("[AUTH] Discord auth initiated - source:", source);
     
     // Set cookie to track source (survives OAuth redirect)
+    // path: '/' ensures cookies are sent to /api/auth/discord/callback
     res.cookie('auth_source', source, { 
       maxAge: 5 * 60 * 1000,
       httpOnly: true,
       secure: true,
       sameSite: 'none' as const,
+      path: '/',
     });
     res.cookie('auth_next', next_url, { 
       maxAge: 5 * 60 * 1000,
       httpOnly: true,
       secure: true,
       sameSite: 'none' as const,
+      path: '/',
     });
     
     passport.authenticate("discord", {
@@ -188,9 +192,9 @@ export function setupDiscordAuth(app: Express): void {
       const source = req.cookies?.auth_source || 'web';
       const nextUrl = req.cookies?.auth_next || '/';
       
-      // Clear the tracking cookies
-      res.clearCookie('auth_source');
-      res.clearCookie('auth_next');
+      // Clear the tracking cookies (must match path/secure/sameSite from when they were set)
+      res.clearCookie('auth_source', { path: '/', secure: true, sameSite: 'none' as const });
+      res.clearCookie('auth_next', { path: '/', secure: true, sameSite: 'none' as const });
       
       console.log("[AUTH] Discord callback - source:", source, "user:", user.id);
       
@@ -209,14 +213,11 @@ export function setupDiscordAuth(app: Express): void {
           }
           
           if (source === 'electron') {
-            const token = Buffer.from(JSON.stringify({
-              id: user.id,
-              ts: Date.now(),
-            })).toString('base64');
+            const code = generateElectronCode(user.id);
             
-            console.log("REDIRECTING TO SUCCESS PAGE (Electron)");
+            console.log("[AUTH] Electron one-time code generated for user:", user.id);
             return res.redirect(
-              `/auth/success?token=${encodeURIComponent(token)}&provider=discord`
+              `/auth/success?token=${encodeURIComponent(code)}&provider=discord`
             );
           } else {
             console.log("REDIRECTING TO WEBSITE:", nextUrl);

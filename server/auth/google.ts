@@ -95,6 +95,33 @@ async function findOrCreateUser(profile: {
   };
 }
 
+const electronAuthCodes = new Map<string, { userId: string; createdAt: number }>();
+const ELECTRON_CODE_TTL = 120_000; // 2 minutes
+
+export function generateElectronCode(userId: string): string {
+  const code = Buffer.from(JSON.stringify({
+    id: userId,
+    ts: Date.now(),
+    r: Math.random().toString(36).slice(2),
+  })).toString('base64url');
+  electronAuthCodes.set(code, { userId, createdAt: Date.now() });
+  // Clean up expired codes periodically
+  for (const [key, val] of electronAuthCodes) {
+    if (Date.now() - val.createdAt > ELECTRON_CODE_TTL) {
+      electronAuthCodes.delete(key);
+    }
+  }
+  return code;
+}
+
+function consumeElectronCode(code: string): string | null {
+  const entry = electronAuthCodes.get(code);
+  if (!entry) return null;
+  electronAuthCodes.delete(code); // single use
+  if (Date.now() - entry.createdAt > ELECTRON_CODE_TTL) return null;
+  return entry.userId;
+}
+
 export function setupGoogleAuth(app: Express): void {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -380,17 +407,20 @@ export function setupGoogleAuth(app: Express): void {
     console.log("[AUTH] Google auth initiated - source:", source);
     
     // Set cookie to track source (survives OAuth redirect)
+    // path: '/' ensures cookies are sent to /api/auth/google/callback
     res.cookie('auth_source', source, { 
       maxAge: 5 * 60 * 1000,
       httpOnly: true,
       secure: true,
       sameSite: 'none' as const,
+      path: '/',
     });
     res.cookie('auth_next', next_url, { 
       maxAge: 5 * 60 * 1000,
       httpOnly: true,
       secure: true,
       sameSite: 'none' as const,
+      path: '/',
     });
     
     passport.authenticate("google", {
@@ -417,9 +447,9 @@ export function setupGoogleAuth(app: Express): void {
       const source = req.cookies?.auth_source || 'web';
       const nextUrl = req.cookies?.auth_next || '/';
       
-      // Clear the tracking cookies
-      res.clearCookie('auth_source');
-      res.clearCookie('auth_next');
+      // Clear the tracking cookies (must match path/secure/sameSite from when they were set)
+      res.clearCookie('auth_source', { path: '/', secure: true, sameSite: 'none' as const });
+      res.clearCookie('auth_next', { path: '/', secure: true, sameSite: 'none' as const });
       
       console.log("[AUTH] Google callback - source:", source, "user:", user.id);
       
@@ -438,14 +468,11 @@ export function setupGoogleAuth(app: Express): void {
           }
           
           if (source === 'electron') {
-            const token = Buffer.from(JSON.stringify({
-              id: user.id,
-              ts: Date.now(),
-            })).toString('base64');
+            const code = generateElectronCode(user.id);
             
-            console.log("REDIRECTING TO SUCCESS PAGE (Electron)");
+            console.log("[AUTH] Electron one-time code generated for user:", user.id);
             return res.redirect(
-              `/auth/success?token=${encodeURIComponent(token)}&provider=google`
+              `/auth/success?token=${encodeURIComponent(code)}&provider=google`
             );
           } else {
             console.log("REDIRECTING TO WEBSITE:", nextUrl);
@@ -720,30 +747,39 @@ export function setupGoogleAuth(app: Express): void {
         return res.status(401).json({ success: false, error: 'Missing or invalid authorization header' });
       }
 
-      const token = authHeader.substring(7);
+      const code = authHeader.substring(7);
       
-      let decoded: { id: string; ts: number };
-      try {
-        decoded = JSON.parse(Buffer.from(token, 'base64').toString('utf-8'));
-      } catch (e) {
-        console.error('[AUTH] Token decode failed:', e);
-        return res.status(401).json({ success: false, error: 'Invalid token format' });
+      // Try one-time code first (new secure flow)
+      let userId = consumeElectronCode(code);
+      
+      // Fallback: try legacy base64 token for backward compatibility
+      if (!userId) {
+        try {
+          const decoded = JSON.parse(Buffer.from(code, 'base64').toString('utf-8'));
+          if (decoded.id && decoded.ts) {
+            const tokenAge = Date.now() - decoded.ts;
+            if (tokenAge <= 5 * 60 * 1000) {
+              userId = decoded.id;
+              console.log('[AUTH] Exchange using legacy base64 token for user:', userId);
+            } else {
+              return res.status(401).json({ success: false, error: 'Token expired' });
+            }
+          }
+        } catch {
+          return res.status(401).json({ success: false, error: 'Invalid or already-used code' });
+        }
+      } else {
+        console.log('[AUTH] Exchange using one-time code for user:', userId);
       }
 
-      if (!decoded.id) {
-        return res.status(401).json({ success: false, error: 'Token missing user id' });
-      }
-
-      const tokenAge = Date.now() - (decoded.ts || 0);
-      const maxAge = 5 * 60 * 1000;
-      if (tokenAge > maxAge) {
-        return res.status(401).json({ success: false, error: 'Token expired' });
+      if (!userId) {
+        return res.status(401).json({ success: false, error: 'Invalid or expired code' });
       }
 
       let user: Express.User;
       if (isNoDbMode || !db) {
         user = {
-          id: decoded.id,
+          id: userId,
           email: null,
           firstName: null,
           lastName: null,
@@ -754,7 +790,7 @@ export function setupGoogleAuth(app: Express): void {
         const userRows = await db
           .select()
           .from(users)
-          .where(eq(users.id, decoded.id))
+          .where(eq(users.id, userId))
           .limit(1);
 
         if (userRows.length === 0) {
