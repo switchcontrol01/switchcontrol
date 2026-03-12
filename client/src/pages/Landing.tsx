@@ -586,14 +586,16 @@ export default function Landing() {
 
         </section>
 
+        {/* ──── Sun streaks targeting feature cards — lives outside section to avoid clipping ──── */}
+        <div className="hidden md:block pointer-events-none relative" aria-hidden="true" style={{ height: 0, overflow: 'visible', zIndex: 0 }}>
+          <div className="sun-streak sun-streak-left" />
+          <div className="sun-streak sun-streak-center" />
+          <div className="sun-streak sun-streak-right" />
+        </div>
+
         {/* ──── Feature Strip + Stats (unified section) ──── */}
-        <section className="relative pb-12 md:pb-16 -mt-24 pt-24 overflow-hidden" data-reveal>
+        <section className="relative pb-12 md:pb-16 -mt-24 pt-24" data-reveal>
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 20%, hsl(270 50% 45% / 0.05) 0%, transparent 70%)" }} />
-          <div className="hidden md:block pointer-events-none absolute inset-0" aria-hidden="true">
-            <div className="sun-streak sun-streak-left" />
-            <div className="sun-streak sun-streak-center" />
-            <div className="sun-streak sun-streak-right" />
-          </div>
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8 relative z-[1]">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
               {[
