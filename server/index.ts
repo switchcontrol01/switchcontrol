@@ -20,13 +20,16 @@ const isProd = process.env.NODE_ENV === "production";
 
 app.use(helmet({
   contentSecurityPolicy: {
+    useDefaults: true,
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
+      scriptSrc: isProd
+        ? ["'self'", "https://js.stripe.com"]
+        : ["'self'", "'unsafe-eval'", "https://js.stripe.com"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       imgSrc: ["'self'", "data:", "blob:", "https:"],
-      connectSrc: ["'self'", "https://api.stripe.com", "wss:", "ws:"],
+      connectSrc: ["'self'", "https://api.stripe.com", "https://api.openai.com", "wss:", "ws:"],
       frameSrc: ["'self'", "https://js.stripe.com"],
       objectSrc: ["'none'"],
       upgradeInsecureRequests: isProd ? [] : null,
@@ -35,7 +38,7 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
-  xFrameOptions: { action: "sameorigin" },
+  frameguard: { action: "sameorigin" },
 }));
 
 const authLimiter = rateLimit({
@@ -57,27 +60,29 @@ const meLimiter = rateLimit({
 app.use("/api/auth", authLimiter);
 app.use("/api/me", meLimiter);
 
+const allowedOrigins = isProd
+  ? [
+      "https://switchcontrol.org",
+      "https://www.switchcontrol.org",
+    ]
+  : [
+      "http://localhost:3000",
+      "http://localhost:5000",
+      "http://localhost:5173",
+      "http://127.0.0.1:3000",
+      "http://127.0.0.1:5000",
+      "http://127.0.0.1:5173",
+    ];
+
 app.use(cors({
-  origin: (origin, callback) => {
-    const prodOrigins = [
-      'https://switchcontrol.org',
-      'https://www.switchcontrol.org',
-    ];
-    const devOrigins = [
-      'http://localhost:5173',
-      'http://localhost:5000',
-      'http://127.0.0.1:5000',
-      'http://127.0.0.1:5173',
-    ];
-    const allowed = isProd ? prodOrigins : [...prodOrigins, ...devOrigins];
-    if (!origin || allowed.includes(origin)) {
-      callback(null, true);
-    } else if (!isProd && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'))) {
-      callback(null, true);
-    } else {
-      console.warn('[CORS] Blocked origin:', origin);
-      callback(null, false);
+  origin: function(origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
     }
+    const err: any = new Error("CORS blocked");
+    err.status = 403;
+    return callback(err);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
@@ -148,6 +153,30 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
+const REDACTED_KEYS = new Set([
+  "token",
+  "authorization",
+  "accesstoken",
+  "refreshtoken",
+  "jwt",
+  "password",
+  "secret",
+]);
+
+function sanitizeForLog(obj: unknown): unknown {
+  if (!obj || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) return obj.map(sanitizeForLog);
+  const clone: Record<string, unknown> = { ...(obj as Record<string, unknown>) };
+  for (const key of Object.keys(clone)) {
+    if (REDACTED_KEYS.has(key.toLowerCase())) {
+      clone[key] = "[REDACTED]";
+    } else if (typeof clone[key] === "object" && clone[key] !== null) {
+      clone[key] = sanitizeForLog(clone[key]);
+    }
+  }
+  return clone;
+}
+
 app.use((req, res, next) => {
   const start = Date.now();
   const reqPath = req.path;
@@ -165,7 +194,7 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     if (reqPath.startsWith("/api")) {
       const sanitizedResponse = capturedJsonResponse
-        ? JSON.stringify(capturedJsonResponse).replace(/("token"\s*:\s*")([^"]{8})[^"]*(")/g, '$1$2***$3')
+        ? JSON.stringify(sanitizeForLog(capturedJsonResponse))
         : undefined;
       let logLine = `[${requestId}] ${new Date().toISOString()} ${req.method} ${reqPath} ${res.statusCode} ${duration}ms`;
       if (sanitizedResponse) {

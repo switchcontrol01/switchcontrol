@@ -94,13 +94,14 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 - `@replit/vite-plugin-dev-banner`
 
 ### Security Hardening
-- **Server Headers**: `helmet` middleware provides CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy.
-- **CORS**: Production-only allowlist (`switchcontrol.org`). Dev adds localhost origins.
-- **JWT**: HS256 algorithm pinning, issuer validation (`switchcontrol`), 32-char minimum secret in production, self-test suite on startup.
+- **Server Headers**: `helmet` middleware provides CSP (unsafe-eval removed in production), HSTS, X-Content-Type-Options, X-Frame-Options (frameguard: sameorigin), Referrer-Policy, Permissions-Policy.
+- **CORS**: Strict production-only allowlist (`switchcontrol.org`). Dev adds localhost:3000/5000/5173. Blocked origins return 403.
+- **JWT**: HS256 algorithm pinning, issuer validation (`switchcontrol`), 32-char minimum secret enforced in production (throws on startup), self-test suite on startup.
 - **Rate Limiting**: Auth endpoints (100/15min), `/api/me` (60/min), AI endpoints (3/5min + 15/hr).
 - **Error Handling**: Production 500+ errors return generic messages. Stack traces logged server-side only.
-- **Structured Logging**: Every API request gets a UUID requestId, ISO timestamp, and sanitized response body.
-- **Electron**: DevTools disabled in production, protocol validation on `open-external` and navigation guards, IPC input validation on tweak/memory handlers.
+- **Structured Logging**: Every API request gets a UUID requestId, ISO timestamp, and sanitized response body. Recursive key-based redaction for token/authorization/jwt/password/secret fields.
+- **Electron**: DevTools disabled in production, protocol validation on `open-external` and navigation guards (try/catch for malformed URLs), IPC input validation on tweak/memory handlers. contextIsolation: true, nodeIntegration: false, sandbox: false.
+- **Post-Build Secret Scan**: `scripts/security-scan.cjs` scans dist output for leaked API keys, JWT tokens, and connection strings with credentials. Run with `node scripts/security-scan.cjs`.
 - **Security Docs**: `docs/security-checklist.md`, `docs/security-summary.md`, `docs/security-assumptions.md`.
 
 ### External Links
