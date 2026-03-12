@@ -1425,9 +1425,6 @@ textarea,
 @media (prefers-reduced-motion: reduce) {
   .ws-drift-1, .ws-drift-2, .ws-drift-3,
   .ws-glow-drift-1, .ws-glow-drift-2, .ws-glow-drift-3,
-  .ws-sun-streak-1, .ws-sun-streak-2, .ws-sun-streak-3, .ws-sun-streak-4,
-  .ws-sun-streak-bp, .ws-sun-streak-bp-right, .ws-sun-streak-bp-center,
-  .bp-float-1, .bp-float-2, .bp-float-3,
   .ws-particle,
   .ws-hero-light-sweep::after {
     animation: none;
@@ -1528,10 +1525,6 @@ textarea,
 .hero-text-light-catch {
   animation: heroLightCatch 8s ease-in-out infinite;
 }
-@media (prefers-reduced-motion: reduce) {
-  .hero-text-sheen::after { animation: none; }
-  .hero-text-light-catch { animation: none; }
-}
 
 /* Hero text shine sweep */
 @keyframes heroShine {
@@ -1555,9 +1548,6 @@ textarea,
   color: transparent;
   animation: heroShine 6s linear infinite;
 }
-@media (prefers-reduced-motion: reduce) {
-  .hero-text-shine { animation: none; }
-}
 
 /* Hero headline subtle float */
 @keyframes heroTextFloat {
@@ -1567,9 +1557,6 @@ textarea,
 .ws-hero-text-float {
   animation: heroTextFloat 8s ease-in-out infinite;
   will-change: transform;
-}
-@media (prefers-reduced-motion: reduce) {
-  .ws-hero-text-float { animation: none; }
 }
 
 /* Website page entrance */
@@ -1645,7 +1632,6 @@ button, a, nav, header, footer, label {
 
 @media (prefers-reduced-motion: reduce) {
   .beam-b, .beam-c { animation: none; }
-  .bp-chip, .bp-graphs, .bp-parts { animation: none !important; }
 }
 
 /* Telemetry line overlay */
