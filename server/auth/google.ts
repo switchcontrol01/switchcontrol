@@ -451,26 +451,18 @@ export function setupGoogleAuth(app: Express): void {
       res.clearCookie('auth_source', { path: '/', secure: true, sameSite: 'none' as const });
       res.clearCookie('auth_next', { path: '/', secure: true, sameSite: 'none' as const });
       
-      console.log("[AUTH] Google callback - source:", source, "user:", user.id);
+      console.log("[AUTH] Google callback - source:", source, "user:", user.id, "sessionID:", req.sessionID);
       
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          console.error("[AUTH] Login error:", loginErr);
-          return next(loginErr);
-        }
-        
-        if (source === 'electron') {
-          const code = generateElectronCode(user.id);
-          
-          console.log("[AUTH] Electron one-time code generated for user:", user.id);
-          return res.redirect(
-            `/auth/success?token=${encodeURIComponent(code)}&provider=google`
-          );
-        } else {
-          console.log("REDIRECTING TO WEBSITE:", nextUrl);
-          return res.redirect(nextUrl);
-        }
-      });
+      if (source === 'electron') {
+        const code = generateElectronCode(user.id);
+        console.log("[AUTH] Electron one-time code generated for user:", user.id);
+        return res.redirect(
+          `/auth/success?token=${encodeURIComponent(code)}&provider=google`
+        );
+      } else {
+        console.log("[AUTH] Redirecting to:", nextUrl);
+        return res.redirect(nextUrl);
+      }
     }
   );
 
