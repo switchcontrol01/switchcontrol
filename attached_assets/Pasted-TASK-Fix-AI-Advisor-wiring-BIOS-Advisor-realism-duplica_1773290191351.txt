@@ -1,0 +1,286 @@
+TASK: Fix AI Advisor wiring, BIOS Advisor realism, duplicate navigation, and missing GPU detail handling
+
+PROBLEM
+
+Current issues are now confirmed:
+
+1. AI Advisor is not properly production-wired.
+   Build log shows:
+   Could not resolve "openai" in server/routes/ai.ts
+
+2. AI Advisor page can fail with "failed to fetch".
+   This means the frontend is calling an endpoint that is not consistently available in the built app.
+
+3. BIOS Advisor appears fake/static.
+   Re-scan keeps returning the same score and same timing.
+   It does not feel connected to live system state.
+
+4. AI Advisor exists both on the dashboard and in the sidebar.
+   This is redundant and creates clutter.
+
+5. GPU detail popup can show "detailed metrics unavailable".
+   If systeminformation cannot provide the data, the app should not show a broken detail panel.
+
+AIM
+
+Make the app honest and functional.
+
+We need to:
+- make AI Advisor actually build and run correctly
+- make BIOS Advisor clearly use real scan inputs or clearly say when values are estimated
+- remove duplicate AI Advisor UX
+- gracefully hide or disable GPU detail popup when detailed data is unavailable
+
+WHAT WE ARE ACHIEVING
+
+After this patch:
+
+- production build succeeds with OpenAI server route
+- AI Advisor fetch works reliably
+- BIOS Advisor rescans real inputs and updates score only when data changes
+- only one primary AI Advisor entry exists in navigation
+- dashboard card becomes a summary widget, not a duplicate page link
+- GPU detail card is hidden or disabled when detailed data is not available
+
+IMPLEMENTATION
+
+SECTION 1 — FIX OPENAI SERVER BUILD
+
+Problem:
+server build fails with:
+Could not resolve "openai"
+
+Files to inspect:
+- package.json
+- script/build.ts
+- server/routes/ai.ts
+
+Required fix:
+1. Ensure "openai" exists in the ROOT package.json dependencies, not only in a temporary Replit environment.
+2. Ensure server bundler treats "openai" correctly.
+3. If build.ts bundles the server with esbuild, mark "openai" as external in the server build config if needed.
+
+Expected result:
+- npm run build succeeds
+- server/routes/ai.ts resolves OpenAI correctly
+- no dev-only dependency behavior
+
+Checklist:
+[ ] openai present in root dependencies
+[ ] server build succeeds
+[ ] no unresolved module errors
+
+SECTION 2 — FIX AI ADVISOR FAILED FETCH
+
+Problem:
+AI Advisor frontend can show "failed to fetch"
+
+Files:
+- client AI Advisor page/component
+- server route registration
+- server/index.ts or routes.ts
+
+Required fix:
+1. Confirm POST /api/ai/advice is actually registered in production server, not only in dev.
+2. Add robust frontend error handling:
+   - if request fails, show a proper inline error card
+   - include reason if server unavailable
+3. Confirm endpoint path matches exactly between frontend and server.
+4. Log server-side route hit once for verification.
+
+Checklist:
+[ ] /api/ai/advice reachable in built app
+[ ] failed fetch replaced with proper error handling
+[ ] frontend path matches server path exactly
+
+SECTION 3 — REMOVE DUPLICATE AI ADVISOR UX
+
+Problem:
+AI Advisor appears both in sidebar and dashboard.
+That is redundant.
+
+Decision:
+Keep AI Advisor in the SIDEBAR as the main destination.
+Dashboard should only show an AI summary widget.
+
+Required fix:
+1. Keep sidebar item: AI Advisor
+2. Keep dashboard AI card, but convert it into a SUMMARY WIDGET only
+3. Dashboard widget should show:
+   - score / readiness
+   - short status
+   - "Open AI Advisor" button
+4. Remove any duplicate full AI Advisor block from the dashboard layout
+
+Important:
+Dashboard card is summary only.
+Sidebar route is the real feature page.
+
+Checklist:
+[ ] only one full AI Advisor destination
+[ ] dashboard card becomes summary widget only
+[ ] layout remains balanced
+
+SECTION 4 — ADD A REPLACEMENT CARD TO KEEP DASHBOARD BALANCED
+
+Problem:
+If duplicate AI Advisor content is removed, dashboard layout may become uneven.
+
+Required fix:
+Add one new dashboard card to replace the removed duplicate.
+
+Use one of these:
+- BIOS Score summary
+- System Readiness
+- Optimization Progress
+- Scan Integrity / Last Full Analysis
+
+Preferred:
+Add a "BIOS Score" summary card showing:
+- current firmware score
+- readiness level
+- rescan button
+- open BIOS Advisor button
+
+This keeps dashboard symmetry and strengthens the app structure.
+
+Checklist:
+[ ] dashboard remains visually balanced
+[ ] new summary card added
+[ ] card links to BIOS Advisor
+
+SECTION 5 — MAKE BIOS ADVISOR RESCAN REAL
+
+Problem:
+BIOS Advisor appears static/fake because rescans return the same score and timing.
+
+Required fix:
+1. Separate clearly:
+   - detected live inputs
+   - inferred values
+   - estimated recommendations
+2. On re-scan:
+   - re-read systeminformation/system state
+   - rebuild BIOS scoring input payload
+   - re-run scoring logic
+3. If a value cannot be detected, mark it as:
+   - unknown
+   - estimated
+   - not detected
+4. Do NOT silently substitute the same hardcoded defaults every time.
+5. Add "Last scanned at" timestamp.
+6. Add a visible label:
+   - Live Scan
+   - Estimated
+   - Partially Detected
+
+Important:
+If nothing changed and the score stays the same, that is okay.
+But the page must show that a real scan occurred, not a fake animation.
+
+Checklist:
+[ ] BIOS rescan reads fresh system data
+[ ] score updates only from actual inputs
+[ ] unknown values are labeled honestly
+[ ] scan timestamp visible
+[ ] scan duration is not fake/static
+
+SECTION 6 — MAKE BIOS SCORE EXPLAINABLE
+
+Problem:
+Static score feels fake if user cannot see what changed.
+
+Required fix:
+Add a short "Score inputs" section that shows what was used:
+- CPU model
+- motherboard
+- RAM speed detected or unknown
+- BIOS version detected or unknown
+- virtualization status if available
+- memory/XMP/EXPO state if inferred
+
+This makes the score traceable.
+
+Checklist:
+[ ] score inputs visible
+[ ] user can see what BIOS score is based on
+
+SECTION 7 — HANDLE MISSING GPU DETAIL SAFELY
+
+Problem:
+GPU popup says detailed metrics unavailable.
+If the data source cannot provide detailed GPU metrics, the popup should not behave like a broken feature.
+
+Required fix:
+1. Detect whether detailed GPU metrics are actually available.
+2. If not available:
+   - hide the clickable GPU detail action
+   OR
+   - disable it and show "Detailed GPU metrics not supported on this system"
+3. Do NOT open a dead modal with useless content.
+
+Preferred behavior:
+Hide the GPU detail trigger entirely when detailed metrics are unavailable.
+
+Checklist:
+[ ] no broken GPU detail modal
+[ ] unsupported systems handled gracefully
+[ ] UI does not tease unavailable data
+
+SECTION 8 — AUTO-FILL AI ADVISOR SYSTEM INFO
+
+Problem:
+AI Advisor currently asks user to manually enter system info even though the app already has systeminformation.
+
+Required fix:
+Pre-fill AI Advisor form with detected values where available:
+- CPU
+- GPU
+- RAM
+- motherboard
+- OS
+- storage
+- display
+- network if available
+
+User can still edit manually if needed.
+
+This should happen automatically when the page loads.
+
+Checklist:
+[ ] AI Advisor pre-fills detected system info
+[ ] user can still edit fields
+[ ] no need to type obvious hardware manually
+
+SECTION 9 — VISUAL CONSISTENCY IN APP PANELS
+
+Problem:
+Some internal advisor pages have dull black backgrounds and background topology cuts out.
+They do not match the main app surface.
+
+Required fix:
+Unify advisor pages with the same app panel background system:
+- same glass/dark panel base
+- same subtle grid/topography continuation
+- no dead black slabs
+- same glow language as dashboard
+
+Checklist:
+[ ] AI Advisor background matches app
+[ ] BIOS Advisor background matches app
+[ ] no dead black areas
+[ ] topology/grid does not cut out abruptly
+
+FINAL CHECKLIST
+
+[ ] npm run build succeeds
+[ ] OpenAI route builds correctly
+[ ] AI Advisor fetch works
+[ ] AI Advisor system info auto-fills
+[ ] duplicate AI Advisor removed from dashboard
+[ ] replacement dashboard card added
+[ ] BIOS Advisor rescans real data
+[ ] BIOS score explains its inputs
+[ ] GPU detail popup hidden or disabled when unsupported
+[ ] advisor page backgrounds match app styling
+[ ] no console errors

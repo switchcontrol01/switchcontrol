@@ -98,15 +98,17 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: true,
+      devTools: isDev,
     }
   });
 
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-      mainWindow.webContents.toggleDevTools();
-    }
-  });
+  if (isDev) {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+        mainWindow.webContents.toggleDevTools();
+      }
+    });
+  }
 
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
@@ -124,21 +126,37 @@ function createWindow() {
   // === NAVIGATION GUARDS ===
   // Block navigation to external sites - open in browser instead
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    const parsedUrl = new URL(url);
-    // Allow localhost and file:// protocols (normal app navigation)
-    if (parsedUrl.protocol === 'file:' || parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') {
-      return; // Allow internal navigation
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol === 'file:' || parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') {
+        return;
+      }
+      if ((parsedUrl.hostname === 'switchcontrol.org' || parsedUrl.hostname === 'www.switchcontrol.org') && parsedUrl.protocol === 'https:') {
+        return;
+      }
+      console.log('[Navigation] Blocking external navigation, opening in browser:', url);
+      event.preventDefault();
+      if (['https:', 'mailto:'].includes(parsedUrl.protocol)) {
+        shell.openExternal(url);
+      }
+    } catch (e) {
+      console.warn('[Security] Blocked malformed navigation URL:', url);
+      event.preventDefault();
     }
-    // Block external navigation, open in browser
-    console.log('[Navigation] Blocking external navigation, opening in browser:', url);
-    event.preventDefault();
-    shell.openExternal(url);
   });
   
-  // Block new window creation - open in browser instead
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     console.log('[Navigation] Blocking new window, opening in browser:', url);
-    shell.openExternal(url);
+    try {
+      const parsed = new URL(url);
+      if (['https:', 'mailto:'].includes(parsed.protocol)) {
+        shell.openExternal(url);
+      } else {
+        console.warn('[Security] Blocked new window with unsafe protocol:', parsed.protocol);
+      }
+    } catch (e) {
+      console.warn('[Security] Blocked malformed new window URL:', url);
+    }
     return { action: 'deny' };
   });
 
@@ -485,14 +503,22 @@ ipcMain.handle('window:close', () => mainWindow?.close());
 
 // External links
 ipcMain.handle('open-external', (event, url) => {
-  console.log('[DEBUG] IPC open-external received, url:', url);
-  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:')) {
-    console.log('[DEBUG] IPC CONTACT SUPPORT / EXTERNAL — opening:', url);
-    shell.openExternal(url)
-      .then(() => console.log('[DEBUG] MAILTO/URL OPENED OK'))
-      .catch(err => console.error('[DEBUG] MAILTO/URL ERROR:', err));
-  } else {
-    console.log('[DEBUG] IPC open-external REJECTED — unsupported protocol:', url);
+  if (typeof url !== 'string') {
+    console.warn('[Security] open-external rejected: url is not a string');
+    return;
+  }
+  const SAFE_PROTOCOLS = ['https:', 'mailto:'];
+  if (isDev) SAFE_PROTOCOLS.push('http:');
+  try {
+    const parsed = new URL(url);
+    if (SAFE_PROTOCOLS.includes(parsed.protocol)) {
+      shell.openExternal(url)
+        .catch(err => console.error('[open-external] Error:', err));
+    } else {
+      console.warn('[Security] open-external blocked unsafe protocol:', parsed.protocol);
+    }
+  } catch (e) {
+    console.warn('[Security] open-external rejected malformed URL:', url);
   }
 });
 
@@ -958,11 +984,21 @@ ipcMain.handle('telemetry:getEnhanced', async () => {
 
 // Tweak handlers
 ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
+  if (typeof tweakId !== 'string' || typeof action !== 'string') {
+    return { error: true, message: 'Invalid parameters' };
+  }
+  const validActions = ['apply', 'revert'];
+  if (!validActions.includes(action)) {
+    return { error: true, message: 'Invalid action. Use apply or revert.' };
+  }
   console.log(`[SwitchControl] Executing tweak: ${tweakId}, action: ${action}`);
   return await tweakExecutor.executeTweak(tweakId, action);
 });
 
 ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
+  if (typeof tweakId !== 'string') {
+    return { error: true, message: 'Invalid tweakId' };
+  }
   return await tweakExecutor.checkTweakStatus(tweakId);
 });
 

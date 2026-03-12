@@ -16,6 +16,14 @@ if (!process.env.JWT_SECRET && process.env.SESSION_SECRET) {
 }
 
 function getSecret(): string {
+  if (process.env.NODE_ENV === "production") {
+    if (!JWT_SECRET) {
+      throw new Error("[FATAL] JWT secret not configured in production");
+    }
+    if (JWT_SECRET.length < 32) {
+      throw new Error("[FATAL] JWT secret too short (minimum 32 characters required)");
+    }
+  }
   return JWT_SECRET || "sc-jwt-insecure-dev-only";
 }
 
@@ -23,20 +31,26 @@ export interface JwtPayload {
   sub: string;
   iat: number;
   exp: number;
+  iss?: string;
 }
 
 export function signJwt(userId: string): string {
   const token = jwt.sign({ sub: userId }, getSecret(), {
     algorithm: "HS256",
     expiresIn: "7d",
+    issuer: "switchcontrol",
   });
   return token;
 }
 
 export function verifyJwt(token: string): JwtPayload | null {
+  if (!token || typeof token !== "string") {
+    return null;
+  }
   try {
     const decoded = jwt.verify(token, getSecret(), {
       algorithms: ["HS256"],
+      issuer: "switchcontrol",
     }) as JwtPayload;
     return decoded;
   } catch (err: any) {
@@ -47,6 +61,11 @@ export function verifyJwt(token: string): JwtPayload | null {
 
 export function runJwtSelfTest(): void {
   console.log("[JWT] ===== SELF-TEST START =====");
+
+  const secret = getSecret();
+  if (process.env.NODE_ENV === "production" && secret.length < 32) {
+    console.error("[JWT] FAIL: JWT secret is too short (minimum 32 bytes required)");
+  }
 
   const testUserId = "self-test-user-000";
   const validToken = signJwt(testUserId);
@@ -67,6 +86,7 @@ export function runJwtSelfTest(): void {
   const expiredToken = jwt.sign({ sub: testUserId }, getSecret(), {
     algorithm: "HS256",
     expiresIn: "-1s",
+    issuer: "switchcontrol",
   });
   const expiredResult = verifyJwt(expiredToken);
   if (expiredResult === null) {
@@ -80,6 +100,26 @@ export function runJwtSelfTest(): void {
     console.log("[JWT] PASS: empty token → null (fallback to cookie path)");
   } else {
     console.error("[JWT] FAIL: empty token was NOT rejected");
+  }
+
+  const algNoneToken = jwt.sign({ sub: testUserId }, "", { algorithm: "none" as any });
+  const algNoneResult = verifyJwt(algNoneToken);
+  if (algNoneResult === null) {
+    console.log("[JWT] PASS: alg=none token → null (rejected)");
+  } else {
+    console.error("[JWT] FAIL: alg=none token was NOT rejected");
+  }
+
+  const wrongIssuerToken = jwt.sign({ sub: testUserId }, getSecret(), {
+    algorithm: "HS256",
+    expiresIn: "7d",
+    issuer: "malicious-issuer",
+  });
+  const wrongIssuerResult = verifyJwt(wrongIssuerToken);
+  if (wrongIssuerResult === null) {
+    console.log("[JWT] PASS: wrong issuer token → null (rejected)");
+  } else {
+    console.error("[JWT] FAIL: wrong issuer token was NOT rejected");
   }
 
   console.log("[JWT] ===== SELF-TEST END =====");

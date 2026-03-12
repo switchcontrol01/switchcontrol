@@ -1,7 +1,9 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import crypto from "crypto";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -14,6 +16,28 @@ import path from "path";
 
 const app = express();
 
+const isProd = process.env.NODE_ENV === "production";
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://js.stripe.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
+      imgSrc: ["'self'", "data:", "blob:", "https:"],
+      connectSrc: ["'self'", "https://api.stripe.com", "wss:", "ws:"],
+      frameSrc: ["'self'", "https://js.stripe.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: isProd ? [] : null,
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+  xFrameOptions: { action: "sameorigin" },
+}));
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -22,22 +46,33 @@ const authLimiter = rateLimit({
   message: { error: "Too many authentication attempts, please try again later" }
 });
 
+const meLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please slow down" }
+});
+
 app.use("/api/auth", authLimiter);
+app.use("/api/me", meLimiter);
 
 app.use(cors({
   origin: (origin, callback) => {
-    const allowed = [
+    const prodOrigins = [
+      'https://switchcontrol.org',
+      'https://www.switchcontrol.org',
+    ];
+    const devOrigins = [
       'http://localhost:5173',
       'http://localhost:5000',
       'http://127.0.0.1:5000',
       'http://127.0.0.1:5173',
-      'https://switchcontrol.org',
-      'https://www.switchcontrol.org',
     ];
-    if (!origin || origin === 'null' || allowed.includes(origin)) {
+    const allowed = isProd ? prodOrigins : [...prodOrigins, ...devOrigins];
+    if (!origin || allowed.includes(origin)) {
       callback(null, true);
-    } else if (process.env.NODE_ENV !== 'production') {
-      console.log('[CORS] Allowing unlisted dev origin:', origin);
+    } else if (!isProd && (origin.startsWith('http://localhost') || origin.startsWith('http://127.0.0.1'))) {
       callback(null, true);
     } else {
       console.warn('[CORS] Blocked origin:', origin);
@@ -115,7 +150,9 @@ export function log(message: string, source = "express") {
 
 app.use((req, res, next) => {
   const start = Date.now();
-  const path = req.path;
+  const reqPath = req.path;
+  const requestId = crypto.randomUUID();
+  (req as any).requestId = requestId;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   const originalResJson = res.json;
@@ -126,10 +163,13 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+    if (reqPath.startsWith("/api")) {
+      const sanitizedResponse = capturedJsonResponse
+        ? JSON.stringify(capturedJsonResponse).replace(/("token"\s*:\s*")([^"]{8})[^"]*(")/g, '$1$2***$3')
+        : undefined;
+      let logLine = `[${requestId}] ${new Date().toISOString()} ${req.method} ${reqPath} ${res.statusCode} ${duration}ms`;
+      if (sanitizedResponse) {
+        logLine += ` :: ${sanitizedResponse}`;
       }
 
       log(logLine);
@@ -146,10 +186,10 @@ app.use((req, res, next) => {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    const message = isProd && status >= 500 ? "Internal Server Error" : (err.message || "Internal Server Error");
 
+    console.error(`[ERROR] ${status} ${err.message}`, isProd ? '' : err.stack);
     res.status(status).json({ message });
-    throw err;
   });
 
   // Serve sitemap.xml from root public folder (works in both dev and prod)

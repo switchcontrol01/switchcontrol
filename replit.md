@@ -90,6 +90,16 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 - `@replit/vite-plugin-cartographer`
 - `@replit/vite-plugin-dev-banner`
 
+### Security Hardening
+- **Server Headers**: `helmet` middleware provides CSP, HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy.
+- **CORS**: Production-only allowlist (`switchcontrol.org`). Dev adds localhost origins.
+- **JWT**: HS256 algorithm pinning, issuer validation (`switchcontrol`), 32-char minimum secret in production, self-test suite on startup.
+- **Rate Limiting**: Auth endpoints (100/15min), `/api/me` (60/min), AI endpoints (3/5min + 15/hr).
+- **Error Handling**: Production 500+ errors return generic messages. Stack traces logged server-side only.
+- **Structured Logging**: Every API request gets a UUID requestId, ISO timestamp, and sanitized response body.
+- **Electron**: DevTools disabled in production, protocol validation on `open-external` and navigation guards, IPC input validation on tweak/memory handlers.
+- **Security Docs**: `docs/security-checklist.md`, `docs/security-summary.md`, `docs/security-assumptions.md`.
+
 ### External Links
 - Discord community link
 - TikTok social link
