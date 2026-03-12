@@ -1,0 +1,96 @@
+TASK: Finalize AI Advisor and BIOS Advisor honesty + usefulness
+
+PROBLEM
+
+The advisor systems are much better now, but BIOS Advisor can still feel inferred rather than truly scanned, and AI Advisor still needs stronger action-driven recommendations.
+
+Right now the remaining risk is not just functionality. It is credibility.
+
+If BIOS Advisor looks like it knows more than it really does, users will stop trusting it.
+If AI Advisor gives generic or weak recommendations, it will feel like fluff instead of a serious optimization tool.
+
+AIM
+
+Make both advisors feel trustworthy, useful, and honest about what is detected vs inferred.
+
+AI Advisor should feel:
+- state-aware
+- useful
+- action-driven
+- tied to real app conditions
+
+BIOS Advisor should feel:
+- technical
+- careful
+- score-based
+- honest about what is actually known vs inferred
+
+WHAT WE ARE ACHIEVING
+
+After this patch:
+
+- BIOS Advisor clearly separates detected vs assumed vs unknown values
+- BIOS rescans feel real, not cosmetic
+- unchanged scans explicitly say nothing changed
+- AI Advisor gives stronger, ranked, practical recommendations
+- AI Advisor clearly tells the user what is missing, conflicting, and safe to apply
+- both advisors feel more trustworthy and less like simulated marketing features
+
+IMPLEMENTATION
+
+SECTION 1 — BIOS ADVISOR HONESTY LAYER
+
+For every BIOS-related input, explicitly label its source as:
+
+- Detected
+- Assumed
+- Unknown
+
+Show this clearly in the score inputs section.
+
+Examples:
+- BIOS version: Detected
+- EXPO/XMP state: Assumed
+- CPPC status: Unknown
+
+Rules:
+- do not imply full BIOS inspection if the value is inferred
+- do not phrase assumptions like certainties
+- use consistent badges or labels for all BIOS inputs
+
+Add a small explanation line above the inputs section:
+
+“BIOS Advisor uses a mix of detected system data and inferred firmware indicators. Some settings cannot be read directly from firmware.”
+
+CHECKLIST
+[ ] every BIOS input has a status label
+[ ] detected and inferred inputs are visually distinct
+[ ] no overclaiming of direct BIOS inspection
+
+SECTION 2 — BIOS RESCAN REALISM
+
+Current rescans can still feel cosmetic.
+
+On every BIOS rescan:
+
+1. rebuild the full scan input payload from fresh system data
+2. generate a stable hash from the payload
+3. compare it to the previous scan hash
+
+If unchanged:
+show this message:
+
+“No detectable firmware-related input changes since last scan.”
+
+If changed:
+show this message:
+
+“Configuration inputs changed. Firmware score recalculated.”
+
+Also show:
+- Last scanned at: [timestamp]
+- Scan source: Live / Mixed / Inferred
+
+Rules:
+- do not fake scan variance
+- do not vary score unless the underlying

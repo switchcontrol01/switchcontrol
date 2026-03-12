@@ -881,3 +881,26 @@ export const BIOS_ACCESS_INSTRUCTIONS = {
 };
 
 export const DISCLAIMER = "SwitchControl is not responsible for user mistakes. Use at your own risk. If something goes wrong, reset BIOS settings to factory default using the 'Load Optimized Defaults' option (usually F5 or F9). Not all motherboards have every setting listed. Make sure your BIOS version is up to date.";
+
+export const DETECTION_DISCLAIMER = "BIOS Advisor uses a mix of detected system data and inferred firmware indicators. Some settings cannot be read directly from firmware without privileged access.";
+
+export type ScanSource = "Live" | "Mixed" | "Inferred";
+
+export function getScanSource(): ScanSource {
+  const detected = BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length;
+  const total = BIOS_SETTINGS.length;
+  const ratio = detected / total;
+  if (ratio >= 0.5) return "Live";
+  if (ratio >= 0.15) return "Mixed";
+  return "Inferred";
+}
+
+export function computeScanHash(): string {
+  const payload = BIOS_SETTINGS.map(s => `${s.id}:${s.detectionStatus}:${s.currentValue ?? "null"}`).join("|");
+  let hash = 0;
+  for (let i = 0; i < payload.length; i++) {
+    const c = payload.charCodeAt(i);
+    hash = ((hash << 5) - hash + c) | 0;
+  }
+  return hash.toString(36);
+}

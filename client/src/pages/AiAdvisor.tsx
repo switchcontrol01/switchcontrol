@@ -39,10 +39,18 @@ interface AiAction {
   steps: string[];
   risk: "low" | "med" | "high";
   reversible: boolean;
+  expectedGain?: string;
+  confidence?: "low" | "med" | "high";
+  autoApplyPossible?: boolean;
+  tweakId?: string;
 }
+
+type UserState = "new" | "partial" | "over_tweaked" | "goal_focused" | "advanced";
 
 interface AiAdviceResponse {
   summary: string;
+  userState?: UserState;
+  readinessScore?: number;
   topFindings: AiFinding[];
   actions: AiAction[];
   warnings: string[];
@@ -152,6 +160,8 @@ export default function AiAdvisor() {
       `SwitchControl AI Advisor Report`,
       `Goal: ${goal} | Game: ${game}`,
       `System: ${system.cpu} / ${system.gpu} / ${system.ram}`,
+      ...(result.readinessScore !== undefined ? [`Readiness: ${result.readinessScore}/100`] : []),
+      ...(result.userState ? [`State: ${result.userState}`] : []),
       ``,
       `Summary: ${result.summary}`,
       ``,
@@ -160,7 +170,7 @@ export default function AiAdvisor() {
       ``,
       `Actions:`,
       ...result.actions.map((a, i) => [
-        `${i + 1}. ${a.title} (Risk: ${a.risk}, Reversible: ${a.reversible ? "Yes" : "No"})`,
+        `${i + 1}. ${a.title} (Risk: ${a.risk}, Reversible: ${a.reversible ? "Yes" : "No"}${a.expectedGain ? `, Gain: ${a.expectedGain}` : ""}${a.confidence ? `, Confidence: ${a.confidence}` : ""}${a.autoApplyPossible !== undefined ? `, ${a.autoApplyPossible ? "Auto-apply" : "Manual"}` : ""}${a.tweakId ? `, Tweak: ${a.tweakId}` : ""})`,
         `   Why: ${a.why}`,
         ...a.steps.map((s, j) => `   ${j + 1}. ${s}`),
       ].join("\n")),
@@ -453,11 +463,40 @@ export default function AiAdvisor() {
                 <div className="p-2 rounded-lg bg-primary/15">
                   <Brain className="w-5 h-5 text-primary" />
                 </div>
-                <div>
+                <div className="flex-1">
                   <h2 className="text-sm font-semibold text-white mb-1" data-testid="text-ai-summary-title">Analysis Summary</h2>
                   <p className="text-sm text-white/70 leading-relaxed" data-testid="text-ai-summary">{result.summary}</p>
                 </div>
               </div>
+              {(result.readinessScore !== undefined || result.userState) && (
+                <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/[0.06] flex-wrap">
+                  {result.readinessScore !== undefined && (
+                    <div className="flex items-center gap-2" data-testid="text-readiness-score">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Readiness</span>
+                      <span className={cn(
+                        "text-sm font-bold",
+                        result.readinessScore >= 75 ? "text-emerald-400" :
+                        result.readinessScore >= 50 ? "text-amber-400" : "text-red-400"
+                      )}>{result.readinessScore}/100</span>
+                    </div>
+                  )}
+                  {result.userState && (
+                    <Badge variant="outline" className={cn("text-[10px]",
+                      result.userState === "advanced" ? "text-emerald-400 border-emerald-500/30" :
+                      result.userState === "goal_focused" ? "text-blue-400 border-blue-500/30" :
+                      result.userState === "over_tweaked" ? "text-red-400 border-red-500/30" :
+                      result.userState === "partial" ? "text-amber-400 border-amber-500/30" :
+                      "text-muted-foreground"
+                    )} data-testid="badge-user-state">
+                      {result.userState === "new" ? "New Setup" :
+                       result.userState === "partial" ? "Partially Optimized" :
+                       result.userState === "over_tweaked" ? "Over-Tweaked" :
+                       result.userState === "goal_focused" ? "Goal-Focused" :
+                       "Advanced"}
+                    </Badge>
+                  )}
+                </div>
+              )}
             </GlassCard>
 
             {result.topFindings.length > 0 && (
@@ -513,6 +552,11 @@ export default function AiAdvisor() {
                             {i + 1}
                           </span>
                           <span className="text-xs font-medium text-white flex-1">{a.title}</span>
+                          {a.expectedGain && (
+                            <Badge className="text-[10px] bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                              {a.expectedGain}
+                            </Badge>
+                          )}
                           <RiskBadge level={a.risk} />
                           {a.reversible && (
                             <Badge className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
@@ -533,6 +577,30 @@ export default function AiAdvisor() {
                             >
                               <div className="px-3 pb-3 space-y-2 border-t border-white/[0.04] pt-2">
                                 <p className="text-[11px] text-white/50">{a.why}</p>
+                                {(a.confidence || a.autoApplyPossible !== undefined) && (
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    {a.confidence && (
+                                      <Badge variant="outline" className={cn("text-[9px]",
+                                        a.confidence === "high" ? "text-emerald-400 border-emerald-500/25" :
+                                        a.confidence === "med" ? "text-amber-400 border-amber-500/25" :
+                                        "text-muted-foreground"
+                                      )}>
+                                        Confidence: {a.confidence}
+                                      </Badge>
+                                    )}
+                                    {a.autoApplyPossible && (
+                                      <Badge variant="outline" className="text-[9px] text-primary border-primary/25">
+                                        <Zap className="w-2.5 h-2.5 mr-1" />
+                                        Auto-apply available
+                                      </Badge>
+                                    )}
+                                    {a.autoApplyPossible === false && (
+                                      <Badge variant="outline" className="text-[9px] text-muted-foreground">
+                                        Manual change required
+                                      </Badge>
+                                    )}
+                                  </div>
+                                )}
                                 <div className="space-y-1.5">
                                   {a.steps.map((step, j) => (
                                     <div key={j} className="flex items-start gap-2 p-2 rounded bg-white/[0.02]">

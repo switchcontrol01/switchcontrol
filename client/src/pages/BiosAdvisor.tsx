@@ -26,7 +26,10 @@ import {
   getCategoryScores,
   generateBiosExplanation,
   BIOS_ACCESS_INSTRUCTIONS,
-  DISCLAIMER
+  DISCLAIMER,
+  DETECTION_DISCLAIMER,
+  getScanSource,
+  computeScanHash
 } from "@/lib/bios-advisor-data";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
@@ -360,30 +363,30 @@ export default function BiosAdvisor() {
   const Item = prefersReducedMotion ? "div" : motion.div;
 
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
-  const [detectedCount, setDetectedCount] = useState(() => 
-    BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length
-  );
-  const [assumedCount, setAssumedCount] = useState(() =>
-    BIOS_SETTINGS.filter(s => s.detectionStatus === "Assumed").length
-  );
-  const [unknownCount, setUnknownCount] = useState(() =>
-    BIOS_SETTINGS.filter(s => s.detectionStatus === "Unknown").length
-  );
+  const [previousScanHash, setPreviousScanHash] = useState<string | null>(null);
+  const [scanChanged, setScanChanged] = useState<boolean | null>(null);
+  const scanSource = useMemo(() => getScanSource(), []);
+  const detectedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length, []);
+  const assumedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Assumed").length, []);
+  const unknownCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Unknown").length, []);
 
   const handleScan = useCallback(() => {
     setScanState("initializing");
     setTimeout(() => setScanState("collecting"), 800);
     setTimeout(() => setScanState("evaluating"), 2200);
     setTimeout(() => {
+      const newHash = computeScanHash();
+      const changed = previousScanHash !== null && previousScanHash !== newHash;
+      const unchanged = previousScanHash !== null && previousScanHash === newHash;
+      
+      setScanChanged(previousScanHash === null ? null : changed);
+      setPreviousScanHash(newHash);
       setScanState("complete");
       setHasScanned(true);
       setLastScanTime(new Date());
-      setDetectedCount(BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length);
-      setAssumedCount(BIOS_SETTINGS.filter(s => s.detectionStatus === "Assumed").length);
-      setUnknownCount(BIOS_SETTINGS.filter(s => s.detectionStatus === "Unknown").length);
       setTimeout(() => setScanState("idle"), 500);
     }, 3500);
-  }, []);
+  }, [previousScanHash]);
 
   const isScanning = scanState !== "idle" && scanState !== "complete";
 
@@ -435,7 +438,10 @@ export default function BiosAdvisor() {
         {hasScanned && (
           <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
             <GlassCard className="p-4 bg-white/[0.02]">
-              <div className="flex items-center gap-4 flex-wrap">
+              <p className="text-[10px] text-muted-foreground mb-3" data-testid="text-detection-disclaimer">
+                {DETECTION_DISCLAIMER}
+              </p>
+              <div className="flex items-center gap-4 flex-wrap mb-2">
                 <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-primary" />
                   Detection Summary
@@ -454,10 +460,22 @@ export default function BiosAdvisor() {
                     {unknownCount} Unknown
                   </span>
                 </div>
-                <p className="text-[10px] text-muted-foreground ml-auto">
-                  Detected settings have highest confidence. Assumed values use heuristics. Unknown settings use conservative estimates.
-                </p>
+                <Badge variant="outline" className="text-[10px] ml-auto" data-testid="badge-scan-source">
+                  Scan source: {scanSource}
+                </Badge>
               </div>
+              {scanChanged === true && (
+                <div className="flex items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300">
+                  <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                  Configuration inputs changed. Firmware score recalculated.
+                </div>
+              )}
+              {scanChanged === false && (
+                <div className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/10 text-[11px] text-muted-foreground">
+                  <Info className="w-3.5 h-3.5 shrink-0" />
+                  No detectable firmware-related input changes since last scan.
+                </div>
+              )}
             </GlassCard>
           </Item>
         )}
