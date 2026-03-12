@@ -15,6 +15,7 @@ import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlemen
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 
 import Splash from "@/screens/Splash";
+import CameraGlow from "@/screens/CameraGlow";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
 import { OnboardingTour } from "@/components/OnboardingTour";
@@ -113,6 +114,7 @@ type AppFlow = "none" | "firstTime" | "premiumUnlock" | "premiumTour";
 function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [splashDone, setSplashDone] = useState(false);
+  const [showGlow, setShowGlow] = useState(false);
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [activeFlow, setActiveFlow] = useState<AppFlow>("none");
   const [isResetting, setIsResetting] = useState(false);
@@ -255,7 +257,8 @@ function ElectronAppContent() {
 
   useEffect(() => {
     const splashTimer = setTimeout(() => {
-      setSplashDone(true);
+      setShowGlow(true);
+      setTimeout(() => setSplashDone(true), 200);
     }, 2800);
     return () => clearTimeout(splashTimer);
   }, []);
@@ -466,13 +469,15 @@ function ElectronAppContent() {
 
   return (
     <AppAuthContext.Provider value={authContextValue}>
+      <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
+
       <AnimatePresence mode="wait">
         {phase === "splash" && (
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.4, ease: "easeInOut" }}
+            exit={{ opacity: 0, scale: 1.05 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="h-full"
           >
             <Splash onComplete={() => {}} />
@@ -482,10 +487,10 @@ function ElectronAppContent() {
         {phase === "unauthenticated" && (
           <motion.div
             key="login"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, x: -30, y: -20, scale: 0.98, filter: "blur(10px)" }}
+            animate={{ opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <LoginScreen />
@@ -515,9 +520,9 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, x: -30, y: -20, scale: 0.98, filter: "blur(10px)" }}
+            animate={{ opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)" }}
+            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <Router hook={useHashLocation}>

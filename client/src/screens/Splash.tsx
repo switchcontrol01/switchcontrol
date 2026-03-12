@@ -11,8 +11,13 @@ export default function Splash({ onComplete }: SplashProps) {
   const [phase, setPhase] = useState<"logo" | "fadeout">("logo");
   const [progress, setProgress] = useState(0);
   const tagline = useMemo(() => getTagline(), []);
+  const [statusText, setStatusText] = useState(tagline);
 
   useEffect(() => {
+    const statusInterval = setInterval(() => {
+      setStatusText(getTagline());
+    }, 1800);
+
     const logoTimer = setTimeout(() => {
       setPhase("fadeout");
     }, 2400);
@@ -21,17 +26,13 @@ export default function Splash({ onComplete }: SplashProps) {
       onComplete();
     }, 2800);
 
-    // Progress bar animation with acceleration then ease out
     const progressInterval = setInterval(() => {
       setProgress(prev => {
         if (prev >= 100) return 100;
-        // Accelerate in first half, then ease out
         const remaining = 100 - prev;
         if (prev < 50) {
-          // Accelerating phase - starts slow then speeds up
           return prev + Math.min(prev * 0.06 + 0.8, 4);
         } else {
-          // Ease out phase - slows down as it approaches 100
           return prev + Math.max(remaining * 0.1, 0.3);
         }
       });
@@ -41,18 +42,18 @@ export default function Splash({ onComplete }: SplashProps) {
       clearTimeout(logoTimer);
       clearTimeout(completeTimer);
       clearInterval(progressInterval);
+      clearInterval(statusInterval);
     };
   }, [onComplete]);
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
-      {/* Animated contour background */}
-      <div 
-        className="absolute inset-0 overflow-hidden pointer-events-none" 
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
         style={{ transform: 'rotate(-15deg) scale(1.5)' }}
       >
-        <motion.div 
-          className="absolute inset-0" 
+        <motion.div
+          className="absolute inset-0"
           style={{ opacity: 0.18 }}
           animate={{ x: [0, 50, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
@@ -69,8 +70,8 @@ export default function Splash({ onComplete }: SplashProps) {
           </svg>
         </motion.div>
 
-        <motion.div 
-          className="absolute inset-0" 
+        <motion.div
+          className="absolute inset-0"
           style={{ opacity: 0.14 }}
           animate={{ x: [0, -30, 0] }}
           transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
@@ -89,90 +90,143 @@ export default function Splash({ onComplete }: SplashProps) {
       </div>
 
       <div className="absolute inset-0 bg-gradient-radial from-purple-600/15 via-transparent to-transparent pointer-events-none" />
-      
       <div className="absolute inset-0 bg-gradient-radial from-transparent via-[#0a0a0f]/60 to-[#0a0a0f] pointer-events-none" />
 
-      {/* Floating particles with parallax */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 60% 40% at 30% 20%, rgba(139, 92, 246, 0.12), transparent 60%)',
+        }}
+        animate={{ opacity: [0.3, 0.7, 0.3] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 50% 35% at 70% 70%, rgba(168, 85, 247, 0.08), transparent 60%)',
+        }}
+        animate={{ opacity: [0.2, 0.5, 0.2] }}
+        transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+      />
+
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(12)].map((_, i) => (
+        {[...Array(24)].map((_, i) => (
           <motion.div
             key={i}
             className="absolute rounded-full"
             style={{
-              left: `${10 + i * 8}%`,
-              top: `${15 + (i % 4) * 20}%`,
-              width: `${2 + (i % 3)}px`,
-              height: `${2 + (i % 3)}px`,
-              background: i % 2 === 0 
-                ? 'rgba(168, 85, 247, 0.4)' 
-                : 'rgba(236, 72, 153, 0.3)',
+              left: `${5 + (i * 4) % 90}%`,
+              top: `${8 + (i * 7) % 85}%`,
+              width: `${1.5 + (i % 4)}px`,
+              height: `${1.5 + (i % 4)}px`,
+              background: i % 3 === 0
+                ? 'rgba(168, 85, 247, 0.5)'
+                : i % 3 === 1
+                ? 'rgba(236, 72, 153, 0.35)'
+                : 'rgba(255, 255, 255, 0.25)',
             }}
             animate={{
-              y: [-30 - i * 2, 30 + i * 2, -30 - i * 2],
-              x: [-10 + i, 10 - i, -10 + i],
-              opacity: [0.2, 0.6, 0.2],
-              scale: [1, 1.2, 1],
+              y: [-20 - i * 3, 20 + i * 3, -20 - i * 3],
+              x: [-8 + (i % 5) * 3, 8 - (i % 5) * 3, -8 + (i % 5) * 3],
+              opacity: [0.15, 0.65, 0.15],
+              scale: [1, 1.3, 1],
             }}
             transition={{
-              duration: 4 + i * 0.3,
+              duration: 3.5 + i * 0.25,
               repeat: Infinity,
-              delay: i * 0.15,
+              delay: i * 0.12,
               ease: "easeInOut",
             }}
           />
         ))}
       </div>
 
-      {/* Breathing center glow */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         animate={{
           background: [
-            'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
-            'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.25) 0%, transparent 60%)',
-            'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)',
+            'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.18) 0%, transparent 50%)',
+            'radial-gradient(circle at 50% 50%, rgba(168, 85, 247, 0.3) 0%, transparent 60%)',
+            'radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.18) 0%, transparent 50%)',
           ]
         }}
         transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Gradient sweep */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: 'linear-gradient(45deg, transparent, rgba(139, 92, 246, 0.08), transparent)',
-          backgroundSize: '200% 200%',
+          background: 'linear-gradient(135deg, transparent 30%, rgba(168, 85, 247, 0.06) 50%, transparent 70%)',
+          backgroundSize: '300% 300%',
         }}
         animate={{
           backgroundPosition: ['0% 0%', '100% 100%', '0% 0%'],
         }}
-        transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
+        transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+      />
+
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          width: '200%',
+          height: '2px',
+          left: '-50%',
+          top: '50%',
+          background: 'linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.15), rgba(255, 255, 255, 0.08), rgba(168, 85, 247, 0.15), transparent)',
+          transform: 'rotate(-15deg)',
+        }}
+        animate={{ opacity: [0, 0.6, 0], x: ['-20%', '20%'] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+      />
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          width: '180%',
+          height: '1px',
+          left: '-40%',
+          top: '40%',
+          background: 'linear-gradient(90deg, transparent, rgba(139, 92, 246, 0.1), rgba(255, 255, 255, 0.05), transparent)',
+          transform: 'rotate(-20deg)',
+        }}
+        animate={{ opacity: [0, 0.4, 0], x: ['10%', '-10%'] }}
+        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
       />
 
       <AnimatePresence mode="wait">
         {phase === "logo" && (
           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.05, y: -10 }}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1.05 }}
+            exit={{ opacity: 0, scale: 1.12, y: -10 }}
             transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             className="relative z-10 flex flex-col items-center gap-6"
           >
-            {/* Logo with shimmer effect */}
-            <motion.div 
+            <motion.div
+              className="absolute -inset-32 rounded-full pointer-events-none"
+              style={{
+                background: 'radial-gradient(circle, rgba(139, 92, 246, 0.2) 0%, transparent 60%)',
+              }}
+              animate={{
+                scale: [1, 1.15, 1],
+                opacity: [0.5, 0.8, 0.5],
+              }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+            />
+
+            <motion.div
               className="relative"
-              animate={{ 
+              animate={{
                 filter: [
-                  "drop-shadow(0 0 20px hsl(270 60% 55% / 0.3))",
-                  "drop-shadow(0 0 40px hsl(270 60% 55% / 0.5))",
-                  "drop-shadow(0 0 20px hsl(270 60% 55% / 0.3))"
+                  "drop-shadow(0 0 25px hsl(270 60% 55% / 0.4))",
+                  "drop-shadow(0 0 50px hsl(270 60% 55% / 0.6))",
+                  "drop-shadow(0 0 25px hsl(270 60% 55% / 0.4))"
                 ]
               }}
               transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             >
               <div className="absolute inset-0 rounded-[22%] overflow-hidden">
                 <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent"
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/15 to-transparent"
                   animate={{ x: ['-100%', '100%'] }}
                   transition={{ duration: 2, repeat: Infinity, repeatDelay: 1, ease: "easeInOut" }}
                 />
@@ -181,10 +235,11 @@ export default function Splash({ onComplete }: SplashProps) {
                 src={logoImg}
                 alt="SwitchControl"
                 className="w-28 h-28 max-w-[112px] max-h-[112px] object-contain rounded-[22%]"
+                draggable={false}
               />
             </motion.div>
 
-            <motion.h1 
+            <motion.h1
               className="text-3xl font-bold text-white tracking-tight"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -193,34 +248,39 @@ export default function Splash({ onComplete }: SplashProps) {
               Switch<span className="text-primary">Control</span>
             </motion.h1>
 
-            <motion.p
-              className="text-sm text-muted-foreground max-w-xs text-center leading-relaxed"
-              data-testid="text-splash-tagline"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.5 }}
-            >
-              {tagline}
-            </motion.p>
+            <div className="h-5 overflow-hidden">
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={statusText}
+                  className="text-sm text-muted-foreground max-w-xs text-center leading-relaxed"
+                  data-testid="text-splash-tagline"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  {statusText}
+                </motion.p>
+              </AnimatePresence>
+            </div>
 
-            {/* Progress bar */}
             <motion.div
-              className="mt-4 w-48"
+              className="mt-4 w-52"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.4 }}
             >
               <div className="h-1 bg-white/10 rounded-full overflow-hidden">
-                <motion.div 
+                <motion.div
                   className="h-full bg-gradient-to-r from-primary via-purple-400 to-primary rounded-full"
                   style={{ width: `${progress}%` }}
                   transition={{ ease: "easeOut" }}
                 />
               </div>
               <div className="flex items-center justify-center gap-2 mt-3">
-                <motion.div 
+                <motion.div
                   className="w-1.5 h-1.5 rounded-full bg-primary"
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
                   transition={{ duration: 1, repeat: Infinity }}
                 />
                 <span className="text-xs text-muted-foreground">Initializing...</span>
