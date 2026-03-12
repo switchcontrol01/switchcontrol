@@ -21,16 +21,16 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-chip"
         style={{
           position: "absolute",
-          top: "18%",
-          left: "8%",
-          transform: "translate(-10%, -10%) rotate(-10deg)",
+          top: "14%",
+          left: "10%",
+          transform: "translate(-8%, -6%) rotate(-10deg)",
           width: "34vw",
           maxWidth: "520px",
           opacity: 0.14 * mobileOpacityScale,
           filter: "blur(2px)",
           mixBlendMode: "screen",
           willChange: "transform",
-          animation: reduced ? "none" : "bpChipDrift 36s ease-in-out infinite",
+          animation: reduced ? "none" : "bpChipDrift 26s ease-in-out infinite",
         }}
       >
         <img
@@ -46,16 +46,16 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-graphs"
         style={{
           position: "absolute",
-          top: "42%",
-          right: "6%",
-          transform: "translate(10%, 0%) rotate(6deg)",
+          top: "36%",
+          right: "7%",
+          transform: "translate(6%, 4%) rotate(7deg)",
           width: "42vw",
           maxWidth: "720px",
           opacity: 0.11 * mobileOpacityScale,
           filter: "blur(3px)",
           mixBlendMode: "screen",
           willChange: "transform",
-          animation: reduced ? "none" : "bpGraphsDrift 42s ease-in-out infinite",
+          animation: reduced ? "none" : "bpGraphsDrift 32s ease-in-out infinite",
         }}
       >
         <img
@@ -71,16 +71,16 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-parts"
         style={{
           position: "absolute",
-          top: "50%",
+          top: "52%",
           left: "50%",
-          transform: "translate(-50%, -50%) rotate(-4deg) scale(1.15)",
+          transform: "translate(-50%, -50%) rotate(-2deg) scale(1.12)",
           width: "40vw",
           maxWidth: "700px",
-          opacity: 0.08 * mobileOpacityScale,
+          opacity: 0.07 * mobileOpacityScale,
           filter: "blur(3px)",
           mixBlendMode: "screen",
           willChange: "transform",
-          animation: reduced ? "none" : "bpPartsDrift 46s ease-in-out infinite",
+          animation: reduced ? "none" : "bpPartsDrift 38s ease-in-out infinite",
         }}
       >
         <img
@@ -91,6 +91,39 @@ export function BlueprintImageOverlay() {
           loading="lazy"
         />
       </div>
+
+      {!reduced && (
+        <>
+          <div
+            style={{
+              position: "absolute",
+              top: "5%",
+              left: "-10%",
+              width: "80%",
+              height: "60%",
+              background: "linear-gradient(135deg, rgba(200,220,255,0.10) 0%, rgba(160,140,255,0.06) 30%, transparent 55%)",
+              filter: "blur(40px)",
+              mixBlendMode: "screen",
+              opacity: 1,
+              pointerEvents: "none",
+            }}
+          />
+          <div
+            style={{
+              position: "absolute",
+              bottom: "5%",
+              right: "-10%",
+              width: "70%",
+              height: "50%",
+              background: "linear-gradient(315deg, rgba(255,255,255,0.08) 0%, rgba(140,180,255,0.05) 25%, transparent 50%)",
+              filter: "blur(40px)",
+              mixBlendMode: "screen",
+              opacity: 1,
+              pointerEvents: "none",
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

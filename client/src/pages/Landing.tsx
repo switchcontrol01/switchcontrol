@@ -494,17 +494,20 @@ export default function Landing() {
 
               <AnimateIn delay={100}>
                 <div className="ws-hero-text-float">
-                  <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
-                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
-                      Your PC <span className="font-light italic text-white/70">is holding</span>
-                    </span>
-                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow">
-                      <span className="font-light italic text-white/70">you</span> back.{" "}
-                      <span className="font-black hero-text-shine hero-accent-glow">
-                        Fix it.
+                  <div className="relative">
+                    <h1 className="mb-7 leading-[1.03] tracking-tight relative z-[1]" style={{ transform: "translateZ(20px)" }}>
+                      <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow hero-text-light-catch">
+                        Your PC <span className="font-light italic text-white/70">is holding</span>
                       </span>
-                    </span>
-                  </h1>
+                      <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow hero-text-light-catch">
+                        <span className="font-light italic text-white/70">you</span> back.{" "}
+                        <span className="font-black hero-text-shine hero-accent-glow">
+                          Fix it.
+                        </span>
+                      </span>
+                    </h1>
+                    <div className="hero-text-sheen absolute inset-0 z-[2] pointer-events-none" aria-hidden="true" />
+                  </div>
                 </div>
               </AnimateIn>
 
