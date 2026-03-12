@@ -1,0 +1,290 @@
+TASK: Build SwitchControl AI Advisor (State-Aware Optimization Assistant)
+
+PROBLEM
+SwitchControl currently provides tweaks, but users do not know:
+- what they should enable next
+- what they forgot to configure
+- what conflicts exist
+- what optimizations are most impactful
+
+A static tweak list is not intelligent.
+
+A system-aware AI advisor is needed.
+
+AIM
+Create an AI Advisor that scans the user's current SwitchControl configuration, detects optimization gaps, and recommends or applies the best next actions.
+
+This advisor must be STATE AWARE.
+
+It should analyze:
+- enabled tweaks
+- disabled tweaks
+- user optimization goal
+- detected hardware
+- telemetry (if available)
+- whether the user is new or already optimized
+
+The AI must produce structured recommendations.
+
+---
+
+SECTION 1 — SYSTEM INPUTS
+
+The AI advisor must analyze the following inputs:
+
+SwitchControl configuration:
+- enabled tweaks
+- disabled tweaks
+- tweak categories
+- app booster settings
+- memory cleaner settings
+- network optimization settings
+- power plan
+- startup optimization
+
+Hardware detection:
+- CPU
+- GPU
+- RAM
+- motherboard
+- OS
+
+Optional telemetry:
+- CPU usage
+- memory usage
+- background processes
+- network latency
+
+User goal:
+- lowest latency
+- max FPS
+- balanced
+- stability
+
+---
+
+SECTION 2 — USER STATE DETECTION
+
+AI Advisor must classify the user into one of these states:
+
+New User
+Few or no tweaks enabled.
+
+Partially Optimized
+Some tweaks enabled but major gaps remain.
+
+Over-Tweaked / Conflicting
+Too many conflicting tweaks enabled.
+
+Goal Focused
+User optimizing for specific game or performance goal.
+
+Advanced User
+Most tweaks already optimized.
+
+The classification must influence recommendations.
+
+---
+
+SECTION 3 — AI RESPONSE STRUCTURE
+
+The AI response must return structured JSON.
+
+Required fields:
+
+summary
+
+topFindings
+
+actions
+
+warnings
+
+followUps
+
+Each finding must include:
+
+title  
+evidence  
+severity
+
+Each action must include:
+
+title  
+why  
+steps  
+risk  
+reversible  
+expectedGain  
+confidence  
+autoApplyPossible
+
+Example action:
+
+{
+"title": "Disable unnecessary startup services",
+"why": "Background services increase CPU scheduling noise",
+"steps": ["Open Startup Manager", "Disable non-essential entries"],
+"risk": "low",
+"reversible": true,
+"expectedGain": "lower latency spikes",
+"confidence": "high",
+"autoApplyPossible": true
+}
+
+---
+
+SECTION 4 — APPLY FOR ME FEATURE
+
+AI Advisor must determine if a recommendation can be applied automatically.
+
+Rules:
+
+Auto apply allowed for:
+- safe internal SwitchControl tweaks
+- non destructive Windows settings
+- reversible configurations
+
+Auto apply NOT allowed for:
+- BIOS changes
+- dangerous registry changes
+- unknown motherboard-specific tweaks
+
+If autoApplyPossible is true:
+show button:
+
+"Apply for me"
+
+Otherwise show:
+
+"Review steps"
+
+---
+
+SECTION 5 — DASHBOARD INTEGRATION
+
+Add an AI Advisor widget on the main dashboard.
+
+Widget shows:
+
+AI Advisor
+
+Example status messages:
+- "3 improvements found"
+- "New system detected"
+- "Optimization incomplete"
+- "1 conflict detected"
+
+Display:
+
+High impact tweaks missing  
+Conflicts detected  
+Optimization readiness percentage
+
+Buttons:
+
+Analyze System  
+Open Advisor
+
+---
+
+SECTION 6 — FULL AI ADVISOR PAGE
+
+Route:
+
+/ai-advisor
+
+Page sections:
+
+Header
+AI Advisor title
+Short explanation
+Analyze button
+
+System State Summary
+Detected user state
+Enabled tweaks
+Missing high impact tweaks
+Optimization readiness score
+
+Suggested Actions
+List of recommendations sorted by impact
+
+Expandable cards:
+title
+why it matters
+steps
+risk
+expected gain
+apply button
+
+Warnings section
+Follow ups section
+
+---
+
+SECTION 7 — REQUEST CACHING
+
+To prevent OpenAI abuse:
+
+Hash request payload using:
+
+sha256(goal + system + telemetry + tweaks)
+
+Cache AI responses for:
+
+10 minutes
+
+If identical request occurs:
+return cached response instead of calling OpenAI.
+
+---
+
+SECTION 8 — RATE LIMIT
+
+Apply server side rate limit to:
+
+/api/ai/advice
+
+Limit:
+
+3 requests per 5 minutes per user/device  
+15 requests per hour hard cap
+
+Key priority:
+
+userId  
+deviceId  
+IP
+
+Return HTTP 429 with retryAfterSeconds.
+
+---
+
+SECTION 9 — SYSTEM PROMPT
+
+The AI system prompt must enforce these rules:
+
+You are a PC performance engineer specializing in gaming optimization.
+
+Rules:
+- recommendations must reference user hardware
+- avoid generic advice
+- prefer reversible actions
+- do not invent BIOS menu names
+- rank recommendations by performance impact
+
+---
+
+CHECKLIST
+
+[ ] AI Advisor analyzes current tweak state  
+[ ] AI classifies user optimization level  
+[ ] Recommendations reference real hardware  
+[ ] Auto apply works only for safe tweaks  
+[ ] Dashboard widget implemented  
+[ ] AI Advisor full page implemented  
+[ ] Response schema enforced  
+[ ] Request caching added  
+[ ] Rate limiting enforced  
+[ ] No console errors

@@ -1330,13 +1330,16 @@ textarea,
   60% { transform: translate3d(-8px, 12px, 0) rotate(-0.3deg); opacity: 1; }
 }
 @keyframes sunStreakDrift2 {
-  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.7; }
-  50% { transform: translate3d(-20px, 8px, 0); opacity: 0.9; }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0.7; }
+  25% { transform: translate3d(-12px, 4px, 0) rotate(0.3deg); opacity: 0.8; }
+  50% { transform: translate3d(-20px, 8px, 0) rotate(0deg); opacity: 0.9; }
+  75% { transform: translate3d(-8px, 2px, 0) rotate(-0.2deg); opacity: 0.8; }
 }
 @keyframes sunStreakDrift3 {
-  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.5; }
-  40% { transform: translate3d(10px, -6px, 0); opacity: 0.65; }
-  80% { transform: translate3d(-5px, 4px, 0); opacity: 0.45; }
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0.5; }
+  30% { transform: translate3d(14px, -6px, 0) rotate(0.4deg); opacity: 0.65; }
+  60% { transform: translate3d(-8px, 4px, 0) rotate(-0.3deg); opacity: 0.45; }
+  85% { transform: translate3d(6px, -2px, 0) rotate(0.1deg); opacity: 0.55; }
 }
 .ws-sun-streak-1 { animation: sunStreakDrift1 20s ease-in-out infinite; will-change: transform, opacity; }
 .ws-sun-streak-2 { animation: sunStreakDrift2 25s ease-in-out infinite; will-change: transform, opacity; }
@@ -1491,7 +1494,26 @@ button, a, nav, header, footer, label {
   user-select: none;
 }
 
+@keyframes beamB {
+  0% { transform: rotate(34deg) translateX(2%); }
+  50% { transform: rotate(34deg) translateX(-2%); }
+  100% { transform: rotate(34deg) translateX(2%); }
+}
+@keyframes beamC {
+  0% { transform: rotate(12deg) translateX(-2%); }
+  50% { transform: rotate(12deg) translateX(2%); }
+  100% { transform: rotate(12deg) translateX(-2%); }
+}
+.beam-b { animation: beamB 18s ease-in-out infinite; will-change: transform; }
+.beam-c { animation: beamC 22s ease-in-out infinite; will-change: transform; }
+
+@media (max-width: 768px) {
+  .beam-a, .beam-b, .beam-c { animation: none; opacity: 0.2; }
+  .bp-layer { animation: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .beam-b, .beam-c { animation: none; }
   .bp-chip, .bp-graphs, .bp-parts { animation: none !important; }
 }
 

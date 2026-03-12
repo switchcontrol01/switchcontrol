@@ -34,14 +34,13 @@ import { GhostButton } from "@/components/website/GhostButton";
 import { SectionHeader } from "@/components/website/SectionHeader";
 import { SectionDivider } from "@/components/website/SectionDivider";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
-import { useMomentumScroll } from "@/hooks/useMomentumScroll";
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
   return (
     <div
       style={{
         transformStyle: "preserve-3d",
-        transform: "perspective(1200px) rotateX(2deg)",
+        transform: "perspective(1200px) rotateX(3deg) rotateZ(-0.8deg)",
       }}
     >
       {children}
@@ -318,7 +317,7 @@ function HeroAppMockup() {
         const next = prev + (Math.random() > 0.5 ? 1 : -1);
         return Math.max(10, Math.min(16, next));
       });
-    }, 3000);
+    }, 1500);
     return () => clearInterval(id);
   }, []);
 
@@ -348,9 +347,9 @@ function HeroAppMockup() {
         <div className="p-4 space-y-3">
           <div className="grid grid-cols-3 gap-2">
             {[
-              { label: "CPU", base: 3, range: 8, color: "bg-emerald-500", textColor: "text-emerald-400", barInterval: 2000 },
-              { label: "RAM", base: 34, range: 10, color: "bg-sky-500", textColor: "text-sky-400", barInterval: 3000 },
-              { label: "GPU", base: 1, range: 6, color: "bg-violet-500", textColor: "text-violet-400", barInterval: 2500 },
+              { label: "CPU", base: 3, range: 8, color: "bg-emerald-500", textColor: "text-emerald-400", barInterval: 1200 },
+              { label: "RAM", base: 34, range: 10, color: "bg-sky-500", textColor: "text-sky-400", barInterval: 1400 },
+              { label: "GPU", base: 1, range: 6, color: "bg-violet-500", textColor: "text-violet-400", barInterval: 1300 },
             ].map((m) => (
               <div key={m.label} className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
                 <div className="text-[9px] text-white/50 mb-1 uppercase tracking-wide font-medium">{m.label}</div>
@@ -388,13 +387,13 @@ function HeroAppMockup() {
             <div className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
               <div className="text-[9px] text-white/40 mb-0.5 font-medium">Latency</div>
               <div className="text-base font-bold text-emerald-400">
-                -<LiveMockupValue base={8} range={8} suffix="ms" interval={2200} />
+                -<LiveMockupValue base={8} range={8} suffix="ms" interval={1200} />
               </div>
             </div>
             <div className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
               <div className="text-[9px] text-white/40 mb-0.5 font-medium">FPS Stability</div>
               <div className="text-base font-bold text-[hsl(190,85%,50%)]">
-                +<LiveMockupValue base={12} range={10} suffix="%" interval={2800} />
+                +<LiveMockupValue base={12} range={10} suffix="%" interval={1300} />
               </div>
             </div>
           </div>
@@ -448,7 +447,6 @@ export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   const { user } = useAuth();
   useRevealOnScroll();
-  useMomentumScroll();
 
   const handleAuthAwareClick = (e: MouseEvent) => {
     if (user) {
@@ -521,7 +519,8 @@ export default function Landing() {
           </div>
           </HeroTiltContainer>
 
-          <div className="absolute bottom-0 inset-x-0 h-64 bg-gradient-to-t from-[#040508] via-[#040508]/60 to-transparent pointer-events-none" />
+          <div className="absolute bottom-0 inset-x-0 h-64 bg-gradient-to-t from-[#040508]/80 via-[#040508]/30 to-transparent pointer-events-none" />
+          <div className="pointer-events-none absolute inset-x-0 -bottom-32 h-64 blur-[100px] opacity-60" style={{ background: "radial-gradient(circle at 50% 40%, rgba(140,100,255,0.4), transparent 70%)" }} />
         </section>
 
         {/* ──── Three-column Feature Strip (like ToDesktop) ──── */}
