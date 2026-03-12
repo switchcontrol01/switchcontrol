@@ -19,22 +19,22 @@ const app = express();
 const isProd = process.env.NODE_ENV === "production";
 
 app.use(helmet({
-  contentSecurityPolicy: {
-    useDefaults: true,
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: isProd
-        ? ["'self'", "https://js.stripe.com"]
-        : ["'self'", "'unsafe-eval'", "https://js.stripe.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      imgSrc: ["'self'", "data:", "blob:", "https:"],
-      connectSrc: ["'self'", "https://api.stripe.com", "https://api.openai.com", "wss:", "ws:"],
-      frameSrc: ["'self'", "https://js.stripe.com"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: isProd ? [] : null,
-    },
-  },
+  contentSecurityPolicy: isProd
+    ? {
+        useDefaults: true,
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "https://js.stripe.com"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com"],
+          imgSrc: ["'self'", "data:", "blob:", "https:"],
+          connectSrc: ["'self'", "https://api.stripe.com", "https://api.openai.com"],
+          frameSrc: ["'self'", "https://js.stripe.com"],
+          objectSrc: ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      }
+    : false,
   crossOriginEmbedderPolicy: false,
   hsts: isProd ? { maxAge: 31536000, includeSubDomains: true, preload: true } : false,
   referrerPolicy: { policy: "strict-origin-when-cross-origin" },
