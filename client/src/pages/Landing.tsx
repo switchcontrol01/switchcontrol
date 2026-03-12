@@ -41,10 +41,18 @@ function HeroTiltContainer({ children }: { children: React.ReactNode }) {
     <div
       style={{
         transformStyle: "preserve-3d",
-        transform: "perspective(1200px) rotateX(3deg) rotateZ(-0.8deg)",
+        perspective: "1200px",
+        perspectiveOrigin: "50% 100%",
       }}
     >
-      {children}
+      <div
+        style={{
+          transform: "rotateX(-4deg)",
+          transformOrigin: "50% 100%",
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 }

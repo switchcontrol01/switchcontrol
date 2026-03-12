@@ -144,8 +144,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
     ],
     silhouettes: true,
     bgImages: [
-      { src: heroBackdrop, opacity: 0.05 },
-      { src: circuitTech, opacity: 0.03 },
+      { src: heroBackdrop, opacity: 0.08 },
+      { src: circuitTech, opacity: 0.06 },
     ],
     particles: true,
   },
@@ -335,8 +335,8 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
             backgroundPosition: "center",
             opacity: img.opacity,
             mixBlendMode: "screen",
-            filter: "blur(10px) contrast(1.15)",
-            transform: `rotate(-3deg) scale(1.05) translateY(${i % 2 === 0 ? -parallaxOffset * 0.4 : parallaxOffset * 0.3}px)`,
+            filter: "blur(3px) contrast(1.1)",
+            transform: `scale(1.02) translateY(${i % 2 === 0 ? -parallaxOffset * 0.4 : parallaxOffset * 0.3}px)`,
           }}
         />
       ))}
