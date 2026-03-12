@@ -1,0 +1,263 @@
+PROBLEM
+Several visual and interaction issues reduce the premium feel of the landing page:
+
+• Beam layers exist but appear static or inconsistent
+• Smooth scrolling is broken and continues moving after user stops
+• Hero headline looks flat and lacks depth
+• Graph telemetry updates too slowly and feels fake
+• Hard black seam appears between page sections
+
+These problems break immersion and make the UI feel less engineered.
+
+WHY WE ARE DOING THIS
+
+The landing page should feel like a continuous, atmospheric interface.
+
+Adding controlled beam motion, subtle hero tilt, faster telemetry, and removing section seams creates:
+
+• a living background
+• believable system telemetry
+• visual depth in the hero
+• a continuous environment without visible cuts
+
+Scrolling must also feel stable and native.
+
+IMPLEMENTATION
+
+A) Confirm Beam Motion
+
+FILE
+client/src/index.css
+
+Confirm the beam animation keyframes exist.
+
+If they do not exist, add them.
+
+@keyframes beamB {
+0% { transform: rotate(34deg) translateX(2%); }
+50% { transform: rotate(34deg) translateX(-2%); }
+100% { transform: rotate(34deg) translateX(2%); }
+}
+
+@keyframes beamC {
+0% { transform: rotate(12deg) translateX(-2%); }
+50% { transform: rotate(12deg) translateX(2%); }
+100% { transform: rotate(12deg) translateX(-2%); }
+}
+
+Then confirm the beam classes actually use these animations.
+
+.beam-b {
+animation: beamB 18s ease-in-out infinite;
+}
+
+.beam-c {
+animation: beamC 22s ease-in-out infinite;
+}
+
+Rules
+
+• Do not change beam angles already used in layout
+• Do not add additional transforms outside the animation
+• Movement should remain subtle
+
+---
+
+B) Fix Broken Smooth Scroll
+
+PROBLEM CAUSE
+
+Multiple scrolling systems are active at the same time.
+This causes scroll momentum to continue after the user stops.
+
+We must reduce the project to one scroll system.
+
+IMPLEMENTATION
+
+1) Remove CSS smooth scrolling.
+
+Open:
+
+client/src/index.css
+
+Remove any instance of:
+
+html {
+scroll-behavior: smooth;
+}
+
+2) Search the project for additional scroll systems.
+
+In the Replit search bar check for:
+
+new Lenis
+scrollTo({ behavior: "smooth" })
+addEventListener("wheel"
+requestAnimationFrame inside scroll logic
+
+If Lenis or custom wheel scrolling exists:
+
+Remove it entirely.
+
+Final rule
+
+The project must end with either:
+
+• native browser scrolling only
+
+or
+
+• exactly one scroll system
+
+Do NOT leave multiple systems active.
+
+---
+
+C) Add Subtle Hero Headline Tilt
+
+FILE
+client/src/pages/Landing.tsx
+
+Locate the hero headline element (the H1).
+
+Wrap it with a container that adds a very small perspective tilt.
+
+Example structure:
+
+<div
+  style={{
+    transform: "perspective(1200px) rotateX(3deg) rotateZ(-0.8deg)",
+    transformOrigin: "center"
+  }}
+>
+  <h1 className="EXISTING_CLASSES">
+    existing headline text
+  </h1>
+</div>Rules
+
+• Only tilt the headline container
+• Do not tilt the entire hero section
+• Do not exceed rotateX(6deg)
+• Maintain crisp text rendering
+
+---
+
+D) Increase Telemetry Graph Update Speed
+
+Current graph updates occur too slowly and appear fake.
+
+Target update frequency: about 1.2 seconds.
+
+Locate the telemetry update logic (usually in Landing.tsx or a mock dashboard component).
+
+Find:
+
+setInterval(updateGraph, 4000);
+
+Replace with:
+
+setInterval(updateGraph, 1200);
+
+Correct structure if used inside React:
+
+useEffect(() => {
+const interval = setInterval(() => {
+updateGraph();
+}, 1200);
+
+return () => clearInterval(interval);
+}, []);
+
+Important rule
+
+Graph data arrays must remain capped.
+
+Inside updateGraph ensure logic like:
+
+data.push(newValue)
+
+if (data.length > 30) {
+data.shift()
+}
+
+This prevents infinite data growth and performance issues.
+
+---
+
+E) Remove Hard Black Section Seam
+
+The seam occurs when sections use solid background colors.
+
+Goal: blend sections smoothly using atmospheric glow.
+
+FILES
+
+client/src/pages/Landing.tsx
+Apply to sections where seams appear.
+
+Ensure each section wrapper is relative.
+
+<section className="relative">Then add a glow blend layer near the bottom of the section.
+
+<div
+  className="pointer-events-none absolute inset-x-0 -bottom-32 h-64 blur-[100px] opacity-60"
+  style={{
+    background:
+      "radial-gradient(circle at 50% 40%, rgba(140,100,255,0.4), transparent 70%)"
+  }}
+/>Rules
+
+• The section wrapper must be relative
+• The glow must remain inside the section
+• Do not increase opacity beyond 0.6
+• Do not change base gradient colors
+
+If the seam still appears:
+
+Search for sections using solid backgrounds like:
+
+background: #000
+background: #040508
+
+Replace those with transparent backgrounds so the base gradient remains visible.
+
+---
+
+F) Mobile Performance Safety
+
+Add mobile safeguards to prevent GPU overload.
+
+In client/src/index.css add:
+
+@media (max-width: 768px) {
+
+.beam-a,
+.beam-b,
+.beam-c {
+animation: none;
+opacity: 0.2;
+}
+
+.bp-layer {
+animation: none;
+}
+
+}
+
+Mobile keeps the atmosphere but disables heavy animations.
+
+---
+
+CHECKLIST
+
+Before finishing verify:
+
+[ ] Beam B and C visibly drift
+[ ] Scroll no longer continues after user stops
+[ ] Hero headline has subtle depth tilt
+[ ] Telemetry updates roughly every 1.2 seconds
+[ ] Graph data length stays capped
+[ ] Section seams are gone
+[ ] No solid backgrounds break the gradient
+[ ] Mobile animations are reduced
+[ ] No console errors

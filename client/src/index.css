@@ -1368,7 +1368,7 @@ textarea,
   left: 0;
   width: 50%;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(180,220,255,0.04) 30%, rgba(255,255,255,0.06) 50%, rgba(180,220,255,0.04) 70%, transparent);
+  background: linear-gradient(90deg, transparent, rgba(180,220,255,0.02) 30%, rgba(255,255,255,0.03) 50%, rgba(180,220,255,0.02) 70%, transparent);
   animation: heroLightSweep 8s ease-in-out infinite;
   animation-delay: 2s;
 }
@@ -1489,4 +1489,26 @@ img, svg {
 button, a, nav, header, footer, label {
   -webkit-user-select: none;
   user-select: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bp-chip, .bp-graphs, .bp-parts { animation: none !important; }
+}
+
+@keyframes bpChipDrift {
+  0%, 100% { transform: translateX(-10%) rotate(-10deg) translate(0, 0) scale(1); }
+  33% { transform: translateX(-10%) rotate(-10deg) translate(12px, -8px) scale(1.02); }
+  66% { transform: translateX(-10%) rotate(-10deg) translate(-8px, 10px) scale(1.01); }
+}
+
+@keyframes bpGraphsDrift {
+  0%, 100% { transform: rotate(6deg) translate(0, 0) scale(1); }
+  40% { transform: rotate(6deg) translate(-15px, 6px) scale(1.015); }
+  70% { transform: rotate(6deg) translate(10px, -4px) scale(1.03); }
+}
+
+@keyframes bpPartsDrift {
+  0%, 100% { transform: rotate(-4deg) translate(0, 0) scale(1); }
+  35% { transform: rotate(-4deg) translate(8px, -12px) scale(1.02); }
+  65% { transform: rotate(-4deg) translate(-6px, 8px) scale(1.035); }
 }
