@@ -1,0 +1,91 @@
+TASK: Disable Copying and Dragging of UI Text + Images on Website (Premium Feel)
+Problem
+
+On the public website, you can highlight text and drag images around. That makes it feel like a template and not a premium product.
+Goal
+
+Make the marketing website feel like the app:
+
+    No text selection on UI chrome
+    No image dragging
+    Still allow selection where it’s actually needed (inputs, textareas, code blocks if any)
+    Still allow right click context menu in browser (we are not doing “anti user” hacks). Just remove the sloppy select/drag feel.
+
+Rules
+
+    Website only, not Electron app UI if they share base styles.
+    Do NOT break form inputs.
+    Do NOT disable selecting inside: input, textarea, and any explicit .select-text areas.
+    Do NOT add aggressive JS that blocks copy shortcuts. CSS first.
+
+Step 1: Global default, but safe exceptions
+
+File:
+
+    client/src/index.css
+
+Add near the end:
+
+/* ===== Website premium feel: no accidental selection/drag ===== */
+
+/* default: no selection */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* allow selection where it matters */
+input, textarea, [contenteditable="true"], .select-text, pre, code {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+/* stop image dragging */
+img, svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+/* also prevent accidental selection on common UI elements */
+button, a, nav, header, footer, label {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+Step 2: Prevent drag on key marketing images/components
+
+This is just insurance.
+
+Wherever the website renders images (hero mockup, screenshots, logo marks), add:
+
+    draggable={false}
+
+Example:
+
+<img src={...} alt="..." draggable={false} />
+
+Do this in:
+
+    Landing hero mockup image(s)
+    Any gallery/showcase images
+    Any SVG-based mockups if wrapped in img tags
+
+Step 3: QA checklist (must pass)
+
+Desktop:
+
+    Drag across hero headline: no highlight
+    Drag across FAQ text: no highlight
+    Drag across pricing cards: no highlight
+    Try dragging images: they do not drag ghost images
+    Inputs still selectable and editable
+
+Mobile:
+
+    Touch interactions unaffected
+    Inputs still behave normally
+
+Important:
+
+    If any page has copyable text intentionally (like an email address), wrap that area in a container class .select-text so users can select it when needed.
+

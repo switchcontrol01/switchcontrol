@@ -1469,3 +1469,24 @@ textarea,
 @media (prefers-reduced-motion: reduce) {
   .ws-stat-glow { animation: none; opacity: 0.5; }
 }
+
+/* ===== Website premium feel: no accidental selection/drag ===== */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea, [contenteditable="true"], .select-text, pre, code {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+img, svg {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+
+button, a, nav, header, footer, label {
+  -webkit-user-select: none;
+  user-select: none;
+}
