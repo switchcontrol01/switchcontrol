@@ -541,12 +541,11 @@ export default function Landing() {
           </div>
           </HeroTiltContainer>
 
-          <div className="absolute bottom-0 inset-x-0 h-64 bg-gradient-to-t from-[#040508] via-[#040508]/50 to-transparent pointer-events-none" />
         </section>
 
         {/* ──── Feature Strip + Stats (unified section) ──── */}
-        <section className="relative pb-12 md:pb-16" data-reveal>
-          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 30%, hsl(270 50% 45% / 0.06) 0%, transparent 70%)" }} />
+        <section className="relative pb-12 md:pb-16 -mt-24 pt-24" data-reveal>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 20%, hsl(270 50% 45% / 0.05) 0%, transparent 70%)" }} />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
               {[
