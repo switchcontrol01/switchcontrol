@@ -11,6 +11,7 @@ const aiLimiter = rateLimit({
   max: 3,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { keyGeneratorIpFallback: false },
   keyGenerator: (req: Request) => {
     const userId = (req as any).session?.userId;
     if (userId) return `user:${userId}`;
@@ -24,6 +25,7 @@ const aiHourlyLimiter = rateLimit({
   max: 15,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { keyGeneratorIpFallback: false },
   keyGenerator: (req: Request) => {
     const userId = (req as any).session?.userId;
     if (userId) return `hourly:${userId}`;

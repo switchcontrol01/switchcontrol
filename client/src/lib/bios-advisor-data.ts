@@ -764,8 +764,108 @@ export const BIOS_CATEGORIES: BiosCategory[] = [
   "EMI & Signal Integrity"
 ];
 
+export type BiosDifficulty = "Easy" | "Moderate" | "Advanced";
+export type OptimizationLevel = "Basic" | "Good" | "Advanced" | "Competitive";
+
+export interface BiosOpportunity {
+  setting: BiosSetting;
+  scoreGain: number;
+  difficulty: BiosDifficulty;
+}
+
 export function getSettingsByCategory(category: BiosCategory): BiosSetting[] {
   return BIOS_SETTINGS.filter(s => s.category === category);
+}
+
+export function getOptimizationLevel(score: number): OptimizationLevel {
+  if (score >= 80) return "Competitive";
+  if (score >= 60) return "Advanced";
+  if (score >= 40) return "Good";
+  return "Basic";
+}
+
+function getDifficulty(setting: BiosSetting): BiosDifficulty {
+  if (setting.risk === "High") return "Advanced";
+  if (setting.risk === "Medium" && setting.impact === "High") return "Moderate";
+  if (setting.risk === "Low" && setting.impact !== "High") return "Easy";
+  return "Moderate";
+}
+
+export function getRankedOpportunities(): BiosOpportunity[] {
+  return BIOS_SETTINGS
+    .map(setting => ({
+      setting,
+      scoreGain: Math.round(
+        Math.max(0, setting.latencyScore) * 0.55 +
+        Math.max(0, setting.frametimeScore) * 0.35 +
+        Math.max(0, setting.stabilityScore) * 0.10
+      ),
+      difficulty: getDifficulty(setting),
+    }))
+    .filter(o => o.scoreGain > 0)
+    .sort((a, b) => b.scoreGain - a.scoreGain);
+}
+
+export function getCategoryScores(): Record<string, { score: number; max: number }> {
+  const categories: Record<string, { total: number; max: number }> = {};
+  BIOS_CATEGORIES.forEach(cat => { categories[cat] = { total: 0, max: 0 }; });
+
+  BIOS_SETTINGS.forEach(s => {
+    const gain = Math.max(0, s.latencyScore) * 0.55 + Math.max(0, s.frametimeScore) * 0.35 + Math.max(0, s.stabilityScore) * 0.10;
+    if (gain > 0 && categories[s.category]) {
+      categories[s.category].max += gain;
+      const confidence = s.detectionStatus === "Detected" ? 1.0 : s.detectionStatus === "Assumed" ? 0.6 : 0.3;
+      categories[s.category].total += gain * confidence;
+    }
+  });
+
+  const result: Record<string, { score: number; max: number }> = {};
+  Object.entries(categories).forEach(([cat, data]) => {
+    result[cat] = {
+      score: data.max > 0 ? Math.round((data.total / data.max) * 100) : 0,
+      max: 100,
+    };
+  });
+  return result;
+}
+
+export function generateBiosExplanation(scores: BiosScore, opportunities: BiosOpportunity[]): string {
+  const level = getOptimizationLevel(scores.competitiveReadiness);
+  const topOpps = opportunities.slice(0, 3);
+  const easyWins = opportunities.filter(o => o.difficulty === "Easy").slice(0, 3);
+
+  let explanation = "";
+
+  if (level === "Basic") {
+    explanation = `Your firmware configuration is largely at default settings. With a readiness score of ${scores.competitiveReadiness}/100, there are significant optimization opportunities available. `;
+  } else if (level === "Good") {
+    explanation = `Your BIOS has some optimization in place, scoring ${scores.competitiveReadiness}/100. There's meaningful room for improvement. `;
+  } else if (level === "Advanced") {
+    explanation = `Your firmware is reasonably well-tuned at ${scores.competitiveReadiness}/100. A few targeted adjustments could push you into competitive territory. `;
+  } else {
+    explanation = `Your BIOS configuration is highly optimized at ${scores.competitiveReadiness}/100. Only marginal gains remain through fine-tuning. `;
+  }
+
+  if (scores.latency > scores.frametime + 15) {
+    explanation += "Your configuration favors latency reduction — good for competitive shooters and fast-paced games. ";
+  } else if (scores.frametime > scores.latency + 15) {
+    explanation += "Your setup is frametime-focused — ideal for smooth visual experiences and demanding AAA titles. ";
+  }
+
+  if (topOpps.length > 0) {
+    explanation += `\n\nHighest-impact opportunities: ${topOpps.map(o => o.setting.name).join(", ")}. `;
+  }
+
+  if (easyWins.length > 0) {
+    explanation += `\n\nSafest changes to start with: ${easyWins.map(o => `${o.setting.name} (+${o.scoreGain} points, ${o.difficulty})`).join("; ")}. `;
+  }
+
+  const advancedOps = opportunities.filter(o => o.difficulty === "Advanced");
+  if (advancedOps.length > 0) {
+    explanation += `\n\nAdvanced-level changes (proceed with caution): ${advancedOps.slice(0, 3).map(o => o.setting.name).join(", ")}. These carry higher risk and should only be attempted with proper stability testing.`;
+  }
+
+  return explanation;
 }
 
 export const BIOS_ACCESS_INSTRUCTIONS = {
