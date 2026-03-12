@@ -5,23 +5,22 @@ import { StorageCards } from "@/components/dashboard/StorageCards";
 import { DashboardHeaderParticles } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
-import type { Finding } from "@/advisor/types";
-import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Rocket, Sparkles, Loader2, Lock, Crown, CheckCircle2, AlertTriangle, Wrench, RotateCcw } from "lucide-react";
+import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useAuth } from "@/hooks/use-auth";
-import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useDashboardTagline } from "@/lib/taglines";
+import { calculateBiosScores, BIOS_SETTINGS, getOptimizationLevel, getRankedOpportunities } from "@/lib/bios-advisor-data";
 
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
@@ -82,57 +81,15 @@ function getScoreBg(score: number): string {
   return "bg-red-500/10 border-red-500/20";
 }
 
-function getSeverityColor(severity: string): string {
-  if (severity === "critical") return "text-red-400";
-  if (severity === "recommended") return "text-amber-400";
-  return "text-blue-400";
-}
-
-function getSeverityLabel(severity: string): string {
-  if (severity === "critical") return "Critical";
-  if (severity === "recommended") return "Rec";
-  return "Info";
-}
-
-interface AIAdvisorCardProps {
-  isPremium: boolean;
-  onApplyFix: (finding: Finding) => void;
-  applyingFixId: string | null;
-}
-
-function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardProps) {
-  const { runState, report, error, runAdvisor, reRunAdvisor } = useAdvisorStore();
-  const { tweaks, account } = useStore();
-  const { user } = useAuth();
-
-  const appContext = {
-    tweaks,
-    account: { stats: { tweaksApplied: account.stats.tweaksApplied, lastScan: account.stats.lastScan } },
-    isPremium,
-    userId: user?.id || "anonymous",
-  };
-
-  const handleAnalyze = () => {
-    if (report) {
-      reRunAdvisor(appContext);
-    } else {
-      runAdvisor(appContext);
-    }
-  };
-
-  const isRunning = runState === "initializing" || runState === "collecting" || runState === "evaluating";
+function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
+  const { runState, report } = useAdvisorStore();
   const hasReport = report && (runState === "ready" || runState === "degraded");
-  const isOptimized = report && (report.score >= 95 || report.topFailed.length === 0);
-
-  const progressLabel = runState === "initializing" ? "Initializing Advisor..." :
-    runState === "collecting" ? "Collecting signals..." :
-    runState === "evaluating" ? "Evaluating rules..." : "";
 
   const cardContent = (
     <Card className={cn(
       "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full transition-all duration-500",
       !isPremium && "opacity-60 blur-[2px]"
-    )} data-testid="card-ai-advisor">
+    )} data-testid="card-ai-advisor-summary">
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
           <Sparkles className="size-4 text-primary animate-pulse" />
@@ -142,147 +99,125 @@ function AIAdvisorCard({ isPremium, onApplyFix, applyingFixId }: AIAdvisorCardPr
       </div>
       <CardHeader className="pb-3">
         <CardTitle className="text-base font-medium flex items-center gap-2">
+          <Brain className="size-4 text-primary" />
           AI Advisor
           {!isPremium && <PremiumBadge className="ml-1" />}
         </CardTitle>
-        <CardDescription className="text-[10px]">Rule-based system analysis</CardDescription>
+        <CardDescription className="text-[10px]">AI-powered optimization analysis</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {isPremium ? (
-          <>
-            {runState === "idle" && !report ? (
-              <div className="py-6 text-center space-y-4">
-                <p className="text-xs text-muted-foreground px-4">Analyze your system configuration against optimization rules.</p>
-                <Button onClick={handleAnalyze} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-run-advisor">
-                  <Shield className="size-3.5 mr-1.5" />
-                  Analyze System
-                </Button>
-              </div>
-            ) : runState === "error" ? (
-              <div className="py-6 text-center space-y-4">
-                <p className="text-xs text-amber-400 px-4">{error || "Analysis failed unexpectedly."}</p>
-                <Button onClick={handleAnalyze} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-retry-advisor">
-                  Try Again
-                </Button>
-              </div>
-            ) : isRunning ? (
-              <div className="py-6 flex flex-col items-center justify-center space-y-3">
-                <Loader2 className="size-6 text-primary animate-spin" />
-                <span className="text-xs text-muted-foreground animate-pulse">{progressLabel}</span>
-                <div className="w-full max-w-[160px]">
-                  <Progress value={runState === "initializing" ? 20 : runState === "collecting" ? 55 : 85} className="h-1" />
-                </div>
-              </div>
-            ) : hasReport ? (
-              <div className="space-y-3 animate-in fade-in duration-500">
-                <div className={cn("p-3 rounded-lg border text-center", getScoreBg(report.score))}>
-                  <div className={cn("text-2xl font-bold tabular-nums", getScoreColor(report.score))} data-testid="text-advisor-score">
-                    {report.score}
-                  </div>
-                  <p className={cn("text-[10px] mt-0.5", getScoreColor(report.score))}>
-                    {isOptimized ? "You're fully optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Significant Issues Found"}
-                  </p>
-                  {isOptimized && (
-                    <p className="text-[9px] text-emerald-400/70 mt-1">No critical issues detected.</p>
-                  )}
-                </div>
-
-                {runState === "degraded" && (
-                  <div className="flex items-center gap-1.5 p-2 rounded-md bg-amber-500/10 border border-amber-500/20">
-                    <AlertTriangle className="size-3 text-amber-400 shrink-0" />
-                    <span className="text-[10px] text-amber-400">Limited analysis. Some signals unavailable.</span>
-                  </div>
-                )}
-
-                {report.topFailed.length > 0 && (
-                  <div className="space-y-1.5">
-                    {report.topFailed.map((finding) => (
-                      <div key={finding.ruleId} className="flex items-start justify-between gap-2 p-1.5 rounded hover:bg-white/5 transition-colors" data-testid={`finding-${finding.ruleId}`}>
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] text-muted-foreground block truncate">{finding.message}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <span className={cn("text-[9px] font-bold uppercase px-1 rounded", getSeverityColor(finding.severity))}>
-                            {getSeverityLabel(finding.severity)}
-                          </span>
-                          {finding.fix && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 px-1.5 text-[9px] text-primary hover:text-primary hover:bg-primary/10"
-                              onClick={() => onApplyFix(finding)}
-                              disabled={applyingFixId === finding.ruleId}
-                              data-testid={`button-fix-${finding.ruleId}`}
-                            >
-                              {applyingFixId === finding.ruleId ? (
-                                <Loader2 className="size-2.5 animate-spin" />
-                              ) : (
-                                <Wrench className="size-2.5" />
-                              )}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
-                  <span>{report.findings.filter(f => f.status === "pass").length}/{report.findings.length} rules passed</span>
-                  <span className="text-border">|</span>
-                  <span>{report.signalsHealth.collected}/{report.signalsHealth.total} signals</span>
-                </div>
-
-                <Button
-                  onClick={handleAnalyze}
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-[10px] h-7 hover:bg-white/5"
-                  disabled={isRunning}
-                  data-testid="button-rescan-advisor"
-                >
-                  {isRunning ? <Loader2 className="size-3 mr-1.5 animate-spin" /> : <RotateCcw className="size-3 mr-1.5" />}
-                  {isRunning ? "Scanning..." : "Rescan System"}
-                </Button>
-              </div>
-            ) : (
-              <div className="py-6 text-center space-y-4">
-                <p className="text-xs text-muted-foreground px-4">Analyze your system configuration against optimization rules.</p>
-                <Button onClick={handleAnalyze} size="sm" className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-run-advisor">
-                  <Shield className="size-3.5 mr-1.5" />
-                  Analyze System
-                </Button>
-              </div>
-            )}
-          </>
-        ) : (
+        {hasReport ? (
           <div className="space-y-3">
-            <div className="p-2.5 rounded-lg bg-white/5 border border-white/10">
-              <p className="text-[11px] leading-relaxed text-white/90">System analysis reveals optimization opportunities for improved gaming performance.</p>
+            <div className={cn("p-3 rounded-lg border text-center", getScoreBg(report.score))}>
+              <div className={cn("text-2xl font-bold tabular-nums", getScoreColor(report.score))} data-testid="text-advisor-score">
+                {report.score}
+              </div>
+              <p className={cn("text-[10px] mt-0.5", getScoreColor(report.score))}>
+                {report.score >= 95 ? "Fully Optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Issues Found"}
+              </p>
             </div>
-            <div className="space-y-1.5">
-              {[
-                { id: "1", action: "Disable Windows Search indexing for game drives", tag: "Safe" },
-                { id: "2", action: "Enable Hardware-accelerated GPU scheduling", tag: "Safe" },
-                { id: "3", action: "Disable Superfetch for SSD optimization", tag: "Advanced" },
-              ].map((rec) => (
-                <div key={rec.id} className="flex items-start justify-between gap-2 p-1.5 rounded">
-                  <span className="text-[10px] text-muted-foreground flex-1">{rec.action}</span>
-                  <span className={cn("text-[9px] font-bold uppercase px-1 rounded", rec.tag === "Safe" ? "text-emerald-400" : "text-blue-400")}>
-                    {rec.tag === "Safe" ? "Safe" : "Adv"}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
+              <span>{report.findings.filter(f => f.status === "pass").length}/{report.findings.length} rules passed</span>
+              <span className="text-border">|</span>
+              <span>{report.topFailed.length} issues</span>
             </div>
           </div>
+        ) : (
+          <div className="py-4 text-center">
+            <p className="text-xs text-muted-foreground px-4">Get AI-powered advice tailored to your specific hardware.</p>
+          </div>
         )}
-
+        <Button size="sm" className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-open-ai-advisor" asChild>
+          <Link href="/ai-advisor">
+            <Brain className="size-3.5 mr-1.5" />
+            Open AI Advisor
+            <ArrowRight className="size-3 ml-auto" />
+          </Link>
+        </Button>
       </CardContent>
     </Card>
   );
 
   return (
     <PremiumCardOverlay featureName="AI Advisor" buttonText="Unlock AI Advisor" isLocked={!isPremium}>
+      {cardContent}
+    </PremiumCardOverlay>
+  );
+}
+
+function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
+  const scores = useMemo(() => calculateBiosScores(BIOS_SETTINGS), []);
+  const level = useMemo(() => getOptimizationLevel(scores.competitiveReadiness), [scores]);
+  const opportunities = useMemo(() => getRankedOpportunities(), []);
+  const topOppCount = opportunities.filter(o => o.scoreGain >= 5).length;
+
+  const levelColors: Record<string, string> = {
+    Basic: "bg-red-500/10 border-red-500/20 text-red-400",
+    Good: "bg-amber-500/10 border-amber-500/20 text-amber-400",
+    Advanced: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+    Competitive: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
+  };
+
+  const cardContent = (
+    <Card className={cn(
+      "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full transition-all duration-500",
+      !isPremium && "opacity-60 blur-[2px]"
+    )} data-testid="card-bios-score">
+      <div className="absolute top-0 right-0 p-3 z-20">
+        {isPremium ? (
+          <Target className="size-4 text-[hsl(270,60%,55%)]" />
+        ) : (
+          <AnimatedCrown size="sm" tooltipText="Premium feature" />
+        )}
+      </div>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base font-medium flex items-center gap-2">
+          <Target className="size-4 text-[hsl(270,60%,55%)]" />
+          BIOS Score
+          {!isPremium && <PremiumBadge className="ml-1" />}
+        </CardTitle>
+        <CardDescription className="text-[10px]">Firmware readiness analysis</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="p-3 rounded-lg border bg-[hsl(270,60%,55%)]/10 border-[hsl(270,60%,55%)]/20 text-center">
+          <div className="text-2xl font-bold tabular-nums text-[hsl(270,60%,55%)]" data-testid="text-bios-dashboard-score">
+            {scores.competitiveReadiness}
+          </div>
+          <p className="text-[10px] mt-0.5 text-muted-foreground">Competitive Readiness</p>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", levelColors[level])}>{level}</span>
+          {topOppCount > 0 && (
+            <span className="text-[9px] text-muted-foreground">{topOppCount} high-impact opportunities</span>
+          )}
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="p-1.5 rounded bg-white/5">
+            <div className="text-xs font-bold text-primary">{scores.latency}</div>
+            <div className="text-[9px] text-muted-foreground">Latency</div>
+          </div>
+          <div className="p-1.5 rounded bg-white/5">
+            <div className="text-xs font-bold text-blue-400">{scores.frametime}</div>
+            <div className="text-[9px] text-muted-foreground">Frametime</div>
+          </div>
+          <div className="p-1.5 rounded bg-white/5">
+            <div className="text-xs font-bold text-emerald-400">{scores.stability}</div>
+            <div className="text-[9px] text-muted-foreground">Stability</div>
+          </div>
+        </div>
+        <Button size="sm" className="w-full bg-[hsl(270,60%,55%)]/20 hover:bg-[hsl(270,60%,55%)]/30 text-[hsl(270,60%,55%)] border border-[hsl(270,60%,55%)]/20" data-testid="button-open-bios-advisor" asChild>
+          <Link href="/bios-advisor">
+            <Target className="size-3.5 mr-1.5" />
+            Open BIOS Advisor
+            <ArrowRight className="size-3 ml-auto" />
+          </Link>
+        </Button>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <PremiumCardOverlay featureName="BIOS Advisor" buttonText="Unlock BIOS Advisor" isLocked={!isPremium}>
       {cardContent}
     </PremiumCardOverlay>
   );
@@ -302,16 +237,15 @@ function getGreeting(): string {
 }
 
 export default function Home() {
-  const { stats, account, clearRam, setStats, tweaks, setTweak } = useStore();
-  const { reRunAdvisor } = useAdvisorStore();
+  const { stats, account, setStats } = useStore();
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
-  const [applyingFixId, setApplyingFixId] = useState<string | null>(null);
   const [memCleanerOpen, setMemCleanerOpen] = useState(false);
   const [cpuModalOpen, setCpuModalOpen] = useState(false);
   const [memIntelOpen, setMemIntelOpen] = useState(false);
   const [gpuModalOpen, setGpuModalOpen] = useState(false);
+  const [gpuDetailAvailable, setGpuDetailAvailable] = useState<boolean | null>(null);
   const [diskModalOpen, setDiskModalOpen] = useState(false);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
@@ -337,6 +271,18 @@ export default function Home() {
           console.warn('[SwitchControl] getSystemSpecs returned null/undefined');
           return;
         }
+        if (api?.telemetry?.getGpu) {
+          api.telemetry.getGpu().then((gpuData: any) => {
+            if (gpuData) {
+              const hasDetail = gpuData.load !== undefined || gpuData.temperature !== undefined || gpuData.powerDraw !== undefined || gpuData.clockCore !== undefined || (gpuData.memoryUsed !== undefined && gpuData.vram !== undefined);
+              setGpuDetailAvailable(hasDetail);
+            } else {
+              setGpuDetailAvailable(false);
+            }
+          }).catch(() => setGpuDetailAvailable(false));
+        } else {
+          setGpuDetailAvailable(false);
+        }
         setStats({
           cpuName: specs.cpu?.model || 'Unavailable',
           cpuCores: specs.cpu?.cores || 0,
@@ -360,6 +306,7 @@ export default function Home() {
         console.error('[SwitchControl] Failed to get system specs:', err);
       });
     } else if (api?.system?.getInfo) {
+      setGpuDetailAvailable(false);
       api.system.getInfo().then((info: { totalMemory?: number; freeMemory?: number; cpus?: number } | null) => {
         if (!info) return;
         const totalMem = info.totalMemory || 0;
@@ -373,6 +320,8 @@ export default function Home() {
           cpuThreads: (info.cpus || 0) * 2,
         });
       }).catch(() => {});
+    } else {
+      setGpuDetailAvailable(false);
     }
   }, []);
 
@@ -425,24 +374,6 @@ export default function Home() {
   const currentDiskTotal = selectedDisk?.totalGB ?? stats.diskTotalGb;
   const currentDiskName = selectedDisk?.mount ?? stats.diskName;
   const diskPercent = currentDiskTotal > 0 ? (currentDiskUsed / currentDiskTotal) * 100 : 0;
-
-  const handleApplyFix = async (finding: Finding) => {
-    if (!finding.fix || finding.fix.type !== "app_tweak") return;
-    setApplyingFixId(finding.ruleId);
-    try {
-      setTweak(finding.fix.tweakId, finding.fix.enable);
-      await new Promise((r) => setTimeout(r, 500));
-      const appContext = {
-        tweaks: { ...tweaks, [finding.fix!.tweakId]: finding.fix!.enable },
-        account: { stats: { tweaksApplied: account.stats.tweaksApplied, lastScan: account.stats.lastScan } },
-        isPremium,
-        userId: user?.id || "anonymous",
-      };
-      await reRunAdvisor(appContext);
-    } finally {
-      setApplyingFixId(null);
-    }
-  };
 
   const totalTweaks = TWEAKS_DATA.length;
   const totalServices = 142;
@@ -538,7 +469,7 @@ export default function Home() {
                 title="GPU"
                 value={stats.gpuName}
                 icon={Activity}
-                onIconClick={() => setGpuModalOpen(true)}
+                onIconClick={gpuDetailAvailable !== false ? () => setGpuModalOpen(true) : undefined}
                 subtext={`${stats.vramGb} GB VRAM`}
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
               />
@@ -654,7 +585,7 @@ export default function Home() {
           </Card>
           </motion.div>
 
-          {/* AI Advisor Card - Premium Only */}
+          {/* AI Advisor Summary Widget */}
           <motion.div 
             variants={staggerItem}
             initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
@@ -662,36 +593,17 @@ export default function Home() {
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
             data-tour="ai-advisor"
           >
-            <AIAdvisorCard 
-              isPremium={isPremium}
-              onApplyFix={handleApplyFix}
-              applyingFixId={applyingFixId}
-            />
+            <AIAdvisorSummaryCard isPremium={isPremium} />
           </motion.div>
 
-          {/* App Booster Placeholder */}
+          {/* BIOS Score Summary Card */}
           <motion.div 
             variants={staggerItem}
             initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.2 }}
           >
-            <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 flex flex-col items-center justify-center p-6 text-center space-y-4 h-full">
-            <div className="size-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Rocket className="size-6 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-white">App Booster</h3>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto mt-1">
-                Prioritize your active game process and suppress background tasks automatically.
-              </p>
-            </div>
-            <Link href="/app-booster">
-              <Button variant="outline" className="border-dashed h-8 text-xs">
-                Configure App Booster
-              </Button>
-            </Link>
-          </Card>
+            <BiosScoreSummaryCard isPremium={isPremium} />
           </motion.div>
         </motion.div>
       </div>

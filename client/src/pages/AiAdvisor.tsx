@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -7,12 +7,13 @@ import { Label } from "@/components/ui/label";
 import { GlassCard } from "@/components/ui/glass-card";
 import {
   Brain, Cpu, MonitorCog, MemoryStick, HardDrive, Wifi, Gamepad2,
-  AlertTriangle, CheckCircle, ChevronDown, ChevronUp, Copy, Check,
+  AlertTriangle, ChevronDown, ChevronUp, Copy, Check,
   Loader2, Zap, Shield, RotateCcw, Target, Thermometer, Activity,
   ArrowRight, Info, Sparkles
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
+import { useStore } from "@/lib/store";
 
 const GOALS = [
   { value: "lowest_latency", label: "Lowest Latency", icon: Zap, desc: "Minimize input delay" },
@@ -70,6 +71,7 @@ function RiskBadge({ level }: { level: "low" | "med" | "high" }) {
 
 export default function AiAdvisor() {
   const { prefersReducedMotion } = useMotion();
+  const { stats } = useStore();
   const [goal, setGoal] = useState<Goal>("lowest_latency");
   const [game, setGame] = useState("Fortnite");
   const [system, setSystem] = useState({
@@ -91,6 +93,28 @@ export default function AiAdvisor() {
   const [copied, setCopied] = useState(false);
   const [expandedActions, setExpandedActions] = useState<Set<number>>(new Set());
   const [showTelemetry, setShowTelemetry] = useState(false);
+  const [autoFilled, setAutoFilled] = useState(false);
+
+  useEffect(() => {
+    if (autoFilled) return;
+    const filled: Partial<typeof system> = {};
+    if (stats.cpuName && stats.cpuName !== "Unavailable" && !system.cpu) {
+      filled.cpu = stats.cpuName;
+    }
+    if (stats.gpuName && stats.gpuName !== "Unavailable" && !system.gpu) {
+      filled.gpu = stats.gpuName;
+    }
+    if (stats.totalRamGb && !system.ram) {
+      filled.ram = `${stats.totalRamGb} GB`;
+    }
+    if (stats.diskName && stats.diskName !== "Unavailable" && !system.storage) {
+      filled.storage = stats.diskName;
+    }
+    if (Object.keys(filled).length > 0) {
+      setSystem(prev => ({ ...prev, ...filled }));
+      setAutoFilled(true);
+    }
+  }, [stats, autoFilled, system.cpu, system.gpu, system.ram, system.storage]);
 
   const canSubmit = system.cpu.trim() && system.gpu.trim() && system.ram.trim();
 
@@ -352,9 +376,26 @@ export default function AiAdvisor() {
             </GlassCard>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                <p className="text-xs text-red-400" data-testid="text-ai-error">{error}</p>
-              </div>
+              <GlassCard className="p-4 bg-red-500/5 border-red-500/20">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-red-400 mb-1">Analysis Failed</h3>
+                    <p className="text-xs text-red-300/80 mb-3" data-testid="text-ai-error">{error}</p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-red-500/30 text-red-400 hover:bg-red-500/10"
+                      onClick={() => { setError(null); handleAnalyze(); }}
+                      disabled={loading}
+                      data-testid="button-retry-ai"
+                    >
+                      <RotateCcw className="w-3 h-3 mr-1.5" />
+                      Try Again
+                    </Button>
+                  </div>
+                </div>
+              </GlassCard>
             )}
 
             <Button

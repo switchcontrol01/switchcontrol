@@ -7,13 +7,12 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
 import { 
   Cpu, Zap, MemoryStick, Radio, ChevronRight, AlertTriangle, 
-  CheckCircle, HelpCircle, Crown, Lock, Shield, Gauge, 
-  Activity, TrendingUp, Info, ExternalLink, RotateCcw,
+  CheckCircle, HelpCircle, Shield,
+  Activity, TrendingUp, Info, ExternalLink,
   Sparkles, Loader2, ChevronDown, BookOpen, Target
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
-import { useStore } from "@/lib/store";
 import { useAuth } from "@/hooks/use-auth";
 import { 
   BIOS_SETTINGS, 
@@ -30,7 +29,6 @@ import {
   DISCLAIMER
 } from "@/lib/bios-advisor-data";
 import { GlassCard } from "@/components/ui/glass-card";
-import { PremiumSurface } from "@/components/ui/premium-surface";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 
 type ScanState = "idle" | "initializing" | "collecting" | "evaluating" | "complete";
@@ -60,12 +58,6 @@ const DIFFICULTY_COLORS: Record<string, string> = {
   Easy: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   Moderate: "bg-amber-500/20 text-amber-400 border-amber-500/30",
   Advanced: "bg-red-500/20 text-red-400 border-red-500/30",
-};
-
-const RISK_COLORS: Record<string, string> = {
-  Low: "text-emerald-400",
-  Medium: "text-amber-400",
-  High: "text-red-400",
 };
 
 function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: number; color: string; delay?: number }) {
@@ -367,6 +359,17 @@ export default function BiosAdvisor() {
   const Container = prefersReducedMotion ? "div" : motion.div;
   const Item = prefersReducedMotion ? "div" : motion.div;
 
+  const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
+  const [detectedCount, setDetectedCount] = useState(() => 
+    BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length
+  );
+  const [assumedCount, setAssumedCount] = useState(() =>
+    BIOS_SETTINGS.filter(s => s.detectionStatus === "Assumed").length
+  );
+  const [unknownCount, setUnknownCount] = useState(() =>
+    BIOS_SETTINGS.filter(s => s.detectionStatus === "Unknown").length
+  );
+
   const handleScan = useCallback(() => {
     setScanState("initializing");
     setTimeout(() => setScanState("collecting"), 800);
@@ -374,6 +377,10 @@ export default function BiosAdvisor() {
     setTimeout(() => {
       setScanState("complete");
       setHasScanned(true);
+      setLastScanTime(new Date());
+      setDetectedCount(BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length);
+      setAssumedCount(BIOS_SETTINGS.filter(s => s.detectionStatus === "Assumed").length);
+      setUnknownCount(BIOS_SETTINGS.filter(s => s.detectionStatus === "Unknown").length);
       setTimeout(() => setScanState("idle"), 500);
     }, 3500);
   }, []);
@@ -399,24 +406,61 @@ export default function BiosAdvisor() {
               </p>
             </div>
             
-            <Button 
-              onClick={handleScan} 
-              disabled={isScanning}
-              size="sm" 
-              className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20"
-              data-testid="button-run-scan"
-            >
-              {isScanning ? (
-                <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
-              ) : (
-                <Activity className="w-3.5 h-3.5 mr-1.5" />
+            <div className="flex items-center gap-3">
+              {lastScanTime && (
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  Last scan: {lastScanTime.toLocaleTimeString()}
+                </span>
               )}
-              {isScanning ? "Scanning..." : hasScanned ? "Re-scan BIOS" : "Run Scan"}
-            </Button>
+              <Button 
+                onClick={handleScan} 
+                disabled={isScanning}
+                size="sm" 
+                className="bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20"
+                data-testid="button-run-scan"
+              >
+                {isScanning ? (
+                  <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                ) : (
+                  <Activity className="w-3.5 h-3.5 mr-1.5" />
+                )}
+                {isScanning ? "Scanning..." : hasScanned ? "Re-scan BIOS" : "Run Scan"}
+              </Button>
+            </div>
           </div>
         </Item>
 
         <ScanProgress state={scanState} />
+
+        {hasScanned && (
+          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+            <GlassCard className="p-4 bg-white/[0.02]">
+              <div className="flex items-center gap-4 flex-wrap">
+                <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-primary" />
+                  Detection Summary
+                </h3>
+                <div className="flex items-center gap-3 text-[10px]">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <CheckCircle className="w-3 h-3" />
+                    {detectedCount} Detected
+                  </span>
+                  <span className="flex items-center gap-1 text-amber-400">
+                    <AlertTriangle className="w-3 h-3" />
+                    {assumedCount} Assumed
+                  </span>
+                  <span className="flex items-center gap-1 text-muted-foreground">
+                    <HelpCircle className="w-3 h-3" />
+                    {unknownCount} Unknown
+                  </span>
+                </div>
+                <p className="text-[10px] text-muted-foreground ml-auto">
+                  Detected settings have highest confidence. Assumed values use heuristics. Unknown settings use conservative estimates.
+                </p>
+              </div>
+            </GlassCard>
+          </Item>
+        )}
 
         <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
           <GlassCard className="p-6 bg-gradient-to-br from-[hsl(270,60%,55%)/0.1] to-[hsl(280,70%,65%)/0.05] border-[hsl(270,60%,55%)/0.2]">
