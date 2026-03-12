@@ -1663,22 +1663,25 @@ button, a, nav, header, footer, label {
 }
 
 @keyframes bpChipDrift {
-  0%, 100% { transform: translate(-8%, -6%) rotate(-14deg) translate(0, 0) scale(1); }
-  30% { transform: translate(-8%, -6%) rotate(-14deg) translate(18px, -14px) scale(1.03); }
-  60% { transform: translate(-8%, -6%) rotate(-14deg) translate(-14px, 12px) scale(1.01); }
-  85% { transform: translate(-8%, -6%) rotate(-14deg) translate(8px, -6px) scale(1.04); }
+  0% { transform: translate(-8%, -6%) rotate(-14deg) translate(0, 0) scale(1); }
+  20% { transform: translate(-8%, -6%) rotate(-13deg) translate(18px, -16px) scale(1.03); }
+  45% { transform: translate(-8%, -6%) rotate(-14.5deg) translate(-12px, 14px) scale(1.01); }
+  70% { transform: translate(-8%, -6%) rotate(-13.5deg) translate(10px, -8px) scale(1.04); }
+  100% { transform: translate(-8%, -6%) rotate(-14deg) translate(0, 0) scale(1); }
 }
 
 @keyframes bpGraphsDrift {
-  0%, 100% { transform: translate(6%, 4%) rotate(7deg) translate(0, 0) scale(1); }
-  35% { transform: translate(6%, 4%) rotate(7deg) translate(-20px, 10px) scale(1.02); }
-  65% { transform: translate(6%, 4%) rotate(7deg) translate(16px, -8px) scale(1.04); }
-  90% { transform: translate(6%, 4%) rotate(7deg) translate(-6px, 4px) scale(1.01); }
+  0% { transform: translate(6%, 4%) rotate(7deg) translate(0, 0) scale(1); }
+  25% { transform: translate(6%, 4%) rotate(8deg) translate(-22px, 12px) scale(1.02); }
+  50% { transform: translate(6%, 4%) rotate(6.5deg) translate(16px, -10px) scale(1.04); }
+  75% { transform: translate(6%, 4%) rotate(7.5deg) translate(-8px, 6px) scale(1.01); }
+  100% { transform: translate(6%, 4%) rotate(7deg) translate(0, 0) scale(1); }
 }
 
 @keyframes bpPartsDrift {
-  0%, 100% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(0, 0); }
-  30% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(14px, -16px) scale(1.03); }
-  55% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(-10px, 12px) scale(1.01); }
-  80% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(6px, -8px) scale(1.04); }
+  0% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(0, 0); }
+  20% { transform: translate(-50%, -50%) rotate(-1.5deg) scale(1.14) translate(14px, -18px); }
+  45% { transform: translate(-50%, -50%) rotate(-2.5deg) scale(1.11) translate(-12px, 14px); }
+  70% { transform: translate(-50%, -50%) rotate(-1.8deg) scale(1.15) translate(8px, -10px); }
+  100% { transform: translate(-50%, -50%) rotate(-2deg) scale(1.12) translate(0, 0); }
 }

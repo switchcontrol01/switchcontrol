@@ -21,7 +21,7 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-chip"
         style={{
           position: "absolute",
-          top: "30%",
+          top: "20%",
           left: "4%",
           transform: "translate(-8%, -6%) rotate(-14deg)",
           width: "34vw",
