@@ -1,0 +1,274 @@
+TASK: Finalize AI Advisor and BIOS Advisor honesty + usefulness
+
+PROBLEM
+
+The advisor systems are much better now, but they still have two credibility problems:
+
+1. BIOS Advisor can still feel inferred rather than truly scanned.
+2. AI Advisor is useful, but its recommendations still need to feel more action-driven, ranked, and grounded in the user’s current app state.
+
+If this is not fixed, the app risks feeling polished but fake.
+
+AIM
+
+Make both advisors feel trustworthy, useful, and honest.
+
+AI Advisor should feel like a real state-aware optimization assistant.
+
+BIOS Advisor should feel like a real firmware scoring and guidance system, while being honest about what is detected, assumed, or unknown.
+
+WHAT WE ARE ACHIEVING
+
+After this patch:
+
+- BIOS Advisor clearly shows which inputs were detected vs inferred
+- BIOS rescans rebuild real inputs and explain whether anything actually changed
+- AI Advisor recommendations are ranked and much more actionable
+- AI Advisor clearly shows what is missing, conflicting, and safe to apply
+- Both advisor pages feel more credible and less like static output
+- The user can tell exactly what the system knows and what it is estimating
+
+IMPLEMENTATION
+
+SECTION 1 — BIOS ADVISOR HONESTY LAYER
+
+Problem:
+BIOS Advisor currently risks sounding more certain than it should.
+
+Requirement:
+For every BIOS-related input, explicitly label one of:
+
+- Detected
+- Assumed
+- Unknown
+
+Examples:
+- CPU model: Detected
+- Motherboard model: Detected
+- BIOS version: Detected or Unknown
+- RAM configured speed: Detected
+- EXPO/XMP status: Assumed if not directly readable
+- CPPC / C-State / Spread Spectrum state: Unknown unless genuinely detectable
+
+Implementation:
+1. Add a visible "Scan Inputs" or "Firmware Inputs" section near the top of BIOS Advisor.
+2. For each score input row show:
+   - label
+   - current value
+   - status badge: Detected / Assumed / Unknown
+3. Add a short note:
+   - "BIOS Advisor does not directly read firmware menu states unless detectable from system behavior. Some recommendations are inferred."
+
+Important:
+Do not imply full BIOS inspection if the data is inferred from system state.
+
+SECTION 2 — BIOS RESCAN REALISM
+
+Problem:
+Rescan can still feel cosmetic if score and timing never meaningfully change.
+
+Requirement:
+On rescan, rebuild the full scoring input from fresh system data every time.
+
+Implementation:
+1. On each BIOS Advisor scan or rescan:
+   - re-read CPU
+   - re-read motherboard
+   - re-read BIOS version if available
+   - re-read RAM speed / timings if available
+   - rebuild the full scoring input object
+2. Create a stable hash of the scoring input payload.
+3. Compare the new hash to the previous hash.
+
+If unchanged:
+Show:
+- "No detectable firmware-related input changes since last scan."
+
+If changed:
+Show:
+- "Configuration inputs changed, score recalculated."
+
+4. Show:
+- Last scanned at timestamp
+- Last input change status
+
+5. Make scan duration vary naturally.
+Do not use one identical hardcoded duration every time.
+
+Target:
+- randomized but believable scan duration window
+- around 1.4s to 3.0s
+- no fake identical timing pattern
+
+SECTION 3 — BIOS SCORE EXPLAINABILITY
+
+Problem:
+A score alone feels fake if the user cannot see what drives it.
+
+Requirement:
+Make the score traceable.
+
+Implementation:
+Add a "Score Breakdown" section showing which categories are affecting the score.
+
+Examples:
+- Memory configuration
+- CPU configuration
+- Platform features
+- Boot behavior
+- Latency-related settings
+
+For each category show:
+- current subscore
+- brief explanation
+- biggest missing opportunity in that category
+
+Add a "Top Score Gains" list:
+- ranked by estimated score increase
+- with risk and difficulty labels
+
+SECTION 4 — AI ADVISOR ACTION STRENGTH
+
+Problem:
+AI Advisor recommendations still need to feel more like actions and less like general observations.
+
+Requirement:
+Rank recommendations and make them more specific.
+
+Implementation:
+1. Sort recommendations by:
+   - highest impact first
+   - safest to apply second
+   - conflicts detected third
+2. Add recommendation tags:
+   - Safe Auto Apply
+   - Review First
+   - Manual Only
+3. Ensure at least the top 3 recommendations explicitly explain:
+   - why this matters
+   - what is currently wrong or missing
+   - what improvement is expected
+4. Every action card should include:
+   - title
+   - why
+   - current issue
+   - expected gain
+   - risk
+   - reversible
+   - action tag
+
+Do not allow vague filler like:
+- update drivers
+- optimize settings
+- improve performance
+
+unless tied to real evidence from the machine or app state.
+
+SECTION 5 — AI ADVISOR SUMMARY STRIP
+
+Problem:
+The user should understand the current optimization state instantly.
+
+Requirement:
+Add a top summary strip to AI Advisor.
+
+Display:
+- Missing high-impact tweaks
+- Conflicts detected
+- Safe auto-applies available
+- Last analysis time
+
+This should sit near the top of the page before the detailed recommendations.
+
+SECTION 6 — AI ADVISOR STATE AWARENESS
+
+Problem:
+AI Advisor must clearly reflect the user’s actual current SwitchControl state.
+
+Implementation:
+Use real current app state in the analysis:
+- enabled tweaks
+- disabled tweaks
+- applied categories
+- optimization goal
+- system hardware
+- telemetry if available
+- whether user is effectively a new user
+
+Classify the user into one of:
+- New User
+- Partially Optimized
+- Over-Tweaked / Conflicting
+- Goal Focused
+- Advanced User
+
+Show this classification visibly in the AI Advisor UI.
+
+SECTION 7 — SAFE APPLY BEHAVIOR
+
+Requirement:
+Make action applicability clearer.
+
+For each recommendation:
+- Safe Auto Apply = can be safely applied inside app
+- Review First = user should review before applying
+- Manual Only = informational only, no direct apply
+
+Do not allow BIOS changes to appear as auto-apply.
+Do not allow uncertain recommendations to appear as one-click actions.
+
+SECTION 8 — LANGUAGE HONESTY RULES
+
+Important rules for both advisors:
+
+- Do not imply certainty where data is inferred
+- Do not fake direct BIOS inspection
+- Do not invent BIOS menu paths
+- Do not overstate optimization impact
+- If state is unknown, say unknown
+- If recommendation is inferred, say inferred
+- If no change was detected on rescan, say that clearly
+
+SECTION 9 — VISUAL PRESENTATION
+
+Keep both pages visually consistent with the app:
+- same glass panel language
+- same background continuity
+- same badge styling
+- same typography weight
+- no dead black slabs
+- no plain default lists
+
+Detected / Assumed / Unknown badges should be visually distinct:
+- Detected = green/teal success tone
+- Assumed = amber/yellow caution tone
+- Unknown = muted gray tone
+
+Safe / Review / Manual tags should also be visually distinct and reusable across the app.
+
+SECTION 10 — OPTIONAL HELPFUL DETAILS
+
+If easy to add, include:
+- scan hash comparison result
+- last scan timestamp
+- last score delta
+- why the score stayed the same if unchanged
+
+This helps the BIOS Advisor feel more real.
+
+FINAL CHECKLIST
+
+[ ] BIOS inputs clearly labeled Detected / Assumed / Unknown
+[ ] BIOS Advisor no longer implies full direct firmware inspection when not true
+[ ] BIOS rescan rebuilds real input payload each time
+[ ] BIOS rescan shows whether anything actually changed
+[ ] BIOS scan duration no longer feels identical every time
+[ ] BIOS score includes visible breakdown and top score gains
+[ ] AI Advisor recommendations are ranked by usefulness
+[ ] Top 3 AI actions explain why they matter
+[ ] Safe Auto Apply / Review First / Manual Only tags are visible
+[ ] AI Advisor summary strip added
+[ ] AI Advisor user classification visible
+[ ] No fake certainty in BIOS guidance
+[ ] No console errors
+[ ] UI remains visually consistent with the app

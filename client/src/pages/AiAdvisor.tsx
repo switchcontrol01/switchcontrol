@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useStore } from "@/lib/store";
+import { TWEAKS_DATA } from "@/lib/mock-data";
 
 const GOALS = [
   { value: "lowest_latency", label: "Lowest Latency", icon: Zap, desc: "Minimize input delay" },
@@ -33,6 +34,8 @@ interface AiFinding {
   severity: "low" | "med" | "high";
 }
 
+type ActionTag = "safe_auto" | "review_first" | "manual_only";
+
 interface AiAction {
   title: string;
   why: string;
@@ -43,6 +46,7 @@ interface AiAction {
   confidence?: "low" | "med" | "high";
   autoApplyPossible?: boolean;
   tweakId?: string;
+  currentIssue?: string;
 }
 
 type UserState = "new" | "partial" | "over_tweaked" | "goal_focused" | "advanced";
@@ -55,6 +59,22 @@ interface AiAdviceResponse {
   actions: AiAction[];
   warnings: string[];
   followUps: string[];
+}
+
+function getActionTag(a: AiAction): ActionTag {
+  if (a.autoApplyPossible && a.risk === "low" && a.reversible) return "safe_auto";
+  if (a.autoApplyPossible === false || a.risk === "high" || !a.reversible) return "manual_only";
+  return "review_first";
+}
+
+function ActionTagBadge({ tag }: { tag: ActionTag }) {
+  const styles: Record<ActionTag, { label: string; className: string }> = {
+    safe_auto: { label: "Safe Auto Apply", className: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" },
+    review_first: { label: "Review First", className: "bg-amber-500/10 text-amber-400 border-amber-500/20" },
+    manual_only: { label: "Manual Only", className: "bg-white/5 text-muted-foreground border-white/10" },
+  };
+  const s = styles[tag];
+  return <Badge className={cn("text-[9px]", s.className)}>{s.label}</Badge>;
 }
 
 type Goal = typeof GOALS[number]["value"];
@@ -79,7 +99,7 @@ function RiskBadge({ level }: { level: "low" | "med" | "high" }) {
 
 export default function AiAdvisor() {
   const { prefersReducedMotion } = useMotion();
-  const { stats } = useStore();
+  const { stats, tweaks } = useStore();
   const [goal, setGoal] = useState<Goal>("lowest_latency");
   const [game, setGame] = useState("Fortnite");
   const [system, setSystem] = useState({
@@ -102,6 +122,7 @@ export default function AiAdvisor() {
   const [expandedActions, setExpandedActions] = useState<Set<number>>(new Set());
   const [showTelemetry, setShowTelemetry] = useState(false);
   const [autoFilled, setAutoFilled] = useState(false);
+  const [analysisTime, setAnalysisTime] = useState<Date | null>(null);
 
   useEffect(() => {
     if (autoFilled) return;
@@ -133,10 +154,22 @@ export default function AiAdvisor() {
     setResult(null);
 
     try {
+      const enabledTweaks = TWEAKS_DATA
+        .filter(t => tweaks[t.id])
+        .map(t => ({ id: t.id, title: t.title, category: t.category, risk: t.risk }));
+      const allDisabled = TWEAKS_DATA.filter(t => !tweaks[t.id]);
+      const disabledTweaks = allDisabled
+        .slice(0, 20)
+        .map(t => ({ id: t.id, title: t.title, category: t.category, risk: t.risk }));
+
       const res = await fetch("/api/ai/advice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ goal, game, system, telemetry }),
+        body: JSON.stringify({
+          goal, game, system, telemetry,
+          enabledTweaks, disabledTweaks,
+          tweakSummary: { enabled: enabledTweaks.length, disabled: allDisabled.length, total: TWEAKS_DATA.length },
+        }),
       });
 
       if (!res.ok) {
@@ -147,6 +180,7 @@ export default function AiAdvisor() {
       const data: AiAdviceResponse = await res.json();
       setResult(data);
       setExpandedActions(new Set([0]));
+      setAnalysisTime(new Date());
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
@@ -170,8 +204,9 @@ export default function AiAdvisor() {
       ``,
       `Actions:`,
       ...result.actions.map((a, i) => [
-        `${i + 1}. ${a.title} (Risk: ${a.risk}, Reversible: ${a.reversible ? "Yes" : "No"}${a.expectedGain ? `, Gain: ${a.expectedGain}` : ""}${a.confidence ? `, Confidence: ${a.confidence}` : ""}${a.autoApplyPossible !== undefined ? `, ${a.autoApplyPossible ? "Auto-apply" : "Manual"}` : ""}${a.tweakId ? `, Tweak: ${a.tweakId}` : ""})`,
+        `${i + 1}. ${a.title} [${getActionTag(a) === "safe_auto" ? "Safe Auto Apply" : getActionTag(a) === "review_first" ? "Review First" : "Manual Only"}] (Risk: ${a.risk}, Reversible: ${a.reversible ? "Yes" : "No"}${a.expectedGain ? `, Gain: ${a.expectedGain}` : ""}${a.confidence ? `, Confidence: ${a.confidence}` : ""})`,
         `   Why: ${a.why}`,
+        ...(a.currentIssue ? [`   Issue: ${a.currentIssue}`] : []),
         ...a.steps.map((s, j) => `   ${j + 1}. ${s}`),
       ].join("\n")),
       ...(result.warnings.length > 0 ? [``, `Warnings:`, ...result.warnings.map(w => `- ${w}`)] : []),
@@ -499,6 +534,42 @@ export default function AiAdvisor() {
               )}
             </GlassCard>
 
+            <GlassCard className="p-4 bg-white/[0.02]" data-testid="card-summary-strip">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {(() => {
+                  const safeAutoCount = result.actions.filter(a => getActionTag(a) === "safe_auto").length;
+                  const manualCount = result.actions.filter(a => getActionTag(a) === "manual_only").length;
+                  const conflictCount = result.warnings.length;
+                  const highImpact = result.actions.filter(a => a.confidence === "high" || a.risk === "low").length;
+                  return (
+                    <>
+                      <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10 text-center">
+                        <div className="text-lg font-bold text-emerald-400" data-testid="text-safe-auto-count">{safeAutoCount}</div>
+                        <div className="text-[10px] text-emerald-300/60">Safe Auto Applies</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-primary/5 border border-primary/10 text-center">
+                        <div className="text-lg font-bold text-primary" data-testid="text-high-impact-count">{highImpact}</div>
+                        <div className="text-[10px] text-primary/60">High-Impact Actions</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-amber-500/5 border border-amber-500/10 text-center">
+                        <div className="text-lg font-bold text-amber-400" data-testid="text-conflicts-count">{conflictCount}</div>
+                        <div className="text-[10px] text-amber-300/60">Warnings / Conflicts</div>
+                      </div>
+                      <div className="p-2 rounded-lg bg-white/[0.03] border border-white/[0.06] text-center">
+                        <div className="text-lg font-bold text-muted-foreground" data-testid="text-manual-count">{manualCount}</div>
+                        <div className="text-[10px] text-white/30">Manual Only</div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+              {analysisTime && (
+                <div className="mt-2 text-[10px] text-muted-foreground text-right font-mono">
+                  Last analysis: {analysisTime.toLocaleTimeString()}
+                </div>
+              )}
+            </GlassCard>
+
             {result.topFindings.length > 0 && (
               <GlassCard className="p-5">
                 <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
@@ -557,13 +628,8 @@ export default function AiAdvisor() {
                               {a.expectedGain}
                             </Badge>
                           )}
+                          <ActionTagBadge tag={getActionTag(a)} />
                           <RiskBadge level={a.risk} />
-                          {a.reversible && (
-                            <Badge className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                              <RotateCcw className="w-2.5 h-2.5 mr-1" />
-                              Reversible
-                            </Badge>
-                          )}
                           {isOpen ? <ChevronUp className="w-3.5 h-3.5 text-white/30" /> : <ChevronDown className="w-3.5 h-3.5 text-white/30" />}
                         </button>
                         <AnimatePresence>
@@ -577,30 +643,34 @@ export default function AiAdvisor() {
                             >
                               <div className="px-3 pb-3 space-y-2 border-t border-white/[0.04] pt-2">
                                 <p className="text-[11px] text-white/50">{a.why}</p>
-                                {(a.confidence || a.autoApplyPossible !== undefined) && (
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    {a.confidence && (
-                                      <Badge variant="outline" className={cn("text-[9px]",
-                                        a.confidence === "high" ? "text-emerald-400 border-emerald-500/25" :
-                                        a.confidence === "med" ? "text-amber-400 border-amber-500/25" :
-                                        "text-muted-foreground"
-                                      )}>
-                                        Confidence: {a.confidence}
-                                      </Badge>
-                                    )}
-                                    {a.autoApplyPossible && (
-                                      <Badge variant="outline" className="text-[9px] text-primary border-primary/25">
-                                        <Zap className="w-2.5 h-2.5 mr-1" />
-                                        Auto-apply available
-                                      </Badge>
-                                    )}
-                                    {a.autoApplyPossible === false && (
-                                      <Badge variant="outline" className="text-[9px] text-muted-foreground">
-                                        Manual change required
-                                      </Badge>
-                                    )}
+                                {a.currentIssue && (
+                                  <div className="flex items-start gap-2 p-2 rounded bg-red-500/5 border border-red-500/10 text-[10px]">
+                                    <AlertTriangle className="w-3 h-3 text-red-400 mt-0.5 shrink-0" />
+                                    <span className="text-red-300/80">{a.currentIssue}</span>
                                   </div>
                                 )}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {a.confidence && (
+                                    <Badge variant="outline" className={cn("text-[9px]",
+                                      a.confidence === "high" ? "text-emerald-400 border-emerald-500/25" :
+                                      a.confidence === "med" ? "text-amber-400 border-amber-500/25" :
+                                      "text-muted-foreground"
+                                    )}>
+                                      Confidence: {a.confidence}
+                                    </Badge>
+                                  )}
+                                  {a.reversible && (
+                                    <Badge variant="outline" className="text-[9px] text-emerald-400 border-emerald-500/25">
+                                      <RotateCcw className="w-2.5 h-2.5 mr-1" />
+                                      Reversible
+                                    </Badge>
+                                  )}
+                                  {!a.reversible && (
+                                    <Badge variant="outline" className="text-[9px] text-red-400 border-red-500/25">
+                                      Not Reversible
+                                    </Badge>
+                                  )}
+                                </div>
                                 <div className="space-y-1.5">
                                   {a.steps.map((step, j) => (
                                     <div key={j} className="flex items-start gap-2 p-2 rounded bg-white/[0.02]">

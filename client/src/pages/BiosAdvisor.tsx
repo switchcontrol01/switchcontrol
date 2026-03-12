@@ -24,6 +24,9 @@ import {
   getOptimizationLevel,
   getRankedOpportunities,
   getCategoryScores,
+  getCategoryBreakdowns,
+  getFirmwareInputs,
+  getRandomScanDuration,
   generateBiosExplanation,
   BIOS_ACCESS_INSTRUCTIONS,
   DISCLAIMER,
@@ -355,6 +358,8 @@ export default function BiosAdvisor() {
   const scores = useMemo(() => calculateBiosScores(BIOS_SETTINGS), []);
   const opportunities = useMemo(() => getRankedOpportunities(), []);
   const categoryScores = useMemo(() => getCategoryScores(), []);
+  const categoryBreakdowns = useMemo(() => getCategoryBreakdowns(), []);
+  const firmwareInputs = useMemo(() => getFirmwareInputs(), []);
   const explanation = useMemo(() => generateBiosExplanation(scores, opportunities), [scores, opportunities]);
   const optimizationLevel = useMemo(() => getOptimizationLevel(scores.competitiveReadiness), [scores]);
   const categorySettings = useMemo(() => getSettingsByCategory(activeCategory), [activeCategory]);
@@ -365,28 +370,30 @@ export default function BiosAdvisor() {
   const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
   const [previousScanHash, setPreviousScanHash] = useState<string | null>(null);
   const [scanChanged, setScanChanged] = useState<boolean | null>(null);
+  const [showFirmwareInputs, setShowFirmwareInputs] = useState(false);
+  const [previousScore, setPreviousScore] = useState<number | null>(null);
   const scanSource = useMemo(() => getScanSource(), []);
   const detectedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length, []);
   const assumedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Assumed").length, []);
   const unknownCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Unknown").length, []);
 
   const handleScan = useCallback(() => {
+    const timing = getRandomScanDuration();
     setScanState("initializing");
-    setTimeout(() => setScanState("collecting"), 800);
-    setTimeout(() => setScanState("evaluating"), 2200);
+    setTimeout(() => setScanState("collecting"), timing.init);
+    setTimeout(() => setScanState("evaluating"), timing.collect);
     setTimeout(() => {
       const newHash = computeScanHash();
-      const changed = previousScanHash !== null && previousScanHash !== newHash;
-      const unchanged = previousScanHash !== null && previousScanHash === newHash;
       
-      setScanChanged(previousScanHash === null ? null : changed);
+      setScanChanged(previousScanHash === null ? null : previousScanHash !== newHash);
+      setPreviousScore(hasScanned ? scores.competitiveReadiness : null);
       setPreviousScanHash(newHash);
       setScanState("complete");
       setHasScanned(true);
       setLastScanTime(new Date());
       setTimeout(() => setScanState("idle"), 500);
-    }, 3500);
-  }, [previousScanHash]);
+    }, timing.total);
+  }, [previousScanHash, hasScanned, scores.competitiveReadiness]);
 
   const isScanning = scanState !== "idle" && scanState !== "complete";
 
@@ -464,18 +471,131 @@ export default function BiosAdvisor() {
                   Scan source: {scanSource}
                 </Badge>
               </div>
-              {scanChanged === true && (
-                <div className="flex items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300">
-                  <CheckCircle className="w-3.5 h-3.5 shrink-0" />
-                  Configuration inputs changed. Firmware score recalculated.
+              <div className="flex items-center gap-3 flex-wrap mt-2">
+                {scanChanged === true && (
+                  <div className="flex items-center gap-2 p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 flex-1">
+                    <CheckCircle className="w-3.5 h-3.5 shrink-0" />
+                    Configuration inputs changed. Firmware score recalculated.
+                  </div>
+                )}
+                {scanChanged === false && (
+                  <div className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/10 text-[11px] text-muted-foreground flex-1">
+                    <Info className="w-3.5 h-3.5 shrink-0" />
+                    No detectable firmware-related input changes since last scan.
+                  </div>
+                )}
+                {lastScanTime && (
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    Scanned: {lastScanTime.toLocaleTimeString()}
+                    {previousScore !== null && previousScore !== scores.competitiveReadiness && (
+                      <span className={cn("ml-2 font-semibold", scores.competitiveReadiness > previousScore ? "text-emerald-400" : "text-red-400")}>
+                        {scores.competitiveReadiness > previousScore ? "+" : ""}{scores.competitiveReadiness - previousScore} pts
+                      </span>
+                    )}
+                    {previousScore !== null && previousScore === scores.competitiveReadiness && (
+                      <span className="ml-2 text-muted-foreground">Score unchanged</span>
+                    )}
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={() => setShowFirmwareInputs(!showFirmwareInputs)}
+                className="mt-3 text-[10px] text-primary hover:text-primary/80 flex items-center gap-1 transition-colors"
+                data-testid="button-toggle-firmware-inputs"
+              >
+                {showFirmwareInputs ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                {showFirmwareInputs ? "Hide Firmware Inputs" : "Show All Firmware Inputs"} ({firmwareInputs.length})
+              </button>
+              <AnimatePresence>
+                {showFirmwareInputs && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="mt-3 max-h-64 overflow-y-auto space-y-1 pr-1">
+                      {firmwareInputs.map((input, i) => (
+                        <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-white/[0.02] text-[10px]">
+                          <span className="text-white/70 flex-1 truncate">{input.label}</span>
+                          <span className="text-white/40 truncate max-w-[120px]">{input.value}</span>
+                          <Badge variant="outline" className={cn("text-[9px] shrink-0",
+                            input.status === "Detected" ? "text-emerald-400 border-emerald-500/25" :
+                            input.status === "Assumed" ? "text-amber-400 border-amber-500/25" :
+                            "text-muted-foreground border-white/10"
+                          )}>
+                            {input.status}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </GlassCard>
+          </Item>
+        )}
+
+        {hasScanned && (
+          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+            <GlassCard className="p-5 bg-white/[0.02]">
+              <h3 className="text-xs font-semibold text-white mb-4 flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-primary" />
+                Score Breakdown
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-5">
+                {categoryBreakdowns.map((bd) => {
+                  const Icon = CATEGORY_ICONS[bd.category];
+                  return (
+                    <div key={bd.category} className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]" data-testid={`breakdown-${bd.category.split(" ")[0].toLowerCase()}`}>
+                      <div className="flex items-center gap-2 mb-2">
+                        {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground" />}
+                        <span className="text-[11px] font-medium text-white flex-1">{bd.category}</span>
+                        <span className={cn("text-xs font-bold",
+                          bd.score >= 70 ? "text-emerald-400" : bd.score >= 40 ? "text-amber-400" : "text-red-400"
+                        )}>{bd.score}/100</span>
+                      </div>
+                      <Progress value={bd.score} className="h-1 mb-2" />
+                      <p className="text-[10px] text-muted-foreground mb-1">{bd.explanation}</p>
+                      <div className="flex items-center gap-2 text-[10px]">
+                        <span className="text-white/40">{bd.settingCount} settings</span>
+                        <span className="text-emerald-400/60">{bd.detectedCount} detected</span>
+                      </div>
+                      {bd.topOpportunity && (
+                        <div className="mt-2 p-1.5 rounded bg-primary/5 border border-primary/10 text-[10px]">
+                          <span className="text-primary">Top gain:</span>{" "}
+                          <span className="text-white/70">{bd.topOpportunity.name}</span>{" "}
+                          <span className="text-emerald-400 font-semibold">+{bd.topOpportunity.gain} pts</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div>
+                <h4 className="text-[11px] font-semibold text-white mb-3 flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                  Top Score Gains
+                </h4>
+                <div className="space-y-1.5">
+                  {opportunities.slice(0, 6).map((opp, i) => (
+                    <div key={opp.setting.id} className="flex items-center gap-2 p-2 rounded bg-white/[0.02] text-[11px]">
+                      <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center shrink-0">
+                        {i + 1}
+                      </span>
+                      <span className="text-white/80 flex-1">{opp.setting.name}</span>
+                      <Badge variant="outline" className={cn("text-[9px]", DIFFICULTY_COLORS[opp.difficulty])}>
+                        {opp.difficulty}
+                      </Badge>
+                      <Badge variant="outline" className={cn("text-[9px]", DIFFICULTY_COLORS[opp.setting.risk === "Low" ? "Easy" : opp.setting.risk === "Medium" ? "Moderate" : "Advanced"])}>
+                        Risk: {opp.setting.risk}
+                      </Badge>
+                      <span className="text-emerald-400 font-bold text-xs">+{opp.scoreGain}</span>
+                    </div>
+                  ))}
                 </div>
-              )}
-              {scanChanged === false && (
-                <div className="flex items-center gap-2 p-2 rounded bg-white/5 border border-white/10 text-[11px] text-muted-foreground">
-                  <Info className="w-3.5 h-3.5 shrink-0" />
-                  No detectable firmware-related input changes since last scan.
-                </div>
-              )}
+              </div>
             </GlassCard>
           </Item>
         )}

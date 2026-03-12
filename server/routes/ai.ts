@@ -134,6 +134,7 @@ export interface AiAction {
   confidence: "low" | "med" | "high";
   autoApplyPossible: boolean;
   tweakId?: string;
+  currentIssue?: string;
 }
 
 export type UserState = "new" | "partial" | "over_tweaked" | "goal_focused" | "advanced";
@@ -179,6 +180,7 @@ RULES:
     {
       "title": "specific action name",
       "why": "why this helps their specific setup",
+      "currentIssue": "what is currently wrong or missing on their system",
       "steps": ["step 1", "step 2"],
       "risk": "low|med|high",
       "reversible": true,
@@ -329,6 +331,32 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     const userStates: UserState[] = ["new", "partial", "over_tweaked", "goal_focused", "advanced"];
     const isUserState = (v: any): v is UserState => userStates.includes(v);
 
+    const riskOrder: Record<string, number> = { high: 3, med: 2, low: 1 };
+    const confOrder: Record<string, number> = { high: 3, med: 2, low: 1 };
+
+    const unsortedActions: AiAction[] = (Array.isArray(rawAdvice.actions) ? rawAdvice.actions : []).map((a: any) => ({
+      title: String(a?.title || "Action"),
+      why: String(a?.why || ""),
+      steps: Array.isArray(a?.steps) ? a.steps.map((s: any) => String(s)) : [],
+      risk: isSeverity(a?.risk) ? a.risk : "med",
+      reversible: typeof a?.reversible === "boolean" ? a.reversible : true,
+      expectedGain: String(a?.expectedGain || ""),
+      confidence: isSeverity(a?.confidence) ? a.confidence : "med",
+      autoApplyPossible: typeof a?.autoApplyPossible === "boolean" ? a.autoApplyPossible : false,
+      ...(typeof a?.tweakId === "string" && a.tweakId ? { tweakId: a.tweakId } : {}),
+      ...(typeof a?.currentIssue === "string" && a.currentIssue ? { currentIssue: a.currentIssue } : {}),
+    }));
+
+    const sortedActions = unsortedActions.sort((a, b) => {
+      const confA = confOrder[a.confidence] || 0;
+      const confB = confOrder[b.confidence] || 0;
+      if (confB !== confA) return confB - confA;
+      const riskA = riskOrder[a.risk] || 0;
+      const riskB = riskOrder[b.risk] || 0;
+      if (riskA !== riskB) return riskA - riskB;
+      return (b.autoApplyPossible ? 1 : 0) - (a.autoApplyPossible ? 1 : 0);
+    });
+
     const advice: AiAdviceResponse = {
       summary: String(rawAdvice.summary || ""),
       userState: isUserState(rawAdvice.userState) ? rawAdvice.userState : "partial",
@@ -340,17 +368,7 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
         evidence: String(f?.evidence || ""),
         severity: isSeverity(f?.severity) ? f.severity : "med",
       })),
-      actions: (Array.isArray(rawAdvice.actions) ? rawAdvice.actions : []).map((a: any) => ({
-        title: String(a?.title || "Action"),
-        why: String(a?.why || ""),
-        steps: Array.isArray(a?.steps) ? a.steps.map((s: any) => String(s)) : [],
-        risk: isSeverity(a?.risk) ? a.risk : "med",
-        reversible: typeof a?.reversible === "boolean" ? a.reversible : true,
-        expectedGain: String(a?.expectedGain || ""),
-        confidence: isSeverity(a?.confidence) ? a.confidence : "med",
-        autoApplyPossible: typeof a?.autoApplyPossible === "boolean" ? a.autoApplyPossible : false,
-        ...(typeof a?.tweakId === "string" && a.tweakId ? { tweakId: a.tweakId } : {}),
-      })),
+      actions: sortedActions,
       warnings: Array.isArray(rawAdvice.warnings) ? rawAdvice.warnings.map((w: any) => String(w)) : [],
       followUps: Array.isArray(rawAdvice.followUps) ? rawAdvice.followUps.map((f: any) => String(f)) : [],
     };
