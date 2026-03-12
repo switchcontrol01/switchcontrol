@@ -105,7 +105,7 @@ export function BlueprintImageOverlay() {
         className="bp-layer bp-parts bp-float-3"
         style={{
           position: "absolute",
-          top: "76%",
+          top: "96%",
           left: "28%",
           transform: "translate(-50%, -50%) rotate(-2deg) scale(1.12)",
           width: "40vw",
