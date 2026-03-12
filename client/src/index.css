@@ -1462,18 +1462,6 @@ textarea,
   50% { transform: translateY(6px); opacity: 0.8; }
 }
 
-/* Hero three-column strip divider */
-.ws-feature-strip-divider {
-  height: 1px;
-  background: linear-gradient(90deg,
-    transparent 0%,
-    hsl(270 50% 50% / 0.15) 20%,
-    hsl(40 60% 60% / 0.25) 50%,
-    hsl(270 50% 50% / 0.15) 80%,
-    transparent 100%
-  );
-}
-
 /* Website ambient section glow */
 .ws-section-glow {
   position: relative;

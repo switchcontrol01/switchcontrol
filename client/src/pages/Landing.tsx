@@ -541,14 +541,13 @@ export default function Landing() {
           </div>
           </HeroTiltContainer>
 
-          <div className="absolute bottom-0 inset-x-0 h-64 bg-gradient-to-t from-[#040508]/80 via-[#040508]/30 to-transparent pointer-events-none" />
-          <div className="pointer-events-none absolute inset-x-0 -bottom-32 h-64 blur-[100px] opacity-60" style={{ background: "radial-gradient(circle at 50% 40%, rgba(140,100,255,0.4), transparent 70%)" }} />
+          <div className="absolute bottom-0 inset-x-0 h-64 bg-gradient-to-t from-[#040508] via-[#040508]/50 to-transparent pointer-events-none" />
         </section>
 
-        {/* ──── Three-column Feature Strip (like ToDesktop) ──── */}
-        <section className="py-12 md:py-16 relative" data-reveal>
-          <SectionGlow color="purple" intensity="normal" />
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* ──── Feature Strip + Stats (unified section) ──── */}
+        <section className="relative pb-12 md:pb-16" data-reveal>
+          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 30%, hsl(270 50% 45% / 0.06) 0%, transparent 70%)" }} />
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
               {[
                 { icon: Monitor, title: "System Tweaks", desc: "38+ optimizations to reduce latency and boost responsiveness." },
@@ -566,15 +565,9 @@ export default function Landing() {
                 </Reveal>
               ))}
             </div>
-            <div className="ws-feature-strip-divider mt-12" />
           </div>
-        </section>
 
-        {/* ──── Stats ──── */}
-        <section className="py-12 md:py-16 relative" data-reveal>
-          <SectionGlow color="cyan" intensity="normal" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.02] to-transparent pointer-events-none" />
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 md:mt-20">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-white/[0.04]">
               {STATS.map((stat, i) => (
                 <StatCard key={stat.label} stat={stat} index={i} />
