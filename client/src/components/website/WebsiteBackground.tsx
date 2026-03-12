@@ -141,6 +141,8 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { color: "hsl(280 50% 50%)", size: "550px", position: "top-[45%] right-[-5%]", opacity: 0.15 },
       { color: "hsl(190 70% 45%)", size: "400px", position: "bottom-[15%] left-[30%]", opacity: 0.10 },
       { color: "hsl(260 60% 50%)", size: "300px", position: "bottom-[40%] right-[20%]", opacity: 0.08 },
+      { color: "hsl(260 60% 50%)", size: "600px", position: "top-[20%] right-[10%]", opacity: 0.18 },
+      { color: "hsl(200 80% 40%)", size: "500px", position: "bottom-[10%] left-[40%]", opacity: 0.12 },
     ],
     silhouettes: true,
     bgImages: [

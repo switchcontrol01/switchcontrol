@@ -472,6 +472,11 @@ export default function Landing() {
         {/* ──── Hero ──── */}
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
+
+          <div className="absolute inset-0 pointer-events-none ws-sun-streak-1"></div>
+          <div className="absolute inset-0 pointer-events-none ws-sun-streak-2"></div>
+          <div className="absolute inset-0 pointer-events-none ws-sun-streak-3"></div>
+
           <HeroTiltContainer>
           <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">
             <div className="text-center">
