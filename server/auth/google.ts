@@ -453,32 +453,23 @@ export function setupGoogleAuth(app: Express): void {
       
       console.log("[AUTH] Google callback - source:", source, "user:", user.id);
       
-      // Session rotation to prevent session fixation attacks
-      req.session.regenerate((err) => {
-        if (err) {
-          console.error("[AUTH] Session regenerate error:", err);
-          return next(err);
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error("[AUTH] Login error:", loginErr);
+          return next(loginErr);
         }
         
-        // Re-login user after session regeneration
-        req.login(user, (loginErr) => {
-          if (loginErr) {
-            console.error("[AUTH] Re-login after regenerate error:", loginErr);
-            return next(loginErr);
-          }
+        if (source === 'electron') {
+          const code = generateElectronCode(user.id);
           
-          if (source === 'electron') {
-            const code = generateElectronCode(user.id);
-            
-            console.log("[AUTH] Electron one-time code generated for user:", user.id);
-            return res.redirect(
-              `/auth/success?token=${encodeURIComponent(code)}&provider=google`
-            );
-          } else {
-            console.log("REDIRECTING TO WEBSITE:", nextUrl);
-            return res.redirect(nextUrl);
-          }
-        });
+          console.log("[AUTH] Electron one-time code generated for user:", user.id);
+          return res.redirect(
+            `/auth/success?token=${encodeURIComponent(code)}&provider=google`
+          );
+        } else {
+          console.log("REDIRECTING TO WEBSITE:", nextUrl);
+          return res.redirect(nextUrl);
+        }
       });
     }
   );

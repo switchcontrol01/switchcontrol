@@ -1,0 +1,232 @@
+ASK: Diagnose and fix Google login finalization bug affecting both website and Electron
+
+PROBLEM
+
+Google login is not completing reliably across the full app.
+
+This is not only an Electron issue.
+The same problem also happens on the website.
+
+Observed behavior:
+- user clicks Continue with Google
+- Google auth flow starts
+- account selection succeeds
+- backend callback appears to run
+- app does not consistently enter authenticated state
+- login may loop, stall, or show incorrect failure/cancel messaging
+- user may remain on login screen even though auth partially succeeded
+
+Because this affects both the website and Electron, the root problem is likely in shared auth finalization logic, session persistence, frontend auth state synchronization, redirect handling, or post-login auth verification.
+
+GOAL
+
+Fix Google login so it completes correctly on both:
+- website
+- Electron app
+
+Correct behavior must be:
+
+Website:
+- user clicks Continue with Google
+- Google auth succeeds
+- backend callback succeeds
+- session/auth state is established correctly
+- frontend detects authenticated user
+- user is redirected into the app
+- no login loop
+- no false failure/cancel state
+
+Electron:
+- same shared auth success path must work
+- Electron-specific handoff must also work correctly
+- no deep-link loop
+- no false cancel
+- no stuck login state
+
+IMPLEMENTATION
+
+SECTION 1 — TRACE SHARED AUTH FLOW FIRST
+
+Inspect the shared auth flow used by both website and Electron:
+
+- Google auth start route
+- backend callback
+- session creation
+- cookie creation
+- post-login redirect
+- current-user/session validation endpoint
+- frontend auth store/session bootstrap
+- route guards / login redirect logic
+
+Do not start with Electron-only logic.
+First identify the shared failure point affecting both web and desktop.
+
+SECTION 2 — VERIFY BACKEND CALLBACK ACTUALLY CREATES A USABLE AUTH SESSION
+
+Inspect the Google callback handler and confirm:
+
+- user is authenticated successfully
+- session or auth token is actually created
+- callback sets the correct cookie/session state
+- callback does not silently succeed without establishing a usable logged-in state
+- redirect happens only after auth session is valid
+
+If session is cookie-based, verify the cookie attributes carefully.
+
+SECTION 3 — VERIFY COOKIE / SESSION CONFIGURATION
+
+Audit the auth/session cookie configuration.
+
+Check for issues with:
+- secure
+- sameSite
+- domain
+- path
+- httpOnly
+- expiration
+- production vs development config
+- cross-origin or subdomain mismatch
+- credentials not being sent on API requests
+
+Because the problem affects both website and Electron, a cookie/session persistence bug is highly likely.
+
+SECTION 4 — VERIFY FRONTEND AUTH BOOTSTRAP
+
+Inspect the frontend logic that determines whether the user is logged in after callback.
+
+Examples:
+- auth store initialization
+- /api/me
+- /api/auth/me
+- session bootstrap request
+- refreshEntitlements
+- current user fetch
+- login page redirect guard
+- app router auth checks
+
+Confirm:
+- after Google callback, frontend correctly fetches authenticated user/session
+- successful auth result updates the store/UI
+- auth is not incorrectly reset to logged out
+- route guards are not redirecting back to login prematurely
+
+SECTION 5 — FIND LOGIN LOOP SOURCE
+
+Determine exactly where the loop is coming from:
+
+A. backend callback succeeds but session is not created correctly  
+B. session exists but frontend bootstrap request does not include credentials  
+C. frontend bootstrap endpoint returns unauthenticated incorrectly  
+D. login page/local state overwrites successful auth state  
+E. redirect/guard logic checks auth too early and loops back to login  
+F. Electron-specific handoff adds a second bug on top of the shared web bug
+
+Report which one is actually happening.
+
+SECTION 6 — FIX WEBSITE LOGIN FIRST AS SHARED BASELINE
+
+Before applying Electron-specific fixes, make website Google login fully reliable.
+
+Required result:
+- website login succeeds end-to-end
+- user lands authenticated
+- no loop
+- no false cancel/failure
+- no stale login screen
+
+This will establish whether the remaining Electron problem is shared or Electron-specific.
+
+SECTION 7 — THEN VERIFY ELECTRON-SPECIFIC HANDOFF
+
+After shared web auth is fixed, inspect Electron-specific layers:
+
+- deep-link callback
+- protocol handling
+- exchange code/token flow
+- auth state commit in Electron renderer
+- any cancel/timeout logic in Login.tsx
+
+If Electron still fails after website auth is reliable, isolate the remaining desktop-specific issue.
+
+SECTION 8 — FIX FALSE FAILURE/CANCEL UI STATES
+
+Audit any login UI logic that can incorrectly display:
+- login canceled
+- login failed
+- timeout
+- browser closed
+
+Make sure these states only appear on confirmed failure, not when auth actually succeeded but frontend/store synchronization lagged behind.
+
+SECTION 9 — ADD SAFE AUTH FLOW LOGGING
+
+Add structured logs for:
+- auth start
+- callback hit
+- session created
+- cookie set
+- redirect target
+- frontend bootstrap request
+- bootstrap result
+- auth store update
+- route guard decision
+- Electron deep-link receipt if applicable
+
+Do not log tokens or secrets.
+
+SECTION 10 — VERIFY BOTH FLOWS END-TO-END
+
+Confirm both of these work:
+
+Website:
+- login starts
+- callback succeeds
+- session persists
+- frontend recognizes login
+- app opens authenticated
+
+Electron:
+- same shared auth works
+- Electron handoff completes
+- app becomes authenticated
+- no loop
+- no false cancel
+
+CHECKLIST
+
+[ ] Shared auth flow was traced end-to-end
+[ ] Exact failure point affecting website was identified
+[ ] Backend callback creates a valid auth session
+[ ] Cookie/session configuration was verified
+[ ] Frontend auth bootstrap correctly recognizes logged-in user
+[ ] Website login no longer loops
+[ ] Website login no longer shows false failure/cancel state
+[ ] Electron-specific handoff was re-tested after shared auth fix
+[ ] Electron login also completes correctly
+[ ] No sensitive auth data is logged
+[ ] No console/runtime errors introduced
+
+FINAL OUTPUT
+
+After fixing, report:
+
+- files changed
+- exact shared failure point found
+- whether the issue was backend callback, cookie/session config, frontend auth bootstrap, route guards, or Electron-specific logic
+- what was changed for website login
+- what was changed for Electron login
+- whether the issue was one shared bug or multiple stacked bugs
+- confirmation that both website and Electron now log in correctly
+
+OPTIONAL CODE
+
+If helpful, refactor auth completion into one shared post-login verification flow:
+
+- callback/session established
+- frontend performs one authenticated current-user check
+- auth store commits logged-in state
+- route guards wait for auth bootstrap to finish before redirecting
+
+Important:
+do not let login page local state, route guards, and auth store compete with each other.
+Use one authoritative authenticated-state resolution path.
