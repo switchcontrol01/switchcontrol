@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
 const os = require('os');
@@ -114,38 +114,17 @@ function createWindow() {
   });
 
   if (isDev) {
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-      // DevTools shortcuts
-      // F12
-      if (input.key.toLowerCase() === 'f12') {
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
-      // Ctrl+Shift+I (Windows/Linux)
-      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
-      // Ctrl+Shift+J (Windows/Linux)
-      if (input.control && input.shift && input.key.toLowerCase() === 'j') {
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
-      // Cmd+Option+I (macOS)
-      if (input.meta && input.alt && input.key.toLowerCase() === 'i') {
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
-      // Cmd+Option+J (macOS)
-      if (input.meta && input.alt && input.key.toLowerCase() === 'j') {
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
+    // Register global keyboard shortcuts for DevTools
+    globalShortcut.register('F12', () => {
+      if (mainWindow) mainWindow.webContents.toggleDevTools();
+    });
+    
+    globalShortcut.register('CmdOrCtrl+Shift+I', () => {
+      if (mainWindow) mainWindow.webContents.toggleDevTools();
+    });
+    
+    globalShortcut.register('CmdOrCtrl+Shift+J', () => {
+      if (mainWindow) mainWindow.webContents.toggleDevTools();
     });
   }
 
@@ -986,6 +965,32 @@ app.whenReady().then(() => {
         .catch(err => console.error('[DEBUG] COOKIE PERSIST FAIL:', cookie.name, err));
     }
   });
+
+  // Setup dev menu with DevTools option
+  if (isDev) {
+    const menu = Menu.buildFromTemplate([
+      {
+        label: 'Dev',
+        submenu: [
+          {
+            label: 'Toggle DevTools',
+            accelerator: 'CmdOrCtrl+Shift+I',
+            click: (menuItem, window) => {
+              if (window) window.webContents.toggleDevTools();
+            }
+          },
+          {
+            label: 'Reload',
+            accelerator: 'CmdOrCtrl+R',
+            click: (menuItem, window) => {
+              if (window) window.webContents.reload();
+            }
+          }
+        ]
+      }
+    ]);
+    Menu.setApplicationMenu(menu);
+  }
 
   createWindow();
 });
