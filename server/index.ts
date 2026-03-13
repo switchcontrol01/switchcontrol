@@ -74,19 +74,30 @@ const allowedOrigins = isProd
       "http://127.0.0.1:5173",
     ];
 
+const replitDevDomain = process.env.REPLIT_DEV_DOMAIN;
+
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
+    if (!isProd && (
+      origin.endsWith(".replit.dev") ||
+      origin.endsWith(".replit.app") ||
+      origin.endsWith(".kirk.replit.dev") ||
+      (replitDevDomain && origin.includes(replitDevDomain))
+    )) {
+      return callback(null, true);
+    }
+    console.warn(`[CORS] Blocked origin: ${origin}`);
     const err: any = new Error("CORS blocked");
     err.status = 403;
     return callback(err);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token', 'x-device-id'],
   exposedHeaders: ['X-Auth-Mode'],
 }));
 const httpServer = createServer(app);

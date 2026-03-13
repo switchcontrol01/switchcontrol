@@ -169,11 +169,15 @@ export default function AiAdvisor() {
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err: any) {
-      setError(err.message || "Something went wrong.");
+      const isNetworkError = err instanceof TypeError && err.message === "Failed to fetch";
+      const displayMsg = isNetworkError
+        ? "Could not reach the server. Please check your connection and try again."
+        : (err.message || "Something went wrong.");
+      setError(displayMsg);
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
         role: "system",
-        content: err.message || "Failed to get response. Please try again.",
+        content: displayMsg,
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMsg]);

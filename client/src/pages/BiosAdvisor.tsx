@@ -569,7 +569,10 @@ export default function BiosAdvisor() {
         setPhotoError("No BIOS settings could be identified in this image. Try a clearer photo.");
       }
     } catch (err: any) {
-      setPhotoError(err.message || "Photo analysis failed");
+      const isNetworkError = err instanceof TypeError && err.message === "Failed to fetch";
+      setPhotoError(isNetworkError
+        ? "Could not reach the server. Please check your connection and try again."
+        : (err.message || "Photo analysis failed"));
     } finally {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";

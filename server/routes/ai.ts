@@ -8,32 +8,30 @@ const aiRouter = Router();
 
 const aiLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
-  max: 3,
+  max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { keyGeneratorIpFallback: false },
   keyGenerator: (req: Request) => {
     const userId = (req as any).session?.userId;
     if (userId) return `user:${userId}`;
     const raw = req.headers["x-device-id"] as string | undefined;
     if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `device:${raw}`;
-    return req.ip || "unknown";
+    return req.ip || req.socket?.remoteAddress || "fallback";
   },
   message: { error: "Too many AI requests. Please wait a few minutes.", retryAfterSeconds: 300 },
 });
 
 const aiHourlyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 15,
+  max: 40,
   standardHeaders: true,
   legacyHeaders: false,
-  validate: { keyGeneratorIpFallback: false },
   keyGenerator: (req: Request) => {
     const userId = (req as any).session?.userId;
     if (userId) return `hourly:${userId}`;
     const raw = req.headers["x-device-id"] as string | undefined;
     if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `hourly:device:${raw}`;
-    return `hourly:${req.ip || "unknown"}`;
+    return `hourly:${req.ip || req.socket?.remoteAddress || "fallback"}`;
   },
   message: { error: "Hourly AI request limit reached. Please try again later.", retryAfterSeconds: 3600 },
 });
