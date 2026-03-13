@@ -112,11 +112,10 @@ app.on('open-url', (event, url) => {
 });
 
 function createWindow() {
-  const windowTitle = isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl';
-  console.log('[BOOT] Creating window with title:', windowTitle);
+  console.log('[BOOT] Creating window with DevTools enabled');
   mainWindow = new BrowserWindow({
-    title: windowTitle,
-    width: isDev ? 1300 : 1280,
+    title: 'SwitchControl DEBUG BUILD',
+    width: 1300,
     height: 800,
     show: false,
     backgroundColor: '#0b0b0b',
@@ -126,36 +125,34 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: isDev,
+      devTools: true,
     }
   });
 
   // Add keyboard shortcut handler for DevTools (before-input-event)
-  if (isDev) {
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-      // F12 = toggle DevTools
-      if (input.key.toLowerCase() === 'f12') {
-        console.log('[DevTools] F12 pressed - toggling DevTools');
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
-      // Ctrl+Shift+I = toggle DevTools
-      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-        console.log('[DevTools] Ctrl+Shift+I pressed - toggling DevTools');
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
-      // Ctrl+Shift+J = toggle DevTools console
-      if (input.control && input.shift && input.key.toLowerCase() === 'j') {
-        console.log('[DevTools] Ctrl+Shift+J pressed - toggling DevTools');
-        mainWindow.webContents.toggleDevTools();
-        event.preventDefault();
-        return;
-      }
-    });
-  }
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    // F12 = toggle DevTools
+    if (input.key.toLowerCase() === 'f12') {
+      console.log('[DevTools] F12 pressed - toggling DevTools');
+      mainWindow.webContents.toggleDevTools();
+      event.preventDefault();
+      return;
+    }
+    // Ctrl+Shift+I = toggle DevTools
+    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+      console.log('[DevTools] Ctrl+Shift+I pressed - toggling DevTools');
+      mainWindow.webContents.toggleDevTools();
+      event.preventDefault();
+      return;
+    }
+    // Ctrl+Shift+J = toggle DevTools console
+    if (input.control && input.shift && input.key.toLowerCase() === 'j') {
+      console.log('[DevTools] Ctrl+Shift+J pressed - toggling DevTools');
+      mainWindow.webContents.toggleDevTools();
+      event.preventDefault();
+      return;
+    }
+  });
 
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
@@ -222,17 +219,15 @@ function createWindow() {
     console.log('[SwitchControl] Renderer did-finish-load');
     rendererReady = true;
 
-    if (isDev) {
-      console.log('[DevTools] FORCING DEVTOOLS OPEN');
-      setTimeout(() => {
-        try {
-          mainWindow?.webContents.openDevTools({ mode: 'detach' });
-          console.log('[DevTools] openDevTools called successfully');
-        } catch (err) {
-          console.error('[DevTools] Failed to open DevTools:', err);
-        }
-      }, 500);
-    }
+    console.log('[DevTools] FORCING DEVTOOLS OPEN');
+    setTimeout(() => {
+      try {
+        mainWindow?.webContents.openDevTools({ mode: 'detach' });
+        console.log('[DevTools] openDevTools called successfully');
+      } catch (err) {
+        console.error('[DevTools] Failed to open DevTools:', err);
+      }
+    }, 500);
 
     if (pendingDeepLinkUrl) {
       console.log('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
@@ -959,16 +954,14 @@ app.whenReady().then(() => {
   const isDefault = app.isDefaultProtocolClient('switchcontrol');
   console.log('[DeepLink][MAIN] protocol registered:', isDefault);
 
-  // Register DevTools IPC handler (fallback method)
-  if (isDev) {
-    ipcMain.handle('app:openDevTools', (event) => {
-      console.log('[DevTools] IPC handler called - opening DevTools');
-      if (mainWindow) {
-        mainWindow.webContents.openDevTools({ mode: 'detach' });
-      }
-      return { success: true };
-    });
-  }
+  // Register DevTools IPC handler (always available for debugging)
+  ipcMain.handle('app:openDevTools', (event) => {
+    console.log('[DevTools] IPC handler called - opening DevTools');
+    if (mainWindow) {
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    }
+    return { success: true };
+  });
 
   // DEBUG ISSUE 1: Log all cookies on app ready
   const { session } = require('electron');
