@@ -261,7 +261,7 @@ export default function PremiumSuccess() {
   }, [navigate, queryClient]);
 
   const handleOpenApp = useCallback(() => {
-    window.location.href = `switchcontrol://auth/success?premium_activated=true&source=web&ts=${Date.now()}`;
+    window.location.href = `switchcontrol://auth/callback?premium_activated=true&source=web&ts=${Date.now()}`;
   }, []);
 
   return (

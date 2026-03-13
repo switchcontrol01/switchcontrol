@@ -52,25 +52,23 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number }>>([]);
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const { oauthDeepLinkReceived, oauthError } = useAuthStore();
+  const { electronAuthState, oauthError } = useAuthStore();
 
   const clearAllTimers = useCallback(() => {
     if (oauthTimeoutRef.current) {
       clearTimeout(oauthTimeoutRef.current);
       oauthTimeoutRef.current = null;
     }
-    console.log('[Login] All timers cleared');
   }, []);
 
   useEffect(() => {
-    if (oauthDeepLinkReceived) {
-      console.log('[Login] Deep link received — clearing timeout, loading, and error state');
+    if (electronAuthState === 'callback_received' || electronAuthState === 'exchanging' || electronAuthState === 'authenticated') {
+      console.log('[Login] Auth state reached', electronAuthState, '— clearing UI');
       clearAllTimers();
       setIsLoading(null);
       setError(null);
-      useAuthStore.getState().setOauthDeepLinkReceived(false);
     }
-  }, [oauthDeepLinkReceived, clearAllTimers]);
+  }, [electronAuthState, clearAllTimers]);
 
   useEffect(() => {
     if (oauthError) {
@@ -101,6 +99,7 @@ export default function Login() {
 
   const handleCancel = useCallback(() => {
     console.log('[Login] User cancelled login');
+    useAuthStore.getState().setElectronAuthState('cancelled');
     clearAllTimers();
     setIsLoading(null);
     setError(null);
@@ -109,7 +108,7 @@ export default function Login() {
   const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
     setError(null);
-    useAuthStore.getState().setOauthDeepLinkReceived(false);
+    useAuthStore.getState().setElectronAuthState('opening_browser');
     
     const api = (window as any).electronAPI;
     const isElectron = api?.isElectron && api?.openExternal;
@@ -119,21 +118,24 @@ export default function Login() {
       console.log('[Login] Opening external auth URL:', authUrl);
       try {
         await api.openExternal(authUrl);
+        useAuthStore.getState().setElectronAuthState('waiting_for_callback');
 
         clearAllTimers();
         oauthTimeoutRef.current = setTimeout(() => {
-          if (useAuthStore.getState().oauthDeepLinkReceived) {
-            console.log('[Login] OAuth timeout fired but deep link already received — ignoring');
+          const currentState = useAuthStore.getState().electronAuthState;
+          if (currentState === 'callback_received' || currentState === 'exchanging' || currentState === 'authenticated') {
+            console.log('[Login] Timeout fired but auth already progressed to', currentState, '— ignoring');
             return;
           }
-          console.warn('[Login] OAuth timeout — no deep link received within', OAUTH_TIMEOUT_MS, 'ms');
+          console.warn('[Login] OAuth timeout — no callback within', OAUTH_TIMEOUT_MS, 'ms');
+          useAuthStore.getState().setElectronAuthState('timed_out');
           setIsLoading(null);
           setError("Login timed out. Please try again.");
           oauthTimeoutRef.current = null;
         }, OAUTH_TIMEOUT_MS);
-        console.log(`[Login] OAuth timeout started (${OAUTH_TIMEOUT_MS / 1000}s)`);
       } catch (err) {
         console.error('[Login] Failed to open auth URL:', err);
+        useAuthStore.getState().setElectronAuthState('failed');
         setError("Failed to open browser. Please try again.");
         setIsLoading(null);
       }

@@ -269,20 +269,20 @@ function ElectronAppContent() {
     const api = (window as any).electronAPI;
 
     api.auth.onCallback(async (url: string) => {
-      console.log('[PremiumFlow] deep-link received:', url);
-      useAuthStore.getState().setOauthDeepLinkReceived(true);
+      console.log('[DeepLink] callback received:', url);
+      useAuthStore.getState().setElectronAuthState('callback_received');
 
       try {
         const parsed = new URL(url);
-        const newToken = parsed.searchParams.get('token');
+        const authCode = parsed.searchParams.get('code') || parsed.searchParams.get('token');
         const provider = parsed.searchParams.get('provider');
         const premiumActivated = parsed.searchParams.get('premium_activated') === 'true';
         const currentUser = useAuthStore.getState().user;
 
-        console.log('[PremiumFlow] parsed — token:', newToken ? 'present' : 'missing', 'provider:', provider, 'premiumActivated:', premiumActivated, 'currentUserLoggedIn:', currentUser?.loggedIn);
+        console.log('[DeepLink] parsed — code:', authCode ? 'present' : 'missing', 'provider:', provider, 'premiumActivated:', premiumActivated, 'currentUserLoggedIn:', currentUser?.loggedIn);
 
         if (premiumActivated && currentUser?.loggedIn) {
-          console.log('[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements with retries...');
+          console.log('[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements...');
 
           const result = await retryRefreshEntitlements({
             attempts: 30,
@@ -292,21 +292,23 @@ function ElectronAppContent() {
 
           if (result.ok && result.user?.isPremium) {
             console.log('[PremiumFlow] Premium confirmed — entitlement useEffect will handle animation');
+            useAuthStore.getState().setElectronAuthState('authenticated');
             return;
           }
 
           console.warn('[PremiumFlow] Premium not confirmed after retries — showing pending modal');
           setShowPendingActivation(true);
+          useAuthStore.getState().setElectronAuthState('authenticated');
           return;
         }
 
-        if (newToken) {
-          console.log('[Auth] exchangeToken starting — DO NOT clear store beforehand');
+        if (authCode) {
+          useAuthStore.getState().setElectronAuthState('exchanging');
           useAuthStore.getState().setValidating(true);
 
           const EXCHANGE_TIMEOUT_MS = 15_000;
           const exchangedUser = await Promise.race([
-            exchangeToken(newToken),
+            exchangeToken(authCode),
             new Promise<null>((resolve) => setTimeout(() => {
               console.warn('[Auth] exchangeToken timed out after', EXCHANGE_TIMEOUT_MS, 'ms');
               resolve(null);
@@ -314,14 +316,10 @@ function ElectronAppContent() {
           ]);
 
           if (exchangedUser) {
-            useAuthStore.getState().setToken(newToken);
+            useAuthStore.getState().setToken(authCode);
             useAuthStore.getState().setUser(exchangedUser);
-            console.log(`[Auth] exchangeToken success — user=${exchangedUser.id} provider=${provider} ts=${Date.now()}`);
-
-            if ((window as any).electronAPI?.debugCookies) {
-              const cookies = await (window as any).electronAPI.debugCookies();
-              console.log('[Auth][RENDERER] Electron cookies after exchangeToken:', cookies);
-            }
+            useAuthStore.getState().setElectronAuthState('authenticated');
+            console.log(`[Auth] exchange success — user=${exchangedUser.id} provider=${provider}`);
 
             const welcomeKey = `sc_welcomed_${exchangedUser.id}`;
             const hasBeenWelcomed = localStorage.getItem(welcomeKey);
@@ -336,33 +334,36 @@ function ElectronAppContent() {
             }
 
             if (premiumActivated) {
-              console.log('[PremiumFlow] Token exchange + premiumActivated — retrying until premium confirmed...');
+              console.log('[PremiumFlow] Exchange + premiumActivated — retrying entitlements...');
               const premResult = await retryRefreshEntitlements({
                 attempts: 30,
                 delayMs: 1000,
                 initialDelayMs: 300,
               });
               if (premResult.ok && premResult.user?.isPremium) {
-                console.log('[PremiumFlow] Premium confirmed after login — entitlement useEffect will handle animation');
+                console.log('[PremiumFlow] Premium confirmed after login');
               } else {
-                console.warn('[PremiumFlow] Premium not confirmed after login retries — showing pending');
+                console.warn('[PremiumFlow] Premium not confirmed — showing pending');
                 setShowPendingActivation(true);
               }
             }
           } else {
-            console.error('[App] Token exchange failed — setting unauthenticated (NO cookie clear)');
+            console.error('[Auth] Exchange failed — setting unauthenticated');
+            useAuthStore.getState().setElectronAuthState('failed');
             useAuthStore.getState().clear();
             setPhase("unauthenticated");
             useAuthStore.getState().setOauthError('Login failed. Please try again.');
           }
           useAuthStore.getState().setValidating(false);
         } else if (!premiumActivated) {
-          console.log('[App] Deep link with no token and no premium flag — going to login');
-          useAuthStore.getState().setOauthError('Login failed — no authentication token received.');
+          console.log('[DeepLink] No code and no premium flag — going to login');
+          useAuthStore.getState().setElectronAuthState('failed');
+          useAuthStore.getState().setOauthError('Login failed — no authentication code received.');
           setPhase("unauthenticated");
         }
       } catch (err) {
-        console.error('[App] Error parsing auth callback:', err);
+        console.error('[DeepLink] Error processing callback:', err);
+        useAuthStore.getState().setElectronAuthState('failed');
         useAuthStore.getState().setOauthError('Login failed. Please try again.');
         useAuthStore.getState().setValidating(false);
         setPhase("unauthenticated");

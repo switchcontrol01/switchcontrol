@@ -75,6 +75,15 @@ Premium-only BIOS firmware analysis page at `/bios-advisor` (`client/src/pages/B
 ### Electron Desktop App
 The Electron app provides a unified `window.electronAPI` interface via `preload.js` for interacting with native system features. It uses the `systeminformation` package for real hardware data (CPU, GPU, RAM), offers native tweak execution (via `tweak-executor.js`), and includes a native Rust-based RAM cleaner.
 
+### Electron Auth Flow (Rebuilt)
+- **Deep-link format**: `switchcontrol://auth/callback?code=ONE_TIME_CODE&provider=google|discord`
+- **Desktop success page**: `/auth/desktop-success?code=...&provider=...` — auto-opens app via deep-link, renders visible "Open SwitchControl" manual fallback button, shows instructions if app doesn't open
+- **Exchange endpoint**: `POST /api/auth/exchange` with `Authorization: Bearer CODE` — consumes one-time code, returns JWT + user data
+- **Auth state machine** in `auth-store.ts`: `idle → opening_browser → waiting_for_callback → callback_received → exchanging → authenticated`. Terminal states (`callback_received`, `exchanging`, `authenticated`) block `timed_out`/`cancelled` transitions to prevent success being overwritten
+- **Protocol registration**: Logged on startup with `[Protocol] Registration result:` and `[Protocol] Is default handler:` in Electron main process
+- **Callback chain**: Main process receives deep-link via `second-instance` (Windows) or `open-url` (macOS), queues if renderer not ready, sends `auth-callback` IPC to renderer. Renderer parses `code` param, calls exchange, commits user state
+- **Premium purchase deep-links**: `switchcontrol://auth/callback?premium_activated=true` (standardized from old `auth/success` path)
+
 ### Native RAM Cleaner
 A Rust helper binary (`sc_memory.exe`) performs simulated RAM trimming using safe Win32 APIs (EmptyWorkingSet). It offers multiple modes (safe, smart, advanced) and outputs JSON results, integrated via IPC from Electron.
 

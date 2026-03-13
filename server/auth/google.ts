@@ -266,15 +266,17 @@ export function setupGoogleAuth(app: Express): void {
   }
 
   // OAuth success page for Electron - shows message and tries to close tab
-  app.get("/auth/success", (req, res) => {
-    const token = req.query.token as string;
+  app.get("/auth/desktop-success", (req, res) => {
+    const code = req.query.code as string;
     const provider = req.query.provider as string || 'google';
     
-    if (!token) {
-      return res.status(400).send("Missing authentication token");
+    if (!code) {
+      return res.status(400).send("Missing authentication code");
     }
     
-    const deepLink = `switchcontrol://auth/success?token=${encodeURIComponent(token)}&provider=${provider}`;
+    const deepLink = `switchcontrol://auth/callback?code=${encodeURIComponent(code)}&provider=${provider}`;
+    
+    console.log(`[AUTH] Desktop success page — provider=${provider} deepLink=switchcontrol://auth/callback?code=***&provider=${provider}`);
     
     res.send(`
       <!DOCTYPE html>
@@ -302,7 +304,7 @@ export function setupGoogleAuth(app: Express): void {
             border-radius: 1.5rem;
             border: 1px solid rgba(139, 92, 246, 0.2);
             box-shadow: 0 0 60px rgba(139, 92, 246, 0.15);
-            max-width: 420px;
+            max-width: 440px;
             animation: fadeIn 0.5s ease-out;
           }
           @keyframes fadeIn {
@@ -349,11 +351,41 @@ export function setupGoogleAuth(app: Express): void {
             margin-bottom: 1.5rem;
             line-height: 1.5;
           }
-          .hint {
+          .open-btn {
+            display: inline-block;
+            padding: 0.875rem 2rem;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 0.75rem;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
+            margin-bottom: 1rem;
+          }
+          .open-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
+            background: linear-gradient(135deg, #9b6cf6, #8b5cf6);
+          }
+          .open-btn:active {
+            transform: translateY(0);
+          }
+          .fallback {
             color: #71717a;
             font-size: 0.875rem;
             padding-top: 1rem;
             border-top: 1px solid rgba(255,255,255,0.1);
+            line-height: 1.6;
+          }
+          .status {
+            color: #a1a1aa;
+            font-size: 0.8125rem;
+            margin-bottom: 1rem;
+            min-height: 1.2em;
           }
           .glow {
             position: fixed;
@@ -381,19 +413,32 @@ export function setupGoogleAuth(app: Express): void {
             </svg>
           </div>
           <h1>Login Successful!</h1>
-          <p class="subtitle">You've been signed in to SwitchControl.<br>Returning to the app...</p>
-          <p class="hint">You can close this tab now.</p>
+          <p class="subtitle">You've been signed in to SwitchControl.</p>
+          <p class="status" id="status">Opening the app...</p>
+          <a href="${deepLink}" class="open-btn" id="openBtn">Open SwitchControl</a>
+          <p class="fallback">
+            Click the button above if the app didn't open automatically.<br>
+            You can close this tab after the app opens.
+          </p>
         </div>
         <script>
-          // Redirect to the deep link to open the Electron app
-          window.location.href = "${deepLink}";
-          
-          // Try to close the tab after a short delay
-          setTimeout(function() {
-            window.close();
-          }, 1500);
-          
-          // If window.close() doesn't work, the user will see the success message
+          (function() {
+            var deepLink = "${deepLink}";
+            var statusEl = document.getElementById('status');
+
+            // Auto-attempt to open the app exactly once
+            try {
+              window.location.href = deepLink;
+              statusEl.textContent = "Launching SwitchControl...";
+            } catch (e) {
+              statusEl.textContent = "Click the button to open the app.";
+            }
+
+            // After 3 seconds, update status to suggest manual click
+            setTimeout(function() {
+              statusEl.textContent = "If the app didn't open, click the button above.";
+            }, 3000);
+          })();
         </script>
       </body>
       </html>
@@ -457,7 +502,7 @@ export function setupGoogleAuth(app: Express): void {
         const code = generateElectronCode(user.id);
         console.log("[AUTH] Electron one-time code generated for user:", user.id);
         return res.redirect(
-          `/auth/success?token=${encodeURIComponent(code)}&provider=google`
+          `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=google`
         );
       } else {
         console.log("[AUTH] Redirecting to:", nextUrl);

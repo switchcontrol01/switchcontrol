@@ -202,7 +202,7 @@ export function setupDiscordAuth(app: Express): void {
         const code = generateElectronCode(user.id);
         console.log("[AUTH] Electron one-time code generated for user:", user.id);
         return res.redirect(
-          `/auth/success?token=${encodeURIComponent(code)}&provider=discord`
+          `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=discord`
         );
       } else {
         console.log("[AUTH] Redirecting to:", nextUrl);

@@ -21,13 +21,16 @@ const SPECS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 let lastCpuLoad = 0;
 
 // Register protocol handler BEFORE app is ready
+let protocolRegistered = false;
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient(PROTOCOL_NAME, process.execPath, [path.resolve(process.argv[1])]);
+    protocolRegistered = app.setAsDefaultProtocolClient(PROTOCOL_NAME, process.execPath, [path.resolve(process.argv[1])]);
   }
 } else {
-  app.setAsDefaultProtocolClient(PROTOCOL_NAME);
+  protocolRegistered = app.setAsDefaultProtocolClient(PROTOCOL_NAME);
 }
+console.log(`[Protocol] Registration result: ${protocolRegistered}`);
+console.log(`[Protocol] Is default handler: ${app.isDefaultProtocolClient(PROTOCOL_NAME)}`);
 
 // Helper: deliver deep link to renderer
 function deliverDeepLink(url) {
@@ -65,14 +68,13 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
-    console.log('[TEMP-LOG] second-instance event - commandLine:', commandLine);
+    console.log('[DeepLink] second-instance event fired');
     
     const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
     if (url) {
-      console.log('[TEMP-LOG] protocol URL received - FULL URL:', url);
+      console.log('[DeepLink] protocol URL from second-instance:', url);
       deliverDeepLink(url);
     } else if (mainWindow) {
-      // Just focus the window even without deep link
       if (mainWindow.isMinimized()) mainWindow.restore();
       mainWindow.focus();
     }
@@ -81,7 +83,7 @@ if (!gotTheLock) {
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  console.log('[TEMP-LOG] open-url event received - FULL URL:', url);
+  console.log('[DeepLink] open-url event received:', url);
   deliverDeepLink(url);
 });
 
@@ -185,14 +187,13 @@ function createWindow() {
   
   // Send focus events to renderer for UI cleanup
   mainWindow.on('focus', () => {
-    console.log('[TEMP-LOG] window focus event fired');
     if (rendererReady && mainWindow) {
       mainWindow.webContents.send('window-focus');
     }
   });
 
   mainWindow.once('ready-to-show', () => {
-    console.log('[TEMP-LOG] window ready-to-show, calling show()');
+    console.log('[SwitchControl] Window ready-to-show');
     mainWindow.show();
   });
   mainWindow.on('closed', () => { 

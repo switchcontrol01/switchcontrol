@@ -22,18 +22,31 @@ export interface AuthUser {
   loggedIn: boolean;
 }
 
+export type ElectronAuthState =
+  | 'idle'
+  | 'opening_browser'
+  | 'waiting_for_callback'
+  | 'callback_received'
+  | 'exchanging'
+  | 'authenticated'
+  | 'failed'
+  | 'cancelled'
+  | 'timed_out';
+
+const TERMINAL_STATES: ElectronAuthState[] = ['callback_received', 'exchanging', 'authenticated'];
+
 interface AuthState {
   token: string | null;
   jwt: string | null;
   user: AuthUser | null;
   isValidating: boolean;
-  oauthDeepLinkReceived: boolean;
+  electronAuthState: ElectronAuthState;
   oauthError: string | null;
   setToken: (token: string) => void;
   setJwt: (jwt: string | null) => void;
   setUser: (user: AuthUser | null) => void;
   setValidating: (v: boolean) => void;
-  setOauthDeepLinkReceived: (v: boolean) => void;
+  setElectronAuthState: (state: ElectronAuthState) => void;
   setOauthError: (err: string | null) => void;
   logout: () => void;
   clear: () => void;
@@ -41,24 +54,35 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       token: null,
       jwt: null,
       user: null,
       isValidating: false,
-      oauthDeepLinkReceived: false,
+      electronAuthState: 'idle' as ElectronAuthState,
       oauthError: null,
       setToken: (token) => set({ token }),
       setJwt: (jwt) => set({ jwt }),
       setUser: (user) => set({ user }),
       setValidating: (isValidating) => set({ isValidating }),
-      setOauthDeepLinkReceived: (oauthDeepLinkReceived) => set({ oauthDeepLinkReceived }),
+      setElectronAuthState: (newState: ElectronAuthState) => {
+        const current = get().electronAuthState;
+        if (
+          (newState === 'timed_out' || newState === 'cancelled') &&
+          TERMINAL_STATES.includes(current)
+        ) {
+          console.log(`[AuthState] Blocked ${current} → ${newState} (success cannot be overwritten)`);
+          return;
+        }
+        console.log(`[AuthState] ${current} → ${newState}`);
+        set({ electronAuthState: newState });
+      },
       setOauthError: (oauthError) => set({ oauthError }),
       logout: () => {
-        set({ token: null, jwt: null, user: null });
+        set({ token: null, jwt: null, user: null, electronAuthState: 'idle' });
       },
       clear: () => {
-        set({ token: null, jwt: null, user: null, isValidating: false, oauthDeepLinkReceived: false, oauthError: null });
+        set({ token: null, jwt: null, user: null, isValidating: false, electronAuthState: 'idle', oauthError: null });
       },
     }),
     {
