@@ -113,21 +113,6 @@ function createWindow() {
     }
   });
 
-  if (isDev) {
-    // Register global keyboard shortcuts for DevTools
-    globalShortcut.register('F12', () => {
-      if (mainWindow) mainWindow.webContents.toggleDevTools();
-    });
-    
-    globalShortcut.register('CmdOrCtrl+Shift+I', () => {
-      if (mainWindow) mainWindow.webContents.toggleDevTools();
-    });
-    
-    globalShortcut.register('CmdOrCtrl+Shift+J', () => {
-      if (mainWindow) mainWindow.webContents.toggleDevTools();
-    });
-  }
-
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
     { urls: ['https://switchcontrol.org/*', 'https://*.switchcontrol.org/*'] },
@@ -914,6 +899,27 @@ app.whenReady().then(() => {
   const isDefault = app.isDefaultProtocolClient('switchcontrol');
   console.log('[DeepLink][MAIN] protocol registered:', isDefault);
 
+  // Register DevTools shortcuts BEFORE creating window
+  if (isDev) {
+    console.log('[DEBUG] Registering DevTools shortcuts...');
+    globalShortcut.register('F12', () => {
+      console.log('[DEBUG] F12 pressed - toggling DevTools');
+      if (mainWindow) mainWindow.webContents.toggleDevTools();
+    });
+    
+    globalShortcut.register('Shift+Ctrl+I', () => {
+      console.log('[DEBUG] Ctrl+Shift+I pressed - toggling DevTools');
+      if (mainWindow) mainWindow.webContents.toggleDevTools();
+    });
+    
+    globalShortcut.register('Shift+Ctrl+J', () => {
+      console.log('[DEBUG] Ctrl+Shift+J pressed - toggling DevTools');
+      if (mainWindow) mainWindow.webContents.toggleDevTools();
+    });
+    
+    console.log('[DEBUG] DevTools shortcuts registered successfully');
+  }
+
   // DEBUG ISSUE 1: Log all cookies on app ready
   const { session } = require('electron');
   const ses = session.defaultSession;
@@ -965,32 +971,6 @@ app.whenReady().then(() => {
         .catch(err => console.error('[DEBUG] COOKIE PERSIST FAIL:', cookie.name, err));
     }
   });
-
-  // Setup dev menu with DevTools option
-  if (isDev) {
-    const menu = Menu.buildFromTemplate([
-      {
-        label: 'Dev',
-        submenu: [
-          {
-            label: 'Toggle DevTools',
-            accelerator: 'CmdOrCtrl+Shift+I',
-            click: (menuItem, window) => {
-              if (window) window.webContents.toggleDevTools();
-            }
-          },
-          {
-            label: 'Reload',
-            accelerator: 'CmdOrCtrl+R',
-            click: (menuItem, window) => {
-              if (window) window.webContents.reload();
-            }
-          }
-        ]
-      }
-    ]);
-    Menu.setApplicationMenu(menu);
-  }
 
   createWindow();
 });
