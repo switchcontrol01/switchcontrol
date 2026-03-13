@@ -279,7 +279,7 @@ export function setupGoogleAuth(app: Express): void {
     console.log(`[AUTH] ===== DESKTOP SUCCESS PAGE =====`);
     console.log(`[AUTH] provider: ${provider}`);
     console.log(`[AUTH] deepLink: switchcontrol://auth/callback?code=***&provider=${provider}`);
-    console.log(`[AUTH] Page will auto-launch app and show manual fallback button`);
+    console.log(`[AUTH] Page will auto-launch app via deep link`);
     console.log(`[AUTH] ===================================`);
     
     res.send(`
@@ -288,7 +288,7 @@ export function setupGoogleAuth(app: Express): void {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Login Successful - SwitchControl</title>
+        <title>Returning to SwitchControl</title>
         <link rel="icon" href="/favicon.ico">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -303,99 +303,53 @@ export function setupGoogleAuth(app: Express): void {
           }
           .container {
             text-align: center;
-            padding: 3rem;
-            background: rgba(20, 20, 30, 0.8);
-            border-radius: 1.5rem;
-            border: 1px solid rgba(139, 92, 246, 0.2);
-            box-shadow: 0 0 60px rgba(139, 92, 246, 0.15);
-            max-width: 440px;
+            padding: 3rem 3.5rem;
             animation: fadeIn 0.5s ease-out;
           }
           @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
+            from { opacity: 0; transform: translateY(12px); }
             to { opacity: 1; transform: translateY(0); }
           }
-          .checkmark {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 1.5rem;
-            background: linear-gradient(135deg, #8b5cf6, #a855f7);
+          .spinner-wrap {
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 2rem;
+            position: relative;
+          }
+          .spinner-ring {
+            position: absolute;
+            inset: 0;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            animation: pulse 2s ease-in-out infinite;
+            border: 2px solid rgba(139, 92, 246, 0.1);
           }
-          @keyframes pulse {
-            0%, 100% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.4); }
-            50% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6); }
+          .spinner-arc {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: rgba(139, 92, 246, 0.7);
+            animation: spin 1.2s linear infinite;
           }
-          .checkmark svg {
-            width: 40px;
-            height: 40px;
-            stroke: white;
-            stroke-width: 3;
-            fill: none;
-            animation: draw 0.6s ease-out 0.3s forwards;
-            stroke-dasharray: 50;
-            stroke-dashoffset: 50;
-          }
-          @keyframes draw {
-            to { stroke-dashoffset: 0; }
+          @keyframes spin {
+            to { transform: rotate(360deg); }
           }
           h1 {
-            color: white;
-            font-size: 1.75rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 1.25rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.01em;
           }
           .subtitle {
-            color: #a1a1aa;
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-            line-height: 1.5;
-          }
-          .open-btn {
-            display: inline-block;
-            padding: 0.875rem 2rem;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            font-size: 1rem;
-            font-weight: 600;
-            border: none;
-            border-radius: 0.75rem;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.2s;
-            box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);
-            margin-bottom: 1rem;
-          }
-          .open-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.5);
-            background: linear-gradient(135deg, #9b6cf6, #8b5cf6);
-          }
-          .open-btn:active {
-            transform: translateY(0);
-          }
-          .fallback {
-            color: #71717a;
-            font-size: 0.875rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(255,255,255,0.1);
-            line-height: 1.6;
-          }
-          .status {
-            color: #a1a1aa;
+            color: rgba(255, 255, 255, 0.3);
             font-size: 0.8125rem;
-            margin-bottom: 1rem;
-            min-height: 1.2em;
+            letter-spacing: 0.04em;
           }
           .glow {
             position: fixed;
             width: 400px;
             height: 400px;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
             pointer-events: none;
             top: 50%;
             left: 50%;
@@ -403,45 +357,45 @@ export function setupGoogleAuth(app: Express): void {
             animation: glowPulse 4s ease-in-out infinite;
           }
           @keyframes glowPulse {
-            0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.8; transform: translate(-50%, -50%) scale(1.1); }
+            0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
+          }
+          .brand {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.06);
+            font-size: 0.625rem;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+          }
+          @media (prefers-reduced-motion: reduce) {
+            .spinner-arc { animation-duration: 3s; }
+            .glow { animation: none; opacity: 0.5; }
+            .container { animation: none; }
           }
         </style>
       </head>
       <body>
         <div class="glow"></div>
         <div class="container">
-          <div class="checkmark">
-            <svg viewBox="0 0 24 24">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
+          <div class="spinner-wrap">
+            <div class="spinner-ring"></div>
+            <div class="spinner-arc"></div>
           </div>
-          <h1>Login Successful!</h1>
-          <p class="subtitle">You've been signed in to SwitchControl.</p>
-          <p class="status" id="status">Opening the app...</p>
-          <a href="${deepLink}" class="open-btn" id="openBtn">Open SwitchControl</a>
-          <p class="fallback">
-            Click the button above if the app didn't open automatically.<br>
-            You can close this tab after the app opens.
-          </p>
+          <h1>Returning to SwitchControl</h1>
+          <p class="subtitle">Sign-in complete</p>
         </div>
+        <div class="brand">SwitchControl</div>
         <script>
           (function() {
             var deepLink = "${deepLink}";
-            var statusEl = document.getElementById('status');
-
-            // Auto-attempt to open the app exactly once
             try {
               window.location.href = deepLink;
-              statusEl.textContent = "Launching SwitchControl...";
             } catch (e) {
-              statusEl.textContent = "Click the button to open the app.";
+              console.error("[DesktopReturn] Deep link failed:", e);
             }
-
-            // After 3 seconds, update status to suggest manual click
-            setTimeout(function() {
-              statusEl.textContent = "If the app didn't open, click the button above.";
-            }, 3000);
           })();
         </script>
       </body>
