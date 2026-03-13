@@ -200,12 +200,14 @@ export function setupDiscordAuth(app: Express): void {
       
       if (source === 'electron') {
         const code = generateElectronCode(user.id);
-        console.log("[AUTH] Electron one-time code generated for user:", user.id);
-        return res.redirect(
-          `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=discord`
-        );
+        console.log("[AUTH] ===== DISCORD CALLBACK SUCCESS (ELECTRON) =====");
+        console.log("[AUTH] Generated one-time code for user:", user.id);
+        const redirectUrl = `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=discord`;
+        console.log("[AUTH] Redirecting to desktop success page:", redirectUrl);
+        console.log("[AUTH] ==================================================");
+        return res.redirect(redirectUrl);
       } else {
-        console.log("[AUTH] Redirecting to:", nextUrl);
+        console.log("[AUTH] Web auth — redirecting to:", nextUrl);
         return res.redirect(nextUrl);
       }
     }

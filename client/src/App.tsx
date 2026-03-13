@@ -269,7 +269,8 @@ function ElectronAppContent() {
     const api = (window as any).electronAPI;
 
     api.auth.onCallback(async (url: string) => {
-      console.log('[DeepLink] callback received:', url);
+      console.log('[DeepLink] ===== RENDERER CALLBACK RECEIVED =====');
+      console.log('[DeepLink] URL:', url);
       useAuthStore.getState().setElectronAuthState('callback_received');
 
       try {

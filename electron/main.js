@@ -29,35 +29,37 @@ if (process.defaultApp) {
 } else {
   protocolRegistered = app.setAsDefaultProtocolClient(PROTOCOL_NAME);
 }
-console.log(`[Protocol] Registration result: ${protocolRegistered}`);
-console.log(`[Protocol] Is default handler: ${app.isDefaultProtocolClient(PROTOCOL_NAME)}`);
+console.log(`[Protocol] ===== PROTOCOL REGISTRATION =====`);
+console.log(`[Protocol] result: ${protocolRegistered}`);
+console.log(`[Protocol] isDefault: ${app.isDefaultProtocolClient(PROTOCOL_NAME)}`);
+console.log(`[Protocol] isDev: ${isDev}`);
+console.log(`[Protocol] isPackaged: ${app.isPackaged}`);
+console.log(`[Protocol] ================================`);
 
 // Helper: deliver deep link to renderer
 function deliverDeepLink(url) {
-  console.log('[DeepLink] deliverDeepLink called with:', url);
+  console.log('[DeepLink] deliverDeepLink() called');
   
   if (!mainWindow) {
-    console.log('[DeepLink] No main window, queueing:', url);
+    console.log('[DeepLink] ✗ mainWindow=null, queueing URL');
     pendingDeepLinkUrl = url;
     return;
   }
   
   // Ensure window is visible and focused
   if (mainWindow.isMinimized()) {
-    console.log('[DeepLink] Restoring minimized window');
     mainWindow.restore();
   }
   mainWindow.show();
   mainWindow.focus();
-  console.log('[DeepLink] focusing window');
   
   if (!rendererReady) {
-    console.log('[DeepLink] Renderer not ready, queueing:', url);
+    console.log('[DeepLink] ⏳ rendererReady=false, queueing URL for delivery after load');
     pendingDeepLinkUrl = url;
     return;
   }
   
-  console.log('[DeepLink] delivered to renderer:', url);
+  console.log('[DeepLink] ✓ sending auth-callback IPC to renderer');
   mainWindow.webContents.send('auth-callback', url);
 }
 
@@ -68,23 +70,30 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
-    console.log('[DeepLink] second-instance event fired');
+    console.log('[DeepLink] ===== SECOND-INSTANCE EVENT =====');
+    console.log('[DeepLink] commandLine:', JSON.stringify(commandLine));
     
     const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
     if (url) {
-      console.log('[DeepLink] protocol URL from second-instance:', url);
+      console.log('[DeepLink] ✓ protocol URL FOUND:', url);
       deliverDeepLink(url);
-    } else if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore();
-      mainWindow.focus();
+    } else {
+      console.log('[DeepLink] ✗ NO protocol URL in commandLine');
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) mainWindow.restore();
+        mainWindow.focus();
+      }
     }
+    console.log('[DeepLink] ====================================');
   });
 }
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  console.log('[DeepLink] open-url event received:', url);
+  console.log('[DeepLink] ===== OPEN-URL EVENT =====');
+  console.log('[DeepLink] ✓ received URL:', url);
   deliverDeepLink(url);
+  console.log('[DeepLink] ============================');
 });
 
 function createWindow() {
@@ -174,15 +183,18 @@ function createWindow() {
   
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[SwitchControl] Renderer did-finish-load');
+    console.log('[SwitchControl] ===== RENDERER READY =====');
     rendererReady = true;
     
     // Deliver any pending deep link
     if (pendingDeepLinkUrl) {
-      console.log('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
+      console.log('[DeepLink] ✓ delivering queued deep link to renderer');
       mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
       pendingDeepLinkUrl = null;
+    } else {
+      console.log('[DeepLink] No pending deep link');
     }
+    console.log('[SwitchControl] ==========================');
   });
   
   // Send focus events to renderer for UI cleanup

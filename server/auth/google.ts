@@ -276,7 +276,11 @@ export function setupGoogleAuth(app: Express): void {
     
     const deepLink = `switchcontrol://auth/callback?code=${encodeURIComponent(code)}&provider=${provider}`;
     
-    console.log(`[AUTH] Desktop success page — provider=${provider} deepLink=switchcontrol://auth/callback?code=***&provider=${provider}`);
+    console.log(`[AUTH] ===== DESKTOP SUCCESS PAGE =====`);
+    console.log(`[AUTH] provider: ${provider}`);
+    console.log(`[AUTH] deepLink: switchcontrol://auth/callback?code=***&provider=${provider}`);
+    console.log(`[AUTH] Page will auto-launch app and show manual fallback button`);
+    console.log(`[AUTH] ===================================`);
     
     res.send(`
       <!DOCTYPE html>
@@ -500,12 +504,14 @@ export function setupGoogleAuth(app: Express): void {
       
       if (source === 'electron') {
         const code = generateElectronCode(user.id);
-        console.log("[AUTH] Electron one-time code generated for user:", user.id);
-        return res.redirect(
-          `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=google`
-        );
+        console.log("[AUTH] ===== GOOGLE CALLBACK SUCCESS (ELECTRON) =====");
+        console.log("[AUTH] Generated one-time code for user:", user.id);
+        const redirectUrl = `/auth/desktop-success?code=${encodeURIComponent(code)}&provider=google`;
+        console.log("[AUTH] Redirecting to desktop success page:", redirectUrl);
+        console.log("[AUTH] ================================================");
+        return res.redirect(redirectUrl);
       } else {
-        console.log("[AUTH] Redirecting to:", nextUrl);
+        console.log("[AUTH] Web auth — redirecting to:", nextUrl);
         return res.redirect(nextUrl);
       }
     }

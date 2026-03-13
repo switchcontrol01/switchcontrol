@@ -1,0 +1,138 @@
+TASK: Diagnose shared Electron app handoff failure affecting both Google and Discord login
+
+PROBLEM
+
+This is NOT provider-specific.
+
+Both Google login and Discord login can succeed in the browser, but neither returns control to the Electron app correctly.
+
+Observed behavior:
+- browser auth works
+- browser does not prompt to open the app
+- browser does not suggest the app
+- Electron app does not become logged in
+- this happens for both Google and Discord
+
+This means the shared failure is in the desktop app return path, not in Google-only or Discord-only OAuth logic.
+
+GOAL
+
+Find and fix the shared Electron handoff layer that should return control from browser auth back into the app.
+
+Correct behavior must be:
+
+Electron app
+→ open browser for OAuth
+→ provider login succeeds
+→ browser triggers switchcontrol:// callback
+→ Windows opens SwitchControl
+→ Electron main process receives callback
+→ renderer receives callback
+→ exchange/finalization completes
+→ app becomes logged in
+
+IMPLEMENTATION
+
+SECTION 1 — TREAT THIS AS A SHARED PROVIDER-AGNOSTIC FAILURE
+
+Do not debug Google-only or Discord-only logic first.
+
+Because both providers fail in the same final way, focus on the common path:
+- success page / callback page
+- switchcontrol:// launch
+- protocol registration
+- Electron callback receipt
+- renderer callback handling
+- exchange/finalization
+
+SECTION 2 — VERIFY THE EXACT POST-AUTH RETURN PATH FOR BOTH PROVIDERS
+
+Trace what happens after browser auth success for:
+- Google
+- Discord
+
+Confirm whether both providers ultimately attempt the same kind of return path, such as:
+- /auth/success or /auth/desktop-success
+- switchcontrol://auth/callback?...
+- same main-process handler
+- same renderer callback code
+
+Identify the first shared stage where they fail.
+
+SECTION 3 — VERIFY CUSTOM PROTOCOL REGISTRATION
+
+Log clearly at app startup:
+- result of app.setAsDefaultProtocolClient('switchcontrol')
+- result of app.isDefaultProtocolClient('switchcontrol') if supported
+- packaged vs dev mode
+- whether registration succeeds in the installed build
+
+We need proof that Windows recognizes the app as the handler for switchcontrol://
+
+SECTION 4 — VERIFY BROWSER SUCCESS PAGE / CALLBACK PAGE
+
+Audit the page that runs after successful browser auth.
+
+Confirm:
+- exact deep-link URL used
+- whether launch is attempted automatically
+- whether manual "Open SwitchControl" fallback exists
+- whether browser click via user gesture works differently from auto-launch
+
+Because the browser does not even prompt to open the app, the shared handoff page is a prime suspect.
+
+SECTION 5 — VERIFY MAIN PROCESS RECEIPT
+
+Add hard logs for:
+- second-instance event
+- commandLine args
+- open-url event
+- extracted switchcontrol:// URL
+- deliverDeepLink called
+
+If none of these fire, the app is never receiving the protocol launch.
+
+SECTION 6 — VERIFY RENDERER RECEIPT ONLY AFTER MAIN PROCESS IS CONFIRMED
+
+If main process gets the callback, then verify:
+- auth-callback sent to renderer
+- renderer receives callback
+- callback parsed
+- exchange started
+- exchange succeeds
+- auth state committed
+
+SECTION 7 — TEST MANUAL BUTTON PATH
+
+If there is not already a visible manual button on the success page, add one:
+- Open SwitchControl
+
+Test whether:
+- auto-launch fails
+- manual click works
+- both fail
+
+This is critical because user gesture may work when automatic launch does not.
+
+CHECKLIST
+
+[ ] Google and Discord were treated as one shared Electron handoff problem
+[ ] Exact shared post-auth return path was traced
+[ ] Protocol registration result was logged
+[ ] Windows handler status was verified
+[ ] Success page deep-link launch was verified
+[ ] Manual Open SwitchControl fallback was tested
+[ ] Main process callback receipt was verified
+[ ] Renderer callback receipt was verified
+[ ] Exact shared failing stage was identified
+
+FINAL OUTPUT
+
+Report:
+- whether switchcontrol:// is properly registered
+- whether both Google and Discord use the same return path
+- whether browser attempts the protocol launch
+- whether manual click works
+- whether main process receives callback
+- whether renderer receives callback
+- exact shared failing stage
