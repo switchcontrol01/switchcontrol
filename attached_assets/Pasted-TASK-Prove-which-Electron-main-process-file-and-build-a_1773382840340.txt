@@ -1,0 +1,82 @@
+TASK: Prove which Electron main process file and build are actually running
+
+PROBLEM
+
+Forced openDevTools on startup still does not open DevTools.
+
+That means the issue may not be the shortcut or DevTools logic itself.
+The more likely problem is that the app is not running the code being edited.
+
+We need proof of:
+- which Electron main process file is executing
+- whether the app is running in dev or packaged mode
+- whether changes to electron/main.js are actually reaching the running app
+- whether the Electron process is restarting after edits
+
+GOAL
+
+Identify exactly what Electron build / entrypoint is running and prove that the edited main process code is executing.
+
+IMPLEMENTATION
+
+SECTION 1 — ADD UNMISSABLE STARTUP PROOF IN ELECTRON MAIN
+
+At the very top of the actual Electron main entry file, add logs like:
+- [BOOT] ELECTRON MAIN LOADED
+- __filename
+- process.execPath
+- process.cwd()
+- app.isPackaged
+- NODE_ENV
+- timestamp
+
+Also temporarily change the window title to something obvious like:
+- SwitchControl DEBUG BUILD
+
+This is to prove the running app is executing the edited file.
+
+SECTION 2 — ADD A VISIBLE DEBUG SIDE EFFECT
+
+Add a visible dev-only side effect from the same main process file, for example:
+- change BrowserWindow title
+- change width slightly
+- show a dialog once on startup
+- log an unmistakable message to terminal
+
+Need proof the edited file is live.
+
+SECTION 3 — IDENTIFY THE ACTUAL ELECTRON ENTRYPOINT
+
+Report:
+- which file Electron uses as the main entry
+- where that is defined (package.json, electron-builder config, etc.)
+- whether electron/main.js is truly the active entrypoint
+
+SECTION 4 — VERIFY DEV VS PACKAGED MODE
+
+Report:
+- whether the currently running app is dev or packaged
+- whether the app being launched is a stale packaged build
+- whether a separate installed app is opening instead of the local dev app
+
+SECTION 5 — VERIFY PROCESS RESTART
+
+Confirm whether Electron fully restarts after changes.
+If hot reload only affects renderer and not main process, say that clearly.
+
+CHECKLIST
+
+[ ] Main process startup logs were added
+[ ] Window title or visible debug side effect proves the file is running
+[ ] Actual Electron entrypoint was identified
+[ ] Dev vs packaged mode was confirmed
+[ ] It was confirmed whether changes to electron/main.js affect the running app
+
+FINAL OUTPUT
+
+Report:
+- actual Electron main entry file
+- whether the edited file is the one running
+- whether app is dev or packaged
+- whether a stale build / wrong app instance was being opened
+- exact reason forced openDevTools did not appear

@@ -1,3 +1,16 @@
+// ============================================================
+// BOOT PROOF — if you see this in logs, this file is running
+// ============================================================
+console.log('\n\n========================================');
+console.log('[BOOT] ELECTRON MAIN LOADED');
+console.log('[BOOT] __filename:', __filename);
+console.log('[BOOT] process.execPath:', process.execPath);
+console.log('[BOOT] process.cwd():', process.cwd());
+console.log('[BOOT] process.argv:', JSON.stringify(process.argv));
+console.log('[BOOT] NODE_ENV:', process.env.NODE_ENV);
+console.log('[BOOT] timestamp:', new Date().toISOString());
+console.log('========================================\n\n');
+
 const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu } = require('electron');
 const { exec } = require('child_process');
 const path = require('path');
@@ -7,6 +20,8 @@ const tweakExecutor = require('./tweak-executor');
 
 app.setName('SwitchControl');
 const isDev = !app.isPackaged;
+console.log('[BOOT] app.isPackaged:', app.isPackaged);
+console.log('[BOOT] isDev:', isDev);
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
@@ -97,9 +112,11 @@ app.on('open-url', (event, url) => {
 });
 
 function createWindow() {
+  const windowTitle = isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl';
+  console.log('[BOOT] Creating window with title:', windowTitle);
   mainWindow = new BrowserWindow({
-    title: 'SwitchControl',
-    width: 1280,
+    title: windowTitle,
+    width: isDev ? 1300 : 1280,
     height: 800,
     show: false,
     backgroundColor: '#0b0b0b',
