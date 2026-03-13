@@ -1,0 +1,206 @@
+TASK: Rebuild Electron login flow from scratch without touching working website auth
+
+PROBLEM
+
+The current Electron login flow is unreliable and has become too messy to trust.
+
+Website login is now working, so the shared Google OAuth backend should be preserved.
+
+The remaining issue is the Electron-specific flow:
+- browser handoff is fragile
+- deep-link return is unreliable
+- timeout/cancel logic is messy
+- auth state can get stuck waiting
+- current implementation is no longer worth patching further
+
+GOAL
+
+Rebuild the Electron login flow from scratch in a clean, isolated, deterministic way while preserving the existing working website auth flow.
+
+Do NOT rewrite the entire auth system.
+Do NOT break website login.
+Only replace the Electron-specific auth path.
+
+IMPLEMENTATION
+
+SECTION 1 — PRESERVE SHARED WEB AUTH
+
+Keep these working pieces unless absolutely necessary:
+- Google OAuth strategy
+- user creation / lookup
+- Passport session logic
+- website login redirects
+- website /api/me flow
+- existing database user model
+
+Website auth must remain untouched unless a tiny compatibility adjustment is required.
+
+SECTION 2 — REMOVE CURRENT ELECTRON-SPECIFIC HACKS
+
+Audit and remove old Electron auth logic that is causing instability, including:
+- fragile success-page-only auto handoff assumptions
+- stale focus-reset auth behavior
+- scattered timeout/cancel overrides
+- ambiguous callback parsing paths
+- duplicate or conflicting auth completion logic
+
+SECTION 3 — BUILD A CLEAN ELECTRON HANDOFF FLOW
+
+New required Electron flow:
+
+1. Electron app opens system browser to:
+   https://switchcontrol.org/auth/google?source=electron
+
+2. Backend Google callback detects electron source
+
+3. Backend generates a short-lived one-time auth code
+
+4. Backend redirects to a dedicated desktop handoff page, for example:
+   /auth/desktop-success?code=ONE_TIME_CODE
+
+5. That page:
+   - attempts to open the app automatically once
+   - visibly renders a manual “Open SwitchControl” button using the same deep-link
+   - does not strand the user on a passive success page
+
+6. Deep-link format should be standardized, for example:
+   switchcontrol://auth/callback?code=ONE_TIME_CODE
+
+7. Electron receives callback
+8. Electron exchanges code with backend
+9. Electron commits authenticated user state
+10. App navigates to authenticated screen
+
+SECTION 4 — STANDARDIZE CALLBACK FORMAT
+
+Use one clear callback format only.
+
+Do not support multiple confusing variants like:
+- /auth/success
+- /auth/callback
+- token vs code mismatch
+
+Pick one consistent format and update backend + Electron to match exactly.
+
+Preferred:
+- deep link: switchcontrol://auth/callback?code=...
+- exchange endpoint: POST /api/auth/exchange
+
+SECTION 5 — REBUILD ELECTRON AUTH STATE MACHINE
+
+Implement one explicit auth-attempt lifecycle in the app:
+
+- idle
+- opening_browser
+- waiting_for_callback
+- callback_received
+- exchanging
+- authenticated
+- failed
+- cancelled
+- timed_out
+
+Rules:
+- only one active login attempt
+- success cannot be overwritten by timeout/cancel
+- focus events must not reset active auth
+- stale UI state must not compete with auth store truth
+
+SECTION 6 — MAKE THE DESKTOP SUCCESS PAGE ROBUST
+
+The browser handoff page must:
+- attempt auto-open once
+- render a visible manual fallback button
+- clearly say “Click here if the app did not open”
+- use the same exact deep-link URL in both auto and manual flows
+
+Do not depend only on inline silent redirect behavior.
+
+SECTION 7 — VERIFY PROTOCOL REGISTRATION
+
+In Electron main process:
+- register switchcontrol:// protocol
+- log registration result
+- log whether app is default protocol handler
+- log second-instance/open-url callback receipt
+
+Do not assume protocol registration is working.
+
+SECTION 8 — KEEP MAIN/RENDERER CALLBACK CHAIN SIMPLE
+
+Main process:
+- receive deep link
+- queue if renderer not ready
+- send auth-callback to renderer
+
+Renderer:
+- parse callback
+- extract code
+- call exchange endpoint
+- commit user state
+- transition to dashboard
+
+Do not add extra parallel auth flows.
+
+SECTION 9 — CLEAN FAILURE HANDLING
+
+If callback never arrives:
+- timeout cleanly
+- show retryable message
+
+If exchange fails:
+- show login failed
+- clear active attempt cleanly
+
+If user cancels:
+- show cancel only on real cancellation
+
+No infinite waiting.
+No false cancel after success.
+No split state.
+
+SECTION 10 — VALIDATE END-TO-END
+
+Final required behavior:
+- website login still works
+- Electron login starts browser correctly
+- browser handoff page opens app automatically or via manual button
+- Electron receives callback
+- exchange succeeds
+- app becomes authenticated
+- no stuck spinner
+- no looping
+
+CHECKLIST
+
+[ ] Website auth still works
+[ ] Electron flow was rebuilt without rewriting shared web auth
+[ ] One consistent deep-link callback format is used
+[ ] Desktop success page has manual fallback button
+[ ] Protocol registration is logged and verified
+[ ] Electron receives deep link in main process
+[ ] Renderer receives callback and exchanges code
+[ ] Auth state commits successfully
+[ ] Timeout/cancel logic no longer overrides success
+[ ] Electron login works end-to-end
+
+FINAL OUTPUT
+
+After rebuilding, report:
+- files changed
+- which old Electron auth logic was removed
+- exact deep-link format used
+- exact desktop success page route used
+- whether manual fallback button was added
+- how protocol registration is verified
+- confirmation that website login still works
+- confirmation that Electron login now works end-to-end
+
+OPTIONAL CODE
+
+If helpful, implement the desktop handoff page as a dedicated route that:
+- receives code from backend
+- builds switchcontrol://auth/callback?code=...
+- auto-attempts open once
+- renders a visible “Open SwitchControl” button
+- shows fallback instructions if the app does not open
