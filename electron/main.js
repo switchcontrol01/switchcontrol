@@ -690,314 +690,47 @@ async function loadSystemSpecs() {
       cpu: { model: 'Unknown CPU', cores: 0, threads: 0, speed: 'Unknown' },
       gpu: { model: 'Unavailable', vendor: 'Unavailable', vramGB: 0, isNvidia: false },
       ram: { totalGB: 0, usedGB: 0, freeGB: 0 },
-      system: { os: 'Unknown', osVersion: '', arch: '', hostname: '', hasLibreHardwareMonitor: false },
+      system: { os: 'Unknown', osVersion: 'Unknown', arch: 'Unknown', hostname: 'Unknown', hasLibreHardwareMonitor: false },
       disk: { name: 'Unknown', usedGB: 0, totalGB: 0, usePercent: 0 },
       disks: []
     };
   }
 }
 
-ipcMain.handle('system:getSpecs', async () => loadSystemSpecs());
-
-// RAM usage (real-time)
-ipcMain.handle('system:getRamUsage', () => {
-  try {
-    const total = os.totalmem();
-    const free = os.freemem();
-    const used = total - free;
-    const totalGB = total / 1024 / 1024 / 1024;
-    const usedGB = used / 1024 / 1024 / 1024;
-    const freeGB = free / 1024 / 1024 / 1024;
-    const usagePercent = (used / total) * 100;
-    
-    return {
-      totalGB: safeNum(totalGB),
-      usedGB: safeNum(usedGB),
-      freeGB: safeNum(freeGB),
-      usagePercent: safeNum(usagePercent),
-      ramTotalGb: safeNum(totalGB),
-      ramUsedGb: safeNum(usedGB)
-    };
-  } catch (e) {
-    return { totalGB: 0, usedGB: 0, freeGB: 0, usagePercent: 0, ramTotalGb: 0, ramUsedGb: 0 };
-  }
+ipcMain.handle('system:loadSpecs', async () => {
+  return await loadSystemSpecs();
 });
 
-// All disks (real data)
-ipcMain.handle('system:getAllDisks', async () => {
+// Telemetry handlers
+ipcMain.handle('telemetry:getBasic', async () => {
   try {
-    const fsData = await si.fsSize();
-    return (fsData || []).map(d => {
-      const pct = safeNum(d.use || 0);
-      return {
-        mount: d.mount || 'Unknown',
-        name: d.fs || d.mount || 'Unknown',
-        totalGB: safeNum((d.size || 0) / 1024 / 1024 / 1024),
-        usedGB: safeNum((d.used || 0) / 1024 / 1024 / 1024),
-        usePercent: pct,
-        usedPercent: pct // Alias for compatibility
-      };
-    });
-  } catch (e) {
-    console.error('[SwitchControl] getAllDisks error:', e);
-    return [];
-  }
-});
+    const [load, mem, temps] = await Promise.all([
+      si.currentLoad().catch(() => ({ currentLoad: 0 })),
+      si.mem().catch(() => ({ total: 0, available: 0 })),
+      si.cpuTemperature().catch(() => ({ main: 0 }))
+    ]);
 
-// Telemetry - 3-tier merge: systeminformation baseline → nvidia-smi → LHM overlay
-// null means unavailable, never undefined
-ipcMain.handle('telemetry:getDisk', async () => {
-  try {
-    const fs = await si.fsSize();
-    const io = await si.disksIO();
-
-    const cDrive = fs.find(d => d.mount === 'C:');
-    if (!cDrive) return null;
-
-    const result = {
-      size: cDrive.size,
-      used: cDrive.used,
-      usePercent: cDrive.use,
-    };
-
-    if (io && io.rBytes !== undefined) result.readBytes = io.rBytes;
-    if (io && io.wBytes !== undefined) result.writeBytes = io.wBytes;
-
-    return result;
-  } catch (e) {
-    console.error('[DEBUG] telemetry:getDisk error:', e.message);
-    return null;
-  }
-});
-
-ipcMain.handle('telemetry:getGpu', async () => {
-  try {
-    const g = await si.graphics();
-    if (!g.controllers.length) return null;
-
-    const c = g.controllers[0];
-    const result = { model: c.model || 'Unknown GPU' };
-
-    if (c.driverVersion) result.driverVersion = c.driverVersion;
-    if (c.vram != null && c.vram > 0) result.vram = c.vram;
-    if (c.memoryUsed != null && c.memoryUsed > 0) result.memoryUsed = c.memoryUsed;
-
-    const siLoad = c.utilizationGpu ?? c.load;
-    if (siLoad != null && Number.isFinite(Number(siLoad))) {
-      result.load = safeNum(siLoad);
-    }
-
-    if (c.temperatureGpu != null && Number.isFinite(Number(c.temperatureGpu)) && c.temperatureGpu > 0) {
-      result.temperature = safeNum(c.temperatureGpu);
-    }
-
-    if (c.powerDraw != null && Number.isFinite(Number(c.powerDraw)) && c.powerDraw > 0) {
-      result.powerDraw = safeNum(c.powerDraw);
-    }
-    if (c.clockCore != null && Number.isFinite(Number(c.clockCore)) && c.clockCore > 0) {
-      result.clockCore = safeNum(c.clockCore, 0);
-    }
-    if (c.clockMemory != null && Number.isFinite(Number(c.clockMemory)) && c.clockMemory > 0) {
-      result.clockMemory = safeNum(c.clockMemory, 0);
-    }
-
-    if (isNvidiaGpu(g)) {
-      try {
-        const [nvTemp, nvLoad] = await Promise.all([
-          result.temperature == null ? getNvidiaGpuTemp() : Promise.resolve(null),
-          result.load == null ? getNvidiaGpuLoad() : Promise.resolve(null),
-        ]);
-        if (nvTemp != null && result.temperature == null) result.temperature = nvTemp;
-        if (nvLoad != null && result.load == null) result.load = nvLoad;
-      } catch (_) {}
-    }
-
-    const lhm = await getLhmTelemetry();
-    if (lhm) {
-      if (lhm.gpuTemp != null && result.temperature == null) result.temperature = lhm.gpuTemp;
-      if (lhm.gpuLoad != null && result.load == null) result.load = lhm.gpuLoad;
-    }
-
-    return result;
-  } catch (e) {
-    console.error('[DEBUG] telemetry:getGpu error:', e.message);
-    return null;
-  }
-});
-
-ipcMain.handle('telemetry:getMemoryDetails', async () => {
-  try {
-    const mem = await si.mem();
-    const processes = await si.processes();
-
-    const topProcesses = processes.list
-      .sort((a, b) => b.memRss - a.memRss)
-      .slice(0, 5)
-      .map(p => ({
-        name: p.name,
-        pid: p.pid,
-        memoryMB: Math.round(p.memRss / 1024 / 1024),
-      }));
+    const cpuTemp = safeNum(temps.main || 0);
+    const ramTotal = Math.round((mem.total || 0) / (1024 * 1024 * 1024));
+    const ramUsed = Math.round((((mem.total || 0) - (mem.available || 0)) / (mem.total || 1)) * 100);
 
     return {
-      total: mem.total,
-      used: mem.used,
-      free: mem.free,
-      available: mem.available,
-      active: mem.active,
-      compressed: mem.compressed || 0,
-      processes: topProcesses,
-    };
-  } catch (e) {
-    console.error('[DEBUG] telemetry:getMemoryDetails error:', e.message);
-    return null;
-  }
-});
-
-ipcMain.handle('telemetry:getCpuCores', async () => {
-  try {
-    const load = await si.currentLoad();
-    const cpus = load.cpus || [];
-    return cpus.map((c, i) => ({ id: i, load: safeNum(c.load || 0) }));
-  } catch (e) {
-    console.error('[DEBUG] telemetry:getCpuCores error:', e.message);
-    return [];
-  }
-});
-
-ipcMain.handle('telemetry:getLive', async () => {
-  try {
-    // === TIER 3: systeminformation baseline (always on) ===
-    const load = await si.currentLoad();
-    const cpuUsage = safeNum(load.currentLoad || 0);
-    
-    if (Math.abs(cpuUsage - lastCpuLoad) > 1) {
-      lastCpuLoad = cpuUsage;
-    }
-
-    const total = os.totalmem();
-    const free = os.freemem();
-    const ramUsage = safeNum(((total - free) / total) * 100);
-
-    let cpuTemp = null;
-    try {
-      const temps = await si.cpuTemperature();
-      const temp = safeNum(temps.main || 0);
-      cpuTemp = Number.isFinite(temp) && temp > 0 ? temp : null;
-    } catch (e) {
-      // CPU temp not available
-    }
-
-    // === TIER 2: nvidia-smi overlay (NVIDIA only) ===
-    let gpuTemp = null;
-    let gpuLoad = null;
-    if (cachedSpecs?.gpu?.isNvidia) {
-      try {
-        const [nvTemp, nvLoad] = await Promise.all([
-          getNvidiaGpuTemp(),
-          getNvidiaGpuLoad()
-        ]);
-        gpuTemp = nvTemp;
-        gpuLoad = nvLoad;
-      } catch (e) {
-        // nvidia-smi not available
-      }
-    }
-
-    // === TIER 1: LibreHardwareMonitor overlay (if available) ===
-    let moboTemp = null;
-    const lhm = await getLhmTelemetry();
-    if (lhm) {
-      // LHM values take precedence when available
-      if (lhm.cpuTemp !== null) cpuTemp = lhm.cpuTemp;
-      if (lhm.gpuTemp !== null) gpuTemp = lhm.gpuTemp;
-      if (lhm.gpuLoad !== null) gpuLoad = lhm.gpuLoad;
-      if (lhm.moboTemp !== null) moboTemp = lhm.moboTemp;
-    }
-
-    // === DISK USAGE (always-on via systeminformation) ===
-    let diskPercent = null;
-    try {
-      const fsData = await si.fsSize();
-      if (fsData && fsData.length > 0) {
-        // Use primary/system disk (usually C: on Windows or / on Linux)
-        const primaryDisk = fsData.find(d => d.mount === 'C:' || d.mount === '/') || fsData[0];
-        diskPercent = safeNum(primaryDisk.use || 0);
-      }
-    } catch (e) {
-      // Disk info not available
-    }
-
-    // === NETWORK (always-on via systeminformation) ===
-    let netRxSec = null;
-    let netTxSec = null;
-    try {
-      const netStats = await si.networkStats();
-      if (netStats && netStats.length > 0) {
-        // Sum all interfaces for total throughput
-        let totalRx = 0;
-        let totalTx = 0;
-        netStats.forEach(iface => {
-          totalRx += iface.rx_sec || 0;
-          totalTx += iface.tx_sec || 0;
-        });
-        // Convert to KB/s
-        netRxSec = safeNum(totalRx / 1024, 1);
-        netTxSec = safeNum(totalTx / 1024, 1);
-      }
-    } catch (e) {
-      // Network stats not available
-    }
-
-    // === BUILD DISPLAY-READY VALUES ===
-    // CPU: prefer temp, fallback to usage
-    const cpuDisplay = cpuTemp !== null ? cpuTemp : lastCpuLoad;
-    const cpuLabel = cpuTemp !== null ? 'CPU Temp (°C)' : 'CPU Load (%)';
-    
-    // GPU: prefer temp, fallback to load, then null
-    const gpuDisplay = gpuTemp !== null ? gpuTemp : gpuLoad;
-    const gpuLabel = gpuTemp !== null ? 'GPU Temp (°C)' : (gpuLoad !== null ? 'GPU Load (%)' : null);
-    const showGpu = gpuDisplay !== null;
-    
-    // Mobo: only show if available
-    const showMobo = moboTemp !== null;
-
-    return {
-      // Raw values
-      cpuUsage: lastCpuLoad,
-      ramUsage: ramUsage,
-      cpuTemp: cpuTemp,
-      gpuTemp: gpuTemp,
-      gpuLoad: gpuLoad,
-      moboTemp: moboTemp,
-      diskPercent: diskPercent,
-      netRxSec: netRxSec,
-      netTxSec: netTxSec,
-      // Display-ready values
-      cpuDisplay,
-      cpuLabel,
-      gpuDisplay,
-      gpuLabel,
-      showGpu,
-      showMobo,
+      cpuUsage: safeNum(load.currentLoad || 0),
+      ramUsage: ramUsed,
+      cpuTemp: cpuTemp > 0 ? cpuTemp : null,
+      showCpuTemp: cpuTemp > 0,
+      ramTotal: ramTotal,
+      showGpu: false,
+      showMobo: false,
       timestamp: Date.now()
     };
   } catch (e) {
-    console.error('[SwitchControl] telemetry error:', e);
     return {
       cpuUsage: 0,
       ramUsage: 0,
       cpuTemp: null,
-      gpuTemp: null,
-      gpuLoad: null,
-      moboTemp: null,
-      diskPercent: null,
-      netRxSec: null,
-      netTxSec: null,
-      cpuDisplay: 0,
-      cpuLabel: 'CPU Load (%)',
-      gpuDisplay: null,
-      gpuLabel: null,
+      showCpuTemp: false,
+      ramTotal: 0,
       showGpu: false,
       showMobo: false,
       timestamp: Date.now()
