@@ -29,6 +29,8 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const audioRef = useRef<{ stop: () => void } | null>(null);
   const risingRef = useRef<{ stop: () => void } | null>(null);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
 
   const prefersReduced = useMemo(() =>
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -63,8 +65,9 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
     audioRef.current?.stop();
     risingRef.current?.stop();
     setPhase('done');
-    onComplete();
-  }, [onComplete]);
+    console.log('[PremiumAnimation] Skipped by user click');
+    onCompleteRef.current();
+  }, []);
 
   useEffect(() => {
     if (!show) {
@@ -73,12 +76,15 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
       return;
     }
 
+    console.log('[PremiumAnimation] show=true, starting sequence, prefersReduced=', prefersReduced);
+
     if (prefersReduced) {
       setPhase('logo-reveal');
       setLockUnlocked(true);
       const t = setTimeout(() => {
         setPhase('done');
-        onComplete();
+        console.log('[PremiumAnimation] Reduced-motion complete');
+        onCompleteRef.current();
       }, 2000);
       timersRef.current = [t];
       return () => clearTimeout(t);
@@ -125,7 +131,8 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
     t.push(setTimeout(() => {
       setPhase('done');
-      onComplete();
+      console.log('[PremiumAnimation] Full sequence complete');
+      onCompleteRef.current();
     }, 6800));
 
     return () => {
@@ -133,7 +140,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
       audioRef.current?.stop();
       risingRef.current?.stop();
     };
-  }, [show, onComplete, prefersReduced]);
+  }, [show, prefersReduced]);
 
   if (!show && phase === 'idle') return null;
   const isActive = phase !== 'idle' && phase !== 'done';

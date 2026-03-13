@@ -95,7 +95,7 @@ function smoothScrollTo(container: Element | null, targetY: number, duration = T
 }
 
 function getScrollContainer(): Element | null {
-  return document.querySelector('.app-content') || null;
+  return document.querySelector('.app-content main') || document.querySelector('main.overflow-y-auto') || document.querySelector('.app-content') || null;
 }
 
 function setSidebarHighlight(id: string | undefined) {
@@ -407,6 +407,12 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               animate={{ opacity: 1 }}
               transition={{ duration: prefersReducedMotion ? 0.15 : 0.4 }}
             />
+            {isTransitioning && (
+              <rect
+                x="0" y="0" width="100%" height="100%"
+                fill="rgba(0, 0, 0, 0.96)"
+              />
+            )}
           </svg>
 
           {state.targetRect && (

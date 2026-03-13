@@ -164,20 +164,32 @@ function ElectronAppContent() {
     const tourKey = `sc_tour_completed_${userId}`;
     const isFirstTimeUser = !localStorage.getItem(tourKey);
 
+    console.log('[AppFlow] Flow eval — isPremium:', user.isPremium,
+      'hasSeenUnlock:', user.hasSeenPremiumUnlock,
+      'hasSeenTour:', user.hasSeenPremiumTour,
+      'isFirstTimeUser:', isFirstTimeUser,
+      'isFirstLogin:', isFirstLogin,
+      'entitlementsAttempted:', entitlementsAttempted,
+      'entitlementsOk:', entitlementsOk,
+      'unlockFired:', unlockFiredThisSessionRef.current);
+
     if (isFirstTimeUser && isFirstLogin && entitlementsAttempted) {
       console.log('[AppFlow] PRIORITY 1: First-time onboarding tour');
       setActiveFlow("firstTime");
       return;
     }
 
-    if (!entitlementsOk) return;
+    if (!entitlementsOk) {
+      console.log('[AppFlow] Waiting for entitlementsOk — skipping premium flow checks');
+      return;
+    }
 
     if (
       user.isPremium === true &&
       user.hasSeenPremiumUnlock === false &&
       !unlockFiredThisSessionRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 2: Premium unlock animation');
+      console.log('[AppFlow] PRIORITY 2: Premium unlock animation — triggering');
       unlockFiredThisSessionRef.current = true;
       setActiveFlow("premiumUnlock");
       return;
@@ -188,6 +200,8 @@ function ElectronAppContent() {
       setActiveFlow("premiumTour");
       return;
     }
+
+    console.log('[AppFlow] No flow conditions met — staying idle');
   }, [user?.loggedIn, user?.isPremium, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
@@ -301,7 +315,8 @@ function ElectronAppContent() {
           });
 
           if (result.ok && result.user?.isPremium) {
-            console.log('[PremiumFlow] Premium confirmed — entitlement useEffect will handle animation');
+            console.log('[PremiumFlow] Premium confirmed — hasSeenUnlock:', result.user.hasSeenPremiumUnlock, 'hasSeenTour:', result.user.hasSeenPremiumTour);
+            setEntitlementsOk(true);
             useAuthStore.getState().setElectronAuthState('authenticated');
             return;
           }

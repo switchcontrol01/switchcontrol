@@ -26,16 +26,26 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
-function FloatingParticle({ delay, duration, startX, startY }: { delay: number; duration: number; startX: number; startY: number }) {
+function FloatingParticle({ delay, duration, startX, startY, size = 1, hue }: { delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number }) {
+  const color = hue !== undefined
+    ? `hsla(${hue}, 80%, 70%, 0.5)`
+    : 'rgba(139,92,246,0.4)';
   return (
     <motion.div
-      className="absolute w-1 h-1 rounded-full bg-primary/40"
-      style={{ left: `${startX}%`, top: `${startY}%` }}
+      className="absolute rounded-full"
+      style={{
+        left: `${startX}%`,
+        top: `${startY}%`,
+        width: `${size * 4}px`,
+        height: `${size * 4}px`,
+        background: color,
+        boxShadow: size > 1.2 ? `0 0 ${size * 6}px ${color}` : undefined,
+      }}
       animate={{
-        y: [0, -100, -200],
-        x: [0, Math.random() * 40 - 20, Math.random() * 60 - 30],
-        opacity: [0, 1, 0],
-        scale: [0, 1.5, 0],
+        y: [0, -80 - Math.random() * 120, -180 - Math.random() * 80],
+        x: [0, Math.random() * 50 - 25, Math.random() * 70 - 35],
+        opacity: [0, 0.8 + Math.random() * 0.2, 0],
+        scale: [0, 1 + Math.random() * 0.8, 0],
       }}
       transition={{
         duration,
@@ -50,7 +60,7 @@ function FloatingParticle({ delay, duration, startX, startY }: { delay: number; 
 export default function Login() {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number }>>([]);
+  const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number }>>([]);
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { electronAuthState, oauthError } = useAuthStore();
 
@@ -87,12 +97,15 @@ export default function Login() {
   }, [clearAllTimers]);
 
   useEffect(() => {
-    const newParticles = Array.from({ length: 30 }, (_, i) => ({
+    const hues = [250, 260, 270, 280, 290, 310, 330];
+    const newParticles = Array.from({ length: 65 }, (_, i) => ({
       id: i,
-      delay: Math.random() * 5,
-      duration: 3 + Math.random() * 4,
+      delay: Math.random() * 6,
+      duration: 2.5 + Math.random() * 5,
       startX: Math.random() * 100,
-      startY: 50 + Math.random() * 50,
+      startY: 30 + Math.random() * 70,
+      size: 0.5 + Math.random() * 2,
+      hue: hues[Math.floor(Math.random() * hues.length)],
     }));
     setParticles(newParticles);
   }, []);
@@ -152,9 +165,9 @@ export default function Login() {
         className="absolute inset-0 pointer-events-none"
         animate={{
           background: [
-            "radial-gradient(ellipse 80% 50% at 50% 50%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)",
-            "radial-gradient(ellipse 60% 40% at 45% 45%, rgba(139, 92, 246, 0.2) 0%, transparent 50%)",
-            "radial-gradient(ellipse 80% 50% at 55% 55%, rgba(139, 92, 246, 0.15) 0%, transparent 50%)",
+            "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.08) 30%, transparent 55%)",
+            "radial-gradient(ellipse 70% 50% at 45% 45%, rgba(139, 92, 246, 0.28) 0%, rgba(168, 85, 247, 0.1) 30%, transparent 55%)",
+            "radial-gradient(ellipse 90% 60% at 55% 52%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.08) 30%, transparent 55%)",
           ]
         }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
@@ -163,10 +176,22 @@ export default function Login() {
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at 30% 20%, rgba(236, 72, 153, 0.1) 0%, transparent 40%)",
+          background: "radial-gradient(circle at 50% 45%, rgba(139, 92, 246, 0.18) 0%, rgba(168, 85, 247, 0.06) 35%, transparent 60%)",
         }}
         animate={{
-          opacity: [0.3, 0.6, 0.3],
+          opacity: [0.6, 1, 0.6],
+          scale: [1, 1.05, 1],
+        }}
+        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: "radial-gradient(circle at 30% 20%, rgba(236, 72, 153, 0.12) 0%, transparent 40%)",
+        }}
+        animate={{
+          opacity: [0.4, 0.7, 0.4],
         }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -174,13 +199,47 @@ export default function Login() {
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at 70% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 40%)",
+          background: "radial-gradient(circle at 70% 75%, rgba(59, 130, 246, 0.1) 0%, transparent 40%)",
         }}
         animate={{
-          opacity: [0.2, 0.5, 0.2],
+          opacity: [0.3, 0.6, 0.3],
         }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
+
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {[
+          { angle: -25, left: '35%', top: '40%', width: 2, length: '140%', opacity: 0.06, delay: 0 },
+          { angle: -15, left: '55%', top: '35%', width: 3, length: '160%', opacity: 0.05, delay: 1.5 },
+          { angle: -35, left: '25%', top: '45%', width: 1.5, length: '120%', opacity: 0.04, delay: 3 },
+          { angle: -8, left: '65%', top: '38%', width: 2.5, length: '150%', opacity: 0.05, delay: 0.8 },
+          { angle: -20, left: '45%', top: '42%', width: 1, length: '130%', opacity: 0.03, delay: 2.2 },
+        ].map((beam, i) => (
+          <motion.div
+            key={`beam-${i}`}
+            className="absolute origin-center"
+            style={{
+              left: beam.left,
+              top: beam.top,
+              width: `${beam.width}px`,
+              height: beam.length,
+              background: `linear-gradient(180deg, transparent 0%, rgba(139,92,246,${beam.opacity * 3}) 20%, rgba(168,85,247,${beam.opacity * 2}) 50%, transparent 100%)`,
+              transform: `rotate(${beam.angle}deg)`,
+              filter: `blur(${beam.width * 3}px)`,
+            }}
+            animate={{
+              opacity: [beam.opacity, beam.opacity * 2.5, beam.opacity],
+              scaleY: [0.9, 1.1, 0.9],
+            }}
+            transition={{
+              duration: 4 + i * 0.7,
+              delay: beam.delay,
+              repeat: Infinity,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </div>
 
       <div 
         className="absolute inset-0 overflow-hidden pointer-events-none" 
@@ -213,7 +272,7 @@ export default function Login() {
       </div>
 
       <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-[#0a0a0f]/80 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0a0a0f_70%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0a0a0f_75%)] pointer-events-none" />
 
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
