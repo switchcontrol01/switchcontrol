@@ -202,18 +202,26 @@ function createWindow() {
   
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[SwitchControl] ===== RENDERER READY =====');
+    console.log('[SwitchControl] Renderer did-finish-load');
     rendererReady = true;
-    
-    // Deliver any pending deep link
+
+    if (isDev) {
+      console.log('[DevTools] FORCING DEVTOOLS OPEN');
+      setTimeout(() => {
+        try {
+          mainWindow?.webContents.openDevTools({ mode: 'detach' });
+          console.log('[DevTools] openDevTools called successfully');
+        } catch (err) {
+          console.error('[DevTools] Failed to open DevTools:', err);
+        }
+      }, 500);
+    }
+
     if (pendingDeepLinkUrl) {
-      console.log('[DeepLink] ✓ delivering queued deep link to renderer');
+      console.log('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
       mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
       pendingDeepLinkUrl = null;
-    } else {
-      console.log('[DeepLink] No pending deep link');
     }
-    console.log('[SwitchControl] ==========================');
   });
   
   // Send focus events to renderer for UI cleanup

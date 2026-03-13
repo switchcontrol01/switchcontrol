@@ -1,0 +1,91 @@
+TASK: Force Electron DevTools to open automatically on startup in development
+
+PROBLEM
+
+The DevTools keyboard shortcut still does not work.
+Ctrl + Shift + I does nothing.
+F12 does nothing.
+I do not want another shortcut patch.
+I need DevTools to open automatically every time the Electron app launches in development.
+
+GOAL
+
+Make DevTools open on startup in development with no keyboard shortcut required.
+
+Required behavior:
+- in development only, DevTools opens automatically when the main window is ready
+- use openDevTools directly in main process
+- use detached mode if needed
+- add a clear startup log proving the code ran
+- do not claim it is fixed unless DevTools visibly opens in the running app
+
+IMPLEMENTATION
+
+SECTION 1 — FORCE OPEN DEVTOOLS IN MAIN PROCESS
+
+In electron/main.js, after BrowserWindow is created and the page is loaded, explicitly call:
+
+mainWindow.webContents.openDevTools({ mode: 'detach' })
+
+Do this in development only.
+
+Good places to trigger it:
+- after did-finish-load
+- or after ready-to-show
+
+Add a small timeout if needed so it opens reliably after the renderer is ready.
+
+SECTION 2 — ADD STARTUP LOGGING
+
+Log clearly:
+- isDev value
+- isPackaged value
+- "FORCING DEVTOOLS OPEN"
+- whether openDevTools was called successfully
+
+SECTION 3 — DO NOT RELY ON SHORTCUTS
+
+Do not treat keyboard shortcuts as the fix.
+Shortcuts can stay, but the main fix is forced auto-open in development.
+
+SECTION 4 — VERIFY IN REAL RUN
+
+Actually launch the development app and confirm DevTools visibly opens.
+Do not just inspect the code and assume success.
+
+CHECKLIST
+
+[ ] DevTools opens automatically on app launch in development
+[ ] It does not depend on Ctrl + Shift + I
+[ ] A startup log confirms openDevTools was called
+[ ] It was verified in the actual running dev app
+
+FINAL OUTPUT
+
+Report:
+- file changed
+- exact place where openDevTools was added
+- whether it opens in detached mode
+- exact startup logs proving it ran
+- confirmation that DevTools visibly opened in the real appmainWindow.webContents.on('did-finish-load', () => {
+  console.log('[SwitchControl] Renderer did-finish-load');
+  rendererReady = true;
+
+  if (isDev) {
+    console.log('[DevTools] FORCING DEVTOOLS OPEN');
+    setTimeout(() => {
+      try {
+        mainWindow?.webContents.openDevTools({ mode: 'detach' });
+        console.log('[DevTools] openDevTools called successfully');
+      } catch (err) {
+        console.error('[DevTools] Failed to open DevTools:', err);
+      }
+    }, 500);
+  }
+
+  if (pendingDeepLinkUrl) {
+    console.log('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
+    mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
+    pendingDeepLinkUrl = null;
+  }
+});
