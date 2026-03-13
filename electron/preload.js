@@ -14,6 +14,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Backend info (for packaged mode API routing)
   getBackendPort: () => ipcRenderer.invoke('app:getBackendPort'),
   isBackendReady: () => ipcRenderer.invoke('app:isBackendReady'),
+  getBackendError: () => ipcRenderer.invoke('app:getBackendError'),
+  onBackendReady: (callback) => {
+    ipcRenderer.on('backend-ready', (event, data) => {
+      console.log('[Backend] backend-ready event received, port:', data?.port);
+      callback(data);
+    });
+  },
 
   // Auth callbacks (deep-link handling)
   auth: {

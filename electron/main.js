@@ -1159,29 +1159,48 @@ ipcMain.handle('auth:debugCookies', async () => {
 app.whenReady().then(async () => {
   const bootStart = Date.now();
   console.log('[BOOT] isDev:', isDev, '| isPackaged:', app.isPackaged);
+  console.log('[BOOT] process.execPath:', process.execPath);
+  console.log('[BOOT] process.resourcesPath:', process.resourcesPath);
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   console.log('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));
 
-  if (!isDev) {
-    console.log('[Backend] Starting embedded backend...');
-    backendLauncher.startBackend(app).then(result => {
-      if (result.ready) {
-        console.log(`[Backend] Ready on port ${result.port} (${Date.now() - bootStart}ms from boot)`);
-      } else {
-        console.error('[Backend] FAILED:', result.error || 'unknown');
-      }
-    });
-  }
-
-  // Backend port / readiness IPC — registered once at startup, not inside createWindow
+  // Register backend IPC handlers BEFORE starting the backend
+  // so the renderer can poll immediately while backend boots
   ipcMain.handle('app:getBackendPort', () => {
-    return backendLauncher.getBackendPort();
+    const port = backendLauncher.getBackendPort();
+    return port;
   });
 
   ipcMain.handle('app:isBackendReady', () => {
     return backendLauncher.isBackendReady();
   });
+
+  ipcMain.handle('app:getBackendError', () => {
+    return backendLauncher.getLastError ? backendLauncher.getLastError() : null;
+  });
+
+  // Start creating window immediately (shows on ready-to-show)
+  // Backend starts in parallel — renderer polls until ready
+  createWindow();
+
+  if (!isDev) {
+    console.log('[Backend] ===== PACKAGED MODE — Starting embedded backend =====');
+    const result = await backendLauncher.startBackend(app);
+    console.log(`[Backend] startBackend() returned after ${Date.now() - bootStart}ms`);
+    console.log(`[Backend] Result: ready=${result.ready} port=${result.port} error=${result.error || 'none'}`);
+    if (result.ready) {
+      console.log(`[Backend] SUCCESS — port ${result.port} ready (${Date.now() - bootStart}ms from boot)`);
+      // Notify renderer that backend is now available
+      if (mainWindow && rendererReady) {
+        mainWindow.webContents.send('backend-ready', { port: result.port });
+      }
+    } else {
+      console.error('[Backend] FAILED:', result.error || 'unknown');
+    }
+  } else {
+    console.log('[Backend] Dev mode — using dev server proxy');
+  }
 
   // Register DevTools IPC handler (always available for debugging)
   ipcMain.handle('app:openDevTools', (event) => {
@@ -1250,8 +1269,6 @@ app.whenReady().then(async () => {
         .catch(err => console.error('[Auth] Cookie persist failed:', cookie.name, err));
     }
   });
-
-  createWindow();
 });
 
 app.on('window-all-closed', () => {

@@ -55,7 +55,12 @@ async function pollForBackendPort(): Promise<number> {
     await new Promise(r => setTimeout(r, delay));
   }
 
-  throw new ApiError(0, "Embedded backend did not start in time. Please restart the application.");
+  let errorDetail = '';
+  try {
+    const backendErr = await api.getBackendError?.();
+    if (backendErr) errorDetail = ` Error: ${backendErr}`;
+  } catch {}
+  throw new ApiError(0, `Embedded backend did not start in time.${errorDetail} Please restart the application.`);
 }
 
 async function resolveApiBaseInternal(): Promise<string> {
@@ -110,6 +115,17 @@ if (typeof window !== 'undefined') {
   }).catch(err => {
     console.error(`[API] Resolution failed: ${err.message} — API calls will retry on demand`);
   });
+
+  if (isPackagedElectron && (window as any).electronAPI?.onBackendReady) {
+    (window as any).electronAPI.onBackendReady((data: { port: number }) => {
+      if (data?.port && !_resolvedApiBase) {
+        const base = `http://127.0.0.1:${data.port}/api`;
+        console.log(`[API] Backend-ready push received, setting base: ${base}`);
+        _resolvedApiBase = base;
+        markBackendReady();
+      }
+    });
+  }
 }
 
 let _cachedCsrfToken: string | null = null;
