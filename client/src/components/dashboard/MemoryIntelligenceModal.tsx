@@ -68,8 +68,18 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
       try {
         const api = (window as any).electronAPI;
         if (api?.telemetry?.getMemoryDetails) {
-          const res = await api.telemetry.getMemoryDetails();
-          if (res) setData(res);
+          const raw = await api.telemetry.getMemoryDetails();
+          if (raw) {
+            setData({
+              total: raw.total ?? 0,
+              used: raw.used ?? (raw.total ? raw.total - (raw.available ?? raw.free ?? 0) : 0),
+              free: raw.free ?? 0,
+              available: raw.available ?? raw.free ?? 0,
+              active: raw.active ?? raw.used ?? (raw.total ? raw.total - (raw.available ?? raw.free ?? 0) : 0),
+              compressed: raw.compressed ?? 0,
+              processes: raw.processes ?? [],
+            });
+          }
         } else {
           const totalBytes = 16 * 1024 * 1024 * 1024;
           const usedBytes = (6 + Math.random() * 4) * 1024 * 1024 * 1024;

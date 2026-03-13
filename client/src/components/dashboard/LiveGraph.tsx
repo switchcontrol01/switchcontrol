@@ -59,20 +59,26 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               console.warn('[telemetry] RAM fetch error:', e);
             }
           }
+
+          const hasCpuTemp = live.showCpuTemp && live.cpuTemp != null && live.cpuTemp > 0;
+          const cpuVal = hasCpuTemp ? safeNumber(live.cpuTemp, 0) : safeNumber(live.cpuUsage ?? live.cpuDisplay, 0);
+          const cpuLbl = hasCpuTemp ? 'CPU Temp (°C)' : 'CPU Load (%)';
+
+          const hasGpuTemp = live.gpuTemp != null && live.gpuTemp > 0;
           
           const telemetryState: LatestState = {
-            cpuDisplay: safeNumber(live.cpuDisplay, 0),
-            cpuLabel: live.cpuLabel || 'CPU Load (%)',
-            gpuDisplay: live.gpuDisplay,
-            gpuLabel: live.gpuLabel,
-            showGpu: live.showGpu ?? false,
+            cpuDisplay: cpuVal,
+            cpuLabel: live.cpuLabel || cpuLbl,
+            gpuDisplay: hasGpuTemp ? safeNumber(live.gpuTemp, 0) : (live.gpuDisplay ?? null),
+            gpuLabel: live.gpuLabel || (hasGpuTemp ? 'GPU Temp (°C)' : null),
+            showGpu: live.showGpu ?? hasGpuTemp,
             showMobo: live.showMobo ?? false,
-            moboTemp: live.moboTemp,
+            moboTemp: live.moboTemp ?? null,
             ramUsedGb,
             ramTotalGb,
-            diskPercent: live.diskPercent,
-            netRxSec: live.netRxSec,
-            netTxSec: live.netTxSec,
+            diskPercent: live.diskPercent ?? null,
+            netRxSec: live.netRxSec ?? null,
+            netTxSec: live.netTxSec ?? null,
           };
 
           setLatest(telemetryState);

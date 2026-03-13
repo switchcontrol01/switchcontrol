@@ -297,15 +297,21 @@ export default function Login() {
                   transition={{ duration: 0.2 }}
                   className="flex flex-col items-center gap-4 py-4"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-5 h-5 border-2 border-primary/40 border-t-primary rounded-full animate-spin" />
-                    <span className="text-sm text-muted-foreground">
-                      Waiting for {isLoading === "google" ? "Google" : "Discord"} sign-in...
-                    </span>
-                  </div>
+                  <motion.div
+                    className="relative w-12 h-12 mb-1"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  >
+                    <div className="absolute inset-0 rounded-full border-2 border-white/10" />
+                    <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary" />
+                  </motion.div>
+                  <span className="text-sm text-muted-foreground">
+                    Waiting for {isLoading === "google" ? "Google" : "Discord"} sign-in...
+                  </span>
+                  <p className="text-[11px] text-muted-foreground/60">Complete sign-in in your browser to continue</p>
                   <motion.button
                     onClick={handleCancel}
-                    className="text-sm font-medium text-white/90 hover:text-white transition-all duration-150 px-6 py-2.5 rounded-xl border border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 shadow-sm"
+                    className="text-sm font-medium text-white/90 hover:text-white transition-all duration-150 px-6 py-2.5 rounded-xl border border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 shadow-sm mt-1"
                     whileHover={{ scale: 1.04 }}
                     whileTap={{ scale: 0.96 }}
                     data-testid="button-login-cancel"

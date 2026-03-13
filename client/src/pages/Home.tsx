@@ -7,7 +7,7 @@ import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
 import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { GlassCard } from "@/components/ui/glass-card";
 import { Link } from "wouter";
 import { Progress } from "@/components/ui/progress";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
@@ -86,10 +86,11 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
   const hasReport = report && (runState === "ready" || runState === "degraded");
 
   const cardContent = (
-    <Card className={cn(
-      "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full transition-all duration-500",
+    <GlassCard className={cn(
+      "relative overflow-hidden group h-full transition-all duration-500",
       !isPremium && "opacity-60 blur-[2px]"
     )} data-testid="card-ai-advisor-summary">
+      <div className="absolute -right-12 -top-12 h-36 w-36 bg-primary/8 blur-3xl rounded-full pointer-events-none group-hover:bg-primary/15 transition-colors duration-500" />
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
           <Sparkles className="size-4 text-primary animate-pulse" />
@@ -97,15 +98,15 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
           <AnimatedCrown size="sm" tooltipText="Premium feature" />
         )}
       </div>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
+      <div className="p-6 pb-3">
+        <h3 className="text-base font-medium flex items-center gap-2">
           <Brain className="size-4 text-primary" />
           AI Advisor
           {!isPremium && <PremiumBadge className="ml-1" />}
-        </CardTitle>
-        <CardDescription className="text-[10px]">AI-powered optimization analysis</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </h3>
+        <p className="text-[10px] text-muted-foreground mt-1">AI-powered optimization analysis</p>
+      </div>
+      <div className="px-6 pb-6 space-y-4">
         {hasReport ? (
           <div className="space-y-3">
             <div className={cn("p-3 rounded-lg border text-center", getScoreBg(report.score))}>
@@ -134,8 +135,8 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
             <ArrowRight className="size-3 ml-auto" />
           </Link>
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </GlassCard>
   );
 
   return (
@@ -159,10 +160,11 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
   };
 
   const cardContent = (
-    <Card className={cn(
-      "bg-gradient-to-br from-card to-card/50 border-border/50 relative overflow-hidden group h-full transition-all duration-500",
+    <GlassCard className={cn(
+      "relative overflow-hidden group h-full transition-all duration-500",
       !isPremium && "opacity-60 blur-[2px]"
     )} data-testid="card-bios-score">
+      <div className="absolute -right-12 -top-12 h-36 w-36 bg-[hsl(270,60%,55%)]/8 blur-3xl rounded-full pointer-events-none group-hover:bg-[hsl(270,60%,55%)]/15 transition-colors duration-500" />
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
           <Target className="size-4 text-[hsl(270,60%,55%)]" />
@@ -170,15 +172,15 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
           <AnimatedCrown size="sm" tooltipText="Premium feature" />
         )}
       </div>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base font-medium flex items-center gap-2">
+      <div className="p-6 pb-3">
+        <h3 className="text-base font-medium flex items-center gap-2">
           <Target className="size-4 text-[hsl(270,60%,55%)]" />
           BIOS Score
           {!isPremium && <PremiumBadge className="ml-1" />}
-        </CardTitle>
-        <CardDescription className="text-[10px]">Firmware readiness analysis</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        </h3>
+        <p className="text-[10px] text-muted-foreground mt-1">Firmware readiness analysis</p>
+      </div>
+      <div className="px-6 pb-6 space-y-4">
         <div className="p-3 rounded-lg border bg-[hsl(270,60%,55%)]/10 border-[hsl(270,60%,55%)]/20 text-center">
           <div className="text-2xl font-bold tabular-nums text-[hsl(270,60%,55%)]" data-testid="text-bios-dashboard-score">
             {scores.competitiveReadiness}
@@ -212,8 +214,8 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
             <ArrowRight className="size-3 ml-auto" />
           </Link>
         </Button>
-      </CardContent>
-    </Card>
+      </div>
+    </GlassCard>
   );
 
   return (
@@ -535,15 +537,15 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
           >
-            <Card className="bg-gradient-to-br from-card to-card/50 border-border/50 overflow-hidden relative group h-full">
-            <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-            <CardHeader className="pb-4">
-              <CardTitle className="text-base font-medium flex items-center gap-2">
+            <GlassCard className="overflow-hidden relative group h-full">
+            <div className="absolute -right-16 -top-16 h-40 w-40 bg-emerald-500/8 blur-3xl rounded-full pointer-events-none group-hover:bg-emerald-500/15 transition-colors duration-500" />
+            <div className="p-6 pb-4">
+              <h3 className="text-base font-medium flex items-center gap-2">
                 <Shield className="size-4 text-emerald-400" />
                 System Health
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5">
+              </h3>
+            </div>
+            <div className="px-6 pb-6 space-y-5">
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
@@ -581,8 +583,8 @@ export default function Home() {
                    {account.stats.lastScan ? format(new Date(account.stats.lastScan), "MMM d, HH:mm") : "Never"}
                  </span>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </GlassCard>
           </motion.div>
 
           {/* AI Advisor Summary Widget */}

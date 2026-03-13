@@ -80,16 +80,40 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
     try {
       const api = (window as any).electronAPI;
       if (api?.telemetry?.getDisk) {
-        const res = await api.telemetry.getDisk();
-        if (!res) {
+        const raw = await api.telemetry.getDisk();
+        if (!raw) {
           onOpenChange(false);
           return;
         }
-        setData(res);
+
+        let diskData: DiskData;
+        if (raw.disks && Array.isArray(raw.disks)) {
+          const primary = raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/') || raw.disks[0];
+          if (!primary) {
+            onOpenChange(false);
+            return;
+          }
+          diskData = {
+            size: primary.size ?? 0,
+            used: primary.used ?? 0,
+            usePercent: primary.use ?? (primary.size > 0 ? (primary.used / primary.size) * 100 : 0),
+            readBytes: raw.io?.rIO ?? 0,
+            writeBytes: raw.io?.wIO ?? 0,
+          };
+        } else {
+          diskData = {
+            size: raw.size ?? 0,
+            used: raw.used ?? 0,
+            usePercent: raw.usePercent ?? raw.use ?? 0,
+            readBytes: raw.readBytes ?? 0,
+            writeBytes: raw.writeBytes ?? 0,
+          };
+        }
+        setData(diskData);
 
         const now = Date.now();
-        const curRead = res.readBytes ?? 0;
-        const curWrite = res.writeBytes ?? 0;
+        const curRead = diskData.readBytes ?? 0;
+        const curWrite = diskData.writeBytes ?? 0;
 
         if (prevIORef.current) {
           const dtSec = (now - prevIORef.current.ts) / 1000;

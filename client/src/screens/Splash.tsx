@@ -270,11 +270,16 @@ export default function Splash({ onComplete }: SplashProps) {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.4 }}
             >
-              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-[3px] bg-white/10 rounded-full overflow-hidden relative">
                 <motion.div
-                  className="h-full bg-gradient-to-r from-primary via-purple-400 to-primary rounded-full"
-                  style={{ width: `${progress}%` }}
-                  transition={{ ease: "easeOut" }}
+                  className="h-full rounded-full relative overflow-hidden"
+                  style={{
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, hsl(270 60% 55%), hsl(280 65% 60%), hsl(270 60% 55%))',
+                    backgroundSize: '200% 100%',
+                  }}
+                  animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                 />
               </div>
               <div className="flex items-center justify-center gap-2 mt-3">

@@ -106,6 +106,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     icon: <Crown className="w-5 h-5 text-amber-400" />,
     targetSelector: '[data-tour="dashboard-hero"]',
     route: '/dashboard',
+    sidebarHighlight: 'dashboard',
   },
   {
     id: 'power-plan',
@@ -114,6 +115,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     icon: <Zap className="w-5 h-5 text-amber-400" />,
     targetSelector: '[data-tour="power-plan"]',
     route: '/dashboard',
+    sidebarHighlight: 'tweaks',
   },
   {
     id: 'network-tweaks',
@@ -122,6 +124,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     icon: <Wifi className="w-5 h-5 text-cyan-400" />,
     targetSelector: '[data-tour="network-content"]',
     route: '/network',
+    sidebarHighlight: 'network',
   },
   {
     id: 'bios-advisor',
@@ -130,6 +133,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     icon: <Cpu className="w-5 h-5 text-cyan-400" />,
     targetSelector: '[data-tour="bios-content"]',
     route: '/bios-advisor',
+    sidebarHighlight: 'bios-advisor',
   },
   {
     id: 'ai-advisor',
@@ -138,6 +142,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     icon: <Sparkles className="w-5 h-5 text-purple-400" />,
     targetSelector: '[data-tour="ai-advisor"]',
     route: '/dashboard',
+    sidebarHighlight: 'dashboard',
   },
   {
     id: 'premium-unlocked',

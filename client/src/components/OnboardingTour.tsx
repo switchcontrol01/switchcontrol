@@ -24,6 +24,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     title: 'Dashboard Overview',
     description: 'Monitor your system performance in real-time. View CPU, GPU, RAM usage and disk health at a glance.',
     icon: <Sparkles className="w-5 h-5" />,
+    sidebarHighlight: 'dashboard',
   },
   {
     id: 'bios-advisor',
@@ -31,6 +32,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     title: 'AI BIOS Advisor',
     description: 'Get personalized BIOS optimization recommendations powered by AI to maximize your gaming performance.',
     icon: <Cpu className="w-5 h-5" />,
+    sidebarHighlight: 'bios-advisor',
   },
   {
     id: 'tweaks',
@@ -38,6 +40,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     title: 'System Tweaks',
     description: 'Apply proven Windows optimizations to reduce latency and boost FPS in your favorite games.',
     icon: <Zap className="w-5 h-5" />,
+    sidebarHighlight: 'tweaks',
   },
   {
     id: 'network',
@@ -45,6 +48,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     title: 'Network Optimization',
     description: 'Fine-tune your network settings for lower ping and more stable online gaming.',
     icon: <Wifi className="w-5 h-5" />,
+    sidebarHighlight: 'network',
   },
   {
     id: 'security',
@@ -52,6 +56,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     title: 'Security Center',
     description: 'Keep your system secure without sacrificing gaming performance.',
     icon: <Shield className="w-5 h-5" />,
+    sidebarHighlight: 'security',
   },
   {
     id: 'settings',
@@ -59,6 +64,7 @@ const ONBOARDING_STEPS: TourStep[] = [
     title: 'Settings',
     description: 'Customize SwitchControl to fit your preferences and manage your account.',
     icon: <Settings className="w-5 h-5" />,
+    sidebarHighlight: 'settings',
   },
   {
     id: 'discord',

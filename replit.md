@@ -41,7 +41,9 @@ The application is structured into `client/src` (frontend components, hooks, uti
 - **Glass Consistency**: All modals use unified glass tokens: `bg-[#0c0c14]/80 backdrop-blur-2xl border-white/[0.08] rounded-2xl` with premium shadow and inset light edge. GlassCard uses `bg-white/[0.03] backdrop-blur-xl` with subtle inset highlight.
 - **App Shell**: Sealed desktop shell via `.app-root { position: fixed; inset: 0 }`. Scrollbars hidden by default, appear subtly on hover. No horizontal overflow. `app-content` uses `flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden`.
 - **Discord URL**: Centralized in `client/src/config/socialLinks.ts` — all components reference `SOCIAL_LINKS.discord`.
-- **Telemetry IPC**: Preload exposes `system.getSpecs()`, `telemetry.getLive()`, `telemetry.getGpu()`, etc. Main process registers matching handlers. Key aliases: `system:getSpecs` → `loadSystemSpecs()`, `telemetry:getLive` → live CPU/RAM/temp data.
+- **Telemetry IPC**: Preload exposes `system.getSpecs()`, `telemetry.getLive()`, `telemetry.getGpu()`, etc. Main process registers matching handlers. Key aliases: `system:getSpecs` → `loadSystemSpecs()`, `telemetry:getLive` → live CPU/RAM/temp data. Frontend components normalize IPC response fields (e.g. `cpuUsage` → `cpuDisplay`, `disks[]` → flat `DiskData`).
+- **Tour System**: State-machine-driven (`useReducer`) with choreographed phases: `idle → dimming → navigating → scrolling → spotlighting → presenting → fading_out → done`. Single source of truth controls route transitions, sidebar highlighting (`[data-tour-highlight]` attribute), scroll positioning, and tooltip display. Steps support `sidebarHighlight` field.
+- **Dashboard Card Hierarchy**: Top row (Activity Monitor) uses `StatCard` → `GlassCard`. Bottom row (System Health, AI Advisor, BIOS Score) upgraded to `GlassCard` with colored corner glows and consistent padding layout.
 
 ### Key Features
 - **Dashboard**: Displays system stats, simulates RAM clearing, initiates AI advisor scans, and shows live telemetry graphs (CPU, RAM).
