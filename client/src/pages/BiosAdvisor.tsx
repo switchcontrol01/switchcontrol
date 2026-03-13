@@ -160,8 +160,11 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
   );
 }
 
+type ExpandedTab = "overview" | "details" | "location";
+
 function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; detection?: FirmwareDetection; index: number }) {
   const [expanded, setExpanded] = useState(false);
+  const [activeTab, setActiveTab] = useState<ExpandedTab>("overview");
   const { prefersReducedMotion } = useMotion();
   
   const impactColors = {
@@ -174,6 +177,12 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
   const StatusIcon = STATUS_ICONS[status];
   const statusColor = STATUS_COLORS[status];
 
+  const tabItems: { key: ExpandedTab; label: string }[] = [
+    { key: "overview", label: "Overview" },
+    { key: "details", label: "Pros & Cons" },
+    { key: "location", label: "BIOS Path" },
+  ];
+
   return (
     <motion.div
       initial={prefersReducedMotion ? {} : { opacity: 0, y: 20 }}
@@ -182,16 +191,18 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
     >
       <GlassCard 
         className={cn(
-          "overflow-hidden transition-all duration-300 cursor-pointer group",
+          "overflow-hidden transition-all duration-300 group",
           expanded && "ring-1 ring-primary/30"
         )}
-        role="button"
-        tabIndex={0}
-        onClick={() => setExpanded(!expanded)}
-        onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}
         data-testid={`bios-setting-${setting.id}`}
       >
-        <div className="p-4">
+        <div
+          className="p-4 cursor-pointer"
+          role="button"
+          tabIndex={0}
+          onClick={() => { setExpanded(!expanded); if (!expanded) setActiveTab("overview"); }}
+          onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded(!expanded); } }}
+        >
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -202,115 +213,168 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
               </div>
               <div className="flex items-center gap-2 text-xs">
                 <StatusIcon className={cn("w-3.5 h-3.5", statusColor)} />
-                <span className={statusColor}>
-                  {status}
-                </span>
+                <span className={statusColor}>{status}</span>
                 {detection && <ConfidenceBadge confidence={detection.confidence} />}
               </div>
               {detection?.reason && (
                 <p className="text-[10px] text-white/50 mt-1 line-clamp-1">{detection.reason}</p>
               )}
             </div>
-            <motion.div animate={{ rotate: expanded ? 90 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronRight className="w-5 h-5 text-muted-foreground group-hover:text-white transition-colors" />
+            <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-white transition-colors" />
             </motion.div>
           </div>
-
-          <AnimatePresence>
-            {expanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="pt-4 space-y-4 border-t border-white/10 mt-4">
-                  {detection && (
-                    <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
-                      <h4 className="text-xs font-medium text-cyan-400 mb-1 flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> Detection Detail
-                      </h4>
-                      <p className="text-xs text-white/80">{detection.reason}</p>
-                      {detection.detectedValue && (
-                        <p className="text-[10px] text-cyan-300/70 mt-1">Value: {detection.detectedValue}</p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2">
-                        <span className="text-[10px] text-white/50">Confidence:</span>
-                        <ConfidenceBadge confidence={detection.confidence} />
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">What it is</h4>
-                    <p className="text-sm text-white/80">{setting.whatItIs}</p>
-                  </div>
-                  
-                  <div className="flex flex-wrap gap-1.5">
-                    {setting.affects.map((affect) => (
-                      <Badge key={affect} variant="secondary" className="text-[10px] bg-white/5">{affect}</Badge>
-                    ))}
-                  </div>
-                  
-                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
-                    <div className="flex items-start gap-2">
-                      <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                      <div>
-                        <h4 className="text-xs font-medium text-primary mb-1">Recommendation</h4>
-                        <p className="text-sm text-white/90">{setting.recommendation}</p>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-                      <h4 className="text-xs font-medium text-emerald-400 mb-2 flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> Pros
-                      </h4>
-                      <ul className="space-y-1">
-                        {setting.pros.map((pro, i) => (
-                          <li key={i} className="text-xs text-white/70">{pro}</li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-                      <h4 className="text-xs font-medium text-amber-400 mb-2 flex items-center gap-1">
-                        <AlertTriangle className="w-3 h-3" /> Cons
-                      </h4>
-                      <ul className="space-y-1">
-                        {setting.cons.map((con, i) => (
-                          <li key={i} className="text-xs text-white/70">{con}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-                  
-                  <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                    <h4 className="text-xs font-medium text-red-400 mb-1 flex items-center gap-1">
-                      <Shield className="w-3 h-3" /> When NOT to change
-                    </h4>
-                    <p className="text-xs text-white/70">{setting.whenNotToChange}</p>
-                  </div>
-                  
-                  <div className="p-3 rounded-lg bg-white/5 border border-white/10">
-                    <h4 className="text-xs font-medium text-white/80 mb-2 flex items-center gap-1">
-                      <ExternalLink className="w-3 h-3" /> Where to find in BIOS
-                    </h4>
-                    <div className="space-y-1.5">
-                      {setting.motherboardPaths.map((path) => (
-                        <div key={path.brand} className="text-xs">
-                          <span className="text-primary font-medium">{path.brand}:</span>
-                          <span className="text-white/60 ml-1">{path.path.join(" → ")}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
+
+        <AnimatePresence>
+          {expanded && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className="overflow-hidden"
+            >
+              <div className="px-4 pb-4 border-t border-white/10">
+                <div className="flex gap-1 mt-3 mb-3 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] w-fit">
+                  {tabItems.map(tab => (
+                    <button
+                      key={tab.key}
+                      onClick={(e) => { e.stopPropagation(); setActiveTab(tab.key); }}
+                      className={cn(
+                        "px-3 py-1.5 text-[10px] font-medium rounded-md transition-all",
+                        activeTab === tab.key
+                          ? "bg-primary/20 text-primary border border-primary/30"
+                          : "text-muted-foreground hover:text-white hover:bg-white/5 border border-transparent"
+                      )}
+                      data-testid={`tab-${tab.key}-${setting.id}`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {activeTab === "overview" && (
+                  <motion.div
+                    key="overview"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    {detection && (
+                      <div className="p-3 rounded-lg bg-cyan-500/10 border border-cyan-500/20 mb-3">
+                        <h4 className="text-xs font-medium text-cyan-400 mb-1 flex items-center gap-1">
+                          <Eye className="w-3 h-3" /> Detection Detail
+                        </h4>
+                        <p className="text-xs text-white/80">{detection.reason}</p>
+                        {detection.detectedValue && (
+                          <p className="text-[10px] text-cyan-300/70 mt-1">Value: {detection.detectedValue}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-[10px] text-white/50">Confidence:</span>
+                          <ConfidenceBadge confidence={detection.confidence} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="space-y-3">
+                        <div>
+                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">What it is</h4>
+                          <p className="text-sm text-white/80">{setting.whatItIs}</p>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {setting.affects.map((affect) => (
+                            <Badge key={affect} variant="secondary" className="text-[10px] bg-white/5">{affect}</Badge>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+                        <div className="flex items-start gap-2">
+                          <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                          <div>
+                            <h4 className="text-xs font-medium text-primary mb-1">Recommendation</h4>
+                            <p className="text-sm text-white/90">{setting.recommendation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "details" && (
+                  <motion.div
+                    key="details"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-3"
+                  >
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                        <h4 className="text-xs font-medium text-emerald-400 mb-2 flex items-center gap-1">
+                          <CheckCircle className="w-3 h-3" /> Pros
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {setting.pros.map((pro, i) => (
+                            <li key={i} className="text-xs text-white/70 flex items-start gap-1.5">
+                              <span className="text-emerald-400/60 mt-0.5 shrink-0">+</span>
+                              {pro}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                        <h4 className="text-xs font-medium text-amber-400 mb-2 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> Cons
+                        </h4>
+                        <ul className="space-y-1.5">
+                          {setting.cons.map((con, i) => (
+                            <li key={i} className="text-xs text-white/70 flex items-start gap-1.5">
+                              <span className="text-amber-400/60 mt-0.5 shrink-0">-</span>
+                              {con}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                      <h4 className="text-xs font-medium text-red-400 mb-1 flex items-center gap-1">
+                        <Shield className="w-3 h-3" /> When NOT to change
+                      </h4>
+                      <p className="text-xs text-white/70">{setting.whenNotToChange}</p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {activeTab === "location" && (
+                  <motion.div
+                    key="location"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="p-3 rounded-lg bg-white/5 border border-white/10">
+                      <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1">
+                        <ExternalLink className="w-3 h-3" /> Where to find in BIOS
+                      </h4>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+                        {setting.motherboardPaths.map((path) => (
+                          <div key={path.brand} className="text-xs p-2 rounded bg-white/[0.03] border border-white/[0.06]">
+                            <span className="text-primary font-medium">{path.brand}</span>
+                            <div className="text-white/60 mt-0.5">{path.path.join(" → ")}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </GlassCard>
     </motion.div>
   );

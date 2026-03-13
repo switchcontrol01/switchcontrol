@@ -1,15 +1,18 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Activity, Info, Maximize2, Minimize2 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend } from "recharts";
+import { Activity, Info, Maximize2, Minimize2, Cpu, Thermometer, MemoryStick, HardDrive, Wifi } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend, CartesianGrid } from "recharts";
 import { safeFixed, safeNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface DataPoint {
   time: string;
-  cpu: number;
-  gpu: number | null;
-  mobo: number | null;
+  cpuLoad: number;
+  cpuTemp: number | null;
+  gpuLoad: number | null;
+  gpuTemp: number | null;
+  gpuMemPct: number | null;
   ram: number | null;
   disk: number | null;
   netRx: number | null;
@@ -17,19 +20,47 @@ interface DataPoint {
 }
 
 interface LatestState {
-  cpuDisplay: number;
-  cpuLabel: string;
-  gpuDisplay: number | null;
-  gpuLabel: string | null;
+  cpuLoad: number;
+  cpuTemp: number | null;
+  gpuTemp: number | null;
+  gpuLoad: number | null;
+  gpuMemUsed: number | null;
+  gpuMemTotal: number | null;
+  gpuMemPct: number | null;
+  gpuPower: number | null;
+  gpuClockMhz: number | null;
   showGpu: boolean;
   showMobo: boolean;
   moboTemp: number | null;
   ramUsedGb: number;
   ramTotalGb: number;
+  ramPercent: number;
   showRam: boolean;
   diskPercent: number | null;
   netRxSec: number | null;
   netTxSec: number | null;
+  coreCount: number;
+}
+
+const METRIC_COLORS = {
+  cpuLoad: "#ef4444",
+  cpuTemp: "#f97316",
+  gpuLoad: "#22c55e",
+  gpuTemp: "#10b981",
+  gpuMemPct: "#34d399",
+  ram: "#06b6d4",
+  disk: "#eab308",
+  netRx: "#3b82f6",
+  netTx: "#8b5cf6",
+};
+
+function MetricBadge({ color, label, value, unit, dimmed }: { color: string; label: string; value: string | number; unit: string; dimmed?: boolean }) {
+  return (
+    <span className={cn("flex items-center gap-1.5", dimmed && "opacity-50")}>
+      <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+      <span className="whitespace-nowrap">{label}: {value}{unit}</span>
+    </span>
+  );
 }
 
 export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: any) => void }) {
@@ -39,116 +70,119 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   const [expanded, setExpanded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
+  const onTelemetryUpdateRef = useRef(onTelemetryUpdate);
+  onTelemetryUpdateRef.current = onTelemetryUpdate;
+
+  const fetchTelemetry = useCallback(async () => {
+    try {
+      const api = (window as any).electronAPI;
+
+      if (api?.telemetry?.getLive) {
+        const live = await api.telemetry.getLive();
+
+        const cpuLoad = safeNumber(live.cpuUsage ?? live.cpuDisplay, 0);
+        const cpuTemp = live.cpuTemp != null && live.cpuTemp > 0 ? safeNumber(live.cpuTemp) : null;
+
+        const gpuTemp = live.gpuTemp != null && live.gpuTemp > 0 ? safeNumber(live.gpuTemp) : null;
+        const gpuLoad = live.gpuLoad != null && live.gpuLoad >= 0 ? safeNumber(live.gpuLoad) : null;
+        const gpuMemUsed = live.gpuMemUsed != null ? safeNumber(live.gpuMemUsed) : null;
+        const gpuMemTotal = live.gpuMemTotal != null && live.gpuMemTotal > 0 ? safeNumber(live.gpuMemTotal) : null;
+        const gpuMemPct = gpuMemUsed != null && gpuMemTotal != null && gpuMemTotal > 0
+          ? Math.round((gpuMemUsed / gpuMemTotal) * 100) : null;
+        const gpuPower = live.gpuPower != null && live.gpuPower > 0 ? safeNumber(live.gpuPower) : null;
+        const gpuClockMhz = live.gpuClockMhz != null && live.gpuClockMhz > 0 ? safeNumber(live.gpuClockMhz) : null;
+
+        let ramUsedGb: number = 0;
+        let ramTotalGb: number = 0;
+
+        if (live.ramUsedGb != null && live.ramTotalGb != null) {
+          ramUsedGb = safeNumber(live.ramUsedGb, 0);
+          ramTotalGb = safeNumber(live.ramTotalGb ?? live.ramTotal, 0);
+        } else if (api?.system?.getRamUsage) {
+          try {
+            const ram = await api.system.getRamUsage();
+            if (ram) {
+              ramUsedGb = safeNumber(ram.usedGB ?? ram.ramUsedGb, 0);
+              ramTotalGb = safeNumber(ram.totalGB ?? ram.ramTotalGb, 0);
+            }
+          } catch {}
+        }
+
+        const hasRam = ramTotalGb > 0;
+        const ramPercent = hasRam ? Math.round((ramUsedGb / ramTotalGb) * 100) : safeNumber(live.ramUsage, 0);
+
+        const telemetryState: LatestState = {
+          cpuLoad,
+          cpuTemp,
+          gpuTemp,
+          gpuLoad,
+          gpuMemUsed,
+          gpuMemTotal,
+          gpuMemPct,
+          gpuPower,
+          gpuClockMhz,
+          showGpu: live.showGpu ?? (gpuTemp != null || gpuLoad != null),
+          showMobo: live.showMobo ?? false,
+          moboTemp: live.moboTemp ?? null,
+          ramUsedGb,
+          ramTotalGb,
+          ramPercent,
+          showRam: hasRam || ramPercent > 0,
+          diskPercent: live.diskPercent ?? null,
+          netRxSec: live.netRxSec ?? null,
+          netTxSec: live.netTxSec ?? null,
+          coreCount: safeNumber(live.cpuCoreCount, 0),
+        };
+
+        setLatest(telemetryState);
+        setError(null);
+        retryCountRef.current = 0;
+
+        if (onTelemetryUpdateRef.current) {
+          onTelemetryUpdateRef.current({
+            temps: { cpu: live.cpuTemp ?? 0, gpu: live.gpuTemp ?? 0 },
+            ram: hasRam ? { totalGB: ramTotalGb, usedGB: ramUsedGb } : undefined,
+            ssds: []
+          });
+        }
+
+        const now = new Date();
+        const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+        setData(prev => {
+          const newPoint: DataPoint = {
+            time: timeStr,
+            cpuLoad,
+            cpuTemp,
+            gpuLoad,
+            gpuTemp,
+            gpuMemPct,
+            ram: ramPercent > 0 ? ramPercent : null,
+            disk: telemetryState.diskPercent,
+            netRx: telemetryState.netRxSec,
+            netTx: telemetryState.netTxSec,
+          };
+          const updated = [...prev, newPoint];
+          return updated.length > 60 ? updated.slice(-60) : updated;
+        });
+      } else {
+        setError("Telemetry not available in browser");
+      }
+    } catch (err) {
+      retryCountRef.current += 1;
+      if (retryCountRef.current <= 3) {
+        console.warn("[LiveGraph] Telemetry fetch failed, retrying...");
+      } else if (retryCountRef.current === 4) {
+        setError("No telemetry available");
+      }
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchTelemetry = async () => {
-      try {
-        const api = (window as any).electronAPI;
-
-        if (api?.telemetry?.getLive) {
-          const live = await api.telemetry.getLive();
-          
-          let ramUsedGb: number | null = null;
-          let ramTotalGb: number | null = null;
-          
-          if (api?.system?.getRamUsage) {
-            try {
-              const ram = await api.system.getRamUsage();
-              if (ram) {
-                ramUsedGb = safeNumber(ram.usedGB ?? ram.ramUsedGb, null);
-                ramTotalGb = safeNumber(ram.totalGB ?? ram.ramTotalGb, null);
-              }
-            } catch (e) {
-              console.warn('[telemetry] RAM fetch error:', e);
-            }
-          }
-          
-          const hasRamData = ramUsedGb !== null && ramTotalGb !== null && ramTotalGb > 0;
-
-          const hasCpuTemp = live.showCpuTemp && live.cpuTemp != null && live.cpuTemp > 0;
-          const cpuVal = hasCpuTemp ? safeNumber(live.cpuTemp, 0) : safeNumber(live.cpuUsage ?? live.cpuDisplay, 0);
-          const cpuLbl = hasCpuTemp ? 'CPU Temp (°C)' : 'CPU Load (%)';
-
-          const hasGpuTemp = live.gpuTemp != null && live.gpuTemp > 0;
-          
-          const telemetryState: LatestState = {
-            cpuDisplay: cpuVal,
-            cpuLabel: live.cpuLabel || cpuLbl,
-            gpuDisplay: hasGpuTemp ? safeNumber(live.gpuTemp, 0) : (live.gpuDisplay ?? null),
-            gpuLabel: live.gpuLabel || (hasGpuTemp ? 'GPU Temp (°C)' : null),
-            showGpu: live.showGpu ?? hasGpuTemp,
-            showMobo: live.showMobo ?? false,
-            moboTemp: live.moboTemp ?? null,
-            ramUsedGb: hasRamData ? ramUsedGb! : 0,
-            ramTotalGb: hasRamData ? ramTotalGb! : 0,
-            showRam: hasRamData,
-            diskPercent: live.diskPercent ?? null,
-            netRxSec: live.netRxSec ?? null,
-            netTxSec: live.netTxSec ?? null,
-          };
-
-          setLatest(telemetryState);
-          setError(null);
-          retryCountRef.current = 0;
-          
-          if (onTelemetryUpdate) {
-            onTelemetryUpdate({
-              temps: { 
-                cpu: live.cpuTemp ?? 0, 
-                gpu: live.gpuTemp ?? 0
-              },
-              ram: hasRamData ? { 
-                totalGB: ramTotalGb!, 
-                usedGB: ramUsedGb! 
-              } : undefined,
-              ssds: []
-            });
-          }
-          
-          const now = new Date();
-          const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
-          
-          const ramPercent = hasRamData ? (ramUsedGb! / ramTotalGb!) * 100 : null;
-          
-          setData(prev => {
-            const newPoint: DataPoint = {
-              time: timeStr,
-              cpu: telemetryState.cpuDisplay,
-              gpu: telemetryState.gpuDisplay,
-              mobo: telemetryState.moboTemp,
-              ram: ramPercent,
-              disk: telemetryState.diskPercent,
-              netRx: telemetryState.netRxSec,
-              netTx: telemetryState.netTxSec
-            };
-            const updated = [...prev, newPoint];
-            if (updated.length > 30) {
-              return updated.slice(-30);
-            }
-            return updated;
-          });
-        } else {
-          setError("Telemetry not available in browser");
-        }
-      } catch (err) {
-        retryCountRef.current += 1;
-        if (retryCountRef.current <= 3) {
-          console.warn("[LiveGraph] Telemetry fetch failed, retrying...");
-        } else if (retryCountRef.current === 4) {
-          setError("No telemetry available");
-        }
-      }
-    };
-
     fetchTelemetry();
     intervalRef.current = setInterval(fetchTelemetry, 1500);
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [onTelemetryUpdate]);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [fetchTelemetry]);
 
   if (error) {
     return (
@@ -166,6 +200,15 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
     );
   }
 
+  const hasCpuTemp = data.some(d => d.cpuTemp !== null);
+  const hasGpuLoad = data.some(d => d.gpuLoad !== null);
+  const hasGpuTemp = data.some(d => d.gpuTemp !== null);
+  const hasGpuMem = data.some(d => d.gpuMemPct !== null);
+  const hasRamData = data.some(d => d.ram !== null);
+  const hasDiskData = data.some(d => d.disk !== null);
+  const hasNetRx = data.some(d => d.netRx !== null);
+  const hasNetTx = data.some(d => d.netTx !== null);
+
   return (
     <GlassCard className="p-4">
       <div className="flex items-center justify-between mb-4">
@@ -173,69 +216,68 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
           <Activity className="size-4 text-primary" />
           Live System Monitor
         </h3>
-        <div className="flex items-center gap-3 text-[10px]">
+        <div className="flex items-center gap-3 text-[10px] flex-wrap justify-end">
           {latest && (
             <>
-              <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-red-500" />
-                {latest.cpuLabel.replace(' (°C)', '').replace(' (%)', '')}: {safeFixed(latest.cpuDisplay, 0)}{latest.cpuLabel.includes('°C') ? '°C' : '%'}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-green-500" />
-                GPU: {latest.showGpu && latest.gpuDisplay !== null ? (
-                  `${safeFixed(latest.gpuDisplay, 0)}${latest.gpuLabel?.includes('°C') ? '°C' : '%'}`
-                ) : (
-                  <span className="text-muted-foreground/60" title="GPU requires NVIDIA or LibreHardwareMonitor">N/A</span>
-                )}
-              </span>
-              {latest.showMobo && latest.moboTemp !== null && (
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-purple-500" />
-                  Mobo: {latest.moboTemp}°C
-                </span>
+              <MetricBadge color={METRIC_COLORS.cpuLoad} label="CPU" value={safeFixed(latest.cpuLoad, 0)} unit="%" />
+              {latest.cpuTemp != null && (
+                <MetricBadge color={METRIC_COLORS.cpuTemp} label="CPU" value={safeFixed(latest.cpuTemp, 0)} unit="°C" />
+              )}
+              {latest.showGpu && latest.gpuLoad != null && (
+                <MetricBadge color={METRIC_COLORS.gpuLoad} label="GPU" value={safeFixed(latest.gpuLoad, 0)} unit="%" />
+              )}
+              {latest.showGpu && latest.gpuTemp != null && (
+                <MetricBadge color={METRIC_COLORS.gpuTemp} label="GPU" value={safeFixed(latest.gpuTemp, 0)} unit="°C" />
               )}
               {latest.showRam && (
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-cyan-500" />
-                  RAM: {safeFixed(latest.ramUsedGb, 1)}GB / {safeFixed(latest.ramTotalGb, 0)}GB
+                <MetricBadge color={METRIC_COLORS.ram} label="RAM" value={`${safeFixed(latest.ramUsedGb, 1)}/${safeFixed(latest.ramTotalGb, 0)}`} unit="GB" />
+              )}
+              {expanded && latest.gpuMemPct != null && (
+                <MetricBadge color={METRIC_COLORS.gpuMemPct} label="VRAM" value={safeFixed(latest.gpuMemPct, 0)} unit="%" />
+              )}
+              {expanded && latest.gpuPower != null && (
+                <span className="flex items-center gap-1 text-muted-foreground/70 whitespace-nowrap">
+                  ⚡ {safeFixed(latest.gpuPower, 0)}W
                 </span>
               )}
-              {latest.diskPercent !== null && (
-                <span className="flex items-center gap-1.5">
-                  <span className="size-2 rounded-full bg-yellow-500" />
-                  Disk: {safeFixed(latest.diskPercent, 0)}%
+              {expanded && latest.gpuClockMhz != null && (
+                <span className="flex items-center gap-1 text-muted-foreground/70 whitespace-nowrap">
+                  🕐 {safeFixed(latest.gpuClockMhz, 0)}MHz
                 </span>
               )}
-              {(latest.netRxSec !== null || latest.netTxSec !== null) && (
-                <span className="flex items-center gap-1.5 text-muted-foreground/70">
-                  <span className="size-2 rounded-full bg-blue-500" />
-                  Net: ↓{safeFixed(latest.netRxSec ?? 0, 0)} ↑{safeFixed(latest.netTxSec ?? 0, 0)} KB/s
-                </span>
+              {latest.diskPercent != null && (
+                <MetricBadge color={METRIC_COLORS.disk} label="Disk" value={safeFixed(latest.diskPercent, 0)} unit="%" />
+              )}
+              {expanded && (latest.netRxSec != null || latest.netTxSec != null) && (
+                <MetricBadge color={METRIC_COLORS.netRx} label="Net" value={`↓${safeFixed(latest.netRxSec ?? 0, 0)} ↑${safeFixed(latest.netTxSec ?? 0, 0)}`} unit=" KB/s" dimmed />
               )}
             </>
           )}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="h-6 w-6 p-0 ml-2 hover:bg-white/10"
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 ml-1 hover:bg-white/10 shrink-0"
             onClick={() => setExpanded(!expanded)}
             title={expanded ? "Collapse graph" : "Expand graph"}
+            data-testid="button-expand-graph"
           >
             {expanded ? <Minimize2 className="size-3" /> : <Maximize2 className="size-3" />}
           </Button>
         </div>
       </div>
-      
-      <div className={expanded ? "h-80 transition-all duration-300" : "h-48 transition-all duration-300"}>
+
+      <div className={cn("transition-all duration-300", expanded ? "h-80" : "h-48")}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-            <XAxis 
-              dataKey="time" 
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+            <XAxis
+              dataKey="time"
               tick={{ fill: '#6b7280', fontSize: 10 }}
               axisLine={{ stroke: '#374151' }}
               tickLine={false}
+              interval="preserveStartEnd"
             />
-            <YAxis 
+            <YAxis
               tick={{ fill: '#6b7280', fontSize: 10 }}
               axisLine={{ stroke: '#374151' }}
               tickLine={false}
@@ -244,104 +286,62 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             />
             <Tooltip
               contentStyle={{
-                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                backgroundColor: 'rgba(0, 0, 0, 0.92)',
                 border: '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '8px',
-                fontSize: '11px'
+                fontSize: '11px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
               }}
               labelStyle={{ color: '#9ca3af' }}
+              formatter={(value: number, name: string) => {
+                const unit = name.includes('°C') ? '°C' : name.includes('KB/s') ? ' KB/s' : '%';
+                return [value != null ? `${safeFixed(value, 1)}${unit}` : 'N/A', name];
+              }}
             />
-            <Legend 
-              wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }}
-              iconSize={8}
-            />
-            <Line 
-              type="monotone" 
-              dataKey="cpu" 
-              name={latest?.cpuLabel || "CPU"}
-              stroke="#ef4444" 
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 3 }}
-            />
-            {latest?.showGpu && (
-              <Line 
-                type="monotone" 
-                dataKey="gpu" 
-                name={latest?.gpuLabel || "GPU"}
-                stroke="#22c55e" 
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
+            <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} iconSize={8} />
+
+            <Line type="monotone" dataKey="cpuLoad" name="CPU Load (%)" stroke={METRIC_COLORS.cpuLoad} strokeWidth={2} dot={false} activeDot={{ r: 3 }} />
+
+            {hasCpuTemp && (
+              <Line type="monotone" dataKey="cpuTemp" name="CPU Temp (°C)" stroke={METRIC_COLORS.cpuTemp} strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} strokeDasharray={expanded ? undefined : "4 2"} connectNulls />
             )}
-            {latest?.showMobo && (
-              <Line 
-                type="monotone" 
-                dataKey="mobo" 
-                name="Mobo Temp (°C)"
-                stroke="#a855f7" 
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
+
+            {hasGpuLoad && (
+              <Line type="monotone" dataKey="gpuLoad" name="GPU Load (%)" stroke={METRIC_COLORS.gpuLoad} strokeWidth={2} dot={false} activeDot={{ r: 3 }} connectNulls />
             )}
-            {latest?.showRam && data.some(d => d.ram !== null) && (
-              <Line 
-                type="monotone" 
-                dataKey="ram" 
-                name="RAM %"
-                stroke="#06b6d4" 
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
+
+            {hasGpuTemp && (expanded || !hasGpuLoad) && (
+              <Line type="monotone" dataKey="gpuTemp" name="GPU Temp (°C)" stroke={METRIC_COLORS.gpuTemp} strokeWidth={1.5} dot={false} activeDot={{ r: 3 }} strokeDasharray="4 2" connectNulls />
             )}
-            {data.some(d => d.disk !== null) && (
-              <Line 
-                type="monotone" 
-                dataKey="disk" 
-                name="Disk %"
-                stroke="#eab308" 
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 3 }}
-              />
+
+            {expanded && hasGpuMem && (
+              <Line type="monotone" dataKey="gpuMemPct" name="VRAM (%)" stroke={METRIC_COLORS.gpuMemPct} strokeWidth={1.5} dot={false} activeDot={{ r: 2 }} strokeDasharray="6 3" connectNulls />
             )}
-            {expanded && data.some(d => d.netRx !== null) && (
-              <Line 
-                type="monotone" 
-                dataKey="netRx" 
-                name="Net ↓ KB/s"
-                stroke="#3b82f6" 
-                strokeWidth={1.5}
-                dot={false}
-                activeDot={{ r: 2 }}
-                strokeDasharray="4 2"
-              />
+
+            {hasRamData && (
+              <Line type="monotone" dataKey="ram" name="RAM (%)" stroke={METRIC_COLORS.ram} strokeWidth={2} dot={false} activeDot={{ r: 3 }} connectNulls />
             )}
-            {expanded && data.some(d => d.netTx !== null) && (
-              <Line 
-                type="monotone" 
-                dataKey="netTx" 
-                name="Net ↑ KB/s"
-                stroke="#8b5cf6" 
-                strokeWidth={1.5}
-                dot={false}
-                activeDot={{ r: 2 }}
-                strokeDasharray="4 2"
-              />
+
+            {hasDiskData && (
+              <Line type="monotone" dataKey="disk" name="Disk (%)" stroke={METRIC_COLORS.disk} strokeWidth={expanded ? 2 : 1.5} dot={false} activeDot={{ r: 3 }} connectNulls />
+            )}
+
+            {expanded && hasNetRx && (
+              <Line type="monotone" dataKey="netRx" name="Net ↓ KB/s" stroke={METRIC_COLORS.netRx} strokeWidth={1.5} dot={false} activeDot={{ r: 2 }} strokeDasharray="4 2" connectNulls />
+            )}
+            {expanded && hasNetTx && (
+              <Line type="monotone" dataKey="netTx" name="Net ↑ KB/s" stroke={METRIC_COLORS.netTx} strokeWidth={1.5} dot={false} activeDot={{ r: 2 }} strokeDasharray="4 2" connectNulls />
             )}
           </LineChart>
         </ResponsiveContainer>
       </div>
-      
+
       <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/60">
-        <Info className="size-3" />
+        <Info className="size-3 shrink-0" />
         <span>
-          {latest?.showMobo 
-            ? "LibreHardwareMonitor detected. Full sensor data available."
-            : "GPU: NVIDIA or LibreHardwareMonitor required. Mobo: LibreHardwareMonitor required."
+          {latest?.showGpu
+            ? `Tracking ${[true, hasCpuTemp, hasGpuLoad, hasGpuTemp, hasRamData, hasDiskData].filter(Boolean).length} metrics · ${expanded ? '60s' : '45s'} history · Expand for all lines`
+            : "GPU: NVIDIA required · Expand for network & VRAM metrics"
           }
         </span>
       </div>

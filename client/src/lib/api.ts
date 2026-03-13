@@ -9,25 +9,50 @@ if (typeof window !== 'undefined') {
 
 let _resolvedApiBase: string | null = null;
 let _resolvingPromise: Promise<string> | null = null;
+let _backendReady = !isPackagedElectron;
+let _backendReadyListeners: Array<() => void> = [];
 
-const ELECTRON_PORT_POLL_INTERVAL = 200;
-const ELECTRON_PORT_POLL_TIMEOUT = 12000;
+const ELECTRON_PORT_POLL_INTERVAL = 150;
+const ELECTRON_PORT_POLL_TIMEOUT = 25000;
+
+export function isBackendReady(): boolean {
+  return _backendReady;
+}
+
+export function onBackendReady(cb: () => void): () => void {
+  if (_backendReady) { cb(); return () => {}; }
+  _backendReadyListeners.push(cb);
+  return () => { _backendReadyListeners = _backendReadyListeners.filter(l => l !== cb); };
+}
+
+function markBackendReady() {
+  if (!_backendReady) {
+    _backendReady = true;
+    _backendReadyListeners.forEach(cb => { try { cb(); } catch {} });
+    _backendReadyListeners = [];
+  }
+}
 
 async function pollForBackendPort(): Promise<number> {
   const start = Date.now();
   const api = (window as any).electronAPI;
+  let attempt = 0;
 
   while (Date.now() - start < ELECTRON_PORT_POLL_TIMEOUT) {
+    attempt++;
     try {
       const port = await api.getBackendPort();
       if (typeof port === 'number' && port > 0) {
-        console.log(`[API] Backend port resolved: ${port} (after ${Date.now() - start}ms)`);
+        console.log(`[API] Backend port resolved: ${port} (${Date.now() - start}ms, attempt ${attempt})`);
         return port;
       }
     } catch {}
 
-    console.log(`[API] Backend port not ready yet, retrying... (${Date.now() - start}ms elapsed)`);
-    await new Promise(r => setTimeout(r, ELECTRON_PORT_POLL_INTERVAL));
+    if (attempt <= 5 || attempt % 10 === 0) {
+      console.log(`[API] Backend port not ready, retrying... (${Date.now() - start}ms)`);
+    }
+    const delay = attempt <= 10 ? ELECTRON_PORT_POLL_INTERVAL : 300;
+    await new Promise(r => setTimeout(r, delay));
   }
 
   throw new ApiError(0, "Embedded backend did not start in time. Please restart the application.");
@@ -38,6 +63,7 @@ async function resolveApiBaseInternal(): Promise<string> {
     const port = await pollForBackendPort();
     const base = `http://127.0.0.1:${port}/api`;
     console.log(`[API] Packaged Electron API base: ${base}`);
+    markBackendReady();
     return base;
   }
 
@@ -80,19 +106,9 @@ async function resolveApiBase(): Promise<string> {
 
 if (typeof window !== 'undefined') {
   resolveApiBase().then(base => {
-    console.log(`[API] ===== RENDERER API PROOF =====`);
-    console.log(`[API] Resolved base URL: ${base}`);
-    console.log(`[API] isElectron: ${isElectron}`);
-    console.log(`[API] isPackagedElectron: ${isPackagedElectron}`);
-    console.log(`[API] Protocol: ${window.location?.protocol}`);
-    console.log(`[API] CSRF: will cache token in memory (cookie cross-origin safe)`);
-    console.log(`[API] ================================`);
+    console.log(`[API] Resolved: ${base} | electron=${isElectron} packaged=${isPackagedElectron}`);
   }).catch(err => {
-    console.error(`[API] !!!!! BASE URL RESOLUTION FAILED !!!!!`);
-    console.error(`[API] Error: ${err.message}`);
-    console.error(`[API] isElectron: ${isElectron}`);
-    console.error(`[API] isPackagedElectron: ${isPackagedElectron}`);
-    console.error(`[API] This means all API requests will fail.`);
+    console.error(`[API] Resolution failed: ${err.message} — API calls will retry on demand`);
   });
 }
 

@@ -19,17 +19,21 @@ function findFreePort() {
   });
 }
 
-function waitForBackend(port, timeoutMs = 15000) {
+function waitForBackend(port, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
+    let attempt = 0;
 
     function check() {
+      attempt++;
       const elapsed = Date.now() - start;
       if (elapsed > timeoutMs) {
-        return reject(new Error(`Backend did not become ready within ${timeoutMs}ms`));
+        return reject(new Error(`Backend did not become ready within ${timeoutMs}ms (${attempt} attempts)`));
       }
 
-      const req = http.get(`http://127.0.0.1:${port}/api/health`, { timeout: 2000 }, (res) => {
+      const retryDelay = attempt <= 5 ? 150 : attempt <= 15 ? 250 : 400;
+
+      const req = http.get(`http://127.0.0.1:${port}/api/health`, { timeout: 1500 }, (res) => {
         let body = '';
         res.on('data', (chunk) => { body += chunk; });
         res.on('end', () => {
@@ -37,21 +41,22 @@ function waitForBackend(port, timeoutMs = 15000) {
             try {
               const data = JSON.parse(body);
               if (data.status === 'ok') {
+                console.log(`[Backend] Health check passed after ${attempt} attempts (${Date.now() - start}ms)`);
                 return resolve(true);
               }
             } catch {}
           }
-          setTimeout(check, 300);
+          setTimeout(check, retryDelay);
         });
       });
 
       req.on('error', () => {
-        setTimeout(check, 300);
+        setTimeout(check, retryDelay);
       });
 
       req.on('timeout', () => {
         req.destroy();
-        setTimeout(check, 300);
+        setTimeout(check, retryDelay);
       });
     }
 

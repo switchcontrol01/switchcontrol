@@ -255,9 +255,13 @@ function createWindow() {
 }
 
 // Helper: safe number conversion
-function safeNum(value, decimals = 1) {
+function safeNum(value, fallbackOrDecimals = 1, decimals) {
   const num = Number(value);
-  return Number.isFinite(num) ? parseFloat(num.toFixed(decimals)) : 0;
+  if (fallbackOrDecimals === null) {
+    return Number.isFinite(num) ? num : null;
+  }
+  const dec = typeof decimals === 'number' ? decimals : (typeof fallbackOrDecimals === 'number' ? fallbackOrDecimals : 1);
+  return Number.isFinite(num) ? parseFloat(num.toFixed(dec)) : (typeof fallbackOrDecimals === 'number' ? 0 : fallbackOrDecimals);
 }
 
 // Helper: Get NVIDIA GPU temp via nvidia-smi (only works for NVIDIA cards)
@@ -859,31 +863,92 @@ ipcMain.handle('system:getSpecs', async () => {
 
 ipcMain.handle('telemetry:getLive', async () => {
   try {
-    const [load, mem, temps] = await Promise.all([
-      si.currentLoad().catch(() => ({ currentLoad: 0 })),
-      si.mem().catch(() => ({ total: 0, available: 0 })),
-      si.cpuTemperature().catch(() => ({ main: 0 }))
+    const [load, mem, temps, fsData, netStats, diskIO] = await Promise.all([
+      si.currentLoad().catch(() => ({ currentLoad: 0, cpus: [] })),
+      si.mem().catch(() => ({ total: 0, available: 0, used: 0, swaptotal: 0, swapused: 0 })),
+      si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] })),
+      si.fsSize().catch(() => []),
+      si.networkStats().catch(() => []),
+      si.disksIO().catch(() => ({ rIO_sec: 0, wIO_sec: 0 }))
     ]);
+
+    const cpuLoad = safeNum(load.currentLoad || 0);
     const cpuTemp = safeNum(temps.main || 0);
-    const ramTotal = Math.round((mem.total || 0) / (1024 * 1024 * 1024));
-    const ramUsed = Math.round((((mem.total || 0) - (mem.available || 0)) / (mem.total || 1)) * 100);
+    const cpuMaxTemp = safeNum(temps.max || 0);
+    const coreLoads = (load.cpus || []).map(c => safeNum(c.load || 0));
+
+    const ramTotal = mem.total || 0;
+    const ramUsed = (mem.total || 0) - (mem.available || 0);
+    const ramTotalGb = Math.round(ramTotal / (1024 * 1024 * 1024));
+    const ramUsedGb = parseFloat((ramUsed / (1024 * 1024 * 1024)).toFixed(1));
+    const ramPercent = ramTotal > 0 ? Math.round((ramUsed / ramTotal) * 100) : 0;
+
     let gpuTemp = null;
+    let gpuLoad = null;
+    let gpuMemUsed = null;
+    let gpuMemTotal = null;
+    let gpuPower = null;
+    let gpuClockMhz = null;
+
     if (cachedSpecs?.gpu?.isNvidia) {
-      try { gpuTemp = await getNvidiaGpuTemp(); } catch (e) {}
+      try {
+        const { execSync } = require('child_process');
+        const output = execSync('nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,clocks.current.graphics --format=csv,noheader,nounits', { timeout: 3000, encoding: 'utf8' });
+        const parts = output.trim().split(',').map(s => s.trim());
+        if (parts.length >= 6) {
+          gpuTemp = safeNum(parseFloat(parts[0]), null);
+          gpuLoad = safeNum(parseFloat(parts[1]), null);
+          gpuMemUsed = safeNum(parseFloat(parts[2]), null);
+          gpuMemTotal = safeNum(parseFloat(parts[3]), null);
+          gpuPower = safeNum(parseFloat(parts[4]), null);
+          gpuClockMhz = safeNum(parseFloat(parts[5]), null);
+        }
+      } catch (e) {
+        try { gpuTemp = await getNvidiaGpuTemp(); } catch (e2) {}
+      }
     }
+
+    const primaryDisk = (fsData || []).find(d => d.mount === 'C:' || d.mount === '/') || (fsData || [])[0];
+    const diskPercent = primaryDisk ? safeNum(primaryDisk.use, null) : null;
+    const diskReadSec = safeNum(diskIO.rIO_sec || 0, 0);
+    const diskWriteSec = safeNum(diskIO.wIO_sec || 0, 0);
+
+    let netRxSec = 0;
+    let netTxSec = 0;
+    for (const iface of (netStats || [])) {
+      netRxSec += safeNum(iface.rx_sec || 0, 0);
+      netTxSec += safeNum(iface.tx_sec || 0, 0);
+    }
+    const netRxKBs = Math.round(netRxSec / 1024);
+    const netTxKBs = Math.round(netTxSec / 1024);
+
     return {
-      cpuUsage: safeNum(load.currentLoad || 0),
-      ramUsage: ramUsed,
+      cpuUsage: cpuLoad,
       cpuTemp: cpuTemp > 0 ? cpuTemp : null,
+      cpuMaxTemp: cpuMaxTemp > 0 ? cpuMaxTemp : null,
       showCpuTemp: cpuTemp > 0,
-      ramTotal,
-      gpuTemp,
-      showGpu: !!cachedSpecs?.gpu?.isNvidia,
+      cpuCoreCount: coreLoads.length,
+      ramUsage: ramPercent,
+      ramTotal: ramTotalGb,
+      ramUsedGb,
+      ramTotalGb,
+      gpuTemp: gpuTemp > 0 ? gpuTemp : null,
+      gpuLoad: gpuLoad !== null && gpuLoad >= 0 ? gpuLoad : null,
+      gpuMemUsed: gpuMemUsed !== null ? gpuMemUsed : null,
+      gpuMemTotal: gpuMemTotal !== null ? gpuMemTotal : null,
+      gpuPower: gpuPower !== null && gpuPower > 0 ? gpuPower : null,
+      gpuClockMhz: gpuClockMhz !== null && gpuClockMhz > 0 ? gpuClockMhz : null,
+      showGpu: !!(gpuTemp || gpuLoad !== null),
       showMobo: false,
+      diskPercent,
+      diskReadSec,
+      diskWriteSec,
+      netRxSec: netRxKBs > 0 ? netRxKBs : null,
+      netTxSec: netTxKBs > 0 ? netTxKBs : null,
       timestamp: Date.now()
     };
   } catch (e) {
-    return { cpuUsage: 0, ramUsage: 0, cpuTemp: null, showCpuTemp: false, ramTotal: 0, gpuTemp: null, showGpu: false, showMobo: false, timestamp: Date.now() };
+    return { cpuUsage: 0, cpuTemp: null, showCpuTemp: false, ramUsage: 0, ramTotal: 0, gpuTemp: null, gpuLoad: null, showGpu: false, showMobo: false, diskPercent: null, timestamp: Date.now() };
   }
 });
 
@@ -1092,41 +1157,22 @@ ipcMain.handle('auth:debugCookies', async () => {
 });
 
 app.whenReady().then(async () => {
-  console.log('\n[DevTools] ===== STARTUP DEBUG INFO =====');
-  console.log('[DevTools] isDev:', isDev);
-  console.log('[DevTools] isPackaged:', app.isPackaged);
-  console.log('[DevTools] process.env.NODE_ENV:', process.env.NODE_ENV);
-  console.log('[DevTools] Keyboard shortcuts enabled: F12, Ctrl+Shift+I, Ctrl+Shift+J');
-  console.log('[DevTools] Fallback IPC available: window.electronAPI.openDevTools()');
-  console.log('[DevTools] =====================================\n');
-
-  console.log('[DEBUG] ========== APP START ==========');
-  console.log('[TEMP-LOG] app.whenReady() fired, setting protocol and creating window');
-
-  if (!isDev) {
-    console.log('[Backend] ===== PACKAGED MODE: Starting embedded backend =====');
-    const result = await backendLauncher.startBackend(app);
-    if (result.ready) {
-      console.log('[Backend] ===== EMBEDDED BACKEND LAUNCHED =====');
-      console.log('[Backend] Dynamic port:', result.port);
-      console.log('[Backend] ELECTRON_BACKEND=1: active');
-      console.log('[Backend] CORS: Origin "null" (file://) allowed');
-      console.log('[Backend] CSRF: bypassed (localhost-only backend)');
-      console.log('[Backend] Cookies: secure=false, sameSite=lax');
-      console.log('[Backend] Renderer API base will be: http://127.0.0.1:' + result.port + '/api');
-      console.log('[Backend] ===========================================');
-    } else {
-      console.error('[Backend] !!!!! EMBEDDED BACKEND FAILED TO START !!!!!');
-      console.error('[Backend] Error:', result.error || 'unknown error');
-      console.error('[Backend] The app will not function without the backend.');
-    }
-  } else {
-    console.log('[Backend] Dev mode — skipping embedded backend (using dev server proxy)');
-  }
+  const bootStart = Date.now();
+  console.log('[BOOT] isDev:', isDev, '| isPackaged:', app.isPackaged);
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
-  const isDefault = app.isDefaultProtocolClient('switchcontrol');
-  console.log('[DeepLink][MAIN] protocol registered:', isDefault);
+  console.log('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));
+
+  if (!isDev) {
+    console.log('[Backend] Starting embedded backend...');
+    backendLauncher.startBackend(app).then(result => {
+      if (result.ready) {
+        console.log(`[Backend] Ready on port ${result.port} (${Date.now() - bootStart}ms from boot)`);
+      } else {
+        console.error('[Backend] FAILED:', result.error || 'unknown');
+      }
+    });
+  }
 
   // Backend port / readiness IPC — registered once at startup, not inside createWindow
   ipcMain.handle('app:getBackendPort', () => {

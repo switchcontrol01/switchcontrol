@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { GlassModalLayout } from "@/components/ui/GlassModalLayout";
-import { HardDrive } from "lucide-react";
+import { HardDrive, AlertTriangle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 interface DiskData {
   size: number;
@@ -26,7 +27,24 @@ const isElectron = typeof window !== "undefined" && !!(window as any).electronAP
 const BUFFER_SIZE = 30;
 const POLL_MS = 800;
 
+function safeDivide(a: number, b: number, fallback = 0): number {
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return fallback;
+  return a / b;
+}
+
+function safeBytes(v: unknown): number {
+  const n = typeof v === 'number' ? v : 0;
+  return Number.isFinite(n) && n >= 0 ? n : 0;
+}
+
+function safePct(v: unknown): number {
+  const n = typeof v === 'number' ? v : 0;
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(100, Math.round(n)));
+}
+
 function toGB(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0.0";
   return (bytes / 1024 / 1024 / 1024).toFixed(1);
 }
 
@@ -73,65 +91,96 @@ function DualSparkline({ samples, maxVal }: { samples: IOSample[]; maxVal: numbe
 export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalProps) {
   const [data, setData] = useState<DiskData | null>(null);
   const [ioHistory, setIoHistory] = useState<IOSample[]>([]);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [errorCount, setErrorCount] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevIORef = useRef<{ readBytes: number; writeBytes: number; ts: number } | null>(null);
+  const mountedRef = useRef(true);
 
   const fetchDisk = useCallback(async () => {
+    if (!mountedRef.current) return;
+
     try {
       const api = (window as any).electronAPI;
-      if (api?.telemetry?.getDisk) {
-        const raw = await api.telemetry.getDisk();
-        if (!raw) {
+      if (!api?.telemetry?.getDisk) {
+        setFetchError("Disk telemetry API not available");
+        return;
+      }
+
+      const raw = await api.telemetry.getDisk();
+      if (!raw) {
+        setErrorCount(prev => prev + 1);
+        if (errorCount > 5) setFetchError("No disk data received");
+        return;
+      }
+
+      let diskData: DiskData;
+      if (raw.disks && Array.isArray(raw.disks)) {
+        const primary = raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/') || raw.disks[0];
+        if (!primary) {
+          setErrorCount(prev => prev + 1);
+          if (errorCount > 5) setFetchError("No disk partitions found");
           return;
         }
+        const size = safeBytes(primary.size);
+        const used = safeBytes(primary.used);
+        diskData = {
+          size,
+          used: Math.min(used, size),
+          usePercent: safePct(primary.use ?? safeDivide(used, size) * 100),
+          readBytes: safeBytes(raw.io?.rIO),
+          writeBytes: safeBytes(raw.io?.wIO),
+        };
+      } else {
+        const size = safeBytes(raw.size);
+        const used = safeBytes(raw.used);
+        diskData = {
+          size,
+          used: Math.min(used, size),
+          usePercent: safePct(raw.usePercent ?? raw.use ?? safeDivide(used, size) * 100),
+          readBytes: safeBytes(raw.readBytes),
+          writeBytes: safeBytes(raw.writeBytes),
+        };
+      }
 
-        let diskData: DiskData;
-        if (raw.disks && Array.isArray(raw.disks)) {
-          const primary = raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/') || raw.disks[0];
-          if (!primary) {
-            return;
-          }
-          diskData = {
-            size: primary.size ?? 0,
-            used: primary.used ?? 0,
-            usePercent: primary.use ?? (primary.size > 0 ? (primary.used / primary.size) * 100 : 0),
-            readBytes: raw.io?.rIO ?? 0,
-            writeBytes: raw.io?.wIO ?? 0,
-          };
-        } else {
-          diskData = {
-            size: raw.size ?? 0,
-            used: raw.used ?? 0,
-            usePercent: raw.usePercent ?? raw.use ?? 0,
-            readBytes: raw.readBytes ?? 0,
-            writeBytes: raw.writeBytes ?? 0,
-          };
-        }
-        setData(diskData);
+      if (!mountedRef.current) return;
+      setData(diskData);
+      setFetchError(null);
+      setErrorCount(0);
 
-        const now = Date.now();
-        const curRead = diskData.readBytes ?? 0;
-        const curWrite = diskData.writeBytes ?? 0;
+      const now = Date.now();
+      const curRead = diskData.readBytes ?? 0;
+      const curWrite = diskData.writeBytes ?? 0;
 
-        if (prevIORef.current) {
-          const dtSec = (now - prevIORef.current.ts) / 1000;
-          if (dtSec > 0) {
-            const readMBs = Math.max(0, (curRead - prevIORef.current.readBytes) / 1024 / 1024 / dtSec);
-            const writeMBs = Math.max(0, (curWrite - prevIORef.current.writeBytes) / 1024 / 1024 / dtSec);
+      if (prevIORef.current) {
+        const dtSec = (now - prevIORef.current.ts) / 1000;
+        if (dtSec > 0.1) {
+          const readDelta = curRead - prevIORef.current.readBytes;
+          const writeDelta = curWrite - prevIORef.current.writeBytes;
+          const readMBs = readDelta >= 0 ? readDelta / 1024 / 1024 / dtSec : 0;
+          const writeMBs = writeDelta >= 0 ? writeDelta / 1024 / 1024 / dtSec : 0;
+          if (Number.isFinite(readMBs) && Number.isFinite(writeMBs)) {
             setIoHistory(prev => {
-              const next = [...prev, { readMBs, writeMBs }];
+              const next = [...prev, { readMBs: Math.min(readMBs, 10000), writeMBs: Math.min(writeMBs, 10000) }];
               return next.length > BUFFER_SIZE ? next.slice(-BUFFER_SIZE) : next;
             });
           }
         }
-        prevIORef.current = { readBytes: curRead, writeBytes: curWrite, ts: now };
       }
-    } catch {
-      // silently fail
+      prevIORef.current = { readBytes: curRead, writeBytes: curWrite, ts: now };
+
+    } catch (err) {
+      setErrorCount(prev => {
+        const next = prev + 1;
+        if (next > 5) setFetchError("Failed to read disk telemetry");
+        return next;
+      });
+      console.warn('[DiskModal] fetch error:', err);
     }
-  }, []);
+  }, [errorCount]);
 
   useEffect(() => {
+    mountedRef.current = true;
     if (!open) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -141,11 +190,14 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
     }
 
     setIoHistory([]);
+    setFetchError(null);
+    setErrorCount(0);
     prevIORef.current = null;
     fetchDisk();
     intervalRef.current = setInterval(fetchDisk, POLL_MS);
 
     return () => {
+      mountedRef.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -153,12 +205,20 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
     };
   }, [open, fetchDisk]);
 
-  const usePct = data ? Math.round(data.usePercent) : 0;
+  const usePct = data ? safePct(data.usePercent) : 0;
   const isLowSpace = usePct > 90;
   const ioMax = ioHistory.length > 0
     ? Math.max(...ioHistory.map(s => Math.max(s.readMBs, s.writeMBs)), 0.01)
     : 0.01;
   const latestIO = ioHistory.length > 0 ? ioHistory[ioHistory.length - 1] : null;
+
+  const handleRetry = () => {
+    setFetchError(null);
+    setErrorCount(0);
+    prevIORef.current = null;
+    setIoHistory([]);
+    fetchDisk();
+  };
 
   return (
     <GlassModalLayout
@@ -175,10 +235,19 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
           )}
         </>
       }
-      description={data ? `${toGB(data.size)} GB Total — ${toGB(data.size - data.used)} GB Free` : "Loading..."}
+      description={data ? `${toGB(data.size)} GB Total — ${toGB(Math.max(0, data.size - data.used))} GB Free` : "Loading..."}
       testId="modal-disk"
     >
-      {data ? (
+      {fetchError ? (
+        <div className="py-8 flex flex-col items-center justify-center gap-3">
+          <AlertTriangle className="size-8 text-amber-400/60" />
+          <div className="text-sm text-muted-foreground text-center">{fetchError}</div>
+          <Button variant="ghost" size="sm" className="text-xs text-primary" onClick={handleRetry} data-testid="button-retry-disk">
+            <RefreshCw className="size-3 mr-1" />
+            Retry
+          </Button>
+        </div>
+      ) : data ? (
         <div className="space-y-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -223,7 +292,7 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
           <div className="grid grid-cols-2 gap-2">
             <StatTile label="Total" value={toGB(data.size)} unit="GB" delay={0.15} />
             <StatTile label="Used" value={toGB(data.used)} unit="GB" delay={0.19} />
-            <StatTile label="Free" value={toGB(data.size - data.used)} unit="GB" delay={0.23} />
+            <StatTile label="Free" value={toGB(Math.max(0, data.size - data.used))} unit="GB" delay={0.23} />
             <StatTile label="Usage" value={`${usePct}`} unit="%" delay={0.27} />
           </div>
 
