@@ -78,6 +78,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // External links
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 
+  // DevTools (development only)
+  openDevTools: () => ipcRenderer.invoke('app:openDevTools'),
+
   // App data management
   resetAppData: () => ipcRenderer.invoke('app:resetData'),
   openLogs: () => ipcRenderer.invoke('app:openLogs'),

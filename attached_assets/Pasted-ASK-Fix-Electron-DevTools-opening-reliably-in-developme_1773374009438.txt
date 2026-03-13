@@ -1,0 +1,131 @@
+ASK: Fix Electron DevTools opening reliably in development
+
+PROBLEM
+
+Electron DevTools still does not open in development.
+
+Current shortcut:
+- Ctrl + Shift + I
+
+Problem:
+- it does nothing
+- this has supposedly been "implemented" multiple times already
+- so the current implementation is either not firing, not wired correctly, or not running in the actual window being tested
+
+We need a real fix, not another fake “it should work now” patch.
+
+GOAL
+
+Make DevTools open reliably in development every time.
+
+Required behavior:
+- Ctrl + Shift + I opens or toggles DevTools
+- F12 also opens or toggles DevTools
+- there is a fallback IPC/manual way to open DevTools from renderer or preload
+- logs confirm the shortcut handler is actually firing
+- the fix works in the actual running development build, not just in theory
+
+IMPLEMENTATION
+
+SECTION 1 — AUDIT THE CURRENT DEVTOOLS PATH FULLY
+
+Inspect the complete DevTools flow in Electron main process.
+
+Verify:
+- BrowserWindow is created with devTools enabled
+- no later code disables DevTools
+- the shortcut handler is attached to the correct webContents
+- the shortcut is attached after the window exists
+- the app being run is actually using the code being edited
+
+Do not assume the existing shortcut code is active just because it exists in the file.
+
+SECTION 2 — ADD RELIABLE SHORTCUT SUPPORT
+
+Implement at least these working development shortcuts:
+- Ctrl + Shift + I
+- F12
+
+Use robust Electron-supported handling.
+
+If current before-input-event logic is unreliable, replace or supplement it with a more reliable approach.
+
+Required:
+- log when the shortcut handler fires
+- log when DevTools toggle is called
+
+SECTION 3 — ADD A DIRECT FALLBACK DEVTOOLS IPC
+
+Add a guaranteed fallback method so DevTools can be opened even if keyboard shortcuts fail.
+
+Examples:
+- IPC channel like app:openDevTools
+- preload API like window.electronAPI.openDevTools()
+- optional temporary debug button in development only
+
+This fallback is required for debugging auth flow if shortcuts break again.
+
+SECTION 4 — VERIFY FRAMELESS/CUSTOM WINDOW INPUT IS NOT BLOCKING SHORTCUTS
+
+Because this app uses a frameless custom window, inspect whether:
+- keyboard events are being swallowed
+- focus is not on the correct webContents
+- custom UI layers are interfering
+- the shortcut only works when certain elements are focused
+
+DevTools shortcut must work regardless of which normal app view is focused.
+
+SECTION 5 — ADD STARTUP DEBUG LOGGING
+
+At app startup log clearly:
+- isDev
+- isPackaged
+- BrowserWindow webPreferences.devTools value
+- whether shortcut listeners were attached
+- whether fallback IPC was registered
+
+We need proof the environment is actually configured for DevTools.
+
+SECTION 6 — VERIFY IN ACTUAL DEV RUN
+
+Test in the actual development build being used now.
+
+Do not just inspect code and assume success.
+
+Confirm:
+- Ctrl + Shift + I works
+- F12 works
+- fallback openDevTools method works
+- DevTools window visibly opens
+
+CHECKLIST
+
+[ ] BrowserWindow devTools is enabled
+[ ] Ctrl + Shift + I works
+[ ] F12 works
+[ ] Shortcut firing is logged
+[ ] DevTools toggle call is logged
+[ ] Fallback IPC/manual openDevTools path exists
+[ ] Frameless window input issues were checked
+[ ] Fix was verified in the actual running dev build
+
+FINAL OUTPUT
+
+After fixing, report:
+- files changed
+- exact reason the old shortcut was failing
+- what shortcut handling method is now used
+- whether Ctrl + Shift + I works
+- whether F12 works
+- what fallback method was added
+- proof it was tested in the real dev environment
+
+OPTIONAL CODE
+
+If helpful, add a preload-exposed fallback like:
+- window.electronAPI.openDevTools()
+
+and an IPC handler in main process that calls:
+- mainWindow.webContents.openDevTools({ mode: 'detach' })
+
+Only expose this fallback in development if needed.

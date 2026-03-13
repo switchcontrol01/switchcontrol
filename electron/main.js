@@ -113,6 +113,33 @@ function createWindow() {
     }
   });
 
+  // Add keyboard shortcut handler for DevTools (before-input-event)
+  if (isDev) {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      // F12 = toggle DevTools
+      if (input.key.toLowerCase() === 'f12') {
+        console.log('[DevTools] F12 pressed - toggling DevTools');
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+        return;
+      }
+      // Ctrl+Shift+I = toggle DevTools
+      if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+        console.log('[DevTools] Ctrl+Shift+I pressed - toggling DevTools');
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+        return;
+      }
+      // Ctrl+Shift+J = toggle DevTools console
+      if (input.control && input.shift && input.key.toLowerCase() === 'j') {
+        console.log('[DevTools] Ctrl+Shift+J pressed - toggling DevTools');
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+        return;
+      }
+    });
+  }
+
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
     { urls: ['https://switchcontrol.org/*', 'https://*.switchcontrol.org/*'] },
@@ -893,31 +920,29 @@ ipcMain.handle('auth:debugCookies', async () => {
 });
 
 app.whenReady().then(() => {
+  console.log('\n[DevTools] ===== STARTUP DEBUG INFO =====');
+  console.log('[DevTools] isDev:', isDev);
+  console.log('[DevTools] isPackaged:', app.isPackaged);
+  console.log('[DevTools] process.env.NODE_ENV:', process.env.NODE_ENV);
+  console.log('[DevTools] Keyboard shortcuts enabled: F12, Ctrl+Shift+I, Ctrl+Shift+J');
+  console.log('[DevTools] Fallback IPC available: window.electronAPI.openDevTools()');
+  console.log('[DevTools] =====================================\n');
+
   console.log('[DEBUG] ========== APP START ==========');
   console.log('[TEMP-LOG] app.whenReady() fired, setting protocol and creating window');
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   const isDefault = app.isDefaultProtocolClient('switchcontrol');
   console.log('[DeepLink][MAIN] protocol registered:', isDefault);
 
-  // Register DevTools shortcuts BEFORE creating window
+  // Register DevTools IPC handler (fallback method)
   if (isDev) {
-    console.log('[DEBUG] Registering DevTools shortcuts...');
-    globalShortcut.register('F12', () => {
-      console.log('[DEBUG] F12 pressed - toggling DevTools');
-      if (mainWindow) mainWindow.webContents.toggleDevTools();
+    ipcMain.handle('app:openDevTools', (event) => {
+      console.log('[DevTools] IPC handler called - opening DevTools');
+      if (mainWindow) {
+        mainWindow.webContents.openDevTools({ mode: 'detach' });
+      }
+      return { success: true };
     });
-    
-    globalShortcut.register('Shift+Ctrl+I', () => {
-      console.log('[DEBUG] Ctrl+Shift+I pressed - toggling DevTools');
-      if (mainWindow) mainWindow.webContents.toggleDevTools();
-    });
-    
-    globalShortcut.register('Shift+Ctrl+J', () => {
-      console.log('[DEBUG] Ctrl+Shift+J pressed - toggling DevTools');
-      if (mainWindow) mainWindow.webContents.toggleDevTools();
-    });
-    
-    console.log('[DEBUG] DevTools shortcuts registered successfully');
   }
 
   // DEBUG ISSUE 1: Log all cookies on app ready
