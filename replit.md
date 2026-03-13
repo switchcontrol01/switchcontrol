@@ -91,7 +91,11 @@ The Electron app provides a unified `window.electronAPI` interface via `preload.
 
 **Embedded Backend** (`electron/backend-launcher.js`): In packaged mode, `main.js` forks the bundled `dist/index.cjs` server on a dynamically-selected free port (no fixed port 5000), polls `/api/health` for HTTP 200 with `{"status":"ok"}` body (strict readiness check), and exposes the actual port via `electronAPI.getBackendPort()` / `electronAPI.isBackendReady()` IPC. IPC handlers registered once in `app.whenReady()`, not in `createWindow()`. Backend is stopped on `window-all-closed` and `before-quit`. The server bundle is included via `extraResources` in `electron/package.json`.
 
-**Packaged Mode Cookies** (`ELECTRON_BACKEND=1`): When the backend launcher starts the server, it sets `ELECTRON_BACKEND=1` in the child process env. Server detects this and adjusts all cookie settings: CSRF cookies use `secure: false, sameSite: "lax"` (works over plain HTTP localhost), session cookies omit `domain: ".switchcontrol.org"` and use `secure: false, sameSite: "lax"`, CORS allows localhost origins instead of production-only allowlist. This prevents cookie rejection that would break auth and CSRF in packaged desktop mode.
+**Packaged Mode Transport** (`ELECTRON_BACKEND=1`): When the backend launcher starts the server, it sets `ELECTRON_BACKEND=1` in the child process env. Three critical transport fixes for `file://` → `http://127.0.0.1` cross-origin context:
+1. **CORS**: Origin `"null"` (sent by Chromium for `file://` pages) explicitly allowed in CORS handler when `ELECTRON_BACKEND=1` — without this, every API request gets 403
+2. **CSRF bypass**: `csrfProtection` middleware is a no-op when `ELECTRON_BACKEND=1` — the double-submit cookie pattern cannot work cross-origin (`SameSite=Lax` cookies aren't sent with `fetch()` from `file://`), and CSRF is unnecessary for a localhost-only backend with dynamic port
+3. **CSRF token memory cache**: `ensureCsrfToken()` caches the token in-memory instead of reading `document.cookie` (which can't access cookies set for `127.0.0.1` from a `file://` document)
+Session cookies use `secure: false, sameSite: "lax"`, auth tracking cookies (auth_source, auth_next) likewise. Cookie persistence handler in `main.js` covers both `switchcontrol.org` and `127.0.0.1` domains. `auth:clearCookies` IPC also clears `127.0.0.1` cookies.
 
 ### Electron Auth Flow (Rebuilt)
 - **Deep-link format**: `switchcontrol://auth/callback?code=ONE_TIME_CODE&provider=google|discord`

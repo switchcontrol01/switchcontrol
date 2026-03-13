@@ -27,6 +27,10 @@ export function generateCsrfToken(): string {
 }
 
 export function csrfProtection(req: Request, res: Response, next: NextFunction) {
+  if (isElectronBackend) {
+    return next();
+  }
+
   const cookieToken = req.cookies?.[CSRF_COOKIE];
   const headerToken = req.headers[CSRF_HEADER] as string | undefined;
   

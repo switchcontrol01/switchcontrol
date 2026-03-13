@@ -80,15 +80,32 @@ async function resolveApiBase(): Promise<string> {
 
 if (typeof window !== 'undefined') {
   resolveApiBase().then(base => {
-    console.log(`[API] Base URL ready: ${base}`);
+    console.log(`[API] ===== RENDERER API PROOF =====`);
+    console.log(`[API] Resolved base URL: ${base}`);
+    console.log(`[API] isElectron: ${isElectron}`);
+    console.log(`[API] isPackagedElectron: ${isPackagedElectron}`);
+    console.log(`[API] Protocol: ${window.location?.protocol}`);
+    console.log(`[API] CSRF: will cache token in memory (cookie cross-origin safe)`);
+    console.log(`[API] ================================`);
   }).catch(err => {
-    console.error(`[API] Base URL resolution failed:`, err.message);
+    console.error(`[API] !!!!! BASE URL RESOLUTION FAILED !!!!!`);
+    console.error(`[API] Error: ${err.message}`);
+    console.error(`[API] isElectron: ${isElectron}`);
+    console.error(`[API] isPackagedElectron: ${isPackagedElectron}`);
+    console.error(`[API] This means all API requests will fail.`);
   });
 }
 
+let _cachedCsrfToken: string | null = null;
+
 function getCsrfToken(): string | null {
-  const match = document.cookie.match(/(?:^|;\s*)_csrf=([^;]*)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  if (_cachedCsrfToken) return _cachedCsrfToken;
+  try {
+    const match = document.cookie.match(/(?:^|;\s*)_csrf=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function ensureCsrfToken(): Promise<string> {
@@ -96,6 +113,7 @@ async function ensureCsrfToken(): Promise<string> {
   if (existing) return existing;
 
   const base = await resolveApiBase();
+  console.log(`[API] Fetching CSRF token from ${base}/csrf-token`);
   let res: Response;
   try {
     res = await fetch(`${base}/csrf-token`, { credentials: 'include' });
@@ -112,6 +130,8 @@ async function ensureCsrfToken(): Promise<string> {
     throw new ApiError(0, "Server returned invalid security token.");
   }
 
+  _cachedCsrfToken = data.token;
+  console.log(`[API] CSRF token cached in memory (cookie may be cross-origin inaccessible)`);
   return data.token;
 }
 

@@ -1033,30 +1033,36 @@ ipcMain.handle('tweak:getInfo', () => {
 
 // Auth: Clear cookies for the backend domain
 ipcMain.handle('auth:clearCookies', async () => {
-  console.log('[DEBUG] AUTH CLEAR COOKIES CALLED');
-  console.log('[TEMP-LOG] auth:clearCookies IPC called');
+  console.log('[Auth] auth:clearCookies IPC called');
   try {
     const { session } = require('electron');
     const ses = session.defaultSession;
     
-    // Clear cookies for the auth domain
-    const cookies = await ses.cookies.get({ domain: 'switchcontrol.org' });
-    console.log('[Auth] Found', cookies.length, 'cookies to clear');
+    let totalCleared = 0;
     
-    for (const cookie of cookies) {
+    const switchcontrolCookies = await ses.cookies.get({ domain: 'switchcontrol.org' });
+    for (const cookie of switchcontrolCookies) {
       const url = `https://${cookie.domain.replace(/^\./, '')}${cookie.path}`;
       await ses.cookies.remove(url, cookie.name);
+      totalCleared++;
     }
     
-    // Also clear any cookies with .switchcontrol.org domain
     const dotCookies = await ses.cookies.get({ domain: '.switchcontrol.org' });
     for (const cookie of dotCookies) {
       const url = `https://switchcontrol.org${cookie.path}`;
       await ses.cookies.remove(url, cookie.name);
+      totalCleared++;
     }
     
-    console.log('[Auth] Cookies cleared successfully');
-    return { success: true };
+    const localhostCookies = await ses.cookies.get({ domain: '127.0.0.1' });
+    for (const cookie of localhostCookies) {
+      const url = `http://127.0.0.1${cookie.path}`;
+      await ses.cookies.remove(url, cookie.name);
+      totalCleared++;
+    }
+    
+    console.log('[Auth] Cleared', totalCleared, 'cookies total');
+    return { success: true, cleared: totalCleared };
   } catch (err) {
     console.error('[Auth] Failed to clear cookies:', err);
     return { success: false, error: err.message };
@@ -1065,13 +1071,16 @@ ipcMain.handle('auth:clearCookies', async () => {
 
 ipcMain.handle('auth:debugCookies', async () => {
   const { session } = require('electron');
-  const cookies = await session.defaultSession.cookies.get({
-    domain: 'switchcontrol.org'
-  });
+  const allCookies = await session.defaultSession.cookies.get({});
+  const relevant = allCookies.filter(c =>
+    c.domain.includes('switchcontrol.org') ||
+    c.domain.includes('127.0.0.1') ||
+    c.domain.includes('localhost')
+  );
 
-  console.log('[Auth][MAIN] cookies found:', cookies.length);
+  console.log('[Auth] Debug cookies: total=' + allCookies.length + ' relevant=' + relevant.length);
 
-  return cookies.map(c => ({
+  return relevant.map(c => ({
     name: c.name,
     domain: c.domain,
     path: c.path,
@@ -1095,13 +1104,24 @@ app.whenReady().then(async () => {
   console.log('[TEMP-LOG] app.whenReady() fired, setting protocol and creating window');
 
   if (!isDev) {
-    console.log('[Backend] Starting embedded backend for packaged mode...');
+    console.log('[Backend] ===== PACKAGED MODE: Starting embedded backend =====');
     const result = await backendLauncher.startBackend(app);
     if (result.ready) {
-      console.log('[Backend] Embedded backend started successfully on port', result.port);
+      console.log('[Backend] ===== EMBEDDED BACKEND LAUNCHED =====');
+      console.log('[Backend] Dynamic port:', result.port);
+      console.log('[Backend] ELECTRON_BACKEND=1: active');
+      console.log('[Backend] CORS: Origin "null" (file://) allowed');
+      console.log('[Backend] CSRF: bypassed (localhost-only backend)');
+      console.log('[Backend] Cookies: secure=false, sameSite=lax');
+      console.log('[Backend] Renderer API base will be: http://127.0.0.1:' + result.port + '/api');
+      console.log('[Backend] ===========================================');
     } else {
-      console.error('[Backend] Failed to start embedded backend:', result.error || 'unknown error');
+      console.error('[Backend] !!!!! EMBEDDED BACKEND FAILED TO START !!!!!');
+      console.error('[Backend] Error:', result.error || 'unknown error');
+      console.error('[Backend] The app will not function without the backend.');
     }
+  } else {
+    console.log('[Backend] Dev mode — skipping embedded backend (using dev server proxy)');
   }
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
@@ -1158,11 +1178,18 @@ app.whenReady().then(async () => {
       expirationDate: cookie.expirationDate
     }));
 
-    if (!removed && cookie.session && cookie.domain && cookie.domain.includes('switchcontrol.org')) {
-      console.log('[DEBUG] PERSISTING session cookie:', cookie.name, 'domain:', cookie.domain);
+    const shouldPersist = cookie.domain && (
+      cookie.domain.includes('switchcontrol.org') ||
+      cookie.domain.includes('127.0.0.1')
+    );
+    if (!removed && cookie.session && shouldPersist) {
+      console.log('[Auth] Persisting session cookie:', cookie.name, 'domain:', cookie.domain);
       // Session cookies (no expiry) don't survive restart — persist them for 30 days
+      const isLocalhost = cookie.domain.includes('127.0.0.1');
       const persistedCookie = {
-        url: `https://${cookie.domain.replace(/^\./, '')}${cookie.path || '/'}`,
+        url: isLocalhost
+          ? `http://127.0.0.1${cookie.path || '/'}`
+          : `https://${cookie.domain.replace(/^\./, '')}${cookie.path || '/'}`,
         name: cookie.name,
         value: cookie.value,
         domain: cookie.domain,
@@ -1173,8 +1200,8 @@ app.whenReady().then(async () => {
         expirationDate: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
       };
       ses.cookies.set(persistedCookie)
-        .then(() => console.log('[DEBUG] COOKIE PERSISTED OK:', cookie.name))
-        .catch(err => console.error('[DEBUG] COOKIE PERSIST FAIL:', cookie.name, err));
+        .then(() => console.log('[Auth] Cookie persisted:', cookie.name))
+        .catch(err => console.error('[Auth] Cookie persist failed:', cookie.name, err));
     }
   });
 

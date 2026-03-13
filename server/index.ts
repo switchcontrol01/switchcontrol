@@ -81,6 +81,9 @@ const replitDevDomain = process.env.REPLIT_DEV_DOMAIN;
 app.use(cors({
   origin: function(origin, callback) {
     if (!origin) return callback(null, true);
+    if (isElectronBackend && origin === 'null') {
+      return callback(null, true);
+    }
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
