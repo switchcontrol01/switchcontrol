@@ -2,26 +2,46 @@ import { queryClient } from "./queryClient";
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
-function resolveApiBase(): string {
+let _resolvedApiBase: string | null = null;
+
+async function resolveApiBase(): Promise<string> {
+  if (_resolvedApiBase) return _resolvedApiBase;
+
   if (isElectron) {
-    const electronBackendPort = (window as any).electronAPI?.backendPort;
-    if (electronBackendPort) {
-      return `http://localhost:${electronBackendPort}/api`;
-    }
-    return "http://localhost:5000/api";
+    try {
+      const port = await (window as any).electronAPI.getBackendPort();
+      if (port) {
+        _resolvedApiBase = `http://127.0.0.1:${port}/api`;
+        console.log(`[API] Resolved Electron backend port: ${port}`);
+        return _resolvedApiBase;
+      }
+    } catch {}
+    _resolvedApiBase = "http://127.0.0.1:5000/api";
+    console.warn("[API] getBackendPort returned null, falling back to 5000");
+    return _resolvedApiBase;
   }
 
   if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
-    return "http://localhost:5000/api";
+    _resolvedApiBase = "http://127.0.0.1:5000/api";
+    return _resolvedApiBase;
   }
 
+  _resolvedApiBase = "/api";
+  return _resolvedApiBase;
+}
+
+function getApiBaseSync(): string {
+  if (_resolvedApiBase) return _resolvedApiBase;
+  if (isElectron || (typeof window !== 'undefined' && window.location.protocol === 'file:')) {
+    return "http://127.0.0.1:5000/api";
+  }
   return "/api";
 }
 
-export const API_BASE = resolveApiBase();
-
 if (typeof window !== 'undefined') {
-  console.log(`[API] Base URL resolved: ${API_BASE} (electron=${isElectron}, protocol=${window.location?.protocol})`);
+  resolveApiBase().then(base => {
+    console.log(`[API] Base URL resolved: ${base} (electron=${isElectron}, protocol=${window.location?.protocol})`);
+  });
 }
 
 function getCsrfToken(): string | null {
@@ -33,7 +53,8 @@ async function ensureCsrfToken(): Promise<string> {
   let token = getCsrfToken();
   if (!token) {
     try {
-      const res = await fetch(`${API_BASE}/csrf-token`, { credentials: 'include' });
+      const base = await resolveApiBase();
+      const res = await fetch(`${base}/csrf-token`, { credentials: 'include' });
       if (res.ok) {
         const data = await res.json();
         token = data.token;
@@ -93,7 +114,8 @@ export async function apiFetch(
   options: RequestInit = {},
   { withCsrf = false }: { withCsrf?: boolean } = {}
 ): Promise<Response> {
-  const url = path.startsWith('http') ? path : `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  const base = await resolveApiBase();
+  const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
 
   const headers: Record<string, string> = {};
   if (options.headers) {

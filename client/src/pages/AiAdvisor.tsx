@@ -121,10 +121,11 @@ export default function AiAdvisor() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [context, setContext] = useState<SystemContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const contextRef = useRef<SystemContext | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
@@ -163,12 +164,18 @@ export default function AiAdvisor() {
       },
     };
     setContext(ctx);
+    contextRef.current = ctx;
+  }, [stats, tweaks]);
 
-    const hasSpecs = ctx.system.cpu || ctx.system.gpu || ctx.system.ram;
-    const specSummary = [ctx.system.cpu, ctx.system.gpu, ctx.system.ram].filter(Boolean).join(" · ");
+  useEffect(() => {
+    if (!context) return;
+    if (messages.length > 0) return;
+
+    const hasSpecs = context.system.cpu || context.system.gpu || context.system.ram;
+    const specSummary = [context.system.cpu, context.system.gpu, context.system.ram].filter(Boolean).join(" · ");
 
     const welcomeContent = hasSpecs
-      ? `I've detected your system: **${specSummary}**. You have **${enabledTweaks.length}** tweaks enabled and **${disabledTweaks.length}** available. Ask me anything about optimizing your setup.`
+      ? `I've detected your system: **${specSummary}**. You have **${context.enabledTweaks.length}** tweaks enabled and **${context.disabledTweaks.length}** available. Ask me anything about optimizing your setup.`
       : `I'm your optimization assistant. I'll analyze your system and recommend the best tweaks. What would you like to optimize?`;
 
     setMessages([{
@@ -177,11 +184,17 @@ export default function AiAdvisor() {
       content: welcomeContent,
       timestamp: new Date(),
     }]);
-  }, [stats, tweaks]);
+  }, [context]);
 
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || loading) return;
@@ -196,13 +209,22 @@ export default function AiAdvisor() {
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-    setError(null);
+
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
 
     try {
-      const chatHistory = [...messages.filter(m => m.id !== "welcome"), userMsg]
+      const currentMessages = await new Promise<ChatMessage[]>(resolve => {
+        setMessages(prev => { resolve(prev); return prev; });
+      });
+
+      const chatHistory = currentMessages
+        .filter(m => m.id !== "welcome" && m.role !== "system")
         .map(m => ({ role: m.role, content: m.content }));
 
-      const data = await apiPost("/ai/chat", { messages: chatHistory, context });
+      const data = await apiPost("/ai/chat", { messages: chatHistory, context: contextRef.current });
+
+      if (abortRef.current?.signal.aborted) return;
 
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -212,8 +234,8 @@ export default function AiAdvisor() {
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err: unknown) {
+      if (abortRef.current?.signal.aborted) return;
       const displayMsg = getUserFriendlyError(err);
-      setError(displayMsg);
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
         role: "system",
@@ -233,13 +255,15 @@ export default function AiAdvisor() {
   };
 
   const handleReset = () => {
-    setMessages([]);
-    setError(null);
+    abortRef.current?.abort();
+    setLoading(false);
     setInput("");
-    const hasSpecs = context?.system.cpu || context?.system.gpu || context?.system.ram;
-    const specSummary = [context?.system.cpu, context?.system.gpu, context?.system.ram].filter(Boolean).join(" · ");
-    const enabledCount = context?.enabledTweaks.length || 0;
-    const disabledCount = context?.disabledTweaks.length || 0;
+
+    const ctx = contextRef.current;
+    const hasSpecs = ctx?.system.cpu || ctx?.system.gpu || ctx?.system.ram;
+    const specSummary = [ctx?.system.cpu, ctx?.system.gpu, ctx?.system.ram].filter(Boolean).join(" · ");
+    const enabledCount = ctx?.enabledTweaks.length || 0;
+    const disabledCount = ctx?.disabledTweaks.length || 0;
 
     const welcomeContent = hasSpecs
       ? `I've detected your system: **${specSummary}**. You have **${enabledCount}** tweaks enabled and **${disabledCount}** available. Ask me anything about optimizing your setup.`

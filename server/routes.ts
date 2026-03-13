@@ -29,10 +29,11 @@ export async function registerRoutes(
   app.get("/api/csrf-token", (req, res) => {
     const token = req.cookies?._csrf || generateCsrfToken();
     if (!req.cookies?._csrf) {
+      const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
       res.cookie("_csrf", token, {
         httpOnly: false,
-        secure: true,
-        sameSite: "none" as const,
+        secure: !isElectronBackend,
+        sameSite: isElectronBackend ? ("lax" as const) : ("none" as const),
         maxAge: 24 * 60 * 60 * 1000
       });
     }

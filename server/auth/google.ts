@@ -154,17 +154,27 @@ export function setupGoogleAuth(app: Express): void {
   }
 
   const isProduction = process.env.NODE_ENV === "production";
+  const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
 
-  const sessionCookieConfig = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none" as const,
-    maxAge: sessionTtl,
-    path: "/",
-    domain: isProduction ? ".switchcontrol.org" : undefined,
-  };
+  const sessionCookieConfig = isElectronBackend
+    ? {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax" as const,
+        maxAge: sessionTtl,
+        path: "/",
+      }
+    : {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none" as const,
+        maxAge: sessionTtl,
+        path: "/",
+        domain: isProduction ? ".switchcontrol.org" : undefined,
+      };
   console.log('[AUTH] ===== SESSION COOKIE CONFIG =====');
   console.log('[AUTH] production:', isProduction);
+  console.log('[AUTH] electronBackend:', isElectronBackend);
   console.log('[AUTH] cookie:', JSON.stringify(sessionCookieConfig));
   console.log('[AUTH] ================================');
 

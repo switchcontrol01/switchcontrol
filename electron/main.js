@@ -215,15 +215,6 @@ function createWindow() {
     });
   }
 
-  // Expose backend port to renderer via IPC
-  ipcMain.handle('app:getBackendPort', () => {
-    return backendLauncher.getBackendPort();
-  });
-
-  ipcMain.handle('app:isBackendReady', () => {
-    return backendLauncher.isBackendReady();
-  });
-  
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('[SwitchControl] Renderer did-finish-load');
@@ -1116,6 +1107,15 @@ app.whenReady().then(async () => {
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   const isDefault = app.isDefaultProtocolClient('switchcontrol');
   console.log('[DeepLink][MAIN] protocol registered:', isDefault);
+
+  // Backend port / readiness IPC — registered once at startup, not inside createWindow
+  ipcMain.handle('app:getBackendPort', () => {
+    return backendLauncher.getBackendPort();
+  });
+
+  ipcMain.handle('app:isBackendReady', () => {
+    return backendLauncher.isBackendReady();
+  });
 
   // Register DevTools IPC handler (always available for debugging)
   ipcMain.handle('app:openDevTools', (event) => {

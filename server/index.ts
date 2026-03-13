@@ -60,7 +60,9 @@ const meLimiter = rateLimit({
 app.use("/api/auth", authLimiter);
 app.use("/api/me", meLimiter);
 
-const allowedOrigins = isProd
+const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
+
+const allowedOrigins = isProd && !isElectronBackend
   ? [
       "https://switchcontrol.org",
       "https://www.switchcontrol.org",
