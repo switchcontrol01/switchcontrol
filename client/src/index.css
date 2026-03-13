@@ -237,32 +237,25 @@ body {
   background: linear-gradient(90deg, transparent, hsl(var(--structural) / 0.15), transparent);
 }
 
-/* Custom Scrollbar — hidden by default, functional via wheel/trackpad */
+/* Custom Scrollbar — completely hidden, functional via wheel/trackpad */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 0px;
   height: 0px;
+  display: none;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
   background: transparent;
-  border-radius: 9999px;
-}
-*:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-}
-*:hover::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Firefox scrollbar hiding */
 * {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+  scrollbar-width: none;
 }
-*:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.08) transparent;
+html {
+  scrollbar-width: none;
 }
 
 /* Utility classes for data text */
@@ -1193,19 +1186,13 @@ textarea,
 }
 
 .titlebar-strip {
-  height: 32px;
-  min-height: 32px;
+  height: 38px;
+  min-height: 38px;
   display: flex;
   align-items: center;
   position: relative;
-  background: linear-gradient(
-    180deg,
-    hsl(var(--background)) 0%,
-    hsl(260 20% 7%) 100%
-  );
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 .titlebar-drag-region {
@@ -1217,43 +1204,47 @@ textarea,
 .titlebar-controls {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 6px;
   margin-left: auto;
+  padding-right: 12px;
   position: relative;
   z-index: 1;
   -webkit-app-region: no-drag;
 }
 
 .titlebar-btn {
-  width: 46px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   border: none;
+  border-radius: 8px;
   background: transparent;
   cursor: pointer;
-  color: rgba(255, 255, 255, 0.45);
-  transition: background 120ms ease, color 120ms ease;
+  color: rgba(255, 255, 255, 0.3);
+  transition: background 150ms ease, color 150ms ease, transform 100ms ease;
   -webkit-app-region: no-drag;
 }
 
 .titlebar-btn:hover {
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .titlebar-btn:active {
   background: rgba(255, 255, 255, 0.03);
+  transform: scale(0.92);
 }
 
 .titlebar-btn-close:hover {
-  background: rgba(232, 65, 65, 0.85);
-  color: white;
+  background: rgba(239, 68, 68, 0.15);
+  color: rgba(239, 68, 68, 0.9);
 }
 
 .titlebar-btn-close:active {
-  background: rgba(200, 50, 50, 0.9);
+  background: rgba(239, 68, 68, 0.1);
+  color: rgba(239, 68, 68, 0.7);
 }
 
 .app-content {

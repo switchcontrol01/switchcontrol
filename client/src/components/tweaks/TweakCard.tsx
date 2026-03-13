@@ -119,7 +119,7 @@ function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose:
         exit="exit"
       >
         <motion.div 
-          className="relative w-full max-w-sm bg-[#0c0c14]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/40 pointer-events-auto"
+          className="relative w-full max-w-sm bg-[#0c0c14]/80 backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5),0_0_1px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
           animate={isAnimating ? {
             scale: [1, 1.03, 1],
@@ -329,7 +329,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               animate="animate"
               exit="exit"
             >
-              <div className="relative bg-black/90 border border-white/10 rounded-lg p-6 shadow-2xl backdrop-blur-xl">
+              <div className="relative bg-[#0c0c14]/80 border border-white/[0.08] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5),0_0_1px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl">
                 <motion.button
                   type="button"
                   onClick={(e) => {

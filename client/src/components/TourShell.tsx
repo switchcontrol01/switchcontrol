@@ -287,6 +287,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
 
   const isTooltipVisible = state.phase === 'presenting';
   const isTransitioning = state.phase === 'fading_out' || state.phase === 'navigating' || state.phase === 'scrolling';
+  const keepOverlayOpaque = state.phase !== 'idle' && state.phase !== 'done';
 
   const springTransition = prefersReducedMotion
     ? { type: 'tween' as const, duration: 0.15 }
@@ -440,7 +441,8 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               top: typeof tooltipPos.top === 'number' ? tooltipPos.top : undefined,
               left: typeof tooltipPos.left === 'number' ? tooltipPos.left : undefined,
               opacity: isTooltipVisible ? 1 : 0,
-              scale: isTooltipVisible ? 1 : 0.96,
+              scale: isTooltipVisible ? 1 : 0.95,
+              visibility: isTransitioning ? 'hidden' as any : 'visible' as any,
             }}
             style={{
               transform: 'translateX(-50%)',

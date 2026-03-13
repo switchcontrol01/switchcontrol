@@ -266,6 +266,100 @@ function getRequestIdentifier(req: Request): string {
   return `ip:${req.ip || "unknown"}`;
 }
 
+const chatSystemPrompt = `You are SwitchControl AI Advisor — an expert Windows gaming PC optimization assistant embedded in a desktop performance suite.
+
+You help users optimize their PC for gaming by providing specific, actionable advice based on their hardware and current SwitchControl configuration.
+
+CONTEXT: You have access to the user's system specs, enabled/disabled tweaks, and live telemetry when available. Use this information to give personalized advice.
+
+RULES:
+1. Be concise but thorough. Use short paragraphs, not walls of text.
+2. Reference the user's ACTUAL hardware by name when relevant.
+3. Every recommendation must be specific to their setup. No generic advice.
+4. If asked about a game, give game-specific optimization tips.
+5. If the user asks about a tweak, explain what it does and whether it's safe for their hardware.
+6. Format responses with markdown: use **bold** for emphasis, \`code\` for registry keys/commands, and bullet lists for steps.
+7. Never recommend specific overclock values or voltages.
+8. Be direct and confident. You're an expert.
+9. Keep responses under 300 words unless the user asks for detailed explanations.`;
+
+function buildChatContext(context: any): string {
+  const parts: string[] = [];
+  if (context?.system) {
+    const s = context.system;
+    const specs = [s.cpu, s.gpu, s.ram, s.storage, s.os].filter(Boolean).join(" | ");
+    if (specs) parts.push(`System: ${specs}`);
+  }
+  if (context?.enabledTweaks?.length > 0) {
+    parts.push(`Enabled tweaks (${context.enabledTweaks.length}): ${context.enabledTweaks.slice(0, 10).map((t: any) => t.title).join(", ")}`);
+  }
+  if (context?.disabledTweaks?.length > 0) {
+    parts.push(`Available but disabled (${context.disabledTweaks.length}): ${context.disabledTweaks.slice(0, 8).map((t: any) => t.title).join(", ")}`);
+  }
+  if (context?.telemetry) {
+    const t = context.telemetry;
+    const lines = [
+      t.cpuTempC != null ? `CPU: ${t.cpuTempC}°C` : null,
+      t.gpuTempC != null ? `GPU: ${t.gpuTempC}°C` : null,
+      t.ramUsedGB != null ? `RAM: ${t.ramUsedGB}GB used` : null,
+    ].filter(Boolean);
+    if (lines.length) parts.push(`Telemetry: ${lines.join(", ")}`);
+  }
+  return parts.length ? parts.join("\n") : "No system information available.";
+}
+
+aiRouter.post("/chat", async (req: Request, res: Response) => {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return res.status(503).json({ error: "AI Advisor is not configured." });
+  }
+
+  const { messages, context } = req.body;
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: "Messages are required." });
+  }
+
+  if (messages.length > 20) {
+    return res.status(400).json({ error: "Conversation too long. Please start a new chat." });
+  }
+
+  try {
+    const openai = new OpenAI({ apiKey });
+    const model = process.env.AI_MODEL || "gpt-4o-mini";
+
+    const contextInfo = buildChatContext(context);
+    const systemMessage = `${chatSystemPrompt}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
+
+    const openaiMessages = [
+      { role: "system" as const, content: systemMessage },
+      ...messages.slice(-10).map((m: any) => ({
+        role: m.role === "user" ? "user" as const : "assistant" as const,
+        content: String(m.content).slice(0, 2000),
+      })),
+    ];
+
+    const completion = await openai.chat.completions.create({
+      model,
+      max_tokens: 800,
+      temperature: 0.5,
+      messages: openaiMessages,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) {
+      return res.status(502).json({ error: "AI returned empty response." });
+    }
+
+    return res.json({ role: "assistant", content });
+  } catch (error: any) {
+    if (error?.status === 429) {
+      return res.status(429).json({ error: "Rate limit reached. Please wait." });
+    }
+    console.error("[AI Chat]", error?.message);
+    return res.status(500).json({ error: "Failed to get response." });
+  }
+});
+
 aiRouter.post("/advice", async (req: Request, res: Response) => {
   const requestStart = Date.now();
   const requestId = getRequestIdentifier(req);

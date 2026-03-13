@@ -10,7 +10,7 @@ interface DataPoint {
   cpu: number;
   gpu: number | null;
   mobo: number | null;
-  ram: number;
+  ram: number | null;
   disk: number | null;
   netRx: number | null;
   netTx: number | null;
@@ -26,6 +26,7 @@ interface LatestState {
   moboTemp: number | null;
   ramUsedGb: number;
   ramTotalGb: number;
+  showRam: boolean;
   diskPercent: number | null;
   netRxSec: number | null;
   netTxSec: number | null;
@@ -47,18 +48,22 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         if (api?.telemetry?.getLive) {
           const live = await api.telemetry.getLive();
           
-          let ramUsedGb = 0;
-          let ramTotalGb = 16;
+          let ramUsedGb: number | null = null;
+          let ramTotalGb: number | null = null;
           
           if (api?.system?.getRamUsage) {
             try {
               const ram = await api.system.getRamUsage();
-              ramUsedGb = safeNumber(ram?.usedGB || ram?.ramUsedGb, 0);
-              ramTotalGb = safeNumber(ram?.totalGB || ram?.ramTotalGb, 16);
+              if (ram) {
+                ramUsedGb = safeNumber(ram.usedGB ?? ram.ramUsedGb, null);
+                ramTotalGb = safeNumber(ram.totalGB ?? ram.ramTotalGb, null);
+              }
             } catch (e) {
               console.warn('[telemetry] RAM fetch error:', e);
             }
           }
+          
+          const hasRamData = ramUsedGb !== null && ramTotalGb !== null && ramTotalGb > 0;
 
           const hasCpuTemp = live.showCpuTemp && live.cpuTemp != null && live.cpuTemp > 0;
           const cpuVal = hasCpuTemp ? safeNumber(live.cpuTemp, 0) : safeNumber(live.cpuUsage ?? live.cpuDisplay, 0);
@@ -74,8 +79,9 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             showGpu: live.showGpu ?? hasGpuTemp,
             showMobo: live.showMobo ?? false,
             moboTemp: live.moboTemp ?? null,
-            ramUsedGb,
-            ramTotalGb,
+            ramUsedGb: hasRamData ? ramUsedGb! : 0,
+            ramTotalGb: hasRamData ? ramTotalGb! : 0,
+            showRam: hasRamData,
             diskPercent: live.diskPercent ?? null,
             netRxSec: live.netRxSec ?? null,
             netTxSec: live.netTxSec ?? null,
@@ -91,10 +97,10 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 cpu: live.cpuTemp ?? 0, 
                 gpu: live.gpuTemp ?? 0
               },
-              ram: { 
-                totalGB: ramTotalGb, 
-                usedGB: ramUsedGb 
-              },
+              ram: hasRamData ? { 
+                totalGB: ramTotalGb!, 
+                usedGB: ramUsedGb! 
+              } : undefined,
               ssds: []
             });
           }
@@ -102,7 +108,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
           const now = new Date();
           const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
           
-          const ramPercent = ramTotalGb > 0 ? (ramUsedGb / ramTotalGb) * 100 : 0;
+          const ramPercent = hasRamData ? (ramUsedGb! / ramTotalGb!) * 100 : null;
           
           setData(prev => {
             const newPoint: DataPoint = {
@@ -110,7 +116,7 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
               cpu: telemetryState.cpuDisplay,
               gpu: telemetryState.gpuDisplay,
               mobo: telemetryState.moboTemp,
-              ram: safeNumber(ramPercent),
+              ram: ramPercent,
               disk: telemetryState.diskPercent,
               netRx: telemetryState.netRxSec,
               netTx: telemetryState.netTxSec
@@ -188,10 +194,12 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                   Mobo: {latest.moboTemp}°C
                 </span>
               )}
-              <span className="flex items-center gap-1.5">
-                <span className="size-2 rounded-full bg-cyan-500" />
-                RAM: {safeFixed(latest.ramUsedGb, 1)}GB / {safeFixed(latest.ramTotalGb, 0)}GB
-              </span>
+              {latest.showRam && (
+                <span className="flex items-center gap-1.5">
+                  <span className="size-2 rounded-full bg-cyan-500" />
+                  RAM: {safeFixed(latest.ramUsedGb, 1)}GB / {safeFixed(latest.ramTotalGb, 0)}GB
+                </span>
+              )}
               {latest.diskPercent !== null && (
                 <span className="flex items-center gap-1.5">
                   <span className="size-2 rounded-full bg-yellow-500" />
@@ -278,15 +286,17 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
                 activeDot={{ r: 3 }}
               />
             )}
-            <Line 
-              type="monotone" 
-              dataKey="ram" 
-              name="RAM %"
-              stroke="#06b6d4" 
-              strokeWidth={2}
-              dot={false}
-              activeDot={{ r: 3 }}
-            />
+            {latest?.showRam && data.some(d => d.ram !== null) && (
+              <Line 
+                type="monotone" 
+                dataKey="ram" 
+                name="RAM %"
+                stroke="#06b6d4" 
+                strokeWidth={2}
+                dot={false}
+                activeDot={{ r: 3 }}
+              />
+            )}
             {data.some(d => d.disk !== null) && (
               <Line 
                 type="monotone" 

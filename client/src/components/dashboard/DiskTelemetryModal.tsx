@@ -82,7 +82,6 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
       if (api?.telemetry?.getDisk) {
         const raw = await api.telemetry.getDisk();
         if (!raw) {
-          onOpenChange(false);
           return;
         }
 
@@ -90,7 +89,6 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
         if (raw.disks && Array.isArray(raw.disks)) {
           const primary = raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/') || raw.disks[0];
           if (!primary) {
-            onOpenChange(false);
             return;
           }
           diskData = {
@@ -131,7 +129,7 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
     } catch {
       // silently fail
     }
-  }, [onOpenChange]);
+  }, []);
 
   useEffect(() => {
     if (!open) {

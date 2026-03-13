@@ -142,7 +142,11 @@ function ElectronAppContent() {
         }
       })
       .catch((err) => {
-        console.warn('[AppFlow] Entitlement hydration failed — entitlementsOk stays false:', err);
+        console.warn('[AppFlow] Entitlement hydration failed:', err);
+        if (user?.isPremium === true) {
+          console.log('[AppFlow] Entitlement hydration failed but user already has local premium flag — allowing premium flows');
+          setEntitlementsOk(true);
+        }
       })
       .finally(() => {
         setEntitlementsAttempted(true);
