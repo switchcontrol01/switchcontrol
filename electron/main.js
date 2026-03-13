@@ -61,12 +61,12 @@ function deliverDeepLink(url) {
     return;
   }
   
-  // Ensure window is visible and focused
+  // Restore window if minimized, but do NOT call .focus()
+  // Focus triggers window-focus event → resetUIState → cancels active auth
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
   }
   mainWindow.show();
-  mainWindow.focus();
   
   if (!rendererReady) {
     console.log('[DeepLink] ⏳ rendererReady=false, queueing URL for delivery after load');

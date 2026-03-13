@@ -1,0 +1,99 @@
+TASK: Fix stale production auth deployment and remove Electron focus-reset sabotage
+
+PROBLEM
+
+Two real issues are now confirmed.
+
+ISSUE 1 — Live production auth does not match current code
+Observed live browser URL:
+- https://switchcontrol.org/auth/success?token=...&provider=google
+
+Current code pasted locally uses:
+- /auth/desktop-success?code=...&provider=google
+
+This proves the Electron app is hitting a stale deployed backend on switchcontrol.org, not the code currently being reviewed.
+
+ISSUE 2 — Electron auth is being sabotaged by focus-reset logic
+Renderer logs show:
+- [App] Resetting UI state on focus
+- [Login] User cancelled login
+- [AuthState] waiting_for_callback → cancelled
+
+This means active OAuth is still being reset/cancelled during focus changes.
+
+GOAL
+
+1. Make production switchcontrol.org run the current auth code
+2. Remove focus-based UI reset/cancel during active Electron auth
+3. Confirm deep-link callback reaches main process and renderer using the current deployed backend
+
+IMPLEMENTATION
+
+SECTION 1 — DEPLOY CURRENT AUTH BACKEND TO PRODUCTION
+
+The production backend must match the current local code.
+
+Verify that deployed production routes now use:
+- /auth/desktop-success?code=...
+not
+- /auth/success?token=...
+
+Confirm production Google and Discord callbacks both use the current code path.
+
+SECTION 2 — DISABLE WINDOW-FOCUS RESET DURING AUTH
+
+In Electron renderer, do not call resetUIState() during active auth states:
+- opening_browser
+- waiting_for_callback
+- callback_received
+- exchanging
+
+For now, safest option:
+- disable Electron window-focus reset entirely for auth debugging
+
+SECTION 3 — REMOVE mainWindow.focus() FROM DEEP-LINK DELIVERY
+
+In electron/main.js, deliverDeepLink() must not force focus during auth handoff.
+
+Remove or guard:
+- mainWindow.focus()
+
+Keep only what is necessary, such as show/restore.
+
+SECTION 4 — VERIFY CURRENT CALLBACK CHAIN ON PRODUCTION
+
+After deploying the backend, verify live login now goes to:
+- /auth/desktop-success?code=...&provider=...
+
+Then verify Electron logs show:
+- SECOND-INSTANCE EVENT
+- protocol URL FOUND
+- deliverDeepLink() called
+- auth-callback sent to renderer
+- [DeepLink] ===== RENDERER CALLBACK RECEIVED =====
+
+SECTION 5 — DO NOT CHANGE UNRELATED AUTH LOGIC YET
+
+Do not rewrite exchange logic or user/session model yet.
+First fix:
+- stale production deployment
+- focus reset sabotage
+
+CHECKLIST
+
+[ ] Production backend now matches current auth code
+[ ] Live browser no longer lands on /auth/success?token=...
+[ ] Focus reset no longer cancels waiting_for_callback
+[ ] deliverDeepLink no longer forces focus destructively
+[ ] Renderer receives deep-link callback
+[ ] Electron auth can reach exchange stage
+
+FINAL OUTPUT
+
+Report:
+- whether production was stale
+- what was deployed
+- what focus-reset logic was removed or guarded
+- whether mainWindow.focus() was removed from deliverDeepLink
+- what the new live auth URL is after callback
+- whether renderer now receives the callback

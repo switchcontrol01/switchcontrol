@@ -227,6 +227,11 @@ function ElectronAppContent() {
         console.log('[App] Focus reset skipped — flow active:', activeFlow);
         return;
       }
+      const authState = useAuthStore.getState().electronAuthState;
+      if (authState !== 'idle' && authState !== 'authenticated' && authState !== 'failed') {
+        console.log('[App] Focus reset skipped — auth in progress:', authState);
+        return;
+      }
       console.log('[App] Resetting UI state on focus');
       
       if (document.activeElement instanceof HTMLElement) {
