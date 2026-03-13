@@ -69,7 +69,7 @@ export function GlassModalLayout({
             transition={spring}
             data-testid={testId}
           >
-            <div className="bg-[#0c0c14]/95 border border-white/10 rounded-2xl backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/40">
+            <div className="bg-[#0c0c14]/80 border border-white/[0.08] rounded-2xl backdrop-blur-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.5),0_0_1px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.06)]">
               <div className="flex items-start justify-between p-5 pb-0">
                 <div className="space-y-1 min-w-0 flex-1">
                   <h2 className="flex items-center gap-2 text-sm font-semibold text-white">

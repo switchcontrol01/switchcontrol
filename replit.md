@@ -36,9 +36,12 @@ The application is structured into `client/src` (frontend components, hooks, uti
 - **Typography Pattern**: Bold/heavy weights (font-semibold for headings, font-extrabold/font-black for section titles and emphasis, font-medium for body) used across all website pages. No thin/light weights.
 - **FAQ**: Elevated glass panel with inner noise texture, hover expand + lift animation on items. Mouse-follow highlight on container. Background pattern visible through translucent glass.
 - **Modals**: A shared `GlassModalLayout` component provides a consistent visual style (dark translucent background, blurred border) and behavior (escape handling, backdrop close, scroll lock) for various interactive modals (e.g., Memory Cleaner, CPU Cores).
-- **Window Controls**: Custom-styled window control buttons with glass-blended appearance for Electron desktop builds. Embedded glass titlebar strip with 36px hit area, hover glow + micro-scale, drag region on titlebar.
+- **Window Controls**: Minimal window control buttons (46×32px, no borders) styled like native Windows 11 controls. Close button shows red on hover. 32px titlebar blends into app background. Drag region on titlebar.
 - **Global Text Selection**: `user-select: none` is applied globally on `.app-root` for a premium feel, with exceptions for input fields, textareas, contenteditable, and `.select-text` class.
-- **Glass Consistency**: All modals use unified glass tokens: `bg-[#0c0c14]/95 backdrop-blur-xl border-white/10 rounded-2xl`. Applied to Dialog base, PremiumModal, LicenseManagementModal, PendingActivationModal, TweakCard overlays.
+- **Glass Consistency**: All modals use unified glass tokens: `bg-[#0c0c14]/80 backdrop-blur-2xl border-white/[0.08] rounded-2xl` with premium shadow and inset light edge. GlassCard uses `bg-white/[0.03] backdrop-blur-xl` with subtle inset highlight.
+- **App Shell**: Sealed desktop shell via `.app-root { position: fixed; inset: 0 }`. Scrollbars hidden by default, appear subtly on hover. No horizontal overflow. `app-content` uses `flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden`.
+- **Discord URL**: Centralized in `client/src/config/socialLinks.ts` — all components reference `SOCIAL_LINKS.discord`.
+- **Telemetry IPC**: Preload exposes `system.getSpecs()`, `telemetry.getLive()`, `telemetry.getGpu()`, etc. Main process registers matching handlers. Key aliases: `system:getSpecs` → `loadSystemSpecs()`, `telemetry:getLive` → live CPU/RAM/temp data.
 
 ### Key Features
 - **Dashboard**: Displays system stats, simulates RAM clearing, initiates AI advisor scans, and shows live telemetry graphs (CPU, RAM).

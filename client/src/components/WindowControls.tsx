@@ -1,5 +1,4 @@
-import { Minus, Square, X } from "lucide-react";
-import { motion } from "framer-motion";
+import { Minus, X } from "lucide-react";
 import "@/types/electron.d";
 
 export function WindowControls() {
@@ -24,33 +23,29 @@ export function WindowControls() {
       <div className="titlebar-drag-region" />
 
       <div className="titlebar-controls">
-        <motion.button
+        <button
           onClick={handleMinimize}
           className="titlebar-btn"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
           data-testid="window-minimize"
         >
-          <Minus className="w-3.5 h-3.5 text-white/60 group-hover:text-white/90 transition-colors" />
-        </motion.button>
-        <motion.button
+          <Minus className="w-3 h-3" />
+        </button>
+        <button
           onClick={handleMaximize}
           className="titlebar-btn"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
           data-testid="window-maximize"
         >
-          <Square className="w-2.5 h-2.5 text-white/60 group-hover:text-white/90 transition-colors" />
-        </motion.button>
-        <motion.button
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.2">
+            <rect x="1" y="1" width="8" height="8" rx="1.5" />
+          </svg>
+        </button>
+        <button
           onClick={handleClose}
           className="titlebar-btn titlebar-btn-close"
-          whileHover={{ scale: 1.08 }}
-          whileTap={{ scale: 0.92 }}
           data-testid="window-close"
         >
-          <X className="w-3.5 h-3.5 text-white/60 transition-colors" />
-        </motion.button>
+          <X className="w-3 h-3" />
+        </button>
       </div>
     </div>
   );

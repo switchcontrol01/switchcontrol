@@ -12,13 +12,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const shouldAnimate = !prefersReducedMotion;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-x-hidden">
+    <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">
       <AppBackground />
       <SpotlightEffect />
       <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />
-      <main className="pl-64 min-h-screen relative z-10">
+      <main className="pl-64 h-full overflow-y-auto overflow-x-hidden relative z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={location}

@@ -1,0 +1,355 @@
+TASK: Fix telemetry loading, shell/layout breakage, glass surfaces, Discord links, and embedded desktop polish across SwitchControl
+
+PROBLEM
+
+Multiple issues are now visible in the working app. Login is fixed, but the desktop product still does not feel stable, premium, or fully integrated.
+
+Current issues:
+
+1. System information / telemetry is not loading correctly
+- CPU shows unavailable
+- GPU shows unavailable
+- Disk may show unavailable
+- live telemetry panel says no telemetry available
+- core hardware/system cards are not populating as expected
+
+2. Background / shell cut-off is still visible everywhere
+- the app background visibly cuts off
+- the desktop/background behind the Electron window still shows through in bad ways
+- this happens in multiple places, not just one section
+- the shell does not feel fully sealed or immersive
+- there are dead black filler areas and abrupt visual stops
+
+3. Scrolling breaks the layout
+- when scrolling, the taskbar/background/layout gets visually messed up
+- the app shell appears unstable during scroll
+- the shell stops early and exposes the desktop/background behind it
+- bottom and side overflow are visually leaking outside the intended frame
+
+4. Manual scrollbars are ugly
+- the bottom horizontal scrollbar and side scrollbar should not be visually present
+- this app should feel premium and controlled
+- mouse / wheel / trackpad scrolling is enough
+- visible scrollbars are hurting the embedded desktop feel
+
+5. Top-right controls feel wrong
+- there is ugly plus / square / X style chrome in the top right
+- it does not feel embedded into SwitchControl
+- it feels like pasted browser/native junk sitting on top of the app
+- the black border / top-right control region also looks wrong and disconnected from the UI
+- if this is part of the minimize / maximize / close implementation, it needs to be redesigned so it feels native to the app
+
+6. RAM Optimizer modal looks wrong
+- its background looks like a flat black box
+- it does not feel like a premium glass modal
+- it looks detached from the rest of the visual system
+
+7. Dashboard cards still feel too dull / grey
+- the main dashboard boxes need proper glass backgrounds
+- current dull grey look is not premium enough
+- they should visually match the matte dark + neon glass SwitchControl style
+
+8. Discord link is wrong everywhere
+The correct Discord invite is now:
+
+https://discord.com/invite/szJxKbXCJv
+
+It must be updated everywhere across:
+- website
+- app
+- settings
+- tour intro
+- landing page
+- footer
+- CTA buttons
+- embedded social links
+- hardcoded text/buttons/components/config
+
+GOAL
+
+Make SwitchControl feel like a polished, embedded premium desktop product while fixing the broken telemetry pipeline and stale Discord links.
+
+Required result:
+- telemetry/system information loads properly
+- no visible shell/background cut-off
+- no desktop/background leakage
+- no visible bottom or side scrollbars
+- no ugly detached chrome in the top right
+- dashboard and modal surfaces use real premium glass styling
+- Discord link is correct everywhere
+- all fixes verified in the packaged app without breaking the now-working login flow
+
+IMPLEMENTATION
+
+SECTION 1 — FIX SYSTEM INFORMATION / TELEMETRY LOADING
+
+Audit the full telemetry/spec pipeline end-to-end.
+
+Check:
+- electron preload exposed methods
+- ipcMain handlers in electron/main.js
+- renderer calls to system/getSpecs/getLive/getEnhanced/getHardwareTelemetry
+- expected method names vs actual method names
+- whether the renderer is calling handlers that do not exist
+- whether the packaged build is missing data due to wrong IPC names or wrong response shape
+
+Important:
+There is likely a naming mismatch risk such as:
+- preload exposing one method name
+- main process registering a different handler name
+
+Verify all of these line up exactly:
+- system:getSpecs
+- system:loadSpecs
+- telemetry:getLive
+- telemetry:getBasic
+- telemetry:getEnhanced
+- telemetry:getHardwareTelemetry
+
+Find the exact mismatch or broken fetch path and fix it.
+
+Then verify:
+- CPU card loads
+- GPU card loads
+- RAM card loads
+- Disk card loads
+- live telemetry panel no longer says “No telemetry available”
+
+SECTION 2 — FIX APP SHELL / BACKGROUND LEAKAGE EVERYWHERE
+
+Audit the full Electron shell layout.
+
+Check:
+- outermost app root sizing
+- viewport height / width usage
+- titlebar container sizing
+- sidebar height and parent height
+- app-content container sizing
+- main content height and overflow
+- bottom frame fill
+- fixed vs absolute positioning
+- transparent / missing background layers
+- any container ending before the Electron window edge
+- any mismatch between shell background and content background
+- any area where the desktop is visible because the app surface is not filling the window
+
+Goal:
+The app frame must fully own the visible area inside the Electron window at all times.
+No visible desktop/background leak.
+No abrupt cutoff areas.
+No dead black filler blocks.
+No exposed edge gaps.
+
+SECTION 3 — FIX SCROLL / LAYOUT BREAKAGE
+
+Audit the app shell layout and scroll containers.
+
+Check for:
+- fixed elements inside scrolling parents
+- background layers tied to viewport incorrectly
+- titlebar / sidebar using wrong positioning
+- overflow-hidden vs overflow-auto conflicts
+- full-height containers using inconsistent 100vh / h-screen / fixed positioning
+- animated background layers affecting scroll rendering
+- nested transforms causing visual breakage while scrolling
+
+Goal:
+Scrolling must not distort:
+- taskbar area
+- background layers
+- app frame
+- sidebar
+- dashboard content
+
+Stabilize the layout so scrolling only affects content, not the entire shell.
+
+SECTION 4 — REMOVE VISIBLE SCROLLBARS AND FIX HORIZONTAL OVERFLOW
+
+Hide manual scrollbars for the app shell and main content areas.
+
+Rules:
+- no bottom horizontal scrollbar visible
+- no side scrollbar visible
+- scrolling must still work with wheel / touchpad / mouse
+- do not break content access
+- avoid accidental double-scroll containers
+
+Find why a bottom scrollbar exists at all.
+
+Audit for:
+- oversized min-width cards
+- grid columns exceeding container width
+- fixed-width dashboard widgets
+- sidebar + content width overflow
+- titlebar controls adding extra width
+- transforms / blur / shadow containers causing visual overflow
+- 100vw usage inside already constrained containers
+
+Fix root horizontal overflow instead of merely hiding the symptom.
+
+SECTION 5 — REDESIGN TOP-RIGHT WINDOW CONTROLS
+
+The current top-right control area looks wrong and detached.
+
+Audit:
+- custom titlebar implementation
+- WindowControls component
+- drag regions / no-drag regions
+- any leftover native/browser-like control styling
+- any extra icons or buttons that do not belong in the final desktop shell
+
+Required:
+- remove ugly plus / square / X chrome that feels pasted on
+- make close / minimize / maximize feel embedded into the app design system
+- no random black border or detached top-right box
+- controls should visually match the matte dark + neon glass SwitchControl UI
+
+If the current implementation includes extra controls that are not needed, remove them.
+
+SECTION 6 — MAKE THE SHELL FEEL EMBEDDED
+
+The app should feel like one integrated desktop product, not a web page inside a loose frame.
+
+Review:
+- titlebar height
+- border radius consistency
+- sidebar to titlebar connection
+- main surface framing
+- edge shadows / outline treatment
+- drag region styling
+- top-right control padding / alignment
+- any visual seam between shell and content
+
+Goal:
+A clean, premium embedded shell with no obvious browser-like leftovers.
+
+SECTION 7 — MAKE RAM OPTIMIZER A TRUE GLASS MODAL
+
+Redesign the RAM Optimizer modal so it matches the premium SwitchControl glass system.
+
+Required:
+- remove the flat black box look
+- use glass background styling
+- proper blur
+- soft translucent surface
+- subtle neon edge treatment
+- consistent border and shadow treatment
+- match the rest of the premium UI language
+
+It should feel like a polished telemetry/control modal, not a generic dark popup.
+
+SECTION 8 — UPGRADE DASHBOARD BOXES TO GLASS SURFACES
+
+The dashboard cards/boxes should not use dull grey backgrounds.
+
+Upgrade the main dashboard boxes to:
+- glass-like surfaces
+- subtle transparency
+- better depth
+- premium shadow/glow treatment
+- cleaner contrast with the purple grid/background
+- consistency with the overall matte dark + neon glass system
+
+Do not overdo the opacity.
+Need premium glass, not noisy gimmicks.
+
+SECTION 9 — KEEP READABILITY HIGH
+
+While upgrading to glass and fixing layout:
+- preserve text readability
+- preserve stat readability
+- preserve button clarity
+- avoid muddy low-contrast surfaces
+- avoid making everything too transparent
+
+SECTION 10 — UPDATE DISCORD LINK EVERYWHERE
+
+Replace all old Discord invite URLs with:
+
+https://discord.com/invite/szJxKbXCJv
+
+Search the full project for:
+- discord.gg links
+- discord.com/invite links
+- config constants
+- CTA buttons
+- tour steps
+- settings/social buttons
+- website footer/header links
+- Electron app buttons
+- markdown/text blocks
+
+Do not leave any stale Discord link anywhere.
+
+SECTION 11 — CENTRALIZE THE DISCORD URL
+
+After replacing all old links, create one shared constant/config source for the Discord URL so this does not happen again.
+
+Use one canonical source and reference it everywhere possible across:
+- website
+- app
+- onboarding/tour
+- settings/social actions
+
+SECTION 12 — VERIFY IN THE PACKAGED APP
+
+Test in the actual packaged Electron app, not only in browser/dev rendering.
+
+Confirm:
+- system information loads in the app
+- CPU/GPU/Disk no longer show false unavailable
+- live telemetry panel loads correctly
+- no shell/background cut-off remains
+- no visible desktop leakage
+- no visible bottom or side scrollbar
+- top-right controls look integrated and premium
+- black border / detached chrome artifacts are gone
+- RAM Optimizer modal is glass, not black
+- dashboard cards feel premium and consistent
+- every Discord button opens the correct invite
+- login flow still works and was not broken by these changes
+
+CHECKLIST
+
+[ ] CPU info loads
+[ ] GPU info loads
+[ ] Disk info loads
+[ ] live telemetry panel loads correctly
+[ ] no telemetry cards show false “Unavailable” when data exists
+[ ] app shell fully fills the visible Electron window correctly
+[ ] no desktop/background leak appears during scroll or overflow
+[ ] no dead black filler areas remain
+[ ] scrolling no longer breaks taskbar/background/layout
+[ ] bottom horizontal scrollbar removed
+[ ] side scrollbar removed
+[ ] horizontal overflow root cause fixed
+[ ] top-right controls redesigned or cleaned up
+[ ] no ugly plus / square / X chrome remains
+[ ] no black border / detached frame artifact remains
+[ ] RAM Optimizer modal uses proper glass styling
+[ ] dashboard cards upgraded from dull grey to premium glass
+[ ] text and stats remain readable
+[ ] all old Discord links were replaced
+[ ] Discord link centralized into one shared source
+[ ] packaged app verified
+[ ] website verified
+[ ] login flow still works
+
+FINAL OUTPUT
+
+Report:
+- exact root cause of the telemetry/system-info failure
+- files changed for telemetry fix
+- exact root cause of the shell/background leak
+- files changed for shell/layout fix
+- exact root cause of scroll/layout breakage
+- files changed for scrollbar/overflow fix
+- files changed for top-right control cleanup
+- what was removed from the old chrome/control area
+- files changed for RAM Optimizer modal redesign
+- files changed for dashboard glass upgrade
+- all places where Discord link was updated
+- where the centralized Discord constant now lives
+- confirmation that the packaged app no longer shows cut-off/background leakage
+- confirmation that app and website both use the new Discord invite
+- confirmation that login still works after these fixes

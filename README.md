@@ -189,7 +189,7 @@ STRIPE_SECRET_KEY=your_stripe_key
 ## Support
 
 - Website: [switchcontrol.org](https://switchcontrol.org)
-- Discord: [Join our community](https://discord.gg/esXPgJdk9)
+- Discord: [Join our community](https://discord.com/invite/szJxKbXCJv)
 - Email: switchcontrol67@gmail.com
 
 ---

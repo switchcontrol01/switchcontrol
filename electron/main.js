@@ -851,6 +851,148 @@ ipcMain.handle('telemetry:getHardwareTelemetry', async () => {
   }
 });
 
+// Alias handlers for preload/main name alignment
+ipcMain.handle('system:getSpecs', async () => {
+  return await loadSystemSpecs();
+});
+
+ipcMain.handle('telemetry:getLive', async () => {
+  try {
+    const [load, mem, temps] = await Promise.all([
+      si.currentLoad().catch(() => ({ currentLoad: 0 })),
+      si.mem().catch(() => ({ total: 0, available: 0 })),
+      si.cpuTemperature().catch(() => ({ main: 0 }))
+    ]);
+    const cpuTemp = safeNum(temps.main || 0);
+    const ramTotal = Math.round((mem.total || 0) / (1024 * 1024 * 1024));
+    const ramUsed = Math.round((((mem.total || 0) - (mem.available || 0)) / (mem.total || 1)) * 100);
+    let gpuTemp = null;
+    if (cachedSpecs?.gpu?.isNvidia) {
+      try { gpuTemp = await getNvidiaGpuTemp(); } catch (e) {}
+    }
+    return {
+      cpuUsage: safeNum(load.currentLoad || 0),
+      ramUsage: ramUsed,
+      cpuTemp: cpuTemp > 0 ? cpuTemp : null,
+      showCpuTemp: cpuTemp > 0,
+      ramTotal,
+      gpuTemp,
+      showGpu: !!cachedSpecs?.gpu?.isNvidia,
+      showMobo: false,
+      timestamp: Date.now()
+    };
+  } catch (e) {
+    return { cpuUsage: 0, ramUsage: 0, cpuTemp: null, showCpuTemp: false, ramTotal: 0, gpuTemp: null, showGpu: false, showMobo: false, timestamp: Date.now() };
+  }
+});
+
+ipcMain.handle('system:getRamUsage', async () => {
+  try {
+    const mem = await si.mem();
+    return {
+      total: mem.total,
+      used: mem.total - mem.available,
+      free: mem.available,
+      usagePercent: Math.round(((mem.total - mem.available) / mem.total) * 100)
+    };
+  } catch (e) {
+    return { total: 0, used: 0, free: 0, usagePercent: 0 };
+  }
+});
+
+ipcMain.handle('system:getAllDisks', async () => {
+  try {
+    const disks = await si.fsSize();
+    return (disks || []).map(d => ({
+      fs: d.fs,
+      type: d.type,
+      size: d.size,
+      used: d.used,
+      available: d.available,
+      use: d.use,
+      mount: d.mount
+    }));
+  } catch (e) {
+    return [];
+  }
+});
+
+ipcMain.handle('telemetry:getCpuCores', async () => {
+  try {
+    const load = await si.currentLoad();
+    return (load.cpus || []).map((c, i) => ({ core: i, load: safeNum(c.load || 0) }));
+  } catch (e) {
+    return [];
+  }
+});
+
+ipcMain.handle('telemetry:getMemoryDetails', async () => {
+  try {
+    const [mem, layout] = await Promise.all([
+      si.mem(),
+      si.memLayout().catch(() => [])
+    ]);
+    return {
+      total: mem.total,
+      free: mem.free,
+      used: mem.used || (mem.total - mem.available),
+      available: mem.available,
+      swaptotal: mem.swaptotal,
+      swapused: mem.swapused,
+      modules: (layout || []).map(m => ({
+        size: m.size,
+        type: m.type,
+        clockSpeed: m.clockSpeed,
+        formFactor: m.formFactor,
+        manufacturer: m.manufacturer,
+        voltageConfigured: m.voltageConfigured
+      }))
+    };
+  } catch (e) {
+    return { total: 0, free: 0, used: 0, available: 0, modules: [] };
+  }
+});
+
+ipcMain.handle('telemetry:getGpu', async () => {
+  try {
+    const graphics = await si.graphics();
+    const controllers = (graphics.controllers || []).map(g => ({
+      model: g.model,
+      vendor: g.vendor,
+      vram: g.vram,
+      bus: g.bus,
+      driverVersion: g.driverVersion,
+      temperatureGpu: g.temperatureGpu
+    }));
+    return controllers;
+  } catch (e) {
+    return [];
+  }
+});
+
+ipcMain.handle('telemetry:getDisk', async () => {
+  try {
+    const [disks, io] = await Promise.all([
+      si.fsSize().catch(() => []),
+      si.disksIO().catch(() => ({ rIO: 0, wIO: 0, tIO: 0 }))
+    ]);
+    return {
+      disks: (disks || []).map(d => ({
+        fs: d.fs,
+        type: d.type,
+        size: d.size,
+        used: d.used,
+        available: d.available,
+        use: d.use,
+        mount: d.mount
+      })),
+      io: { rIO: io.rIO || 0, wIO: io.wIO || 0, tIO: io.tIO || 0 }
+    };
+  } catch (e) {
+    return { disks: [], io: { rIO: 0, wIO: 0, tIO: 0 } };
+  }
+});
+
 // Tweak handlers
 ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
   if (typeof tweakId !== 'string' || typeof action !== 'string') {
