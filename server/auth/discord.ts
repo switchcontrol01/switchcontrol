@@ -156,20 +156,16 @@ export function setupDiscordAuth(app: Express): void {
     
     // Set cookie to track source (survives OAuth redirect)
     // path: '/' ensures cookies are sent to /api/auth/discord/callback
-    res.cookie('auth_source', source, { 
+    const isElectronBE = process.env.ELECTRON_BACKEND === '1';
+    const authCookieOpts = {
       maxAge: 5 * 60 * 1000,
       httpOnly: true,
-      secure: true,
-      sameSite: 'none' as const,
+      secure: !isElectronBE,
+      sameSite: (isElectronBE ? 'lax' : 'none') as 'lax' | 'none',
       path: '/',
-    });
-    res.cookie('auth_next', next_url, { 
-      maxAge: 5 * 60 * 1000,
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none' as const,
-      path: '/',
-    });
+    };
+    res.cookie('auth_source', source, authCookieOpts);
+    res.cookie('auth_next', next_url, authCookieOpts);
     
     passport.authenticate("discord", {
       scope: DISCORD_SCOPES,
@@ -193,8 +189,10 @@ export function setupDiscordAuth(app: Express): void {
       const nextUrl = req.cookies?.auth_next || '/';
       
       // Clear the tracking cookies (must match path/secure/sameSite from when they were set)
-      res.clearCookie('auth_source', { path: '/', secure: true, sameSite: 'none' as const });
-      res.clearCookie('auth_next', { path: '/', secure: true, sameSite: 'none' as const });
+      const isElectronBE = process.env.ELECTRON_BACKEND === '1';
+      const clearOpts = { path: '/', secure: !isElectronBE, sameSite: (isElectronBE ? 'lax' : 'none') as 'lax' | 'none' };
+      res.clearCookie('auth_source', clearOpts);
+      res.clearCookie('auth_next', clearOpts);
       
       console.log("[AUTH] Discord callback - source:", source, "user:", user.id, "sessionID:", req.sessionID);
       

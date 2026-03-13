@@ -222,7 +222,7 @@ export default function AiAdvisor() {
         .filter(m => m.id !== "welcome" && m.role !== "system")
         .map(m => ({ role: m.role, content: m.content }));
 
-      const data = await apiPost("/ai/chat", { messages: chatHistory, context: contextRef.current });
+      const data = await apiPost("/ai/chat", { messages: chatHistory, context: contextRef.current }, { signal: abortRef.current.signal });
 
       if (abortRef.current?.signal.aborted) return;
 
@@ -234,6 +234,7 @@ export default function AiAdvisor() {
       };
       setMessages(prev => [...prev, assistantMsg]);
     } catch (err: unknown) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       if (abortRef.current?.signal.aborted) return;
       const displayMsg = getUserFriendlyError(err);
       const errorMsg: ChatMessage = {

@@ -1,46 +1,88 @@
 import { queryClient } from "./queryClient";
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
+const isPackagedElectron = isElectron && typeof window !== 'undefined' && window.location.protocol === 'file:';
+
+if (typeof window !== 'undefined') {
+  console.log(`[API] Init: electron=${isElectron}, packaged=${isPackagedElectron}, protocol=${window.location?.protocol}`);
+}
 
 let _resolvedApiBase: string | null = null;
+let _resolvingPromise: Promise<string> | null = null;
 
-async function resolveApiBase(): Promise<string> {
-  if (_resolvedApiBase) return _resolvedApiBase;
+const ELECTRON_PORT_POLL_INTERVAL = 200;
+const ELECTRON_PORT_POLL_TIMEOUT = 12000;
+
+async function pollForBackendPort(): Promise<number> {
+  const start = Date.now();
+  const api = (window as any).electronAPI;
+
+  while (Date.now() - start < ELECTRON_PORT_POLL_TIMEOUT) {
+    try {
+      const port = await api.getBackendPort();
+      if (typeof port === 'number' && port > 0) {
+        console.log(`[API] Backend port resolved: ${port} (after ${Date.now() - start}ms)`);
+        return port;
+      }
+    } catch {}
+
+    console.log(`[API] Backend port not ready yet, retrying... (${Date.now() - start}ms elapsed)`);
+    await new Promise(r => setTimeout(r, ELECTRON_PORT_POLL_INTERVAL));
+  }
+
+  throw new ApiError(0, "Embedded backend did not start in time. Please restart the application.");
+}
+
+async function resolveApiBaseInternal(): Promise<string> {
+  if (isPackagedElectron) {
+    const port = await pollForBackendPort();
+    const base = `http://127.0.0.1:${port}/api`;
+    console.log(`[API] Packaged Electron API base: ${base}`);
+    return base;
+  }
 
   if (isElectron) {
     try {
       const port = await (window as any).electronAPI.getBackendPort();
-      if (port) {
-        _resolvedApiBase = `http://127.0.0.1:${port}/api`;
-        console.log(`[API] Resolved Electron backend port: ${port}`);
-        return _resolvedApiBase;
+      if (typeof port === 'number' && port > 0) {
+        const base = `http://127.0.0.1:${port}/api`;
+        console.log(`[API] Dev Electron API base: ${base}`);
+        return base;
       }
     } catch {}
-    _resolvedApiBase = "http://127.0.0.1:5000/api";
-    console.warn("[API] getBackendPort returned null, falling back to 5000");
-    return _resolvedApiBase;
+    console.log("[API] Dev Electron: no embedded backend, using relative /api (dev server proxy)");
+    return "/api";
   }
 
   if (typeof window !== 'undefined' && window.location.protocol === 'file:') {
-    _resolvedApiBase = "http://127.0.0.1:5000/api";
-    return _resolvedApiBase;
+    throw new ApiError(0, "Cannot resolve API base: file:// protocol without Electron bridge.");
   }
 
-  _resolvedApiBase = "/api";
-  return _resolvedApiBase;
+  return "/api";
 }
 
-function getApiBaseSync(): string {
+async function resolveApiBase(): Promise<string> {
   if (_resolvedApiBase) return _resolvedApiBase;
-  if (isElectron || (typeof window !== 'undefined' && window.location.protocol === 'file:')) {
-    return "http://127.0.0.1:5000/api";
+
+  if (!_resolvingPromise) {
+    _resolvingPromise = resolveApiBaseInternal().then(base => {
+      _resolvedApiBase = base;
+      _resolvingPromise = null;
+      return base;
+    }).catch(err => {
+      _resolvingPromise = null;
+      throw err;
+    });
   }
-  return "/api";
+
+  return _resolvingPromise;
 }
 
 if (typeof window !== 'undefined') {
   resolveApiBase().then(base => {
-    console.log(`[API] Base URL resolved: ${base} (electron=${isElectron}, protocol=${window.location?.protocol})`);
+    console.log(`[API] Base URL ready: ${base}`);
+  }).catch(err => {
+    console.error(`[API] Base URL resolution failed:`, err.message);
   });
 }
 
@@ -50,20 +92,27 @@ function getCsrfToken(): string | null {
 }
 
 async function ensureCsrfToken(): Promise<string> {
-  let token = getCsrfToken();
-  if (!token) {
-    try {
-      const base = await resolveApiBase();
-      const res = await fetch(`${base}/csrf-token`, { credentials: 'include' });
-      if (res.ok) {
-        const data = await res.json();
-        token = data.token;
-      }
-    } catch {
-      return '';
-    }
+  const existing = getCsrfToken();
+  if (existing) return existing;
+
+  const base = await resolveApiBase();
+  let res: Response;
+  try {
+    res = await fetch(`${base}/csrf-token`, { credentials: 'include' });
+  } catch (err) {
+    throw new ApiError(0, "Could not reach the server to initialize security token. Check your connection.");
   }
-  return token || '';
+
+  if (!res.ok) {
+    throw new ApiError(res.status, `CSRF token fetch failed (HTTP ${res.status})`);
+  }
+
+  const data = await res.json();
+  if (!data.token || typeof data.token !== 'string') {
+    throw new ApiError(0, "Server returned invalid security token.");
+  }
+
+  return data.token;
 }
 
 async function getDeviceId(): Promise<string | null> {
@@ -95,6 +144,9 @@ function isNetworkError(err: unknown): boolean {
 }
 
 export function getUserFriendlyError(err: unknown): string {
+  if (err instanceof DOMException && err.name === 'AbortError') {
+    return "Request was cancelled.";
+  }
   if (err instanceof ApiError) {
     if (err.status === 429) return "Rate limit reached. Please wait a moment.";
     if (err.status === 403) return "Access denied.";
@@ -109,11 +161,17 @@ export function getUserFriendlyError(err: unknown): string {
   return "Something went wrong.";
 }
 
+export interface ApiFetchOptions {
+  withCsrf?: boolean;
+  signal?: AbortSignal;
+}
+
 export async function apiFetch(
   path: string,
   options: RequestInit = {},
-  { withCsrf = false }: { withCsrf?: boolean } = {}
+  fetchOptions: ApiFetchOptions = {}
 ): Promise<Response> {
+  const { withCsrf = false, signal } = fetchOptions;
   const base = await resolveApiBase();
   const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
 
@@ -132,10 +190,10 @@ export async function apiFetch(
 
   if (withCsrf) {
     const token = await ensureCsrfToken();
-    if (token) {
-      headers['x-csrf-token'] = token;
-    }
+    headers['x-csrf-token'] = token;
   }
+
+  const fetchSignal = signal || options.signal;
 
   let res: Response;
   try {
@@ -143,8 +201,12 @@ export async function apiFetch(
       ...options,
       credentials: 'include',
       headers,
+      signal: fetchSignal,
     });
   } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw err;
+    }
     if (isNetworkError(err)) {
       throw new ApiError(0, "Could not reach the server. Please check your connection and try again.");
     }
@@ -165,17 +227,21 @@ export async function apiFetch(
   return res;
 }
 
-export async function apiPost<T = any>(path: string, body?: unknown): Promise<T> {
+export interface ApiPostOptions {
+  signal?: AbortSignal;
+}
+
+export async function apiPost<T = any>(path: string, body?: unknown, options?: ApiPostOptions): Promise<T> {
   const res = await apiFetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: body !== undefined ? JSON.stringify(body) : undefined,
-  }, { withCsrf: true });
+  }, { withCsrf: true, signal: options?.signal });
   return res.json();
 }
 
-export async function apiGet<T = any>(path: string): Promise<T> {
-  const res = await apiFetch(path);
+export async function apiGet<T = any>(path: string, options?: { signal?: AbortSignal }): Promise<T> {
+  const res = await apiFetch(path, {}, { signal: options?.signal });
   return res.json();
 }
 
