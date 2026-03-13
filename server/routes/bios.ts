@@ -17,7 +17,7 @@ const biosLimiter = rateLimit({
 biosRouter.use(biosLimiter);
 
 const photoScanSchema = z.object({
-  imageBase64: z.string().min(100).max(10_000_000),
+  imageBase64: z.string().min(100).max(10_000_000, "Image too large. Please use an image under 7MB."),
   mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
 });
 
@@ -53,6 +53,10 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
   try {
     const parsed = photoScanSchema.safeParse(req.body);
     if (!parsed.success) {
+      const sizeIssue = parsed.error.issues.find(i => i.path.includes("imageBase64") && i.code === "too_big");
+      if (sizeIssue) {
+        return res.status(413).json({ error: "Image too large. Please use an image under 7MB." });
+      }
       return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
     }
 

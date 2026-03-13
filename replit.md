@@ -83,8 +83,13 @@ Premium-only BIOS firmware analysis page at `/bios-advisor` (`client/src/pages/B
 
 **UI Features**: Confidence % badges per setting, detection label badges (User Confirmed/Detected/Inferred/Unknown), category score breakdowns (driven by analyzed settings, not static data), ranked opportunities with score gain/difficulty/risk, optimization level labels, expandable setting cards with pros/cons/BIOS paths. No auto-apply — all changes are informational and manual only.
 
+### Unified API Layer
+`client/src/lib/api.ts` provides `apiFetch`, `apiPost`, `apiGet` helpers with automatic base URL resolution (relative `/api` for web, `http://localhost:<port>/api` for Electron/file://), `x-device-id` header injection, `ApiError` class, and `getUserFriendlyError()` for user-facing messages. AI Advisor and BIOS Advisor pages use these exclusively — no raw `fetch()` calls.
+
 ### Electron Desktop App
 The Electron app provides a unified `window.electronAPI` interface via `preload.js` for interacting with native system features. It uses the `systeminformation` package for real hardware data (CPU, GPU, RAM), offers native tweak execution (via `tweak-executor.js`), and includes a native Rust-based RAM cleaner.
+
+**Embedded Backend** (`electron/backend-launcher.js`): In packaged mode, `main.js` forks the bundled `dist/index.cjs` server before creating the window, polls `/api/health` for readiness, and exposes the port via `electronAPI.getBackendPort()` / `electronAPI.isBackendReady()` IPC. Backend is stopped on `window-all-closed` and `before-quit`. The server bundle is included via `extraResources` in `electron/package.json`.
 
 ### Electron Auth Flow (Rebuilt)
 - **Deep-link format**: `switchcontrol://auth/callback?code=ONE_TIME_CODE&provider=google|discord`

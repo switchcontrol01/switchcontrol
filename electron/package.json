@@ -35,6 +35,7 @@
       "main.js",
       "preload.js",
       "tweak-executor.js",
+      "backend-launcher.js",
       "node_modules/systeminformation/**/*"
     ],
 
@@ -42,6 +43,10 @@
       {
         "from": "dist-frontend",
         "to": "dist"
+      },
+      {
+        "from": "../dist/index.cjs",
+        "to": "dist/index.cjs"
       },
       {
         "from": "bin",

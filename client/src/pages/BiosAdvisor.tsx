@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
+import { apiPost, getUserFriendlyError } from "@/lib/api";
 import { 
   BIOS_SETTINGS, 
   BIOS_CATEGORIES, 
@@ -532,8 +533,9 @@ export default function BiosAdvisor() {
       setPhotoError("Please upload a PNG, JPEG, or WebP image.");
       return;
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setPhotoError("Image must be under 10MB.");
+    const MAX_FILE_SIZE = 7 * 1024 * 1024;
+    if (file.size > MAX_FILE_SIZE) {
+      setPhotoError("Image must be under 7MB (base64 encoding increases size ~33%).");
       return;
     }
 
@@ -551,28 +553,15 @@ export default function BiosAdvisor() {
         reader.readAsDataURL(file);
       });
 
-      const res = await fetch("/api/bios/photo-scan", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64, mimeType: file.type }),
-      });
+      const data = await apiPost("/bios/photo-scan", { imageBase64: base64, mimeType: file.type });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Photo scan failed");
-      }
-
-      const data = await res.json();
       if (data.detections && data.detections.length > 0) {
         setPhotoDetections(data.detections);
       } else {
         setPhotoError("No BIOS settings could be identified in this image. Try a clearer photo.");
       }
-    } catch (err: any) {
-      const isNetworkError = err instanceof TypeError && err.message === "Failed to fetch";
-      setPhotoError(isNetworkError
-        ? "Could not reach the server. Please check your connection and try again."
-        : (err.message || "Photo analysis failed"));
+    } catch (err: unknown) {
+      setPhotoError(getUserFriendlyError(err));
     } finally {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -584,25 +573,18 @@ export default function BiosAdvisor() {
     setAiExplainLoading(true);
 
     try {
-      const res = await fetch("/api/bios/explain", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          cpuModel: lastTelemetry?.cpuModel || stats.cpuName || "Unknown CPU",
-          gpuModel: lastTelemetry?.gpuModel || stats.gpuName || "Unknown GPU",
-          ramTotalGB: lastTelemetry?.ramTotalGB || stats.totalRamGb || 16,
-          detections: allDetections,
-          scores: {
-            latency: scores.latency,
-            frametime: scores.frametime,
-            stability: scores.stability,
-            competitiveReadiness: scores.competitiveReadiness,
-          },
-        }),
+      const data = await apiPost("/bios/explain", {
+        cpuModel: lastTelemetry?.cpuModel || stats.cpuName || "Unknown CPU",
+        gpuModel: lastTelemetry?.gpuModel || stats.gpuName || "Unknown GPU",
+        ramTotalGB: lastTelemetry?.ramTotalGB || stats.totalRamGb || 16,
+        detections: allDetections,
+        scores: {
+          latency: scores.latency,
+          frametime: scores.frametime,
+          stability: scores.stability,
+          competitiveReadiness: scores.competitiveReadiness,
+        },
       });
-
-      if (!res.ok) throw new Error("Explanation request failed");
-      const data = await res.json();
       setAiExplanation(data);
     } catch {
       setAiExplanation(null);

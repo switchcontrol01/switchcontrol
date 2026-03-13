@@ -17,6 +17,7 @@ const path = require('path');
 const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
+const backendLauncher = require('./backend-launcher');
 
 app.setName('SwitchControl');
 const isDev = !app.isPackaged;
@@ -213,6 +214,15 @@ function createWindow() {
       console.error('[SwitchControl] Failed to load:', err);
     });
   }
+
+  // Expose backend port to renderer via IPC
+  ipcMain.handle('app:getBackendPort', () => {
+    return backendLauncher.getBackendPort();
+  });
+
+  ipcMain.handle('app:isBackendReady', () => {
+    return backendLauncher.isBackendReady();
+  });
   
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
@@ -1081,7 +1091,7 @@ ipcMain.handle('auth:debugCookies', async () => {
   }));
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   console.log('\n[DevTools] ===== STARTUP DEBUG INFO =====');
   console.log('[DevTools] isDev:', isDev);
   console.log('[DevTools] isPackaged:', app.isPackaged);
@@ -1092,6 +1102,17 @@ app.whenReady().then(() => {
 
   console.log('[DEBUG] ========== APP START ==========');
   console.log('[TEMP-LOG] app.whenReady() fired, setting protocol and creating window');
+
+  if (!isDev) {
+    console.log('[Backend] Starting embedded backend for packaged mode...');
+    const result = await backendLauncher.startBackend(app);
+    if (result.ready) {
+      console.log('[Backend] Embedded backend started successfully on port', result.port);
+    } else {
+      console.error('[Backend] Failed to start embedded backend:', result.error || 'unknown error');
+    }
+  }
+
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   const isDefault = app.isDefaultProtocolClient('switchcontrol');
   console.log('[DeepLink][MAIN] protocol registered:', isDefault);
@@ -1161,7 +1182,12 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
+  backendLauncher.stopBackend();
   if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('before-quit', () => {
+  backendLauncher.stopBackend();
 });
 
 app.on('activate', () => {

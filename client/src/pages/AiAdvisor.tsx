@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import { TWEAKS_DATA } from "@/lib/mock-data";
+import { apiPost, getUserFriendlyError } from "@/lib/api";
 
 interface ChatMessage {
   id: string;
@@ -43,12 +44,64 @@ const QUICK_PROMPTS = [
   { label: "Network Ping", prompt: "How do I optimize my network settings for lowest ping?", icon: Wifi },
 ];
 
-function formatMarkdown(text: string): string {
+function escapeHtml(text: string): string {
   return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong class="text-white font-semibold">$1</strong>')
-    .replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-white/[0.06] text-primary text-[11px] font-mono">$1</code>')
-    .replace(/^- /gm, '• ')
-    .replace(/\n/g, '<br/>');
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
+function SafeMarkdown({ text }: { text: string }) {
+  const parts: Array<{ type: 'text' | 'bold' | 'code' | 'br' | 'bullet'; content: string }> = [];
+
+  const escaped = escapeHtml(text);
+  const lines = escaped.split('\n');
+
+  for (let i = 0; i < lines.length; i++) {
+    if (i > 0) parts.push({ type: 'br', content: '' });
+    let line = lines[i];
+    if (line.startsWith('- ')) {
+      line = '• ' + line.slice(2);
+    }
+    const regex = /\*\*(.*?)\*\*|`([^`]+)`/g;
+    let lastIndex = 0;
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'text', content: line.slice(lastIndex, match.index) });
+      }
+      if (match[1] !== undefined) {
+        parts.push({ type: 'bold', content: match[1] });
+      } else if (match[2] !== undefined) {
+        parts.push({ type: 'code', content: match[2] });
+      }
+      lastIndex = regex.lastIndex;
+    }
+    if (lastIndex < line.length) {
+      parts.push({ type: 'text', content: line.slice(lastIndex) });
+    }
+  }
+
+  return (
+    <span>
+      {parts.map((part, i) => {
+        switch (part.type) {
+          case 'bold':
+            return <strong key={i} className="text-white font-semibold">{part.content}</strong>;
+          case 'code':
+            return <code key={i} className="px-1.5 py-0.5 rounded bg-white/[0.06] text-primary text-[11px] font-mono">{part.content}</code>;
+          case 'br':
+            return <br key={i} />;
+          case 'text':
+          case 'bullet':
+          default:
+            return <span key={i}>{part.content}</span>;
+        }
+      })}
+    </span>
+  );
 }
 
 function SpecChip({ icon: Icon, label, value }: { icon: typeof Cpu; label: string; value: string }) {
@@ -149,18 +202,8 @@ export default function AiAdvisor() {
       const chatHistory = [...messages.filter(m => m.id !== "welcome"), userMsg]
         .map(m => ({ role: m.role, content: m.content }));
 
-      const res = await fetch("/api/ai/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: chatHistory, context }),
-      });
+      const data = await apiPost("/ai/chat", { messages: chatHistory, context });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Request failed (${res.status})`);
-      }
-
-      const data = await res.json();
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
         role: "assistant",
@@ -168,11 +211,8 @@ export default function AiAdvisor() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, assistantMsg]);
-    } catch (err: any) {
-      const isNetworkError = err instanceof TypeError && err.message === "Failed to fetch";
-      const displayMsg = isNetworkError
-        ? "Could not reach the server. Please check your connection and try again."
-        : (err.message || "Something went wrong.");
+    } catch (err: unknown) {
+      const displayMsg = getUserFriendlyError(err);
       setError(displayMsg);
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
@@ -291,9 +331,7 @@ export default function AiAdvisor() {
                 )}
                   data-testid={`chat-message-${msg.id}`}
                 >
-                  <div
-                    dangerouslySetInnerHTML={{ __html: formatMarkdown(msg.content) }}
-                  />
+                  <SafeMarkdown text={msg.content} />
                 </div>
                 {msg.role === "user" && (
                   <div className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mt-0.5">

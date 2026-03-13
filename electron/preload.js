@@ -11,6 +11,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
   getDeviceId: () => ipcRenderer.invoke('app:getDeviceId'),
 
+  // Backend info (for packaged mode API routing)
+  getBackendPort: () => ipcRenderer.invoke('app:getBackendPort'),
+  isBackendReady: () => ipcRenderer.invoke('app:isBackendReady'),
+
   // Auth callbacks (deep-link handling)
   auth: {
     onCallback: (callback) => {

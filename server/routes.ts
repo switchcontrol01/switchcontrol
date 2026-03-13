@@ -22,6 +22,10 @@ export async function registerRoutes(
   app.use("/api/ai", aiRouter);
   app.use("/api/bios", biosRouter);
 
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: Date.now() });
+  });
+
   app.get("/api/csrf-token", (req, res) => {
     const token = req.cookies?._csrf || generateCsrfToken();
     if (!req.cookies?._csrf) {
