@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,8 +91,31 @@ const STATUS_ICONS: Record<DetectionStatus, React.ElementType> = {
   "Unknown": HelpCircle,
 };
 
+function useCountUp(target: number, duration: number, delay: number) {
+  const [display, setDisplay] = useState(0);
+  const prev = useRef(0);
+  useEffect(() => {
+    const start = prev.current;
+    prev.current = target;
+    if (target === 0 && start === 0) { setDisplay(0); return; }
+    let raf: number;
+    const t0 = performance.now() + delay * 1000;
+    const step = (now: number) => {
+      const elapsed = Math.max(0, now - t0);
+      const progress = Math.min(1, elapsed / (duration * 1000));
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(start + (target - start) * eased));
+      if (progress < 1) raf = requestAnimationFrame(step);
+    };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target, duration, delay]);
+  return display;
+}
+
 function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: number; color: string; delay?: number }) {
   const { prefersReducedMotion } = useMotion();
+  const displayed = useCountUp(prefersReducedMotion ? value : value, prefersReducedMotion ? 0 : 1, prefersReducedMotion ? 0 : delay + 0.3);
   
   return (
     <motion.div 
@@ -114,14 +137,9 @@ function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: 
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <motion.span 
-            className="text-xl font-bold text-white"
-            initial={prefersReducedMotion ? {} : { opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: delay + 0.5 }}
-          >
-            {value}
-          </motion.span>
+          <span className="text-xl font-bold text-white">
+            {displayed}
+          </span>
         </div>
       </div>
       <span className="text-xs text-muted-foreground font-medium">{label}</span>
@@ -517,11 +535,11 @@ export default function BiosAdvisor() {
     setPreviousScore(hasScanned ? scores.competitiveReadiness : null);
     setPreviousScanHash(newHash);
 
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 600));
     setScanState("complete");
     setHasScanned(true);
     setLastScanTime(new Date());
-    setTimeout(() => setScanState("idle"), 500);
+    setTimeout(() => setScanState("idle"), 800);
   }, [previousScanHash, hasScanned, scores.competitiveReadiness, stats]);
 
   const handlePhotoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -594,6 +612,7 @@ export default function BiosAdvisor() {
   }, [allDetections, lastTelemetry, stats, scores]);
 
   const isScanning = scanState !== "idle" && scanState !== "complete";
+  const displayedScore = useCountUp(hasScanned ? scores.competitiveReadiness : 0, prefersReducedMotion ? 0 : 1.2, prefersReducedMotion ? 0 : 0.3);
 
   return (
     <AppLayout>
@@ -873,14 +892,14 @@ export default function BiosAdvisor() {
                     transition={{ delay: 0.3, duration: 0.5 }}
                     data-testid="text-firmware-score"
                   >
-                    {scores.competitiveReadiness}
+                    {hasScanned ? displayedScore : "—"}
                   </motion.div>
                   <div className="text-lg text-muted-foreground font-medium">/ 100</div>
                   <div className="ml-2">
-                    <Badge className={cn("text-xs font-semibold", LEVEL_COLORS[optimizationLevel])} data-testid="badge-optimization-level">
-                      {optimizationLevel}
+                    <Badge className={cn("text-xs font-semibold", LEVEL_COLORS[hasScanned ? optimizationLevel : "Basic"])} data-testid="badge-optimization-level">
+                      {hasScanned ? optimizationLevel : "Not Scanned"}
                     </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">{scores.profileBias}</p>
+                    <p className="text-xs text-muted-foreground mt-1">{hasScanned ? scores.profileBias : "Run a scan to see your score"}</p>
                   </div>
                 </div>
 
@@ -893,8 +912,8 @@ export default function BiosAdvisor() {
                         <div className="flex-1 min-w-0">
                           <div className="text-[10px] text-muted-foreground truncate">{cat.split(" ")[0]}</div>
                           <div className="flex items-center gap-2">
-                            <Progress value={data.score} className="h-1 flex-1" />
-                            <span className="text-[10px] font-bold text-white w-6 text-right">{data.score}</span>
+                            <Progress value={hasScanned ? data.score : 0} className="h-1 flex-1" />
+                            <span className="text-[10px] font-bold text-white w-6 text-right">{hasScanned ? data.score : "—"}</span>
                           </div>
                         </div>
                       </div>
@@ -904,9 +923,9 @@ export default function BiosAdvisor() {
               </div>
               
               <div className="flex items-center justify-center gap-6 lg:gap-10">
-                <ScoreGauge label="Latency" value={scores.latency} color="text-primary" delay={0.1} />
-                <ScoreGauge label="Frametime" value={scores.frametime} color="text-blue-400" delay={0.2} />
-                <ScoreGauge label="Stability" value={scores.stability} color="text-emerald-400" delay={0.3} />
+                <ScoreGauge label="Latency" value={hasScanned ? scores.latency : 0} color="text-primary" delay={0.1} />
+                <ScoreGauge label="Frametime" value={hasScanned ? scores.frametime : 0} color="text-blue-400" delay={0.2} />
+                <ScoreGauge label="Stability" value={hasScanned ? scores.stability : 0} color="text-emerald-400" delay={0.3} />
               </div>
             </div>
           </GlassCard>

@@ -44,20 +44,10 @@ const QUICK_PROMPTS = [
   { label: "Network Ping", prompt: "How do I optimize my network settings for lowest ping?", icon: Wifi },
 ];
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#x27;');
-}
-
 function SafeMarkdown({ text }: { text: string }) {
   const parts: Array<{ type: 'text' | 'bold' | 'code' | 'br' | 'bullet'; content: string }> = [];
 
-  const escaped = escapeHtml(text);
-  const lines = escaped.split('\n');
+  const lines = text.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
     if (i > 0) parts.push({ type: 'br', content: '' });

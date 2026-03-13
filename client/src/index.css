@@ -1191,8 +1191,10 @@ textarea,
   display: flex;
   align-items: center;
   position: relative;
-  background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+  background: rgba(12, 12, 20, 0.60);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 .titlebar-drag-region {
@@ -1250,10 +1252,8 @@ textarea,
 .app-content {
   flex: 1;
   min-height: 0;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;
   position: relative;
-  background: hsl(var(--background));
 }
 
 /* Animated contour keyframes for Splash screen */
