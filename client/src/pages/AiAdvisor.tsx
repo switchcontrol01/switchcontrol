@@ -897,7 +897,7 @@ export default function AiAdvisor() {
         data-testid="input-file-upload"
       />
 
-      <div className={cn("relative flex flex-col h-[calc(100vh-120px)]", !isPremium && "opacity-60 blur-[2px]")}>
+      <div className={cn("relative flex flex-col h-[calc(100vh-64px)]", !isPremium && "opacity-60 blur-[2px]")}>
 
         {/* Ambient glow orbs */}
         <div aria-hidden className="pointer-events-none absolute top-[-60px] right-[-40px] w-[380px] h-[380px] rounded-full opacity-60"
