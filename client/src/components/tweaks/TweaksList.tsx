@@ -4,7 +4,7 @@ import { TWEAKS_DATA, TweakCategory } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Search, SlidersHorizontal, RotateCcw, CheckCircle2, AlertTriangle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -105,6 +105,17 @@ export function TweaksList() {
         </div>
 
         <div className="flex items-center gap-2">
+          {showRisky && (
+            <button
+              onClick={() => setShowRisky(false)}
+              data-testid="badge-show-risky-active"
+              className="flex items-center gap-1.5 h-9 px-3 rounded-lg text-xs font-medium bg-orange-500/10 text-orange-400 border border-orange-500/25 hover:bg-orange-500/20 transition-colors"
+            >
+              <AlertTriangle className="size-3.5" />
+              Risky
+              <X className="size-3" />
+            </button>
+          )}
           <Button
             onClick={enableRecommended}
             size="sm"
@@ -130,7 +141,7 @@ export function TweaksList() {
                 <SlidersHorizontal className="size-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-black/90 backdrop-blur-xl border-white/10">
+            <DropdownMenuContent align="end" className="bg-[hsl(270,30%,10%,0.97)] backdrop-blur-xl border-[hsl(270,60%,55%,0.18)]">
               <DropdownMenuCheckboxItem checked={showRisky} onCheckedChange={setShowRisky} data-testid="checkbox-show-risky">
                 Show Risky
               </DropdownMenuCheckboxItem>
