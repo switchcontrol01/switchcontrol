@@ -328,7 +328,6 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
   const model = process.env.AI_MODEL || "gpt-4o-mini";
   const ts = new Date().toISOString();
 
-  // Proof log — shows the full chain in server logs
   console.log(`[AI:chat] ${ts} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model} | bearer=${!!req.headers.authorization}`);
 
   if (!cloudUser?.isPremium) {
@@ -336,12 +335,24 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     return res.status(403).json({ error: "Premium required." });
   }
 
-  const { messages, context } = req.body;
+  const { messages, context, imageData, imageType } = req.body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "Messages are required." });
   }
   if (messages.length > 20) {
     return res.status(400).json({ error: "Conversation too long. Please start a new chat." });
+  }
+
+  // Validate optional image payload
+  const hasImage = imageData !== undefined;
+  if (hasImage) {
+    if (typeof imageData !== "string" || imageData.length > 7_000_000) {
+      return res.status(400).json({ error: "Image too large. Maximum size is 5 MB." });
+    }
+    const supportedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!imageType || !supportedTypes.includes(String(imageType))) {
+      return res.status(400).json({ error: "Unsupported image format. Use JPEG, PNG, GIF, or WebP." });
+    }
   }
 
   let openai: OpenAI;
@@ -356,21 +367,44 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     const contextInfo = buildChatContext(context);
     const systemMessage = `${chatSystemPrompt}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
 
-    const openaiMessages = [
-      { role: "system" as const, content: systemMessage },
-      ...messages.slice(-10).map((m: any) => ({
-        role: m.role === "user" ? "user" as const : "assistant" as const,
-        content: String(m.content).slice(0, 2000),
-      })),
+    const sliced = messages.slice(-10);
+
+    // Build OpenAI messages — attach image to the last user message if provided
+    type OaiMsg =
+      | { role: "system"; content: string }
+      | { role: "user"; content: string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "auto" } }> }
+      | { role: "assistant"; content: string };
+
+    const openaiMessages: OaiMsg[] = [
+      { role: "system", content: systemMessage },
+      ...sliced.map((m: any, i: number): OaiMsg => {
+        const isLast = i === sliced.length - 1;
+        const isUser = m.role === "user";
+        const textContent = String(m.content).slice(0, 2000);
+
+        if (isLast && isUser && hasImage) {
+          return {
+            role: "user",
+            content: [
+              { type: "text", text: textContent },
+              { type: "image_url", image_url: { url: `data:${imageType};base64,${imageData}`, detail: "auto" } },
+            ],
+          };
+        }
+        return {
+          role: isUser ? "user" : "assistant",
+          content: textContent,
+        };
+      }),
     ];
 
-    console.log(`[AI:chat] Calling OpenAI | user=${cloudUser?.id} | messages=${openaiMessages.length} | model=${model}`);
+    console.log(`[AI:chat] Calling OpenAI | user=${cloudUser?.id} | messages=${openaiMessages.length} | hasImage=${hasImage} | model=${model}`);
 
     const completion = await openai.chat.completions.create({
       model,
-      max_tokens: 800,
+      max_tokens: hasImage ? 1000 : 800,
       temperature: 0.5,
-      messages: openaiMessages,
+      messages: openaiMessages as any,
     });
 
     const content = completion.choices[0]?.message?.content;
