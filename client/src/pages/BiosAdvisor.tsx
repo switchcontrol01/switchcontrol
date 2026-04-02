@@ -1080,7 +1080,17 @@ export default function BiosAdvisor() {
                   </div>
                 )}
 
-                {aiExplanation ? (
+                {!hasScanned ? (
+                  <div className="flex flex-col items-center justify-center py-6 gap-3 text-center">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-primary/50" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-white/50 font-medium">No analysis yet</p>
+                      <p className="text-xs text-muted-foreground mt-1">Run a scan to get your firmware analysis and AI-powered recommendations.</p>
+                    </div>
+                  </div>
+                ) : aiExplanation ? (
                   <div className="space-y-3">
                     <p className="text-sm text-white/80 leading-relaxed">{aiExplanation.overview}</p>
                     
