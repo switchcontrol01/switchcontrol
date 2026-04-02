@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { flushSync } from "react-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -235,16 +236,22 @@ export default function AiAdvisor() {
     setIsStreaming(false);
   }, []);
 
-  // Progressive reveal — sentence-level chunking at 60-120ms each group
+  // Progressive reveal — one sentence at a time, flushSync forces a DOM update per chunk.
+  // flushSync is required because React 18 automatic batching can swallow rapid
+  // setMessages calls inside setTimeout, making the reveal appear as a single dump.
   const revealContent = useCallback((msgId: string, fullContent: string, onDone: () => void) => {
     cancelReveal();
     revealCancelledRef.current = false;
 
+    console.log(`[AiAdvisor] revealContent | msgId=${msgId} | totalChars=${fullContent.length}`);
+
     if (prefersReducedMotion) {
-      setMessages(prev => prev.map(m =>
-        m.id === msgId ? { ...m, content: fullContent, isStreaming: false, isThinking: false } : m
-      ));
-      setIsStreaming(false);
+      flushSync(() => {
+        setMessages(prev => prev.map(m =>
+          m.id === msgId ? { ...m, content: fullContent, isStreaming: false, isThinking: false } : m
+        ));
+        setIsStreaming(false);
+      });
       onDone();
       return;
     }
@@ -252,7 +259,8 @@ export default function AiAdvisor() {
     isRevealingRef.current = true;
     setIsStreaming(true);
 
-    // Split content into sentence-sized chunks for natural reveal pacing
+    // Split into sentence-sized chunks. Each chunk reveals separately so React
+    // has distinct state changes to render.
     const sentenceRe = /[^.!?\n]*[.!?\n]+/g;
     const chunks: string[] = [];
     let lastEnd = 0;
@@ -264,30 +272,36 @@ export default function AiAdvisor() {
     if (lastEnd < fullContent.length) chunks.push(fullContent.slice(lastEnd));
     if (chunks.length === 0) chunks.push(fullContent);
 
+    console.log(`[AiAdvisor] revealContent | ${chunks.length} chunks:`, chunks.map((c, i) => `[${i}] ${c.slice(0,40)}`));
+
     let chunkIdx = 0;
     let revealed = '';
 
     const tick = () => {
       if (revealCancelledRef.current) return;
 
-      // First beat: reveal 1-2 sentences immediately; subsequent beats: 1 sentence
-      const count = chunkIdx === 0 ? Math.min(2, chunks.length) : 1;
-      for (let i = 0; i < count && chunkIdx < chunks.length; i++) {
-        revealed += chunks[chunkIdx++];
-      }
+      // Always reveal exactly ONE chunk per tick so every tick causes a visible change
+      revealed += chunks[chunkIdx++];
       const done = chunkIdx >= chunks.length;
 
-      setMessages(prev => prev.map(m =>
-        m.id === msgId
-          ? { ...m, content: done ? fullContent : revealed, isStreaming: !done, isThinking: false }
-          : m
-      ));
+      console.log(`[AiAdvisor] tick | chunk ${chunkIdx}/${chunks.length} | done=${done} | revealedLen=${revealed.length}`);
+
+      // flushSync forces React to commit this update to the DOM immediately,
+      // bypassing automatic batching. Without this, React 18 may queue the update
+      // and render it together with the next tick's update.
+      flushSync(() => {
+        setMessages(prev => prev.map(msg =>
+          msg.id === msgId
+            ? { ...msg, content: done ? fullContent : revealed, isStreaming: !done, isThinking: false }
+            : msg
+        ));
+      });
 
       smartScroll();
 
       if (!done) {
-        // 60ms for the first few groups (feels snappy), 80-140ms for the rest (natural pace)
-        const delay = chunkIdx <= 3 ? 65 : Math.floor(Math.random() * 60) + 80;
+        // 120ms first chunk (user registers thinking→text transition), then 150-220ms per sentence
+        const delay = chunkIdx === 1 ? 120 : Math.floor(Math.random() * 70) + 150;
         revealTimerRef.current = setTimeout(tick, delay);
       } else {
         isRevealingRef.current = false;
@@ -298,8 +312,8 @@ export default function AiAdvisor() {
       }
     };
 
-    // Brief delay so the thinking bubble is visible for one beat before text begins
-    revealTimerRef.current = setTimeout(tick, 30);
+    // 80ms head start so the thinking bubble is visible before text begins
+    revealTimerRef.current = setTimeout(tick, 80);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
   useEffect(() => {

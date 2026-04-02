@@ -88,6 +88,8 @@ export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
 
   const competitiveReadiness = Math.round(0.55 * latency + 0.35 * frametime + 0.10 * stability);
 
+  console.log(`[calculateBiosScores] settings=${settings.length} | latencyTotal=${latencyTotal} frametime=${frametimeTotal} stability=${stabilityTotal} | clamped: latency=${latency} frametime=${frametime} stability=${stability} cr=${competitiveReadiness}`);
+
   let grade: string;
   if (competitiveReadiness >= 90) grade = "Competitive Advantage";
   else if (competitiveReadiness >= 75) grade = "Extreme";

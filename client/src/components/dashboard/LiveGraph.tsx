@@ -90,13 +90,16 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
       const live = await api.telemetry.getLive(selectedDiskMountRef.current ?? undefined);
 
-      console.log('[LiveGraph] getLive:', {
-        selectedDiskMount: selectedDiskMountRef.current,
-        resolvedMount: live.disk?.selectedMount,
-        cpuUsage: live.cpu?.usagePct, diskPercent: live.disk?.usagePct,
-        netRxKBps: live.network?.rxKBps, netTxKBps: live.network?.txKBps,
-        gpuLoad: live.gpu?.usagePct, gpuTemp: live.gpu?.tempC, gpuAvailable: live.gpu?.available,
-      });
+      console.log('[LiveGraph] getLive full payload:', JSON.stringify({
+        topLevelKeys: Object.keys(live),
+        cpu: live.cpu,
+        ram: live.ram,
+        gpu: { available: live.gpu?.available, usagePct: live.gpu?.usagePct, tempC: live.gpu?.tempC },
+        disk: live.disk,
+        network: live.network,
+        ssdsCount: Array.isArray(live.ssds) ? live.ssds.length : 'MISSING',
+        ssds: live.ssds,
+      }));
 
       const cpuLoad  = safeNumber(live.cpu?.usagePct, 0);
       const cpuTemp  = live.cpu?.tempC != null && live.cpu.tempC > 0 ? safeNumber(live.cpu.tempC) : null;

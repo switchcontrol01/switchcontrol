@@ -1,0 +1,94 @@
+Stop marking fixes as “verified” without runtime confirmation.
+
+The current app behavior still shows all 4 bugs present.
+
+We now need root-level fixes, not surface patches.
+
+TASK
+Re-debug ALL 4 systems using runtime tracing, not assumptions.
+
+BUG 1 — BIOS SCORE STILL UNRELIABLE
+The current fix only masks NaN at render level.
+
+Required:
+1. Log the raw score object BEFORE sanitization
+2. Log the score object AFTER calculation
+3. Log the hydrated store state on app load
+4. Identify where non-finite values originate:
+   - calculation
+   - persistence
+   - hydration
+5. If persisted state is invalid:
+   - clear it automatically
+   - recompute scores from live BIOS data
+
+Goal:
+No NaN anywhere in pipeline, not just UI masking.
+
+---
+
+BUG 2 — AI STILL DUMPS FULL RESPONSE
+Chunking is happening AFTER full render.
+
+Required:
+1. Confirm where message is inserted into state
+2. Prevent full assistant message from being set immediately
+3. Instead:
+   - store full response separately
+   - progressively append to visible message state
+4. Ensure React re-renders per chunk
+
+Goal:
+User sees real progressive output, not delayed dump.
+
+---
+
+BUG 3 — GRAPH REGRESSION
+CPU and other lines missing.
+
+Required:
+1. Log full getLive() payload from backend
+2. Log what LiveGraph receives
+3. Compare keys:
+   - cpu
+   - ram
+   - gpu
+   - disks/ssds
+4. Fix mapping so ALL metrics appear
+5. Restore legend + line bindings
+
+Goal:
+Graph shows CPU, RAM, disk properly again.
+
+---
+
+BUG 4 — UAC TWEAK FAILURE
+Still shows:
+“result file not written”
+
+Required:
+1. Log exact path of result file in parent process
+2. Log exact path used inside elevated process
+3. Confirm file write success inside elevated script
+4. Add debug write BEFORE real write to verify permission
+5. If mismatch:
+   - unify temp path using absolute path only
+6. Improve error classification:
+   - user cancel
+   - write failure
+   - script crash
+
+Goal:
+At least one tweak successfully applies after accepting UAC.
+
+---
+
+CRITICAL RULES
+- Do not say “likely” or “maybe”
+- Show actual logs and runtime outputs
+- Confirm fixes by running app, not just compiling
+
+FINAL OUTPUT
+1. Root cause per bug (with logs)
+2. Exact code changes
+3. Runtime proof each bug is fixed

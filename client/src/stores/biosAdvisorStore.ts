@@ -68,6 +68,9 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
       completeScan: (payload) => {
         const state = get();
         const hashChanged = state.analysisHash !== null && state.analysisHash !== payload.hash;
+        console.log('[BiosStore] completeScan | raw scores BEFORE sanitize:', JSON.stringify(payload.scores));
+        const sanitized = sanitizeScoreObject(payload.scores);
+        console.log('[BiosStore] completeScan | scores AFTER sanitize:', JSON.stringify(sanitized));
         set({
           hasScanned: true,
           detections: payload.detections,
@@ -75,7 +78,7 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
           lastScanTime: new Date().toISOString(),
           analysisHash: payload.hash,
           telemetrySource: payload.telemetrySource,
-          scores: sanitizeScoreObject(payload.scores),
+          scores: sanitized,
           optimizationLevel: payload.optimizationLevel,
           scanChanged: payload.scanChanged,
           previousScore: payload.previousScore,
@@ -87,7 +90,12 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
       setPhotoDetections: (detections) =>
         set({ photoDetections: detections, aiExplanation: null, aiExplanationHash: null }),
 
-      updateScores: (scores, optimizationLevel) => set({ scores: sanitizeScoreObject(scores), optimizationLevel }),
+      updateScores: (scores, optimizationLevel) => {
+        console.log('[BiosStore] updateScores | raw:', JSON.stringify(scores));
+        const sanitized = sanitizeScoreObject(scores);
+        console.log('[BiosStore] updateScores | sanitized:', JSON.stringify(sanitized));
+        set({ scores: sanitized, optimizationLevel });
+      },
 
       setAiExplanation: (explanation, hash) =>
         set({ aiExplanation: explanation, aiExplanationHash: hash }),
@@ -99,7 +107,37 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
     }),
     {
       name: "sc-bios-advisor-store",
-      version: 1,
+      version: 2,
+      migrate: (persisted: any, version: number) => {
+        console.log('[BiosStore] migrate | persisted version:', version, '| raw scores:', JSON.stringify(persisted?.scores));
+        if (persisted?.scores != null) {
+          persisted.scores = sanitizeScoreObject(persisted.scores as BiosScore);
+          console.log('[BiosStore] migrate | sanitized scores:', JSON.stringify(persisted.scores));
+        }
+        return persisted;
+      },
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('[BiosStore] hydration error:', error);
+          return;
+        }
+        if (!state) return;
+        console.log('[BiosStore] hydrated | scores from storage:', JSON.stringify(state.scores));
+        if (state.scores != null) {
+          const sanitized = sanitizeScoreObject(state.scores);
+          const hasInvalid =
+            !Number.isFinite(state.scores.competitiveReadiness) ||
+            !Number.isFinite(state.scores.latency) ||
+            !Number.isFinite(state.scores.frametime) ||
+            !Number.isFinite(state.scores.stability);
+          if (hasInvalid) {
+            console.warn('[BiosStore] hydrated scores had non-finite values — clearing and resetting');
+            state.scores = sanitized;
+            state.hasScanned = false;
+          }
+          console.log('[BiosStore] hydrated | sanitized scores:', JSON.stringify(sanitized));
+        }
+      },
       partialize: (state) => ({
         hasScanned: state.hasScanned,
         detections: state.detections,

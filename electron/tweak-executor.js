@@ -109,16 +109,20 @@ async function checkIsAdmin() {
 
 // ─── Per-action UAC elevation ──────────────────────────────────────────────────
 // Writes a temp PowerShell script, launches it via Start-Process -Verb RunAs,
-// waits for completion, and reads the JSON result file back.
+// then polls for the result file (Start-Process -Wait has a known race where it
+// can return before the child finishes writing the file on some Windows versions).
 async function runElevated(command) {
   const tmpDir   = os.tmpdir();
   const scriptId = `sc_tweak_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
   const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
 
-  // In PowerShell single-quoted strings backslash is NOT an escape character —
-  // only single quotes need doubling. Do NOT double-escape backslashes here.
+  console.log(`[runElevated] scriptPath: "${scriptPath}"`);
+  console.log(`[runElevated] resultPath: "${resultPath}"`);
+
+  // PowerShell single-quoted strings treat backslash as literal — only ' needs doubling.
   const safeResultPath = resultPath.replace(/'/g, "''");
+  const safeScriptPath = scriptPath.replace(/'/g, "''");
 
   const scriptContent = [
     `$ErrorActionPreference = 'Stop'`,
@@ -129,13 +133,14 @@ async function runElevated(command) {
     `  $r = @{ ok = $false; error = $_.Exception.Message }`,
     `}`,
     `$r | ConvertTo-Json -Compress | Set-Content -Path '${safeResultPath}' -Encoding UTF8`,
+    `Write-Host "[elevated] wrote result to: ${safeResultPath}"`,
   ].join('\r\n');
 
   fs.writeFileSync(scriptPath, scriptContent, 'utf8');
+  console.log(`[runElevated] script written (${scriptContent.length} bytes)`);
 
-  // Use array ArgumentList to avoid nested quoting ambiguity entirely.
-  // In PS single-quoted strings backslash is literal — no escaping needed for paths.
-  const safeScriptPath = scriptPath.replace(/'/g, "''");
+  // ArgumentList as PS array — avoids nested quoting inside -Command strings.
+  // -Wait is passed so the host process waits for the elevated child.
   const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
 
   try {
@@ -144,16 +149,49 @@ async function runElevated(command) {
         'powershell',
         ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
         { timeout: 120_000 },
-        (err) => (err ? reject(err) : resolve())
+        (err) => {
+          if (err) {
+            const msg = err.message || '';
+            console.error(`[runElevated] execFile error: ${msg}`);
+            reject(err);
+          } else {
+            console.log('[runElevated] execFile completed — checking for result file');
+            resolve();
+          }
+        }
       );
     });
 
+    // Poll for the result file for up to 5 seconds.
+    // Start-Process -Wait has a race on some Windows versions where it returns
+    // before the child's I/O is fully flushed to disk.
+    const pollDeadline = Date.now() + 5000;
+    while (!fs.existsSync(resultPath)) {
+      if (Date.now() > pollDeadline) break;
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    console.log(`[runElevated] resultPath exists: ${fs.existsSync(resultPath)}`);
+
     if (fs.existsSync(resultPath)) {
-      try { return JSON.parse(fs.readFileSync(resultPath, 'utf8')); } catch {
-        return { ok: false, error: 'Elevated script ran but result file could not be parsed.' };
+      const raw = fs.readFileSync(resultPath, 'utf8');
+      console.log(`[runElevated] result file contents: "${raw}"`);
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return { ok: false, error: `Elevated script ran but result file could not be parsed (raw: ${raw.slice(0, 200)})` };
       }
     }
-    return { ok: false, error: 'Elevated script did not write a result. The temp folder may be restricted or the script crashed before completing.' };
+
+    return { ok: false, error: 'Result file not found after 5s wait. The elevated script may have crashed before writing — check that PowerShell scripts can run in your temp folder.' };
+
+  } catch (err) {
+    const msg = (err && err.message) || String(err);
+    // execFile exits non-zero when UAC is declined — detect it by keyword
+    if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
+      return { ok: false, error: 'UAC prompt was cancelled or access was denied.' };
+    }
+    return { ok: false, error: `Elevation failed: ${msg}` };
   } finally {
     try { fs.unlinkSync(scriptPath); } catch {}
     try { fs.unlinkSync(resultPath); } catch {}
