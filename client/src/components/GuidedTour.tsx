@@ -27,13 +27,13 @@ function StagedUnlockAnimation() {
       <motion.div className="relative flex items-center justify-center w-16 h-16">
         <motion.div
           className="absolute inset-0 rounded-full"
-          initial={{ boxShadow: '0 0 0 0 rgba(139,92,246,0)' }}
+          initial={{ boxShadow: '0 0 0 0 rgba(251,191,36,0)' }}
           animate={{
             boxShadow: [
-              '0 0 0 0 rgba(139,92,246,0)',
-              '0 0 20px 8px rgba(139,92,246,0.3)',
-              '0 0 40px 16px rgba(139,92,246,0.5)',
-              '0 0 60px 24px rgba(139,92,246,0)',
+              '0 0 0 0 rgba(251,191,36,0)',
+              '0 0 20px 8px rgba(251,191,36,0.3)',
+              '0 0 40px 16px rgba(251,191,36,0.5)',
+              '0 0 60px 24px rgba(251,191,36,0)',
             ],
           }}
           transition={{ duration: 1.4, ease: 'easeOut' }}
@@ -56,7 +56,7 @@ function StagedUnlockAnimation() {
               animate={{ opacity: 0 }}
               transition={{ delay: 0.6, duration: 0.15 }}
             >
-              <Lock className="w-8 h-8 text-purple-400" />
+              <Lock className="w-8 h-8 text-amber-400" />
             </motion.div>
           </motion.div>
         </motion.div>
@@ -72,13 +72,14 @@ function StagedUnlockAnimation() {
             damping: 15,
           }}
         >
-          <Unlock className="w-8 h-8 text-purple-300" />
+          <Unlock className="w-8 h-8 text-amber-300" />
         </motion.div>
 
         {[...Array(6)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-1 h-1 rounded-full bg-purple-400/80"
+            className="absolute w-1 h-1 rounded-full"
+            style={{ background: 'rgba(251,191,36,0.8)' }}
             initial={{ opacity: 0, scale: 0 }}
             animate={{
               opacity: [0, 1, 0],
@@ -194,6 +195,7 @@ export function GuidedTour({ show, onComplete }: GuidedTourProps) {
       onComplete={onComplete}
       returnRoute="/dashboard"
       testId="premium-guided-tour"
+      isPremium={true}
     />
   );
 }
