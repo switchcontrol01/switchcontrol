@@ -110,42 +110,59 @@ function ThinkingDots() {
 }
 
 const THINKING_PHASES = [
-  "Analyzing system…",
-  "Checking tweaks…",
+  "Analyzing your system…",
+  "Checking active tweaks…",
+  "Comparing your setup against your goal…",
   "Building recommendations…",
 ] as const;
 
-function ThinkingStatus() {
+function ThinkingStatus({ slow }: { slow?: boolean }) {
   const [phase, setPhase] = useState(0);
 
   useEffect(() => {
-    if (phase >= THINKING_PHASES.length - 1) return;
-    const t = setTimeout(() => setPhase(p => p + 1), 700);
-    return () => clearTimeout(t);
-  }, [phase]);
+    const t = setInterval(() => {
+      setPhase(p => (p + 1) % THINKING_PHASES.length);
+    }, 1800);
+    return () => clearInterval(t);
+  }, []);
 
   return (
-    <span className="flex items-center gap-2 text-primary/60 text-[12px]">
-      <ThinkingDots />
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={phase}
-          initial={{ opacity: 0, y: 3 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -3 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          className="text-white/40 text-[11px]"
-        >
-          {THINKING_PHASES[phase]}
-        </motion.span>
+    <span className="flex flex-col gap-1">
+      <span className="flex items-center gap-2 text-primary/60 text-[12px]">
+        <ThinkingDots />
+        <AnimatePresence mode="wait">
+          <motion.span
+            key={phase}
+            initial={{ opacity: 0, y: 3 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -3 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="text-white/40 text-[11px]"
+          >
+            {THINKING_PHASES[phase]}
+          </motion.span>
+        </AnimatePresence>
+      </span>
+      <AnimatePresence>
+        {slow && (
+          <motion.span
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="text-white/25 text-[10px] leading-tight pl-[26px] overflow-hidden"
+          >
+            This can take a few seconds…
+          </motion.span>
+        )}
       </AnimatePresence>
     </span>
   );
 }
 
-function AssistantBubbleContent({ msg }: { msg: ChatMessage }) {
+function AssistantBubbleContent({ msg, isSlow }: { msg: ChatMessage; isSlow?: boolean }) {
   if (msg.isThinking) {
-    return <ThinkingStatus />;
+    return <ThinkingStatus slow={isSlow} />;
   }
   return (
     <>
@@ -178,6 +195,8 @@ export default function AiAdvisor() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [context, setContext] = useState<SystemContext | null>(null);
 
+  const [isSlowRequest, setIsSlowRequest] = useState(false);
+
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const contextRef = useRef<SystemContext | null>(null);
@@ -186,6 +205,8 @@ export default function AiAdvisor() {
   const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const revealCancelledRef = useRef(false);
   const isRevealingRef = useRef(false);
+  const reqIdRef = useRef(0);
+  const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep messagesRef in sync with state
   useEffect(() => { messagesRef.current = messages; }, [messages]);
@@ -329,12 +350,16 @@ export default function AiAdvisor() {
     return () => {
       abortRef.current?.abort();
       cancelReveal();
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
     };
   }, [cancelReveal]);
 
   const sendMessage = async (content: string) => {
     const trimmed = content.trim();
     if (!trimmed || loading || isStreaming) return;
+
+    // Stale-request guard — each send increments the counter; only the latest response wins
+    const thisReqId = ++reqIdRef.current;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -357,7 +382,14 @@ export default function AiAdvisor() {
     setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
+    setIsSlowRequest(false);
     setTimeout(forceScrollBottom, 30);
+
+    // Slow-request label — appears after 5s if response hasn't come back yet
+    if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+    slowTimerRef.current = setTimeout(() => {
+      if (thisReqId === reqIdRef.current) setIsSlowRequest(true);
+    }, 5000);
 
     // Step 2: Thinking bubble enters ~130ms later — user bubble has animated in by then
     let thinkingAdded = false;
@@ -388,11 +420,21 @@ export default function AiAdvisor() {
 
       if (abortRef.current?.signal.aborted || revealCancelledRef.current) {
         clearTimeout(thinkingTimer);
+        if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+        return;
+      }
+
+      // Stale-request check — discard if a newer request has already fired
+      if (thisReqId !== reqIdRef.current) {
+        clearTimeout(thinkingTimer);
+        if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
         return;
       }
 
       console.log(`[AiAdvisor] response | ${data.content?.length} chars | ${Date.now() - t0}ms`);
 
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      setIsSlowRequest(false);
       setLoading(false);
 
       // Clear the 130ms timer — if it already fired, thinkingAdded=true (no-op needed)
@@ -410,6 +452,8 @@ export default function AiAdvisor() {
 
     } catch (err: unknown) {
       clearTimeout(thinkingTimer);
+      if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+      setIsSlowRequest(false);
       if (err instanceof DOMException && err.name === 'AbortError') return;
       if (abortRef.current?.signal.aborted) return;
 
@@ -555,7 +599,7 @@ export default function AiAdvisor() {
                     data-testid={`chat-message-${msg.id}`}
                   >
                     {msg.role === "assistant" ? (
-                      <AssistantBubbleContent msg={msg} />
+                      <AssistantBubbleContent msg={msg} isSlow={msg.isThinking ? isSlowRequest : false} />
                     ) : (
                       <SafeMarkdown text={msg.content} />
                     )}

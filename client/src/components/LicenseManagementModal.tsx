@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAppAuth } from "@/App";
-import { Shield, RefreshCw, RotateCcw, Mail, CheckCircle2, Monitor, Loader2, Copy } from "lucide-react";
+import {
+  Shield, RefreshCw, RotateCcw, Mail, CheckCircle2,
+  Loader2, Copy, X, Cpu,
+} from "lucide-react";
+import { motion, AnimatePresence, modalBackdrop, modalContent } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 const SUPPORT_EMAIL = "Switchcontrol67@gmail.com";
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -26,6 +28,15 @@ function generateDeviceHash(userId: string): string {
     hash |= 0;
   }
   return Math.abs(hash).toString(16).padStart(8, "0").slice(0, 8).toUpperCase();
+}
+
+function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between py-2">
+      <span className="text-[11px] text-white/35 uppercase tracking-wider font-medium">{label}</span>
+      {children}
+    </div>
+  );
 }
 
 export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }: LicenseManagementModalProps) {
@@ -144,129 +155,187 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  if (!open) return null;
+  const busy = isRefreshing || isRestoring;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="max-w-md"
-        data-testid="modal-license-management"
-        onInteractOutside={handleClose}
-        onEscapeKeyDown={(e) => { e.preventDefault(); handleClose(); }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-white">
-            <Shield className="size-5 text-emerald-400" />
-            License Management
-          </DialogTitle>
-          <DialogDescription>
-            Manage your SwitchControl license and device information.
-          </DialogDescription>
-        </DialogHeader>
+    <AnimatePresence>
+      {open && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm pointer-events-auto"
+            onClick={handleClose}
+            variants={modalBackdrop}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          />
 
-        <div className="space-y-4 mt-2">
-          <div className="relative rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-4 overflow-hidden">
-            <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_20px_rgba(16,185,129,0.08)]" />
-            <div className="relative space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Plan</span>
-                <Badge className="bg-emerald-500/15 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20">
-                  Premium Lifetime
-                </Badge>
-              </div>
-              <Separator className="bg-emerald-500/10" />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Status</span>
-                <div className="flex items-center gap-2">
-                  <span className="relative flex size-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full size-2 bg-emerald-500" />
-                  </span>
-                  <span className="text-sm text-emerald-400 font-medium">Active</span>
-                  {verified && <CheckCircle2 className="size-4 text-emerald-400" />}
-                </div>
-              </div>
-              <Separator className="bg-emerald-500/10" />
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Activated On</span>
-                <span className="text-sm text-white/70">Lifetime License</span>
-              </div>
-              {lastSync && (
-                <>
-                  <Separator className="bg-emerald-500/10" />
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground uppercase tracking-wider font-medium">Last Sync</span>
-                    <span className="text-sm text-white/70 font-mono">{lastSync}</span>
+          {/* Panel */}
+          <motion.div
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md pointer-events-auto px-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="License Management"
+            data-testid="modal-license-management"
+            variants={modalContent}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+          >
+            <div
+              className="relative rounded-2xl overflow-hidden bg-[#0c0e12]/90 backdrop-blur-2xl border border-white/[0.08] shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Subtle corner glow */}
+              <div className="pointer-events-none absolute -top-20 -right-20 w-60 h-60 rounded-full bg-emerald-500/[0.06] blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-purple-500/[0.06] blur-3xl" />
+
+              {/* Header */}
+              <div className="relative flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.06]">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-center size-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_16px_rgba(16,185,129,0.12)]">
+                    <Shield className="size-4 text-emerald-400" />
                   </div>
-                </>
-              )}
-            </div>
-          </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-white leading-tight">License Management</h2>
+                    <p className="text-[10px] text-white/35 mt-0.5">Manage your SwitchControl license</p>
+                  </div>
+                </div>
+                <button
+                  onClick={handleClose}
+                  className="flex items-center justify-center size-7 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all"
+                  aria-label="Close"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
 
-          <div className="rounded-lg border border-border/40 bg-white/[0.02] p-4 space-y-3">
-            <div className="flex items-center gap-2 mb-1">
-              <Monitor className="size-4 text-purple-400" />
-              <span className="text-sm font-medium text-white">Device Information</span>
-            </div>
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Device ID</span>
-                <div className="flex items-center gap-1.5">
-                  <code className="text-xs text-white/80 bg-white/5 px-2 py-0.5 rounded font-mono" data-testid="text-device-id">{deviceId}</code>
+              <div className="relative px-6 py-5 space-y-4">
+                {/* License status block */}
+                <div className="relative rounded-xl overflow-hidden border border-emerald-500/[0.22] bg-emerald-500/[0.04] shadow-[inset_0_0_28px_rgba(16,185,129,0.07)]">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
+
+                  <div className="px-4 py-3.5 space-y-0 divide-y divide-emerald-500/[0.1]">
+                    <InfoRow label="Plan">
+                      <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-medium px-2.5 py-0.5">
+                        Premium Lifetime
+                      </Badge>
+                    </InfoRow>
+
+                    <InfoRow label="Status">
+                      <div className="flex items-center gap-2">
+                        <span className="relative flex size-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                          <span className="relative inline-flex rounded-full size-1.5 bg-emerald-400" />
+                        </span>
+                        <span className="text-[12px] text-emerald-400 font-medium">Active</span>
+                        {verified && <CheckCircle2 className="size-3.5 text-emerald-400" />}
+                      </div>
+                    </InfoRow>
+
+                    <InfoRow label="Activated On">
+                      <span className="text-[12px] text-white/55">Lifetime License</span>
+                    </InfoRow>
+
+                    {lastSync && (
+                      <InfoRow label="Last Sync">
+                        <span className="text-[12px] text-white/55 font-mono">{lastSync}</span>
+                      </InfoRow>
+                    )}
+                  </div>
+                </div>
+
+                {/* Device info block */}
+                <div className="relative rounded-xl border border-white/[0.07] bg-white/[0.025]">
+                  <div className="px-4 pt-3.5 pb-1 flex items-center gap-2 border-b border-white/[0.05]">
+                    <Cpu className="size-3.5 text-purple-400/80" />
+                    <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Device</span>
+                  </div>
+
+                  <div className="px-4 pb-3.5 space-y-0 divide-y divide-white/[0.05]">
+                    <InfoRow label="Device ID">
+                      <div className="flex items-center gap-1.5">
+                        <code
+                          className="text-[11px] text-white/75 bg-white/[0.05] px-2 py-0.5 rounded-md font-mono border border-white/[0.06]"
+                          data-testid="text-device-id"
+                        >
+                          {deviceId}
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText(deviceId);
+                            toast({ title: "Copied", description: "Device ID copied." });
+                          }}
+                          className="text-white/25 hover:text-white/60 transition-colors"
+                          data-testid="button-copy-device-id"
+                          aria-label="Copy device ID"
+                        >
+                          <Copy className="size-3" />
+                        </button>
+                      </div>
+                    </InfoRow>
+
+                    <InfoRow label="App Version">
+                      <span className="text-[12px] text-white/55 font-mono" data-testid="text-app-version">{appVersion}</span>
+                    </InfoRow>
+
+                    <InfoRow label="Platform">
+                      <span className="text-[12px] text-white/55" data-testid="text-platform">{platform}</span>
+                    </InfoRow>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="space-y-2 pt-1">
                   <button
-                    onClick={() => { navigator.clipboard.writeText(deviceId); toast({ title: "Copied", description: "Device ID copied." }); }}
-                    className="text-white/30 hover:text-white/60 transition-colors"
-                    data-testid="button-copy-device-id"
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border transition-all",
+                      "border-emerald-500/20 text-emerald-400/80 bg-emerald-500/[0.04] hover:bg-emerald-500/[0.09] hover:border-emerald-500/35 hover:text-emerald-300",
+                      busy && "opacity-40 cursor-not-allowed"
+                    )}
+                    onClick={handleRefreshLicense}
+                    disabled={busy}
+                    data-testid="button-refresh-license"
                   >
-                    <Copy className="size-3" />
+                    {isRefreshing
+                      ? <Loader2 className="size-3.5 animate-spin shrink-0" />
+                      : <RefreshCw className="size-3.5 shrink-0" />
+                    }
+                    Refresh License
+                  </button>
+
+                  <button
+                    className={cn(
+                      "w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border transition-all",
+                      "border-purple-500/20 text-purple-400/80 bg-purple-500/[0.04] hover:bg-purple-500/[0.09] hover:border-purple-500/35 hover:text-purple-300",
+                      busy && "opacity-40 cursor-not-allowed"
+                    )}
+                    onClick={handleRestorePurchase}
+                    disabled={busy}
+                    data-testid="button-restore-purchase"
+                  >
+                    {isRestoring
+                      ? <Loader2 className="size-3.5 animate-spin shrink-0" />
+                      : <RotateCcw className="size-3.5 shrink-0" />
+                    }
+                    Restore Purchase
+                  </button>
+
+                  <button
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border border-white/[0.07] text-white/45 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/70 transition-all"
+                    onClick={handleContactSupport}
+                    data-testid="button-contact-support"
+                  >
+                    <Mail className="size-3.5 shrink-0" />
+                    Contact Support
                   </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">App Version</span>
-                <span className="text-xs text-white/80 font-mono" data-testid="text-app-version">{appVersion}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Platform</span>
-                <span className="text-xs text-white/80" data-testid="text-platform">{platform}</span>
-              </div>
             </div>
-          </div>
-
-          <div className="space-y-2.5">
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 border-border/40 hover:bg-emerald-500/5 hover:border-emerald-500/30 hover:text-emerald-400 transition-all"
-              onClick={handleRefreshLicense}
-              disabled={isRefreshing || isRestoring}
-              data-testid="button-refresh-license"
-            >
-              {isRefreshing ? <Loader2 className="size-4 animate-spin" /> : <RefreshCw className="size-4" />}
-              Refresh License
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 border-border/40 hover:bg-purple-500/5 hover:border-purple-500/30 hover:text-purple-400 transition-all"
-              onClick={handleRestorePurchase}
-              disabled={isRefreshing || isRestoring}
-              data-testid="button-restore-purchase"
-            >
-              {isRestoring ? <Loader2 className="size-4 animate-spin" /> : <RotateCcw className="size-4" />}
-              Restore Purchase
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-2 border-border/40 hover:bg-white/5 transition-all"
-              onClick={handleContactSupport}
-              data-testid="button-contact-support"
-            >
-              <Mail className="size-4" />
-              Contact Support
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
   );
 }

@@ -8,6 +8,8 @@ export interface TweakResult {
   requiresAdmin: boolean;
   unsupported?: boolean;
   verified?: boolean;
+  cancelled?: boolean;
+  wasElevated?: boolean;
   commandsRun: string[];
   message: string | null;
   error: string | null;
@@ -142,10 +144,18 @@ export function useTweakExecutor() {
         return false;
       }
 
+      if (result.cancelled) {
+        toast({
+          title: 'Elevation Cancelled',
+          description: 'Accept the UAC prompt to apply this tweak.',
+        });
+        return false;
+      }
+
       if (result.requiresAdmin && !result.success) {
         toast({
-          title: 'Administrator Required',
-          description: result.error || 'Right-click SwitchControl and choose "Run as administrator".',
+          title: 'Elevation Failed',
+          description: result.error || 'Could not obtain administrator privileges.',
           variant: 'destructive',
         });
         return false;
