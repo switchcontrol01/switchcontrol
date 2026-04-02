@@ -1,0 +1,75 @@
+TASK
+Improve the intro flash animation so it feels thicker, more premium, and more cinematic.
+
+PROBLEM
+The current flash effect is too thin and sharp.
+It looks like a narrow line instead of a full visual sweep.
+There is little to no glow, so it feels flat and cheap instead of high-end.
+
+GOAL
+Transform the flash into a thicker, softer, glowing sweep with background depth.
+It should feel like a premium energy pass, not a thin line.
+
+IMPLEMENTATION
+
+1. MAKE THE FLASH THICKER
+- Increase the width/height of the flash element significantly
+- It should no longer look like a line
+- Target: at least 3x–6x thicker than current
+- If it is a gradient strip, expand the gradient spread
+
+2. SOFTEN THE EDGES
+- Replace hard edges with gradient fade
+- Use something like:
+  - transparent → bright core → transparent
+- Avoid sharp borders completely
+
+3. ADD GLOW / BLOOM
+- Add layered glow behind the flash:
+  - inner glow (tight, bright)
+  - outer glow (wide, soft)
+- Use blur (filter: blur or box-shadow spread)
+- Glow should extend beyond the flash body
+
+4. ADD BACKGROUND LIGHT RESPONSE
+- When the flash passes:
+  - slightly brighten background behind it
+  - subtle radial glow or gradient bloom
+- This makes the scene react instead of the flash being isolated
+
+5. ADD DEPTH (LAYERING)
+- Use at least 2 layers:
+  - main flash core
+  - larger blurred glow layer behind it
+- Optional: very subtle noise/particle layer for richness
+
+6. IMPROVE MOTION FEEL
+- Keep movement smooth and slightly eased
+- Avoid linear motion
+- Use ease-out or custom cubic-bezier for a more natural sweep
+- Optional: slight scale or intensity ramp as it passes center
+
+7. KEEP PERFORMANCE SAFE
+- Prefer transforms + opacity
+- Avoid expensive layout thrashing
+- Use will-change where appropriate
+
+8. DO NOT OVERDO COLORS
+- Keep it clean:
+  - white / soft cyan / slight brand tint
+- Avoid rainbow or overly saturated effects
+
+CHECKLIST
+- Flash is visibly thicker (not a thin line)
+- Edges are soft, not sharp
+- Glow is clearly visible behind the flash
+- Background reacts slightly to the flash
+- Animation feels smooth and premium
+- No performance stutter
+- Works in Electron build (not just browser)
+
+FINAL OUTPUT
+1. File(s) changed
+2. What controlled thickness before vs after
+3. How glow was implemented (layers / blur / shadows)
+4. Confirmation that effect is now thicker and more cinematic
