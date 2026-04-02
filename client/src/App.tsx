@@ -283,10 +283,10 @@ function ElectronAppContent() {
   }, [activeFlow]);
 
   useEffect(() => {
-    // Fire bloom 800ms before splash exits so it builds and peaks during the dissolve.
-    const glowTimer   = setTimeout(() => setShowGlow(true),    2000);
-    // Phase change happens at 2800ms — bloom is already 800ms in and at full intensity.
-    const splashTimer = setTimeout(() => setSplashDone(true),  2800);
+    // Fire bloom ~1200ms before splash exits so it peaks during the dissolve.
+    const glowTimer   = setTimeout(() => setShowGlow(true),    3600);
+    // Splash lasts 4800ms total.
+    const splashTimer = setTimeout(() => setSplashDone(true),  4800);
     return () => {
       clearTimeout(glowTimer);
       clearTimeout(splashTimer);
@@ -518,8 +518,8 @@ function ElectronAppContent() {
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 0.985 }}
-            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, scale: 1.04, filter: "blur(18px)" }}
+            transition={{ duration: 0.85, ease: [0.4, 0, 0.2, 1] }}
             className="h-full"
           >
             <Splash onComplete={() => {}} />
@@ -562,9 +562,9 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, scale: 0.97, filter: "blur(12px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <Router hook={useHashLocation}>
