@@ -14,6 +14,8 @@ import { useStore } from "@/lib/store";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
+import { useAuth } from "@/hooks/use-auth";
+import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 
 interface ChatMessage {
   id: string;
@@ -188,6 +190,7 @@ function SpecChip({ icon: Icon, label, value }: { icon: typeof Cpu; label: strin
 
 export default function AiAdvisor() {
   const { prefersReducedMotion } = useMotion();
+  const { isPremium } = useAuth();
   const { stats, tweaks } = useStore();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -376,7 +379,7 @@ export default function AiAdvisor() {
 
   const sendMessage = async (content: string) => {
     const trimmed = content.trim();
-    if (!trimmed || loading || isStreaming) return;
+    if (!trimmed || loading || isStreaming || !isPremium) return;
 
     // Stale-request guard — each send increments the counter; only the latest response wins
     const thisReqId = ++reqIdRef.current;
@@ -531,7 +534,7 @@ export default function AiAdvisor() {
 
   return (
     <AppLayout>
-      <div className="flex flex-col h-[calc(100vh-120px)] max-w-3xl mx-auto">
+      <div className={cn("flex flex-col h-[calc(100vh-120px)] max-w-3xl mx-auto", !isPremium && "opacity-60 blur-[2px]")}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-4 shrink-0">
@@ -543,6 +546,7 @@ export default function AiAdvisor() {
               <h1 className="text-lg font-bold text-white flex items-center gap-2" data-testid="text-ai-advisor-title">
                 AI Advisor
                 <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">Beta</Badge>
+                <PremiumHeaderBadge isLocked={!isPremium} />
               </h1>
               <p className="text-[11px] text-muted-foreground">Ask anything about optimizing your PC</p>
             </div>
@@ -694,6 +698,8 @@ export default function AiAdvisor() {
           </p>
         </div>
       </div>
+
+      {!isPremium && <PremiumPageOverlay featureName="AI Advisor" buttonText="Unlock AI Advisor" />}
     </AppLayout>
   );
 }

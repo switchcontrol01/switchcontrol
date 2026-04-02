@@ -1,0 +1,80 @@
+TASK
+Lock the AI Advisor behind the exact same premium gating system and UX used by BIOS Advisor. Free users must not be able to access or use AI Advisor at all. Premium users should see the normal AI Advisor with no regressions.
+
+PROBLEM
+Right now premium access control is inconsistent:
+- BIOS Advisor is gated correctly
+- AI Advisor is still accessible for free users
+- This creates fragmented monetization logic and makes the app feel inconsistent
+- If the frontend is gated but the backend is not, users can still bypass the UI and hit premium AI routes directly
+
+GOAL
+Make AI Advisor use the exact same premium lock behavior, entitlement flow, and UX pattern as BIOS Advisor.
+
+IMPLEMENTATION
+
+1. FIND THE BIOS ADVISOR PREMIUM FLOW
+- Read the exact implementation used by BIOS Advisor for premium locking
+- Reuse the same source of truth for entitlement checks
+- Reuse the same visual lock pattern, not a new variation
+- Reuse the same upgrade CTA behavior and modal if one already exists
+
+2. APPLY THE SAME GATE TO AI ADVISOR PAGE
+- If a free user opens AI Advisor, they should see the same premium-locked state BIOS Advisor shows
+- Do not allow interaction with the actual advisor UI underneath
+- Match the same blur, overlay, copy style, spacing, and upgrade button behavior as BIOS Advisor
+- Do not invent new lock text unless necessary. Keep it aligned with BIOS Advisor’s premium language
+
+3. BLOCK FREE USERS FROM USING AI ACTIONS
+- Free users must not be able to:
+  - send prompts
+  - trigger AI requests
+  - see previous premium AI responses if that page is premium-only
+- If there is any input box, send button, suggestion chip, or auto-call behavior, it must be disabled or hidden behind the same premium lock state
+
+4. ENFORCE PREMIUM ON BACKEND TOO
+- Find all AI Advisor backend routes used by the app
+- Add the same premium entitlement validation pattern used elsewhere for protected premium features
+- Return a clean 403 JSON response for non-premium users
+- Do not rely only on frontend gating
+
+5. CENTRALIZE THE CHECK IF NEEDED
+- If AI Advisor and BIOS Advisor currently use different entitlement checks, refactor so both use the same premium source of truth
+- Do not duplicate premium logic in multiple places if avoidable
+- Prefer one shared entitlement helper / route guard / premium gate component if the architecture supports it cleanly
+
+6. KEEP PREMIUM UX CONSISTENT
+- Match BIOS Advisor behavior exactly for:
+  - lock state
+  - upgrade action
+  - premium badge / overlay style
+  - blocked interaction behavior
+- This should feel like the same product system, not two different implementations
+
+7. DO NOT BREAK EXISTING WORKING FLOWS
+- Premium users must still be able to use AI Advisor normally
+- BIOS Advisor must remain unchanged in behavior
+- Do not regress login state, premium detection, or unlock flows
+
+CHECKLIST
+- AI Advisor page is fully locked for free users
+- BIOS Advisor and AI Advisor now use the same premium entitlement logic
+- Free users cannot send AI requests from the frontend
+- Free users cannot bypass the lock by directly calling backend AI routes
+- Backend AI routes return 403 for non-premium users
+- Premium users can still use AI Advisor normally
+- Lock UI matches BIOS Advisor’s premium lock style exactly
+- No new console errors
+- No TypeScript errors in modified files
+
+FINAL OUTPUT
+After making changes, give me:
+1. Exact files changed
+2. Short explanation of how AI Advisor now reuses the BIOS Advisor premium gate
+3. Which backend AI routes were protected
+4. Confirmation that free users are blocked both in frontend and backend
+5. Confirmation that premium users still have full AI Advisor accessIMPORTANT
+Do not redesign the premium lock UI.
+Do not create a brand new premium system unless absolutely necessary.
+First inspect how BIOS Advisor is currently gated, then mirror that exact flow for AI Advisor.
+Prefer reuse over invention.
