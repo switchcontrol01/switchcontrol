@@ -6,6 +6,9 @@ interface CameraGlowProps {
   onComplete?: () => void;
 }
 
+const BLOOM_DURATION = 1900;
+const EASE_OUT_EXPO = [0.16, 1, 0.3, 1] as const;
+
 export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
   const [visible, setVisible] = useState(false);
 
@@ -15,13 +18,10 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
       const timer = setTimeout(() => {
         setVisible(false);
         onComplete?.();
-      }, 750);
+      }, BLOOM_DURATION);
       return () => clearTimeout(timer);
     }
   }, [active, onComplete]);
-
-  const sweepEase = [0.22, 1, 0.36, 1] as const;
-  const sweepDuration = 0.65;
 
   return (
     <AnimatePresence>
@@ -31,104 +31,121 @@ export default function CameraGlow({ active, onComplete }: CameraGlowProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.25, ease: "easeOut" }}
+          transition={{ duration: 0.7, ease: "easeInOut" }}
         >
-          {/* ── Background radial bloom — reacts to the sweep ─────────────── */}
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse 90% 70% at 50% 50%, rgba(255,255,255,0.10) 0%, rgba(168,85,247,0.07) 30%, transparent 65%)",
-              willChange: "opacity, transform",
-            }}
-            initial={{ opacity: 0, scale: 0.75 }}
-            animate={{ opacity: [0, 1, 0.8, 0], scale: [0.75, 1.25, 1.05] }}
-            transition={{ duration: sweepDuration, ease: "easeOut" }}
-          />
-
-          {/* ── Ambient center light (peaks as sweep crosses centre) ────────── */}
-          <motion.div
-            className="absolute inset-0"
-            style={{
-              background:
-                "radial-gradient(ellipse 110% 45% at 50% 50%, rgba(255,255,255,0.07) 0%, transparent 55%)",
-              willChange: "opacity",
-            }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 1, 0] }}
-            transition={{ duration: sweepDuration, delay: 0.08, ease: "easeInOut" }}
-          />
-
-          {/* ── Outer bloom sweep — wide, very blurred, the "halo" ─────────── */}
+          {/* ── Outermost ambient field — energy dispersing into darkness ─── */}
           <motion.div
             className="absolute"
             style={{
-              top: "37%",
-              left: "-35%",
-              width: "170%",
-              height: "90px",
+              left: "50%",
+              top: "50%",
+              width: "220vw",
+              height: "220vw",
+              marginLeft: "-110vw",
+              marginTop: "-110vw",
               background:
-                "linear-gradient(90deg, transparent 0%, rgba(168,85,247,0.08) 20%, rgba(200,220,255,0.22) 45%, rgba(255,255,255,0.28) 50%, rgba(200,220,255,0.22) 55%, rgba(168,85,247,0.08) 80%, transparent 100%)",
+                "radial-gradient(ellipse, rgba(139,92,246,0.13) 0%, rgba(100,60,200,0.07) 30%, transparent 60%)",
+              filter: "blur(90px)",
+              willChange: "transform, opacity",
+            }}
+            initial={{ scale: 0.25, opacity: 0 }}
+            animate={{
+              scale:   [0.25, 1.3, 1.55],
+              opacity: [0,    0.85, 0],
+            }}
+            transition={{ duration: 1.9, ease: EASE_OUT_EXPO }}
+          />
+
+          {/* ── Primary bloom — the main cinematic glow, warm purple-white ─── */}
+          <motion.div
+            className="absolute"
+            style={{
+              left: "50%",
+              top: "50%",
+              width: "120vw",
+              height: "120vw",
+              marginLeft: "-60vw",
+              marginTop: "-60vw",
+              background:
+                "radial-gradient(ellipse, rgba(255,255,255,0.11) 0%, rgba(210,185,255,0.18) 20%, rgba(139,92,246,0.13) 45%, transparent 68%)",
+              filter: "blur(44px)",
+              willChange: "transform, opacity",
+            }}
+            initial={{ scale: 0.35, opacity: 0 }}
+            animate={{
+              scale:   [0.35, 1.15, 1.28],
+              opacity: [0,    1,    0],
+            }}
+            transition={{ duration: 1.7, ease: EASE_OUT_EXPO, delay: 0.06 }}
+          />
+
+          {/* ── Mid corona — slightly tighter, peaks a beat later ──────────── */}
+          <motion.div
+            className="absolute"
+            style={{
+              left: "50%",
+              top: "50%",
+              width: "70vw",
+              height: "70vw",
+              marginLeft: "-35vw",
+              marginTop: "-35vw",
+              background:
+                "radial-gradient(ellipse, rgba(255,255,255,0.16) 0%, rgba(220,200,255,0.22) 28%, rgba(168,85,247,0.10) 55%, transparent 72%)",
               filter: "blur(22px)",
               willChange: "transform, opacity",
             }}
-            initial={{ x: "-100%", opacity: 0 }}
-            animate={{ x: "100%", opacity: [0, 0.9, 0.9, 0] }}
-            transition={{ duration: sweepDuration, ease: sweepEase }}
+            initial={{ scale: 0.45, opacity: 0 }}
+            animate={{
+              scale:   [0.45, 1.05, 1.15],
+              opacity: [0,    1,    0],
+            }}
+            transition={{ duration: 1.5, ease: EASE_OUT_EXPO, delay: 0.12 }}
           />
 
-          {/* ── Core flash body — thicker softened sweep ───────────────────── */}
+          {/* ── Bright inner core — soft white heart of the bloom ──────────── */}
           <motion.div
             className="absolute"
             style={{
-              top: "44%",
-              left: "-35%",
-              width: "170%",
-              height: "28px",
+              left: "50%",
+              top: "50%",
+              width: "32vw",
+              height: "32vw",
+              marginLeft: "-16vw",
+              marginTop: "-16vw",
               background:
-                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.15) 22%, rgba(255,255,255,0.65) 45%, rgba(220,240,255,0.90) 50%, rgba(255,255,255,0.65) 55%, rgba(255,255,255,0.15) 78%, transparent 100%)",
-              filter: "blur(5px)",
+                "radial-gradient(ellipse, rgba(255,255,255,0.22) 0%, rgba(230,215,255,0.18) 35%, transparent 65%)",
+              filter: "blur(10px)",
               willChange: "transform, opacity",
             }}
-            initial={{ x: "-100%", opacity: 0 }}
-            animate={{ x: "100%", opacity: [0, 1, 1, 0] }}
-            transition={{ duration: sweepDuration, ease: sweepEase }}
+            initial={{ scale: 0.6, opacity: 0 }}
+            animate={{
+              scale:   [0.6, 1.0, 1.05],
+              opacity: [0,   1,   0],
+            }}
+            transition={{ duration: 1.2, ease: EASE_OUT_EXPO, delay: 0.18 }}
           />
 
-          {/* ── Inner bright core — thin high-intensity knife edge ──────────── */}
+          {/* ── Specular pin-point — tiny bright centre, last to fade ─────── */}
           <motion.div
             className="absolute"
             style={{
-              top: "49.2%",
-              left: "-35%",
-              width: "170%",
-              height: "5px",
+              left: "50%",
+              top: "50%",
+              width: "10vw",
+              height: "10vw",
+              marginLeft: "-5vw",
+              marginTop: "-5vw",
               background:
-                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.35) 28%, rgba(255,255,255,0.95) 48%, rgba(240,255,255,1) 50%, rgba(255,255,255,0.95) 52%, rgba(255,255,255,0.35) 72%, transparent 100%)",
-              filter: "blur(1.5px)",
+                "radial-gradient(ellipse, rgba(255,255,255,0.35) 0%, rgba(240,230,255,0.20) 40%, transparent 70%)",
+              filter: "blur(4px)",
               willChange: "transform, opacity",
             }}
-            initial={{ x: "-100%", opacity: 0 }}
-            animate={{ x: "100%", opacity: [0, 1, 1, 0] }}
-            transition={{ duration: sweepDuration * 0.95, ease: sweepEase, delay: 0.01 }}
-          />
-
-          {/* ── Specular top edge highlight — razor-thin glint ─────────────── */}
-          <motion.div
-            className="absolute"
-            style={{
-              top: "48.5%",
-              left: "-35%",
-              width: "170%",
-              height: "2px",
-              background:
-                "linear-gradient(90deg, transparent 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0.7) 49%, rgba(255,255,255,1) 50%, rgba(255,255,255,0.7) 51%, rgba(255,255,255,0) 70%, transparent 100%)",
-              filter: "blur(0.5px)",
-              willChange: "transform, opacity",
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{
+              scale:   [0.7, 1.0, 1.0],
+              opacity: [0,   1,   0],
             }}
-            initial={{ x: "-100%", opacity: 0 }}
-            animate={{ x: "100%", opacity: [0, 0.8, 0.8, 0] }}
-            transition={{ duration: sweepDuration * 0.92, ease: sweepEase, delay: 0.015 }}
+            transition={{ duration: 1.0, ease: EASE_OUT_EXPO, delay: 0.22 }}
           />
         </motion.div>
       )}

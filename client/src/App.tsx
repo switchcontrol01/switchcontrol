@@ -283,11 +283,14 @@ function ElectronAppContent() {
   }, [activeFlow]);
 
   useEffect(() => {
-    const splashTimer = setTimeout(() => {
-      setShowGlow(true);
-      setTimeout(() => setSplashDone(true), 200);
-    }, 2800);
-    return () => clearTimeout(splashTimer);
+    // Fire bloom 800ms before splash exits so it builds and peaks during the dissolve.
+    const glowTimer   = setTimeout(() => setShowGlow(true),    2000);
+    // Phase change happens at 2800ms — bloom is already 800ms in and at full intensity.
+    const splashTimer = setTimeout(() => setSplashDone(true),  2800);
+    return () => {
+      clearTimeout(glowTimer);
+      clearTimeout(splashTimer);
+    };
   }, []);
 
   useEffect(() => {
@@ -515,8 +518,8 @@ function ElectronAppContent() {
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.05 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
+            exit={{ opacity: 0, scale: 0.985 }}
+            transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <Splash onComplete={() => {}} />
@@ -526,9 +529,9 @@ function ElectronAppContent() {
         {phase === "unauthenticated" && (
           <motion.div
             key="login"
-            initial={{ opacity: 0, x: -30, y: -20, scale: 0.98, filter: "blur(10px)" }}
-            animate={{ opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, scale: 0.99 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.99 }}
             transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
@@ -541,8 +544,8 @@ function ElectronAppContent() {
             key="welcome"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            exit={{ opacity: 0, scale: 0.985 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <WelcomeAnimation 
@@ -559,9 +562,9 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, x: -30, y: -20, scale: 0.98, filter: "blur(10px)" }}
-            animate={{ opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)" }}
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <Router hook={useHashLocation}>
