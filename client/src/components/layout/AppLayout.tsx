@@ -62,8 +62,9 @@ function BackendStartingBanner() {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion, hasLoaded } = useMotion();
   const [location] = useLocation();
-  
-  const shouldAnimate = !prefersReducedMotion;
+
+  const isTourNav = typeof document !== 'undefined' && document.body.classList.contains('tour-navigating');
+  const shouldAnimate = !prefersReducedMotion && !isTourNav;
 
   return (
     <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">
@@ -78,11 +79,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <motion.div
             key={location}
             className="container max-w-7xl mx-auto p-8"
-            initial={shouldAnimate ? { opacity: 0, y: 8, scale: 0.995 } : undefined}
+            initial={shouldAnimate ? { opacity: 0, y: 8, scale: 0.995 } : { opacity: 1, y: 0, scale: 1 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={shouldAnimate ? { opacity: 0, y: -4, scale: 0.995 } : undefined}
+            exit={shouldAnimate ? { opacity: 0, y: -4, scale: 0.995 } : { opacity: 1, y: 0, scale: 1 }}
             transition={{ 
-              duration: timing.page, 
+              duration: shouldAnimate ? timing.page : 0,
               ease: [0.22, 1, 0.36, 1] as const,
             }}
           >

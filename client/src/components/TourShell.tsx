@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useReducer } from 'react';
+import { flushSync } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
@@ -67,7 +68,7 @@ function tourReducer(state: TourState, action: TourAction): TourState {
 const TIMING = {
   dimIn: 350,
   fadeOut: 200,
-  navigate: 250,
+  navigate: 450,
   scrollDuration: 500,
   spotlightSettle: 200,
 };
@@ -130,9 +131,12 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
 
   useEffect(() => {
     if (show && !prevShowRef.current) {
+      document.body.classList.add('tour-active');
       dispatch({ type: 'START', stepCount: total });
     }
     if (!show && prevShowRef.current) {
+      document.body.classList.remove('tour-active');
+      document.body.classList.remove('tour-navigating');
       dispatch({ type: 'FINISH' });
       setSidebarHighlight(undefined);
     }
@@ -177,9 +181,13 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
       setSidebarHighlight(currentStep.sidebarHighlight || currentStep.id);
 
       if (currentStep.route) {
-        dispatch({ type: 'PHASE', phase: 'navigating' });
+        document.body.classList.add('tour-navigating');
+        flushSync(() => {
+          dispatch({ type: 'PHASE', phase: 'navigating' });
+        });
         navigateToRoute(currentStep.route);
         await new Promise(r => setTimeout(r, TIMING.navigate));
+        document.body.classList.remove('tour-navigating');
       }
 
       dispatch({ type: 'PHASE', phase: 'scrolling' });
@@ -202,6 +210,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
 
       dispatch({ type: 'PHASE', phase: 'presenting' });
     } finally {
+      document.body.classList.remove('tour-navigating');
       choreographyRef.current = false;
     }
   }, [steps, state.stepIndex, navigateToRoute, waitForElement, measureTarget]);
@@ -266,6 +275,8 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
   };
 
   const handleComplete = async () => {
+    document.body.classList.remove('tour-active');
+    document.body.classList.remove('tour-navigating');
     dispatch({ type: 'FINISH' });
     setSidebarHighlight(undefined);
     if (returnRoute) {
@@ -277,6 +288,8 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
   };
 
   const handleSkip = () => {
+    document.body.classList.remove('tour-active');
+    document.body.classList.remove('tour-navigating');
     dispatch({ type: 'FINISH' });
     setSidebarHighlight(undefined);
     if (returnRoute) navigateToRoute(returnRoute);
@@ -287,7 +300,6 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
 
   const isTooltipVisible = state.phase === 'presenting';
   const isTransitioning = state.phase === 'fading_out' || state.phase === 'navigating' || state.phase === 'scrolling';
-  const keepOverlayOpaque = state.phase !== 'idle' && state.phase !== 'done';
 
   const springTransition = prefersReducedMotion
     ? { type: 'tween' as const, duration: 0.15 }
@@ -330,15 +342,14 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
 
   return (
     <AnimatePresence>
-      {state.phase !== 'done' && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: prefersReducedMotion ? 0.15 : 0.4 }}
-          className="fixed inset-0 z-[100] select-none"
-          data-testid={testId}
-        >
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: prefersReducedMotion ? 0.15 : 0.4 }}
+        className="fixed inset-0 z-[100] select-none"
+        data-testid={testId}
+      >
           <div className="absolute inset-0 pointer-events-none"
             style={{
               backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.03\'/%3E%3C/svg%3E")',
@@ -410,7 +421,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
             {isTransitioning && (
               <rect
                 x="0" y="0" width="100%" height="100%"
-                fill="rgba(0, 0, 0, 0.96)"
+                fill="rgba(0, 0, 0, 1)"
               />
             )}
           </svg>
@@ -556,8 +567,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               </div>
             </div>
           </motion.div>
-        </motion.div>
-      )}
+      </motion.div>
     </AnimatePresence>
   );
 }
