@@ -126,7 +126,7 @@ export async function registerRoutes(
         settingsId: settings.id,
         action: `${enabled ? 'Enabled' : 'Disabled'} ${tweakTitle || tweakId}`,
         page: 'Tweaks',
-        result: 'Simulated apply',
+        result: 'Applied',
       });
       
       res.json(tweak);

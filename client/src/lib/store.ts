@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { MOCK_STATS, SystemStats, TWEAKS_DATA, AIScanResult } from './mock-data';
+import { isElectronWithTweaks, isRealTweak } from '@/hooks/use-tweak-executor';
 
 export type AccountTier = 'Free' | 'Premium';
 
@@ -83,10 +84,13 @@ export const useStore = create<AppState>()(
         }));
 
         get().updateCounter('tweaksApplied', isEnabled ? 1 : -1);
+        const resultText = isElectronWithTweaks() && isRealTweak(id)
+          ? 'Applied to system'
+          : 'Setting saved';
         get().applyAction(
           `${isEnabled ? 'Enabled' : 'Disabled'} ${tweak?.title || id}`,
           'Tweaks',
-          'Simulated apply'
+          resultText
         );
       },
 

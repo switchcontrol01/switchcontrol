@@ -397,9 +397,10 @@ export default function Security() {
           <div className="grid grid-cols-1 xl:grid-cols-[288px_1fr] gap-5">
 
             {/* LEFT */}
-            <div className="flex flex-col gap-4">
+            <MotionDiv className="flex flex-col gap-4" {...listProps}>
 
               {/* Protection Status */}
+              <MotionDiv {...itemProps}>
               <GlassCard className="p-5" data-testid="card-security-status">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -442,8 +443,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
+              </MotionDiv>
 
               {/* Scan Actions */}
+              <MotionDiv {...itemProps}>
               <GlassCard className="p-5" data-testid="card-scan-actions">
                 <div className="flex items-center gap-2 mb-4">
                   <Scan className="size-4 text-primary" />
@@ -481,8 +484,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
+              </MotionDiv>
 
               {/* Screenshot Analysis */}
+              <MotionDiv {...itemProps}>
               <GlassCard className="p-5" data-testid="card-image-analysis">
                 <div className="flex items-center gap-2 mb-3">
                   <Eye className="size-4 text-primary" />
@@ -550,12 +555,14 @@ export default function Security() {
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                   className="hidden" onChange={handleFileChange} data-testid="input-screenshot-file" />
               </GlassCard>
-            </div>
+              </MotionDiv>
+            </MotionDiv>
 
             {/* RIGHT */}
-            <div className="flex flex-col gap-4">
+            <MotionDiv className="flex flex-col gap-4" {...listProps}>
 
               {/* Health Score */}
+              <MotionDiv {...itemProps}>
               <GlassCard className="p-5" data-testid="card-health-score">
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="size-4 text-primary" />
@@ -600,8 +607,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
+              </MotionDiv>
 
               {/* Startup Watch */}
+              <MotionDiv {...itemProps}>
               <GlassCard className="p-5" data-testid="card-startup-watch">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -645,8 +654,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
+              </MotionDiv>
 
               {/* Background Process Watch */}
+              <MotionDiv {...itemProps}>
               <GlassCard className="p-5" data-testid="card-process-watch">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -687,10 +698,16 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
-            </div>
+              </MotionDiv>
+            </MotionDiv>
           </div>
 
           {/* Recommendations panel */}
+          <MotionDiv
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
           <GlassCard className="p-5" data-testid="card-recommendations">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
@@ -781,6 +798,7 @@ export default function Security() {
               </MotionDiv>
             )}
           </GlassCard>
+          </MotionDiv>
         </MotionDiv>
 
       </div>
