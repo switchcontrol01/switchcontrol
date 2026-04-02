@@ -16,6 +16,27 @@ interface GlassModalLayoutProps {
 
 const spring = { type: "spring" as const, stiffness: 320, damping: 28, mass: 0.85 };
 
+export function HwBadge({
+  children,
+  color = "purple",
+}: {
+  children: ReactNode;
+  color?: "purple" | "cyan" | "fuchsia" | "amber" | "violet";
+}) {
+  const styles: Record<string, string> = {
+    purple:  "bg-gradient-to-br from-purple-500/20  to-purple-500/5   border-purple-500/25  shadow-purple-500/20",
+    violet:  "bg-gradient-to-br from-violet-500/20  to-purple-500/5   border-violet-500/25  shadow-violet-500/20",
+    cyan:    "bg-gradient-to-br from-cyan-500/20    to-blue-500/5     border-cyan-500/25    shadow-cyan-500/20",
+    fuchsia: "bg-gradient-to-br from-fuchsia-500/20 to-purple-500/5   border-fuchsia-500/25 shadow-fuchsia-500/20",
+    amber:   "bg-gradient-to-br from-amber-500/20   to-orange-500/5   border-amber-500/25   shadow-amber-500/20",
+  };
+  return (
+    <span className={`inline-flex items-center justify-center p-1.5 rounded-lg border shadow-[0_0_10px_var(--tw-shadow-color)] shrink-0 ${styles[color]}`}>
+      {children}
+    </span>
+  );
+}
+
 export function GlassModalLayout({
   open,
   onOpenChange,
@@ -54,7 +75,7 @@ export function GlassModalLayout({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -69,29 +90,41 @@ export function GlassModalLayout({
             transition={spring}
             data-testid={testId}
           >
-            <div className="bg-[#0c0c14]/80 border border-white/[0.08] rounded-2xl backdrop-blur-2xl overflow-hidden shadow-[0_24px_80px_rgba(0,0,0,0.5),0_0_1px_rgba(255,255,255,0.1),inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <div className="flex items-start justify-between p-5 pb-0">
-                <div className="space-y-1 min-w-0 flex-1">
-                  <h2 className="flex items-center gap-2 text-sm font-semibold text-white">
-                    {title}
-                  </h2>
-                  {description && (
-                    <p className="text-[11px] text-muted-foreground truncate pr-6">
-                      {description}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={handleClose}
-                  className="p-1.5 -mr-1.5 -mt-0.5 rounded-md hover:bg-white/10 transition-colors shrink-0"
-                  data-testid="button-close-modal"
-                >
-                  <X className="size-4 text-muted-foreground" />
-                </button>
-              </div>
+            <div className="relative">
+              <div className="absolute -inset-px rounded-2xl pointer-events-none"
+                style={{
+                  background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(139,92,246,0.18) 0%, rgba(34,211,238,0.08) 60%, transparent 100%)",
+                  filter: "blur(1px)",
+                }}
+              />
 
-              <div className="p-5 pt-3">
-                {children}
+              <div className="relative bg-[hsl(260,22%,7%)]/90 border border-white/[0.10] rounded-2xl backdrop-blur-2xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(139,92,246,0.10),0_0_60px_rgba(139,92,246,0.08),inset_0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+                <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-purple-500/[0.05] to-transparent pointer-events-none" />
+
+                <div className="flex items-start justify-between p-5 pb-0 relative z-10">
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <h2 className="flex items-center gap-2.5 text-sm font-semibold text-white">
+                      {title}
+                    </h2>
+                    {description && (
+                      <p className="text-[11px] text-muted-foreground truncate pr-6">
+                        {description}
+                      </p>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleClose}
+                    className="p-1.5 -mr-1.5 -mt-0.5 rounded-md hover:bg-white/10 transition-colors shrink-0"
+                    data-testid="button-close-modal"
+                  >
+                    <X className="size-4 text-muted-foreground" />
+                  </button>
+                </div>
+
+                <div className="p-5 pt-3 relative z-10">
+                  {children}
+                </div>
               </div>
             </div>
           </motion.div>

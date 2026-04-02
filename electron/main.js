@@ -1246,18 +1246,28 @@ app.whenReady().then(async () => {
 
   if (!isDev) {
     console.log('[Backend] ===== PACKAGED MODE — Starting embedded backend =====');
-    const result = await backendLauncher.startBackend(app);
-    console.log(`[Backend] startBackend() returned after ${Date.now() - bootStart}ms`);
-    console.log(`[Backend] Result: ready=${result.ready} port=${result.port} error=${result.error || 'none'}`);
-    if (result.ready) {
-      console.log(`[Backend] SUCCESS — port ${result.port} ready (${Date.now() - bootStart}ms from boot)`);
-      // Notify renderer that backend is now available
-      if (mainWindow && rendererReady) {
-        mainWindow.webContents.send('backend-ready', { port: result.port });
+    // Fire-and-forget: don't block the app.whenReady() promise.
+    // The window has already been created; the renderer polls getBackendPort()
+    // independently. We notify it when ready via the backend-ready IPC event.
+    backendLauncher.startBackend(app).then(result => {
+      console.log(`[Backend] startBackend() resolved after ${Date.now() - bootStart}ms`);
+      console.log(`[Backend] Result: ready=${result.ready} port=${result.port} error=${result.error || 'none'}`);
+      if (result.ready) {
+        console.log(`[Backend] SUCCESS — port ${result.port} (${Date.now() - bootStart}ms from boot)`);
+        if (mainWindow && rendererReady) {
+          mainWindow.webContents.send('backend-ready', { port: result.port });
+        }
+        // If renderer finished loading before backend was ready, it missed the push.
+        // did-finish-load handler already covers this race, but send again to be safe.
+      } else {
+        console.error('[Backend] FAILED:', result.error || 'unknown');
+        if (mainWindow && rendererReady) {
+          mainWindow.webContents.send('backend-error', { error: result.error || 'Backend failed to start' });
+        }
       }
-    } else {
-      console.error('[Backend] FAILED:', result.error || 'unknown');
-    }
+    }).catch(err => {
+      console.error('[Backend] Uncaught startup error:', err.message);
+    });
   } else {
     console.log('[Backend] Dev mode — using dev server proxy');
   }

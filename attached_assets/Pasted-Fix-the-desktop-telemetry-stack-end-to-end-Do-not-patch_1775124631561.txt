@@ -1,0 +1,237 @@
+Fix the desktop telemetry stack end to end. Do not patch around symptoms. Find the real source of missing data and wire the UI properly.
+
+GOAL
+
+Make the dashboard telemetry actually work in the installed Electron app.
+
+Required outcome:
+
+1. Live graph shows real stacked line telemetry.
+2. Default collapsed graph shows at minimum:
+   - CPU load
+   - RAM usage
+   - Disk usage for the currently selected drive
+3. Expanded graph shows more lines when available:
+   - CPU load
+   - CPU temp
+   - RAM usage
+   - Disk usage
+   - Network download
+   - Network upload
+   - GPU load
+   - GPU temp
+   - VRAM percent
+4. Disk selection from the dashboard card must control:
+   - the disk card values
+   - the disk line in LiveGraph
+   - the DiskTelemetryModal data
+5. Clicking the disk icon must open a working disk modal for the currently selected drive.
+6. GPU modal must show real data if available, and not silently fail because of array/object shape mismatch or AMD-only gaps.
+7. Do not regress packaged Electron behavior.
+
+IMPORTANT FINDINGS FROM CURRENT CODE
+
+The frontend is mostly not the main problem. The backend is sending nulls.
+
+Current logs prove telemetry:getLive is returning:
+
+- gpuLoad: null
+- gpuTemp: null
+- gpuMemPct: null
+- diskPercent: null
+- netRxSec: null
+- netTxSec: null
+- showGpu: false
+
+That means LiveGraph hides those lines correctly because the backend payload is empty.
+
+Current architectural bugs:
+
+1. Home.tsx tracks selectedDiskIndex, but does not pass the selected disk into LiveGraph or DiskTelemetryModal.
+2. DiskTelemetryModal hardcodes primary disk:
+   const primary = raw.disks.find((d) => d.mount === 'C:' || d.mount === '/') || raw.disks[0]
+   so it ignores user disk selection.
+3. LiveGraph only consumes live.diskPercent, but telemetry:getLive has no concept of selected disk.
+4. telemetry:getGpu currently returns only raw systeminformation controller data, which is too weak and does not match what GpuModal expects.
+5. Current GPU helper path is NVIDIA-centric. My machine is AMD RX 7800 XT. Do not build a solution that only works on NVIDIA.
+6. Network should return 0 when idle, not null, otherwise the lines disappear.
+7. Disk percent should also be a real number for the selected drive, not null.
+
+FILES TO CHANGE
+
+You must inspect and update:
+
+- electron/main.js
+- client/src/components/dashboard/LiveGraph.tsx
+- client/src/components/dashboard/DiskTelemetryModal.tsx
+- client/src/components/dashboard/GpuModal.tsx
+- client/src/pages/Home.tsx
+
+ROOT FIXES REQUIRED
+
+A. Make telemetry:getLive selection-aware
+Add selectedDiskMount support to telemetry:getLive so the renderer can request live telemetry for the selected drive.
+
+Example desired call shape:
+api.telemetry.getLive(selectedDiskMount)
+
+The result must include:
+
+- cpuUsage
+- cpuTemp
+- ramUsedGb
+- ramTotalGb
+- ramUsage
+- diskPercent for the selected disk
+- netRxSec
+- netTxSec
+- gpuLoad
+- gpuTemp
+- gpuMemUsed
+- gpuMemTotal
+- gpuPower
+- gpuClockMhz
+- showGpu
+
+B. Make telemetry:getDisk selection-aware
+Allow a disk mount argument:
+api.telemetry.getDisk(selectedDiskMount)
+
+It must return the chosen drive, not always C:.
+
+C. Stop hardcoding primary disk in DiskTelemetryModal
+Remove the forced primary-disk selection.
+Use the selected disk passed from Home.tsx.
+
+D. Propagate selected disk from Home.tsx
+Pass selectedDisk mount into:
+
+- LiveGraph
+- DiskTelemetryModal
+
+E. Fix GPU telemetry so it works for AMD too
+Do not rely on nvidia-smi for the main logic.
+Use systeminformation first.
+Use LibreHardwareMonitor if available.
+Use vendor-specific fallback only if needed.
+Normalize GPU payload so GpuModal can render:
+
+- model
+- driverVersion
+- vram
+- memoryUsed
+- load
+- temperature
+- powerDraw
+- clockCore
+- clockMemory
+
+F. Make network lines visible
+If network is idle, return 0, not null.
+
+G. Make graph stacked and informative
+I want stacked line graphs visually layered, not a dead flat empty box.
+Use the existing line chart structure but improve it so:
+
+- collapsed mode shows only the core lines
+- expanded mode reveals more lines and badges
+- expanded mode clearly shows more telemetry detail than collapsed mode
+
+H. Add useful logs while fixing
+Add temporary logs to prove:
+
+- selected disk mount received by Home
+- selected disk mount received by LiveGraph
+- selected disk mount received by DiskTelemetryModal
+- telemetry:getLive payload values
+- telemetry:getDisk selected drive result
+- normalized GPU telemetry result
+  Do not spam nonsense logs. Log only what proves the pipeline.
+
+IMPLEMENTATION DETAILS
+
+1. Update Home.tsx
+
+- Add selectedDiskMount derived from selectedDisk?.mount
+- Pass it into LiveGraph and DiskTelemetryModal
+
+2. Update LiveGraph.tsx
+
+- Accept prop: selectedDiskMount?: string | null
+- Call api.telemetry.getLive(selectedDiskMount)
+- Keep collapsed mode minimal:
+  CPU load, RAM, selected disk
+- Expanded mode must add:
+  CPU temp, GPU load/temp, VRAM percent, network up/down
+- If network values are 0, still render lines
+- Improve info text so it no longer says nonsense like “GPU: NVIDIA required”
+- Make the graph clearly reflect available telemetry instead of hiding everything because one metric is unavailable
+
+3. Update DiskTelemetryModal.tsx
+
+- Accept prop: selectedDiskMount?: string | null
+- Call api.telemetry.getDisk(selectedDiskMount)
+- Remove hardcoded primary disk logic
+- Ensure modal updates when selected drive changes
+- Show IO graph and usage for the selected drive only
+
+4. Update GpuModal.tsx
+
+- Ensure api.telemetry.getGpu() result is normalized properly
+- Handle object or array safely
+- Do not silently fail if data shape changes
+- Show a better fallback message if only partial GPU data exists
+
+5. Update electron/main.js
+
+- telemetry:getLive must accept selectedDiskMount
+- telemetry:getDisk must accept selectedDiskMount
+- compute selected disk from fsSize() using passed mount
+- if no match, then fallback to C:, then first disk
+- network stats should return numbers, not nulls
+- diskPercent should return a number when a disk exists
+- add GPU normalization that works for AMD and NVIDIA
+- use systeminformation graphics/controllers first
+- if LibreHardwareMonitor exists, merge in better temp/load/power values
+- only use nvidia-smi as an optional fallback for NVIDIA, not the main source
+
+DO NOT DO THESE BAD FIXES
+
+- Do not fake data
+- Do not hardcode GPU visibility true
+- Do not leave selected disk cosmetic only
+- Do not keep disk modal pinned to C:
+- Do not return null for idle network
+- Do not add a workaround that only works for NVIDIA
+
+VALIDATION REQUIRED
+
+After changes, prove all of this:
+
+1. Switching C: to D: updates the disk card.
+2. Switching C: to D: updates the LiveGraph disk line source.
+3. Switching C: to D: updates DiskTelemetryModal.
+4. LiveGraph collapsed mode shows CPU, RAM, and disk.
+5. LiveGraph expanded mode shows additional lines when data exists.
+6. Network no longer disappears just because it is idle.
+7. GPU telemetry no longer relies only on NVIDIA tools.
+8. Console logs clearly show non-null disk and network values.
+9. No TypeScript or runtime errors introduced.
+
+OUTPUT FORMAT
+
+Give me:
+
+1. A concise summary of root causes found
+2. Exact files changed
+3. What changed in each file
+4. Validation results
+5. Any remaining blocker if hardware/driver limitations still prevent a metric
+
+OPTIONAL CODE SECTION
+If helpful, include the final exact code for:
+
+- updated telemetry:getLive
+- updated telemetry:getDisk
+- updated LiveGraph props and fetch logic
+- updated DiskTelemetryModal props and disk selection logic

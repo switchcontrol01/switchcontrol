@@ -21,6 +21,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
       callback(data);
     });
   },
+  onBackendError: (callback) => {
+    const handler = (event, data) => {
+      console.error('[Backend] backend-error event received:', data?.error);
+      callback(data);
+    };
+    ipcRenderer.on('backend-error', handler);
+    return () => ipcRenderer.removeListener('backend-error', handler);
+  },
 
   // Auth callbacks (deep-link handling)
   auth: {

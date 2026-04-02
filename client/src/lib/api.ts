@@ -12,7 +12,7 @@ let _resolvingPromise: Promise<string> | null = null;
 let _backendReady = !isPackagedElectron;
 let _backendReadyListeners: Array<() => void> = [];
 
-const ELECTRON_PORT_POLL_INTERVAL = 150;
+const ELECTRON_PORT_POLL_INTERVAL = 80;
 const ELECTRON_PORT_POLL_TIMEOUT = 25000;
 
 export function isBackendReady(): boolean {
@@ -120,11 +120,10 @@ if (typeof window !== 'undefined') {
     (window as any).electronAPI.onBackendReady((data: { port: number }) => {
       if (data?.port) {
         const base = `http://127.0.0.1:${data.port}/api`;
-        if (_resolvedApiBase !== base) {
-          console.log(`[API] Backend-ready push received, updating base: ${base} (was: ${_resolvedApiBase || 'unset'})`);
-          _resolvedApiBase = base;
-          _resolvingPromise = null;
-        }
+        // Always update — backend may have restarted on a different port
+        console.log(`[API] Backend-ready push: base=${base} (was: ${_resolvedApiBase || 'unset'})`);
+        _resolvedApiBase = base;
+        _resolvingPromise = null;
         markBackendReady();
       }
     });
@@ -269,6 +268,13 @@ export async function apiFetch(
       throw err;
     }
     if (isNetworkError(err)) {
+      // In packaged mode, if we get a network error with a cached base the backend
+      // may have restarted on a different port. Clear the cache so next call re-resolves.
+      if (isPackagedElectron && _resolvedApiBase) {
+        console.warn(`[API] Network error with cached base ${_resolvedApiBase} — clearing for re-resolve`);
+        _resolvedApiBase = null;
+        _resolvingPromise = null;
+      }
       throw new ApiError(0, "Could not reach the server. Please check your connection and try again.");
     }
     throw err;

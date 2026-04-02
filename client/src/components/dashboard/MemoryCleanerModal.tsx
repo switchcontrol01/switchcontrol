@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { GlassModalLayout } from "@/components/ui/GlassModalLayout";
+import { GlassModalLayout, HwBadge } from "@/components/ui/GlassModalLayout";
 import { cn } from "@/lib/utils";
 import { MemoryStick, Loader2, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Zap, Shield, Rocket, Sparkles, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -214,7 +214,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
       blocked={cleaning}
       title={
         <>
-          <MemoryStick className="size-5 text-primary" />
+          <HwBadge color="fuchsia"><MemoryStick className="size-3.5 text-fuchsia-300" /></HwBadge>
           RAM Optimizer
         </>
       }

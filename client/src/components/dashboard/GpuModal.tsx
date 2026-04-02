@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { GlassModalLayout } from "@/components/ui/GlassModalLayout";
+import { GlassModalLayout, HwBadge } from "@/components/ui/GlassModalLayout";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -39,7 +39,7 @@ function StatTile({ label, value, unit, delay }: { label: string; value: string 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: "spring", stiffness: 400, damping: 28 }}
-      className="p-2.5 rounded-lg bg-white/[0.03] border border-border/30 text-center"
+      className="p-2.5 rounded-lg bg-white/[0.06] border border-white/[0.10] text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
     >
       <div className="text-sm font-bold text-white tabular-nums">
         {value}{unit && <span className="text-[10px] text-muted-foreground ml-0.5">{unit}</span>}
@@ -122,7 +122,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
       onOpenChange={onOpenChange}
       title={
         <>
-          <GpuIcon className="size-5 text-cyan-400" />
+          <HwBadge color="cyan"><GpuIcon className="size-3.5 text-cyan-300" /></HwBadge>
           GPU Monitor
           {isHighPressure && (
             <span className="text-[9px] ml-1 px-1.5 py-0.5 rounded bg-red-500/10 border border-red-500/20 text-red-400 font-medium">

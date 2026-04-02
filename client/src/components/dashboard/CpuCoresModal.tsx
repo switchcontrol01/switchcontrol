@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { GlassModalLayout } from "@/components/ui/GlassModalLayout";
+import { GlassModalLayout, HwBadge } from "@/components/ui/GlassModalLayout";
 import { Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -123,7 +123,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
       onOpenChange={onOpenChange}
       title={
         <>
-          <Cpu className="size-5 text-purple-400" />
+          <HwBadge color="violet"><Cpu className="size-3.5 text-violet-300" /></HwBadge>
           CPU Core Monitor
         </>
       }

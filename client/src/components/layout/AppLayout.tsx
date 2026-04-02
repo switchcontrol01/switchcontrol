@@ -13,15 +13,43 @@ const isPackagedElectron = isElectron && typeof window !== "undefined" && window
 
 function BackendStartingBanner() {
   const [ready, setReady] = useState(isBackendReady());
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (ready) return;
-    const unsub = onBackendReady(() => setReady(true));
-    if (isBackendReady()) { setReady(true); unsub(); }
-    return unsub;
-  }, [ready]);
+    if (!isPackagedElectron) return;
+
+    const api = (window as any).electronAPI;
+
+    if (isBackendReady()) { setReady(true); return; }
+
+    const unsub = onBackendReady(() => {
+      setReady(true);
+      setError(null);
+    });
+
+    let errCleanup: (() => void) | undefined;
+    if (api?.onBackendError) {
+      errCleanup = api.onBackendError((data: { error: string }) => {
+        setError(data?.error || "Backend failed to start. Please restart the app.");
+      });
+    }
+
+    return () => {
+      unsub();
+      errCleanup?.();
+    };
+  }, []);
 
   if (!isPackagedElectron || ready) return null;
+
+  if (error) {
+    return (
+      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-xs text-red-400 backdrop-blur-sm">
+        <span className="shrink-0">⚠</span>
+        <span>{error}</span>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/20 text-xs text-primary/80 backdrop-blur-sm">
