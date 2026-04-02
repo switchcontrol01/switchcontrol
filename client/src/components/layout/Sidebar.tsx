@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
@@ -68,6 +68,7 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar() {
   const [location, setLocation] = useLocation();
   const { user, isPremium, logout } = useAuth();
+  const activeItemRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleWindowBlur = () => {
@@ -77,6 +78,10 @@ export function Sidebar() {
     };
     window.addEventListener('blur', handleWindowBlur);
     return () => window.removeEventListener('blur', handleWindowBlur);
+  }, []);
+
+  useEffect(() => {
+    activeItemRef.current?.scrollIntoView({ block: 'nearest', behavior: 'instant' });
   }, []);
   
   const currentPath = location === "/" ? "/dashboard" : location;
@@ -100,7 +105,7 @@ export function Sidebar() {
           const isActive = currentPath === item.href;
           
           return (
-            <div key={item.href}>
+            <div key={item.href} ref={isActive ? activeItemRef : undefined}>
               <button
                 onClick={() => navigate(item.href)}
                 data-tour={item.tourId}
