@@ -1,0 +1,111 @@
+Polish the dashboard modals and hardware icon styling so they match the premium glass look of the app.
+
+TARGETS
+- RAM Optimizer modal
+- CPU modal
+- GPU modal
+- Disk / SSD modal
+- Any shared modal shell used by these components
+
+GOALS
+
+1. Remove the dull flat grey modal background
+2. Make the modal shell feel like premium translucent glass
+3. Add a subtle glow / bloom behind the modal
+4. Upgrade the CPU / GPU / SSD / RAM icon styling so they look premium and consistent
+5. Keep text contrast strong and readable
+
+DESIGN DIRECTION
+
+Modal shell:
+- Use translucent glass instead of flat grey
+- Very dark purple / black base with transparency
+- Backdrop blur
+- Soft 1px glass border
+- Slight inner highlight
+- Soft outer shadow
+- Subtle purple + cyan ambient glow, not too strong
+- Rounded corners should match the rest of the app
+- No muddy grey panels
+
+Recommended visual style:
+- background: deep tinted transparent surface, not opaque grey
+- border: white/10 to white/14
+- inner sheen: white/4
+- glow: purple and cyan, low opacity
+- shadow: soft and diffused
+
+Icons:
+- RAM, CPU, GPU, SSD icons should not look flat and dead
+- Put each icon inside a small tinted glowing badge
+- Reuse the same badge system across these modals
+- Each icon can keep a distinct accent:
+  - RAM: magenta / purple
+  - CPU: violet / pink
+  - GPU: cyan / blue
+  - SSD / Disk: amber / cyan depending on existing section theme
+- Do not make them cartoonish
+- Keep them sharp, minimal, premium, and consistent with the app
+
+FILES TO CHECK
+- client/src/components/ui/GlassModalLayout.tsx
+- client/src/components/dashboard/MemoryCleanerModal.tsx
+- client/src/components/dashboard/CpuCoresModal.tsx
+- client/src/components/dashboard/GpuModal.tsx
+- client/src/components/dashboard/DiskTelemetryModal.tsx
+- any shared icon badge helper if useful
+- client/src/index.css if modal shell styles live globally
+
+IMPLEMENTATION REQUIREMENTS
+
+A) Shared modal shell
+If GlassModalLayout is the shared shell, improve it there so all hardware modals inherit the better look.
+Add:
+- stronger translucent background
+- backdrop-blur
+- subtle border glow
+- slight radial light from top area
+- soft ambient shadow
+- optional faint purple/cyan edge glow
+
+B) Modal content panels
+Inside the modal, cards/tiles should also feel glassy:
+- slightly transparent
+- soft borders
+- not flat grey blocks
+- maintain contrast for numbers and labels
+
+C) Icon badge system
+Create or reuse a small shared hardware icon badge style:
+- fixed square container
+- rounded
+- tinted gradient/glow background
+- centered icon
+- soft border
+Use it for RAM / CPU / GPU / SSD modal titles and key tiles where appropriate
+
+D) Do not reduce readability
+- preserve strong white text
+- muted text still readable
+- avoid excessive blur under text
+- do not overdo glow
+
+E) Keep animations subtle
+- modal entrance can stay as-is
+- glow should feel alive but restrained
+- no distracting pulsing unless already minimal
+
+ACCEPTANCE
+- RAM Optimizer modal no longer has dull grey background
+- modal feels like premium glass
+- CPU / GPU / SSD / RAM icons look upgraded and consistent
+- result / loading / selection states still look clean
+- no layout regressions
+- build passes
+
+OUTPUT
+When done, tell me:
+1. exact files changed
+2. whether the glass look was applied via shared modal shell or per-modal overrides
+3. how icon styling was standardized
+4. whether any colors or opacity values were tuned for readability

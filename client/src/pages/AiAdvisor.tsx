@@ -112,15 +112,67 @@ export default function AiAdvisor() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isRevealing, setIsRevealing] = useState(false);
   const [context, setContext] = useState<SystemContext | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const contextRef = useRef<SystemContext | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const revealIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const isRevealingRef = useRef(false);
 
-  const scrollToBottom = useCallback(() => {
+  const scrollToBottom = useCallback((force = false) => {
+    if (!force && isRevealingRef.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
   }, [prefersReducedMotion]);
+
+  const stopReveal = useCallback(() => {
+    if (revealIntervalRef.current) {
+      clearInterval(revealIntervalRef.current);
+      revealIntervalRef.current = null;
+    }
+    isRevealingRef.current = false;
+    setIsRevealing(false);
+  }, []);
+
+  const revealContent = useCallback((msgId: string, fullContent: string, onDone: () => void) => {
+    stopReveal();
+
+    if (prefersReducedMotion) {
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
+      onDone();
+      return;
+    }
+
+    isRevealingRef.current = true;
+    setIsRevealing(true);
+
+    let revealed = 0;
+    const CHUNK = 12;
+    const TICK = 18;
+    let tickCount = 0;
+
+    revealIntervalRef.current = setInterval(() => {
+      revealed = Math.min(revealed + CHUNK, fullContent.length);
+      tickCount++;
+      const partial = fullContent.slice(0, revealed);
+
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: partial } : m));
+
+      if (tickCount % 6 === 0) {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      }
+
+      if (revealed >= fullContent.length) {
+        clearInterval(revealIntervalRef.current!);
+        revealIntervalRef.current = null;
+        isRevealingRef.current = false;
+        setIsRevealing(false);
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        onDone();
+      }
+    }, TICK);
+  }, [prefersReducedMotion, stopReveal]);
 
   useEffect(() => {
     const enabledTweaks = TWEAKS_DATA
@@ -184,11 +236,12 @@ export default function AiAdvisor() {
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
+      stopReveal();
     };
-  }, []);
+  }, [stopReveal]);
 
   const sendMessage = async (content: string) => {
-    if (!content.trim() || loading) return;
+    if (!content.trim() || loading || isRevealing) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -213,21 +266,30 @@ export default function AiAdvisor() {
         .filter(m => m.id !== "welcome" && m.role !== "system")
         .map(m => ({ role: m.role, content: m.content }));
 
+      const t0 = Date.now();
       console.log(`[AiAdvisor] sendMessage start | history=${chatHistory.length} | userMsg="${content.trim().slice(0, 60)}..."`);
 
       const data = await cloudApiPost("/ai/chat", { messages: chatHistory, context: contextRef.current }, { signal: abortRef.current.signal });
 
       if (abortRef.current?.signal.aborted) return;
 
-      console.log(`[AiAdvisor] response OK | role=${data.role} | length=${data.content?.length}`);
+      console.log(`[AiAdvisor] response OK | role=${data.role} | length=${data.content?.length} | latency=${Date.now() - t0}ms`);
 
+      const msgId = `assistant-${Date.now()}`;
       const assistantMsg: ChatMessage = {
-        id: `assistant-${Date.now()}`,
+        id: msgId,
         role: "assistant",
-        content: data.content,
+        content: "",
         timestamp: new Date(),
       };
+
+      setLoading(false);
       setMessages(prev => [...prev, assistantMsg]);
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+
+      revealContent(msgId, data.content, () => {
+        inputRef.current?.focus();
+      });
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       if (abortRef.current?.signal.aborted) return;
@@ -240,7 +302,6 @@ export default function AiAdvisor() {
         timestamp: new Date(),
       };
       setMessages(prev => [...prev, errorMsg]);
-    } finally {
       setLoading(false);
       inputRef.current?.focus();
     }
@@ -253,6 +314,7 @@ export default function AiAdvisor() {
 
   const handleReset = () => {
     abortRef.current?.abort();
+    stopReveal();
     setLoading(false);
     setInput("");
 
@@ -353,6 +415,9 @@ export default function AiAdvisor() {
                   data-testid={`chat-message-${msg.id}`}
                 >
                   <SafeMarkdown text={msg.content} />
+                  {isRevealing && msg.role === "assistant" && msg === messages[messages.length - 1] && (
+                    <span className="inline-block w-0.5 h-3.5 bg-primary/70 ml-0.5 align-middle animate-[blink_0.8s_step-end_infinite]" />
+                  )}
                 </div>
                 {msg.role === "user" && (
                   <div className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mt-0.5">
@@ -417,13 +482,13 @@ export default function AiAdvisor() {
             onChange={e => setInput(e.target.value)}
             placeholder="Ask about optimizations, tweaks, games..."
             className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
-            disabled={loading}
+            disabled={loading || isRevealing}
             data-testid="input-chat-message"
           />
           <Button
             type="submit"
             size="sm"
-            disabled={!input.trim() || loading}
+            disabled={!input.trim() || loading || isRevealing}
             className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
             data-testid="button-send-message"
           >

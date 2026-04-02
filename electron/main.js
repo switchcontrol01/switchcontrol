@@ -120,8 +120,9 @@ function createWindow() {
     width: 1300,
     height: 800,
     show: false,
-    backgroundColor: '#0e0c12',
+    backgroundColor: '#0c0e12',
     frame: false,
+    thickFrame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

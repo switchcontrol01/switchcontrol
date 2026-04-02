@@ -58,7 +58,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },
   { label: "Debloat", icon: Shield, href: "/debloat" },
   { label: "Startup", icon: List, href: "/startup" },
-  { label: "AI Advisor", icon: Brain, href: "/ai-advisor", tourId: "ai-advisor" },
+  { label: "AI Advisor", icon: Brain, href: "/ai-advisor", isPremium: true, tourId: "ai-advisor" },
   { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true, tourId: "bios-advisor" },
   { label: "Security", icon: Shield, href: "/security", tourId: "security" },
   { label: "History", icon: Activity, href: "/history" },
