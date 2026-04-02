@@ -64,7 +64,7 @@ function runPowerShell(command) {
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
-      { timeout: 30000 },
+      { timeout: 30000, windowsHide: true },
       (error, stdout, stderr) => {
         if (error) {
           const msg = stderr?.trim() || stdout?.trim() || error.message;
@@ -82,7 +82,7 @@ function queryPowerShell(command) {
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
-      { timeout: 12000 },
+      { timeout: 12000, windowsHide: true },
       (error, stdout) => resolve(error ? null : stdout.trim())
     );
   });
@@ -151,7 +151,7 @@ async function runElevated(command) {
       execFile(
         'powershell',
         ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-        { timeout: 120_000 },
+        { timeout: 120_000, windowsHide: true },
         (err) => {
           if (err) {
             const msg = err.message || '';

@@ -161,7 +161,7 @@ const POWER_PROFILES = {
 
 function runPowercfg(...args) {
   return new Promise((resolve, reject) => {
-    execFile('powercfg', args, { timeout: 15_000 }, (err, stdout, stderr) => {
+    execFile('powercfg', args, { timeout: 15_000, windowsHide: true }, (err, stdout, stderr) => {
       if (err) reject(new Error(stderr?.trim() || stdout?.trim() || err.message));
       else resolve(stdout.trim());
     });
@@ -174,7 +174,7 @@ function runPowerShell(command) {
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
-      { timeout: 20_000 },
+      { timeout: 20_000, windowsHide: true },
       (err, stdout, stderr) => {
         if (err) reject(new Error(stderr?.trim() || stdout?.trim() || err.message));
         else resolve(stdout.trim());
@@ -224,7 +224,7 @@ async function runElevatedCommands(commands) {
       execFile(
         'powershell',
         ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
-        { timeout: 120_000 },
+        { timeout: 120_000, windowsHide: true },
         (err) => { err ? reject(err) : resolve(); }
       );
     });
