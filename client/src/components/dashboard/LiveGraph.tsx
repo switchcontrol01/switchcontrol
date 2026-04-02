@@ -257,17 +257,18 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {latest.showGpu && latest.gpuTemp != null && (
                 <MetricBadge color={C.gpuTemp} label="GPU" value={safeFixed(latest.gpuTemp, 0)} unit="°C" />
               )}
-              {latest.showRam && (
-                <MetricBadge
-                  color={C.ram}
-                  label="RAM"
-                  value={`${safeFixed(latest.ramUsedGb, 1)}/${safeFixed(latest.ramTotalGb, 0)}`}
-                  unit="GB"
-                />
-              )}
-              {latest.diskPercent != null && (
-                <MetricBadge color={C.disk} label="Disk" value={safeFixed(latest.diskPercent, 0)} unit="%" />
-              )}
+              <MetricBadge
+                color={C.ram}
+                label="RAM"
+                value={latest.showRam ? `${safeFixed(latest.ramUsedGb, 1)}/${safeFixed(latest.ramTotalGb, 0)}` : "--"}
+                unit={latest.showRam ? "GB" : ""}
+              />
+              <MetricBadge
+                color={C.disk}
+                label="Disk"
+                value={latest.diskPercent != null ? safeFixed(latest.diskPercent, 0) : "--"}
+                unit={latest.diskPercent != null ? "%" : ""}
+              />
               {expanded && (
                 <MetricBadge
                   color={C.netRx}
