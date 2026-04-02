@@ -49,6 +49,14 @@ Do not guess settings that are not visible. Only report what you can actually se
 
 biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  console.log(`[BIOS:photo-scan:${requestId}] ${new Date().toISOString()} | OPENAI_API_KEY present: ${!!apiKey}`);
+
+  if (!apiKey) {
+    console.error(`[BIOS:photo-scan:${requestId}] FAIL — OPENAI_API_KEY missing in runtime env`);
+    return res.status(503).json({ error: "BIOS AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
+  }
 
   try {
     const parsed = photoScanSchema.safeParse(req.body);
@@ -60,15 +68,10 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(503).json({ error: "AI service not configured" });
-    }
-
     const openai = new OpenAI({ apiKey });
     const { imageBase64, mimeType } = parsed.data;
 
-    console.log(`[BIOS:${requestId}] Photo scan request received, image size: ${Math.round(imageBase64.length / 1024)}KB`);
+    console.log(`[BIOS:photo-scan:${requestId}] Image size: ${Math.round(imageBase64.length / 1024)}KB, mimeType: ${mimeType}`);
 
     const startTime = Date.now();
 
@@ -125,7 +128,15 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
       analysisTimeMs: duration,
     });
   } catch (err: any) {
-    console.error(`[BIOS:${requestId}] Photo scan error:`, err.message);
+    const status = err?.status;
+    const msg = err?.message || "unknown";
+    console.error(`[BIOS:photo-scan:${requestId}] ERROR | status=${status} message=${msg}`);
+    if (status === 401) {
+      return res.status(503).json({ error: "BIOS AI provider authentication failed: OPENAI_API_KEY invalid or expired." });
+    }
+    if (status === 429) {
+      return res.status(429).json({ error: "AI rate limit reached. Please wait a moment." });
+    }
     return res.status(500).json({ error: "Photo analysis failed. Please try again." });
   }
 });
@@ -170,6 +181,14 @@ Return a JSON object with:
 
 biosRouter.post("/explain", async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
+  const apiKey = process.env.OPENAI_API_KEY;
+
+  console.log(`[BIOS:explain:${requestId}] ${new Date().toISOString()} | OPENAI_API_KEY present: ${!!apiKey}`);
+
+  if (!apiKey) {
+    console.error(`[BIOS:explain:${requestId}] FAIL — OPENAI_API_KEY missing in runtime env`);
+    return res.status(503).json({ error: "BIOS AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
+  }
 
   try {
     const parsed = explainSchema.safeParse(req.body);
@@ -177,15 +196,10 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid request body" });
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(503).json({ error: "AI service not configured" });
-    }
-
     const openai = new OpenAI({ apiKey });
     const { cpuModel, gpuModel, ramTotalGB, detections, scores } = parsed.data;
 
-    console.log(`[BIOS:${requestId}] Explanation request for ${cpuModel} / ${gpuModel}`);
+    console.log(`[BIOS:explain:${requestId}] Request for ${cpuModel} / ${gpuModel} | ${detections.length} detections`);
 
     const startTime = Date.now();
 
@@ -236,7 +250,15 @@ ${detections.map(d => `- ${d.settingId}: ${d.detectedValue || "unknown"} (${d.st
       analysisTimeMs: duration,
     });
   } catch (err: any) {
-    console.error(`[BIOS:${requestId}] Explanation error:`, err.message);
+    const status = err?.status;
+    const msg = err?.message || "unknown";
+    console.error(`[BIOS:explain:${requestId}] ERROR | status=${status} message=${msg}`);
+    if (status === 401) {
+      return res.status(503).json({ error: "BIOS AI provider authentication failed: OPENAI_API_KEY invalid or expired." });
+    }
+    if (status === 429) {
+      return res.status(429).json({ error: "AI rate limit reached. Please wait a moment." });
+    }
     return res.status(500).json({ error: "Firmware explanation failed. Please try again." });
   }
 });

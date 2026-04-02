@@ -212,9 +212,13 @@ export default function AiAdvisor() {
         .filter(m => m.id !== "welcome" && m.role !== "system")
         .map(m => ({ role: m.role, content: m.content }));
 
+      console.log(`[AiAdvisor] sendMessage start | history=${chatHistory.length} | userMsg="${content.trim().slice(0, 60)}..."`);
+
       const data = await apiPost("/ai/chat", { messages: chatHistory, context: contextRef.current }, { signal: abortRef.current.signal });
 
       if (abortRef.current?.signal.aborted) return;
+
+      console.log(`[AiAdvisor] response OK | role=${data.role} | length=${data.content?.length}`);
 
       const assistantMsg: ChatMessage = {
         id: `assistant-${Date.now()}`,
@@ -227,6 +231,7 @@ export default function AiAdvisor() {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       if (abortRef.current?.signal.aborted) return;
       const displayMsg = getUserFriendlyError(err);
+      console.error(`[AiAdvisor] sendMessage error | displayed="${displayMsg}" | raw=`, err);
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
         role: "system",

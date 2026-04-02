@@ -635,7 +635,9 @@ export default function BiosAdvisor() {
         reader.readAsDataURL(file);
       });
 
+      console.log(`[BiosAdvisor] photo-scan request | file=${file.name} size=${(file.size/1024).toFixed(0)}KB type=${file.type}`);
       const data = await apiPost("/bios/photo-scan", { imageBase64: base64, mimeType: file.type });
+      console.log(`[BiosAdvisor] photo-scan response | detections=${data.detections?.length ?? 0} timeMs=${data.analysisTimeMs}`);
 
       if (data.detections && data.detections.length > 0) {
         setPhotoDetections(data.detections);
@@ -643,7 +645,9 @@ export default function BiosAdvisor() {
         setPhotoError("No BIOS settings could be identified in this image. Try a clearer photo.");
       }
     } catch (err: unknown) {
-      setPhotoError(getUserFriendlyError(err));
+      const displayMsg = getUserFriendlyError(err);
+      console.error(`[BiosAdvisor] photo-scan error | displayed="${displayMsg}" | raw=`, err);
+      setPhotoError(displayMsg);
     } finally {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -654,10 +658,14 @@ export default function BiosAdvisor() {
     if (allDetections.length === 0) return;
     setAiExplainLoading(true);
 
+    const cpu = lastTelemetry?.cpuModel || stats.cpuName || "Unknown CPU";
+    const gpu = lastTelemetry?.gpuModel || stats.gpuName || "Unknown GPU";
+    console.log(`[BiosAdvisor] explain request | cpu=${cpu} gpu=${gpu} detections=${allDetections.length}`);
+
     try {
       const data = await apiPost("/bios/explain", {
-        cpuModel: lastTelemetry?.cpuModel || stats.cpuName || "Unknown CPU",
-        gpuModel: lastTelemetry?.gpuModel || stats.gpuName || "Unknown GPU",
+        cpuModel: cpu,
+        gpuModel: gpu,
         ramTotalGB: lastTelemetry?.ramTotalGB || stats.totalRamGb || 16,
         detections: allDetections,
         scores: {
@@ -667,8 +675,11 @@ export default function BiosAdvisor() {
           competitiveReadiness: scores.competitiveReadiness,
         },
       });
+      console.log(`[BiosAdvisor] explain response OK | overview length=${data.overview?.length} recommendations=${data.recommendations?.length}`);
       setAiExplanation(data);
-    } catch {
+    } catch (err: unknown) {
+      const displayMsg = getUserFriendlyError(err);
+      console.error(`[BiosAdvisor] explain error | displayed="${displayMsg}" | raw=`, err);
       setAiExplanation(null);
     } finally {
       setAiExplainLoading(false);

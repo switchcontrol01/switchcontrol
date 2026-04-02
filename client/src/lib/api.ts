@@ -118,10 +118,13 @@ if (typeof window !== 'undefined') {
 
   if (isPackagedElectron && (window as any).electronAPI?.onBackendReady) {
     (window as any).electronAPI.onBackendReady((data: { port: number }) => {
-      if (data?.port && !_resolvedApiBase) {
+      if (data?.port) {
         const base = `http://127.0.0.1:${data.port}/api`;
-        console.log(`[API] Backend-ready push received, setting base: ${base}`);
-        _resolvedApiBase = base;
+        if (_resolvedApiBase !== base) {
+          console.log(`[API] Backend-ready push received, updating base: ${base} (was: ${_resolvedApiBase || 'unset'})`);
+          _resolvedApiBase = base;
+          _resolvingPromise = null;
+        }
         markBackendReady();
       }
     });
@@ -202,7 +205,7 @@ export function getUserFriendlyError(err: unknown): string {
   if (err instanceof ApiError) {
     if (err.status === 429) return "Rate limit reached. Please wait a moment.";
     if (err.status === 403) return "Access denied.";
-    if (err.status === 503) return "Service is temporarily unavailable.";
+    if (err.status === 503) return err.serverMessage || "Service is temporarily unavailable.";
     if (err.status >= 500) return "Server error. Please try again.";
     return err.serverMessage || "Request failed.";
   }
@@ -376,6 +379,12 @@ export async function runAIScan(systemContext?: SystemContextForAI) {
     }
     throw err;
   }
+}
+
+export function resetApiBase(): void {
+  _resolvedApiBase = null;
+  _resolvingPromise = null;
+  _backendReady = !isPackagedElectron;
 }
 
 export async function clearRam() {

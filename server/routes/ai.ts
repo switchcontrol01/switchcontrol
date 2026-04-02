@@ -309,9 +309,15 @@ function buildChatContext(context: any): string {
 }
 
 aiRouter.post("/chat", async (req: Request, res: Response) => {
+  const requestId = getRequestIdentifier(req);
   const apiKey = process.env.OPENAI_API_KEY;
+  const model = process.env.AI_MODEL || "gpt-4o-mini";
+
+  console.log(`[AI:chat] ${new Date().toISOString()} | ${requestId} | OPENAI_API_KEY present: ${!!apiKey} | model: ${model}`);
+
   if (!apiKey) {
-    return res.status(503).json({ error: "AI Advisor is not configured." });
+    console.error(`[AI:chat] ${requestId} | FAIL — OPENAI_API_KEY missing in runtime env`);
+    return res.status(503).json({ error: "AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
   }
 
   const { messages, context } = req.body;
@@ -323,9 +329,10 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Conversation too long. Please start a new chat." });
   }
 
+  console.log(`[AI:chat] ${requestId} | sending ${Math.min(messages.length, 10)} messages to ${model}`);
+
   try {
     const openai = new OpenAI({ apiKey });
-    const model = process.env.AI_MODEL || "gpt-4o-mini";
 
     const contextInfo = buildChatContext(context);
     const systemMessage = `${chatSystemPrompt}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
@@ -350,12 +357,18 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       return res.status(502).json({ error: "AI returned empty response." });
     }
 
+    console.log(`[AI:chat] ${requestId} | OK | ${content.length} chars`);
     return res.json({ role: "assistant", content });
   } catch (error: any) {
-    if (error?.status === 429) {
+    const status = error?.status;
+    const msg = error?.message || "unknown";
+    console.error(`[AI:chat] ${requestId} | ERROR | status=${status} message=${msg}`);
+    if (status === 429) {
       return res.status(429).json({ error: "Rate limit reached. Please wait." });
     }
-    console.error("[AI Chat]", error?.message);
+    if (status === 401) {
+      return res.status(503).json({ error: "AI provider authentication failed: OPENAI_API_KEY invalid or expired." });
+    }
     return res.status(500).json({ error: "Failed to get response." });
   }
 });
@@ -364,8 +377,13 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
   const requestStart = Date.now();
   const requestId = getRequestIdentifier(req);
   const apiKey = process.env.OPENAI_API_KEY;
+  const model = process.env.AI_MODEL || "gpt-4o-mini";
+
+  console.log(`[AI:advice] ${new Date().toISOString()} | ${requestId} | OPENAI_API_KEY present: ${!!apiKey} | model: ${model}`);
+
   if (!apiKey) {
-    return res.status(503).json({ error: "AI Advisor is not configured. Missing API key." });
+    console.error(`[AI:advice] ${requestId} | FAIL — OPENAI_API_KEY missing in runtime env`);
+    return res.status(503).json({ error: "AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
   }
 
   const parsed = adviceRequestSchema.safeParse(req.body);
@@ -389,7 +407,6 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
 
   try {
     const openai = new OpenAI({ apiKey });
-    const model = process.env.AI_MODEL || "gpt-4o-mini";
     const maxTokens = parseInt(process.env.AI_MAX_TOKENS || "1800", 10);
 
     const completion = await openai.chat.completions.create({

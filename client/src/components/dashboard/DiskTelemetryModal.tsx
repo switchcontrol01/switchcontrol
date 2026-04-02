@@ -92,7 +92,7 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
   const [data, setData] = useState<DiskData | null>(null);
   const [ioHistory, setIoHistory] = useState<IOSample[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [errorCount, setErrorCount] = useState(0);
+  const errorCountRef = useRef(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevIORef = useRef<{ readBytes: number; writeBytes: number; ts: number } | null>(null);
   const mountedRef = useRef(true);
@@ -109,8 +109,8 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
 
       const raw = await api.telemetry.getDisk();
       if (!raw) {
-        setErrorCount(prev => prev + 1);
-        if (errorCount > 5) setFetchError("No disk data received");
+        errorCountRef.current += 1;
+        if (errorCountRef.current > 5) setFetchError("No disk data received");
         return;
       }
 
@@ -170,14 +170,11 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
       prevIORef.current = { readBytes: curRead, writeBytes: curWrite, ts: now };
 
     } catch (err) {
-      setErrorCount(prev => {
-        const next = prev + 1;
-        if (next > 5) setFetchError("Failed to read disk telemetry");
-        return next;
-      });
+      errorCountRef.current += 1;
+      if (errorCountRef.current > 5) setFetchError("Failed to read disk telemetry");
       console.warn('[DiskModal] fetch error:', err);
     }
-  }, [errorCount]);
+  }, []);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -191,7 +188,7 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
 
     setIoHistory([]);
     setFetchError(null);
-    setErrorCount(0);
+    errorCountRef.current = 0;
     prevIORef.current = null;
     fetchDisk();
     intervalRef.current = setInterval(fetchDisk, POLL_MS);
