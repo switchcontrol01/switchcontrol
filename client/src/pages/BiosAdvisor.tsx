@@ -48,6 +48,7 @@ import {
 import { useStore } from "@/lib/store";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
+import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 
 type ScanState = "idle" | "collecting" | "analyzing" | "explaining" | "complete";
 
@@ -83,6 +84,8 @@ const STATUS_COLORS: Record<DetectionStatus, string> = {
   "Detected": "text-emerald-400",
   "Inferred": "text-blue-400",
   "Unknown": "text-muted-foreground",
+  "Photo Verified": "text-violet-400",
+  "Photo Suspected": "text-amber-400",
 };
 
 const STATUS_ICONS: Record<DetectionStatus, React.ElementType> = {
@@ -90,6 +93,8 @@ const STATUS_ICONS: Record<DetectionStatus, React.ElementType> = {
   "Detected": CheckCircle,
   "Inferred": Activity,
   "Unknown": HelpCircle,
+  "Photo Verified": Camera,
+  "Photo Suspected": Camera,
 };
 
 function useCountUp(target: number, duration: number, delay: number) {
@@ -482,37 +487,36 @@ function ScanProgress({ state }: { state: ScanState }) {
   );
 }
 
-interface AiExplanation {
-  overview: string;
-  settingExplanations: { settingId: string; explanation: string; impact: string }[];
-  recommendations: string[];
-  confidenceNote: string;
-}
-
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   const { stats } = useStore();
-  
+
+  const {
+    hasScanned,
+    detections,
+    photoDetections,
+    lastTelemetry,
+    lastScanTime,
+    analysisHash,
+    telemetrySource,
+    scanChanged,
+    previousScore,
+    aiExplanation,
+    completeScan,
+    setPhotoDetections: storeSetPhotoDetections,
+    setAiExplanation: storeSetAiExplanation,
+    resetBiosAdvisor,
+  } = useBiosAdvisorStore();
+
   const [scanState, setScanState] = useState<ScanState>("idle");
-  const [hasScanned, setHasScanned] = useState(false);
   const [activeCategory, setActiveCategory] = useState<BiosCategory>("CPU Scheduling & Latency");
   const [activeTab, setActiveTab] = useState<"opportunities" | "settings">("opportunities");
-  
-  const [detections, setDetections] = useState<FirmwareDetection[]>([]);
-  const [photoDetections, setPhotoDetections] = useState<FirmwareDetection[]>([]);
-  const [lastTelemetry, setLastTelemetry] = useState<HardwareTelemetry | null>(null);
-  const [lastScanTime, setLastScanTime] = useState<Date | null>(null);
-  const [previousScanHash, setPreviousScanHash] = useState<string | null>(null);
-  const [scanChanged, setScanChanged] = useState<boolean | null>(null);
-  const [previousScore, setPreviousScore] = useState<number | null>(null);
   const [showFirmwareInputs, setShowFirmwareInputs] = useState(false);
-  const [aiExplanation, setAiExplanation] = useState<AiExplanation | null>(null);
   const [aiExplainLoading, setAiExplainLoading] = useState(false);
   const [aiExplainError, setAiExplainError] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
-  const [telemetrySource, setTelemetrySource] = useState<"electron" | "web-inferred">("web-inferred");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const allDetections = useMemo(() => {
@@ -571,11 +575,12 @@ export default function BiosAdvisor() {
     setScanState("collecting");
 
     let telemetry: HardwareTelemetry;
+    let newTelemetrySource: "electron" | "web-inferred";
 
     const electronTelemetry = await collectElectronTelemetry();
     if (electronTelemetry) {
       telemetry = electronTelemetry;
-      setTelemetrySource("electron");
+      newTelemetrySource = "electron";
     } else {
       telemetry = buildTelemetryFromStore({
         cpuModel: stats.cpuName,
@@ -585,28 +590,38 @@ export default function BiosAdvisor() {
         ramTotal: stats.totalRamGb,
         cpuSpeed: stats.cpuSpeed,
       });
-      setTelemetrySource("web-inferred");
+      newTelemetrySource = "web-inferred";
     }
-
-    setLastTelemetry(telemetry);
 
     await new Promise(r => setTimeout(r, 400));
     setScanState("analyzing");
 
     const newDetections = analyzeFirmware(telemetry);
-    setDetections(newDetections);
-
     const newHash = computeAnalysisHash(telemetry);
-    setScanChanged(previousScanHash === null ? null : previousScanHash !== newHash);
-    setPreviousScore(hasScanned ? scores.competitiveReadiness : null);
-    setPreviousScanHash(newHash);
+
+    const newAnalyzedSettings = applyDetectionsToSettings(BIOS_SETTINGS, newDetections, photoDetections);
+    const newScores = calculateBiosScores(newAnalyzedSettings);
+    const newOptimizationLevel = getOptimizationLevel(newScores.competitiveReadiness);
+
+    const newScanChanged = analysisHash === null ? null : analysisHash !== newHash;
+    const newPreviousScore = hasScanned ? scores.competitiveReadiness : null;
 
     await new Promise(r => setTimeout(r, 600));
     setScanState("complete");
-    setHasScanned(true);
-    setLastScanTime(new Date());
+
+    completeScan({
+      detections: newDetections,
+      telemetry,
+      hash: newHash,
+      telemetrySource: newTelemetrySource,
+      scores: newScores,
+      optimizationLevel: newOptimizationLevel,
+      scanChanged: newScanChanged,
+      previousScore: newPreviousScore,
+    });
+
     setTimeout(() => setScanState("idle"), 800);
-  }, [previousScanHash, hasScanned, scores.competitiveReadiness, stats]);
+  }, [analysisHash, hasScanned, scores, stats, photoDetections, completeScan]);
 
   const handlePhotoUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -642,7 +657,7 @@ export default function BiosAdvisor() {
       console.log(`[BiosAdvisor] photo-scan response | detections=${data.detections?.length ?? 0} timeMs=${data.analysisTimeMs}`);
 
       if (data.detections && data.detections.length > 0) {
-        setPhotoDetections(data.detections);
+        storeSetPhotoDetections(data.detections);
       } else {
         setPhotoError("No BIOS settings could be identified in this image. Try a clearer photo.");
       }
@@ -654,7 +669,7 @@ export default function BiosAdvisor() {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, []);
+  }, [storeSetPhotoDetections]);
 
   const handleAiExplain = useCallback(async () => {
     if (allDetections.length === 0) return;
@@ -679,17 +694,16 @@ export default function BiosAdvisor() {
         },
       });
       console.log(`[BiosAdvisor] explain response OK | overview length=${data.overview?.length} recommendations=${data.recommendations?.length}`);
-      setAiExplanation(data);
+      storeSetAiExplanation(data, analysisHash ?? "");
       setAiExplainError(null);
     } catch (err: unknown) {
       const displayMsg = getUserFriendlyError(err);
       console.error(`[BiosAdvisor] explain error | displayed="${displayMsg}" | raw=`, err);
-      setAiExplanation(null);
       setAiExplainError(displayMsg);
     } finally {
       setAiExplainLoading(false);
     }
-  }, [allDetections, lastTelemetry, stats, scores]);
+  }, [allDetections, lastTelemetry, stats, scores, storeSetAiExplanation, analysisHash]);
 
   const isScanning = scanState !== "idle" && scanState !== "complete";
   const displayedScore = useCountUp(hasScanned ? scores.competitiveReadiness : 0, prefersReducedMotion ? 0 : 1.2, prefersReducedMotion ? 0 : 0.3);
@@ -709,15 +723,27 @@ export default function BiosAdvisor() {
                 <PremiumHeaderBadge isLocked={!isPremium} />
               </div>
               <p className="text-muted-foreground text-sm">
-                Detects firmware configuration from hardware telemetry — no direct BIOS access required
+                Infers firmware behavior from hardware telemetry and optional BIOS photo analysis. Some settings are estimated rather than read directly from firmware.
               </p>
             </div>
             
             <div className="flex items-center gap-2">
               {lastScanTime && (
                 <span className="text-[10px] text-muted-foreground font-mono">
-                  Last scan: {lastScanTime.toLocaleTimeString()}
+                  Last scan: {new Date(lastScanTime).toLocaleTimeString()}
                 </span>
+              )}
+              {hasScanned && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-muted-foreground hover:text-red-400 hover:bg-red-500/10 h-7"
+                  onClick={resetBiosAdvisor}
+                  data-testid="button-clear-analysis"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Clear
+                </Button>
               )}
               <input
                 ref={fileInputRef}
@@ -770,11 +796,11 @@ export default function BiosAdvisor() {
 
         {photoDetections.length > 0 && (
           <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
-            <GlassCard className="p-3 bg-cyan-500/5 border-cyan-500/20">
+            <GlassCard className="p-3 bg-violet-500/5 border-violet-500/20">
               <div className="flex items-center gap-2 text-xs">
-                <Eye className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-cyan-400 font-medium">{photoDetections.length} settings verified from BIOS photo</span>
-                <Badge variant="outline" className="text-[9px] text-cyan-400 border-cyan-500/25 ml-auto">User Confirmed</Badge>
+                <Camera className="w-3.5 h-3.5 text-violet-400" />
+                <span className="text-violet-400 font-medium">{photoDetections.length} settings derived from BIOS photo analysis</span>
+                <span className="text-[9px] text-muted-foreground ml-auto italic">AI-interpreted — verify against your actual BIOS</span>
               </div>
             </GlassCard>
           </Item>
@@ -791,13 +817,7 @@ export default function BiosAdvisor() {
                   <Shield className="w-3.5 h-3.5 text-primary" />
                   Detection Summary
                 </h3>
-                <div className="flex items-center gap-3 text-[10px]">
-                  {detectionSummary.userConfirmed > 0 && (
-                    <span className="flex items-center gap-1 text-cyan-400">
-                      <Eye className="w-3 h-3" />
-                      {detectionSummary.userConfirmed} Confirmed
-                    </span>
-                  )}
+                <div className="flex items-center gap-3 text-[10px] flex-wrap">
                   <span className="flex items-center gap-1 text-emerald-400">
                     <CheckCircle className="w-3 h-3" />
                     {detectionSummary.detected} Detected
@@ -806,6 +826,12 @@ export default function BiosAdvisor() {
                     <Activity className="w-3 h-3" />
                     {detectionSummary.inferred} Inferred
                   </span>
+                  {(detectionSummary.photoVerified + detectionSummary.photoSuspected) > 0 && (
+                    <span className="flex items-center gap-1 text-violet-400">
+                      <Camera className="w-3 h-3" />
+                      {detectionSummary.photoVerified + detectionSummary.photoSuspected} Photo-derived
+                    </span>
+                  )}
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <HelpCircle className="w-3 h-3" />
                     {detectionSummary.unknown} Unknown
@@ -835,7 +861,7 @@ export default function BiosAdvisor() {
                 )}
                 {lastScanTime && (
                   <span className="text-[10px] text-muted-foreground font-mono">
-                    Analyzed: {lastScanTime.toLocaleTimeString()}
+                    Analyzed: {new Date(lastScanTime).toLocaleTimeString()}
                     {previousScore !== null && previousScore !== scores.competitiveReadiness && (
                       <span className={cn("ml-2 font-semibold", scores.competitiveReadiness > previousScore ? "text-emerald-400" : "text-red-400")}>
                         {scores.competitiveReadiness > previousScore ? "+" : ""}{scores.competitiveReadiness - previousScore} pts

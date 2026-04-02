@@ -529,15 +529,19 @@ export function getDetectionSummary(detections: FirmwareDetection[]): {
   inferred: number;
   unknown: number;
   userConfirmed: number;
+  photoVerified: number;
+  photoSuspected: number;
   avgConfidence: number;
 } {
   const detected = detections.filter(d => d.status === "Detected").length;
   const inferred = detections.filter(d => d.status === "Inferred").length;
   const userConfirmed = detections.filter(d => d.status === "User Confirmed").length;
+  const photoVerified = detections.filter(d => d.status === "Photo Verified").length;
+  const photoSuspected = detections.filter(d => d.status === "Photo Suspected").length;
   const unknown = BIOS_SETTINGS.length - detections.length;
   const avgConfidence = detections.length > 0
     ? Math.round((detections.reduce((sum, d) => sum + d.confidence, 0) / detections.length) * 100)
     : 0;
 
-  return { detected, inferred, unknown, userConfirmed, avgConfidence };
+  return { detected, inferred, unknown, userConfirmed, photoVerified, photoSuspected, avgConfidence };
 }

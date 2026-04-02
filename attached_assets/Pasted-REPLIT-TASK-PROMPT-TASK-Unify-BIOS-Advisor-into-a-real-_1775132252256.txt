@@ -1,0 +1,646 @@
+REPLIT TASK PROMPT
+
+TASK
+Unify BIOS Advisor into a real persisted feature, remove fake dashboard BIOS scoring, enforce premium access on backend BIOS and AI routes, and fix misleading BIOS photo detection status labeling. Also clean up surrounding UX so the system feels trustworthy, consistent, and production-ready.
+
+PROBLEM
+Right now the BIOS Advisor is split across multiple truths:
+
+1. BiosAdvisor.tsx stores scan state in local React state only, so it resets on navigation.
+
+
+2. The Home dashboard BIOS summary card is not guaranteed to reflect the real last BIOS analysis result.
+
+
+3. AI and BIOS premium routes log premium status, but need explicit server-side premium enforcement in-route.
+
+
+4. BIOS photo detections are currently labeled as "User Confirmed" automatically, which is misleading because the model is interpreting an image, not receiving direct user confirmation.
+
+
+5. The app is presenting inferred firmware analysis as if it were a stable, app-wide source of truth, which damages trust.
+
+
+
+GOAL
+Make BIOS analysis a first-class persisted system with one source of truth across pages.
+
+Required outcomes:
+
+BIOS Advisor scan results persist across navigation and reloads
+
+Home dashboard BIOS card reads real persisted BIOS results only
+
+If there is no persisted BIOS scan, dashboard must clearly show “Not analyzed” instead of fake or static values
+
+AI and BIOS premium features are enforced on the backend, not just hidden in UI
+
+BIOS photo detections use honest status labels and confidence handling
+
+Resulting architecture should be clean, maintainable, and ready for future extension
+
+
+IMPLEMENTATION
+
+PART 1. CREATE A PERSISTED BIOS ADVISOR STORE
+
+Create a new Zustand persisted store, similar in style to advisorStore.ts.
+
+Create a file like: client/src/stores/biosAdvisorStore.ts
+
+Store these fields at minimum:
+
+hasScanned: boolean
+
+scanState: "idle" | "collecting" | "analyzing" | "explaining" | "complete"
+
+detections: FirmwareDetection[]
+
+photoDetections: FirmwareDetection[]
+
+lastTelemetry: HardwareTelemetry | null
+
+lastScanTime: string | null
+
+analysisHash: string | null
+
+telemetrySource: "electron" | "web-inferred"
+
+scores: BiosScore | null
+
+optimizationLevel: "Basic" | "Good" | "Advanced" | "Competitive" | null
+
+aiExplanation: AiExplanation | null
+
+scanChanged: boolean | null
+
+previousScore: number | null
+
+
+Also expose actions:
+
+beginScan()
+
+setCollectedTelemetry(...)
+
+setDetections(...)
+
+setPhotoDetections(...)
+
+setAiExplanation(...)
+
+completeScan(...)
+
+clearAiExplanation()
+
+clearPhotoErrorState() if needed
+
+resetBiosAdvisor()
+
+
+Important:
+
+Persist only durable data
+
+Do not persist transient loading noise unless it improves UX
+
+On reload, scanState should restore to "idle" if it was mid-process
+
+Persisted score and detections must be enough for Home dashboard to render without rerunning analysis
+
+
+PART 2. REWIRE BiosAdvisor.tsx TO USE THE STORE
+
+Refactor client/src/pages/BiosAdvisor.tsx so the source of truth is the new BIOS store, not local component-only state.
+
+Requirements:
+
+Replace local scan result state with store-backed state
+
+Keep local-only UI state only for things like currently expanded cards, tabs, temporary input UI, etc.
+
+handleScan() must update the store
+
+handlePhotoUpload() must update the store
+
+handleAiExplain() must update the store
+
+allDetections should be derived from persisted store data
+
+scores, optimizationLevel, and related summary outputs should be derived from the persisted analyzed state
+
+If the page is revisited, the last real BIOS scan must still appear
+
+Do not lose AI explanation on route change if it belongs to the last scan state
+
+
+PART 3. MAKE HOME DASHBOARD BIOS CARD REAL
+
+Refactor the BIOS summary card in client/src/pages/Home.tsx.
+
+Current behavior is not trustworthy enough.
+
+Required behavior:
+
+Read from the new persisted BIOS advisor store
+
+If a real BIOS scan exists, show:
+
+real competitive readiness score
+
+optimization level
+
+timestamp or “last analyzed”
+
+optionally confidence or source if useful
+
+
+If no BIOS scan exists, show:
+
+“Not analyzed yet”
+
+no fake score
+
+CTA button to open BIOS Advisor and run analysis
+
+
+Do not calculate dashboard BIOS summary directly from static BIOS_SETTINGS defaults
+
+Do not show hardcoded pseudo-real numbers before first scan
+
+Make sure this card can never silently drift away from the BIOS page truth
+
+
+Recommended UX:
+
+When no scan exists, the card should feel premium and intentional, not empty
+
+Example messaging:
+
+“No firmware analysis yet”
+
+“Run BIOS Advisor to generate a real readiness score”
+
+
+
+PART 4. ADD EXPLICIT BACKEND PREMIUM ENFORCEMENT
+
+Update backend routes so premium access is enforced server-side, not just implied by frontend state.
+
+Files:
+
+server/routes/ai.ts
+
+server/routes/bios.ts
+
+
+Apply explicit guards in the route handlers for premium-only routes.
+
+At minimum enforce premium access on:
+
+POST /ai/chat
+
+POST /ai/advice
+
+POST /bios/photo-scan
+
+POST /bios/explain
+
+
+Behavior:
+
+If cloudUser?.isPremium !== true, return 403
+
+Response example:
+
+
+{ "error": "Premium required." }
+
+Important:
+
+Keep logs
+
+Do not break existing authenticated premium flow
+
+If upstream middleware already authenticates JWT, keep that, but still add route-level premium check for clarity and safety
+
+
+PART 5. FIX BIOS PHOTO DETECTION HONESTY
+
+Current problem: /bios/photo-scan maps all valid model outputs to:
+
+status: "User Confirmed"
+
+
+That is misleading.
+
+Implement a more honest model.
+
+Update detection statuses so photo-derived results are not automatically treated as user-confirmed unless the user explicitly confirms them later.
+
+Recommended approach:
+
+Add a status like "Photo Verified" or "Photo Detected" if your existing type system can be safely extended
+
+If extending global detection enums is too invasive, then use "Detected" plus a strong reason string indicating the source was AI photo interpretation
+
+Best option is to extend the detection status model cleanly
+
+
+Preferred new detection statuses:
+
+"Photo Verified" for high confidence image detections
+
+"Photo Suspected" for medium confidence image detections
+
+Reserve "User Confirmed" only for real user confirmation events
+
+
+If you do not want to introduce two new statuses, then do this minimum viable honest version:
+
+confidence >= 0.8 → status: "Detected"
+
+confidence < 0.8 → status: "Inferred"
+
+reason must clearly say "Derived from BIOS photo analysis"
+
+
+Also add a post-validation layer in /bios/photo-scan:
+
+whitelist allowed settingIds
+
+reject malformed or duplicate conflicting entries
+
+clamp confidence safely
+
+optionally drop extremely low confidence detections, for example below 0.55
+
+
+Do not let random model output become trusted state without validation.
+
+PART 6. UPDATE BIOS UI TO REFLECT PHOTO DETECTION HONESTLY
+
+Update BiosAdvisor.tsx display logic so the user can tell:
+
+whether something was inferred from telemetry
+
+detected from local hardware behavior
+
+derived from BIOS image analysis
+
+truly user-confirmed if that exists later
+
+
+Requirements:
+
+Detection summary counts must remain honest
+
+Confidence badges must still work
+
+If you add new statuses, update:
+
+status color maps
+
+status icon maps
+
+badges
+
+summary groupings
+
+
+
+If needed, add a small legend or note explaining:
+
+“Photo-derived detections come from AI analysis of uploaded BIOS screenshots and may require manual verification.”
+
+
+PART 7. IMPROVE TRUST SIGNALS ON BIOS PAGE
+
+Refine wording in BiosAdvisor.tsx and related labels so the feature does not overclaim.
+
+Replace wording that sounds like direct firmware reading when the system is actually using inference and photo analysis.
+
+Improve top-of-page description to something like:
+
+“Infers firmware behavior from hardware telemetry and optional BIOS photo analysis. Some settings are estimated rather than read directly from firmware.”
+
+
+Also improve score wording:
+
+emphasize this is a readiness analysis
+
+not a direct BIOS dump
+
+
+If useful, surface:
+
+telemetry source
+
+average confidence
+
+last analyzed timestamp
+
+number of photo-derived settings
+
+
+PART 8. KEEP TYPES CLEAN
+
+If you extend detection statuses, update all relevant types consistently:
+
+bios-advisor-data.ts
+
+firmware analyzer types
+
+UI status maps
+
+anywhere DetectionStatus is used
+
+
+Do not hack around type mismatches with as any.
+
+PART 9. DO NOT BREAK EXISTING FEATURES
+
+Do not regress:
+
+AI explanation flow
+
+BIOS photo upload flow
+
+detection summary
+
+category breakdowns
+
+score breakdowns
+
+premium page overlay
+
+Home dashboard layout
+
+
+PART 10. OPTIONAL BUT RECOMMENDED IMPROVEMENTS
+
+If there is time, also do these:
+
+A. Add a small “source + confidence” block to the Home BIOS card
+Example:
+
+Source: Hardware + Photo
+
+Avg confidence: 78%
+
+Last analyzed: 4:21 PM
+
+
+B. Add a “Clear Analysis” action inside BIOS Advisor
+This should reset the persisted BIOS store and return dashboard card to “Not analyzed yet”.
+
+C. Clear stale AI explanation automatically when a brand new scan materially changes the analysis hash
+Do not keep an old explanation attached to a new detection state unless it was regenerated for that scan.
+
+CHECKLIST
+
+Architecture
+
+[ ] Created persisted biosAdvisorStore
+
+[ ] BIOS page uses store as source of truth
+
+[ ] Home dashboard BIOS card uses same store
+
+[ ] No fake BIOS score shown before first scan
+
+
+Backend security
+
+[ ] Added explicit premium checks to /ai/chat
+
+[ ] Added explicit premium checks to /ai/advice
+
+[ ] Added explicit premium checks to /bios/photo-scan
+
+[ ] Added explicit premium checks to /bios/explain
+
+
+Honesty and validation
+
+[ ] BIOS photo detections no longer default to "User Confirmed"
+
+[ ] Photo scan output validated against whitelist
+
+[ ] Low-confidence garbage detections filtered or downgraded
+
+[ ] BIOS page labels accurately distinguish detection sources
+
+
+UX
+
+[ ] BIOS results persist across navigation and refresh
+
+[ ] Home dashboard shows real BIOS state or clearly “Not analyzed”
+
+[ ] Last analyzed timestamp visible where useful
+
+[ ] Confidence/source wording is honest and understandable
+
+
+Stability
+
+[ ] No TypeScript errors
+
+[ ] No broken imports
+
+[ ] No runtime errors in Electron
+
+[ ] Existing BIOS scan and AI explanation flows still work
+
+
+FINAL OUTPUT
+
+When complete, provide:
+
+1. A short summary of what changed
+
+
+2. A file-by-file list of modified files
+
+
+3. Any new store/types created
+
+
+4. Any status enum changes made
+
+
+5. Any migration notes or follow-up risks
+
+
+6. Confirmation of how dashboard BIOS card behaves:
+
+before first scan
+
+after telemetry scan
+
+after photo upload
+
+after reload
+
+
+
+
+EXTRA IMPLEMENTATION NOTES
+
+Use these standards while coding:
+
+Prefer minimal, clean changes over scattered hacks
+
+One source of truth for BIOS results
+
+No fake fallback score math on dashboard
+
+No misleading trust language
+
+No UI-only premium gating without backend enforcement
+
+Do not silently swallow invalid photo detections
+
+
+OPTIONAL CODE DIRECTION
+
+Suggested persisted store shape
+
+interface BiosAdvisorPersistedState {
+  hasScanned: boolean;
+  detections: FirmwareDetection[];
+  photoDetections: FirmwareDetection[];
+  lastTelemetry: HardwareTelemetry | null;
+  lastScanTime: string | null;
+  analysisHash: string | null;
+  telemetrySource: "electron" | "web-inferred";
+  scores: BiosScore | null;
+  optimizationLevel: OptimizationLevel | null;
+  aiExplanation: AiExplanation | null;
+  scanChanged: boolean | null;
+  previousScore: number | null;
+}
+
+Suggested Home card behavior
+
+If hasScanned === false or scores === null
+
+title still visible
+
+show “Not analyzed yet”
+
+show CTA
+
+no fake number
+
+
+Else
+
+render real persisted score
+
+optimization level
+
+source
+
+last analyzed timestamp
+
+
+
+Suggested backend premium guard
+
+if (!cloudUser?.isPremium) {
+  console.warn(`[AI:chat] FORBIDDEN | user=${cloudUser?.id ?? "none"} premium=false`);
+  return res.status(403).json({ error: "Premium required." });
+}
+
+Suggested photo-scan validation idea
+
+const ALLOWED_SETTING_IDS = new Set([
+  "smt",
+  "xmp-expo",
+  "pbo",
+  "curve-optimizer",
+  "global-cstate",
+  "package-cstate",
+  "df-cstates",
+  "fclk",
+  "memory-frequency",
+  "llc",
+  "spread-spectrum",
+  "core-parking",
+  "hpet",
+  "x2apic",
+  "memory-gear-mode",
+  "command-rate",
+  "trfc-tfaw",
+  "cppc",
+  "cppc-preferred-cores",
+  "thermal-throttling",
+  "power-phase-control",
+  "vrm-switching-frequency",
+  "cpu-current-capability",
+  "power-supply-idle",
+  "tsc-stability",
+  "pcie-spread-spectrum"
+]);
+
+If duplicate settingIds are returned:
+
+keep highest confidence entry
+
+discard the rest
+
+log it
+
+
+
+---
+
+My opinion on what else should be added
+
+Yes. Add these too in the same pass if possible:
+
+1. Persist BIOS AI explanation by analysis hash
+
+Attach explanation to the exact scan hash.
+If scan hash changes, mark explanation stale.
+
+That prevents old AI explanations from pretending to match a new scan.
+
+2. Add a visible “confidence model” label
+
+For example:
+
+Hardware inferred
+
+Hardware detected
+
+Photo-derived
+
+
+This helps users understand why some scores are stronger than others.
+
+3. Stop using language like “detected firmware configuration” everywhere
+
+Use:
+
+analyzed
+
+inferred
+
+estimated
+
+photo-verified
+
+
+That alone will massively improve product trust.
+
+4. Add a tiny store reset helper for debugging
+
+Useful while developing:
+
+clear persisted BIOS analysis
+
+rerun scan cleanly
+

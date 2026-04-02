@@ -1,6 +1,6 @@
 export type BiosImpact = "High" | "Medium" | "Low";
 export type BiosRisk = "High" | "Medium" | "Low";
-export type DetectionStatus = "Detected" | "Inferred" | "Unknown" | "User Confirmed";
+export type DetectionStatus = "Detected" | "Inferred" | "Unknown" | "User Confirmed" | "Photo Verified" | "Photo Suspected";
 export type AffectsType = "Latency" | "Frametime" | "Stability" | "Power" | "Thermals";
 
 export interface MotherboardPath {
@@ -50,9 +50,11 @@ export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
   let stabilityTotal = 75;
 
   settings.forEach((setting) => {
-    const confidenceMultiplier = 
+    const confidenceMultiplier =
       setting.detectionStatus === "User Confirmed" ? 1.0 :
       setting.detectionStatus === "Detected" ? 1.0 :
+      setting.detectionStatus === "Photo Verified" ? 1.0 :
+      setting.detectionStatus === "Photo Suspected" ? 0.75 :
       setting.detectionStatus === "Inferred" ? 0.6 : 0.2;
 
     latencyTotal += setting.latencyScore * confidenceMultiplier;

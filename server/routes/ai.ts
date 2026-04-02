@@ -331,6 +331,11 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
   // Proof log — shows the full chain in server logs
   console.log(`[AI:chat] ${ts} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model} | bearer=${!!req.headers.authorization}`);
 
+  if (!cloudUser?.isPremium) {
+    console.warn(`[AI:chat] FORBIDDEN | user=${cloudUser?.id ?? "none"} premium=false`);
+    return res.status(403).json({ error: "Premium required." });
+  }
+
   const { messages, context } = req.body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "Messages are required." });
@@ -393,6 +398,11 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
   const model = process.env.AI_MODEL || "gpt-4o-mini";
 
   console.log(`[AI:advice] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model}`);
+
+  if (!cloudUser?.isPremium) {
+    console.warn(`[AI:advice] FORBIDDEN | user=${cloudUser?.id ?? "none"} premium=false`);
+    return res.status(403).json({ error: "Premium required." });
+  }
 
   const parsed = adviceRequestSchema.safeParse(req.body);
   if (!parsed.success) {

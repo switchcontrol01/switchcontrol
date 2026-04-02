@@ -76,12 +76,28 @@ Do not guess settings that are not visible. Only report what you can actually se
 // POST /bios/photo-scan
 // ---------------------------------------------------------------------------
 
+const ALLOWED_SETTING_IDS = new Set([
+  "smt", "xmp-expo", "pbo", "curve-optimizer", "global-cstate", "package-cstate",
+  "df-cstates", "fclk", "memory-frequency", "llc", "spread-spectrum", "core-parking",
+  "hpet", "x2apic", "memory-gear-mode", "command-rate", "trfc-tfaw", "cppc",
+  "cppc-preferred-cores", "thermal-throttling", "power-phase-control",
+  "vrm-switching-frequency", "cpu-current-capability", "power-supply-idle",
+  "tsc-stability", "pcie-spread-spectrum", "rebar",
+]);
+
+const MIN_PHOTO_CONFIDENCE = 0.55;
+
 biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
 
   // Proof log — shows full chain in server logs
   console.log(`[BIOS:photo-scan:${requestId}] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | bearer=${!!req.headers.authorization}`);
+
+  if (!cloudUser?.isPremium) {
+    console.warn(`[BIOS:photo-scan:${requestId}] FORBIDDEN | user=${cloudUser?.id ?? "none"} premium=false`);
+    return res.status(403).json({ error: "Premium required." });
+  }
 
   let openai: OpenAI;
   try {
@@ -129,26 +145,56 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
     const content = response.choices[0]?.message?.content || "[]";
     console.log(`[BIOS:photo-scan:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms`);
 
-    let settings: any[] = [];
+    let rawSettings: any[] = [];
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) settings = JSON.parse(jsonMatch[0]);
+      if (jsonMatch) rawSettings = JSON.parse(jsonMatch[0]);
     } catch {
       console.error(`[BIOS:photo-scan:${requestId}] Failed to parse response`);
       return res.status(500).json({ error: "Failed to parse BIOS photo analysis. Please try again." });
     }
 
-    const detections = settings
-      .filter((s: any) => s.settingId && typeof s.value === "string")
-      .map((s: any) => ({
-        settingId: String(s.settingId),
-        status: "User Confirmed" as const,
-        confidence: typeof s.confidence === "number" ? Math.max(0, Math.min(1, s.confidence)) : 0.85,
-        reason: `BIOS photo: ${String(s.reason || s.value)}`,
-        detectedValue: String(s.value),
-      }));
+    // Validate, whitelist, deduplicate (keep highest confidence per settingId)
+    const seenIds = new Map<string, any>();
+    let droppedCount = 0;
 
-    console.log(`[BIOS:photo-scan:${requestId}] OK | user=${cloudUser?.id} | detections=${detections.length}`);
+    for (const s of rawSettings) {
+      const settingId = String(s.settingId || "").trim();
+      if (!settingId || typeof s.value !== "string") { droppedCount++; continue; }
+      if (!ALLOWED_SETTING_IDS.has(settingId)) {
+        console.warn(`[BIOS:photo-scan:${requestId}] Rejected unknown settingId: ${settingId}`);
+        droppedCount++;
+        continue;
+      }
+      const confidence = typeof s.confidence === "number" ? Math.max(0, Math.min(1, s.confidence)) : 0.7;
+      if (confidence < MIN_PHOTO_CONFIDENCE) {
+        console.log(`[BIOS:photo-scan:${requestId}] Dropped low-confidence entry: ${settingId} (${Math.round(confidence * 100)}%)`);
+        droppedCount++;
+        continue;
+      }
+      const existing = seenIds.get(settingId);
+      if (!existing || confidence > existing.confidence) {
+        seenIds.set(settingId, { ...s, confidence });
+      }
+    }
+
+    if (droppedCount > 0) {
+      console.log(`[BIOS:photo-scan:${requestId}] Dropped ${droppedCount} entries (invalid id, unknown, or low confidence)`);
+    }
+
+    const detections = Array.from(seenIds.values()).map((s: any) => {
+      // Honest status: Photo Verified for high-confidence, Photo Suspected for medium
+      const status = s.confidence >= 0.8 ? "Photo Verified" : "Photo Suspected";
+      return {
+        settingId: String(s.settingId),
+        status,
+        confidence: s.confidence,
+        reason: `Derived from BIOS photo analysis: ${String(s.reason || s.value)}`,
+        detectedValue: String(s.value),
+      };
+    });
+
+    console.log(`[BIOS:photo-scan:${requestId}] OK | user=${cloudUser?.id} | detections=${detections.length} dropped=${droppedCount}`);
     return res.json({ detections, settingsFound: detections.length, analysisTimeMs: duration });
 
   } catch (err: any) {
@@ -207,6 +253,11 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
 
   // Proof log
   console.log(`[BIOS:explain:${requestId}] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | bearer=${!!req.headers.authorization}`);
+
+  if (!cloudUser?.isPremium) {
+    console.warn(`[BIOS:explain:${requestId}] FORBIDDEN | user=${cloudUser?.id ?? "none"} premium=false`);
+    return res.status(403).json({ error: "Premium required." });
+  }
 
   let openai: OpenAI;
   try {

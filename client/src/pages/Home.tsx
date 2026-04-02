@@ -20,7 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useDashboardTagline } from "@/lib/taglines";
-import { calculateBiosScores, BIOS_SETTINGS, getOptimizationLevel, getRankedOpportunities, getScanSource } from "@/lib/bios-advisor-data";
+import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
@@ -147,20 +147,19 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
 }
 
 function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
-  const scores = useMemo(() => calculateBiosScores(BIOS_SETTINGS), []);
-  const level = useMemo(() => getOptimizationLevel(scores.competitiveReadiness), [scores]);
-  const opportunities = useMemo(() => getRankedOpportunities(), []);
-  const topOppCount = opportunities.filter(o => o.scoreGain >= 5).length;
-  const scanSource = useMemo(() => getScanSource(), []);
-  const detectedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length, []);
-  const totalCount = BIOS_SETTINGS.length;
+  const { hasScanned, scores, optimizationLevel, telemetrySource, lastScanTime } = useBiosAdvisorStore();
 
   const levelColors: Record<string, string> = {
-    Basic: "bg-red-500/10 border-red-500/20 text-red-400",
-    Good: "bg-amber-500/10 border-amber-500/20 text-amber-400",
-    Advanced: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+    Basic:       "bg-red-500/10    border-red-500/20    text-red-400",
+    Good:        "bg-amber-500/10  border-amber-500/20  text-amber-400",
+    Advanced:    "bg-blue-500/10   border-blue-500/20   text-blue-400",
     Competitive: "bg-emerald-500/10 border-emerald-500/20 text-emerald-400",
   };
+
+  const sourceColor =
+    telemetrySource === "electron" ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5" :
+                                     "text-amber-400 border-amber-400/20 bg-amber-400/5";
+  const sourceLabel = telemetrySource === "electron" ? "Live" : "Inferred";
 
   const cardContent = (
     <GlassCard className={cn(
@@ -184,45 +183,55 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
         <p className="text-[10px] text-muted-foreground mt-1">Firmware readiness estimate</p>
       </div>
       <div className="px-6 pb-6 space-y-4">
-        <div className="p-3 rounded-lg border bg-[hsl(270,60%,55%)]/10 border-[hsl(270,60%,55%)]/20 text-center">
-          <div className="text-2xl font-bold tabular-nums text-[hsl(270,60%,55%)]" data-testid="text-bios-dashboard-score">
-            {scores.competitiveReadiness}
+        {(!hasScanned || !scores) ? (
+          <div className="p-4 rounded-lg border border-dashed border-white/10 bg-white/[0.02] text-center space-y-2">
+            <Target className="size-6 text-muted-foreground/40 mx-auto" />
+            <p className="text-xs text-muted-foreground" data-testid="text-bios-not-analyzed">Not analyzed yet</p>
+            <p className="text-[10px] text-muted-foreground/60">Run a scan in BIOS Advisor to see your firmware readiness score.</p>
           </div>
-          <p className="text-[10px] mt-0.5 text-muted-foreground">Readiness Estimate</p>
-          <div className="flex items-center justify-center gap-2 mt-1.5">
-            <span className="text-[9px] text-muted-foreground/60">{detectedCount}/{totalCount} detected</span>
-            <span className={cn(
-              "text-[9px] px-1.5 py-0.5 rounded border",
-              scanSource === "Live"  ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5" :
-              scanSource === "Mixed" ? "text-amber-400  border-amber-400/20  bg-amber-400/5"  :
-                                       "text-orange-400 border-orange-400/20 bg-orange-400/5"
-            )}>{scanSource}</span>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", levelColors[level])}>{level}</span>
-          {topOppCount > 0 && (
-            <span className="text-[9px] text-muted-foreground">{topOppCount} high-impact opportunities</span>
-          )}
-        </div>
-        <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="p-1.5 rounded bg-white/5">
-            <div className="text-xs font-bold text-primary">{scores.latency}</div>
-            <div className="text-[9px] text-muted-foreground">Latency</div>
-          </div>
-          <div className="p-1.5 rounded bg-white/5">
-            <div className="text-xs font-bold text-blue-400">{scores.frametime}</div>
-            <div className="text-[9px] text-muted-foreground">Frametime</div>
-          </div>
-          <div className="p-1.5 rounded bg-white/5">
-            <div className="text-xs font-bold text-emerald-400">{scores.stability}</div>
-            <div className="text-[9px] text-muted-foreground">Stability</div>
-          </div>
-        </div>
+        ) : (
+          <>
+            <div className="p-3 rounded-lg border bg-[hsl(270,60%,55%)]/10 border-[hsl(270,60%,55%)]/20 text-center">
+              <div className="text-2xl font-bold tabular-nums text-[hsl(270,60%,55%)]" data-testid="text-bios-dashboard-score">
+                {scores.competitiveReadiness}
+              </div>
+              <p className="text-[10px] mt-0.5 text-muted-foreground">Readiness Estimate</p>
+              <div className="flex items-center justify-center gap-2 mt-1.5">
+                {lastScanTime && (
+                  <span className="text-[9px] text-muted-foreground/60">
+                    {new Date(lastScanTime).toLocaleTimeString()}
+                  </span>
+                )}
+                <span className={cn("text-[9px] px-1.5 py-0.5 rounded border", sourceColor)}>
+                  {sourceLabel}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", levelColors[optimizationLevel] ?? levelColors.Basic)}>
+                {optimizationLevel}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="p-1.5 rounded bg-white/5">
+                <div className="text-xs font-bold text-primary">{scores.latency}</div>
+                <div className="text-[9px] text-muted-foreground">Latency</div>
+              </div>
+              <div className="p-1.5 rounded bg-white/5">
+                <div className="text-xs font-bold text-blue-400">{scores.frametime}</div>
+                <div className="text-[9px] text-muted-foreground">Frametime</div>
+              </div>
+              <div className="p-1.5 rounded bg-white/5">
+                <div className="text-xs font-bold text-emerald-400">{scores.stability}</div>
+                <div className="text-[9px] text-muted-foreground">Stability</div>
+              </div>
+            </div>
+          </>
+        )}
         <Button size="sm" className="w-full bg-[hsl(270,60%,55%)]/20 hover:bg-[hsl(270,60%,55%)]/30 text-[hsl(270,60%,55%)] border border-[hsl(270,60%,55%)]/20" data-testid="button-open-bios-advisor" asChild>
           <Link href="/bios-advisor">
             <Target className="size-3.5 mr-1.5" />
-            Open BIOS Advisor
+            {hasScanned && scores ? "View BIOS Analysis" : "Open BIOS Advisor"}
             <ArrowRight className="size-3 ml-auto" />
           </Link>
         </Button>
