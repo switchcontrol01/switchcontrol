@@ -224,18 +224,18 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
           )}
           hoverEffect={false}
         >
-          <div className="flex items-start gap-4 flex-1">
-            <div className="flex-1 space-y-2">
+          <div className="flex items-start gap-4 flex-1 min-w-0">
+            <div className="flex-1 min-w-0 space-y-2">
               <div className="flex items-center gap-2 flex-wrap">
                 <h3 className={cn("font-medium text-sm transition-colors", isEnabled && !isUnsupported ? "text-primary-foreground" : "text-foreground group-hover:text-white")}>
                   {tweak.title}
                 </h3>
-                <div className="flex items-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1.5 flex-wrap opacity-80 group-hover:opacity-100 transition-opacity">
                   {isLocked && <PremiumBadge className="text-[10px] px-2 py-0.5" />}
                   {unsupportedBadge}
-                  {realBadge}
-                  {rebootBadge}
-                  {adminBadge}
+                  {!isLocked && realBadge}
+                  {!isLocked && rebootBadge}
+                  {!isLocked && adminBadge}
                   <LevelBadge level={tweak.level} />
                   <RiskBadge level={tweak.risk} />
                 </div>
@@ -246,7 +246,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pl-4">
+          <div className="flex items-center gap-4 pl-4 shrink-0">
             <motion.div whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
               <Button
                 variant="ghost" size="icon" onClick={openModal}
