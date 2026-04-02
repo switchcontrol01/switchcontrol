@@ -111,22 +111,40 @@ function setSidebarHighlight(id: string | undefined) {
   }
 }
 
-const COMPLETION_PARTICLES = Array.from({ length: 12 }, (_, i) => {
-  const angle = (i / 12) * Math.PI * 2;
-  const dist = 90 + Math.random() * 80;
+const BURST_PARTICLES = Array.from({ length: 18 }, (_, i) => {
+  const angle = (i / 18) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+  const dist = 110 + Math.random() * 100;
   return {
     id: i,
     x: Math.cos(angle) * dist,
     y: Math.sin(angle) * dist,
-    delay: 0.15 + i * 0.04,
-    size: 3 + Math.random() * 5,
-    hue: 260 + Math.random() * 40,
+    delay: 0.3 + i * 0.03,
+    size: 2.5 + Math.random() * 5,
+    hue: 255 + Math.random() * 60,
+    duration: 1.8 + Math.random() * 0.8,
   };
 });
 
+const EMBER_PARTICLES = Array.from({ length: 22 }, (_, i) => ({
+  id: i,
+  x: (Math.random() - 0.5) * 320,
+  yEnd: -180 - Math.random() * 160,
+  delay: 0.6 + Math.random() * 2.5,
+  size: 1.5 + Math.random() * 2.5,
+  hue: 260 + Math.random() * 50,
+  duration: 2.5 + Math.random() * 2,
+  drift: (Math.random() - 0.5) * 60,
+}));
+
+const WAVE_RINGS = [
+  { delay: 0.2, size: 140, duration: 2.0 },
+  { delay: 0.7, size: 260, duration: 2.2 },
+  { delay: 1.2, size: 400, duration: 2.4 },
+];
+
 function CompletionOverlay({ onDone, reduced }: { onDone: () => void; reduced: boolean | null }) {
   useEffect(() => {
-    const t = setTimeout(onDone, reduced ? 500 : 2600);
+    const t = setTimeout(onDone, reduced ? 600 : 5800);
     return () => clearTimeout(t);
   }, [onDone, reduced]);
 
@@ -136,84 +154,185 @@ function CompletionOverlay({ onDone, reduced }: { onDone: () => void; reduced: b
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: reduced ? 0.2 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: reduced ? 0.2 : 1.0, ease: [0.22, 1, 0.36, 1] }}
     >
-      <div className="absolute inset-0 bg-black/80" />
+      {/* Deep backdrop */}
+      <motion.div
+        className="absolute inset-0"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 1.2 }}
+        style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(15,8,30,0.97) 0%, rgba(5,3,15,0.99) 100%)' }}
+      />
 
-      {/* Slow outer ambient bloom */}
+      {/* Outer nebula bloom — very slow */}
       <motion.div
         className="absolute rounded-full pointer-events-none"
-        style={{ width: 900, height: 900, background: 'radial-gradient(circle, rgba(139,92,246,0.22) 0%, rgba(168,85,247,0.08) 45%, transparent 72%)', filter: 'blur(60px)' }}
-        initial={{ scale: 0.3, opacity: 0 }}
-        animate={{ scale: [0.3, 1.15, 1.0], opacity: [0, 0.9, 0.6] }}
-        transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1], times: [0, 0.6, 1] }}
+        style={{ width: 1100, height: 1100, background: 'radial-gradient(circle, rgba(139,92,246,0.18) 0%, rgba(168,85,247,0.06) 40%, transparent 68%)', filter: 'blur(80px)' }}
+        initial={{ scale: 0.2, opacity: 0 }}
+        animate={{ scale: [0.2, 1.1, 1.0, 1.05, 1.0], opacity: [0, 0.8, 0.55, 0.65, 0.55] }}
+        transition={{ duration: 5.0, ease: [0.22, 1, 0.36, 1], times: [0, 0.35, 0.6, 0.8, 1] }}
       />
 
       {/* Mid corona */}
       <motion.div
         className="absolute rounded-full pointer-events-none"
-        style={{ width: 480, height: 480, background: 'radial-gradient(circle, rgba(192,132,252,0.35) 0%, rgba(139,92,246,0.15) 50%, transparent 75%)', filter: 'blur(30px)' }}
+        style={{ width: 560, height: 560, background: 'radial-gradient(circle, rgba(192,132,252,0.30) 0%, rgba(139,92,246,0.12) 50%, transparent 78%)', filter: 'blur(35px)' }}
         initial={{ scale: 0.1, opacity: 0 }}
-        animate={{ scale: [0.1, 1.2, 1.0], opacity: [0, 1, 0.75] }}
-        transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1], times: [0, 0.55, 1], delay: 0.1 }}
+        animate={{ scale: [0.1, 1.25, 1.0, 1.08, 1.0], opacity: [0, 1, 0.7, 0.8, 0.7] }}
+        transition={{ duration: 4.0, ease: [0.22, 1, 0.36, 1], times: [0, 0.4, 0.65, 0.82, 1], delay: 0.15 }}
       />
 
-      {/* Bright inner core */}
+      {/* Inner bright core */}
       <motion.div
         className="absolute rounded-full pointer-events-none"
-        style={{ width: 180, height: 180, background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(216,180,254,0.45) 35%, transparent 70%)', filter: 'blur(12px)' }}
+        style={{ width: 220, height: 220, background: 'radial-gradient(circle, rgba(255,255,255,0.16) 0%, rgba(216,180,254,0.42) 30%, transparent 68%)', filter: 'blur(14px)' }}
         initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: [0, 1.3, 1.0], opacity: [0, 1, 0.8] }}
-        transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], times: [0, 0.5, 1], delay: 0.2 }}
+        animate={{ scale: [0, 1.4, 1.0, 1.1, 1.0], opacity: [0, 1, 0.75, 0.85, 0.75] }}
+        transition={{ duration: 3.5, ease: [0.22, 1, 0.36, 1], times: [0, 0.3, 0.55, 0.75, 1], delay: 0.25 }}
       />
 
-      {/* Slow fade-out pulse */}
+      {/* Slow breathing ambient pulse — loops */}
       <motion.div
         className="absolute rounded-full pointer-events-none"
-        style={{ width: 600, height: 600, background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 65%)', filter: 'blur(40px)' }}
-        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.9, 0.5] }}
-        transition={{ duration: 2, ease: 'easeInOut', delay: 0.6 }}
+        style={{ width: 700, height: 700, background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 62%)', filter: 'blur(50px)' }}
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: [0.8, 1.15, 0.95, 1.1, 0.9, 1.05], opacity: [0, 0.8, 0.5, 0.7, 0.45, 0.6] }}
+        transition={{ duration: 5.0, ease: 'easeInOut', delay: 0.8 }}
       />
 
-      {/* Radiating particles */}
-      {COMPLETION_PARTICLES.map(p => (
+      {/* Expanding wave rings */}
+      {WAVE_RINGS.map((ring, i) => (
+        <motion.div
+          key={i}
+          className="absolute rounded-full pointer-events-none border"
+          style={{ width: ring.size, height: ring.size, borderColor: 'rgba(168,85,247,0.45)' }}
+          initial={{ scale: 0.1, opacity: 0.9 }}
+          animate={{ scale: [0.1, 2.8], opacity: [0.7, 0] }}
+          transition={{ duration: ring.duration, delay: ring.delay, ease: [0.22, 1, 0.36, 1] }}
+        />
+      ))}
+
+      {/* Rotating halo ring */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{ width: 104, height: 104 }}
+        initial={{ opacity: 0, rotate: 0 }}
+        animate={{ opacity: [0, 0.7, 0.5, 0.6], rotate: 360 }}
+        transition={{ opacity: { duration: 1.2, delay: 0.5, times: [0, 0.4, 0.7, 1] }, rotate: { duration: 8, repeat: Infinity, ease: 'linear', delay: 0.5 } }}
+      >
+        <svg width="104" height="104" viewBox="0 0 104 104" fill="none">
+          <circle cx="52" cy="52" r="50" stroke="url(#halo-grad)" strokeWidth="1.5" strokeDasharray="6 5" strokeLinecap="round" />
+          <defs>
+            <linearGradient id="halo-grad" x1="0" y1="0" x2="104" y2="104" gradientUnits="userSpaceOnUse">
+              <stop stopColor="#a855f7" stopOpacity="0.9" />
+              <stop offset="0.4" stopColor="#ec4899" stopOpacity="0.5" />
+              <stop offset="1" stopColor="#a855f7" stopOpacity="0" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </motion.div>
+
+      {/* Counter-rotating outer halo */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{ width: 136, height: 136 }}
+        initial={{ opacity: 0, rotate: 0 }}
+        animate={{ opacity: [0, 0.4, 0.3, 0.35], rotate: -360 }}
+        transition={{ opacity: { duration: 1.5, delay: 0.8, times: [0, 0.4, 0.7, 1] }, rotate: { duration: 14, repeat: Infinity, ease: 'linear', delay: 0.8 } }}
+      >
+        <svg width="136" height="136" viewBox="0 0 136 136" fill="none">
+          <circle cx="68" cy="68" r="66" stroke="rgba(192,132,252,0.35)" strokeWidth="1" strokeDasharray="3 9" strokeLinecap="round" />
+        </svg>
+      </motion.div>
+
+      {/* Burst particles */}
+      {BURST_PARTICLES.map(p => (
         <motion.div
           key={p.id}
           className="absolute rounded-full pointer-events-none"
-          style={{ width: p.size, height: p.size, background: `hsla(${p.hue}, 85%, 75%, 0.9)`, boxShadow: `0 0 ${p.size * 3}px hsla(${p.hue}, 85%, 75%, 0.6)` }}
+          style={{ width: p.size, height: p.size, background: `hsla(${p.hue}, 90%, 78%, 1)`, boxShadow: `0 0 ${p.size * 4}px hsla(${p.hue}, 90%, 78%, 0.7)` }}
           initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
-          animate={{ x: p.x, y: p.y, opacity: [0, 1, 0], scale: [0, 1.4, 0] }}
-          transition={{ duration: 1.6, delay: p.delay, ease: [0.22, 1, 0.36, 1] }}
+          animate={{ x: p.x, y: p.y, opacity: [0, 1, 1, 0], scale: [0, 1.6, 1.2, 0] }}
+          transition={{ duration: p.duration, delay: p.delay, ease: [0.22, 1, 0.36, 1] }}
+        />
+      ))}
+
+      {/* Drifting ember particles */}
+      {EMBER_PARTICLES.map(p => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full pointer-events-none"
+          style={{ width: p.size, height: p.size, background: `hsla(${p.hue}, 80%, 72%, 0.85)`, boxShadow: `0 0 ${p.size * 3}px hsla(${p.hue}, 80%, 72%, 0.5)` }}
+          initial={{ x: p.x, y: 60, opacity: 0, scale: 0 }}
+          animate={{ x: p.x + p.drift, y: p.yEnd, opacity: [0, 0.9, 0.7, 0], scale: [0, 1, 0.8, 0] }}
+          transition={{ duration: p.duration, delay: p.delay, ease: 'easeOut' }}
         />
       ))}
 
       {/* Center icon + text */}
-      <div className="relative z-10 flex flex-col items-center gap-4">
+      <div className="relative z-10 flex flex-col items-center gap-5">
+        {/* Icon */}
         <motion.div
           className="relative flex items-center justify-center"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.7, delay: 0.25, type: 'spring', stiffness: 280, damping: 20 }}
+          transition={{ duration: 1.0, delay: 0.3, type: 'spring', stiffness: 220, damping: 16 }}
         >
+          {/* Pulsing glow behind icon */}
           <motion.div
             className="absolute rounded-full"
-            style={{ width: 88, height: 88, background: 'radial-gradient(circle, rgba(192,132,252,0.5) 0%, transparent 70%)' }}
-            animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            style={{ width: 110, height: 110, background: 'radial-gradient(circle, rgba(192,132,252,0.55) 0%, transparent 72%)' }}
+            animate={{ scale: [1, 1.35, 1, 1.2, 1], opacity: [0.5, 1, 0.6, 0.85, 0.5] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
           />
-          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-pink-500/20 border border-white/10 flex items-center justify-center backdrop-blur-sm">
-            <Sparkles className="w-7 h-7 text-purple-300" />
-          </div>
+          {/* Icon box */}
+          <motion.div
+            className="relative w-20 h-20 rounded-2xl flex items-center justify-center backdrop-blur-sm"
+            style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.35) 0%, rgba(168,85,247,0.25) 50%, rgba(236,72,153,0.18) 100%)', border: '1px solid rgba(192,132,252,0.3)', boxShadow: '0 0 40px rgba(139,92,246,0.4), inset 0 1px 0 rgba(255,255,255,0.1)' }}
+            animate={{ boxShadow: ['0 0 40px rgba(139,92,246,0.4), inset 0 1px 0 rgba(255,255,255,0.1)', '0 0 70px rgba(139,92,246,0.65), inset 0 1px 0 rgba(255,255,255,0.15)', '0 0 40px rgba(139,92,246,0.4), inset 0 1px 0 rgba(255,255,255,0.1)'] }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+          >
+            <motion.div
+              animate={{ rotate: [0, 15, -8, 12, 0], scale: [1, 1.15, 1.05, 1.1, 1] }}
+              transition={{ duration: 2.0, delay: 0.6, ease: 'easeInOut' }}
+            >
+              <Sparkles className="w-9 h-9 text-purple-200" />
+            </motion.div>
+          </motion.div>
         </motion.div>
 
+        {/* Text — staggered reveal */}
         <motion.div
-          className="text-center"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+          className="text-center flex flex-col items-center gap-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
         >
-          <p className="text-xl font-semibold text-white tracking-wide">You're all set</p>
-          <p className="text-sm text-purple-300/70 mt-1 font-light">SwitchControl is ready to optimize</p>
+          <motion.p
+            className="text-2xl font-semibold text-white tracking-wide"
+            initial={{ opacity: 0, y: 14, filter: 'blur(6px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.9, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          >
+            You&apos;re all set
+          </motion.p>
+          <motion.p
+            className="text-sm text-purple-300/70 font-light"
+            initial={{ opacity: 0, y: 10, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            transition={{ duration: 0.9, delay: 1.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            SwitchControl is ready to optimize
+          </motion.p>
+          {/* Subtle divider line */}
+          <motion.div
+            className="mt-1 h-px rounded-full"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.5), transparent)' }}
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 120, opacity: 1 }}
+            transition={{ duration: 1.2, delay: 1.6, ease: [0.22, 1, 0.36, 1] }}
+          />
         </motion.div>
       </div>
     </motion.div>
