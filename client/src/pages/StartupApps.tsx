@@ -193,34 +193,27 @@ export default function StartupApps() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <Play className="size-6 mx-auto mb-2 text-green-400" />
-              <p className="text-2xl font-bold text-white">{stats.enabled}</p>
-              <p className="text-xs text-muted-foreground">Enabled</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <Pause className="size-6 mx-auto mb-2 text-red-400" />
-              <p className="text-2xl font-bold text-white">{stats.disabled}</p>
-              <p className="text-xs text-muted-foreground">Disabled</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <Timer className="size-6 mx-auto mb-2 text-yellow-400" />
-              <p className="text-2xl font-bold text-white">{stats.delayed}</p>
-              <p className="text-xs text-muted-foreground">Delayed</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <Clock className="size-6 mx-auto mb-2 text-blue-400" />
-              <p className="text-2xl font-bold text-white">{safeFixed(stats.totalBootDelay, 1)}s</p>
-              <p className="text-xs text-muted-foreground">Boot Delay</p>
-            </CardContent>
-          </Card>
+          {[
+            { icon: <Play className="size-6 mx-auto mb-2 text-green-400" />, value: stats.enabled, label: "Enabled" },
+            { icon: <Pause className="size-6 mx-auto mb-2 text-red-400" />, value: stats.disabled, label: "Disabled" },
+            { icon: <Timer className="size-6 mx-auto mb-2 text-yellow-400" />, value: stats.delayed, label: "Delayed" },
+            { icon: <Clock className="size-6 mx-auto mb-2 text-blue-400" />, value: `${safeFixed(stats.totalBootDelay, 1)}s`, label: "Boot Delay" },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.45, delay: 0.1 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Card className="bg-card/50 border-border/50">
+                <CardContent className="p-4 text-center">
+                  {stat.icon}
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
         {showTimeline && (
@@ -254,6 +247,7 @@ export default function StartupApps() {
           </Card>
         )}
 
+        <AnimatedSection index={1}>
         <div className="flex gap-2 flex-wrap">
           {PRESETS.map((preset) => {
             const Icon = preset.icon;
@@ -271,7 +265,9 @@ export default function StartupApps() {
             );
           })}
         </div>
+        </AnimatedSection>
 
+        <AnimatedSection index={2}>
         <div className="space-y-4">
           {categories.map((category) => {
             const categoryApps = apps.filter(a => a.category === category);
@@ -366,6 +362,7 @@ export default function StartupApps() {
             );
           })}
         </div>
+        </AnimatedSection>
       </div>
     </AppLayout>
   );

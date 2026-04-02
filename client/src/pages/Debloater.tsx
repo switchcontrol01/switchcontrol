@@ -184,13 +184,18 @@ export default function Debloater() {
         />
 
         <div className="grid grid-cols-5 gap-3">
-          {SYSTEM_ROLES.map((r) => {
+          {SYSTEM_ROLES.map((r, i) => {
             const Icon = r.icon;
             return (
-              <Card 
+              <motion.div
                 key={r.id}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ duration: 0.45, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+              >
+              <Card 
                 className={cn(
-                  "cursor-pointer transition-all hover:border-primary/50",
+                  "cursor-pointer transition-all hover:border-primary/50 h-full",
                   role === r.id ? "bg-primary/10 border-primary" : "bg-card/50 border-border/50"
                 )}
                 onClick={() => setRole(r.id)}
@@ -202,11 +207,17 @@ export default function Debloater() {
                   <p className="text-xs text-muted-foreground mt-1">{r.description}</p>
                 </CardContent>
               </Card>
+              </motion.div>
             );
           })}
         </div>
 
-        <div className="flex items-center justify-between">
+        <motion.div
+          className="flex items-center justify-between"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        >
           <div className="flex gap-2">
             {DEBLOAT_LEVELS.map((l) => (
               <Button
@@ -248,7 +259,7 @@ export default function Debloater() {
               )}
             </Button>
           </div>
-        </div>
+        </motion.div>
 
         {debloating && (
           <Card className="bg-primary/10 border-primary/30">
@@ -265,6 +276,7 @@ export default function Debloater() {
           </Card>
         )}
 
+        <AnimatedSection index={1}>
         <Card className={cn("border", currentLevel.color.replace("text-", "border-"))}>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
@@ -274,7 +286,9 @@ export default function Debloater() {
             <CardDescription>{currentLevel.description}</CardDescription>
           </CardHeader>
         </Card>
+        </AnimatedSection>
 
+        <AnimatedSection index={2}>
         <div className="space-y-4">
           {categories.map((category) => {
             const categoryItems = visibleItems.filter(i => i.category === category);
@@ -364,6 +378,7 @@ export default function Debloater() {
             );
           })}
         </div>
+        </AnimatedSection>
       </div>
     </AppLayout>
   );

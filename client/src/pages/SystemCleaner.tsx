@@ -235,36 +235,34 @@ export default function SystemCleaner() {
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <HardDrive className="size-6 mx-auto mb-2 text-primary" />
-              <p className="text-2xl font-bold text-white">{stats.size}</p>
-              <p className="text-xs text-muted-foreground">Reclaimable</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <Cpu className="size-6 mx-auto mb-2 text-green-400" />
-              <p className="text-2xl font-bold text-white">-{stats.cpu}%</p>
-              <p className="text-xs text-muted-foreground">CPU Impact</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <Zap className="size-6 mx-auto mb-2 text-yellow-400" />
-              <p className="text-2xl font-bold text-white">+{stats.ram} MB</p>
-              <p className="text-xs text-muted-foreground">RAM Reclaim</p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card/50 border-border/50">
-            <CardContent className="p-4 text-center">
-              <Clock className="size-6 mx-auto mb-2 text-blue-400" />
-              <p className="text-2xl font-bold text-white">-{stats.boot}s</p>
-              <p className="text-xs text-muted-foreground">Boot Time</p>
-            </CardContent>
-          </Card>
+          {[
+            { icon: <HardDrive className="size-6 mx-auto mb-2 text-primary" />, value: stats.size, label: "Reclaimable" },
+            { icon: <Cpu className="size-6 mx-auto mb-2 text-green-400" />, value: `-${stats.cpu}%`, label: "CPU Impact" },
+            { icon: <Zap className="size-6 mx-auto mb-2 text-yellow-400" />, value: `+${stats.ram} MB`, label: "RAM Reclaim" },
+            { icon: <Clock className="size-6 mx-auto mb-2 text-blue-400" />, value: `-${stats.boot}s`, label: "Boot Time" },
+          ].map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.45, delay: 0.1 + i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Card className="bg-card/50 border-border/50">
+                <CardContent className="p-4 text-center">
+                  {stat.icon}
+                  <p className="text-2xl font-bold text-white">{stat.value}</p>
+                  <p className="text-xs text-muted-foreground">{stat.label}</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
         </div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        >
         <Tabs value={mode} onValueChange={(v) => setMode(v as "safe" | "advanced")} className="w-full">
           <div className="flex items-center justify-between mb-4">
             <TabsList className="bg-muted/30">
@@ -444,6 +442,7 @@ export default function SystemCleaner() {
             </div>
           </TabsContent>
         </Tabs>
+        </motion.div>
       </div>
     </AppLayout>
   );

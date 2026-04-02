@@ -364,6 +364,11 @@ export default function NetworkTweaks() {
           </motion.p>
         </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+        >
         <GlassCard className="p-4 border-[hsl(270,60%,55%,0.2)] bg-[hsl(270,60%,55%,0.05)]">
           <div className="flex gap-3">
             <Info className="size-5 text-[hsl(270,60%,55%)] shrink-0 mt-0.5" />
@@ -377,7 +382,13 @@ export default function NetworkTweaks() {
             </div>
           </div>
         </GlassCard>
+        </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        >
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -424,7 +435,13 @@ export default function NetworkTweaks() {
             ))}
           </div>
         </div>
+        </motion.div>
 
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
         <div className="space-y-6">
           {NETWORK_CATEGORIES.map(category => {
             const categoryTweaks = tweaksByCategory[category];
@@ -477,6 +494,7 @@ export default function NetworkTweaks() {
             No tweaks found matching your search.
           </div>
         )}
+        </motion.div>
       </div>
 
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />

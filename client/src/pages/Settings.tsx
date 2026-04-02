@@ -57,8 +57,8 @@ export default function Settings() {
           subtitle="Manage application preferences and account details."
         />
 
-        <div className="grid gap-6">
-          {/* General Settings */}
+        <div className="space-y-6">
+          <AnimatedSection index={0}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
               <CardTitle>General</CardTitle>
@@ -116,8 +116,10 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
+          </AnimatedSection>
 
           {/* Account Settings */}
+          <AnimatedSection index={1}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
               <CardTitle>Account</CardTitle>
@@ -165,8 +167,10 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
+          </AnimatedSection>
 
           {isPremium && (
+            <AnimatedSection index={2}>
             <Card className="bg-card/50 border-emerald-500/20" data-tour="settings-email">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -212,9 +216,11 @@ export default function Settings() {
                 <p className="text-xs text-muted-foreground mt-2">We typically reply within 24 hours.</p>
               </CardContent>
             </Card>
+            </AnimatedSection>
           )}
 
           {/* Data Management */}
+          <AnimatedSection index={3}>
           <Card className="bg-red-500/5 border-red-500/10">
             <CardHeader>
               <CardTitle className="text-red-400">Data Management</CardTitle>
@@ -268,8 +274,10 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+          </AnimatedSection>
 
           {/* Join the Community */}
+          <AnimatedSection index={4}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
               <CardTitle>Join the Community</CardTitle>
@@ -334,6 +342,7 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
+          </AnimatedSection>
         </div>
       </div>
 

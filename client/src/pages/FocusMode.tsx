@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -243,12 +243,17 @@ export default function FocusMode() {
         <div>
           <h2 className="text-lg font-semibold text-white mb-4">Focus Profiles</h2>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {FOCUS_PROFILES.map((profile) => {
+            {FOCUS_PROFILES.map((profile, i) => {
               const Icon = profile.icon;
               const isSelected = activeProfile === profile.id;
               return (
-                <Card 
+                <motion.div
                   key={profile.id}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.45, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                >
+                <Card 
                   className={cn(
                     "cursor-pointer transition-all hover:scale-[1.02]",
                     isSelected 
@@ -267,11 +272,13 @@ export default function FocusMode() {
                     )}
                   </CardContent>
                 </Card>
+                </motion.div>
               );
             })}
           </div>
         </div>
 
+        <AnimatedSection index={2}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
@@ -477,6 +484,7 @@ export default function FocusMode() {
             </div>
           </CardContent>
         </Card>
+        </AnimatedSection>
       </div>
     </AppLayout>
   );
