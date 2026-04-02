@@ -4,9 +4,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useAuth } from "@/hooks/use-auth";
 import { cloudApiPost } from "@/lib/cloud-api";
-import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
 import { cn } from "@/lib/utils";
 import { motion, pageTransition, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import {
@@ -167,7 +165,6 @@ function HealthScoreRing({ score, state }: { score: number; state: ScanSummary["
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function Security() {
-  const { isPremium } = useAuth();
   const { prefersReducedMotion } = useMotion();
   const hasSecurity = isElectronWithSecurity();
 
@@ -193,11 +190,11 @@ export default function Security() {
 
   // Auto-fetch defender status on mount (background, no loading state needed)
   useEffect(() => {
-    if (!hasSecurity || !isPremium) return;
+    if (!hasSecurity) return;
     eAPI().security.getStatus().then((r: any) => {
       if (r?.available && r.data) setSecurityStatus(r.data);
     }).catch(() => {});
-  }, [hasSecurity, isPremium]);
+  }, [hasSecurity]);
 
   const startScan = useCallback(async (type: "quick" | "smart") => {
     if (scanStatus === "scanning") return;
@@ -243,18 +240,16 @@ export default function Security() {
       await delay(400);
 
       setScanStage(4);
-      if (isPremium) {
-        try {
-          const result = await cloudApiPost<{ recommendations: SecurityRecommendation[]; summary: ScanSummary }>(
-            "/security/analyze",
-            { status, startupItems: startup, topProcesses: processes }
-          );
-          setRecommendations(result.recommendations ?? []);
-          setScanSummary(result.summary ?? null);
-        } catch {
-          setRecommendations([]);
-          setScanSummary(null);
-        }
+      try {
+        const result = await cloudApiPost<{ recommendations: SecurityRecommendation[]; summary: ScanSummary }>(
+          "/security/analyze",
+          { status, startupItems: startup, topProcesses: processes }
+        );
+        setRecommendations(result.recommendations ?? []);
+        setScanSummary(result.summary ?? null);
+      } catch {
+        setRecommendations([]);
+        setScanSummary(null);
       }
 
       await delay(300);
@@ -264,7 +259,7 @@ export default function Security() {
     } catch {
       setScanStatus("error");
     }
-  }, [hasSecurity, isPremium, scanStatus, securityStatus]);
+  }, [hasSecurity, scanStatus, securityStatus]);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -323,7 +318,7 @@ export default function Security() {
     <AppLayout>
       <div className="relative">
         <MotionDiv
-          className={cn("flex flex-col gap-5 pb-10", !isPremium && "opacity-60 blur-[2px] pointer-events-none select-none")}
+          className="flex flex-col gap-5 pb-10"
           {...pageProps}
         >
           {/* Header */}
@@ -331,7 +326,6 @@ export default function Security() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold tracking-tight">System Integrity</h1>
-                <PremiumHeaderBadge isLocked={!isPremium} />
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">
                 Security posture, startup analysis, and background process monitoring.
@@ -780,13 +774,6 @@ export default function Security() {
           </GlassCard>
         </MotionDiv>
 
-        {!isPremium && (
-          <PremiumPageOverlay
-            featureName="System Integrity"
-            description="Scan your security posture, analyze startup overhead, and get AI-powered recommendations to protect and optimize your system."
-            buttonText="Unlock System Integrity"
-          />
-        )}
       </div>
     </AppLayout>
   );
