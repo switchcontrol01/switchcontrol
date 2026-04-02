@@ -6,6 +6,10 @@ import crypto from "crypto";
 
 const aiRouter = Router();
 
+// ---------------------------------------------------------------------------
+// Rate limiters — keyed by authenticated cloudUser.id from JWT middleware
+// ---------------------------------------------------------------------------
+
 const aiLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 10,
@@ -13,8 +17,7 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
   validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
   keyGenerator: (req: Request) => {
-    const userId = (req as any).session?.userId;
-    if (userId) return `user:${userId}`;
+    if ((req as any).cloudUser?.id) return `cloud:${(req as any).cloudUser.id}`;
     const raw = req.headers["x-device-id"] as string | undefined;
     if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `device:${raw}`;
     return req.ip || req.socket?.remoteAddress || "fallback";
@@ -29,8 +32,7 @@ const aiHourlyLimiter = rateLimit({
   legacyHeaders: false,
   validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
   keyGenerator: (req: Request) => {
-    const userId = (req as any).session?.userId;
-    if (userId) return `hourly:${userId}`;
+    if ((req as any).cloudUser?.id) return `hourly:cloud:${(req as any).cloudUser.id}`;
     const raw = req.headers["x-device-id"] as string | undefined;
     if (raw && raw.length >= 16 && raw.length <= 128 && /^[a-zA-Z0-9_-]+$/.test(raw)) return `hourly:device:${raw}`;
     return `hourly:${req.ip || req.socket?.remoteAddress || "fallback"}`;
@@ -40,6 +42,10 @@ const aiHourlyLimiter = rateLimit({
 
 aiRouter.use(aiLimiter);
 aiRouter.use(aiHourlyLimiter);
+
+// ---------------------------------------------------------------------------
+// Cache
+// ---------------------------------------------------------------------------
 
 const responseCache = new Map<string, { data: AiAdviceResponse; expiresAt: number }>();
 
@@ -58,10 +64,7 @@ function getCacheKey(body: any): string {
 function getCached(key: string): AiAdviceResponse | null {
   const entry = responseCache.get(key);
   if (!entry) return null;
-  if (Date.now() > entry.expiresAt) {
-    responseCache.delete(key);
-    return null;
-  }
+  if (Date.now() > entry.expiresAt) { responseCache.delete(key); return null; }
   return entry.data;
 }
 
@@ -70,11 +73,13 @@ function setCache(key: string, data: AiAdviceResponse): void {
   responseCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL });
   if (responseCache.size > 200) {
     const now = Date.now();
-    for (const [k, v] of responseCache) {
-      if (now > v.expiresAt) responseCache.delete(k);
-    }
+    for (const [k, v] of responseCache) { if (now > v.expiresAt) responseCache.delete(k); }
   }
 }
+
+// ---------------------------------------------------------------------------
+// Schemas
+// ---------------------------------------------------------------------------
 
 const goalEnum = z.enum(["lowest_latency", "max_fps", "stability", "network_ping", "balanced"]);
 
@@ -118,6 +123,10 @@ const adviceRequestSchema = z.object({
 
 export type AdviceRequest = z.infer<typeof adviceRequestSchema>;
 
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
 export interface AiFinding {
   title: string;
   evidence: string;
@@ -148,6 +157,10 @@ export interface AiAdviceResponse {
   warnings: string[];
   followUps: string[];
 }
+
+// ---------------------------------------------------------------------------
+// Prompts
+// ---------------------------------------------------------------------------
 
 const SYSTEM_PROMPT = `You are SwitchControl AI Advisor — an expert Windows gaming PC optimization consultant.
 
@@ -252,20 +265,6 @@ ${telemetryLines.length > 0 ? `LIVE TELEMETRY:\n${telemetryLines.map(l => `- ${l
 Analyze this system configuration and current tweak state. Provide state-aware optimization advice as JSON.`;
 }
 
-function getValidDeviceId(req: Request): string | null {
-  const raw = req.headers["x-device-id"] as string | undefined;
-  if (!raw || raw.length < 16 || raw.length > 128 || !/^[a-zA-Z0-9_-]+$/.test(raw)) return null;
-  return raw;
-}
-
-function getRequestIdentifier(req: Request): string {
-  const userId = (req as any).session?.userId;
-  if (userId) return `user:${userId}`;
-  const deviceId = getValidDeviceId(req);
-  if (deviceId) return `device:${deviceId}`;
-  return `ip:${req.ip || "unknown"}`;
-}
-
 const chatSystemPrompt = `You are SwitchControl AI Advisor — an expert Windows gaming PC optimization assistant embedded in a desktop performance suite.
 
 You help users optimize their PC for gaming by providing specific, actionable advice based on their hardware and current SwitchControl configuration.
@@ -308,32 +307,47 @@ function buildChatContext(context: any): string {
   return parts.length ? parts.join("\n") : "No system information available.";
 }
 
-aiRouter.post("/chat", async (req: Request, res: Response) => {
-  const requestId = getRequestIdentifier(req);
+// ---------------------------------------------------------------------------
+// Helper: get OpenAI client (OPENAI_API_KEY lives on cloud server only)
+// ---------------------------------------------------------------------------
+
+function getOpenAI(): OpenAI {
   const apiKey = process.env.OPENAI_API_KEY;
-  const model = process.env.AI_MODEL || "gpt-4o-mini";
-
-  console.log(`[AI:chat] ${new Date().toISOString()} | ${requestId} | OPENAI_API_KEY present: ${!!apiKey} | model: ${model}`);
-
   if (!apiKey) {
-    console.error(`[AI:chat] ${requestId} | FAIL — OPENAI_API_KEY missing in runtime env`);
-    return res.status(503).json({ error: "AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
+    throw Object.assign(new Error("AI service unavailable"), { _cloudConfigError: true });
   }
+  return new OpenAI({ apiKey });
+}
+
+// ---------------------------------------------------------------------------
+// POST /ai/chat
+// ---------------------------------------------------------------------------
+
+aiRouter.post("/chat", async (req: Request, res: Response) => {
+  const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
+  const model = process.env.AI_MODEL || "gpt-4o-mini";
+  const ts = new Date().toISOString();
+
+  // Proof log — shows the full chain in server logs
+  console.log(`[AI:chat] ${ts} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model} | bearer=${!!req.headers.authorization}`);
 
   const { messages, context } = req.body;
   if (!Array.isArray(messages) || messages.length === 0) {
     return res.status(400).json({ error: "Messages are required." });
   }
-
   if (messages.length > 20) {
     return res.status(400).json({ error: "Conversation too long. Please start a new chat." });
   }
 
-  console.log(`[AI:chat] ${requestId} | sending ${Math.min(messages.length, 10)} messages to ${model}`);
+  let openai: OpenAI;
+  try {
+    openai = getOpenAI();
+  } catch {
+    console.error(`[AI:chat] OPENAI_API_KEY missing on cloud server`);
+    return res.status(503).json({ error: "AI service is temporarily unavailable." });
+  }
 
   try {
-    const openai = new OpenAI({ apiKey });
-
     const contextInfo = buildChatContext(context);
     const systemMessage = `${chatSystemPrompt}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
 
@@ -345,6 +359,8 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       })),
     ];
 
+    console.log(`[AI:chat] Calling OpenAI | user=${cloudUser?.id} | messages=${openaiMessages.length} | model=${model}`);
+
     const completion = await openai.chat.completions.create({
       model,
       max_tokens: 800,
@@ -354,60 +370,57 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
     const content = completion.choices[0]?.message?.content;
     if (!content) {
-      return res.status(502).json({ error: "AI returned empty response." });
+      return res.status(502).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    console.log(`[AI:chat] ${requestId} | OK | ${content.length} chars`);
+    console.log(`[AI:chat] OK | user=${cloudUser?.id} | response=${content.length} chars`);
     return res.json({ role: "assistant", content });
   } catch (error: any) {
     const status = error?.status;
-    const msg = error?.message || "unknown";
-    console.error(`[AI:chat] ${requestId} | ERROR | status=${status} message=${msg}`);
-    if (status === 429) {
-      return res.status(429).json({ error: "Rate limit reached. Please wait." });
-    }
-    if (status === 401) {
-      return res.status(503).json({ error: "AI provider authentication failed: OPENAI_API_KEY invalid or expired." });
-    }
-    return res.status(500).json({ error: "Failed to get response." });
+    console.error(`[AI:chat] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message || "unknown"}`);
+    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
+    return res.status(500).json({ error: "Failed to get AI response. Please try again." });
   }
 });
 
+// ---------------------------------------------------------------------------
+// POST /ai/advice
+// ---------------------------------------------------------------------------
+
 aiRouter.post("/advice", async (req: Request, res: Response) => {
   const requestStart = Date.now();
-  const requestId = getRequestIdentifier(req);
-  const apiKey = process.env.OPENAI_API_KEY;
+  const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
   const model = process.env.AI_MODEL || "gpt-4o-mini";
 
-  console.log(`[AI:advice] ${new Date().toISOString()} | ${requestId} | OPENAI_API_KEY present: ${!!apiKey} | model: ${model}`);
-
-  if (!apiKey) {
-    console.error(`[AI:advice] ${requestId} | FAIL — OPENAI_API_KEY missing in runtime env`);
-    return res.status(503).json({ error: "AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
-  }
+  console.log(`[AI:advice] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model}`);
 
   const parsed = adviceRequestSchema.safeParse(req.body);
   if (!parsed.success) {
-    console.log(`[AI] ${new Date().toISOString()} | ${requestId} | INVALID_REQUEST | ${Date.now() - requestStart}ms`);
     return res.status(400).json({
       error: "Invalid request data",
-      details: parsed.error.issues.map(i => ({
-        path: i.path.join("."),
-        message: i.message,
-      })),
+      details: parsed.error.issues.map(i => ({ path: i.path.join("."), message: i.message })),
     });
   }
 
   const cacheKey = getCacheKey(parsed.data);
   const cached = getCached(cacheKey);
   if (cached) {
-    console.log(`[AI] ${new Date().toISOString()} | ${requestId} | CACHE_HIT | goal=${parsed.data.goal} game=${parsed.data.game} | ${Date.now() - requestStart}ms`);
+    console.log(`[AI:advice] CACHE_HIT | user=${cloudUser?.id} | goal=${parsed.data.goal} | ${Date.now() - requestStart}ms`);
     return res.json(cached);
   }
 
+  let openai: OpenAI;
   try {
-    const openai = new OpenAI({ apiKey });
+    openai = getOpenAI();
+  } catch {
+    console.error(`[AI:advice] OPENAI_API_KEY missing on cloud server`);
+    return res.status(503).json({ error: "AI service is temporarily unavailable." });
+  }
+
+  try {
     const maxTokens = parseInt(process.env.AI_MAX_TOKENS || "1800", 10);
+
+    console.log(`[AI:advice] Calling OpenAI | user=${cloudUser?.id} | goal=${parsed.data.goal} | game=${parsed.data.game}`);
 
     const completion = await openai.chat.completions.create({
       model,
@@ -421,15 +434,12 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     });
 
     const raw = completion.choices[0]?.message?.content;
-    if (!raw) {
-      return res.status(502).json({ error: "AI returned an empty response. Please try again." });
-    }
+    if (!raw) return res.status(502).json({ error: "AI returned an empty response. Please try again." });
 
     let rawAdvice: any;
     try {
       rawAdvice = JSON.parse(raw);
     } catch {
-      console.error("[AI] Failed to parse AI response as JSON");
       return res.status(502).json({ error: "AI returned invalid format. Please try again." });
     }
 
@@ -441,7 +451,6 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     const isSeverity = (v: any): v is "low" | "med" | "high" => severityValues.includes(v);
     const userStates: UserState[] = ["new", "partial", "over_tweaked", "goal_focused", "advanced"];
     const isUserState = (v: any): v is UserState => userStates.includes(v);
-
     const riskOrder: Record<string, number> = { high: 3, med: 2, low: 1 };
     const confOrder: Record<string, number> = { high: 3, med: 2, low: 1 };
 
@@ -459,12 +468,10 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     }));
 
     const sortedActions = unsortedActions.sort((a, b) => {
-      const confA = confOrder[a.confidence] || 0;
-      const confB = confOrder[b.confidence] || 0;
-      if (confB !== confA) return confB - confA;
-      const riskA = riskOrder[a.risk] || 0;
-      const riskB = riskOrder[b.risk] || 0;
-      if (riskA !== riskB) return riskA - riskB;
+      const confDiff = (confOrder[b.confidence] || 0) - (confOrder[a.confidence] || 0);
+      if (confDiff !== 0) return confDiff;
+      const riskDiff = (riskOrder[a.risk] || 0) - (riskOrder[b.risk] || 0);
+      if (riskDiff !== 0) return riskDiff;
       return (b.autoApplyPossible ? 1 : 0) - (a.autoApplyPossible ? 1 : 0);
     });
 
@@ -487,20 +494,14 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     setCache(cacheKey, advice);
 
     const duration = Date.now() - requestStart;
-    console.log(`[AI] ${new Date().toISOString()} | ${requestId} | OK | goal=${parsed.data.goal} game=${parsed.data.game} state=${advice.userState} score=${advice.readinessScore} | ${duration}ms`);
+    console.log(`[AI:advice] OK | user=${cloudUser?.id} | goal=${parsed.data.goal} | state=${advice.userState} | score=${advice.readinessScore} | ${duration}ms`);
 
     return res.json(advice);
   } catch (error: any) {
     const duration = Date.now() - requestStart;
-    if (error?.status === 429) {
-      console.log(`[AI] ${new Date().toISOString()} | ${requestId} | OPENAI_RATE_LIMIT | goal=${parsed.data.goal} game=${parsed.data.game} | ${duration}ms`);
-      return res.status(429).json({ error: "AI rate limit reached. Please wait a moment." });
-    }
-    if (error?.status === 401) {
-      console.error(`[AI] ${new Date().toISOString()} | ${requestId} | API_KEY_INVALID | ${duration}ms`);
-      return res.status(503).json({ error: "AI API key is invalid or expired." });
-    }
-    console.error(`[AI] ${new Date().toISOString()} | ${requestId} | ERROR | goal=${parsed.data.goal} game=${parsed.data.game} | ${duration}ms | ${error?.message || "unknown"}`);
+    const status = error?.status;
+    console.error(`[AI:advice] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message || "unknown"} | ${duration}ms`);
+    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
     return res.status(500).json({ error: "Failed to get AI advice. Please try again." });
   }
 });

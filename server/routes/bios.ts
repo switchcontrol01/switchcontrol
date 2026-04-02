@@ -6,15 +6,40 @@ import crypto from "crypto";
 
 const biosRouter = Router();
 
+// ---------------------------------------------------------------------------
+// Rate limiter — keyed by authenticated cloudUser.id from JWT middleware
+// ---------------------------------------------------------------------------
+
 const biosLimiter = rateLimit({
   windowMs: 5 * 60 * 1000,
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
+  validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+  keyGenerator: (req: Request) => {
+    if ((req as any).cloudUser?.id) return `bios:cloud:${(req as any).cloudUser.id}`;
+    return req.ip || req.socket?.remoteAddress || "fallback";
+  },
   message: { error: "Too many BIOS scan requests. Please wait a few minutes." },
 });
 
 biosRouter.use(biosLimiter);
+
+// ---------------------------------------------------------------------------
+// Helper: get OpenAI client (OPENAI_API_KEY lives on cloud server only)
+// ---------------------------------------------------------------------------
+
+function getOpenAI(): OpenAI {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw Object.assign(new Error("AI service unavailable"), { _cloudConfigError: true });
+  }
+  return new OpenAI({ apiKey });
+}
+
+// ---------------------------------------------------------------------------
+// Schemas
+// ---------------------------------------------------------------------------
 
 const photoScanSchema = z.object({
   imageBase64: z.string().min(100).max(10_000_000, "Image too large. Please use an image under 7MB."),
@@ -47,31 +72,35 @@ For each setting you can identify, return a JSON object with:
 Return ONLY a JSON array. If you cannot read any settings, return an empty array [].
 Do not guess settings that are not visible. Only report what you can actually see in the image.`;
 
+// ---------------------------------------------------------------------------
+// POST /bios/photo-scan
+// ---------------------------------------------------------------------------
+
 biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
-  const apiKey = process.env.OPENAI_API_KEY;
+  const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
 
-  console.log(`[BIOS:photo-scan:${requestId}] ${new Date().toISOString()} | OPENAI_API_KEY present: ${!!apiKey}`);
+  // Proof log — shows full chain in server logs
+  console.log(`[BIOS:photo-scan:${requestId}] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | bearer=${!!req.headers.authorization}`);
 
-  if (!apiKey) {
-    console.error(`[BIOS:photo-scan:${requestId}] FAIL — OPENAI_API_KEY missing in runtime env`);
-    return res.status(503).json({ error: "BIOS AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
+  let openai: OpenAI;
+  try {
+    openai = getOpenAI();
+  } catch {
+    console.error(`[BIOS:photo-scan:${requestId}] OPENAI_API_KEY missing on cloud server`);
+    return res.status(503).json({ error: "AI service is temporarily unavailable." });
   }
 
   try {
     const parsed = photoScanSchema.safeParse(req.body);
     if (!parsed.success) {
       const sizeIssue = parsed.error.issues.find(i => i.path.includes("imageBase64") && i.code === "too_big");
-      if (sizeIssue) {
-        return res.status(413).json({ error: "Image too large. Please use an image under 7MB." });
-      }
+      if (sizeIssue) return res.status(413).json({ error: "Image too large. Please use an image under 7MB." });
       return res.status(400).json({ error: "Invalid request body", details: parsed.error.issues });
     }
 
-    const openai = new OpenAI({ apiKey });
     const { imageBase64, mimeType } = parsed.data;
-
-    console.log(`[BIOS:photo-scan:${requestId}] Image size: ${Math.round(imageBase64.length / 1024)}KB, mimeType: ${mimeType}`);
+    console.log(`[BIOS:photo-scan:${requestId}] Calling OpenAI | user=${cloudUser?.id} | image=${Math.round(imageBase64.length / 1024)}KB | type=${mimeType}`);
 
     const startTime = Date.now();
 
@@ -98,18 +127,15 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
 
     const duration = Date.now() - startTime;
     const content = response.choices[0]?.message?.content || "[]";
-
-    console.log(`[BIOS:${requestId}] Photo scan completed in ${duration}ms`);
+    console.log(`[BIOS:photo-scan:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms`);
 
     let settings: any[] = [];
     try {
       const jsonMatch = content.match(/\[[\s\S]*\]/);
-      if (jsonMatch) {
-        settings = JSON.parse(jsonMatch[0]);
-      }
-    } catch (parseErr) {
-      console.error(`[BIOS:${requestId}] Failed to parse photo scan response`);
-      return res.status(500).json({ error: "Failed to parse BIOS photo analysis" });
+      if (jsonMatch) settings = JSON.parse(jsonMatch[0]);
+    } catch {
+      console.error(`[BIOS:photo-scan:${requestId}] Failed to parse response`);
+      return res.status(500).json({ error: "Failed to parse BIOS photo analysis. Please try again." });
     }
 
     const detections = settings
@@ -122,24 +148,20 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
         detectedValue: String(s.value),
       }));
 
-    return res.json({
-      detections,
-      settingsFound: detections.length,
-      analysisTimeMs: duration,
-    });
+    console.log(`[BIOS:photo-scan:${requestId}] OK | user=${cloudUser?.id} | detections=${detections.length}`);
+    return res.json({ detections, settingsFound: detections.length, analysisTimeMs: duration });
+
   } catch (err: any) {
     const status = err?.status;
-    const msg = err?.message || "unknown";
-    console.error(`[BIOS:photo-scan:${requestId}] ERROR | status=${status} message=${msg}`);
-    if (status === 401) {
-      return res.status(503).json({ error: "BIOS AI provider authentication failed: OPENAI_API_KEY invalid or expired." });
-    }
-    if (status === 429) {
-      return res.status(429).json({ error: "AI rate limit reached. Please wait a moment." });
-    }
+    console.error(`[BIOS:photo-scan:${requestId}] ERROR | user=${cloudUser?.id} | status=${status} | ${err?.message || "unknown"}`);
+    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
     return res.status(500).json({ error: "Photo analysis failed. Please try again." });
   }
 });
+
+// ---------------------------------------------------------------------------
+// POST /bios/explain
+// ---------------------------------------------------------------------------
 
 const explainSchema = z.object({
   cpuModel: z.string().min(1),
@@ -181,13 +203,17 @@ Return a JSON object with:
 
 biosRouter.post("/explain", async (req: Request, res: Response) => {
   const requestId = crypto.randomUUID().slice(0, 8);
-  const apiKey = process.env.OPENAI_API_KEY;
+  const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
 
-  console.log(`[BIOS:explain:${requestId}] ${new Date().toISOString()} | OPENAI_API_KEY present: ${!!apiKey}`);
+  // Proof log
+  console.log(`[BIOS:explain:${requestId}] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | bearer=${!!req.headers.authorization}`);
 
-  if (!apiKey) {
-    console.error(`[BIOS:explain:${requestId}] FAIL — OPENAI_API_KEY missing in runtime env`);
-    return res.status(503).json({ error: "BIOS AI provider not configured: OPENAI_API_KEY missing in packaged Electron runtime." });
+  let openai: OpenAI;
+  try {
+    openai = getOpenAI();
+  } catch {
+    console.error(`[BIOS:explain:${requestId}] OPENAI_API_KEY missing on cloud server`);
+    return res.status(503).json({ error: "AI service is temporarily unavailable." });
   }
 
   try {
@@ -196,10 +222,9 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid request body" });
     }
 
-    const openai = new OpenAI({ apiKey });
     const { cpuModel, gpuModel, ramTotalGB, detections, scores } = parsed.data;
 
-    console.log(`[BIOS:explain:${requestId}] Request for ${cpuModel} / ${gpuModel} | ${detections.length} detections`);
+    console.log(`[BIOS:explain:${requestId}] Calling OpenAI | user=${cloudUser?.id} | cpu=${cpuModel} gpu=${gpuModel} detections=${detections.length}`);
 
     const startTime = Date.now();
 
@@ -221,15 +246,12 @@ ${detections.map(d => `- ${d.settingId}: ${d.detectedValue || "unknown"} (${d.st
 
     const duration = Date.now() - startTime;
     const content = response.choices[0]?.message?.content || "{}";
-
-    console.log(`[BIOS:${requestId}] Explanation completed in ${duration}ms`);
+    console.log(`[BIOS:explain:${requestId}] OpenAI OK | user=${cloudUser?.id} | ${duration}ms`);
 
     let explanation: any = {};
     try {
       const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        explanation = JSON.parse(jsonMatch[0]);
-      }
+      if (jsonMatch) explanation = JSON.parse(jsonMatch[0]);
     } catch {
       explanation = { overview: content, settingExplanations: [], recommendations: [], confidenceNote: "" };
     }
@@ -249,16 +271,11 @@ ${detections.map(d => `- ${d.settingId}: ${d.detectedValue || "unknown"} (${d.st
       confidenceNote: String(explanation.confidenceNote || ""),
       analysisTimeMs: duration,
     });
+
   } catch (err: any) {
     const status = err?.status;
-    const msg = err?.message || "unknown";
-    console.error(`[BIOS:explain:${requestId}] ERROR | status=${status} message=${msg}`);
-    if (status === 401) {
-      return res.status(503).json({ error: "BIOS AI provider authentication failed: OPENAI_API_KEY invalid or expired." });
-    }
-    if (status === 429) {
-      return res.status(429).json({ error: "AI rate limit reached. Please wait a moment." });
-    }
+    console.error(`[BIOS:explain:${requestId}] ERROR | user=${cloudUser?.id} | status=${status} | ${err?.message || "unknown"}`);
+    if (status === 429) return res.status(429).json({ error: "Rate limit reached. Please wait a moment." });
     return res.status(500).json({ error: "Firmware explanation failed. Please try again." });
   }
 });
