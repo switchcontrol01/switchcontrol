@@ -1,0 +1,191 @@
+TASK
+
+Fix telemetry rendering so the Live System Monitor shows multiple lines (CPU, RAM, Disk, Network, GPU) instead of only CPU.
+
+This is NOT a UI-only issue. It is caused by inconsistent IPC data shapes and incorrect visibility logic.
+
+---
+
+ROOT CAUSES
+
+1. GPU telemetry returns ARRAY but frontend treats it as OBJECT
+2. RAM IPC shape mismatch (missing totalGB / usedGB)
+3. Network values set to null when idle
+4. LiveGraph visibility depends on history instead of current state
+5. Memory cleaner crash due to missing import + unsafe response handling
+
+---
+
+FILES TO MODIFY
+
+- client/src/components/dashboard/LiveGraph.tsx
+- client/src/components/dashboard/GpuModal.tsx
+- client/src/pages/Home.tsx
+- client/src/components/dashboard/MemoryCleanerModal.tsx
+- electron/main.js
+
+---
+
+IMPLEMENTATION
+
+---
+
+1. FIX GPU ARRAY HANDLING
+
+In BOTH:
+
+- GpuModal.tsx
+- Home.tsx
+
+Replace:
+
+const res = await api.telemetry.getGpu();
+setData(res);
+
+WITH:
+
+const res = await api.telemetry.getGpu();
+const gpu = Array.isArray(res) ? res[0] : res;
+if (!gpu) return;
+setData(gpu);
+
+Then replace ALL usage:
+
+- res.load → gpu.load
+- res.temperature → gpu.temperature
+- etc
+
+---
+
+2. FIX GPU DETAIL DETECTION (Home.tsx)
+
+Replace broken logic:
+
+gpuData.load
+
+WITH:
+
+const gpu = Array.isArray(gpuData) ? gpuData[0] : gpuData;
+
+if (gpu) {
+  const hasDetail =
+    gpu.load !== undefined ||
+    gpu.temperature !== undefined ||
+    gpu.powerDraw !== undefined ||
+    gpu.clockCore !== undefined ||
+    (gpu.memoryUsed !== undefined && gpu.vram !== undefined);
+
+  setGpuDetailAvailable(hasDetail);
+} else {
+  setGpuDetailAvailable(false);
+}
+
+---
+
+3. FIX RAM IPC SHAPE (electron/main.js)
+
+Inside system:getRamUsage return:
+
+return {
+  total: mem.total,
+  used: mem.total - mem.available,
+  free: mem.available,
+  usagePercent: Math.round(((mem.total - mem.available) / mem.total) * 100),
+
+  totalGB: Math.round(mem.total / 1024 / 1024 / 1024),
+  usedGB: Number(((mem.total - mem.available) / 1024 / 1024 / 1024).toFixed(1)),
+  freeGB: Number((mem.available / 1024 / 1024 / 1024).toFixed(1)),
+};
+
+Frontend must use these consistently.
+
+---
+
+4. FIX NETWORK TELEMETRY (electron/main.js)
+
+Replace:
+
+netRxSec: netRxKBs > 0 ? netRxKBs : null,
+netTxSec: netTxKBs > 0 ? netTxKBs : null,
+
+WITH:
+
+netRxSec: netRxKBs,
+netTxSec: netTxKBs,
+
+Idle = 0, NOT null.
+
+---
+
+5. FIX LIVEGRAPH VISIBILITY LOGIC
+
+In LiveGraph.tsx REMOVE history-based checks:
+
+data.some(...)
+
+REPLACE WITH:
+
+const latestPoint = data[data.length - 1];
+
+const hasCpuTemp = latestPoint?.cpuTemp != null;
+const hasGpuLoad = latestPoint?.gpuLoad != null;
+const hasGpuTemp = latestPoint?.gpuTemp != null;
+const hasGpuMem = latestPoint?.gpuMemPct != null;
+const hasRamData = latestPoint?.ram != null;
+const hasDiskData = latestPoint?.disk != null;
+const hasNetRx = latestPoint?.netRx != null;
+const hasNetTx = latestPoint?.netTx != null;
+
+---
+
+6. FIX RAM DATA POINT (LiveGraph.tsx)
+
+Replace:
+
+ram: ramPercent > 0 ? ramPercent : null,
+
+WITH:
+
+ram: hasRam ? ramPercent : null,
+
+---
+
+7. FIX MEMORY CLEANER CRASH
+
+In MemoryCleanerModal.tsx:
+
+Add missing import:
+
+import { RotateCcw } from "lucide-react";
+
+---
+
+Also validate response BEFORE using:
+
+if (!res || typeof res !== "object") {
+  toast.error("Invalid memory response");
+  return;
+}
+
+---
+
+EXPECTED RESULT
+
+After rebuild + reinstall:
+
+- Graph shows CPU + RAM + Disk
+- Network lines visible (even at 0)
+- GPU lines appear if telemetry exists
+- GPU modal works correctly
+- Memory cleaner no longer crashes
+
+---
+
+FINAL OUTPUT
+
+Return:
+
+- exact files changed
+- confirmation of lines visible in graph
+- confirmation GPU works
+- confirmation memory cleaner stable
