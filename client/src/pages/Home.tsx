@@ -208,7 +208,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
               </div>
             </div>
             <div className="flex items-center justify-between">
-              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", levelColors[optimizationLevel] ?? levelColors.Basic)}>
+              <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", levelColors[optimizationLevel ?? "Basic"] ?? levelColors.Basic)}>
                 {optimizationLevel}
               </span>
             </div>

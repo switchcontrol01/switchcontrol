@@ -37,6 +37,7 @@ interface BiosAdvisorState {
   }) => void;
 
   setPhotoDetections: (detections: FirmwareDetection[]) => void;
+  updateScores: (scores: BiosScore, optimizationLevel: OptimizationLevel) => void;
   setAiExplanation: (explanation: AiExplanation, hash: string) => void;
   clearAiExplanation: () => void;
   resetBiosAdvisor: () => void;
@@ -82,7 +83,10 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
         });
       },
 
-      setPhotoDetections: (detections) => set({ photoDetections: detections }),
+      setPhotoDetections: (detections) =>
+        set({ photoDetections: detections, aiExplanation: null, aiExplanationHash: null }),
+
+      updateScores: (scores, optimizationLevel) => set({ scores, optimizationLevel }),
 
       setAiExplanation: (explanation, hash) =>
         set({ aiExplanation: explanation, aiExplanationHash: hash }),

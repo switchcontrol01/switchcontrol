@@ -505,6 +505,7 @@ export default function BiosAdvisor() {
     aiExplanation,
     completeScan,
     setPhotoDetections: storeSetPhotoDetections,
+    updateScores: storeUpdateScores,
     setAiExplanation: storeSetAiExplanation,
     resetBiosAdvisor,
   } = useBiosAdvisorStore();
@@ -658,6 +659,11 @@ export default function BiosAdvisor() {
 
       if (data.detections && data.detections.length > 0) {
         storeSetPhotoDetections(data.detections);
+        // Recompute scores with merged detections so store stays in sync with BiosAdvisor display
+        const mergedSettings = applyDetectionsToSettings(BIOS_SETTINGS, detections, data.detections);
+        const mergedScores = calculateBiosScores(mergedSettings);
+        const mergedLevel = getOptimizationLevel(mergedScores.competitiveReadiness);
+        storeUpdateScores(mergedScores, mergedLevel);
       } else {
         setPhotoError("No BIOS settings could be identified in this image. Try a clearer photo.");
       }
@@ -669,7 +675,7 @@ export default function BiosAdvisor() {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, [storeSetPhotoDetections]);
+  }, [storeSetPhotoDetections, storeUpdateScores, detections]);
 
   const handleAiExplain = useCallback(async () => {
     if (allDetections.length === 0) return;
