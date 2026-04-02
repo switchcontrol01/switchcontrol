@@ -33,7 +33,7 @@ function waitForBackend(port, timeoutMs = 20000) {
         return reject(new Error(`Backend health check timed out after ${timeoutMs}ms (${attempt} attempts)`));
       }
 
-      const retryDelay = attempt <= 5 ? 80 : attempt <= 20 ? 150 : 200;
+      const retryDelay = attempt <= 5 ? 100 : attempt <= 15 ? 150 : 200;
 
       const req = http.get(`http://127.0.0.1:${port}/api/health`, { timeout: 2000 }, (res) => {
         let body = '';

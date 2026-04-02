@@ -118,8 +118,8 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
       if (raw.disks && Array.isArray(raw.disks)) {
         const primary = raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/') || raw.disks[0];
         if (!primary) {
-          setErrorCount(prev => prev + 1);
-          if (errorCount > 5) setFetchError("No disk partitions found");
+          errorCountRef.current += 1;
+          if (errorCountRef.current > 5) setFetchError("No disk partitions found");
           return;
         }
         const size = safeBytes(primary.size);
@@ -146,7 +146,7 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
       if (!mountedRef.current) return;
       setData(diskData);
       setFetchError(null);
-      setErrorCount(0);
+      errorCountRef.current = 0;
 
       const now = Date.now();
       const curRead = diskData.readBytes ?? 0;
@@ -211,7 +211,7 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
 
   const handleRetry = () => {
     setFetchError(null);
-    setErrorCount(0);
+    errorCountRef.current = 0;
     prevIORef.current = null;
     setIoHistory([]);
     fetchDisk();
