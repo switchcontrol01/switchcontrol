@@ -18,6 +18,7 @@ const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
 const backendLauncher = require('./backend-launcher');
+const configStore = require('./config-store');
 
 app.setName('SwitchControl');
 const isDev = !app.isPackaged;
@@ -493,6 +494,28 @@ ipcMain.handle('app:getDeviceId', () => {
   return cachedDeviceId;
 });
 
+// Config store handlers — persisted secrets for packaged runtime
+ipcMain.handle('config:get', (event, key) => {
+  if (typeof key !== 'string' || !key) return null;
+  return configStore.get(key);
+});
+
+ipcMain.handle('config:set', (event, key, value) => {
+  if (typeof key !== 'string' || !key) return { ok: false, error: 'Invalid key' };
+  try {
+    configStore.set(key, typeof value === 'string' ? value.trim() : null);
+    console.log(`[ConfigStore] Set ${key}: present=${!!(typeof value === 'string' && value.trim())}`);
+    return { ok: true };
+  } catch (e) {
+    console.error('[ConfigStore] set error:', e.message);
+    return { ok: false, error: e.message };
+  }
+});
+
+ipcMain.handle('config:getPresence', () => {
+  return configStore.getPresenceMap();
+});
+
 // Memory cleaner - calls native Rust helper
 ipcMain.handle('memory:clean', async (event, mode) => {
   const validModes = ['safe', 'smart', 'advanced'];
@@ -538,6 +561,12 @@ ipcMain.handle('memory:clean', async (event, mode) => {
       }
     });
   });
+});
+
+ipcMain.handle('app:restart', () => {
+  console.log('[App] Relaunching app on user request');
+  app.relaunch();
+  app.exit(0);
 });
 
 ipcMain.handle('app:resetData', async () => {
@@ -1176,6 +1205,10 @@ app.whenReady().then(async () => {
   console.log('[BOOT] isDev:', isDev, '| isPackaged:', app.isPackaged);
   console.log('[BOOT] process.execPath:', process.execPath);
   console.log('[BOOT] process.resourcesPath:', process.resourcesPath);
+
+  const userDataPath = app.getPath('userData');
+  configStore.init(userDataPath);
+  console.log('[BOOT] Config store initialized:', userDataPath);
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   console.log('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));

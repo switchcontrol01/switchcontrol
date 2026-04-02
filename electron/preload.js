@@ -93,6 +93,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openDevTools: () => ipcRenderer.invoke('app:openDevTools'),
 
   // App data management
+  restart: () => ipcRenderer.invoke('app:restart'),
   resetAppData: () => ipcRenderer.invoke('app:resetData'),
   openLogs: () => ipcRenderer.invoke('app:openLogs'),
 
@@ -101,6 +102,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Debug: dump Electron cookies for switchcontrol.org
   debugCookies: () => ipcRenderer.invoke('auth:debugCookies'),
+
+  // Packaged config store — persisted secrets (e.g. OPENAI_API_KEY)
+  config: {
+    get: (key) => ipcRenderer.invoke('config:get', key),
+    set: (key, value) => ipcRenderer.invoke('config:set', key, value),
+    getPresence: () => ipcRenderer.invoke('config:getPresence'),
+  },
 });
 
 window.addEventListener('DOMContentLoaded', () => {

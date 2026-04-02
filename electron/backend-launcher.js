@@ -3,6 +3,9 @@ const path = require('path');
 const http = require('http');
 const net = require('net');
 const fs = require('fs');
+const configStore = require('./config-store');
+
+const TRACKED_KEYS = ['OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
 
 let backendProcess = null;
 let backendReady = false;
@@ -118,8 +121,20 @@ async function startBackend(app) {
       console.warn('[Backend] Could not get userData path:', e.message);
     }
 
+    const configSecrets = configStore.readConfig();
+
+    console.log('[Backend] ELECTRON_USER_DATA:', userDataPath || '(not set)');
+    console.log('[Backend] ===== ENV KEY DIAGNOSTICS =====');
+    for (const k of TRACKED_KEYS) {
+      const inParent = !!process.env[k];
+      const inConfig = !!(configSecrets[k]);
+      console.log(`[Backend]   ${k}: parent_env=${inParent} | config_file=${inConfig} | will_use=${inParent || inConfig}`);
+    }
+    console.log('[Backend] =====================================');
+
     const env = {
       ...process.env,
+      ...configSecrets,
       NODE_ENV: 'production',
       PORT: String(port),
       ELECTRON_BACKEND: '1',
@@ -127,9 +142,12 @@ async function startBackend(app) {
       ELECTRON_USER_DATA: userDataPath,
     };
 
-    console.log('[Backend] ELECTRON_USER_DATA:', userDataPath || '(not set)');
-    console.log('[Backend] OPENAI_API_KEY present in child env:', !!env.OPENAI_API_KEY);
+    console.log('[Backend] ===== CHILD ENV KEY DIAGNOSTICS =====');
+    for (const k of TRACKED_KEYS) {
+      console.log(`[Backend]   child_env ${k}: ${!!env[k]}`);
+    }
     console.log('[Backend] AI_MODEL in child env:', env.AI_MODEL || '(not set, will use gpt-4o-mini)');
+    console.log('[Backend] ==========================================');
 
     console.log('[Backend] Spawning child process...');
     console.log('[Backend]   execPath:', process.execPath);
