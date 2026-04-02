@@ -1,8 +1,11 @@
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TweaksList } from "@/components/tweaks/TweaksList";
 import { Zap } from "lucide-react";
+import { isElectronWithTweaks } from "@/hooks/use-tweak-executor";
 
 export default function Tweaks() {
+  const isElectron = isElectronWithTweaks();
+
   return (
     <AppLayout>
       <div className="space-y-6 h-full">
@@ -12,11 +15,12 @@ export default function Tweaks() {
             System Tweaks
           </h1>
           <p className="text-muted-foreground mt-2 max-w-2xl">
-            Fine-tune your Windows experience. Toggle settings to simulate optimization. 
-            <span className="text-yellow-500 ml-2 text-sm font-medium">⚠️ Actions are simulated for this prototype.</span>
+            {isElectron
+              ? "Real Windows optimizations — each toggle reads and writes your actual system state and verifies the change."
+              : "Windows performance optimizations. Launch the desktop app to apply real system changes."}
           </p>
         </div>
-        
+
         <div data-tour="advanced-premium-tweaks">
           <TweaksList />
         </div>

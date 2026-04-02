@@ -398,7 +398,8 @@ export const TWEAKS_DATA: Tweak[] = [
     expected: { latency: "Low", cpu: "Low", ram: "None", gpu: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
     category: "Gaming and Latency", 
     level: "Experimental", 
-    risk: "Risky" 
+    risk: "Risky",
+    requiresReboot: true
   },
   { 
     id: "timer-res", 
@@ -447,17 +448,18 @@ export const TWEAKS_DATA: Tweak[] = [
   },
   { 
     id: "preemption", 
-    title: "Enable Preemption", 
-    description: "Adjusts GPU scheduling behavior for smoother context switching (varies by driver).",
+    title: "Enable Hardware GPU Scheduling", 
+    description: "Enables Hardware Accelerated GPU Scheduling (HwSchMode), allowing the GPU to manage its own memory and scheduling.",
     impact: [
-      "Can improve responsiveness during GPU context switching",
-      "May reduce hitching when overlays or capture tools are active",
-      "Risk: effect depends heavily on GPU/driver and may do nothing"
+      "Can reduce CPU overhead from GPU scheduling on supported drivers",
+      "May improve frame pacing and reduce hitching in some titles",
+      "Risk: effect varies by GPU and driver — may do nothing or cause issues on older hardware"
     ],
     expected: { gpu: "Low", latency: "Low", cpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
     category: "GPU and Graphics", 
     level: "Advanced", 
-    risk: "Safe" 
+    risk: "Safe",
+    requiresReboot: true
   },
   
   // Network
@@ -472,7 +474,7 @@ export const TWEAKS_DATA: Tweak[] = [
     ],
     expected: { cpu: "Low", network: "None", disk: "None", ram: "None", gpu: "None", latency: "Low", stabilityRisk: "Low" },
     category: "Network", 
-    level: "Recommended", 
+    level: "Advanced", 
     risk: "Moderate" 
   },
   { 
@@ -482,11 +484,11 @@ export const TWEAKS_DATA: Tweak[] = [
     impact: [
       "Removes Wi-Fi to ensure only Ethernet is used",
       "Reduces wireless scanning/background network polling",
-      "No Wi-Fi connectivity until re-enabled"
+      "No Wi-Fi connectivity until re-enabled — not recommended for general users"
     ],
     expected: { network: "High", cpu: "Low", disk: "None", ram: "None", gpu: "None", latency: "None", stabilityRisk: "Low" },
     category: "Network", 
-    level: "Recommended", 
+    level: "Advanced", 
     risk: "Moderate" 
   },
   

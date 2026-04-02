@@ -87,6 +87,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     syncAll: () => ipcRenderer.invoke('tweak:syncAll'),
     getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
     getInfo: () => ipcRenderer.invoke('tweak:getInfo'),
+    getLog: () => ipcRenderer.invoke('tweak:getLog'),
   },
 
   // Memory cleaner

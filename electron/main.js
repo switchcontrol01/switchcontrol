@@ -1243,12 +1243,17 @@ ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
 });
 
 ipcMain.handle('tweak:syncAll', async () => {
-  const state = tweakExecutor.getLocalState();
+  // Check ALL known real tweaks (not just previously-applied ones)
+  const allTweakIds = Object.keys(tweakExecutor.ALL_TWEAKS);
   const results = {};
-  for (const tweakId of Object.keys(state.appliedTweaks)) {
+  for (const tweakId of allTweakIds) {
     results[tweakId] = await tweakExecutor.checkTweakStatus(tweakId);
   }
   return results;
+});
+
+ipcMain.handle('tweak:getLog', () => {
+  return tweakExecutor.getExecutionLog();
 });
 
 ipcMain.handle('tweak:getLocalState', () => {
