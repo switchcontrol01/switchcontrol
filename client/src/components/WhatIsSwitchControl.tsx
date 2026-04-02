@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Zap, Monitor, Wifi, ChevronRight, Shield, RotateCcw } from 'lucide-react';
+import { Zap, Monitor, Wifi, Shield, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import AnimateIn from './AnimateIn';
+import { Reveal } from '@/lib/motion';
 import wordmarkImg from '@/assets/wordmark.png';
 
 type TabId = 'latency' | 'frames' | 'network';
@@ -50,7 +50,7 @@ export function WhatIsSwitchControl() {
   return (
     <section className="py-20 md:py-24 relative" data-reveal>
       <div className="container mx-auto px-4 max-w-4xl">
-        <AnimateIn delay={100}>
+        <Reveal duration={0.7} distance={32}>
           <motion.div 
             className={cn(
               "relative rounded-2xl overflow-hidden",
@@ -115,7 +115,7 @@ export function WhatIsSwitchControl() {
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   {pillars.map((pillar, index) => (
-                    <AnimateIn key={index} delay={150 + index * 50}>
+                    <Reveal key={index} delay={0.1 + index * 0.07} duration={0.5}>
                       <div 
                         className={cn(
                           "flex items-center gap-3 p-3 rounded-lg",
@@ -128,7 +128,7 @@ export function WhatIsSwitchControl() {
                         </div>
                         <span className="text-sm text-zinc-200">{pillar.text}</span>
                       </div>
-                    </AnimateIn>
+                    </Reveal>
                   ))}
                 </div>
               </div>
@@ -199,7 +199,7 @@ export function WhatIsSwitchControl() {
               </div>
             </div>
           </motion.div>
-        </AnimateIn>
+        </Reveal>
       </div>
     </section>
   );

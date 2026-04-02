@@ -870,11 +870,11 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ──── What is SwitchControl ──── */}
-        <WhatIsSwitchControl />
-
         {/* ──── UI Exploration ──── */}
         <UIExploration />
+
+        {/* ──── What is SwitchControl ──── */}
+        <WhatIsSwitchControl />
 
         <SectionDivider glow />
 
