@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -176,16 +177,11 @@ export default function Debloater() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <ShieldCheck className="size-8 text-primary" />
-            Debloater
-          </h1>
-          <p className="text-muted-foreground mt-2 max-w-2xl">
-            Role-based debloating that removes what you don't need while protecting what you do.
-            <span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span>
-          </p>
-        </div>
+        <PageHeader
+          icon={ShieldCheck}
+          title="Debloater"
+          subtitle={<>Role-based debloating that removes what you don't need while protecting what you do.<span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span></>}
+        />
 
         <div className="grid grid-cols-5 gap-3">
           {SYSTEM_ROLES.map((r) => {

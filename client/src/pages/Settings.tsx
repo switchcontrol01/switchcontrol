@@ -1,4 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { useStore } from "@/lib/store";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -50,15 +51,11 @@ export default function Settings() {
   return (
     <AppLayout>
       <div className="space-y-6 max-w-4xl">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-            <SettingsIcon className="size-8 text-primary" />
-            Settings
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Manage application preferences and account details.
-          </p>
-        </div>
+        <PageHeader
+          icon={SettingsIcon}
+          title="Settings"
+          subtitle="Manage application preferences and account details."
+        />
 
         <div className="grid gap-6">
           {/* General Settings */}

@@ -537,11 +537,21 @@ export default function AiAdvisor() {
       <div className={cn("flex flex-col h-[calc(100vh-120px)] max-w-3xl mx-auto", !isPremium && "opacity-60 blur-[2px]")}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-4 shrink-0">
+        <motion.div
+          className="flex items-center justify-between mb-4 shrink-0"
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-cyan-500/10 border border-primary/30">
+            <motion.div
+              className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-cyan-500/10 border border-primary/30"
+              initial={{ rotate: -15, scale: 0.6, opacity: 0 }}
+              animate={{ rotate: 0, scale: 1, opacity: 1 }}
+              transition={{ duration: 0.45, delay: 0.08, ease: [0.34, 1.56, 0.64, 1] }}
+            >
               <Brain className="w-5 h-5 text-primary" />
-            </div>
+            </motion.div>
             <div>
               <h1 className="text-lg font-bold text-white flex items-center gap-2" data-testid="text-ai-advisor-title">
                 AI Advisor
@@ -563,7 +573,7 @@ export default function AiAdvisor() {
               New Chat
             </Button>
           )}
-        </div>
+        </motion.div>
 
         {/* Spec chips */}
         {context?.system.cpu && (

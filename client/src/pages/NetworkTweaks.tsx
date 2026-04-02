@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -341,17 +342,27 @@ export default function NetworkTweaks() {
   return (
     <AppLayout>
       <div className={cn("p-8 space-y-8", !isPremium && "opacity-60 blur-[2px]")} data-tour="network-content">
-        <div className="space-y-2">
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0, y: -14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
               Network Tweaks
             </h1>
             <PremiumHeaderBadge isLocked={!isPremium} />
           </div>
-          <p className="text-muted-foreground">
+          <motion.p
+            className="text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.45, delay: 0.2 }}
+          >
             Optimize latency, throughput, and stability. Apply carefully.
-          </p>
-        </div>
+          </motion.p>
+        </motion.div>
 
         <GlassCard className="p-4 border-[hsl(270,60%,55%,0.2)] bg-[hsl(270,60%,55%,0.05)]">
           <div className="flex gap-3">

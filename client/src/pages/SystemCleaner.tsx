@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -222,23 +223,16 @@ export default function SystemCleaner() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-              <Trash2 className="size-8 text-primary" />
-              System Cleaner
-            </h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl">
-              Impact-based cleaning that targets performance, not just disk space.
-              <span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span>
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
+        <PageHeader
+          icon={Trash2}
+          title="System Cleaner"
+          subtitle={<>Impact-based cleaning that targets performance, not just disk space.<span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span></>}
+          actions={
             <Badge variant="outline" className={cn(mode === "safe" ? "bg-green-500/20 text-green-400" : "bg-orange-500/20 text-orange-400")}>
               {mode === "safe" ? "Safe Mode" : "Advanced Mode"}
             </Badge>
-          </div>
-        </div>
+          }
+        />
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           <Card className="bg-card/50 border-border/50">

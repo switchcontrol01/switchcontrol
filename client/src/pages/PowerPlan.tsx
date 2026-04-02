@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -359,15 +360,12 @@ export default function PowerPlan() {
   return (
     <AppLayout>
       <div className={cn("space-y-8 relative", !isPremium && "opacity-60 blur-[2px]")}>
-        <div>
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              Power Plan
-            </h1>
-            <PremiumHeaderBadge isLocked={!isPremium} />
-          </div>
-          <p className="text-muted-foreground mt-1">Configure power profiles for optimal gaming performance.</p>
-        </div>
+        <PageHeader
+          icon={Zap}
+          title="Power Plan"
+          badge={<PremiumHeaderBadge isLocked={!isPremium} />}
+          subtitle="Configure power profiles for optimal gaming performance."
+        />
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profiles" | "custom")} className="space-y-6">
           <TabsList className="bg-black/40 border border-white/10">

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -173,41 +174,30 @@ export default function FocusMode() {
   return (
     <AppLayout>
       <div className="space-y-6">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
-              <Moon className="size-8 text-primary" />
-              Focus Mode
-            </h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl">
-              Zero distractions, maximum stability. One toggle, no micromanagement.
-              <span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span>
-            </p>
-          </div>
-          <Button 
-            size="lg"
-            onClick={toggleFocus}
-            className={cn(
-              "min-w-40 transition-all",
-              isActive 
-                ? "bg-green-500 hover:bg-green-600 text-white" 
-                : "bg-primary hover:bg-primary/90"
-            )}
-            data-testid="button-toggle-focus"
-          >
-            {isActive ? (
-              <>
-                <Pause className="size-5 mr-2" />
-                Deactivate
-              </>
-            ) : (
-              <>
-                <Play className="size-5 mr-2" />
-                Activate Focus
-              </>
-            )}
-          </Button>
-        </div>
+        <PageHeader
+          icon={Moon}
+          title="Focus Mode"
+          subtitle={<>Zero distractions, maximum stability. One toggle, no micromanagement.<span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span></>}
+          actions={
+            <Button
+              size="lg"
+              onClick={toggleFocus}
+              className={cn(
+                "min-w-40 transition-all",
+                isActive
+                  ? "bg-green-500 hover:bg-green-600 text-white"
+                  : "bg-primary hover:bg-primary/90"
+              )}
+              data-testid="button-toggle-focus"
+            >
+              {isActive ? (
+                <><Pause className="size-5 mr-2" />Deactivate</>
+              ) : (
+                <><Play className="size-5 mr-2" />Activate Focus</>
+              )}
+            </Button>
+          }
+        />
 
         {isActive && (
           <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30">

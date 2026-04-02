@@ -411,12 +411,24 @@ export default function Home() {
         <div className="relative" data-tour="dashboard-hero">
           <DashboardHeaderParticles />
           <div className="flex items-center justify-between relative z-10">
-            <div>
+            <motion.div
+              initial={{ opacity: 0, y: -14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
               <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-[hsl(270,60%,75%)] to-white/60 bg-clip-text text-transparent">
                 Good {getGreeting()}, {getUserDisplayName()} {isPremium && <span className="text-2xl">👑</span>}
               </h1>
-              <p className="text-muted-foreground mt-1" data-testid="text-dashboard-tagline">{useDashboardTagline()}</p>
-            </div>
+              <motion.p
+                className="text-muted-foreground mt-1"
+                data-testid="text-dashboard-tagline"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.45, delay: 0.2 }}
+              >
+                {useDashboardTagline()}
+              </motion.p>
+            </motion.div>
             <div className="flex items-center gap-3">
                <Link href="/history">
                  <Button variant="outline" className="gap-2 hidden sm:flex">
