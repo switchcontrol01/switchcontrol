@@ -296,14 +296,14 @@ export default function PowerPlan() {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [infoToggle, setInfoToggle]     = useState<OverrideToggle | null>(null);
 
-  // Backend state
+  const isElectron = isElectronWithPowerPlans();
+
+  // Backend state — only show loading if we're actually in Electron (otherwise data is instant)
   const [backendState,   setBackendState]   = useState<BackendState | null>(null);
-  const [planLoading,    setPlanLoading]    = useState(true);
+  const [planLoading,    setPlanLoading]    = useState(isElectron);
   const [planError,      setPlanError]      = useState<string | null>(null);
   const [applying,       setApplying]       = useState<string | null>(null); // frontend profileId
   const [applyResult,    setApplyResult]    = useState<{ profileId: string; success: boolean; match: string } | null>(null);
-
-  const isElectron = isElectronWithPowerPlans();
   const hasFetched = useRef(false);
 
   // ── Fetch real power state on mount ────────────────────────────────────────
@@ -453,7 +453,7 @@ export default function PowerPlan() {
         className={cn("space-y-8 relative", !isPremium && "opacity-60 blur-[2px]")}
         variants={pageTransition}
         initial="initial"
-        animate="animate"
+        animate={planLoading ? "initial" : "animate"}
         exit="exit"
       >
         <Reveal>
@@ -530,8 +530,6 @@ export default function PowerPlan() {
               <motion.div
                 className="grid gap-4 md:grid-cols-3"
                 variants={staggerContainer}
-                initial="initial"
-                animate="animate"
               >
                 {POWER_PROFILES.map((profile) => {
                   const isActive   = activeProfileId === profile.id;
