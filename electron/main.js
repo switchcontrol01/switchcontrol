@@ -37,6 +37,66 @@ let cachedSpecsTime = 0;
 const SPECS_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 let lastCpuLoad = 0;
 
+// ─── Live telemetry cache ────────────────────────────────────────────────────
+// si.currentLoad(), si.networkStats(), and si.disksIO() are ALL differential
+// measurement APIs. The first call to each always returns 0 because the library
+// has no previous reading to subtract from. getLive must NOT call them fresh on
+// every request. Instead a background poll runs every 2s so the differential
+// APIs have a real baseline, and getLive reads the cached snapshot.
+let liveTelemetryCache = null;
+let telemetryPollInterval = null;
+
+async function pollTelemetry() {
+  try {
+    const [load, mem, temps, fsData, netStats, diskIO] = await Promise.all([
+      si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
+      si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: 0, available: 0 }; }),
+      si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] })),
+      si.fsSize().catch(() => []),
+      si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; }),
+      si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return { rIO_sec: 0, wIO_sec: 0 }; }),
+    ]);
+
+    console.log('[telemetry:poll] RAW si outputs:',
+      JSON.stringify({
+        currentLoad: load.currentLoad,
+        cpuCount: (load.cpus || []).length,
+        memTotal: mem.total,
+        memAvailable: mem.available,
+        cpuTemp: temps.main,
+        fsCount: (fsData || []).length,
+        fsMounts: (fsData || []).map(d => ({ mount: d.mount, size: d.size, used: d.used, use: d.use })),
+        netIfaceCount: (netStats || []).length,
+        netFirst: netStats?.[0] ? { iface: netStats[0].iface, rx_sec: netStats[0].rx_sec, tx_sec: netStats[0].tx_sec } : null,
+        diskIO: { rIO_sec: diskIO?.rIO_sec, wIO_sec: diskIO?.wIO_sec },
+      })
+    );
+
+    liveTelemetryCache = { load, mem, temps, fsData: fsData || [], netStats: netStats || [], diskIO: diskIO || { rIO_sec: 0, wIO_sec: 0 }, timestamp: Date.now() };
+  } catch (e) {
+    console.error('[telemetry:poll] unexpected error:', e.message);
+  }
+}
+
+async function startTelemetryPolling() {
+  console.log('[telemetry:poll] priming differential APIs (first call establishes baseline)...');
+  // First call to differential APIs always returns 0 — fire and discard.
+  await Promise.allSettled([
+    si.currentLoad(),
+    si.networkStats(),
+    si.disksIO(),
+  ]);
+  console.log('[telemetry:poll] prime done — waiting 1.5s for real readings...');
+
+  // Wait 1.5s so differential APIs have a measurement window before the first
+  // real poll. This means the first getLive call gets non-zero values.
+  await new Promise(r => setTimeout(r, 1500));
+  await pollTelemetry();
+
+  telemetryPollInterval = setInterval(pollTelemetry, 2000);
+  console.log('[telemetry:poll] background poll started (2s interval)');
+}
+
 // Register protocol handler BEFORE app is ready
 let protocolRegistered = false;
 if (process.defaultApp) {
@@ -904,14 +964,24 @@ ipcMain.handle('system:getSpecs', async () => {
 
 ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
   try {
-    const [load, mem, temps, fsData, netStats, diskIO] = await Promise.all([
-      si.currentLoad().catch(() => ({ currentLoad: 0, cpus: [] })),
-      si.mem().catch(() => ({ total: 0, available: 0, used: 0, swaptotal: 0, swapused: 0 })),
-      si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] })),
-      si.fsSize().catch(() => []),
-      si.networkStats().catch(() => []),
-      si.disksIO().catch(() => ({ rIO_sec: 0, wIO_sec: 0 }))
-    ]);
+    // Use the background-polled cache. If not yet populated (first call before
+    // priming completes) return zeros — the next call will have real data.
+    if (!liveTelemetryCache) {
+      console.warn('[telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.');
+      return {
+        timestamp: Date.now(),
+        cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
+        ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
+        gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
+        disk:    { selectedMount: null, usagePct: 0, readOpsPerSec: 0, writeOpsPerSec: 0 },
+        network: { rxKBps: 0, txKBps: 0 },
+        ssds:    [],
+      };
+    }
+
+    const { load, mem, temps, fsData, netStats, diskIO } = liveTelemetryCache;
+
+    console.log('[telemetry:getLive] reading from cache (age=' + (Date.now() - liveTelemetryCache.timestamp) + 'ms) | cpu=' + load.currentLoad + '% ram=' + mem.total + ' netIfaces=' + netStats.length + ' diskIO.rIO_sec=' + diskIO.rIO_sec);
 
     const cpuLoad = safeNum(load.currentLoad || 0);
     const cpuTemp = safeNum(temps.main || 0);
@@ -1062,7 +1132,22 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         })),
     };
 
-    console.log(`[telemetry:getLive] disk=${result.disk.selectedMount} diskPct=${diskPercent} net=${netRxKBs}↓/${netTxKBs}↑ gpu=${gpuLoad}%/${gpuTemp}°C`);
+    console.log('[telemetry:getLive] FINAL PAYLOAD:', JSON.stringify({
+      cpu_usagePct: result.cpu.usagePct,
+      cpu_tempC: result.cpu.tempC,
+      ram_usagePct: result.ram.usagePct,
+      ram_usedGb: result.ram.usedGb,
+      ram_totalGb: result.ram.totalGb,
+      disk_mount: result.disk.selectedMount,
+      disk_usagePct: result.disk.usagePct,
+      disk_readOps: result.disk.readOpsPerSec,
+      disk_writeOps: result.disk.writeOpsPerSec,
+      net_rxKBps: result.network.rxKBps,
+      net_txKBps: result.network.txKBps,
+      ssds_count: result.ssds.length,
+      gpu_available: result.gpu.available,
+      gpu_usagePct: result.gpu.usagePct,
+    }));
     return result;
   } catch (e) {
     console.error('[telemetry:getLive] error:', e.message);
@@ -1397,6 +1482,11 @@ app.whenReady().then(async () => {
     return backendLauncher.getLastError ? backendLauncher.getLastError() : null;
   });
 
+  // Start the background telemetry poll immediately.
+  // This primes differential APIs (currentLoad, networkStats, disksIO) so that
+  // by the time the renderer first calls getLive, the cache has real values.
+  startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
+
   // Start creating window immediately (shows on ready-to-show)
   // Backend starts in parallel — renderer polls until ready
   createWindow();
@@ -1504,6 +1594,11 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  if (telemetryPollInterval) {
+    clearInterval(telemetryPollInterval);
+    telemetryPollInterval = null;
+    console.log('[telemetry:poll] interval cleared on quit');
+  }
   backendLauncher.stopBackend();
 });
 
