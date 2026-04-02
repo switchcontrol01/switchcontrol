@@ -1,35 +1,28 @@
 import { build as esbuild } from "esbuild";
 import { build as viteBuild } from "vite";
-import { rm, readFile } from "fs/promises";
+import { rm } from "fs/promises";
 
-// server deps to bundle to reduce openat(2) syscalls
-// which helps cold start times
-const allowlist = [
-  "@google/generative-ai",
-  "axios",
-  "connect-pg-simple",
-  "cors",
-  "date-fns",
-  "drizzle-orm",
-  "drizzle-zod",
-  "express",
-  "express-rate-limit",
-  "express-session",
-  "helmet",
-  "memorystore",
-  "multer",
-  "nanoid",
-  "nodemailer",
-  "openai",
-  "passport",
-  "passport-local",
-  "pg",
-  "stripe",
-  "uuid",
-  "ws",
-  "xlsx",
-  "zod",
-  "zod-validation-error",
+// Packages that MUST stay external — they cannot be bundled:
+//
+// 1. Packages that use dynamic require() with variable paths that esbuild
+//    can't statically analyze (e.g. native bindings loaders).
+// 2. Any package that ships pre-compiled native .node addons.
+//
+// Everything else is bundled directly into dist/index.cjs so the file is
+// fully self-contained and works inside a packaged Electron app where
+// node_modules is NOT available on disk.
+//
+// "vite" is excluded because it is only imported in the dev-server path
+// (NODE_ENV !== 'production'). Since we define NODE_ENV="production" below,
+// esbuild dead-code-eliminates that branch and vite is never pulled in.
+// We keep it external as an extra safety net in case any import survives.
+const FORCE_EXTERNAL = [
+  // dev tooling — never needed at server runtime
+  "vite",
+  "drizzle-kit",
+  // native binary modules (if any are added in future)
+  // "bcrypt",
+  // "canvas",
 ];
 
 async function buildAll() {
@@ -40,14 +33,7 @@ async function buildAll() {
     base: "./",
   });
 
-  console.log("building server...");
-  const pkg = JSON.parse(await readFile("package.json", "utf-8"));
-  const allDeps = [
-    ...Object.keys(pkg.dependencies || {}),
-    ...Object.keys(pkg.devDependencies || {}),
-  ];
-  const externals = allDeps.filter((dep) => !allowlist.includes(dep));
-
+  console.log("building server (fully bundled — no external npm deps)...");
   await esbuild({
     entryPoints: ["server/index.ts"],
     platform: "node",
@@ -58,9 +44,15 @@ async function buildAll() {
       "process.env.NODE_ENV": '"production"',
     },
     minify: true,
-    external: externals,
+    treeShaking: true,
+    // Node.js built-ins (fs, path, crypto, http, etc.) are automatically
+    // kept external by esbuild when platform === "node". We only need to
+    // explicitly externalize the dev-only packages above.
+    external: FORCE_EXTERNAL,
     logLevel: "info",
   });
+
+  console.log("server bundle written to dist/index.cjs");
 }
 
 buildAll().catch((err) => {
