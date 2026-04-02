@@ -519,7 +519,10 @@ export default function Home() {
         </div>
 
         {/* Live Graph */}
-        <LiveGraph onTelemetryUpdate={handleTelemetryUpdate} />
+        <LiveGraph
+          onTelemetryUpdate={handleTelemetryUpdate}
+          selectedDiskMount={selectedDisk?.mount ?? null}
+        />
 
         {/* Storage Section */}
         <StorageCards ssds={ssdData} />
@@ -630,6 +633,7 @@ export default function Home() {
       <DiskTelemetryModal
         open={diskModalOpen}
         onOpenChange={setDiskModalOpen}
+        selectedDiskMount={selectedDisk?.mount ?? null}
       />
     </AppLayout>
   );

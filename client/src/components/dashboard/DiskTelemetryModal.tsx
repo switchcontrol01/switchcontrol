@@ -21,6 +21,7 @@ interface IOSample {
 interface DiskTelemetryModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  selectedDiskMount?: string | null;
 }
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -88,7 +89,7 @@ function DualSparkline({ samples, maxVal }: { samples: IOSample[]; maxVal: numbe
   );
 }
 
-export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalProps) {
+export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: DiskTelemetryModalProps) {
   const [data, setData] = useState<DiskData | null>(null);
   const [ioHistory, setIoHistory] = useState<IOSample[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -96,6 +97,8 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const prevIORef = useRef<{ readBytes: number; writeBytes: number; ts: number } | null>(null);
   const mountedRef = useRef(true);
+  const selectedDiskMountRef = useRef(selectedDiskMount);
+  selectedDiskMountRef.current = selectedDiskMount;
 
   const fetchDisk = useCallback(async () => {
     if (!mountedRef.current) return;
@@ -107,39 +110,46 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
         return;
       }
 
-      const raw = await api.telemetry.getDisk();
+      const raw = await api.telemetry.getDisk(selectedDiskMountRef.current ?? undefined);
       if (!raw) {
         errorCountRef.current += 1;
         if (errorCountRef.current > 5) setFetchError("No disk data received");
         return;
       }
 
-      let diskData: DiskData;
-      if (raw.disks && Array.isArray(raw.disks)) {
-        const primary = raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/') || raw.disks[0];
-        if (!primary) {
-          errorCountRef.current += 1;
-          if (errorCountRef.current > 5) setFetchError("No disk partitions found");
-          return;
-        }
-        const size = safeBytes(primary.size);
-        const used = safeBytes(primary.used);
-        diskData = {
-          size,
-          used: Math.min(used, size),
-          usePercent: safePct(primary.use ?? safeDivide(used, size) * 100),
-          readBytes: safeBytes(raw.io?.rIO),
-          writeBytes: safeBytes(raw.io?.wIO),
-        };
+      // Backend now returns { selected, disks, io } — use `selected` directly
+      let diskEntry: any = null;
+      if (raw.selected) {
+        diskEntry = raw.selected;
+      } else if (raw.disks && Array.isArray(raw.disks)) {
+        // Fallback: find selected mount or C: or first
+        const mount = selectedDiskMountRef.current;
+        diskEntry = (mount ? raw.disks.find((d: any) => d.mount === mount) : null)
+          ?? raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/')
+          ?? raw.disks[0];
       } else {
-        const size = safeBytes(raw.size);
-        const used = safeBytes(raw.used);
+        // Legacy flat shape
+        diskEntry = raw;
+      }
+
+      if (!diskEntry) {
+        errorCountRef.current += 1;
+        if (errorCountRef.current > 5) setFetchError("No disk partitions found");
+        return;
+      }
+
+      console.log(`[DiskModal] selectedDiskMount=${selectedDiskMountRef.current} resolved=${diskEntry.mount} use=${diskEntry.use}%`);
+
+      let diskData: DiskData;
+      {
+        const size = safeBytes(diskEntry.size);
+        const used = safeBytes(diskEntry.used);
         diskData = {
           size,
           used: Math.min(used, size),
-          usePercent: safePct(raw.usePercent ?? raw.use ?? safeDivide(used, size) * 100),
-          readBytes: safeBytes(raw.readBytes),
-          writeBytes: safeBytes(raw.writeBytes),
+          usePercent: safePct(diskEntry.use ?? diskEntry.usePercent ?? safeDivide(used, size) * 100),
+          readBytes: safeBytes(raw.io?.rIO ?? diskEntry.readBytes),
+          writeBytes: safeBytes(raw.io?.wIO ?? diskEntry.writeBytes),
         };
       }
 
@@ -188,12 +198,18 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
 
     if (!isElectron) return;
 
+    // Reset and restart polling whenever the modal opens or selected disk changes
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
     mountedRef.current = true;
     setData(null);
     setIoHistory([]);
     setFetchError(null);
     errorCountRef.current = 0;
     prevIORef.current = null;
+    console.log(`[DiskModal] Starting poll for disk: ${selectedDiskMount ?? 'default'}`);
     fetchDisk();
     intervalRef.current = setInterval(fetchDisk, POLL_MS);
 
@@ -204,7 +220,7 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
         intervalRef.current = null;
       }
     };
-  }, [open, fetchDisk]);
+  }, [open, fetchDisk, selectedDiskMount]);
 
   const usePct = data ? safePct(data.usePercent) : 0;
   const isLowSpace = usePct > 90;

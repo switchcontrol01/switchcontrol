@@ -1,0 +1,153 @@
+Fix AI Advisor response rendering so it no longer waits and dumps the full reply at once.
+
+GOAL
+
+Make AI replies feel premium, live, and responsive.
+
+CURRENT BAD BEHAVIOR
+
+- User sends a message
+- App waits
+- Full assistant response appears instantly in one dump
+- View snaps downward harshly
+- Feels laggy and broken
+
+DESIRED BEHAVIOR
+
+1. The assistant bubble should appear immediately after send.
+2. While waiting for the server response, show a live “thinking” state inside that bubble.
+3. As soon as the text is available, reveal it progressively instead of dumping the whole response at once.
+4. Auto-follow the growing response smoothly, not by jumping hard to the bottom.
+5. Final result should feel like fast live typing or streaming.
+6. Must preserve markdown formatting after completion.
+
+IMPORTANT
+Simulated typing does NOT make backend generation faster. It improves perceived speed and UX. That is still worth doing.
+
+IMPLEMENTATION PLAN
+
+A. Update AiAdvisor.tsx chat flow
+Current behavior appends assistant message only after full response is back.
+Change it so:
+
+- on send, immediately insert a placeholder assistant message:
+  {
+  id: assistant-id,
+  role: "assistant",
+  content: "",
+  timestamp: new Date(),
+  isStreaming: true
+  }
+
+- while waiting for API:
+  show a subtle animated thinking state in that same bubble
+
+- when full server text returns:
+  progressively reveal it into that existing message instead of appending the final content in one frame
+
+B. Add progressive reveal
+Implement a small progressive text reveal function:
+
+- reveal by chunk, not by single character
+- chunk size should be smart:
+  - first 80 to 120 chars reveal quickly
+  - then 4 to 12 chars per tick
+- tick interval around 8ms to 18ms
+- goal is premium fast typing, not fake slow chat
+
+This should feel fast, not annoying.
+
+C. Smooth follow scrolling
+Current behavior likely uses scrollIntoView on every update and causes snapping.
+Replace with smoother follow logic:
+
+- only autoscroll if user is already near the bottom
+- while streaming, keep following the growing assistant bubble with smooth behavior
+- do not aggressively snap if user has scrolled upward manually
+
+Recommended logic:
+
+- detect if container scroll is within ~80px of bottom
+- only then auto-follow
+- use requestAnimationFrame or a soft scrollTop update instead of constant hard scrollIntoView
+
+D. Message shape update
+Extend ChatMessage type with:
+
+- isStreaming?: boolean
+- isThinking?: boolean
+
+Behavior:
+
+- while waiting for server: isThinking=true, isStreaming=true
+- once text starts revealing: isThinking=false, isStreaming=true
+- once reveal completes: isStreaming=false
+
+E. Bubble rendering polish
+In assistant bubble:
+
+- while thinking and content empty:
+  show animated dots plus text like “Thinking...”
+- while streaming text:
+  show a blinking caret at the end
+- after complete:
+  remove caret and render final markdown normally
+
+F. Markdown safety
+During streaming:
+
+- render plain text safely
+- do not try to fully parse markdown every tiny tick if that causes jank
+
+After streaming completes:
+
+- switch to full SafeMarkdown rendering for the completed message
+
+Best pattern:
+
+- if msg.isStreaming === true, render text in a simpler streaming renderer
+- when complete, render full SafeMarkdown
+
+G. Performance guardrails
+
+- cancel any active reveal timer if a new chat reset happens
+- cancel reveal timer on unmount
+- no memory leaks
+- no duplicate assistant messages
+- no race where old response writes into new chat
+
+H. Optional best upgrade
+If the backend can support real streaming later, structure the frontend so it can swap from simulated progressive reveal to actual streamed chunks without rewriting everything.
+
+For now, use:
+
+- regular full response from API
+- immediate placeholder bubble
+- progressive reveal animation
+
+FILES TO CHANGE
+
+- client/src/pages/AiAdvisor.tsx
+
+If needed:
+
+- create a tiny helper inside AiAdvisor or a small utility for progressive reveal
+
+VALIDATION
+Must prove:
+
+1. Assistant bubble appears instantly after send
+2. No full-response dump anymore
+3. Response reveals progressively
+4. Scroll follows smoothly instead of snapping
+5. Reset/new chat cancels in-flight reveal safely
+6. No duplicate messages
+7. Final fully rendered markdown still works
+
+OUTPUT
+Give me:
+
+1. Root cause
+2. Exact code changes
+3. Validation result
+4. Any tradeoff between simulated streaming and real streaming

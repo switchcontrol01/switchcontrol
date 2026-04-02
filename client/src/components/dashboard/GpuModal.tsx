@@ -75,8 +75,10 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
       if (api?.telemetry?.getGpu) {
         const res = await api.telemetry.getGpu();
         if (!res) return;
+        // Backend now returns a single normalized object (not an array)
         const gpu = Array.isArray(res) ? res[0] : res;
         if (!gpu) return;
+        console.log('[GpuModal] received:', JSON.stringify({ model: gpu.model, load: gpu.load, temp: gpu.temperature, vram: gpu.vram, memUsed: gpu.memoryUsed, power: gpu.powerDraw }));
         setData(gpu);
         const loadVal = gpu.load;
         if (loadVal !== undefined && loadVal !== null && Number.isFinite(Number(loadVal))) {
@@ -224,9 +226,15 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             );
           })()}
 
-          {loadPct === null && (data.memoryUsed === undefined || data.vram === undefined) && data.temperature === undefined && data.powerDraw === undefined && data.clockCore === undefined && data.clockMemory === undefined && (
-            <div className="py-4 text-center text-sm text-muted-foreground" data-testid="text-gpu-limited">
-              Detailed metrics unavailable for this GPU. Model detected: {data.model}
+          {loadPct === null && data.memoryUsed === undefined && data.temperature === undefined && data.powerDraw === undefined && (
+            <div className="py-4 text-center space-y-1" data-testid="text-gpu-limited">
+              <p className="text-sm font-medium text-white/80">{data.model}</p>
+              <p className="text-xs text-muted-foreground">
+                Live metrics (load, temp, power) unavailable.
+              </p>
+              <p className="text-[11px] text-muted-foreground/60">
+                For AMD GPUs: install LibreHardwareMonitor and enable its web server on port 8085.
+              </p>
             </div>
           )}
 

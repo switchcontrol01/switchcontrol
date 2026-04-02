@@ -71,12 +71,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Telemetry (live stats)
   telemetry: {
-    getLive: () => ipcRenderer.invoke('telemetry:getLive'),
+    getLive: (selectedDiskMount) => ipcRenderer.invoke('telemetry:getLive', selectedDiskMount),
     getEnhanced: () => ipcRenderer.invoke('telemetry:getEnhanced'),
     getCpuCores: () => ipcRenderer.invoke('telemetry:getCpuCores'),
     getMemoryDetails: () => ipcRenderer.invoke('telemetry:getMemoryDetails'),
     getGpu: () => ipcRenderer.invoke('telemetry:getGpu'),
-    getDisk: () => ipcRenderer.invoke('telemetry:getDisk'),
+    getDisk: (selectedDiskMount) => ipcRenderer.invoke('telemetry:getDisk', selectedDiskMount),
     getHardwareTelemetry: () => ipcRenderer.invoke('telemetry:getHardwareTelemetry'),
   },
 

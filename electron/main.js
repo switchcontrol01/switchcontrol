@@ -902,7 +902,7 @@ ipcMain.handle('system:getSpecs', async () => {
   return await loadSystemSpecs();
 });
 
-ipcMain.handle('telemetry:getLive', async () => {
+ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
   try {
     const [load, mem, temps, fsData, netStats, diskIO] = await Promise.all([
       si.currentLoad().catch(() => ({ currentLoad: 0, cpus: [] })),
@@ -924,6 +924,7 @@ ipcMain.handle('telemetry:getLive', async () => {
     const ramUsedGb = parseFloat((ramUsed / (1024 * 1024 * 1024)).toFixed(1));
     const ramPercent = ramTotal > 0 ? Math.round((ramUsed / ramTotal) * 100) : 0;
 
+    // --- GPU telemetry: LHM first (AMD + NVIDIA), then si.graphics(), then nvidia-smi ---
     let gpuTemp = null;
     let gpuLoad = null;
     let gpuMemUsed = null;
@@ -931,7 +932,40 @@ ipcMain.handle('telemetry:getLive', async () => {
     let gpuPower = null;
     let gpuClockMhz = null;
 
-    if (cachedSpecs?.gpu?.isNvidia) {
+    // 1. Try LibreHardwareMonitor — works for AMD and NVIDIA
+    try {
+      const lhm = await getLhmTelemetry();
+      if (lhm) {
+        if (lhm.gpuTemp != null && lhm.gpuTemp > 0) gpuTemp = lhm.gpuTemp;
+        if (lhm.gpuLoad != null && lhm.gpuLoad >= 0) gpuLoad = lhm.gpuLoad;
+        if (lhm.gpuPower != null && lhm.gpuPower > 0) gpuPower = lhm.gpuPower;
+      }
+    } catch {}
+
+    // 2. Try si.graphics() for load/temp if LHM didn't provide them
+    if (gpuTemp === null || gpuLoad === null) {
+      try {
+        const gr = await si.graphics().catch(() => null);
+        const ctrl = gr?.controllers?.[0];
+        if (ctrl) {
+          if (gpuTemp === null && ctrl.temperatureGpu != null && ctrl.temperatureGpu > 0) {
+            gpuTemp = safeNum(ctrl.temperatureGpu);
+          }
+          if (gpuLoad === null && ctrl.utilizationGpu != null && ctrl.utilizationGpu >= 0) {
+            gpuLoad = safeNum(ctrl.utilizationGpu);
+          }
+          if (gpuMemUsed === null && ctrl.memoryUsed != null && ctrl.memoryUsed > 0) {
+            gpuMemUsed = safeNum(ctrl.memoryUsed);
+          }
+          if (gpuMemTotal === null && ctrl.vram != null && ctrl.vram > 0) {
+            gpuMemTotal = safeNum(ctrl.vram);
+          }
+        }
+      } catch {}
+    }
+
+    // 3. nvidia-smi for NVIDIA only if LHM and si didn't give us data
+    if (cachedSpecs?.gpu?.isNvidia && (gpuTemp === null || gpuLoad === null)) {
       try {
         const nvidiaData = await new Promise((resolve) => {
           exec(
@@ -946,25 +980,30 @@ ipcMain.handle('telemetry:getLive', async () => {
           );
         });
         if (nvidiaData) {
-          gpuTemp = safeNum(parseFloat(nvidiaData[0]), null);
-          gpuLoad = safeNum(parseFloat(nvidiaData[1]), null);
-          gpuMemUsed = safeNum(parseFloat(nvidiaData[2]), null);
-          gpuMemTotal = safeNum(parseFloat(nvidiaData[3]), null);
-          gpuPower = safeNum(parseFloat(nvidiaData[4]), null);
-          gpuClockMhz = safeNum(parseFloat(nvidiaData[5]), null);
-        } else {
-          gpuTemp = await getNvidiaGpuTemp().catch(() => null);
+          if (gpuTemp === null) gpuTemp = safeNum(parseFloat(nvidiaData[0]), null);
+          if (gpuLoad === null) gpuLoad = safeNum(parseFloat(nvidiaData[1]), null);
+          if (gpuMemUsed === null) gpuMemUsed = safeNum(parseFloat(nvidiaData[2]), null);
+          if (gpuMemTotal === null) gpuMemTotal = safeNum(parseFloat(nvidiaData[3]), null);
+          if (gpuPower === null) gpuPower = safeNum(parseFloat(nvidiaData[4]), null);
+          if (gpuClockMhz === null) gpuClockMhz = safeNum(parseFloat(nvidiaData[5]), null);
         }
-      } catch (e) {
-        gpuTemp = await getNvidiaGpuTemp().catch(() => null);
-      }
+      } catch {}
     }
 
-    const primaryDisk = (fsData || []).find(d => d.mount === 'C:' || d.mount === '/') || (fsData || [])[0];
-    const diskPercent = primaryDisk ? safeNum(primaryDisk.use, null) : null;
+    // --- Disk: resolve selected disk, fall back to C: then first ---
+    const disks = fsData || [];
+    let selectedDisk = null;
+    if (selectedDiskMount) {
+      selectedDisk = disks.find(d => d.mount === selectedDiskMount);
+    }
+    if (!selectedDisk) {
+      selectedDisk = disks.find(d => d.mount === 'C:' || d.mount === '/') || disks[0];
+    }
+    const diskPercent = selectedDisk ? safeNum(selectedDisk.use, 0) : 0;
     const diskReadSec = safeNum(diskIO.rIO_sec || 0, 0);
     const diskWriteSec = safeNum(diskIO.wIO_sec || 0, 0);
 
+    // --- Network: always return 0 (not null) when idle ---
     let netRxSec = 0;
     let netTxSec = 0;
     for (const iface of (netStats || [])) {
@@ -974,7 +1013,7 @@ ipcMain.handle('telemetry:getLive', async () => {
     const netRxKBs = Math.round(netRxSec / 1024);
     const netTxKBs = Math.round(netTxSec / 1024);
 
-    return {
+    const result = {
       cpuUsage: cpuLoad,
       cpuTemp: cpuTemp > 0 ? cpuTemp : null,
       cpuMaxTemp: cpuMaxTemp > 0 ? cpuMaxTemp : null,
@@ -984,14 +1023,15 @@ ipcMain.handle('telemetry:getLive', async () => {
       ramTotal: ramTotalGb,
       ramUsedGb,
       ramTotalGb,
-      gpuTemp: gpuTemp > 0 ? gpuTemp : null,
-      gpuLoad: gpuLoad !== null && gpuLoad >= 0 ? gpuLoad : null,
-      gpuMemUsed: gpuMemUsed !== null ? gpuMemUsed : null,
-      gpuMemTotal: gpuMemTotal !== null ? gpuMemTotal : null,
-      gpuPower: gpuPower !== null && gpuPower > 0 ? gpuPower : null,
-      gpuClockMhz: gpuClockMhz !== null && gpuClockMhz > 0 ? gpuClockMhz : null,
-      showGpu: !!(gpuTemp || gpuLoad !== null),
+      gpuTemp: gpuTemp != null && gpuTemp > 0 ? gpuTemp : null,
+      gpuLoad: gpuLoad != null && gpuLoad >= 0 ? gpuLoad : null,
+      gpuMemUsed: gpuMemUsed != null ? gpuMemUsed : null,
+      gpuMemTotal: gpuMemTotal != null ? gpuMemTotal : null,
+      gpuPower: gpuPower != null && gpuPower > 0 ? gpuPower : null,
+      gpuClockMhz: gpuClockMhz != null && gpuClockMhz > 0 ? gpuClockMhz : null,
+      showGpu: gpuLoad != null || gpuTemp != null,
       showMobo: false,
+      selectedDiskMount: selectedDisk?.mount || null,
       diskPercent,
       diskReadSec,
       diskWriteSec,
@@ -999,8 +1039,12 @@ ipcMain.handle('telemetry:getLive', async () => {
       netTxSec: netTxKBs,
       timestamp: Date.now()
     };
+
+    console.log(`[telemetry:getLive] disk=${result.selectedDiskMount} diskPct=${diskPercent} net=${netRxKBs}↓/${netTxKBs}↑ gpu=${gpuLoad}%/${gpuTemp}°C`);
+    return result;
   } catch (e) {
-    return { cpuUsage: 0, cpuTemp: null, showCpuTemp: false, ramUsage: 0, ramTotal: 0, gpuTemp: null, gpuLoad: null, showGpu: false, showMobo: false, diskPercent: null, timestamp: Date.now() };
+    console.error('[telemetry:getLive] error:', e.message);
+    return { cpuUsage: 0, cpuTemp: null, showCpuTemp: false, ramUsage: 0, ramTotal: 0, gpuTemp: null, gpuLoad: null, showGpu: false, showMobo: false, diskPercent: 0, netRxSec: 0, netTxSec: 0, timestamp: Date.now() };
   }
 });
 
@@ -1078,40 +1122,103 @@ ipcMain.handle('telemetry:getMemoryDetails', async () => {
 ipcMain.handle('telemetry:getGpu', async () => {
   try {
     const graphics = await si.graphics();
-    const controllers = (graphics.controllers || []).map(g => ({
-      model: g.model,
-      vendor: g.vendor,
-      vram: g.vram,
-      bus: g.bus,
-      driverVersion: g.driverVersion,
-      temperatureGpu: g.temperatureGpu
-    }));
-    return controllers;
+    const ctrl = (graphics.controllers || [])[0];
+    if (!ctrl) return null;
+
+    // Base info from systeminformation (works for all vendors)
+    const result = {
+      model: ctrl.model || 'Unknown GPU',
+      vendor: ctrl.vendor || '',
+      driverVersion: ctrl.driverVersion || undefined,
+      vram: ctrl.vram ? safeNum(ctrl.vram) : undefined,         // MB
+      memoryUsed: ctrl.memoryUsed ? safeNum(ctrl.memoryUsed) : undefined, // MB
+      temperature: ctrl.temperatureGpu > 0 ? safeNum(ctrl.temperatureGpu) : undefined,
+      load: ctrl.utilizationGpu >= 0 ? safeNum(ctrl.utilizationGpu) : undefined,
+      powerDraw: undefined,
+      clockCore: undefined,
+      clockMemory: undefined,
+    };
+
+    // Try LHM to fill in what si.graphics() doesn't expose (AMD RX, NVIDIA, etc.)
+    try {
+      const lhm = await getLhmTelemetry();
+      if (lhm) {
+        if (result.temperature === undefined && lhm.gpuTemp > 0) result.temperature = lhm.gpuTemp;
+        if (result.load === undefined && lhm.gpuLoad != null) result.load = lhm.gpuLoad;
+        if (result.powerDraw === undefined && lhm.gpuPower > 0) result.powerDraw = lhm.gpuPower;
+      }
+    } catch {}
+
+    // Try nvidia-smi for NVIDIA as last resort
+    if (cachedSpecs?.gpu?.isNvidia && (result.temperature === undefined || result.load === undefined)) {
+      try {
+        const nvidiaFull = await new Promise((resolve) => {
+          exec(
+            'nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,clocks.current.graphics,clocks.current.memory --format=csv,noheader,nounits',
+            { windowsHide: true, timeout: 3000 },
+            (err, stdout) => {
+              if (err || !stdout) return resolve(null);
+              const parts = stdout.trim().split(',').map(s => s.trim());
+              resolve(parts.length >= 7 ? parts : null);
+            }
+          );
+        });
+        if (nvidiaFull) {
+          const nv = nvidiaFull.map(s => parseFloat(s));
+          if (result.temperature === undefined && Number.isFinite(nv[0])) result.temperature = nv[0];
+          if (result.load === undefined && Number.isFinite(nv[1])) result.load = nv[1];
+          if (result.memoryUsed === undefined && Number.isFinite(nv[2])) result.memoryUsed = nv[2];
+          if (result.vram === undefined && Number.isFinite(nv[3])) result.vram = nv[3];
+          if (result.powerDraw === undefined && Number.isFinite(nv[4])) result.powerDraw = nv[4];
+          if (result.clockCore === undefined && Number.isFinite(nv[5])) result.clockCore = nv[5];
+          if (result.clockMemory === undefined && Number.isFinite(nv[6])) result.clockMemory = nv[6];
+        }
+      } catch {}
+    }
+
+    console.log(`[telemetry:getGpu] model=${result.model} load=${result.load} temp=${result.temperature} vram=${result.vram}MB power=${result.powerDraw}W`);
+    return result;
   } catch (e) {
-    return [];
+    console.error('[telemetry:getGpu] error:', e.message);
+    return null;
   }
 });
 
-ipcMain.handle('telemetry:getDisk', async () => {
+ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
   try {
     const [disks, io] = await Promise.all([
       si.fsSize().catch(() => []),
       si.disksIO().catch(() => ({ rIO: 0, wIO: 0, tIO: 0 }))
     ]);
+
+    // Find the requested disk, fall back to C: then first
+    const allDisks = (disks || []).map(d => ({
+      fs: d.fs,
+      type: d.type,
+      size: d.size,
+      used: d.used,
+      available: d.available,
+      use: d.use,
+      mount: d.mount
+    }));
+
+    let selected = null;
+    if (selectedDiskMount) {
+      selected = allDisks.find(d => d.mount === selectedDiskMount);
+    }
+    if (!selected) {
+      selected = allDisks.find(d => d.mount === 'C:' || d.mount === '/') || allDisks[0];
+    }
+
+    console.log(`[telemetry:getDisk] requested=${selectedDiskMount} resolved=${selected?.mount} use=${selected?.use}%`);
     return {
-      disks: (disks || []).map(d => ({
-        fs: d.fs,
-        type: d.type,
-        size: d.size,
-        used: d.used,
-        available: d.available,
-        use: d.use,
-        mount: d.mount
-      })),
+      disks: allDisks,
+      selected,
       io: { rIO: io.rIO || 0, wIO: io.wIO || 0, tIO: io.tIO || 0 }
     };
   } catch (e) {
-    return { disks: [], io: { rIO: 0, wIO: 0, tIO: 0 } };
+    console.error('[telemetry:getDisk] error:', e.message);
+    return { disks: [], selected: null, io: { rIO: 0, wIO: 0, tIO: 0 } };
   }
 });
 

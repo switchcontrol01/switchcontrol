@@ -63,7 +63,12 @@ function MetricBadge({ color, label, value, unit, dimmed }: { color: string; lab
   );
 }
 
-export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: any) => void }) {
+interface LiveGraphProps {
+  onTelemetryUpdate?: (data: any) => void;
+  selectedDiskMount?: string | null;
+}
+
+export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphProps) {
   const [data, setData] = useState<DataPoint[]>([]);
   const [latest, setLatest] = useState<LatestState | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -72,13 +77,21 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   const retryCountRef = useRef(0);
   const onTelemetryUpdateRef = useRef(onTelemetryUpdate);
   onTelemetryUpdateRef.current = onTelemetryUpdate;
+  const selectedDiskMountRef = useRef(selectedDiskMount);
+  selectedDiskMountRef.current = selectedDiskMount;
 
   const fetchTelemetry = useCallback(async () => {
     try {
       const api = (window as any).electronAPI;
 
       if (api?.telemetry?.getLive) {
-        const live = await api.telemetry.getLive();
+        const live = await api.telemetry.getLive(selectedDiskMountRef.current ?? undefined);
+        console.log('[LiveGraph] getLive payload:', {
+          cpuUsage: live.cpuUsage, diskPercent: live.diskPercent,
+          selectedDiskMount: live.selectedDiskMount,
+          netRxSec: live.netRxSec, netTxSec: live.netTxSec,
+          gpuLoad: live.gpuLoad, gpuTemp: live.gpuTemp, showGpu: live.showGpu,
+        });
 
         const cpuLoad = safeNumber(live.cpuUsage ?? live.cpuDisplay, 0);
         const cpuTemp = live.cpuTemp != null && live.cpuTemp > 0 ? safeNumber(live.cpuTemp) : null;
@@ -111,9 +124,10 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         const hasRam = ramTotalGb > 0;
         const ramPercent = hasRam ? Math.round((ramUsedGb / ramTotalGb) * 100) : safeNumber(live.ramUsage, 0);
 
+        // Backend now returns 0 (not null) for disk/net when idle; treat null as 0
         const diskPercent = live.diskPercent != null ? safeNumber(live.diskPercent) : null;
-        const netRxSec = live.netRxSec != null ? safeNumber(live.netRxSec) : null;
-        const netTxSec = live.netTxSec != null ? safeNumber(live.netTxSec) : null;
+        const netRxSec = typeof live.netRxSec === 'number' ? safeNumber(live.netRxSec) : null;
+        const netTxSec = typeof live.netTxSec === 'number' ? safeNumber(live.netTxSec) : null;
 
         const telemetryState: LatestState = {
           cpuLoad,
@@ -219,8 +233,10 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
   const hasGpuMem = latestPoint?.gpuMemPct != null;
   const hasRamData = latestPoint?.ram != null;
   const hasDiskData = latestPoint?.disk != null;
+  // Network is always wired — 0 when idle is valid, not null
   const hasNetRx = latestPoint?.netRx != null;
   const hasNetTx = latestPoint?.netTx != null;
+  const activeMetricCount = [true, hasCpuTemp, hasGpuLoad, hasGpuTemp, hasRamData, hasDiskData].filter(Boolean).length;
 
   return (
     <GlassCard className="p-4">
@@ -352,10 +368,11 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
       <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/60">
         <Info className="size-3 shrink-0" />
         <span>
-          {latest?.showGpu
-            ? `Tracking ${[true, hasCpuTemp, hasGpuLoad, hasGpuTemp, hasRamData, hasDiskData].filter(Boolean).length} metrics · ${expanded ? '60s' : '45s'} history · Expand for all lines`
-            : "GPU: NVIDIA required · Expand for network & VRAM metrics"
-          }
+          {`Tracking ${activeMetricCount} metric${activeMetricCount !== 1 ? 's' : ''}`}
+          {selectedDiskMount ? ` · Disk: ${selectedDiskMount}` : ''}
+          {!latest?.showGpu ? ' · GPU metrics need LHM or driver support' : ''}
+          {` · ${expanded ? '60s' : '45s'} history`}
+          {!expanded ? ' · Expand for GPU, network & VRAM lines' : ''}
         </span>
       </div>
     </GlassCard>
