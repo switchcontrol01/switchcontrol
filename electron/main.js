@@ -1125,32 +1125,46 @@ ipcMain.handle('telemetry:getGpu', async () => {
     const ctrl = (graphics.controllers || [])[0];
     if (!ctrl) return null;
 
-    // Base info from systeminformation (works for all vendors)
+    const vendorLower = (ctrl.vendor || '').toLowerCase();
+    const isAmd = vendorLower.includes('amd') || vendorLower.includes('advanced micro');
+
+    // Base info from systeminformation
+    // For AMD, si.graphics() often returns 0 for load/temp — treat 0 as missing so LHM can override
     const result = {
       model: ctrl.model || 'Unknown GPU',
       vendor: ctrl.vendor || '',
-      driverVersion: ctrl.driverVersion || undefined,
-      vram: ctrl.vram ? safeNum(ctrl.vram) : undefined,         // MB
-      memoryUsed: ctrl.memoryUsed ? safeNum(ctrl.memoryUsed) : undefined, // MB
-      temperature: ctrl.temperatureGpu > 0 ? safeNum(ctrl.temperatureGpu) : undefined,
-      load: ctrl.utilizationGpu >= 0 ? safeNum(ctrl.utilizationGpu) : undefined,
-      powerDraw: undefined,
-      clockCore: undefined,
-      clockMemory: undefined,
+      driverVersion: ctrl.driverVersion || null,
+      vram: ctrl.vram > 0 ? safeNum(ctrl.vram) : null,             // MB
+      memoryUsed: ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null, // MB
+      // For AMD, treat 0 from si as "no data" (LHM will fill); for NVIDIA 0 is valid (GPU idle)
+      temperature: ctrl.temperatureGpu > 0 ? safeNum(ctrl.temperatureGpu) : null,
+      load: (!isAmd && ctrl.utilizationGpu >= 0) ? safeNum(ctrl.utilizationGpu) : null,
+      powerDraw: null,
+      clockCore: null,
+      clockMemory: null,
     };
 
-    // Try LHM to fill in what si.graphics() doesn't expose (AMD RX, NVIDIA, etc.)
+    // LHM takes priority — covers AMD RX series + NVIDIA, provides real sensor values
+    // For AMD, LHM is the only reliable source; for NVIDIA it supplements si
     try {
       const lhm = await getLhmTelemetry();
       if (lhm) {
-        if (result.temperature === undefined && lhm.gpuTemp > 0) result.temperature = lhm.gpuTemp;
-        if (result.load === undefined && lhm.gpuLoad != null) result.load = lhm.gpuLoad;
-        if (result.powerDraw === undefined && lhm.gpuPower > 0) result.powerDraw = lhm.gpuPower;
+        // AMD: always prefer LHM over si (si returns 0 for AMD which is meaningless)
+        // NVIDIA: only fill in gaps
+        if (lhm.gpuTemp > 0 && (isAmd || result.temperature === null)) {
+          result.temperature = lhm.gpuTemp;
+        }
+        if (lhm.gpuLoad != null && (isAmd || result.load === null)) {
+          result.load = lhm.gpuLoad;
+        }
+        if (lhm.gpuPower > 0 && result.powerDraw === null) {
+          result.powerDraw = lhm.gpuPower;
+        }
       }
     } catch {}
 
-    // Try nvidia-smi for NVIDIA as last resort
-    if (cachedSpecs?.gpu?.isNvidia && (result.temperature === undefined || result.load === undefined)) {
+    // nvidia-smi for NVIDIA as last resort (skip for AMD — no smi support)
+    if (!isAmd && cachedSpecs?.gpu?.isNvidia && (result.temperature === null || result.load === null)) {
       try {
         const nvidiaFull = await new Promise((resolve) => {
           exec(
@@ -1165,18 +1179,19 @@ ipcMain.handle('telemetry:getGpu', async () => {
         });
         if (nvidiaFull) {
           const nv = nvidiaFull.map(s => parseFloat(s));
-          if (result.temperature === undefined && Number.isFinite(nv[0])) result.temperature = nv[0];
-          if (result.load === undefined && Number.isFinite(nv[1])) result.load = nv[1];
-          if (result.memoryUsed === undefined && Number.isFinite(nv[2])) result.memoryUsed = nv[2];
-          if (result.vram === undefined && Number.isFinite(nv[3])) result.vram = nv[3];
-          if (result.powerDraw === undefined && Number.isFinite(nv[4])) result.powerDraw = nv[4];
-          if (result.clockCore === undefined && Number.isFinite(nv[5])) result.clockCore = nv[5];
-          if (result.clockMemory === undefined && Number.isFinite(nv[6])) result.clockMemory = nv[6];
+          if (result.temperature === null && Number.isFinite(nv[0])) result.temperature = nv[0];
+          if (result.load === null && Number.isFinite(nv[1])) result.load = nv[1];
+          if (result.memoryUsed === null && Number.isFinite(nv[2])) result.memoryUsed = nv[2];
+          if (result.vram === null && Number.isFinite(nv[3])) result.vram = nv[3];
+          if (result.powerDraw === null && Number.isFinite(nv[4])) result.powerDraw = nv[4];
+          if (result.clockCore === null && Number.isFinite(nv[5])) result.clockCore = nv[5];
+          if (result.clockMemory === null && Number.isFinite(nv[6])) result.clockMemory = nv[6];
         }
       } catch {}
     }
 
-    console.log(`[telemetry:getGpu] model=${result.model} load=${result.load} temp=${result.temperature} vram=${result.vram}MB power=${result.powerDraw}W`);
+    // Fail honestly: if temp/load are still null, UI will show "Unavailable" rather than 0
+    console.log(`[telemetry:getGpu] model=${result.model} vendor=${result.vendor} load=${result.load} temp=${result.temperature} vram=${result.vram}MB power=${result.powerDraw}W`);
     return result;
   } catch (e) {
     console.error('[telemetry:getGpu] error:', e.message);

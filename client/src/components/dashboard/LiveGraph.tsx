@@ -280,7 +280,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {latest.diskPercent != null && (
                 <MetricBadge color={C.disk} label="Disk" value={safeFixed(latest.diskPercent, 0)} unit="%" />
               )}
-              {expanded && hasNetData && (
+              {expanded && (
                 <MetricBadge
                   color={C.netRx}
                   label="Net"
@@ -313,7 +313,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       {/* Chart */}
       <div className={cn("transition-all duration-300", expanded ? "h-80" : "h-48")}>
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 4, right: expanded && hasNetData ? 44 : 4, left: -20, bottom: 4 }}>
+          <LineChart data={data} margin={{ top: 4, right: expanded ? 44 : 4, left: -20, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
 
             <XAxis
@@ -334,16 +334,16 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               tickFormatter={v => `${v}`}
             />
 
-            {/* Right Y-axis: KB/s for network — always present but invisible when collapsed */}
+            {/* Right Y-axis: KB/s for network — visible when expanded regardless of current values */}
             <YAxis
               yAxisId="net"
               orientation="right"
-              tick={expanded && hasNetData ? yTickStyle : false}
-              axisLine={expanded && hasNetData ? axisLineStyle : false}
+              tick={expanded ? yTickStyle : false}
+              axisLine={expanded ? axisLineStyle : false}
               tickLine={false}
               domain={[0, netDomainMax]}
               tickFormatter={v => `${v}`}
-              width={expanded && hasNetData ? 40 : 0}
+              width={expanded ? 40 : 0}
             />
 
             <Tooltip
@@ -410,15 +410,15 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               />
             )}
 
-            {/* ── EXPANDED ONLY: Network lines on right KB/s axis ── */}
-            {expanded && hasNetRx && (
+            {/* ── EXPANDED ONLY: Network lines on right KB/s axis ── always rendered so 0-idle is visible */}
+            {expanded && (
               <Line
                 yAxisId="net" type="monotone" dataKey="netRx"
                 name="Net ↓ KB/s" stroke={C.netRx} strokeWidth={1.5}
                 dot={false} activeDot={{ r: 2 }} strokeDasharray="4 2" connectNulls
               />
             )}
-            {expanded && hasNetTx && (
+            {expanded && (
               <Line
                 yAxisId="net" type="monotone" dataKey="netTx"
                 name="Net ↑ KB/s" stroke={C.netTx} strokeWidth={1.5}
@@ -434,16 +434,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         <Info className="size-3 shrink-0" />
         <span>
           {expanded
-            ? `${expandedCount} metrics`
-            : `${collapsedCount} metrics (CPU, RAM, Disk)`
+            ? `${expandedCount} metrics · Net axis: KB/s`
+            : `${collapsedCount} metrics · CPU, RAM, Disk`
           }
           {selectedDiskMount ? ` · Disk: ${selectedDiskMount}` : ''}
-          {!latest?.showGpu
-            ? ' · GPU needs LHM web server (port 8085) for AMD'
-            : ''
-          }
-          {expanded && hasNetData ? ` · Net axis: KB/s` : ''}
-          {!expanded ? ' · Expand for GPU, network, temp & VRAM' : ''}
+          {!expanded ? ' · Expand for GPU, network & temps' : ''}
         </span>
       </div>
     </GlassCard>

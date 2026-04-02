@@ -5,14 +5,15 @@ import { motion } from "framer-motion";
 
 interface GpuData {
   model: string;
-  driverVersion?: string;
-  vram?: number;
-  memoryUsed?: number;
-  load?: number;
-  temperature?: number;
-  powerDraw?: number;
-  clockCore?: number;
-  clockMemory?: number;
+  vendor?: string;
+  driverVersion?: string | null;
+  vram?: number | null;
+  memoryUsed?: number | null;
+  load?: number | null;
+  temperature?: number | null;
+  powerDraw?: number | null;
+  clockCore?: number | null;
+  clockMemory?: number | null;
 }
 
 interface GpuModalProps {
@@ -114,9 +115,9 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
     };
   }, [open, fetchGpu]);
 
-  const vramPressure = data?.memoryUsed !== undefined && data?.vram ? data.memoryUsed / data.vram : 0;
+  const vramPressure = data?.memoryUsed != null && data?.vram ? data.memoryUsed / data.vram : 0;
   const isHighPressure = vramPressure > 0.9;
-  const loadPct = data?.load !== undefined ? Math.round(data.load) : null;
+  const loadPct = data?.load != null && Number.isFinite(data.load) ? Math.round(data.load) : null;
 
   return (
     <GlassModalLayout
@@ -171,7 +172,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             </motion.div>
           )}
 
-          {data.memoryUsed !== undefined && data.vram !== undefined && (
+          {data.memoryUsed != null && data.vram != null && (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -212,10 +213,10 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
 
           {(() => {
             const tiles: { label: string; value: string | number; unit?: string }[] = [];
-            if (data.temperature !== undefined) tiles.push({ label: "Temperature", value: data.temperature, unit: "°C" });
-            if (data.powerDraw !== undefined) tiles.push({ label: "Power Draw", value: data.powerDraw, unit: "W" });
-            if (data.clockCore !== undefined) tiles.push({ label: "Core Clock", value: data.clockCore, unit: "MHz" });
-            if (data.clockMemory !== undefined) tiles.push({ label: "Mem Clock", value: data.clockMemory, unit: "MHz" });
+            if (data.temperature != null) tiles.push({ label: "Temperature", value: data.temperature, unit: "°C" });
+            if (data.powerDraw != null) tiles.push({ label: "Power Draw", value: data.powerDraw, unit: "W" });
+            if (data.clockCore != null) tiles.push({ label: "Core Clock", value: data.clockCore, unit: "MHz" });
+            if (data.clockMemory != null) tiles.push({ label: "Mem Clock", value: data.clockMemory, unit: "MHz" });
             if (tiles.length === 0) return null;
             return (
               <div className="grid grid-cols-2 gap-2">

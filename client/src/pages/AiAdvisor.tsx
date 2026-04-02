@@ -85,24 +85,24 @@ function SafeMarkdown({ text }: { text: string }) {
   );
 }
 
-// Premium thinking animation — three dots that fade in/out with staggered delay
+// Premium thinking animation — smooth float with staggered timing
 function ThinkingDots() {
   return (
     <span className="inline-flex items-center gap-[5px] py-0.5">
       {[0, 1, 2].map(i => (
         <span
           key={i}
-          className="block w-[5px] h-[5px] rounded-full bg-primary/60"
+          className="block w-[5px] h-[5px] rounded-full bg-primary/70"
           style={{
-            animation: "sc-pulse 1.2s ease-in-out infinite",
-            animationDelay: `${i * 0.2}s`,
+            animation: "sc-think 1.4s ease-in-out infinite",
+            animationDelay: `${i * 0.22}s`,
           }}
         />
       ))}
       <style>{`
-        @keyframes sc-pulse {
-          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1.15); }
+        @keyframes sc-think {
+          0%, 60%, 100% { opacity: 0.15; transform: translateY(2px) scale(0.8); }
+          30% { opacity: 0.9; transform: translateY(-2px) scale(1.08); }
         }
       `}</style>
     </span>
@@ -242,8 +242,8 @@ export default function AiAdvisor() {
       }
     };
 
-    // Small initial delay — lets the "Thinking…" state visually transition before text floods in
-    revealTimerRef.current = setTimeout(tick, 60);
+    // Brief delay — keeps thinking bubble visible for a single beat before text begins
+    revealTimerRef.current = setTimeout(tick, 30);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
   useEffect(() => {
@@ -314,7 +314,6 @@ export default function AiAdvisor() {
       timestamp: new Date(),
     };
 
-    // Assistant placeholder appears immediately — before the API call
     const assistantId = `assistant-${Date.now()}`;
     const placeholderMsg: ChatMessage = {
       id: assistantId,
@@ -322,18 +321,27 @@ export default function AiAdvisor() {
       content: "",
       timestamp: new Date(),
       isThinking: true,
-      isStreaming: true,
+      // NOTE: isStreaming intentionally NOT set — prevents empty cursor flash during thinking
     };
 
-    setMessages(prev => [...prev, userMsg, placeholderMsg]);
+    // Step 1: User bubble enters first, animates in alone
+    setMessages(prev => [...prev, userMsg]);
     setInput("");
     setLoading(true);
-    setTimeout(forceScrollBottom, 50);
+    setTimeout(forceScrollBottom, 30);
+
+    // Step 2: Thinking bubble enters ~130ms later — user bubble has animated in by then
+    let thinkingAdded = false;
+    const thinkingTimer = setTimeout(() => {
+      thinkingAdded = true;
+      setMessages(prev => [...prev, placeholderMsg]);
+      setTimeout(forceScrollBottom, 30);
+    }, 130);
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
-    // Build history from current ref snapshot (before the placeholder was added)
+    // Build history from snapshot BEFORE this turn (messagesRef not yet updated)
     const chatHistory = messagesRef.current
       .filter(m => m.id !== "welcome" && m.role !== "system" && !m.isThinking)
       .map(m => ({ role: m.role, content: m.content }));
@@ -349,19 +357,30 @@ export default function AiAdvisor() {
         { signal: abortRef.current.signal }
       );
 
-      if (abortRef.current?.signal.aborted || revealCancelledRef.current) return;
+      if (abortRef.current?.signal.aborted || revealCancelledRef.current) {
+        clearTimeout(thinkingTimer);
+        return;
+      }
 
       console.log(`[AiAdvisor] response | ${data.content?.length} chars | ${Date.now() - t0}ms`);
 
       setLoading(false);
 
-      // No intermediate setMessages — revealContent transitions isThinking→isStreaming on first tick
-      // This prevents the empty-bubble flash that previously caused the "blurt" feeling
+      // Clear the 130ms timer — if it already fired, thinkingAdded=true (no-op needed)
+      clearTimeout(thinkingTimer);
+
+      // Race guard: if API returned before the 130ms timer fired, add placeholder now
+      if (!thinkingAdded) {
+        setMessages(prev => [...prev, placeholderMsg]);
+      }
+
+      // revealContent transitions isThinking→text on first tick (no empty bubble flash)
       revealContent(assistantId, data.content || "", () => {
         inputRef.current?.focus();
       });
 
     } catch (err: unknown) {
+      clearTimeout(thinkingTimer);
       if (err instanceof DOMException && err.name === 'AbortError') return;
       if (abortRef.current?.signal.aborted) return;
 
@@ -408,16 +427,12 @@ export default function AiAdvisor() {
 
   const isBusy = loading || isStreaming;
 
-  // Per-message animation variant — assistant thinking bubble is staggered 150ms after user msg
-  function msgTransition(msg: ChatMessage) {
+  // Per-message animation variant — stagger is handled via DOM insertion timing, not CSS delay
+  function msgTransition() {
     return {
-      initial: prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 },
+      initial: prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 },
       animate: { opacity: 1, y: 0 },
-      transition: {
-        duration: 0.2,
-        ease: "easeOut" as const,
-        delay: msg.isThinking ? 0.15 : 0,
-      },
+      transition: { duration: 0.22, ease: "easeOut" as const },
     };
   }
 
@@ -471,7 +486,7 @@ export default function AiAdvisor() {
         >
           <AnimatePresence initial={false}>
             {messages.map((msg) => {
-              const anim = msgTransition(msg);
+              const anim = msgTransition();
               return (
                 <motion.div
                   key={msg.id}
