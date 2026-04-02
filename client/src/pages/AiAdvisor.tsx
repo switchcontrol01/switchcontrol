@@ -20,6 +20,8 @@ interface ChatMessage {
   role: "user" | "assistant" | "system";
   content: string;
   timestamp: Date;
+  isStreaming?: boolean;
+  isThinking?: boolean;
 }
 
 interface SystemContext {
@@ -47,32 +49,23 @@ const QUICK_PROMPTS = [
 
 function SafeMarkdown({ text }: { text: string }) {
   const parts: Array<{ type: 'text' | 'bold' | 'code' | 'br' | 'bullet'; content: string }> = [];
-
   const lines = text.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
     if (i > 0) parts.push({ type: 'br', content: '' });
     let line = lines[i];
-    if (line.startsWith('- ')) {
-      line = '• ' + line.slice(2);
-    }
+    if (line.startsWith('- ')) line = '• ' + line.slice(2);
+
     const regex = /\*\*(.*?)\*\*|`([^`]+)`/g;
     let lastIndex = 0;
     let match;
     while ((match = regex.exec(line)) !== null) {
-      if (match.index > lastIndex) {
-        parts.push({ type: 'text', content: line.slice(lastIndex, match.index) });
-      }
-      if (match[1] !== undefined) {
-        parts.push({ type: 'bold', content: match[1] });
-      } else if (match[2] !== undefined) {
-        parts.push({ type: 'code', content: match[2] });
-      }
+      if (match.index > lastIndex) parts.push({ type: 'text', content: line.slice(lastIndex, match.index) });
+      if (match[1] !== undefined) parts.push({ type: 'bold', content: match[1] });
+      else if (match[2] !== undefined) parts.push({ type: 'code', content: match[2] });
       lastIndex = regex.lastIndex;
     }
-    if (lastIndex < line.length) {
-      parts.push({ type: 'text', content: line.slice(lastIndex) });
-    }
+    if (lastIndex < line.length) parts.push({ type: 'text', content: line.slice(lastIndex) });
   }
 
   return (
@@ -85,13 +78,36 @@ function SafeMarkdown({ text }: { text: string }) {
             return <code key={i} className="px-1.5 py-0.5 rounded bg-white/[0.06] text-primary text-[11px] font-mono">{part.content}</code>;
           case 'br':
             return <br key={i} />;
-          case 'text':
-          case 'bullet':
           default:
             return <span key={i}>{part.content}</span>;
         }
       })}
     </span>
+  );
+}
+
+function ThinkingDots() {
+  return (
+    <span className="inline-flex items-center gap-1 text-white/40">
+      <span className="text-[13px] text-primary/60 mr-1">Thinking</span>
+      <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "900ms" }} />
+      <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "180ms", animationDuration: "900ms" }} />
+      <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "360ms", animationDuration: "900ms" }} />
+    </span>
+  );
+}
+
+function AssistantBubbleContent({ msg }: { msg: ChatMessage }) {
+  if (msg.isThinking) {
+    return <ThinkingDots />;
+  }
+  return (
+    <>
+      <SafeMarkdown text={msg.content} />
+      {msg.isStreaming && (
+        <span className="inline-block w-0.5 h-3.5 bg-primary/70 ml-0.5 align-middle animate-[blink_0.8s_step-end_infinite]" />
+      )}
+    </>
   );
 }
 
@@ -112,67 +128,102 @@ export default function AiAdvisor() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isRevealing, setIsRevealing] = useState(false);
   const [context, setContext] = useState<SystemContext | null>(null);
+
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const contextRef = useRef<SystemContext | null>(null);
+  const messagesRef = useRef<ChatMessage[]>([]);
   const abortRef = useRef<AbortController | null>(null);
-  const revealIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const revealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const revealCancelledRef = useRef(false);
   const isRevealingRef = useRef(false);
 
-  const scrollToBottom = useCallback((force = false) => {
-    if (!force && isRevealingRef.current) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
-  }, [prefersReducedMotion]);
+  // Keep messagesRef in sync
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
-  const stopReveal = useCallback(() => {
-    if (revealIntervalRef.current) {
-      clearInterval(revealIntervalRef.current);
-      revealIntervalRef.current = null;
+  // Smart scroll: only follow if user is within ~100px of bottom
+  const smartScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (distanceFromBottom < 100) {
+      el.scrollTop = el.scrollHeight;
+    }
+  }, []);
+
+  const forceScrollBottom = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+
+  const cancelReveal = useCallback(() => {
+    revealCancelledRef.current = true;
+    if (revealTimerRef.current) {
+      clearTimeout(revealTimerRef.current);
+      revealTimerRef.current = null;
     }
     isRevealingRef.current = false;
-    setIsRevealing(false);
   }, []);
 
   const revealContent = useCallback((msgId: string, fullContent: string, onDone: () => void) => {
-    stopReveal();
+    cancelReveal();
+    revealCancelledRef.current = false;
 
     if (prefersReducedMotion) {
-      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: fullContent } : m));
+      setMessages(prev => prev.map(m =>
+        m.id === msgId ? { ...m, content: fullContent, isStreaming: false, isThinking: false } : m
+      ));
       onDone();
       return;
     }
 
     isRevealingRef.current = true;
-    setIsRevealing(true);
-
     let revealed = 0;
-    const CHUNK = 12;
-    const TICK = 18;
-    let tickCount = 0;
+    const total = fullContent.length;
 
-    revealIntervalRef.current = setInterval(() => {
-      revealed = Math.min(revealed + CHUNK, fullContent.length);
-      tickCount++;
-      const partial = fullContent.slice(0, revealed);
+    const tick = () => {
+      if (revealCancelledRef.current) return;
 
-      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: partial } : m));
-
-      if (tickCount % 6 === 0) {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+      // Smart chunk: fast burst at start, then steady pace
+      const remaining = total - revealed;
+      let chunk: number;
+      if (revealed < 120) {
+        chunk = Math.min(40, remaining);      // fast initial burst
+      } else if (remaining < 80) {
+        chunk = remaining;                    // finish cleanly
+      } else {
+        chunk = Math.floor(Math.random() * 9) + 6; // 6–14 chars/tick
       }
 
-      if (revealed >= fullContent.length) {
-        clearInterval(revealIntervalRef.current!);
-        revealIntervalRef.current = null;
+      revealed = Math.min(revealed + chunk, total);
+      const partial = fullContent.slice(0, revealed);
+      const done = revealed >= total;
+
+      setMessages(prev => prev.map(m =>
+        m.id === msgId
+          ? { ...m, content: partial, isStreaming: !done, isThinking: false }
+          : m
+      ));
+
+      smartScroll();
+
+      if (!done) {
+        const delay = revealed < 120 ? 8 : Math.floor(Math.random() * 10) + 10; // 10–20ms
+        revealTimerRef.current = setTimeout(tick, delay);
+      } else {
         isRevealingRef.current = false;
-        setIsRevealing(false);
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+        revealTimerRef.current = null;
+        forceScrollBottom();
         onDone();
       }
-    }, TICK);
-  }, [prefersReducedMotion, stopReveal]);
+    };
+
+    revealTimerRef.current = setTimeout(tick, 8);
+  }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
   useEffect(() => {
     const enabledTweaks = TWEAKS_DATA
@@ -212,7 +263,7 @@ export default function AiAdvisor() {
 
   useEffect(() => {
     if (!context) return;
-    if (messages.length > 0) return;
+    if (messagesRef.current.length > 0) return;
 
     const hasSpecs = context.system.cpu || context.system.gpu || context.system.ram;
     const specSummary = [context.system.cpu, context.system.gpu, context.system.ram].filter(Boolean).join(" · ");
@@ -221,27 +272,18 @@ export default function AiAdvisor() {
       ? `I've detected your system: **${specSummary}**. You have **${context.enabledTweaks.length}** tweaks enabled and **${context.disabledTweaks.length}** available. Ask me anything about optimizing your setup.`
       : `I'm your optimization assistant. I'll analyze your system and recommend the best tweaks. What would you like to optimize?`;
 
-    setMessages([{
-      id: "welcome",
-      role: "assistant",
-      content: welcomeContent,
-      timestamp: new Date(),
-    }]);
+    setMessages([{ id: "welcome", role: "assistant", content: welcomeContent, timestamp: new Date() }]);
   }, [context]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, scrollToBottom]);
 
   useEffect(() => {
     return () => {
       abortRef.current?.abort();
-      stopReveal();
+      cancelReveal();
     };
-  }, [stopReveal]);
+  }, [cancelReveal]);
 
   const sendMessage = async (content: string) => {
-    if (!content.trim() || loading || isRevealing) return;
+    if (!content.trim() || loading || isRevealingRef.current) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -250,58 +292,70 @@ export default function AiAdvisor() {
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMsg]);
+    // Placeholder assistant bubble appears IMMEDIATELY — before API call
+    const assistantId = `assistant-${Date.now()}`;
+    const placeholderMsg: ChatMessage = {
+      id: assistantId,
+      role: "assistant",
+      content: "",
+      timestamp: new Date(),
+      isThinking: true,
+      isStreaming: true,
+    };
+
+    setMessages(prev => [...prev, userMsg, placeholderMsg]);
     setInput("");
     setLoading(true);
+
+    setTimeout(forceScrollBottom, 40); // let DOM paint first
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
+    // Build history from current ref (excludes the placeholder we just added)
+    const chatHistory = messagesRef.current
+      .filter(m => m.id !== "welcome" && m.role !== "system" && !m.isThinking)
+      .map(m => ({ role: m.role, content: m.content }));
+    chatHistory.push({ role: "user", content: content.trim() });
+
+    const t0 = Date.now();
+    console.log(`[AiAdvisor] send | history=${chatHistory.length} | msg="${content.trim().slice(0, 60)}"`);
+
     try {
-      const currentMessages = await new Promise<ChatMessage[]>(resolve => {
-        setMessages(prev => { resolve(prev); return prev; });
-      });
-
-      const chatHistory = currentMessages
-        .filter(m => m.id !== "welcome" && m.role !== "system")
-        .map(m => ({ role: m.role, content: m.content }));
-
-      const t0 = Date.now();
-      console.log(`[AiAdvisor] sendMessage start | history=${chatHistory.length} | userMsg="${content.trim().slice(0, 60)}..."`);
-
       const data = await cloudApiPost("/ai/chat", { messages: chatHistory, context: contextRef.current }, { signal: abortRef.current.signal });
 
-      if (abortRef.current?.signal.aborted) return;
+      if (abortRef.current?.signal.aborted || revealCancelledRef.current) return;
 
-      console.log(`[AiAdvisor] response OK | role=${data.role} | length=${data.content?.length} | latency=${Date.now() - t0}ms`);
-
-      const msgId = `assistant-${Date.now()}`;
-      const assistantMsg: ChatMessage = {
-        id: msgId,
-        role: "assistant",
-        content: "",
-        timestamp: new Date(),
-      };
+      console.log(`[AiAdvisor] response | length=${data.content?.length} | latency=${Date.now() - t0}ms`);
 
       setLoading(false);
-      setMessages(prev => [...prev, assistantMsg]);
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
 
-      revealContent(msgId, data.content, () => {
+      // Switch placeholder from thinking → streaming, then start reveal
+      setMessages(prev => prev.map(m =>
+        m.id === assistantId ? { ...m, isThinking: false, isStreaming: true } : m
+      ));
+
+      revealContent(assistantId, data.content || "", () => {
         inputRef.current?.focus();
       });
+
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       if (abortRef.current?.signal.aborted) return;
+
       const displayMsg = getUserFriendlyError(err);
-      console.error(`[AiAdvisor] sendMessage error | displayed="${displayMsg}" | raw=`, err);
-      const errorMsg: ChatMessage = {
-        id: `error-${Date.now()}`,
-        role: "system",
-        content: displayMsg,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, errorMsg]);
+      console.error(`[AiAdvisor] error | "${displayMsg}"`, err);
+
+      // Replace placeholder with error message
+      setMessages(prev => prev
+        .filter(m => m.id !== assistantId)
+        .concat({
+          id: `error-${Date.now()}`,
+          role: "system",
+          content: displayMsg,
+          timestamp: new Date(),
+        })
+      );
       setLoading(false);
       inputRef.current?.focus();
     }
@@ -314,7 +368,7 @@ export default function AiAdvisor() {
 
   const handleReset = () => {
     abortRef.current?.abort();
-    stopReveal();
+    cancelReveal();
     setLoading(false);
     setInput("");
 
@@ -328,13 +382,10 @@ export default function AiAdvisor() {
       ? `I've detected your system: **${specSummary}**. You have **${enabledCount}** tweaks enabled and **${disabledCount}** available. Ask me anything about optimizing your setup.`
       : `I'm your optimization assistant. I'll analyze your system and recommend the best tweaks. What would you like to optimize?`;
 
-    setMessages([{
-      id: "welcome",
-      role: "assistant",
-      content: welcomeContent,
-      timestamp: new Date(),
-    }]);
+    setMessages([{ id: "welcome", role: "assistant", content: welcomeContent, timestamp: new Date() }]);
   };
+
+  const isBusy = loading || isRevealingRef.current;
 
   return (
     <AppLayout>
@@ -377,18 +428,19 @@ export default function AiAdvisor() {
           </div>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 pb-3" data-testid="chat-messages">
+        <div
+          ref={scrollContainerRef}
+          className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 pb-3"
+          data-testid="chat-messages"
+        >
           <AnimatePresence initial={false}>
             {messages.map((msg) => (
               <motion.div
                 key={msg.id}
                 initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-                className={cn(
-                  "flex gap-2.5",
-                  msg.role === "user" ? "flex-row-reverse" : "flex-row"
-                )}
+                transition={{ duration: 0.18 }}
+                className={cn("flex gap-2.5", msg.role === "user" ? "flex-row-reverse" : "flex-row")}
               >
                 {msg.role !== "user" && (
                   <div className={cn(
@@ -400,25 +452,29 @@ export default function AiAdvisor() {
                     {msg.role === "system" ? (
                       <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
                     ) : (
-                      <Bot className="w-3.5 h-3.5 text-primary" />
+                      <Bot className={cn("w-3.5 h-3.5 text-primary", msg.isThinking && "animate-pulse")} />
                     )}
                   </div>
                 )}
-                <div className={cn(
-                  "max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed",
-                  msg.role === "user"
-                    ? "bg-primary/15 border border-primary/20 text-white ml-auto rounded-br-md"
-                    : msg.role === "system"
-                      ? "bg-red-500/5 border border-red-500/15 text-red-300/80 rounded-bl-md"
-                      : "bg-white/[0.04] border border-white/[0.06] text-white/80 rounded-bl-md"
-                )}
+
+                <div
+                  className={cn(
+                    "max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed",
+                    msg.role === "user"
+                      ? "bg-primary/15 border border-primary/20 text-white ml-auto rounded-br-md"
+                      : msg.role === "system"
+                        ? "bg-red-500/5 border border-red-500/15 text-red-300/80 rounded-bl-md"
+                        : "bg-white/[0.04] border border-white/[0.06] text-white/80 rounded-bl-md"
+                  )}
                   data-testid={`chat-message-${msg.id}`}
                 >
-                  <SafeMarkdown text={msg.content} />
-                  {isRevealing && msg.role === "assistant" && msg === messages[messages.length - 1] && (
-                    <span className="inline-block w-0.5 h-3.5 bg-primary/70 ml-0.5 align-middle animate-[blink_0.8s_step-end_infinite]" />
+                  {msg.role === "assistant" ? (
+                    <AssistantBubbleContent msg={msg} />
+                  ) : (
+                    <SafeMarkdown text={msg.content} />
                   )}
                 </div>
+
                 {msg.role === "user" && (
                   <div className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mt-0.5">
                     <User className="w-3.5 h-3.5 text-white/50" />
@@ -428,24 +484,6 @@ export default function AiAdvisor() {
             ))}
           </AnimatePresence>
 
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex gap-2.5"
-            >
-              <div className="shrink-0 w-7 h-7 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center mt-0.5">
-                <Bot className="w-3.5 h-3.5 text-primary" />
-              </div>
-              <div className="bg-white/[0.04] border border-white/[0.06] rounded-2xl rounded-bl-md px-4 py-3">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-pulse" style={{ animationDelay: "300ms" }} />
-                </div>
-              </div>
-            </motion.div>
-          )}
           <div ref={messagesEndRef} />
         </div>
 
@@ -482,13 +520,13 @@ export default function AiAdvisor() {
             onChange={e => setInput(e.target.value)}
             placeholder="Ask about optimizations, tweaks, games..."
             className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
-            disabled={loading || isRevealing}
+            disabled={isBusy}
             data-testid="input-chat-message"
           />
           <Button
             type="submit"
             size="sm"
-            disabled={!input.trim() || loading || isRevealing}
+            disabled={!input.trim() || isBusy}
             className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
             data-testid="button-send-message"
           >
