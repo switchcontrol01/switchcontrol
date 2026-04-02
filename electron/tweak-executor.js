@@ -205,6 +205,55 @@ async function runElevated(command) {
   }
 }
 
+// ─── Failure classification helpers ───────────────────────────────────────────
+
+// Known Group Policy registry paths that can block specific tweaks.
+// Keyed by tweakId; value is a PS expression returning $true when a policy lock is active.
+const POLICY_CHECKS = {
+  'telemetry':      `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DataCollection' -Name 'AllowTelemetry' -EA SilentlyContinue)`,
+  'gaming-mode':    `(Get-ItemProperty 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR' -Name 'AllowGameDVR' -EA SilentlyContinue).AllowGameDVR -eq 0`,
+  'cortana':        `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Windows Search' -Name 'AllowCortana' -EA SilentlyContinue)`,
+  'notifications':  `Test-Path 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Explorer'`,
+  'core-isolation': `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard' -Name 'HypervisorEnforcedCodeIntegrity' -EA SilentlyContinue)`,
+  'vbs':            `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeviceGuard' -Name 'EnableVirtualizationBasedSecurity' -EA SilentlyContinue)`,
+  'fast-startup':   `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System' -Name 'HiberbootEnabled' -EA SilentlyContinue)`,
+  'xbox-bar':       `(Get-ItemProperty 'HKCU:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR' -Name 'AllowGameDVR' -EA SilentlyContinue).AllowGameDVR -eq 0`,
+  'xbox-services':  `Test-Path 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\GameDVR'`,
+  'bluetooth':      `$null -ne (Get-ItemProperty 'HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\Bluetooth' -EA SilentlyContinue -Name '*')`,
+};
+
+async function checkPolicyLock(tweakId) {
+  const check = POLICY_CHECKS[tweakId];
+  if (!check) return false;
+  try { return await checkPowerShell(check); } catch { return false; }
+}
+
+function classifyErrorMessage(msg) {
+  if (!msg) return 'unknown';
+  if (/cancel|deny|denied|declined|uac/i.test(msg))           return 'uac_cancelled';
+  if (/access.?denied|unauthorized|not.?allowed|forbidden/i.test(msg)) return 'access_denied';
+  if (/not found|does not exist|cannot find|path does not/i.test(msg)) return 'not_found';
+  if (/policy|gpo|group.?policy|mdm/i.test(msg))             return 'blocked_by_policy';
+  if (/privilege|administrator|elevation|elevat/i.test(msg))  return 'requires_admin';
+  return 'unknown';
+}
+
+const FAILURE_META = {
+  requires_admin:      { userMessage: 'Requires Administrator Mode',     hint: 'Right-click SwitchControl and choose "Run as administrator", then try again.' },
+  blocked_by_policy:   { userMessage: 'Blocked by Windows Policy',       hint: 'A Group Policy or MDM rule is preventing this change. Open gpedit.msc to review policies, or contact your administrator.' },
+  uac_cancelled:       { userMessage: 'UAC Prompt Declined',             hint: 'Click "Yes" on the User Account Control prompt that appears to allow the change.' },
+  access_denied:       { userMessage: 'Access Denied',                   hint: 'Windows is blocking access to this system resource. Try running SwitchControl as administrator.' },
+  verification_failed: { userMessage: 'Setting Could Not Be Verified',   hint: 'The command ran but the system state did not change. An antivirus or security tool may be reverting it immediately.' },
+  not_found:           { userMessage: 'Not Supported on This System',    hint: 'This registry key, service, or feature does not exist on your Windows version.' },
+  unsupported:         { userMessage: 'Tweak Not Supported',             hint: '' },
+  unknown:             { userMessage: 'Tweak Could Not Be Applied',      hint: 'An unexpected error occurred. Check SwitchControl logs for details.' },
+};
+
+function enrichFailure(baseResult, failureType) {
+  const meta = FAILURE_META[failureType] || FAILURE_META.unknown;
+  return { ...baseResult, failureType, userMessage: meta.userMessage, hint: meta.hint };
+}
+
 // ─── UNSUPPORTED tweaks ────────────────────────────────────────────────────────
 // These tweaks cannot be implemented with persistent registry/command changes.
 // They are kept visible and honestly marked, toggle is disabled in UI.
@@ -542,7 +591,7 @@ async function executeTweak(tweakId, action) {
 
   // 1. Unsupported?
   if (UNSUPPORTED_TWEAKS[tweakId]) {
-    const result = {
+    const result = enrichFailure({
       success: false,
       unsupported: true,
       message: UNSUPPORTED_TWEAKS[tweakId],
@@ -550,7 +599,8 @@ async function executeTweak(tweakId, action) {
       requiresReboot: false,
       requiresAdmin:  false,
       error: null,
-    };
+      hint: UNSUPPORTED_TWEAKS[tweakId],
+    }, 'unsupported');
     logEntry({ tweakId, action, result, ms: 0 });
     return result;
   }
@@ -559,14 +609,14 @@ async function executeTweak(tweakId, action) {
 
   // 2. Unknown tweak
   if (!tweak) {
-    const result = {
+    const result = enrichFailure({
       success: false,
       message: 'Tweak not found in registry.',
       commandsRun: [],
       requiresReboot: false,
       requiresAdmin:  false,
       error: `No implementation for "${tweakId}"`,
-    };
+    }, 'not_found');
     logEntry({ tweakId, action, result, ms: 0 });
     return result;
   }
@@ -577,14 +627,14 @@ async function executeTweak(tweakId, action) {
     if (!isAdmin) {
       // Special-case tweaks use custom handlers that can't be lifted into a temp script
       if (tweak._special) {
-        const result = {
+        const result = enrichFailure({
           success:        false,
           requiresAdmin:  true,
           requiresReboot: tweak.requiresReboot || false,
           commandsRun:    [],
           message:        null,
-          error:          'This tweak requires SwitchControl to be run as Administrator. Right-click the app and choose "Run as administrator".',
-        };
+          error:          'This tweak requires SwitchControl to be run as Administrator.',
+        }, 'requires_admin');
         logEntry({ tweakId, action, result, ms: Date.now() - startTime });
         return result;
       }
@@ -599,7 +649,7 @@ async function executeTweak(tweakId, action) {
         elevResult = await runElevated(command);
       } catch (elevErr) {
         const isCancelled = /cancel|deny|denied|access.?denied|declined|abort/i.test(elevErr.message);
-        const result = {
+        const result = enrichFailure({
           success:        false,
           requiresAdmin:  true,
           requiresReboot: tweak.requiresReboot || false,
@@ -608,20 +658,23 @@ async function executeTweak(tweakId, action) {
           error: isCancelled
             ? 'Elevation cancelled. Accept the UAC prompt to apply this tweak.'
             : `Elevation failed: ${elevErr.message}`,
-        };
+        }, isCancelled ? 'uac_cancelled' : 'requires_admin');
         logEntry({ tweakId, action, result, ms: Date.now() - startTime });
         return result;
       }
 
       if (!elevResult.ok) {
-        const result = {
+        const errMsg   = elevResult.error || 'Elevated command failed.';
+        const isCancelledMsg = /cancel|deny|denied|access.?denied|declined|uac/i.test(errMsg);
+        const fType    = isCancelledMsg ? 'uac_cancelled' : classifyErrorMessage(errMsg);
+        const result = enrichFailure({
           success:        false,
           requiresAdmin:  true,
           requiresReboot: tweak.requiresReboot || false,
           commandsRun,
           message:        null,
-          error:          elevResult.error || 'Elevated command failed.',
-        };
+          error:          errMsg,
+        }, fType);
         logEntry({ tweakId, action, result, ms: Date.now() - startTime });
         return result;
       }
@@ -637,6 +690,9 @@ async function executeTweak(tweakId, action) {
         const result = {
           success:        true,
           verified:       true,
+          failureType:    null,
+          userMessage:    null,
+          hint:           null,
           requiresReboot: tweak.requiresReboot || false,
           requiresAdmin:  true,
           commandsRun,
@@ -646,16 +702,20 @@ async function executeTweak(tweakId, action) {
         logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
         return result;
       } else {
-        const result = {
+        const policyLocked = await checkPolicyLock(tweakId);
+        const fType = policyLocked ? 'blocked_by_policy' : 'verification_failed';
+        const result = enrichFailure({
           success:        false,
           verified:       true,
           requiresReboot: tweak.requiresReboot || false,
           requiresAdmin:  true,
           commandsRun,
           message:        null,
-          error:          'Elevated command ran but system state did not change. May be blocked by policy.',
-        };
-        logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
+          error:          policyLocked
+            ? 'System state unchanged — a Windows Group Policy is blocking this change.'
+            : 'Elevated command ran but system state did not change.',
+        }, fType);
+        logEntry({ tweakId, action, verificationResult: verification, policyLocked, result, ms: Date.now() - startTime });
         return result;
       }
     }
@@ -707,6 +767,9 @@ async function executeTweak(tweakId, action) {
       const result = {
         success:        true,
         verified:       true,
+        failureType:    null,
+        userMessage:    null,
+        hint:           null,
         requiresReboot: tweak.requiresReboot || false,
         requiresAdmin:  tweak.requiresAdmin  || false,
         commandsRun,
@@ -716,37 +779,36 @@ async function executeTweak(tweakId, action) {
       logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
       return result;
     } else {
-      const result = {
+      const policyLocked = await checkPolicyLock(tweakId);
+      const fType = policyLocked ? 'blocked_by_policy' : 'verification_failed';
+      const result = enrichFailure({
         success:        false,
         verified:       true,
         requiresReboot: tweak.requiresReboot || false,
         requiresAdmin:  tweak.requiresAdmin  || false,
         commandsRun,
         message:        null,
-        error:          'Command ran but system state did not change. May be blocked by policy or antivirus.',
-      };
-      logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
+        error:          policyLocked
+          ? 'System state unchanged — a Windows Group Policy is blocking this change.'
+          : 'Command ran but system state did not change.',
+      }, fType);
+      logEntry({ tweakId, action, verificationResult: verification, policyLocked, result, ms: Date.now() - startTime });
       return result;
     }
 
   } catch (error) {
     console.error(`[TweakExecutor] Failed ${action} ${tweakId}:`, error.message);
-    let errorMsg = error.message || 'Execution failed';
-    if (/access.*denied|not.*allowed|unauthorized|privilege/i.test(errorMsg)) {
-      errorMsg = 'Access denied. Run SwitchControl as Administrator.';
-    } else if (/does not exist|not found|cannot find/i.test(errorMsg)) {
-      errorMsg = 'Registry path or service not found. This setting may not apply to your Windows version.';
-    }
-
-    const result = {
+    const rawMsg   = error.message || 'Execution failed';
+    const fType    = classifyErrorMessage(rawMsg);
+    const result   = enrichFailure({
       success:        false,
       verified:       false,
       requiresReboot: false,
-      requiresAdmin:  /access.*denied|administrator/i.test(errorMsg),
+      requiresAdmin:  fType === 'requires_admin' || fType === 'access_denied',
       commandsRun,
       message:        null,
-      error:          errorMsg,
-    };
+      error:          rawMsg,
+    }, fType);
     logEntry({ tweakId, action, result, ms: Date.now() - startTime });
     return result;
   }
