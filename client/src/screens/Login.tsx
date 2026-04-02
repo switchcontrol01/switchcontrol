@@ -241,6 +241,67 @@ export default function Login() {
         ))}
       </div>
 
+      {/* Left-side beacon glow aimed at login card */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {/* Wide ambient beam from left wall */}
+        <motion.div
+          className="absolute"
+          style={{
+            left: '-10%',
+            top: '0%',
+            width: '75%',
+            height: '100%',
+            background: 'conic-gradient(from 0deg at 0% 50%, transparent 0deg, rgba(139,92,246,0.18) 18deg, rgba(168,85,247,0.28) 28deg, rgba(139,92,246,0.18) 38deg, transparent 55deg)',
+            filter: 'blur(28px)',
+          }}
+          animate={{ opacity: [0.55, 1, 0.55] }}
+          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        {/* Bright core beam */}
+        <motion.div
+          className="absolute"
+          style={{
+            left: '-5%',
+            top: '15%',
+            width: '60%',
+            height: '70%',
+            background: 'conic-gradient(from 0deg at 0% 50%, transparent 0deg, rgba(168,85,247,0.12) 22deg, rgba(192,132,252,0.22) 30deg, rgba(168,85,247,0.12) 38deg, transparent 52deg)',
+            filter: 'blur(16px)',
+          }}
+          animate={{ opacity: [0.4, 0.9, 0.4], scaleY: [0.95, 1.05, 0.95] }}
+          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
+        />
+        {/* Sharp inner light ray */}
+        <motion.div
+          className="absolute"
+          style={{
+            left: 0,
+            top: '38%',
+            width: '52%',
+            height: '24%',
+            background: 'linear-gradient(90deg, rgba(192,132,252,0.22) 0%, rgba(168,85,247,0.10) 55%, transparent 100%)',
+            filter: 'blur(8px)',
+            transformOrigin: 'left center',
+          }}
+          animate={{ opacity: [0.3, 0.8, 0.3], scaleX: [0.92, 1.04, 0.92] }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 1.6 }}
+        />
+        {/* Specular glint on the left edge */}
+        <motion.div
+          className="absolute"
+          style={{
+            left: 0,
+            top: '42%',
+            width: '18%',
+            height: '16%',
+            background: 'radial-gradient(ellipse at 0% 50%, rgba(216,180,254,0.45) 0%, rgba(192,132,252,0.18) 40%, transparent 80%)',
+            filter: 'blur(6px)',
+          }}
+          animate={{ opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
+        />
+      </div>
+
       <div 
         className="absolute inset-0 overflow-hidden pointer-events-none" 
         style={{ transform: 'rotate(-12deg) scale(1.4)' }}
