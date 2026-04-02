@@ -133,21 +133,39 @@ export default function Settings() {
                   <Input value={user.email} readOnly disabled className="bg-muted/50 text-muted-foreground" data-testid="input-account-email" />
                 </div>
               )}
-              <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-md">
-                <div className="space-y-0.5">
-                  <span className="text-sm font-medium text-emerald-400">Premium (Lifetime)</span>
-                  <p className="text-xs text-emerald-500/70">One-time purchase - Lifetime access</p>
+              {isPremium ? (
+                <div className="flex items-center justify-between bg-emerald-500/5 border border-emerald-500/20 p-3 rounded-md">
+                  <div className="space-y-0.5">
+                    <span className="text-sm font-medium text-emerald-400">Premium (Lifetime)</span>
+                    <p className="text-xs text-emerald-500/70">One-time purchase - Lifetime access</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                    onClick={() => setLicenseModalOpen(true)}
+                    data-testid="button-manage-license"
+                  >
+                    Manage
+                  </Button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-emerald-500/20 text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
-                  onClick={() => setLicenseModalOpen(true)}
-                  data-testid="button-manage-license"
-                >
-                  Manage
-                </Button>
-              </div>
+              ) : (
+                <div className="flex items-center justify-between bg-white/[0.03] border border-white/[0.08] p-3 rounded-md">
+                  <div className="space-y-0.5">
+                    <span className="text-sm font-medium text-white/60">Free Plan</span>
+                    <p className="text-xs text-white/35">Upgrade to unlock all premium features</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-white/[0.1] text-white/50 hover:text-white/80 hover:bg-white/[0.05]"
+                    onClick={() => setLicenseModalOpen(true)}
+                    data-testid="button-manage-license"
+                  >
+                    Manage
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
