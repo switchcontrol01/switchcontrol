@@ -416,7 +416,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               data-testid={`modal-tweak-${tweak.id}`}
               variants={modalContent} initial="initial" animate="animate" exit="exit"
             >
-              <div className="relative bg-[#0c0c14]/80 border border-white/[0.08] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-2xl">
+              <div className="relative bg-gradient-to-br from-white/[0.08] via-white/[0.05] to-white/[0.03] backdrop-blur-2xl border border-white/[0.10] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.10)]">
                 <motion.button
                   type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
                   className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity"
