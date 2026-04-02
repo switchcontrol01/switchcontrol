@@ -1316,13 +1316,18 @@ ipcMain.handle('telemetry:getGpu', async () => {
 
 ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
   try {
-    const [disks, io] = await Promise.all([
-      si.fsSize().catch(() => []),
-      si.disksIO().catch(() => ({ rIO: 0, wIO: 0, tIO: 0 }))
-    ]);
+    // Prefer the cached fsData from the polling loop — it is already warmed up and reliable.
+    // Fresh si.fsSize() calls sometimes return [] on Windows even while the polling loop succeeds.
+    let fsData = liveTelemetryCache?.fsData;
+    if (!fsData || fsData.length === 0) {
+      // Cache not ready yet — fall back to a direct call
+      fsData = await si.fsSize().catch(() => []);
+    }
 
-    // Find the requested disk, fall back to C: then first
-    const allDisks = (disks || []).map(d => ({
+    // Use cached disk IO — disksIO() is a differential API; fresh calls return 0 without a baseline.
+    const cachedIO = liveTelemetryCache?.diskIO || { rIO_sec: 0, wIO_sec: 0 };
+
+    const allDisks = (fsData || []).map(d => ({
       fs: d.fs,
       type: d.type,
       size: d.size,
@@ -1334,17 +1339,17 @@ ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
 
     let selected = null;
     if (selectedDiskMount) {
-      selected = allDisks.find(d => d.mount === selectedDiskMount);
+      selected = allDisks.find(d => d.mount === selectedDiskMount) || null;
     }
     if (!selected) {
-      selected = allDisks.find(d => d.mount === 'C:' || d.mount === '/') || allDisks[0];
+      selected = allDisks.find(d => d.mount === 'C:' || d.mount === '/') || allDisks[0] || null;
     }
 
-    console.log(`[telemetry:getDisk] requested=${selectedDiskMount} resolved=${selected?.mount} use=${selected?.use}%`);
+    console.log(`[telemetry:getDisk] requested=${selectedDiskMount} resolved=${selected?.mount} use=${selected?.use}% disks=${allDisks.length} fromCache=${!!liveTelemetryCache}`);
     return {
       disks: allDisks,
       selected,
-      io: { rIO: io.rIO || 0, wIO: io.wIO || 0, tIO: io.tIO || 0 }
+      io: { rIO: cachedIO.rIO_sec || 0, wIO: cachedIO.wIO_sec || 0, tIO: 0 }
     };
   } catch (e) {
     console.error('[telemetry:getDisk] error:', e.message);
