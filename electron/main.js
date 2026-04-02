@@ -954,8 +954,8 @@ ipcMain.handle('telemetry:getLive', async () => {
       diskPercent,
       diskReadSec,
       diskWriteSec,
-      netRxSec: netRxKBs > 0 ? netRxKBs : null,
-      netTxSec: netTxKBs > 0 ? netTxKBs : null,
+      netRxSec: netRxKBs,
+      netTxSec: netTxKBs,
       timestamp: Date.now()
     };
   } catch (e) {
@@ -966,14 +966,18 @@ ipcMain.handle('telemetry:getLive', async () => {
 ipcMain.handle('system:getRamUsage', async () => {
   try {
     const mem = await si.mem();
+    const used = mem.total - mem.available;
     return {
       total: mem.total,
-      used: mem.total - mem.available,
+      used,
       free: mem.available,
-      usagePercent: Math.round(((mem.total - mem.available) / mem.total) * 100)
+      usagePercent: Math.round((used / mem.total) * 100),
+      totalGB: Math.round(mem.total / 1024 / 1024 / 1024),
+      usedGB: Number((used / 1024 / 1024 / 1024).toFixed(1)),
+      freeGB: Number((mem.available / 1024 / 1024 / 1024).toFixed(1)),
     };
   } catch (e) {
-    return { total: 0, used: 0, free: 0, usagePercent: 0 };
+    return { total: 0, used: 0, free: 0, usagePercent: 0, totalGB: 0, usedGB: 0, freeGB: 0 };
   }
 });
 

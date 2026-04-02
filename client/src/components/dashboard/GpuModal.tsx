@@ -75,8 +75,10 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
       if (api?.telemetry?.getGpu) {
         const res = await api.telemetry.getGpu();
         if (!res) return;
-        setData(res);
-        const loadVal = res.load;
+        const gpu = Array.isArray(res) ? res[0] : res;
+        if (!gpu) return;
+        setData(gpu);
+        const loadVal = gpu.load;
         if (loadVal !== undefined && loadVal !== null && Number.isFinite(Number(loadVal))) {
           setLoadHistory(prev => {
             const next = [...prev, Number(loadVal)];

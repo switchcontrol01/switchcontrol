@@ -211,14 +211,16 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
     );
   }
 
-  const hasCpuTemp = data.some(d => d.cpuTemp !== null) || latest?.cpuTemp != null;
-  const hasGpuLoad = data.some(d => d.gpuLoad !== null) || (latest?.showGpu && latest?.gpuLoad != null);
-  const hasGpuTemp = data.some(d => d.gpuTemp !== null) || (latest?.showGpu && latest?.gpuTemp != null);
-  const hasGpuMem = data.some(d => d.gpuMemPct !== null) || (latest?.showGpu && latest?.gpuMemPct != null);
-  const hasRamData = data.some(d => d.ram !== null) || (latest?.showRam ?? false);
-  const hasDiskData = data.some(d => d.disk !== null) || latest?.diskPercent != null;
-  const hasNetRx = data.some(d => d.netRx !== null) || latest?.netRxSec != null;
-  const hasNetTx = data.some(d => d.netTx !== null) || latest?.netTxSec != null;
+  const latestPoint = data[data.length - 1];
+
+  const hasCpuTemp = latestPoint?.cpuTemp != null;
+  const hasGpuLoad = latestPoint?.gpuLoad != null;
+  const hasGpuTemp = latestPoint?.gpuTemp != null;
+  const hasGpuMem = latestPoint?.gpuMemPct != null;
+  const hasRamData = latestPoint?.ram != null;
+  const hasDiskData = latestPoint?.disk != null;
+  const hasNetRx = latestPoint?.netRx != null;
+  const hasNetTx = latestPoint?.netTx != null;
 
   return (
     <GlassCard className="p-4">

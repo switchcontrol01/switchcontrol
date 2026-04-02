@@ -275,8 +275,9 @@ export default function Home() {
         }
         if (api?.telemetry?.getGpu) {
           api.telemetry.getGpu().then((gpuData: any) => {
-            if (gpuData) {
-              const hasDetail = gpuData.load !== undefined || gpuData.temperature !== undefined || gpuData.powerDraw !== undefined || gpuData.clockCore !== undefined || (gpuData.memoryUsed !== undefined && gpuData.vram !== undefined);
+            const gpu = Array.isArray(gpuData) ? gpuData[0] : gpuData;
+            if (gpu) {
+              const hasDetail = gpu.load !== undefined || gpu.temperature !== undefined || gpu.powerDraw !== undefined || gpu.clockCore !== undefined || (gpu.memoryUsed !== undefined && gpu.vram !== undefined);
               setGpuDetailAvailable(hasDetail);
             } else {
               setGpuDetailAvailable(false);
