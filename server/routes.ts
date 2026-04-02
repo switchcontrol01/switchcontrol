@@ -23,6 +23,21 @@ export async function registerRoutes(
   app.use("/api/ai", requireJwt, requireCloudPremium, aiRouter);
   app.use("/api/bios", requireJwt, requireCloudPremium, biosRouter);
 
+  // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
+  app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {
+    const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean; email: string | null };
+    const hasOpenAiKey = !!process.env.OPENAI_API_KEY;
+    console.log(`[CloudProbe] ${new Date().toISOString()} | user=${cloudUser.id} premium=${cloudUser.isPremium} openai=${hasOpenAiKey} | bearer=${!!req.headers.authorization}`);
+    return res.json({
+      ok: true,
+      userId: cloudUser.id,
+      isPremium: cloudUser.isPremium,
+      openAiReady: hasOpenAiKey,
+      timestamp: new Date().toISOString(),
+      message: "Cloud AI backend reachable. JWT verified. Premium confirmed.",
+    });
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: Date.now() });
   });
