@@ -63,7 +63,7 @@ function runPowerShell(command) {
     const wrapped = `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
     execFile(
       'powershell',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
+      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
       { timeout: 30000 },
       (error, stdout, stderr) => {
         if (error) {
@@ -81,7 +81,7 @@ function queryPowerShell(command) {
   return new Promise((resolve) => {
     execFile(
       'powershell',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
       { timeout: 12000 },
       (error, stdout) => resolve(error ? null : stdout.trim())
     );
@@ -132,7 +132,9 @@ async function runElevated(command) {
     `} catch {`,
     `  $r = @{ ok = $false; error = $_.Exception.Message }`,
     `}`,
-    `$r | ConvertTo-Json -Compress | Set-Content -Path '${safeResultPath}' -Encoding UTF8`,
+    // Use WriteAllText (2-arg overload) — writes UTF-8 without BOM on all PS versions.
+    // Set-Content -Encoding UTF8 on PS 5.x adds a BOM that breaks JSON.parse.
+    `try { [System.IO.File]::WriteAllText('${safeResultPath}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResultPath}' -Encoding ascii -Force }`,
     `Write-Host "[elevated] wrote result to: ${safeResultPath}"`,
   ].join('\r\n');
 
@@ -141,13 +143,14 @@ async function runElevated(command) {
 
   // ArgumentList as PS array — avoids nested quoting inside -Command strings.
   // -Wait is passed so the host process waits for the elevated child.
-  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
+  // -WindowStyle Hidden suppresses the console popup in the elevated child.
+  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
 
   try {
     await new Promise((resolve, reject) => {
       execFile(
         'powershell',
-        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
         { timeout: 120_000 },
         (err) => {
           if (err) {
@@ -174,10 +177,14 @@ async function runElevated(command) {
     console.log(`[runElevated] resultPath exists: ${fs.existsSync(resultPath)}`);
 
     if (fs.existsSync(resultPath)) {
-      const raw = fs.readFileSync(resultPath, 'utf8');
+      // Strip UTF-8 BOM (\uFEFF) and trim whitespace — PS 5.x Set-Content adds BOM
+      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
       console.log(`[runElevated] result file contents: "${raw}"`);
       try {
-        return JSON.parse(raw);
+        const parsed = JSON.parse(raw);
+        // Treat { ok: true, error: null } as clean success
+        if (parsed.ok === true) return { ok: true, error: null };
+        return parsed;
       } catch {
         return { ok: false, error: `Elevated script ran but result file could not be parsed (raw: ${raw.slice(0, 200)})` };
       }
