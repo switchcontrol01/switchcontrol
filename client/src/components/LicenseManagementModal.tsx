@@ -41,7 +41,7 @@ function InfoRow({ label, children }: { label: string; children: React.ReactNode
 
 export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }: LicenseManagementModalProps) {
   const { toast } = useToast();
-  const { safeRefreshEntitlements } = useAppAuth();
+  const { safeRefreshEntitlements, entitlementsVerified } = useAppAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -55,6 +55,8 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       setVerified(false);
       return;
     }
+
+    console.log('[PremiumTruth] modal opened — entitlementsVerified:', entitlementsVerified, 'isPremium prop:', isPremium);
 
     if (isElectron) {
       const api = (window as any).electronAPI;
@@ -73,6 +75,24 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
         api.getDeviceId().then((id: string) => { if (id) setDeviceId(id); });
       }
     }
+
+    setIsRefreshing(true);
+    setVerified(false);
+    safeRefreshEntitlements()
+      .then((result) => {
+        const now = new Date().toLocaleTimeString();
+        setLastSync(now);
+        console.log('[PremiumTruth] modal auto-refresh result — isPremium:', result.user?.isPremium ?? 'null (no user)');
+        if (result.user?.isPremium) {
+          setVerified(true);
+        }
+      })
+      .catch((err) => {
+        console.warn('[PremiumTruth] modal auto-refresh failed:', err);
+      })
+      .finally(() => {
+        setIsRefreshing(false);
+      });
   }, [open]);
 
   const handleRefreshLicense = async () => {
@@ -212,39 +232,66 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               </div>
 
               <div className="relative px-6 py-5 space-y-4">
-                {/* License status block */}
-                <div className="relative rounded-xl overflow-hidden border border-emerald-500/[0.22] bg-emerald-500/[0.04] shadow-[inset_0_0_28px_rgba(16,185,129,0.07)]">
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
-
-                  <div className="px-4 py-3.5 space-y-0 divide-y divide-emerald-500/[0.1]">
-                    <InfoRow label="Plan">
-                      <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-medium px-2.5 py-0.5">
-                        Premium Lifetime
-                      </Badge>
-                    </InfoRow>
-
-                    <InfoRow label="Status">
-                      <div className="flex items-center gap-2">
-                        <span className="relative flex size-1.5">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
-                          <span className="relative inline-flex rounded-full size-1.5 bg-emerald-400" />
-                        </span>
-                        <span className="text-[12px] text-emerald-400 font-medium">Active</span>
-                        {verified && <CheckCircle2 className="size-3.5 text-emerald-400" />}
-                      </div>
-                    </InfoRow>
-
-                    <InfoRow label="Activated On">
-                      <span className="text-[12px] text-white/55">Lifetime License</span>
-                    </InfoRow>
-
-                    {lastSync && (
-                      <InfoRow label="Last Sync">
-                        <span className="text-[12px] text-white/55 font-mono">{lastSync}</span>
-                      </InfoRow>
-                    )}
+                {/* License status block — conditional on backend-confirmed isPremium */}
+                {isRefreshing && !lastSync ? (
+                  <div className="relative rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.025] flex items-center justify-center py-6 gap-2">
+                    <Loader2 className="size-4 animate-spin text-white/40" />
+                    <span className="text-[12px] text-white/40">Verifying license...</span>
                   </div>
-                </div>
+                ) : isPremium ? (
+                  <div className="relative rounded-xl overflow-hidden border border-emerald-500/[0.22] bg-emerald-500/[0.04] shadow-[inset_0_0_28px_rgba(16,185,129,0.07)]">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
+                    <div className="px-4 py-3.5 space-y-0 divide-y divide-emerald-500/[0.1]">
+                      <InfoRow label="Plan">
+                        <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-medium px-2.5 py-0.5">
+                          Premium Lifetime
+                        </Badge>
+                      </InfoRow>
+                      <InfoRow label="Status">
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex size-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60" />
+                            <span className="relative inline-flex rounded-full size-1.5 bg-emerald-400" />
+                          </span>
+                          <span className="text-[12px] text-emerald-400 font-medium">Active</span>
+                          {verified && <CheckCircle2 className="size-3.5 text-emerald-400" />}
+                        </div>
+                      </InfoRow>
+                      <InfoRow label="Activated On">
+                        <span className="text-[12px] text-white/55">Lifetime License</span>
+                      </InfoRow>
+                      {lastSync && (
+                        <InfoRow label="Last Sync">
+                          <span className="text-[12px] text-white/55 font-mono">{lastSync}</span>
+                        </InfoRow>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.02]">
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                    <div className="px-4 py-3.5 space-y-0 divide-y divide-white/[0.05]">
+                      <InfoRow label="Plan">
+                        <Badge className="bg-white/[0.06] text-white/45 border-white/[0.1] text-[10px] font-medium px-2.5 py-0.5">
+                          Free
+                        </Badge>
+                      </InfoRow>
+                      <InfoRow label="Status">
+                        <div className="flex items-center gap-2">
+                          <span className="relative flex size-1.5">
+                            <span className="relative inline-flex rounded-full size-1.5 bg-white/25" />
+                          </span>
+                          <span className="text-[12px] text-white/45 font-medium">No License</span>
+                        </div>
+                      </InfoRow>
+                      {lastSync && (
+                        <InfoRow label="Last Sync">
+                          <span className="text-[12px] text-white/55 font-mono">{lastSync}</span>
+                        </InfoRow>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Device info block */}
                 <div className="relative rounded-xl border border-white/[0.07] bg-white/[0.025]">

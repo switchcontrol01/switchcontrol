@@ -1,0 +1,144 @@
+
+None selected
+
+Skip to content
+Using Gmail with screen readers
+1 of 2
+(no subject)
+Inbox
+Switch Mod <keyboardwells@gmail.com>
+	
+03:29 (0 minutes ago)
+	
+	
+to me
+TASK
+Fix License Management so premium status is backend-truth only. The app must never show “Premium Active” from stale frontend state, cached flags, old localStorage values, or optimistic UI. If the backend does not confirm premium, the UI must show not premium.
+
+PROBLEM
+Right now License Management can show “premium active” even when the user is not actually premium.
+That means the frontend is reading stale or fake entitlement state instead of using backend-confirmed truth.
+This breaks trust and makes the premium system unreliable.
+
+GOAL
+Make premium detection authoritative, server-backed, and impossible to fake from stale frontend state.
+License Management, premium locks, and premium feature access must all use the same backend-confirmed entitlement source of truth.
+
+IMPLEMENTATION
+
+1. FIND THE CURRENT ENTITLEMENT FLOW
+- Audit all places where premium state is read or derived
+- Especially inspect:
+  - LicenseManagementModal
+  - any entitlement store / auth store / app flow store
+  - /api/me or equivalent entitlement endpoint
+  - any localStorage/sessionStorage premium flags
+  - any “premiumUnlocked”, “hasSeenPremium”, “isPremium”, “licenseActive”, or similar fields
+- Identify exactly why the modal says premium active when backend truth says otherwise
+
+2. REMOVE FRONTEND-ONLY PREMIUM TRUTH
+- The frontend must never independently decide premium is active
+- Remove or neutralize any logic that:
+  - trusts stale cached premium flags
+  - trusts previous unlock attempts
+  - trusts local-only license state
+  - treats “has seen premium” or “unlock attempted” as real premium
+- Local state can only be used as loading/cache assistance, never as authority
+
+3. DEFINE ONE SOURCE OF TRUTH
+- Premium truth must come from backend-confirmed entitlement only
+- Use one canonical backend-backed field, for example:
+  - entitlementStatus
+  - isPremium
+  - premiumActive
+- Pick one and make the whole app use it consistently
+- If the backend says false, the UI must say false everywhere
+
+4. FIX LICENSE MANAGEMENT MODAL
+- License Management must render based on live backend truth
+- States should be explicit:
+  - loading entitlement
+  - premium active
+  - not premium
+  - error verifying entitlement
+- Do not show “Premium Active” until backend verification completes successfully
+- If backend verification fails, do not default to premium
+- Safer fallback is locked / unverified / not confirmed
+
+5. FORCE REFRESH ENTITLEMENTS WHEN MODAL OPENS
+- When License Management opens, fetch fresh entitlement state from backend
+- Do not rely only on boot-time hydration
+- After purchase / restore / login / logout / license change, refresh entitlements again
+- Ensure modal updates after the server response, not old cached values
+
+6. FIX GLOBAL PREMIUM FLOW
+- All premium-gated features must use the same backend-confirmed entitlement result
+- This includes:
+  - BIOS Advisor
+  - AI Advisor
+  - download access if premium-gated
+  - any premium badges or labels
+  - License Management modal
+- No feature should use a different premium flag than the others
+
+7. BACKEND MUST STAY AUTHORITATIVE
+- Audit the backend endpoint that returns user/account/license entitlement state
+- Make sure it returns the real current status
+- If premium is false or expired, return false clearly
+- If there is any old mock logic, placeholder logic, or test fallback, remove it
+- Do not let frontend “restore” premium without backend confirmation
+
+8. HANDLE STALE CACHE SAFELY
+- If Zustand/localStorage/sessionStorage is used, cached entitlement data must be treated as provisional only
+- On hydration:
+  - show loading or verifying state
+  - then overwrite with backend result
+- Never keep showing “premium active” just because old storage said so
+
+9. ADD DEBUG LOGGING
+Add logs to trace premium truth clearly:
+- frontend modal open
+- frontend entitlement fetch start
+- frontend entitlement fetch result
+- frontend state before backend refresh
+- frontend state after backend refresh
+- backend entitlement response
+Use a consistent prefix like:
+[PremiumTruth]
+This should make it obvious where stale premium is leaking from
+
+10. FIX ANY BROKEN NAMING
+- Separate these concepts clearly if they are mixed together:
+  - isPremium
+  - premiumUnlocked
+  - hasSeenPremiumUnlock
+  - premiumFlowAttempted
+  - licenseKeyPresent
+  - trialEligible
+- Only actual backend-confirmed entitlement can drive premium access
+
+CHECKLIST
+- License Management no longer shows premium active from stale frontend state
+- Premium status is confirmed by backend before rendering active state
+- Opening the modal triggers a fresh entitlement verification
+- Cached/local state is no longer treated as authoritative
+- BIOS Advisor, AI Advisor, and License Management all use the same backend premium truth
+- Backend entitlement endpoint returns the real premium state
+- Free users are shown as free consistently
+- Premium users are shown as premium consistently
+- No TypeScript errors
+- No new console errors
+
+FINAL OUTPUT
+After making changes, give me:
+1. Exact root cause
+2. Exact files changed
+3. Which stale frontend fields or caches were removed or downgraded from authority
+4. Which backend endpoint is now the premium source of truth
+5. Confirmation that License Management now reflects backend truth only
+6. Confirmation that premium-gated pages now use the same entitlement sourceIMPORTANT
+Do not patch this cosmetically.
+Do not just rename fields.
+Do not leave any frontend-only premium truth in place.
+If backend says not premium, UI must not say premium. No exceptions.
+Treat all cached entitlement state as provisional until server verification completes.

@@ -49,6 +49,7 @@ type AppPhase = "splash" | "unauthenticated" | "welcome" | "authenticated";
 interface AppAuthContextValue {
   user: AuthUser | null;
   isPremium: boolean;
+  entitlementsVerified: boolean;
   logout: () => void;
   factoryReset: () => Promise<void>;
   safeRefreshEntitlements: () => Promise<{ user: AuthUser | null }>;
@@ -57,6 +58,7 @@ interface AppAuthContextValue {
 const AppAuthContext = createContext<AppAuthContextValue>({
   user: null,
   isPremium: false,
+  entitlementsVerified: false,
   logout: () => {},
   factoryReset: async () => {},
   safeRefreshEntitlements: async () => ({ user: null }),
@@ -120,6 +122,7 @@ function ElectronAppContent() {
   const [isResetting, setIsResetting] = useState(false);
   const [entitlementsAttempted, setEntitlementsAttempted] = useState(false);
   const [entitlementsOk, setEntitlementsOk] = useState(false);
+  const [entitlementsVerified, setEntitlementsVerified] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
@@ -132,21 +135,22 @@ function ElectronAppContent() {
     if (entitlementsAttempted) return;
 
     console.log('[AppFlow] Hydrating entitlements for this session...');
+    console.log('[PremiumTruth] entitlement fetch start — cached isPremium:', user?.isPremium);
     refreshEntitlements()
       .then((result) => {
         console.log('[AppFlow] Entitlements hydrated — isPremium:', result.user?.isPremium, 'hasSeenPremiumUnlock:', result.user?.hasSeenPremiumUnlock);
+        console.log('[PremiumTruth] entitlement fetch result — isPremium:', result.user?.isPremium ?? 'null (no user)');
         if (result.user) {
           setEntitlementsOk(true);
+          setEntitlementsVerified(true);
         } else {
           console.warn('[AppFlow] Entitlement hydration returned no user — entitlementsOk stays false');
+          console.warn('[PremiumTruth] backend returned no user — isPremium forced to false');
         }
       })
       .catch((err) => {
         console.warn('[AppFlow] Entitlement hydration failed:', err);
-        if (user?.isPremium === true) {
-          console.log('[AppFlow] Entitlement hydration failed but user already has local premium flag — allowing premium flows');
-          setEntitlementsOk(true);
-        }
+        console.warn('[PremiumTruth] entitlement fetch failed — isPremium stays false (no stale fallback)');
       })
       .finally(() => {
         setEntitlementsAttempted(true);
@@ -463,8 +467,15 @@ function ElectronAppContent() {
 
   const handleSafeRefreshEntitlements = useCallback(async () => {
     suppressFlowsRef.current = true;
+    console.log('[PremiumTruth] modal-triggered entitlement fetch start');
     try {
       const result = await refreshEntitlements();
+      console.log('[PremiumTruth] modal-triggered entitlement fetch result — isPremium:', result.user?.isPremium ?? 'null (no user)');
+      if (result.user) {
+        setEntitlementsVerified(true);
+      } else {
+        setEntitlementsVerified(false);
+      }
       return result;
     } finally {
       setTimeout(() => { suppressFlowsRef.current = false; }, 500);
@@ -487,11 +498,13 @@ function ElectronAppContent() {
 
   const authContextValue: AppAuthContextValue = {
     user: user,
-    isPremium: user?.isPremium ?? false,
+    isPremium: entitlementsVerified && (user?.isPremium ?? false),
+    entitlementsVerified,
     logout: handleLogout,
     factoryReset: handleFactoryReset,
     safeRefreshEntitlements: handleSafeRefreshEntitlements,
   };
+  console.log('[PremiumTruth] authContextValue — entitlementsVerified:', entitlementsVerified, 'isPremium:', authContextValue.isPremium, 'storedIsPremium:', user?.isPremium);
 
   return (
     <AppAuthContext.Provider value={authContextValue}>
@@ -666,7 +679,8 @@ function WebsiteContent() {
 
   const authContextValue: AppAuthContextValue = {
     user,
-    isPremium: user?.isPremium ?? false,
+    isPremium: !!user && (user?.isPremium ?? false),
+    entitlementsVerified: !!user,
     logout: handleLogout,
     factoryReset: async () => {
       localStorage.clear();
