@@ -73,7 +73,7 @@ function setCache(key: string, data: AiAdviceResponse): void {
   responseCache.set(key, { data, expiresAt: Date.now() + CACHE_TTL });
   if (responseCache.size > 200) {
     const now = Date.now();
-    for (const [k, v] of responseCache) { if (now > v.expiresAt) responseCache.delete(k); }
+    Array.from(responseCache.entries()).forEach(([k, v]) => { if (now > v.expiresAt) responseCache.delete(k); });
   }
 }
 
