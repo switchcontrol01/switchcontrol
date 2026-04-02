@@ -67,11 +67,11 @@ function tourReducer(state: TourState, action: TourAction): TourState {
 }
 
 const TIMING = {
-  dimIn: 350,
-  fadeOut: 200,
-  navigate: 450,
-  scrollDuration: 500,
-  spotlightSettle: 200,
+  dimIn: 800,
+  fadeOut: 550,
+  navigate: 800,
+  scrollDuration: 900,
+  spotlightSettle: 550,
 };
 
 function smoothScrollTo(container: Element | null, targetY: number, duration = TIMING.scrollDuration): Promise<void> {
@@ -446,12 +446,12 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
   const isTransitioning = state.phase === 'fading_out' || state.phase === 'navigating' || state.phase === 'scrolling';
 
   const springTransition = prefersReducedMotion
-    ? { type: 'tween' as const, duration: 0.15 }
-    : { type: 'spring' as const, stiffness: 300, damping: 30 };
+    ? { type: 'tween' as const, duration: 0.2 }
+    : { type: 'spring' as const, stiffness: 110, damping: 18, mass: 1.1 };
 
   const tooltipSpring = prefersReducedMotion
-    ? { type: 'tween' as const, duration: 0.15 }
-    : { type: 'spring' as const, stiffness: 400, damping: 28 };
+    ? { type: 'tween' as const, duration: 0.2 }
+    : { type: 'tween' as const, duration: 0.65, ease: [0.22, 1, 0.36, 1] };
 
   const getPlacement = (): 'top' | 'bottom' => {
     if (!state.targetRect) return 'bottom';
@@ -490,7 +490,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: prefersReducedMotion ? 0.15 : 0.4 }}
+        transition={{ duration: prefersReducedMotion ? 0.2 : 1.1, ease: [0.22, 1, 0.36, 1] }}
         className="fixed inset-0 z-[100] select-none"
         data-testid={testId}
       >
@@ -508,7 +508,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               backdropFilter: 'blur(3px)',
               WebkitBackdropFilter: 'blur(3px)',
               clipPath: blurClipPath,
-              transition: canReveal ? 'clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+              transition: canReveal ? 'clip-path 1.0s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
             }}
           />
 
@@ -571,7 +571,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               mask={`url(#${testId}-spotlight-mask)`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              transition={{ duration: prefersReducedMotion ? 0.15 : 0.4 }}
+              transition={{ duration: prefersReducedMotion ? 0.2 : 1.0, ease: [0.22, 1, 0.36, 1] }}
             />
             {isTransitioning && (
               <rect
@@ -601,7 +601,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
                     '0 0 0 2px rgba(139,92,246,0.2), 0 0 16px rgba(139,92,246,0.15)',
                   ]
                 }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
               />
             </motion.div>
           )}
@@ -613,7 +613,8 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               top: typeof tooltipPos.top === 'number' ? tooltipPos.top : undefined,
               left: typeof tooltipPos.left === 'number' ? tooltipPos.left : undefined,
               opacity: isTooltipVisible ? 1 : 0,
-              scale: isTooltipVisible ? 1 : 0.95,
+              y: isTooltipVisible ? 0 : (state.direction === 'next' ? 16 : -16),
+              scale: isTooltipVisible ? 1 : 0.93,
               visibility: isTransitioning ? 'hidden' as any : 'visible' as any,
             }}
             style={{
@@ -629,7 +630,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               <motion.div
                 className="h-[2px] bg-gradient-to-r from-primary via-pink-500 to-primary origin-left"
                 animate={{ scaleX: progressPercent / 100 }}
-                transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
               />
 
               <div className="relative p-5 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 4px)' }}>
@@ -637,8 +638,8 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
                   <div className="flex items-center gap-3">
                     <motion.div
                       className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-pink-500/20 text-primary"
-                      animate={prefersReducedMotion ? {} : { rotate: [0, 4, -4, 0], scale: [1, 1.04, 1] }}
-                      transition={{ duration: 2.5, repeat: Infinity }}
+                      animate={prefersReducedMotion ? {} : { rotate: [0, 3, -3, 0], scale: [1, 1.05, 1] }}
+                      transition={{ duration: 4.0, repeat: Infinity, ease: 'easeInOut' }}
                     >
                       {step.icon}
                     </motion.div>
@@ -661,10 +662,10 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
                 <AnimatePresence mode="wait">
                   <motion.div
                     key={state.stepIndex}
-                    initial={{ opacity: 0, y: state.direction === 'next' ? 6 : -6 }}
+                    initial={{ opacity: 0, y: state.direction === 'next' ? 14 : -14 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: state.direction === 'next' ? -6 : 6 }}
-                    transition={{ duration: prefersReducedMotion ? 0.1 : 0.25 }}
+                    exit={{ opacity: 0, y: state.direction === 'next' ? -14 : 14 }}
+                    transition={{ duration: prefersReducedMotion ? 0.15 : 0.55, ease: [0.22, 1, 0.36, 1] }}
                   >
                     <p className="text-sm text-zinc-300 leading-relaxed mb-4">
                       {step.description}
