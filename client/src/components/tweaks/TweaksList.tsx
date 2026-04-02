@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak } from "@/hooks/use-tweak-executor";
 import { useToast } from "@/hooks/use-toast";
+import { motion, AnimatePresence } from "framer-motion";
 
 const CATEGORIES = ["Performance", "Latency", "Visuals", "Services", "Aesthetics"];
 
@@ -86,7 +87,12 @@ export function TweaksList() {
   return (
     <div className="space-y-6 h-full flex flex-col">
       {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <motion.div
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="relative flex-1 w-full max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
           <Input
@@ -131,64 +137,86 @@ export function TweaksList() {
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
+      </motion.div>
 
       {/* Filter Chips */}
       <ScrollArea className="w-full whitespace-nowrap">
         <div className="flex gap-2 pb-2">
-          <button
-            onClick={() => setActiveChip("All")}
-            data-testid="filter-chip-all"
-            className={cn(
-              "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
-              activeChip === "All"
-                ? "bg-primary text-white border-primary shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                : "bg-white/5 text-muted-foreground border-white/5 hover:border-white/10"
-            )}
-          >
-            All
-          </button>
-          {CATEGORIES.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveChip(cat)}
-              data-testid={`filter-chip-${cat.toLowerCase().replace(/\s+/g, '-')}`}
-              className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
-                activeChip === cat
-                  ? "bg-primary text-white border-primary shadow-[0_0_15px_rgba(168,85,247,0.3)]"
-                  : "bg-white/5 text-muted-foreground border-white/5 hover:border-white/10"
-              )}
+          {["All", ...CATEGORIES].map((chip, i) => (
+            <motion.div
+              key={chip}
+              initial={{ opacity: 0, y: 8, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ duration: 0.35, delay: 0.18 + i * 0.045, ease: [0.22, 1, 0.36, 1] }}
             >
-              {cat}
-            </button>
+              <button
+                onClick={() => setActiveChip(chip)}
+                data-testid={chip === "All" ? "filter-chip-all" : `filter-chip-${chip.toLowerCase().replace(/\s+/g, '-')}`}
+                className={cn(
+                  "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
+                  activeChip === chip
+                    ? "bg-primary text-white border-primary shadow-[0_0_15px_rgba(168,85,247,0.3)]"
+                    : "bg-white/5 text-muted-foreground border-white/5 hover:border-white/10"
+                )}
+              >
+                {chip}
+              </button>
+            </motion.div>
           ))}
         </div>
       </ScrollArea>
 
       {/* Sync status indicator */}
-      {isElectron && syncing && (
-        <div className="text-xs text-muted-foreground flex items-center gap-2">
-          <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse inline-block" />
-          Verifying tweak states from system…
-        </div>
-      )}
+      <AnimatePresence>
+        {isElectron && syncing && (
+          <motion.div
+            className="text-xs text-muted-foreground flex items-center gap-2"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <span className="size-1.5 rounded-full bg-cyan-400 animate-pulse inline-block" />
+            Verifying tweak states from system…
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tweaks Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-12">
-        {filteredTweaks.map(tweak => (
-          <TweakCard
-            key={tweak.id}
-            tweak={tweak}
-            isEnabled={getTweakEnabled(tweak.id)}
-            onToggle={() => toggleTweak(tweak.id)}
-          />
-        ))}
+        <AnimatePresence mode="popLayout">
+          {filteredTweaks.map((tweak, index) => (
+            <motion.div
+              key={tweak.id}
+              layout
+              initial={{ opacity: 0, y: 28, scale: 0.96 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-48px" }}
+              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.18 } }}
+              transition={{
+                duration: 0.42,
+                delay: (index % 10) * 0.038,
+                ease: [0.22, 1, 0.36, 1],
+              }}
+            >
+              <TweakCard
+                tweak={tweak}
+                isEnabled={getTweakEnabled(tweak.id)}
+                onToggle={() => toggleTweak(tweak.id)}
+              />
+            </motion.div>
+          ))}
+        </AnimatePresence>
 
         {filteredTweaks.length === 0 && (
-          <div className="col-span-full text-center py-20 text-muted-foreground">
+          <motion.div
+            className="col-span-full text-center py-20 text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.3 }}
+          >
             No tweaks found matching your search.
-          </div>
+          </motion.div>
         )}
       </div>
     </div>

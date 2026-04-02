@@ -74,7 +74,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />
-      <main className="pl-64 h-full overflow-y-auto overflow-x-hidden relative z-10">
+      <main
+        className="pl-64 h-full overflow-y-auto overflow-x-hidden relative z-10"
+        style={{
+          maskImage: 'linear-gradient(to bottom, black calc(100% - 90px), transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black calc(100% - 90px), transparent 100%)',
+        }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={location}
