@@ -112,6 +112,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Debug: dump Electron cookies for switchcontrol.org
   debugCookies: () => ipcRenderer.invoke('auth:debugCookies'),
 
+  // Power plan management
+  powerPlans: {
+    getState:     ()           => ipcRenderer.invoke('powerPlans:getState'),
+    applyProfile: (profileId)  => ipcRenderer.invoke('powerPlans:applyProfile', profileId),
+    listSchemes:  ()           => ipcRenderer.invoke('powerPlans:listSchemes'),
+  },
+
   // Packaged config store — persisted secrets (e.g. OPENAI_API_KEY)
   config: {
     get: (key) => ipcRenderer.invoke('config:get', key),

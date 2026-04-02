@@ -17,6 +17,7 @@ const path = require('path');
 const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
+const powerPlanManager = require('./power-plan-manager');
 const backendLauncher = require('./backend-launcher');
 const configStore = require('./config-store');
 
@@ -1397,6 +1398,39 @@ ipcMain.handle('tweak:getLocalState', () => {
 
 ipcMain.handle('tweak:getInfo', () => {
   return tweakExecutor.getTweakInfo();
+});
+
+// Power Plan handlers
+ipcMain.handle('powerPlans:getState', async () => {
+  console.log('[IPC] powerPlans:getState');
+  try {
+    return await powerPlanManager.getPowerPlanState();
+  } catch (e) {
+    console.error('[IPC] powerPlans:getState error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('powerPlans:applyProfile', async (event, profileId) => {
+  console.log(`[IPC] powerPlans:applyProfile: ${profileId}`);
+  if (typeof profileId !== 'string') return { success: false, error: 'Invalid profileId' };
+  const valid = Object.keys(powerPlanManager.POWER_PROFILES);
+  if (!valid.includes(profileId)) return { success: false, error: `Unknown profileId "${profileId}". Valid: ${valid.join(', ')}` };
+  try {
+    return await powerPlanManager.applyPowerProfile(profileId);
+  } catch (e) {
+    console.error('[IPC] powerPlans:applyProfile error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('powerPlans:listSchemes', async () => {
+  console.log('[IPC] powerPlans:listSchemes');
+  try {
+    return await powerPlanManager.listSchemesForFrontend();
+  } catch (e) {
+    return { success: false, error: e.message, schemes: [] };
+  }
 });
 
 // Auth: Clear cookies for the backend domain
