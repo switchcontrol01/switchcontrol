@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useStore } from "@/lib/store";
 import { TWEAKS_DATA } from "@/lib/mock-data";
-import { apiPost, getUserFriendlyError } from "@/lib/api";
+import { getUserFriendlyError } from "@/lib/api";
+import { cloudApiPost } from "@/lib/cloud-api";
 
 interface ChatMessage {
   id: string;
@@ -214,7 +215,7 @@ export default function AiAdvisor() {
 
       console.log(`[AiAdvisor] sendMessage start | history=${chatHistory.length} | userMsg="${content.trim().slice(0, 60)}..."`);
 
-      const data = await apiPost("/ai/chat", { messages: chatHistory, context: contextRef.current }, { signal: abortRef.current.signal });
+      const data = await cloudApiPost("/ai/chat", { messages: chatHistory, context: contextRef.current }, { signal: abortRef.current.signal });
 
       if (abortRef.current?.signal.aborted) return;
 

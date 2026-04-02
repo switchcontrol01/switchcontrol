@@ -8,6 +8,7 @@ import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "
 import { isPremiumTweakById } from "../shared/tweak-tiers";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
+import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
 
@@ -19,8 +20,8 @@ export async function registerRoutes(
   setupGoogleAuth(app);
   setupDiscordAuth(app);
 
-  app.use("/api/ai", aiRouter);
-  app.use("/api/bios", biosRouter);
+  app.use("/api/ai", requireJwt, requireCloudPremium, aiRouter);
+  app.use("/api/bios", requireJwt, requireCloudPremium, biosRouter);
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: Date.now() });

@@ -7,13 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings as SettingsIcon, Save, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown, KeyRound, Eye, EyeOff, RefreshCw } from "lucide-react";
+import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
 import { useAuthStore } from "@/lib/auth-store";
 import { LicenseManagementModal } from "@/components/LicenseManagementModal";
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -39,55 +39,6 @@ export default function Settings() {
   const { isPremium, user, factoryReset } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
-
-  const [openAiKeyInput, setOpenAiKeyInput] = useState('');
-  const [openAiKeyPresent, setOpenAiKeyPresent] = useState(false);
-  const [showKey, setShowKey] = useState(false);
-  const [savingKey, setSavingKey] = useState(false);
-  const keyLoadedRef = useRef(false);
-
-  useEffect(() => {
-    if (!isElectron || keyLoadedRef.current) return;
-    keyLoadedRef.current = true;
-    const api = (window as any).electronAPI;
-    if (!api?.config?.getPresence) return;
-    api.config.getPresence().then((presence: Record<string, boolean>) => {
-      setOpenAiKeyPresent(!!presence?.OPENAI_API_KEY);
-    }).catch(() => {});
-  }, [isElectron]);
-
-  const handleSaveOpenAiKey = async () => {
-    if (!isElectron) return;
-    const api = (window as any).electronAPI;
-    if (!api?.config?.set) return;
-    setSavingKey(true);
-    try {
-      const value = openAiKeyInput.trim();
-      const result = await api.config.set('OPENAI_API_KEY', value || null);
-      if (result?.ok) {
-        setOpenAiKeyPresent(!!value);
-        setOpenAiKeyInput('');
-        toast({
-          title: value ? "API Key Saved" : "API Key Cleared",
-          description: value
-            ? "Your OpenAI API key has been saved. Restart the app to apply it."
-            : "Your OpenAI API key has been removed.",
-        });
-      } else {
-        toast({ title: "Save Failed", description: result?.error || "Could not save the key.", variant: "destructive" });
-      }
-    } catch (e: any) {
-      toast({ title: "Save Failed", description: e?.message || "Unknown error.", variant: "destructive" });
-    } finally {
-      setSavingKey(false);
-    }
-  };
-
-  const handleRestartApp = () => {
-    if (!isElectron) return;
-    const api = (window as any).electronAPI;
-    api?.restart?.();
-  };
 
   const handleSave = () => {
     toast({
@@ -244,114 +195,6 @@ export default function Settings() {
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">We typically reply within 24 hours.</p>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* AI Integration — only in Electron */}
-          {isElectron && (
-            <Card className="bg-card/50 border-border/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <KeyRound className="size-5 text-primary" />
-                  AI Integration
-                </CardTitle>
-                <CardDescription>
-                  Enter your OpenAI API key to enable AI Advisor and BIOS photo analysis.
-                  The key is stored locally on this device and never sent to our servers.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-muted-foreground">Current status:</span>
-                  {openAiKeyPresent ? (
-                    <span className="text-emerald-400 font-medium">Key saved</span>
-                  ) : (
-                    <span className="text-amber-400 font-medium">No key configured</span>
-                  )}
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="input-openai-key">OpenAI API Key</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        id="input-openai-key"
-                        data-testid="input-openai-key"
-                        type={showKey ? 'text' : 'password'}
-                        placeholder={openAiKeyPresent ? '••••••••••••  (key saved — paste new key to replace)' : 'sk-...'}
-                        value={openAiKeyInput}
-                        onChange={e => setOpenAiKeyInput(e.target.value)}
-                        className="bg-muted/50 pr-10 font-mono text-sm"
-                        autoComplete="off"
-                        spellCheck={false}
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-white transition-colors"
-                        onClick={() => setShowKey(v => !v)}
-                        tabIndex={-1}
-                        aria-label={showKey ? 'Hide key' : 'Show key'}
-                      >
-                        {showKey ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
-                      </button>
-                    </div>
-                    <Button
-                      data-testid="button-save-openai-key"
-                      onClick={handleSaveOpenAiKey}
-                      disabled={savingKey || !openAiKeyInput.trim()}
-                      className="shrink-0"
-                    >
-                      <Save className="size-4 mr-2" />
-                      {savingKey ? 'Saving…' : 'Save'}
-                    </Button>
-                    {openAiKeyPresent && (
-                      <Button
-                        data-testid="button-clear-openai-key"
-                        variant="outline"
-                        className="shrink-0 border-red-500/20 text-red-400 hover:bg-red-500/10"
-                        onClick={async () => {
-                          const api = (window as any).electronAPI;
-                          const result = await api?.config?.set('OPENAI_API_KEY', null);
-                          if (result?.ok) {
-                            setOpenAiKeyPresent(false);
-                            setOpenAiKeyInput('');
-                            toast({ title: "Key Cleared", description: "OpenAI API key removed." });
-                          }
-                        }}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Get your key at{' '}
-                    <button
-                      className="text-primary hover:underline"
-                      onClick={() => (window as any).electronAPI?.openExternal?.('https://platform.openai.com/api-keys')}
-                    >
-                      platform.openai.com/api-keys
-                    </button>
-                    . The key is stored in your local app data and passed to the embedded backend at startup.
-                  </p>
-                </div>
-                {openAiKeyPresent && (
-                  <div className="flex items-center justify-between bg-amber-500/5 border border-amber-500/20 rounded-md p-3">
-                    <div>
-                      <p className="text-sm text-amber-400 font-medium">Restart required to apply</p>
-                      <p className="text-xs text-muted-foreground">The key is injected into the backend at startup.</p>
-                    </div>
-                    <Button
-                      data-testid="button-restart-app"
-                      variant="outline"
-                      size="sm"
-                      className="border-amber-500/20 text-amber-400 hover:bg-amber-500/10 shrink-0"
-                      onClick={handleRestartApp}
-                    >
-                      <RefreshCw className="size-4 mr-2" />
-                      Restart App
-                    </Button>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )}

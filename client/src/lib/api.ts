@@ -203,9 +203,15 @@ export function getUserFriendlyError(err: unknown): string {
     return "Request was cancelled.";
   }
   if (err instanceof ApiError) {
+    if (err.status === 401) return err.serverMessage || "Please log in to use AI features.";
     if (err.status === 429) return "Rate limit reached. Please wait a moment.";
-    if (err.status === 403) return "Access denied.";
-    if (err.status === 503) return err.serverMessage || "Service is temporarily unavailable.";
+    if (err.status === 403) {
+      if (err.serverMessage?.toLowerCase().includes('premium')) {
+        return "Premium required to use AI features. Upgrade at switchcontrol.org/pricing";
+      }
+      return "Access denied.";
+    }
+    if (err.status === 503) return err.serverMessage || "AI service is temporarily unavailable.";
     if (err.status >= 500) return "Server error. Please try again.";
     return err.serverMessage || "Request failed.";
   }

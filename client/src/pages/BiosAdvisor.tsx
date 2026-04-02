@@ -15,7 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
-import { apiPost, getUserFriendlyError } from "@/lib/api";
+import { getUserFriendlyError } from "@/lib/api";
+import { cloudApiPost } from "@/lib/cloud-api";
 import { 
   BIOS_SETTINGS, 
   BIOS_CATEGORIES, 
@@ -636,7 +637,7 @@ export default function BiosAdvisor() {
       });
 
       console.log(`[BiosAdvisor] photo-scan request | file=${file.name} size=${(file.size/1024).toFixed(0)}KB type=${file.type}`);
-      const data = await apiPost("/bios/photo-scan", { imageBase64: base64, mimeType: file.type });
+      const data = await cloudApiPost("/bios/photo-scan", { imageBase64: base64, mimeType: file.type });
       console.log(`[BiosAdvisor] photo-scan response | detections=${data.detections?.length ?? 0} timeMs=${data.analysisTimeMs}`);
 
       if (data.detections && data.detections.length > 0) {
@@ -663,7 +664,7 @@ export default function BiosAdvisor() {
     console.log(`[BiosAdvisor] explain request | cpu=${cpu} gpu=${gpu} detections=${allDetections.length}`);
 
     try {
-      const data = await apiPost("/bios/explain", {
+      const data = await cloudApiPost("/bios/explain", {
         cpuModel: cpu,
         gpuModel: gpu,
         ramTotalGB: lastTelemetry?.ramTotalGB || stats.totalRamGb || 16,
