@@ -106,6 +106,7 @@ const POWER_PROFILES = {
     name: 'Maximum Performance',
     basePlan: 'high_performance',
     scName: 'SwitchControl - Max Performance',
+    scDesc: 'Full CPU at all times, USB/PCIe power saving off, no sleep. Optimised for gaming and low-latency workloads.',
     settings: {
       cpuMinPercentAC:       100,
       cpuMaxPercentAC:       100,
@@ -123,6 +124,7 @@ const POWER_PROFILES = {
     name: 'Balanced Gaming',
     basePlan: 'balanced',
     scName: 'SwitchControl - Balanced Gaming',
+    scDesc: 'Dynamic CPU scaling with aggressive boost, cores always unparked. Good balance of performance and temperature.',
     settings: {
       cpuMinPercentAC:       5,
       cpuMaxPercentAC:       100,
@@ -140,6 +142,7 @@ const POWER_PROFILES = {
     name: 'Efficiency / Laptop',
     basePlan: 'balanced',
     scName: 'SwitchControl - Efficiency',
+    scDesc: 'CPU capped at 85%, core parking and PCIe saving enabled. Extends battery life on laptops.',
     settings: {
       cpuMinPercentAC:       5,
       cpuMaxPercentAC:       85,
@@ -394,6 +397,10 @@ async function ensureSwitchControlScheme(profileId) {
     const listResult = await listPowerSchemes();
     if (listResult.schemes.some(s => s.guid === existingGuid.toLowerCase())) {
       console.log(`[PowerPlan] Reusing existing SC scheme "${existingGuid}" for ${profileId}`);
+      // Refresh name & description in case they changed
+      try {
+        await runPowercfg('/changename', existingGuid.toLowerCase(), profile.scName, profile.scDesc || 'SwitchControl managed power plan');
+      } catch { /* non-critical, ignore */ }
       return existingGuid.toLowerCase();
     }
     console.warn(`[PowerPlan] Stored GUID ${existingGuid} no longer exists — will recreate`);
@@ -404,11 +411,12 @@ async function ensureSwitchControlScheme(profileId) {
   const resultPath = path.join(os.tmpdir(), `sc_pp_dup_${Date.now()}.txt`);
   const safeResultPath = resultPath.replace(/'/g, "''");
   const safeScName = profile.scName.replace(/'/g, "''");
+  const safeScDesc = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
 
   const commands = [
     `$out = (& powercfg /duplicatescheme ${baseGuid} 2>&1) -join ''`,
     `$m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
-    `if ($m.Success) { $guid = $m.Value; & powercfg /changename $guid '${safeScName}' 'SwitchControl managed power plan'; [System.IO.File]::WriteAllText('${safeResultPath}', $guid) }`,
+    `if ($m.Success) { $guid = $m.Value; & powercfg /changename $guid '${safeScName}' '${safeScDesc}'; [System.IO.File]::WriteAllText('${safeResultPath}', $guid) }`,
   ];
 
   await runElevatedCommands(commands);
