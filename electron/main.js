@@ -932,19 +932,30 @@ ipcMain.handle('telemetry:getLive', async () => {
 
     if (cachedSpecs?.gpu?.isNvidia) {
       try {
-        const { execSync } = require('child_process');
-        const output = execSync('nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,clocks.current.graphics --format=csv,noheader,nounits', { timeout: 3000, encoding: 'utf8' });
-        const parts = output.trim().split(',').map(s => s.trim());
-        if (parts.length >= 6) {
-          gpuTemp = safeNum(parseFloat(parts[0]), null);
-          gpuLoad = safeNum(parseFloat(parts[1]), null);
-          gpuMemUsed = safeNum(parseFloat(parts[2]), null);
-          gpuMemTotal = safeNum(parseFloat(parts[3]), null);
-          gpuPower = safeNum(parseFloat(parts[4]), null);
-          gpuClockMhz = safeNum(parseFloat(parts[5]), null);
+        const nvidiaData = await new Promise((resolve) => {
+          exec(
+            'nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,clocks.current.graphics --format=csv,noheader,nounits',
+            { windowsHide: true, timeout: 3000 },
+            (err, stdout) => {
+              if (err || !stdout) return resolve(null);
+              const parts = stdout.trim().split(',').map(s => s.trim());
+              if (parts.length >= 6) return resolve(parts);
+              resolve(null);
+            }
+          );
+        });
+        if (nvidiaData) {
+          gpuTemp = safeNum(parseFloat(nvidiaData[0]), null);
+          gpuLoad = safeNum(parseFloat(nvidiaData[1]), null);
+          gpuMemUsed = safeNum(parseFloat(nvidiaData[2]), null);
+          gpuMemTotal = safeNum(parseFloat(nvidiaData[3]), null);
+          gpuPower = safeNum(parseFloat(nvidiaData[4]), null);
+          gpuClockMhz = safeNum(parseFloat(nvidiaData[5]), null);
+        } else {
+          gpuTemp = await getNvidiaGpuTemp().catch(() => null);
         }
       } catch (e) {
-        try { gpuTemp = await getNvidiaGpuTemp(); } catch (e2) {}
+        gpuTemp = await getNvidiaGpuTemp().catch(() => null);
       }
     }
 

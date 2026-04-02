@@ -509,6 +509,7 @@ export default function BiosAdvisor() {
   const [showFirmwareInputs, setShowFirmwareInputs] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<AiExplanation | null>(null);
   const [aiExplainLoading, setAiExplainLoading] = useState(false);
+  const [aiExplainError, setAiExplainError] = useState<string | null>(null);
   const [photoUploading, setPhotoUploading] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [telemetrySource, setTelemetrySource] = useState<"electron" | "web-inferred">("web-inferred");
@@ -658,6 +659,7 @@ export default function BiosAdvisor() {
   const handleAiExplain = useCallback(async () => {
     if (allDetections.length === 0) return;
     setAiExplainLoading(true);
+    setAiExplainError(null);
 
     const cpu = lastTelemetry?.cpuModel || stats.cpuName || "Unknown CPU";
     const gpu = lastTelemetry?.gpuModel || stats.gpuName || "Unknown GPU";
@@ -678,10 +680,12 @@ export default function BiosAdvisor() {
       });
       console.log(`[BiosAdvisor] explain response OK | overview length=${data.overview?.length} recommendations=${data.recommendations?.length}`);
       setAiExplanation(data);
+      setAiExplainError(null);
     } catch (err: unknown) {
       const displayMsg = getUserFriendlyError(err);
       console.error(`[BiosAdvisor] explain error | displayed="${displayMsg}" | raw=`, err);
       setAiExplanation(null);
+      setAiExplainError(displayMsg);
     } finally {
       setAiExplainLoading(false);
     }
@@ -1033,6 +1037,14 @@ export default function BiosAdvisor() {
                     </Button>
                   )}
                 </div>
+
+                {aiExplainError && !aiExplainLoading && (
+                  <div className="flex items-start gap-2 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-300 mb-3">
+                    <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                    <span>{aiExplainError}</span>
+                    <button onClick={() => setAiExplainError(null)} className="ml-auto text-red-400/60 hover:text-red-300 text-[10px]">✕</button>
+                  </div>
+                )}
 
                 {aiExplanation ? (
                   <div className="space-y-3">

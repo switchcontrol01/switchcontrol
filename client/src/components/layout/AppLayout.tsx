@@ -1,9 +1,35 @@
+import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { motion, AnimatePresence, useMotion, easing, timing } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
 import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { useLocation } from "wouter";
+import { isBackendReady, onBackendReady } from "@/lib/api";
+import { Loader2 } from "lucide-react";
+
+const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
+const isPackagedElectron = isElectron && typeof window !== "undefined" && window.location.protocol === "file:";
+
+function BackendStartingBanner() {
+  const [ready, setReady] = useState(isBackendReady());
+
+  useEffect(() => {
+    if (ready) return;
+    const unsub = onBackendReady(() => setReady(true));
+    if (isBackendReady()) { setReady(true); unsub(); }
+    return unsub;
+  }, [ready]);
+
+  if (!isPackagedElectron || ready) return null;
+
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/20 text-xs text-primary/80 backdrop-blur-sm">
+      <Loader2 className="size-3 animate-spin shrink-0" />
+      <span>Starting local backend… This takes a few seconds on first launch.</span>
+    </div>
+  );
+}
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion, hasLoaded } = useMotion();
@@ -15,6 +41,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">
       <AppBackground />
       <SpotlightEffect />
+      <BackendStartingBanner />
       <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />

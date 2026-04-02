@@ -177,8 +177,8 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
   }, []);
 
   useEffect(() => {
-    mountedRef.current = true;
     if (!open) {
+      mountedRef.current = false;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -186,6 +186,8 @@ export function DiskTelemetryModal({ open, onOpenChange }: DiskTelemetryModalPro
       return;
     }
 
+    mountedRef.current = true;
+    setData(null);
     setIoHistory([]);
     setFetchError(null);
     errorCountRef.current = 0;
