@@ -111,13 +111,23 @@ async function startBackend(app) {
     backendPort = port;
     console.log('[Backend] Free port found:', port);
 
+    let userDataPath = '';
+    try {
+      userDataPath = app.getPath('userData');
+    } catch (e) {
+      console.warn('[Backend] Could not get userData path:', e.message);
+    }
+
     const env = {
       ...process.env,
       NODE_ENV: 'production',
       PORT: String(port),
       ELECTRON_BACKEND: '1',
       ELECTRON_RUN_AS_NODE: '1',
+      ELECTRON_USER_DATA: userDataPath,
     };
+
+    console.log('[Backend] ELECTRON_USER_DATA:', userDataPath || '(not set)');
 
     console.log('[Backend] Spawning child process...');
     console.log('[Backend]   execPath:', process.execPath);

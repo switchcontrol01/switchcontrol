@@ -1,3 +1,7 @@
+// MUST be first — bootstraps JWT_SECRET/SESSION_SECRET for Electron backend mode
+// before jwt.ts or session middleware evaluates process.env
+import "./lib/desktop-secrets";
+
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import cors from "cors";
