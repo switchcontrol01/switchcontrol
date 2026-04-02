@@ -798,11 +798,17 @@ export default function AiAdvisor() {
       if (abortRef.current?.signal.aborted || revealCancelledRef.current) {
         clearTimeout(thinkingTimer);
         if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+        setIsSlowRequest(false);
+        setLoading(false);
+        if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
         return;
       }
       if (thisReqId !== reqIdRef.current) {
         clearTimeout(thinkingTimer);
         if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+        setIsSlowRequest(false);
+        setLoading(false);
+        if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
         return;
       }
 
@@ -821,8 +827,16 @@ export default function AiAdvisor() {
       clearTimeout(thinkingTimer);
       if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
       setIsSlowRequest(false);
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      if (abortRef.current?.signal.aborted) return;
+      if (err instanceof DOMException && err.name === "AbortError") {
+        setLoading(false);
+        if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
+        return;
+      }
+      if (abortRef.current?.signal.aborted) {
+        setLoading(false);
+        if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
+        return;
+      }
 
       const displayMsg = getUserFriendlyError(err);
       setMessages(prev => prev
