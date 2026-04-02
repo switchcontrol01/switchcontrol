@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback, useRef, useReducer, useMemo } from 'react';
-import { flushSync } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 
@@ -291,13 +290,15 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
       setSidebarHighlight(currentStep.sidebarHighlight || currentStep.id);
 
       if (currentStep.route) {
-        document.body.classList.add('tour-navigating');
-        flushSync(() => {
+        const currentHash = window.location.hash.replace('#', '') || '/';
+        const needsNavigation = currentHash !== currentStep.route;
+        if (needsNavigation) {
+          document.body.classList.add('tour-navigating');
           dispatch({ type: 'PHASE', phase: 'navigating' });
-        });
-        navigateToRoute(currentStep.route);
-        await new Promise(r => setTimeout(r, TIMING.navigate));
-        document.body.classList.remove('tour-navigating');
+          navigateToRoute(currentStep.route);
+          await new Promise(r => setTimeout(r, TIMING.navigate));
+          document.body.classList.remove('tour-navigating');
+        }
       }
 
       dispatch({ type: 'PHASE', phase: 'scrolling' });
@@ -471,7 +472,8 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
     const placement = getPlacement();
     const effectiveHeight = tooltipHeight || 260;
     let left = state.targetRect.left + state.targetRect.width / 2;
-    left = Math.max(padding + 160, Math.min(left, viewportWidth - 160 - padding));
+    const halfTooltipW = 210;
+    left = Math.max(padding + halfTooltipW, Math.min(left, viewportWidth - halfTooltipW - padding));
     let top: number;
     if (placement === 'top') {
       top = state.targetRect.top - padding - effectiveHeight;
@@ -508,7 +510,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               backdropFilter: 'blur(3px)',
               WebkitBackdropFilter: 'blur(3px)',
               clipPath: blurClipPath,
-              transition: canReveal ? 'clip-path 1.0s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
+              transition: canReveal ? 'clip-path 0.45s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
             }}
           />
 
@@ -573,12 +575,12 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
               animate={{ opacity: 1 }}
               transition={{ duration: prefersReducedMotion ? 0.2 : 1.0, ease: [0.22, 1, 0.36, 1] }}
             />
-            {isTransitioning && (
-              <rect
-                x="0" y="0" width="100%" height="100%"
-                fill="rgba(0, 0, 0, 1)"
-              />
-            )}
+            <motion.rect
+              x="0" y="0" width="100%" height="100%"
+              fill="rgba(0, 0, 0, 0.97)"
+              animate={{ opacity: isTransitioning ? 1 : 0 }}
+              transition={{ duration: prefersReducedMotion ? 0.1 : 0.35, ease: 'easeOut' }}
+            />
           </svg>
 
           {state.targetRect && (
@@ -637,7 +639,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <motion.div
-                      className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-pink-500/20 text-primary"
+                      className="p-2.5 rounded-xl bg-gradient-to-br from-primary/20 to-pink-500/20 text-primary flex items-center justify-center"
                       animate={prefersReducedMotion ? {} : { rotate: [0, 3, -3, 0], scale: [1, 1.05, 1] }}
                       transition={{ duration: 4.0, repeat: Infinity, ease: 'easeInOut' }}
                     >
