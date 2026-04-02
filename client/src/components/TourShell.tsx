@@ -410,10 +410,11 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
     setTimeout(() => onSkip?.() ?? onComplete(), 300);
   };
 
+  const canReveal = state.phase === 'presenting' || state.phase === 'spotlighting';
+
   const blurClipPath = useMemo(() => {
     const W = typeof window !== 'undefined' ? window.innerWidth : 1300;
     const H = typeof window !== 'undefined' ? window.innerHeight : 800;
-    const canReveal = state.phase === 'presenting' || state.phase === 'spotlighting';
     if (!canReveal || !state.targetRect) {
       return `polygon(evenodd, 0px 0px, ${W}px 0px, ${W}px ${H}px, 0px ${H}px, -100px -100px, -99px -100px, -99px -99px, -100px -99px)`;
     }
@@ -423,7 +424,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
     const x2 = Math.min(W, state.targetRect.right + p);
     const y2 = Math.min(H, state.targetRect.bottom + p);
     return `polygon(evenodd, 0px 0px, ${W}px 0px, ${W}px ${H}px, 0px ${H}px, ${x1}px ${y1}px, ${x2}px ${y1}px, ${x2}px ${y2}px, ${x1}px ${y2}px)`;
-  }, [state.targetRect, state.phase]);
+  }, [state.targetRect, canReveal]);
 
   if (!show || state.phase === 'idle' || state.phase === 'done') return null;
 
@@ -504,10 +505,10 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
+              backdropFilter: 'blur(3px)',
+              WebkitBackdropFilter: 'blur(3px)',
               clipPath: blurClipPath,
-              transition: 'clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
+              transition: canReveal ? 'clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1)' : 'none',
             }}
           />
 
@@ -566,7 +567,7 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
             </defs>
             <motion.rect
               x="0" y="0" width="100%" height="100%"
-              fill="rgba(0, 0, 0, 0.82)"
+              fill="rgba(0, 0, 0, 0.60)"
               mask={`url(#${testId}-spotlight-mask)`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
