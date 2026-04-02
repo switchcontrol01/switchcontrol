@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cloudApiPost } from "@/lib/cloud-api";
+import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
 import { motion, pageTransition, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import {
@@ -241,10 +242,7 @@ export default function Security() {
 
       setScanStage(4);
       try {
-        const result = await cloudApiPost<{ recommendations: SecurityRecommendation[]; summary: ScanSummary }>(
-          "/security/analyze",
-          { status, startupItems: startup, topProcesses: processes }
-        );
+        const result = generateRecommendations({ status, startupItems: startup, topProcesses: processes });
         setRecommendations(result.recommendations ?? []);
         setScanSummary(result.summary ?? null);
       } catch {
@@ -288,10 +286,21 @@ export default function Security() {
     if (!imageBase64 || !imageFile || imageAnalyzing) return;
     setImageAnalyzing(true); setImageError(null);
     try {
-      const result = await cloudApiPost<ImageAnalysisResult>("/security/image-analysis", {
-        imageData: imageBase64, imageType: imageFile.type, analysisType: "generic",
+      const aiRes = await cloudApiPost<{ reply: string }>("/ai/chat", {
+        messages: [{
+          role: "user",
+          content: "Please analyze this Windows screenshot for security issues and gaming performance concerns. Identify threats, misconfigured settings, high-resource processes, unnecessary startup entries, or any other problems you can see. Be specific about what is visible."
+        }],
+        context: { page: "security-screenshot-analysis" },
+        imageData: imageBase64,
+        imageType: imageFile.type,
       });
-      setImageResult(result);
+      setImageResult({
+        analysisType: "generic",
+        findings: [],
+        recommendations: [],
+        rawAnalysis: aiRes.reply ?? "No analysis returned.",
+      });
     } catch (err: any) {
       setImageError(err?.message ?? "Analysis failed. Please try again.");
     } finally {
