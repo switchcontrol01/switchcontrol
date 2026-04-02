@@ -283,8 +283,8 @@ function ElectronAppContent() {
   }, [activeFlow]);
 
   useEffect(() => {
-    // Fire bloom ~1200ms before splash exits so it peaks during the dissolve.
-    const glowTimer   = setTimeout(() => setShowGlow(true),    3600);
+    // Fire bloom ~1000ms before splash exits so it peaks during the dissolve.
+    const glowTimer   = setTimeout(() => setShowGlow(true),    3800);
     // Splash lasts 4800ms total.
     const splashTimer = setTimeout(() => setSplashDone(true),  4800);
     return () => {
@@ -518,8 +518,8 @@ function ElectronAppContent() {
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.012 }}
-            transition={{ duration: 0.72, ease: [0.4, 0, 1, 1] }}
+            exit={{ opacity: 0, scale: 1.015 }}
+            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <Splash onComplete={() => {}} />
