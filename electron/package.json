@@ -36,6 +36,7 @@
       "preload.js",
       "tweak-executor.js",
       "backend-launcher.js",
+      "config-store.js",
       "node_modules/systeminformation/**/*"
     ],
 
