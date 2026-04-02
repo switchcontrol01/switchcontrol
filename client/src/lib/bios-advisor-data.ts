@@ -44,6 +44,22 @@ export interface BiosScore {
   profileBias: string;
 }
 
+export function sanitizeScoreObject(s: BiosScore): BiosScore {
+  const clamp = (v: unknown): number => {
+    const n = typeof v === "number" ? v : Number(v);
+    if (!Number.isFinite(n)) return 0;
+    return Math.max(0, Math.min(100, Math.round(n)));
+  };
+  return {
+    latency: clamp(s.latency),
+    frametime: clamp(s.frametime),
+    stability: clamp(s.stability),
+    competitiveReadiness: clamp(s.competitiveReadiness),
+    grade: typeof s.grade === "string" && s.grade ? s.grade : "Stock / Unoptimized",
+    profileBias: typeof s.profileBias === "string" && s.profileBias ? s.profileBias : "Balanced",
+  };
+}
+
 export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
   let latencyTotal = 50;
   let frametimeTotal = 50;
@@ -57,15 +73,19 @@ export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
       setting.detectionStatus === "Photo Suspected" ? 0.75 :
       setting.detectionStatus === "Inferred" ? 0.6 : 0.2;
 
-    latencyTotal += setting.latencyScore * confidenceMultiplier;
-    frametimeTotal += setting.frametimeScore * confidenceMultiplier;
-    stabilityTotal += setting.stabilityScore * confidenceMultiplier;
+    const ls = Number.isFinite(setting.latencyScore)   ? setting.latencyScore   : 0;
+    const fs = Number.isFinite(setting.frametimeScore) ? setting.frametimeScore : 0;
+    const ss = Number.isFinite(setting.stabilityScore) ? setting.stabilityScore : 0;
+
+    latencyTotal   += ls * confidenceMultiplier;
+    frametimeTotal += fs * confidenceMultiplier;
+    stabilityTotal += ss * confidenceMultiplier;
   });
 
-  const latency = Math.max(0, Math.min(100, latencyTotal));
-  const frametime = Math.max(0, Math.min(100, frametimeTotal));
-  const stability = Math.max(0, Math.min(100, stabilityTotal));
-  
+  const latency   = Math.max(0, Math.min(100, Number.isFinite(latencyTotal)   ? latencyTotal   : 50));
+  const frametime = Math.max(0, Math.min(100, Number.isFinite(frametimeTotal) ? frametimeTotal : 50));
+  const stability = Math.max(0, Math.min(100, Number.isFinite(stabilityTotal) ? stabilityTotal : 75));
+
   const competitiveReadiness = Math.round(0.55 * latency + 0.35 * frametime + 0.10 * stability);
 
   let grade: string;
@@ -76,23 +96,24 @@ export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
   else grade = "Stock / Unoptimized";
 
   let profileBias: string;
-  const latencyWeight = latency / (latency + frametime + stability);
-  const stabilityWeight = stability / (latency + frametime + stability);
-  
+  const total3 = latency + frametime + stability;
+  const latencyWeight   = total3 > 0 ? latency   / total3 : 0;
+  const stabilityWeight = total3 > 0 ? stability / total3 : 0;
+
   if (latencyWeight > 0.4) profileBias = "Latency-biased";
   else if (stabilityWeight > 0.4) profileBias = "Stability-biased";
   else if (latency > frametime && latency > stability) profileBias = "Performance-focused";
   else if (frametime > latency && frametime > stability) profileBias = "Smoothness-focused";
   else profileBias = "Balanced";
 
-  return {
+  return sanitizeScoreObject({
     latency: Math.round(latency),
     frametime: Math.round(frametime),
     stability: Math.round(stability),
     competitiveReadiness,
     grade,
-    profileBias
-  };
+    profileBias,
+  });
 }
 
 export const BIOS_SETTINGS: BiosSetting[] = [

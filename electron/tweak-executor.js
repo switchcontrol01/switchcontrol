@@ -116,8 +116,9 @@ async function runElevated(command) {
   const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
   const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
 
-  // Single-quote-safe paths for PowerShell string literals
-  const safeResultPath = resultPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
+  // In PowerShell single-quoted strings backslash is NOT an escape character —
+  // only single quotes need doubling. Do NOT double-escape backslashes here.
+  const safeResultPath = resultPath.replace(/'/g, "''");
 
   const scriptContent = [
     `$ErrorActionPreference = 'Stop'`,
@@ -132,9 +133,10 @@ async function runElevated(command) {
 
   fs.writeFileSync(scriptPath, scriptContent, 'utf8');
 
-  // Double-backslash the script path for use inside the outer PS -Command string
-  const safeScriptPath = scriptPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
-  const launchCmd = `Start-Process powershell -ArgumentList '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \\"${safeScriptPath}\\"' -Verb RunAs -Wait`;
+  // Use array ArgumentList to avoid nested quoting ambiguity entirely.
+  // In PS single-quoted strings backslash is literal — no escaping needed for paths.
+  const safeScriptPath = scriptPath.replace(/'/g, "''");
+  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
 
   try {
     await new Promise((resolve, reject) => {
@@ -148,10 +150,10 @@ async function runElevated(command) {
 
     if (fs.existsSync(resultPath)) {
       try { return JSON.parse(fs.readFileSync(resultPath, 'utf8')); } catch {
-        return { ok: false, error: 'Could not parse elevated result.' };
+        return { ok: false, error: 'Elevated script ran but result file could not be parsed.' };
       }
     }
-    return { ok: false, error: 'UAC may have been cancelled — result file not written.' };
+    return { ok: false, error: 'Elevated script did not write a result. The temp folder may be restricted or the script crashed before completing.' };
   } finally {
     try { fs.unlinkSync(scriptPath); } catch {}
     try { fs.unlinkSync(resultPath); } catch {}

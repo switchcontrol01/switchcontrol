@@ -1052,6 +1052,14 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         rxKBps: netRxKBs,
         txKBps: netTxKBs,
       },
+      ssds: (disks)
+        .filter(d => d.size > 0)
+        .map(d => ({
+          name:    d.mount || d.fs || 'Unknown',
+          totalGB: Math.round(d.size / (1024 * 1024 * 1024)),
+          usedGB:  parseFloat((d.used / (1024 * 1024 * 1024)).toFixed(1)),
+          status:  'Active',
+        })),
     };
 
     console.log(`[telemetry:getLive] disk=${result.disk.selectedMount} diskPct=${diskPercent} net=${netRxKBs}↓/${netTxKBs}↑ gpu=${gpuLoad}%/${gpuTemp}°C`);
@@ -1065,6 +1073,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
       disk:    { selectedMount: null, usagePct: 0, readOpsPerSec: 0, writeOpsPerSec: 0 },
       network: { rxKBps: 0, txKBps: 0 },
+      ssds:    [],
     };
   }
 });

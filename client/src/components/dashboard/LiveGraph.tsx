@@ -141,7 +141,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         onTelemetryUpdateRef.current({
           temps: { cpu: live.cpu?.tempC ?? 0, gpu: live.gpu?.tempC ?? 0 },
           ram: hasRam ? { totalGB: ramTotalGb, usedGB: ramUsedGb } : undefined,
-          ssds: [],
+          ssds: Array.isArray(live.ssds) ? live.ssds : [],
         });
       }
 

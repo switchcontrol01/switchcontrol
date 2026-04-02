@@ -235,7 +235,7 @@ export default function AiAdvisor() {
     setIsStreaming(false);
   }, []);
 
-  // Progressive reveal — transitions the message from isThinking→isStreaming on first tick
+  // Progressive reveal — sentence-level chunking at 60-120ms each group
   const revealContent = useCallback((msgId: string, fullContent: string, onDone: () => void) => {
     cancelReveal();
     revealCancelledRef.current = false;
@@ -252,36 +252,42 @@ export default function AiAdvisor() {
     isRevealingRef.current = true;
     setIsStreaming(true);
 
-    let revealed = 0;
-    const total = fullContent.length;
+    // Split content into sentence-sized chunks for natural reveal pacing
+    const sentenceRe = /[^.!?\n]*[.!?\n]+/g;
+    const chunks: string[] = [];
+    let lastEnd = 0;
+    let m: RegExpExecArray | null;
+    while ((m = sentenceRe.exec(fullContent)) !== null) {
+      chunks.push(m[0]);
+      lastEnd = m.index + m[0].length;
+    }
+    if (lastEnd < fullContent.length) chunks.push(fullContent.slice(lastEnd));
+    if (chunks.length === 0) chunks.push(fullContent);
+
+    let chunkIdx = 0;
+    let revealed = '';
 
     const tick = () => {
       if (revealCancelledRef.current) return;
 
-      // Burst phase: reveal fast to feel immediate, then settle to natural typing pace
-      const remaining = total - revealed;
-      let chunk: number;
-      if (revealed < 200) {
-        chunk = Math.min(80, remaining);         // immediate first impression
-      } else if (remaining <= 60) {
-        chunk = remaining;                        // finish cleanly, no drip
-      } else {
-        chunk = Math.floor(Math.random() * 10) + 8; // 8-17 chars/tick
+      // First beat: reveal 1-2 sentences immediately; subsequent beats: 1 sentence
+      const count = chunkIdx === 0 ? Math.min(2, chunks.length) : 1;
+      for (let i = 0; i < count && chunkIdx < chunks.length; i++) {
+        revealed += chunks[chunkIdx++];
       }
-
-      revealed = Math.min(revealed + chunk, total);
-      const done = revealed >= total;
+      const done = chunkIdx >= chunks.length;
 
       setMessages(prev => prev.map(m =>
         m.id === msgId
-          ? { ...m, content: fullContent.slice(0, revealed), isStreaming: !done, isThinking: false }
+          ? { ...m, content: done ? fullContent : revealed, isStreaming: !done, isThinking: false }
           : m
       ));
 
       smartScroll();
 
       if (!done) {
-        const delay = revealed < 200 ? 8 : Math.floor(Math.random() * 12) + 10;
+        // 60ms for the first few groups (feels snappy), 80-140ms for the rest (natural pace)
+        const delay = chunkIdx <= 3 ? 65 : Math.floor(Math.random() * 60) + 80;
         revealTimerRef.current = setTimeout(tick, delay);
       } else {
         isRevealingRef.current = false;
@@ -292,7 +298,7 @@ export default function AiAdvisor() {
       }
     };
 
-    // Brief delay — keeps thinking bubble visible for a single beat before text begins
+    // Brief delay so the thinking bubble is visible for one beat before text begins
     revealTimerRef.current = setTimeout(tick, 30);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 

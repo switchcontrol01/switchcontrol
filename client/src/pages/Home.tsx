@@ -193,7 +193,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
           <>
             <div className="p-3 rounded-lg border bg-[hsl(270,60%,55%)]/10 border-[hsl(270,60%,55%)]/20 text-center">
               <div className="text-2xl font-bold tabular-nums text-[hsl(270,60%,55%)]" data-testid="text-bios-dashboard-score">
-                {scores.competitiveReadiness}
+                {Number.isFinite(scores.competitiveReadiness) ? scores.competitiveReadiness : 0}
               </div>
               <p className="text-[10px] mt-0.5 text-muted-foreground">Readiness Estimate</p>
               <div className="flex items-center justify-center gap-2 mt-1.5">
@@ -214,15 +214,15 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
             </div>
             <div className="grid grid-cols-3 gap-2 text-center">
               <div className="p-1.5 rounded bg-white/5">
-                <div className="text-xs font-bold text-primary">{scores.latency}</div>
+                <div className="text-xs font-bold text-primary">{Number.isFinite(scores.latency) ? scores.latency : 0}</div>
                 <div className="text-[9px] text-muted-foreground">Latency</div>
               </div>
               <div className="p-1.5 rounded bg-white/5">
-                <div className="text-xs font-bold text-blue-400">{scores.frametime}</div>
+                <div className="text-xs font-bold text-blue-400">{Number.isFinite(scores.frametime) ? scores.frametime : 0}</div>
                 <div className="text-[9px] text-muted-foreground">Frametime</div>
               </div>
               <div className="p-1.5 rounded bg-white/5">
-                <div className="text-xs font-bold text-emerald-400">{scores.stability}</div>
+                <div className="text-xs font-bold text-emerald-400">{Number.isFinite(scores.stability) ? scores.stability : 0}</div>
                 <div className="text-[9px] text-muted-foreground">Stability</div>
               </div>
             </div>

@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { sanitizeScoreObject } from "../lib/bios-advisor-data";
 import type { BiosScore, OptimizationLevel } from "../lib/bios-advisor-data";
 import type { FirmwareDetection, HardwareTelemetry } from "../lib/firmware-analyzer";
 
@@ -74,7 +75,7 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
           lastScanTime: new Date().toISOString(),
           analysisHash: payload.hash,
           telemetrySource: payload.telemetrySource,
-          scores: payload.scores,
+          scores: sanitizeScoreObject(payload.scores),
           optimizationLevel: payload.optimizationLevel,
           scanChanged: payload.scanChanged,
           previousScore: payload.previousScore,
@@ -86,7 +87,7 @@ export const useBiosAdvisorStore = create<BiosAdvisorState>()(
       setPhotoDetections: (detections) =>
         set({ photoDetections: detections, aiExplanation: null, aiExplanationHash: null }),
 
-      updateScores: (scores, optimizationLevel) => set({ scores, optimizationLevel }),
+      updateScores: (scores, optimizationLevel) => set({ scores: sanitizeScoreObject(scores), optimizationLevel }),
 
       setAiExplanation: (explanation, hash) =>
         set({ aiExplanation: explanation, aiExplanationHash: hash }),

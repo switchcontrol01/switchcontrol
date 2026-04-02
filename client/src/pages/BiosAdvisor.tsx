@@ -98,24 +98,26 @@ const STATUS_ICONS: Record<DetectionStatus, React.ElementType> = {
 };
 
 function useCountUp(target: number, duration: number, delay: number) {
+  const safeTarget = Number.isFinite(target) ? target : 0;
   const [display, setDisplay] = useState(0);
   const prev = useRef(0);
   useEffect(() => {
     const start = prev.current;
-    prev.current = target;
-    if (target === 0 && start === 0) { setDisplay(0); return; }
+    prev.current = safeTarget;
+    if (safeTarget === 0 && start === 0) { setDisplay(0); return; }
     let raf: number;
     const t0 = performance.now() + delay * 1000;
     const step = (now: number) => {
       const elapsed = Math.max(0, now - t0);
-      const progress = Math.min(1, elapsed / (duration * 1000));
+      const dur = duration > 0 ? duration * 1000 : 1;
+      const progress = Math.min(1, elapsed / dur);
       const eased = 1 - Math.pow(1 - progress, 3);
-      setDisplay(Math.round(start + (target - start) * eased));
+      setDisplay(Math.round(start + (safeTarget - start) * eased));
       if (progress < 1) raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [target, duration, delay]);
+  }, [safeTarget, duration, delay]);
   return display;
 }
 
