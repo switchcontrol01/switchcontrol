@@ -180,18 +180,17 @@ export function TweaksList() {
 
       {/* Tweaks Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-12">
-        <AnimatePresence mode="popLayout">
+        <AnimatePresence mode="sync">
           {filteredTweaks.map((tweak, index) => (
             <motion.div
               key={tweak.id}
-              layout
-              initial={{ opacity: 0, y: 28, scale: 0.96 }}
+              initial={{ opacity: 0, y: 20, scale: 0.97 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: "-48px" }}
-              exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.18 } }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
               transition={{
-                duration: 0.42,
-                delay: (index % 10) * 0.038,
+                duration: 0.3,
+                delay: (index % 10) * 0.028,
                 ease: [0.22, 1, 0.36, 1],
               }}
             >
