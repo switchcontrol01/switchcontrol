@@ -109,9 +109,9 @@ function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose:
         variants={modalContent} initial="initial" animate="animate" exit="exit"
       >
         <motion.div
-          className="relative w-full max-w-sm bg-[#0c0c14]/80 backdrop-blur-2xl border border-white/[0.08] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5)] pointer-events-auto"
+          className="relative w-full max-w-sm bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.2)] pointer-events-auto"
           onClick={(e) => e.stopPropagation()}
-          animate={isAnimating ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+          animate={isAnimating ? { scale: [1, 1.03, 1], boxShadow: ["0 0 40px rgba(168,85,247,0.2)", "0 0 60px rgba(168,85,247,0.4)", "0 0 40px rgba(168,85,247,0.2)"] } : { scale: 1, boxShadow: "0 0 40px rgba(168,85,247,0.2)" }}
           transition={{ duration: 0.3, ease: "easeOut" }}
         >
           <div className="text-center space-y-4">
