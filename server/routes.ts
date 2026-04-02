@@ -11,6 +11,7 @@ import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
+import securityRouter from "./routes/security";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -22,6 +23,7 @@ export async function registerRoutes(
 
   app.use("/api/ai", requireJwt, requireCloudPremium, aiRouter);
   app.use("/api/bios", requireJwt, requireCloudPremium, biosRouter);
+  app.use("/api/security", securityRouter);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {

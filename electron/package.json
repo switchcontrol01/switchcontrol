@@ -38,6 +38,7 @@
       "power-plan-manager.js",
       "backend-launcher.js",
       "config-store.js",
+      "security-helper.js",
       "node_modules/systeminformation/**/*"
     ],
 

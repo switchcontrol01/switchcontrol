@@ -19,6 +19,7 @@ const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
 const powerPlanManager = require('./power-plan-manager');
 const backendLauncher = require('./backend-launcher');
+require('./security-helper');
 const configStore = require('./config-store');
 
 app.setName('SwitchControl');

@@ -125,6 +125,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     set: (key, value) => ipcRenderer.invoke('config:set', key, value),
     getPresence: () => ipcRenderer.invoke('config:getPresence'),
   },
+
+  // System Integrity / Security
+  security: {
+    getStatus:       () => ipcRenderer.invoke('security:getStatus'),
+    getStartupApps:  () => ipcRenderer.invoke('security:getStartupApps'),
+    getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
+  },
 });
 
 window.addEventListener('DOMContentLoaded', () => {
