@@ -27,7 +27,6 @@ export async function registerRoutes(
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {
     const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean; email: string | null };
     const hasOpenAiKey = !!process.env.OPENAI_API_KEY;
-    console.log(`[CloudProbe] ${new Date().toISOString()} | user=${cloudUser.id} premium=${cloudUser.isPremium} openai=${hasOpenAiKey} | bearer=${!!req.headers.authorization}`);
     return res.json({
       ok: true,
       userId: cloudUser.id,

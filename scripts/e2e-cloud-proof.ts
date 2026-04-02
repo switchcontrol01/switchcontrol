@@ -103,7 +103,6 @@ async function main() {
   console.log(`  Timestamp   : ${new Date().toISOString()}`);
   console.log(`  Target      : ${BASE}`);
   console.log(`  OPENAI_KEY  : ${process.env.OPENAI_API_KEY ? "✓ present (" + process.env.OPENAI_API_KEY.slice(0,7) + "…)" : "✗ MISSING"}`);
-  console.log(`  JWT_SECRET  : ${process.env.JWT_SECRET ? "✓ JWT_SECRET" : process.env.SESSION_SECRET ? "✓ SESSION_SECRET fallback" : "⚠ dev fallback"}`);
 
   if (!process.env.OPENAI_API_KEY) {
     console.error("\n  ✗ OPENAI_API_KEY is missing — proof will fail at OpenAI step");
