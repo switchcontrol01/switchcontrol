@@ -46,7 +46,7 @@ const photoScanSchema = z.object({
   mimeType: z.enum(["image/png", "image/jpeg", "image/webp"]),
 });
 
-const BIOS_PHOTO_PROMPT = `You are a BIOS firmware settings analyzer. The user has uploaded a photo of their BIOS screen.
+const BIOS_PHOTO_PROMPT = `You are a BIOS firmware settings analyzer for competitive gaming PC optimization. The user has uploaded a photo of their BIOS screen.
 
 Extract any visible BIOS settings from the image. Focus specifically on these settings if visible:
 - PBO (Precision Boost Overdrive) — status and any values
@@ -65,12 +65,14 @@ Extract any visible BIOS settings from the image. Focus specifically on these se
 
 For each setting you can identify, return a JSON object with:
 - settingId: the setting identifier (use these exact IDs: smt, xmp-expo, pbo, curve-optimizer, global-cstate, package-cstate, df-cstates, fclk, memory-frequency, llc, rebar, spread-spectrum, core-parking, hpet, x2apic, fclk-uclk-ratio, memory-gear-mode, command-rate, trfc-tfaw, cppc, cppc-preferred-cores, thermal-throttling, power-phase-control, vrm-switching-frequency, cpu-current-capability, power-supply-idle, tsc-stability, bclk, pcie-spread-spectrum, usb-power-mgmt)
-- value: the detected value as shown in the BIOS
+- value: the detected value as shown in the BIOS (e.g. "Enabled", "Disabled", "Auto", the numeric value)
 - confidence: your confidence 0.0-1.0 in the reading
-- reason: brief explanation of what you see
+- reason: brief explanation of what you see in the image
+- isOptimalForGaming: true if this detected value is the recommended setting for competitive gaming performance, false if it is suboptimal or hurts performance. Examples: XMP "Enabled" = true, XMP "Disabled" = false, C-States "Disabled" = true (good for latency), C-States "Enabled" = false (bad for latency), PBO "Enabled" = true, Spread Spectrum "Enabled" = false (adds jitter).
 
 Return ONLY a JSON array. If you cannot read any settings, return an empty array [].
-Do not guess settings that are not visible. Only report what you can actually see in the image.`;
+Do not guess settings that are not visible. Only report what you can actually see in the image.
+Be honest: if a setting visible in the image is NOT at the recommended gaming value, set isOptimalForGaming to false — this is critical for accurate scoring.`;
 
 // ---------------------------------------------------------------------------
 // POST /bios/photo-scan
@@ -185,13 +187,18 @@ biosRouter.post("/photo-scan", async (req: Request, res: Response) => {
     const detections = Array.from(seenIds.values()).map((s: any) => {
       // Honest status: Photo Verified for high-confidence, Photo Suspected for medium
       const status = s.confidence >= 0.8 ? "Photo Verified" : "Photo Suspected";
-      return {
+      const entry: Record<string, unknown> = {
         settingId: String(s.settingId),
         status,
         confidence: s.confidence,
         reason: `Derived from BIOS photo analysis: ${String(s.reason || s.value)}`,
         detectedValue: String(s.value),
       };
+      // Pass through isOptimalForGaming from AI response when present
+      if (typeof s.isOptimalForGaming === "boolean") {
+        entry.isOptimal = s.isOptimalForGaming;
+      }
+      return entry;
     });
 
     console.log(`[BIOS:photo-scan:${requestId}] OK | user=${cloudUser?.id} | detections=${detections.length} dropped=${droppedCount}`);

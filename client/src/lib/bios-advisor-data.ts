@@ -27,6 +27,7 @@ export interface BiosSetting {
   frametimeScore: number;
   stabilityScore: number;
   motherboardPaths: MotherboardPath[];
+  isOptimal?: boolean;
 }
 
 export type BiosCategory = 
@@ -61,30 +62,45 @@ export function sanitizeScoreObject(s: BiosScore): BiosScore {
 }
 
 export function calculateBiosScores(settings: BiosSetting[]): BiosScore {
-  let latencyTotal = 50;
-  let frametimeTotal = 50;
-  let stabilityTotal = 75;
+  // Honest baseline — starts low so the score must be EARNED through real detections.
+  // Unknown settings contribute 0 (we don't know = can't claim points).
+  // Inferred settings contribute a small amount (indirect evidence only).
+  // Photo/detected settings contribute based on whether the detected value is
+  // actually gaming-optimal (isOptimal flag). If suboptimal, contribution is negative.
+  let latencyTotal = 15;
+  let frametimeTotal = 15;
+  let stabilityTotal = 25;
 
   settings.forEach((setting) => {
+    const status = setting.detectionStatus;
+
+    // Weight by how confident we are that we actually know the state
     const confidenceMultiplier =
-      setting.detectionStatus === "User Confirmed" ? 1.0 :
-      setting.detectionStatus === "Detected" ? 1.0 :
-      setting.detectionStatus === "Photo Verified" ? 1.0 :
-      setting.detectionStatus === "Photo Suspected" ? 0.75 :
-      setting.detectionStatus === "Inferred" ? 0.6 : 0.2;
+      status === "User Confirmed" ? 1.0 :
+      status === "Detected"       ? 0.95 :
+      status === "Photo Verified" ? 0.9 :
+      status === "Photo Suspected"? 0.65 :
+      status === "Inferred"       ? 0.18 :
+      0; // Unknown → zero contribution
+
+    if (confidenceMultiplier === 0) return;
 
     const ls = Number.isFinite(setting.latencyScore)   ? setting.latencyScore   : 0;
     const fs = Number.isFinite(setting.frametimeScore) ? setting.frametimeScore : 0;
     const ss = Number.isFinite(setting.stabilityScore) ? setting.stabilityScore : 0;
 
-    latencyTotal   += ls * confidenceMultiplier;
-    frametimeTotal += fs * confidenceMultiplier;
-    stabilityTotal += ss * confidenceMultiplier;
+    // Direction: if we KNOW the setting is suboptimal, flip contribution to a penalty.
+    // isOptimal=false means verified-bad; undefined means we assume it's in the recommended state.
+    const direction = setting.isOptimal === false ? -1 : 1;
+
+    latencyTotal   += ls * confidenceMultiplier * direction;
+    frametimeTotal += fs * confidenceMultiplier * direction;
+    stabilityTotal += ss * confidenceMultiplier * direction;
   });
 
-  const latency   = Math.max(0, Math.min(100, Number.isFinite(latencyTotal)   ? latencyTotal   : 50));
-  const frametime = Math.max(0, Math.min(100, Number.isFinite(frametimeTotal) ? frametimeTotal : 50));
-  const stability = Math.max(0, Math.min(100, Number.isFinite(stabilityTotal) ? stabilityTotal : 75));
+  const latency   = Math.max(0, Math.min(100, Number.isFinite(latencyTotal)   ? latencyTotal   : 15));
+  const frametime = Math.max(0, Math.min(100, Number.isFinite(frametimeTotal) ? frametimeTotal : 15));
+  const stability = Math.max(0, Math.min(100, Number.isFinite(stabilityTotal) ? stabilityTotal : 25));
 
   const competitiveReadiness = Math.round(0.55 * latency + 0.35 * frametime + 0.10 * stability);
 
@@ -180,7 +196,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you stream, record, or multitask heavily while gaming.",
     impact: "Medium",
     risk: "Low",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Enabled",
     latencyScore: 2,
     frametimeScore: 5,
@@ -204,7 +220,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If your system runs hot at idle or you need low idle power.",
     impact: "High",
     risk: "Medium",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Enabled (OS power policy query)",
     latencyScore: 12,
     frametimeScore: 6,
@@ -274,7 +290,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "Only if you troubleshoot a boot issue.",
     impact: "Low",
     risk: "Low",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Enabled (visible in OS interrupt model)",
     latencyScore: 4,
     frametimeScore: 2,
@@ -297,7 +313,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you do not measure changes. This is not a magic FPS setting.",
     impact: "Low",
     risk: "Low",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Available (OS timer query)",
     latencyScore: 2,
     frametimeScore: 2,
@@ -320,7 +336,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If your cooling is borderline.",
     impact: "Medium",
     risk: "Low",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Active (OS power scheme query)",
     latencyScore: 5,
     frametimeScore: 4,
@@ -343,7 +359,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If the BIOS only offers vague options without documentation.",
     impact: "Low",
     risk: "Low",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Invariant TSC available (CPUID flag)",
     latencyScore: 3,
     frametimeScore: 3,
@@ -520,7 +536,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "Never disable safety. Improve cooling instead.",
     impact: "Medium",
     risk: "High",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Active (hardware thermal protection on)",
     latencyScore: 0,
     frametimeScore: 3,
@@ -568,7 +584,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If it forces very loose timings or instability.",
     impact: "High",
     risk: "Medium",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Readable from system memory info",
     latencyScore: 10,
     frametimeScore: 8,
@@ -702,7 +718,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "Only disable for troubleshooting.",
     impact: "Low",
     risk: "Low",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "Enabled (GPU driver reports ReBAR active)",
     latencyScore: 0,
     frametimeScore: 0,
@@ -793,7 +809,7 @@ export const BIOS_SETTINGS: BiosSetting[] = [
     whenNotToChange: "If you ever see device disconnects.",
     impact: "Low",
     risk: "Low",
-    detectionStatus: "Detected",
+    detectionStatus: "Unknown",
     currentValue: "OS-managed (USB power settings visible)",
     latencyScore: 3,
     frametimeScore: 3,

@@ -115,6 +115,38 @@ Session cookies use `secure: false, sameSite: "lax"`, auth tracking cookies (aut
 - **Callback chain**: Main process receives deep-link via `second-instance` (Windows) or `open-url` (macOS), queues if renderer not ready, sends `auth-callback` IPC to renderer. Renderer parses `code` param, calls exchange, commits user state
 - **Premium purchase deep-links**: `switchcontrol://auth/callback?premium_activated=true` (standardized from old `auth/success` path)
 
+### BIOS Advisor Scoring System
+
+The scoring in `client/src/lib/bios-advisor-data.ts` (`calculateBiosScores`) is designed to be honest about what is actually known vs assumed.
+
+**Architecture**:
+- `BiosSetting.isOptimal?: boolean` — set when a detection confirms whether the value is gaming-optimal or suboptimal
+- `FirmwareDetection.isOptimal?: boolean` — carried through from hardware telemetry or photo AI analysis
+- `applyDetectionsToSettings` spreads `isOptimal` into the merged settings array
+
+**Scoring weights by detection status**:
+- `User Confirmed`: 1.0 (user explicitly set it)
+- `Detected`: 0.95 (hardware telemetry, high certainty)
+- `Photo Verified`: 0.9 (AI vision, clear in image)
+- `Photo Suspected`: 0.65 (AI vision, medium confidence)
+- `Inferred`: 0.18 (indirect evidence, low weight)
+- `Unknown`: 0 (no evidence — zero contribution)
+
+**Direction via `isOptimal`**: If `isOptimal === false`, the score contribution is multiplied by -1 (penalty). This means detecting a suboptimal setting actually LOWERS the score. `isOptimal === undefined` means we assume the recommended state (positive contribution).
+
+**Baseline**: latency=15, frametime=15, stability=25. Scores must be earned through real detections.
+
+**Base data defaults** (`BIOS_SETTINGS` in `bios-advisor-data.ts`): All 17 settings that aren't inferrable default to `"Unknown"` (zero contribution). 13 settings default to `"Inferred"` (indirect platform evidence). Real detections from `analyzeFirmware` (Electron hardware telemetry) or photo-scan override these at runtime via `applyDetectionsToSettings`.
+
+**Server photo prompt** (`server/routes/bios.ts`): Asks OpenAI to return `isOptimalForGaming: boolean` per detected setting. This is passed through as `isOptimal` in the response and applied to scoring.
+
+**Score ranges**:
+- 0–27: Stock / Unoptimized (many suboptimal settings or no scan done)
+- 28–45: Needs Tuning (some known, mostly unverified)
+- 46–70: Mixed Profile
+- 71–85: Extreme (most detected and optimal)
+- 86–100: Competitive Advantage (fully verified and optimal)
+
 ### Native RAM Cleaner
 A Rust helper binary (`sc_memory.exe`) performs simulated RAM trimming using safe Win32 APIs (EmptyWorkingSet). It offers multiple modes (safe, smart, advanced) and outputs JSON results, integrated via IPC from Electron.
 

@@ -29,6 +29,7 @@ export interface FirmwareDetection {
   confidence: number;
   reason: string;
   detectedValue: string | null;
+  isOptimal?: boolean;
 }
 
 export interface FirmwareAnalysisResult {
@@ -97,6 +98,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         ? `${telemetry.logicalCores} logical cores on ${telemetry.physicalCores} physical — SMT/HT active`
         : `Logical cores equal physical cores — SMT/HT appears disabled`,
       detectedValue: smtEnabled ? "Enabled" : "Disabled",
+      isOptimal: smtEnabled, // SMT is optimal for most gaming workloads
     });
   }
 
@@ -109,6 +111,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         confidence: 0.95,
         reason: `Memory running at ${freq}MT/s, well above JEDEC base of ${jedecBase}MT/s`,
         detectedValue: `Active (${freq}MT/s)`,
+        isOptimal: true,
       });
     } else if (freq > jedecBase) {
       detections.push({
@@ -117,6 +120,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         confidence: 0.70,
         reason: `Memory at ${freq}MT/s, slightly above JEDEC ${jedecBase}MT/s — may be partial XMP/EXPO`,
         detectedValue: `Possibly active (${freq}MT/s)`,
+        isOptimal: true,
       });
     } else {
       detections.push({
@@ -125,15 +129,18 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         confidence: 0.90,
         reason: `Memory at JEDEC speed (${freq}MT/s) — XMP/EXPO not enabled`,
         detectedValue: `Not enabled (${freq}MT/s)`,
+        isOptimal: false, // XMP off is a clear performance penalty
       });
     }
 
+    const isHighSpeed = freq > jedecBase * 1.1;
     detections.push({
       settingId: "memory-frequency",
       status: "Detected",
       confidence: 0.98,
       reason: `System reports ${freq}MT/s effective memory speed`,
       detectedValue: `${freq}MT/s`,
+      isOptimal: isHighSpeed,
     });
   }
 
@@ -147,6 +154,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.80,
           reason: `Boost clock ${telemetry.cpuBoostClock}MHz exceeds stock ${stockSpecs.boostClock}MHz by ${boostDiff}MHz — PBO likely active`,
           detectedValue: `Active (boost +${boostDiff}MHz over stock)`,
+          isOptimal: true,
         });
       } else if (telemetry.ppt !== null && telemetry.ppt > stockSpecs.ppt * 1.05) {
         detections.push({
@@ -155,6 +163,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.90,
           reason: `PPT at ${telemetry.ppt}W exceeds stock ${stockSpecs.ppt}W limit — PBO enabled with raised power limits`,
           detectedValue: `Active (PPT ${telemetry.ppt}W vs stock ${stockSpecs.ppt}W)`,
+          isOptimal: true,
         });
       } else {
         detections.push({
@@ -163,6 +172,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.50,
           reason: `Boost behavior within stock range — PBO status uncertain`,
           detectedValue: `Unknown (within stock range)`,
+          // isOptimal undefined — we genuinely don't know
         });
       }
     }
@@ -176,6 +186,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.55,
           reason: `Power limits significantly above stock (PPT: ${telemetry.ppt}W) — may indicate Curve Optimizer or manual PBO tuning`,
           detectedValue: `Possibly active (elevated power behavior)`,
+          isOptimal: true,
         });
       }
     }
@@ -183,12 +194,14 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
 
   if (telemetry.cStateResidency !== null) {
     if (telemetry.cStateResidency > 60) {
+      // High C-state residency = C-states ARE enabled (not optimal for gaming — adds latency jitter)
       detections.push({
         settingId: "global-cstate",
         status: "Detected",
         confidence: 0.92,
         reason: `Package C-state residency at ${telemetry.cStateResidency}% — deep C-states enabled`,
         detectedValue: `Enabled (${telemetry.cStateResidency}% idle residency)`,
+        isOptimal: false, // Deep C-states hurt latency in gaming
       });
     } else if (telemetry.cStateResidency > 20) {
       detections.push({
@@ -197,14 +210,17 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         confidence: 0.75,
         reason: `Moderate C-state residency (${telemetry.cStateResidency}%) — C-states likely limited`,
         detectedValue: `Partially limited (${telemetry.cStateResidency}% residency)`,
+        isOptimal: true, // Limited C-states is better than deep C-states for gaming
       });
     } else {
+      // Very low residency = C-states disabled/restricted = optimal for gaming
       detections.push({
         settingId: "global-cstate",
         status: "Detected",
         confidence: 0.88,
         reason: `Very low C-state residency (${telemetry.cStateResidency}%) — C-states appear disabled or heavily restricted`,
         detectedValue: `Disabled/Restricted (${telemetry.cStateResidency}% residency)`,
+        isOptimal: true, // Disabled C-states is optimal for low-latency gaming
       });
     }
   }
@@ -218,6 +234,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         ? `GPU reports Resizable BAR / Smart Access Memory active`
         : `GPU does not report Resizable BAR support`,
       detectedValue: telemetry.rebarSupported ? "Enabled" : "Not active",
+      isOptimal: telemetry.rebarSupported,
     });
   }
 
@@ -228,6 +245,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       confidence: 0.93,
       reason: `x2APIC mode detected from OS interrupt controller model`,
       detectedValue: "Enabled",
+      isOptimal: true,
     });
 
     detections.push({
@@ -236,6 +254,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       confidence: 0.90,
       reason: `HPET availability confirmed via OS timer subsystem query`,
       detectedValue: "Available",
+      isOptimal: true,
     });
 
     detections.push({
@@ -244,6 +263,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       confidence: 0.95,
       reason: `Invariant TSC detected via CPU feature flags`,
       detectedValue: "Invariant TSC available",
+      isOptimal: true,
     });
   }
 
@@ -254,6 +274,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       confidence: 0.75,
       reason: `AMD Ryzen detected — CPPC is enabled by default on Zen 3+ platforms`,
       detectedValue: "Likely enabled (Ryzen default)",
+      isOptimal: true,
     });
 
     detections.push({
@@ -262,6 +283,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       confidence: 0.70,
       reason: `CPPC Preferred Cores typically paired with CPPC on Ryzen`,
       detectedValue: "Likely enabled (paired with CPPC)",
+      isOptimal: true,
     });
 
     detections.push({
@@ -270,6 +292,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
       confidence: 0.55,
       reason: `DF C-States enabled by default on AMD — cannot directly verify from OS`,
       detectedValue: "Assumed enabled (AMD default)",
+      // isOptimal undefined — DF C-States are a mixed tradeoff
     });
   }
 
@@ -284,17 +307,20 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         confidence: 0.70,
         reason: `DDR5 at ${freq}MT/s — FCLK:UCLK likely 1:1 in fabric sweet spot`,
         detectedValue: "Likely 1:1",
+        isOptimal: true,
       });
     }
 
     if (amd) {
       const fclkEstimate = Math.round(freq / 2);
+      const fclkIsGood = fclkEstimate >= 1800 && fclkEstimate <= 2000;
       detections.push({
         settingId: "fclk",
         status: "Inferred",
         confidence: 0.65,
         reason: `Estimated FCLK ~${fclkEstimate}MHz based on memory ${freq}MT/s (assuming 1:1 ratio)`,
         detectedValue: `~${fclkEstimate}MHz (estimated)`,
+        isOptimal: fclkIsGood,
       });
     }
   }
@@ -308,14 +334,17 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         ? `CPU temperature ${telemetry.cpuTemp ? telemetry.cpuTemp + '°C' : 'high'} — thermal throttling detected`
         : `CPU operating within thermal limits${telemetry.cpuTemp ? ` (${telemetry.cpuTemp}°C)` : ''} — no throttling`,
       detectedValue: telemetry.thermalThrottling ? "Throttling detected" : "Normal operation",
+      isOptimal: !telemetry.thermalThrottling, // No throttling = optimal
     });
   } else if (telemetry.packagePower !== null && stockSpecs) {
+    const nearLimit = telemetry.packagePower > stockSpecs.ppt * 0.95;
     detections.push({
       settingId: "thermal-throttling",
       status: "Inferred",
       confidence: 0.70,
       reason: `Package power ${telemetry.packagePower}W — thermal status inferred from power draw`,
-      detectedValue: telemetry.packagePower > stockSpecs.ppt * 0.95 ? "Near power limit" : "Within limits",
+      detectedValue: nearLimit ? "Near power limit" : "Within limits",
+      isOptimal: !nearLimit,
     });
   }
 
@@ -329,6 +358,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.75,
           reason: `VCore at ${telemetry.vcoreVoltage}V — elevated voltage suggests PBO or manual OC active`,
           detectedValue: `Inferred active (VCore ${telemetry.vcoreVoltage}V)`,
+          isOptimal: true,
         });
       } else if (telemetry.vcoreVoltage < 1.1 && telemetry.vcoreVoltage > 0.5) {
         detections.push({
@@ -337,6 +367,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.60,
           reason: `VCore at ${telemetry.vcoreVoltage}V — low voltage suggests Curve Optimizer or undervolt`,
           detectedValue: `Possible undervolt (VCore ${telemetry.vcoreVoltage}V)`,
+          isOptimal: true, // Curve Optimizer/undervolt is positive for gaming
         });
       }
     }
@@ -350,6 +381,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.55,
           reason: `Elevated VCore (${telemetry.vcoreVoltage}V) may indicate Curve Optimizer adjustments`,
           detectedValue: `Possibly active (elevated voltage)`,
+          isOptimal: true,
         });
       }
     }
@@ -366,6 +398,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
           confidence: 0.60,
           reason: `Low package power (${telemetry.packagePower}W vs ${stockSpecs.ppt}W limit) — deep C-states likely active`,
           detectedValue: "Likely enabled (low power draw)",
+          isOptimal: false, // Deep C-states = latency penalty
         });
       }
     }
@@ -380,6 +413,7 @@ export function analyzeFirmware(telemetry: HardwareTelemetry): FirmwareDetection
         confidence: 0.55,
         reason: `Boost clock ${telemetry.cpuBoostClock}MHz is ${boostDelta}MHz above stock — possible BCLK overclock`,
         detectedValue: `Possibly adjusted (+${boostDelta}MHz)`,
+        isOptimal: true,
       });
     }
   }
@@ -412,6 +446,8 @@ export function applyDetectionsToSettings(
       ...setting,
       detectionStatus: detection.status,
       currentValue: detection.detectedValue ?? setting.currentValue,
+      // Only set isOptimal when explicitly provided (photo analysis or telemetry inference)
+      ...(detection.isOptimal !== undefined ? { isOptimal: detection.isOptimal } : {}),
     };
   });
 }
