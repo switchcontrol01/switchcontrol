@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useRef, useReducer } from 'react';
+import { useState, useEffect, useCallback, useRef, useReducer, useMemo } from 'react';
 import { flushSync } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { ChevronRight, ChevronLeft } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Sparkles } from 'lucide-react';
 
 export interface TourStep {
   id: string;
@@ -32,6 +32,7 @@ type Phase =
   | 'spotlighting'
   | 'presenting'
   | 'fading_out'
+  | 'completing'
   | 'done';
 
 interface TourState {
@@ -109,6 +110,115 @@ function setSidebarHighlight(id: string | undefined) {
       sidebarEl.setAttribute('data-tour-highlight', 'true');
     }
   }
+}
+
+const COMPLETION_PARTICLES = Array.from({ length: 12 }, (_, i) => {
+  const angle = (i / 12) * Math.PI * 2;
+  const dist = 90 + Math.random() * 80;
+  return {
+    id: i,
+    x: Math.cos(angle) * dist,
+    y: Math.sin(angle) * dist,
+    delay: 0.15 + i * 0.04,
+    size: 3 + Math.random() * 5,
+    hue: 260 + Math.random() * 40,
+  };
+});
+
+function CompletionOverlay({ onDone, reduced }: { onDone: () => void; reduced: boolean | null }) {
+  useEffect(() => {
+    const t = setTimeout(onDone, reduced ? 500 : 2600);
+    return () => clearTimeout(t);
+  }, [onDone, reduced]);
+
+  return (
+    <motion.div
+      className="absolute inset-0 flex items-center justify-center overflow-hidden"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: reduced ? 0.2 : 0.7, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="absolute inset-0 bg-black/80" />
+
+      {/* Slow outer ambient bloom */}
+      <motion.div
+        className="absolute rounded-full pointer-events-none"
+        style={{ width: 900, height: 900, background: 'radial-gradient(circle, rgba(139,92,246,0.22) 0%, rgba(168,85,247,0.08) 45%, transparent 72%)', filter: 'blur(60px)' }}
+        initial={{ scale: 0.3, opacity: 0 }}
+        animate={{ scale: [0.3, 1.15, 1.0], opacity: [0, 0.9, 0.6] }}
+        transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1], times: [0, 0.6, 1] }}
+      />
+
+      {/* Mid corona */}
+      <motion.div
+        className="absolute rounded-full pointer-events-none"
+        style={{ width: 480, height: 480, background: 'radial-gradient(circle, rgba(192,132,252,0.35) 0%, rgba(139,92,246,0.15) 50%, transparent 75%)', filter: 'blur(30px)' }}
+        initial={{ scale: 0.1, opacity: 0 }}
+        animate={{ scale: [0.1, 1.2, 1.0], opacity: [0, 1, 0.75] }}
+        transition={{ duration: 1.8, ease: [0.22, 1, 0.36, 1], times: [0, 0.55, 1], delay: 0.1 }}
+      />
+
+      {/* Bright inner core */}
+      <motion.div
+        className="absolute rounded-full pointer-events-none"
+        style={{ width: 180, height: 180, background: 'radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(216,180,254,0.45) 35%, transparent 70%)', filter: 'blur(12px)' }}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: [0, 1.3, 1.0], opacity: [0, 1, 0.8] }}
+        transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1], times: [0, 0.5, 1], delay: 0.2 }}
+      />
+
+      {/* Slow fade-out pulse */}
+      <motion.div
+        className="absolute rounded-full pointer-events-none"
+        style={{ width: 600, height: 600, background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 65%)', filter: 'blur(40px)' }}
+        animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.9, 0.5] }}
+        transition={{ duration: 2, ease: 'easeInOut', delay: 0.6 }}
+      />
+
+      {/* Radiating particles */}
+      {COMPLETION_PARTICLES.map(p => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full pointer-events-none"
+          style={{ width: p.size, height: p.size, background: `hsla(${p.hue}, 85%, 75%, 0.9)`, boxShadow: `0 0 ${p.size * 3}px hsla(${p.hue}, 85%, 75%, 0.6)` }}
+          initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
+          animate={{ x: p.x, y: p.y, opacity: [0, 1, 0], scale: [0, 1.4, 0] }}
+          transition={{ duration: 1.6, delay: p.delay, ease: [0.22, 1, 0.36, 1] }}
+        />
+      ))}
+
+      {/* Center icon + text */}
+      <div className="relative z-10 flex flex-col items-center gap-4">
+        <motion.div
+          className="relative flex items-center justify-center"
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.7, delay: 0.25, type: 'spring', stiffness: 280, damping: 20 }}
+        >
+          <motion.div
+            className="absolute rounded-full"
+            style={{ width: 88, height: 88, background: 'radial-gradient(circle, rgba(192,132,252,0.5) 0%, transparent 70%)' }}
+            animate={{ scale: [1, 1.25, 1], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/30 to-pink-500/20 border border-white/10 flex items-center justify-center backdrop-blur-sm">
+            <Sparkles className="w-7 h-7 text-purple-300" />
+          </div>
+        </motion.div>
+
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <p className="text-xl font-semibold text-white tracking-wide">You're all set</p>
+          <p className="text-sm text-purple-300/70 mt-1 font-light">SwitchControl is ready to optimize</p>
+        </motion.div>
+      </div>
+    </motion.div>
+  );
 }
 
 export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, returnRoute, testId = "tour" }: TourShellProps) {
@@ -274,18 +384,22 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
     dispatch({ type: 'GOTO', index: state.stepIndex - 1, direction: 'back' });
   };
 
-  const handleComplete = async () => {
+  const handleComplete = () => {
     document.body.classList.remove('tour-active');
     document.body.classList.remove('tour-navigating');
-    dispatch({ type: 'FINISH' });
     setSidebarHighlight(undefined);
+    if (returnRoute) navigateToRoute(returnRoute);
+    dispatch({ type: 'PHASE', phase: 'completing' });
+  };
+
+  const handleCompletionDone = useCallback(async () => {
+    dispatch({ type: 'FINISH' });
     if (returnRoute) {
-      navigateToRoute(returnRoute);
       const container = getScrollContainer();
       await smoothScrollTo(container, 0, 400);
     }
-    setTimeout(onComplete, 400);
-  };
+    setTimeout(onComplete, 200);
+  }, [returnRoute, onComplete]);
 
   const handleSkip = () => {
     document.body.classList.remove('tour-active');
@@ -296,7 +410,36 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
     setTimeout(() => onSkip?.() ?? onComplete(), 300);
   };
 
+  const blurClipPath = useMemo(() => {
+    const W = typeof window !== 'undefined' ? window.innerWidth : 1300;
+    const H = typeof window !== 'undefined' ? window.innerHeight : 800;
+    const canReveal = state.phase === 'presenting' || state.phase === 'spotlighting';
+    if (!canReveal || !state.targetRect) {
+      return `polygon(evenodd, 0px 0px, ${W}px 0px, ${W}px ${H}px, 0px ${H}px, -100px -100px, -99px -100px, -99px -99px, -100px -99px)`;
+    }
+    const p = 32;
+    const x1 = Math.max(0, state.targetRect.left - p);
+    const y1 = Math.max(0, state.targetRect.top - p);
+    const x2 = Math.min(W, state.targetRect.right + p);
+    const y2 = Math.min(H, state.targetRect.bottom + p);
+    return `polygon(evenodd, 0px 0px, ${W}px 0px, ${W}px ${H}px, 0px ${H}px, ${x1}px ${y1}px, ${x2}px ${y1}px, ${x2}px ${y2}px, ${x1}px ${y2}px)`;
+  }, [state.targetRect, state.phase]);
+
   if (!show || state.phase === 'idle' || state.phase === 'done') return null;
+
+  if (state.phase === 'completing') {
+    return (
+      <AnimatePresence>
+        <motion.div
+          key="completing"
+          className="fixed inset-0 z-[100] select-none"
+          data-testid={`${testId}-completion`}
+        >
+          <CompletionOverlay onDone={handleCompletionDone} reduced={prefersReducedMotion} />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
 
   const isTooltipVisible = state.phase === 'presenting';
   const isTransitioning = state.phase === 'fading_out' || state.phase === 'navigating' || state.phase === 'scrolling';
@@ -354,6 +497,17 @@ export function TourShell({ show, steps, onComplete, onSkip, canSkip = false, re
             style={{
               backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'n\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23n)\' opacity=\'0.03\'/%3E%3C/svg%3E")',
               backgroundRepeat: 'repeat',
+            }}
+          />
+
+          {/* Background blur with spotlight cutout */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              backdropFilter: 'blur(10px)',
+              WebkitBackdropFilter: 'blur(10px)',
+              clipPath: blurClipPath,
+              transition: 'clip-path 0.55s cubic-bezier(0.22, 1, 0.36, 1)',
             }}
           />
 
