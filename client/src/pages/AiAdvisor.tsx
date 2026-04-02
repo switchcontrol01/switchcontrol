@@ -109,14 +109,43 @@ function ThinkingDots() {
   );
 }
 
+const THINKING_PHASES = [
+  "Analyzing system…",
+  "Checking tweaks…",
+  "Building recommendations…",
+] as const;
+
+function ThinkingStatus() {
+  const [phase, setPhase] = useState(0);
+
+  useEffect(() => {
+    if (phase >= THINKING_PHASES.length - 1) return;
+    const t = setTimeout(() => setPhase(p => p + 1), 700);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  return (
+    <span className="flex items-center gap-2 text-primary/60 text-[12px]">
+      <ThinkingDots />
+      <AnimatePresence mode="wait">
+        <motion.span
+          key={phase}
+          initial={{ opacity: 0, y: 3 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -3 }}
+          transition={{ duration: 0.18, ease: "easeOut" }}
+          className="text-white/40 text-[11px]"
+        >
+          {THINKING_PHASES[phase]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
+  );
+}
+
 function AssistantBubbleContent({ msg }: { msg: ChatMessage }) {
   if (msg.isThinking) {
-    return (
-      <span className="flex items-center gap-2 text-primary/60 text-[12px]">
-        <ThinkingDots />
-        <span className="text-white/30 text-[11px]">Thinking…</span>
-      </span>
-    );
+    return <ThinkingStatus />;
   }
   return (
     <>

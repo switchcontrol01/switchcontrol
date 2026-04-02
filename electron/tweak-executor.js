@@ -107,6 +107,57 @@ async function checkIsAdmin() {
   return _isAdmin;
 }
 
+// ─── Per-action UAC elevation ──────────────────────────────────────────────────
+// Writes a temp PowerShell script, launches it via Start-Process -Verb RunAs,
+// waits for completion, and reads the JSON result file back.
+async function runElevated(command) {
+  const tmpDir   = os.tmpdir();
+  const scriptId = `sc_tweak_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const scriptPath = path.join(tmpDir, `${scriptId}.ps1`);
+  const resultPath = path.join(tmpDir, `${scriptId}_result.json`);
+
+  // Single-quote-safe paths for PowerShell string literals
+  const safeResultPath = resultPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
+
+  const scriptContent = [
+    `$ErrorActionPreference = 'Stop'`,
+    `try {`,
+    `  ${command}`,
+    `  $r = @{ ok = $true; error = $null }`,
+    `} catch {`,
+    `  $r = @{ ok = $false; error = $_.Exception.Message }`,
+    `}`,
+    `$r | ConvertTo-Json -Compress | Set-Content -Path '${safeResultPath}' -Encoding UTF8`,
+  ].join('\r\n');
+
+  fs.writeFileSync(scriptPath, scriptContent, 'utf8');
+
+  // Double-backslash the script path for use inside the outer PS -Command string
+  const safeScriptPath = scriptPath.replace(/\\/g, '\\\\').replace(/'/g, "''");
+  const launchCmd = `Start-Process powershell -ArgumentList '-NoProfile -NonInteractive -ExecutionPolicy Bypass -File \\"${safeScriptPath}\\"' -Verb RunAs -Wait`;
+
+  try {
+    await new Promise((resolve, reject) => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
+        { timeout: 120_000 },
+        (err) => (err ? reject(err) : resolve())
+      );
+    });
+
+    if (fs.existsSync(resultPath)) {
+      try { return JSON.parse(fs.readFileSync(resultPath, 'utf8')); } catch {
+        return { ok: false, error: 'Could not parse elevated result.' };
+      }
+    }
+    return { ok: false, error: 'UAC may have been cancelled — result file not written.' };
+  } finally {
+    try { fs.unlinkSync(scriptPath); } catch {}
+    try { fs.unlinkSync(resultPath); } catch {}
+  }
+}
+
 // ─── UNSUPPORTED tweaks ────────────────────────────────────────────────────────
 // These tweaks cannot be implemented with persistent registry/command changes.
 // They are kept visible and honestly marked, toggle is disabled in UI.
@@ -473,20 +524,93 @@ async function executeTweak(tweakId, action) {
     return result;
   }
 
-  // 3. Admin check (runtime – not static assumption)
+  // 3. Admin check — elevate per-action when possible
   if (tweak.requiresAdmin) {
     const isAdmin = await checkIsAdmin();
     if (!isAdmin) {
-      const result = {
-        success:       false,
-        requiresAdmin: true,
-        requiresReboot: tweak.requiresReboot || false,
-        commandsRun:   [],
-        message:       null,
-        error:         'This tweak requires SwitchControl to be run as Administrator. Right-click the app and choose "Run as administrator".',
-      };
-      logEntry({ tweakId, action, result, ms: Date.now() - startTime });
-      return result;
+      // Special-case tweaks use custom handlers that can't be lifted into a temp script
+      if (tweak._special) {
+        const result = {
+          success:        false,
+          requiresAdmin:  true,
+          requiresReboot: tweak.requiresReboot || false,
+          commandsRun:    [],
+          message:        null,
+          error:          'This tweak requires SwitchControl to be run as Administrator. Right-click the app and choose "Run as administrator".',
+        };
+        logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+        return result;
+      }
+
+      // Standard tweak — attempt per-action UAC elevation
+      const command = action === 'apply' ? tweak.apply : tweak.revert;
+      commandsRun.push(`[elevated] ${command}`);
+      console.log(`[TweakExecutor] Requesting UAC elevation for ${tweakId}`);
+
+      let elevResult;
+      try {
+        elevResult = await runElevated(command);
+      } catch (elevErr) {
+        const isCancelled = /cancel|deny|denied|access.?denied|declined|abort/i.test(elevErr.message);
+        const result = {
+          success:        false,
+          requiresAdmin:  true,
+          requiresReboot: tweak.requiresReboot || false,
+          commandsRun,
+          message:        null,
+          error: isCancelled
+            ? 'Elevation cancelled. Accept the UAC prompt to apply this tweak.'
+            : `Elevation failed: ${elevErr.message}`,
+        };
+        logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+        return result;
+      }
+
+      if (!elevResult.ok) {
+        const result = {
+          success:        false,
+          requiresAdmin:  true,
+          requiresReboot: tweak.requiresReboot || false,
+          commandsRun,
+          message:        null,
+          error:          elevResult.error || 'Elevated command failed.',
+        };
+        logEntry({ tweakId, action, result, ms: Date.now() - startTime });
+        return result;
+      }
+
+      // Elevated command succeeded — verify state
+      const verification = await verifyTweak(tweakId);
+      const expectedApplied = action === 'apply';
+
+      if (verification.isApplied === expectedApplied) {
+        const state = loadState();
+        state.tweaks[tweakId] = expectedApplied;
+        saveState(state);
+        const result = {
+          success:        true,
+          verified:       true,
+          requiresReboot: tweak.requiresReboot || false,
+          requiresAdmin:  true,
+          commandsRun,
+          message:        `${tweak.name} ${expectedApplied ? 'applied' : 'reverted'} and verified (elevated).`,
+          error:          null,
+        };
+        logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
+        return result;
+      } else {
+        const result = {
+          success:        false,
+          verified:       true,
+          requiresReboot: tweak.requiresReboot || false,
+          requiresAdmin:  true,
+          commandsRun,
+          message:        null,
+          error:          'Elevated command ran but system state did not change. May be blocked by policy.',
+        };
+        logEntry({ tweakId, action, verificationResult: verification, result, ms: Date.now() - startTime });
+        return result;
+      }
     }
   }
 

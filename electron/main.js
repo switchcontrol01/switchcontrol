@@ -1013,38 +1013,59 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     const netRxKBs = Math.round(netRxSec / 1024);
     const netTxKBs = Math.round(netTxSec / 1024);
 
+    const gpuAvailable = gpuLoad != null || gpuTemp != null;
+    const vramUsedMb  = gpuMemUsed  != null ? gpuMemUsed  : null;
+    const vramTotalMb = gpuMemTotal != null ? gpuMemTotal : null;
+    const vramUsagePct = (vramUsedMb != null && vramTotalMb != null && vramTotalMb > 0)
+      ? Math.round((vramUsedMb / vramTotalMb) * 100) : null;
+
     const result = {
-      cpuUsage: cpuLoad,
-      cpuTemp: cpuTemp > 0 ? cpuTemp : null,
-      cpuMaxTemp: cpuMaxTemp > 0 ? cpuMaxTemp : null,
-      showCpuTemp: cpuTemp > 0,
-      cpuCoreCount: coreLoads.length,
-      ramUsage: ramPercent,
-      ramTotal: ramTotalGb,
-      ramUsedGb,
-      ramTotalGb,
-      gpuTemp: gpuTemp != null && gpuTemp > 0 ? gpuTemp : null,
-      gpuLoad: gpuLoad != null && gpuLoad >= 0 ? gpuLoad : null,
-      gpuMemUsed: gpuMemUsed != null ? gpuMemUsed : null,
-      gpuMemTotal: gpuMemTotal != null ? gpuMemTotal : null,
-      gpuPower: gpuPower != null && gpuPower > 0 ? gpuPower : null,
-      gpuClockMhz: gpuClockMhz != null && gpuClockMhz > 0 ? gpuClockMhz : null,
-      showGpu: gpuLoad != null || gpuTemp != null,
-      showMobo: false,
-      selectedDiskMount: selectedDisk?.mount || null,
-      diskPercent,
-      diskReadSec,
-      diskWriteSec,
-      netRxSec: netRxKBs,
-      netTxSec: netTxKBs,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      cpu: {
+        usagePct:  cpuLoad,
+        tempC:     cpuTemp > 0 ? cpuTemp : null,
+        coreCount: coreLoads.length,
+      },
+      ram: {
+        usedGb:   ramUsedGb,
+        totalGb:  ramTotalGb,
+        usagePct: ramPercent,
+      },
+      gpu: {
+        available:   gpuAvailable,
+        model:       cachedSpecs?.gpu?.model || null,
+        usagePct:    gpuLoad  != null && gpuLoad  >= 0 ? gpuLoad  : null,
+        tempC:       gpuTemp  != null && gpuTemp  >  0 ? gpuTemp  : null,
+        vramUsedMb,
+        vramTotalMb,
+        vramUsagePct,
+        powerW:      gpuPower    != null && gpuPower    > 0 ? gpuPower    : null,
+        clockMhz:    gpuClockMhz != null && gpuClockMhz > 0 ? gpuClockMhz : null,
+      },
+      disk: {
+        selectedMount:  selectedDisk?.mount || null,
+        usagePct:       diskPercent,
+        readOpsPerSec:  diskReadSec,
+        writeOpsPerSec: diskWriteSec,
+      },
+      network: {
+        rxKBps: netRxKBs,
+        txKBps: netTxKBs,
+      },
     };
 
-    console.log(`[telemetry:getLive] disk=${result.selectedDiskMount} diskPct=${diskPercent} net=${netRxKBs}↓/${netTxKBs}↑ gpu=${gpuLoad}%/${gpuTemp}°C`);
+    console.log(`[telemetry:getLive] disk=${result.disk.selectedMount} diskPct=${diskPercent} net=${netRxKBs}↓/${netTxKBs}↑ gpu=${gpuLoad}%/${gpuTemp}°C`);
     return result;
   } catch (e) {
     console.error('[telemetry:getLive] error:', e.message);
-    return { cpuUsage: 0, cpuTemp: null, showCpuTemp: false, ramUsage: 0, ramTotal: 0, gpuTemp: null, gpuLoad: null, showGpu: false, showMobo: false, diskPercent: 0, netRxSec: 0, netTxSec: 0, timestamp: Date.now() };
+    return {
+      timestamp: Date.now(),
+      cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
+      ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
+      gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
+      disk:    { selectedMount: null, usagePct: 0, readOpsPerSec: 0, writeOpsPerSec: 0 },
+      network: { rxKBps: 0, txKBps: 0 },
+    };
   }
 });
 

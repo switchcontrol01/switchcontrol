@@ -92,60 +92,45 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
       console.log('[LiveGraph] getLive:', {
         selectedDiskMount: selectedDiskMountRef.current,
-        resolvedMount: live.selectedDiskMount,
-        cpuUsage: live.cpuUsage, diskPercent: live.diskPercent,
-        netRxSec: live.netRxSec, netTxSec: live.netTxSec,
-        gpuLoad: live.gpuLoad, gpuTemp: live.gpuTemp, showGpu: live.showGpu,
+        resolvedMount: live.disk?.selectedMount,
+        cpuUsage: live.cpu?.usagePct, diskPercent: live.disk?.usagePct,
+        netRxKBps: live.network?.rxKBps, netTxKBps: live.network?.txKBps,
+        gpuLoad: live.gpu?.usagePct, gpuTemp: live.gpu?.tempC, gpuAvailable: live.gpu?.available,
       });
 
-      const cpuLoad = safeNumber(live.cpuUsage ?? live.cpuDisplay, 0);
-      const cpuTemp = live.cpuTemp != null && live.cpuTemp > 0 ? safeNumber(live.cpuTemp) : null;
+      const cpuLoad  = safeNumber(live.cpu?.usagePct, 0);
+      const cpuTemp  = live.cpu?.tempC != null && live.cpu.tempC > 0 ? safeNumber(live.cpu.tempC) : null;
 
-      const gpuTemp = live.gpuTemp != null && live.gpuTemp > 0 ? safeNumber(live.gpuTemp) : null;
-      const gpuLoad = live.gpuLoad != null && live.gpuLoad >= 0 ? safeNumber(live.gpuLoad) : null;
-      const gpuMemUsed = live.gpuMemUsed != null ? safeNumber(live.gpuMemUsed) : null;
-      const gpuMemTotal = live.gpuMemTotal != null && live.gpuMemTotal > 0 ? safeNumber(live.gpuMemTotal) : null;
-      const gpuMemPct = gpuMemUsed != null && gpuMemTotal != null && gpuMemTotal > 0
-        ? Math.round((gpuMemUsed / gpuMemTotal) * 100) : null;
-      const gpuPower = live.gpuPower != null && live.gpuPower > 0 ? safeNumber(live.gpuPower) : null;
-      const gpuClockMhz = live.gpuClockMhz != null && live.gpuClockMhz > 0 ? safeNumber(live.gpuClockMhz) : null;
+      const gpuTemp     = live.gpu?.tempC    != null && live.gpu.tempC    > 0  ? safeNumber(live.gpu.tempC)    : null;
+      const gpuLoad     = live.gpu?.usagePct != null && live.gpu.usagePct >= 0 ? safeNumber(live.gpu.usagePct) : null;
+      const gpuMemUsed  = live.gpu?.vramUsedMb  != null ? safeNumber(live.gpu.vramUsedMb)  : null;
+      const gpuMemTotal = live.gpu?.vramTotalMb != null && live.gpu.vramTotalMb > 0 ? safeNumber(live.gpu.vramTotalMb) : null;
+      const gpuMemPct   = live.gpu?.vramUsagePct != null ? live.gpu.vramUsagePct
+        : (gpuMemUsed != null && gpuMemTotal != null && gpuMemTotal > 0
+          ? Math.round((gpuMemUsed / gpuMemTotal) * 100) : null);
+      const gpuPower    = live.gpu?.powerW   != null && live.gpu.powerW   > 0 ? safeNumber(live.gpu.powerW)   : null;
+      const gpuClockMhz = live.gpu?.clockMhz != null && live.gpu.clockMhz > 0 ? safeNumber(live.gpu.clockMhz) : null;
 
-      let ramUsedGb = 0;
-      let ramTotalGb = 0;
-
-      if (live.ramUsedGb != null && live.ramTotalGb != null) {
-        ramUsedGb = safeNumber(live.ramUsedGb, 0);
-        ramTotalGb = safeNumber(live.ramTotalGb ?? live.ramTotal, 0);
-      } else if (api?.system?.getRamUsage) {
-        try {
-          const ram = await api.system.getRamUsage();
-          if (ram) {
-            ramUsedGb = safeNumber(ram.usedGB ?? ram.ramUsedGb, 0);
-            ramTotalGb = safeNumber(ram.totalGB ?? ram.ramTotalGb, 0);
-          }
-        } catch {}
-      }
-
-      const hasRam = ramTotalGb > 0;
+      const ramUsedGb  = safeNumber(live.ram?.usedGb,  0);
+      const ramTotalGb = safeNumber(live.ram?.totalGb, 0);
+      const hasRam     = ramTotalGb > 0;
       const ramPercent = hasRam
-        ? Math.round((ramUsedGb / ramTotalGb) * 100)
-        : safeNumber(live.ramUsage, 0);
+        ? safeNumber(live.ram?.usagePct, Math.round((ramUsedGb / ramTotalGb) * 100))
+        : 0;
 
-      // Backend returns 0 (not null) for disk/net when idle — treat null as 0
-      const diskPercent = live.diskPercent != null ? safeNumber(live.diskPercent) : null;
-      // netRxSec / netTxSec are KB/s values — 0 when idle, >0 when active
-      const netRxSec = typeof live.netRxSec === 'number' ? safeNumber(live.netRxSec) : null;
-      const netTxSec = typeof live.netTxSec === 'number' ? safeNumber(live.netTxSec) : null;
+      const diskPercent = live.disk?.usagePct != null ? safeNumber(live.disk.usagePct) : null;
+      const netRxSec    = typeof live.network?.rxKBps === 'number' ? safeNumber(live.network.rxKBps) : null;
+      const netTxSec    = typeof live.network?.txKBps === 'number' ? safeNumber(live.network.txKBps) : null;
 
       const telemetryState: LatestState = {
         cpuLoad, cpuTemp, gpuTemp, gpuLoad,
         gpuMemUsed, gpuMemTotal, gpuMemPct, gpuPower, gpuClockMhz,
-        showGpu: live.showGpu ?? (gpuTemp != null || gpuLoad != null),
+        showGpu: live.gpu?.available ?? (gpuTemp != null || gpuLoad != null),
         ramUsedGb, ramTotalGb, ramPercent,
-        showRam: hasRam || live.ramUsage != null,
+        showRam: hasRam,
         diskPercent,
         netRxSec, netTxSec,
-        coreCount: safeNumber(live.cpuCoreCount, 0),
+        coreCount: safeNumber(live.cpu?.coreCount, 0),
       };
 
       setLatest(telemetryState);
@@ -154,7 +139,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
       if (onTelemetryUpdateRef.current) {
         onTelemetryUpdateRef.current({
-          temps: { cpu: live.cpuTemp ?? 0, gpu: live.gpuTemp ?? 0 },
+          temps: { cpu: live.cpu?.tempC ?? 0, gpu: live.gpu?.tempC ?? 0 },
           ram: hasRam ? { totalGB: ramTotalGb, usedGB: ramUsedGb } : undefined,
           ssds: [],
         });

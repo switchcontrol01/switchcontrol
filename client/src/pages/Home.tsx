@@ -20,7 +20,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useDashboardTagline } from "@/lib/taglines";
-import { calculateBiosScores, BIOS_SETTINGS, getOptimizationLevel, getRankedOpportunities } from "@/lib/bios-advisor-data";
+import { calculateBiosScores, BIOS_SETTINGS, getOptimizationLevel, getRankedOpportunities, getScanSource } from "@/lib/bios-advisor-data";
 
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
@@ -151,6 +151,9 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
   const level = useMemo(() => getOptimizationLevel(scores.competitiveReadiness), [scores]);
   const opportunities = useMemo(() => getRankedOpportunities(), []);
   const topOppCount = opportunities.filter(o => o.scoreGain >= 5).length;
+  const scanSource = useMemo(() => getScanSource(), []);
+  const detectedCount = useMemo(() => BIOS_SETTINGS.filter(s => s.detectionStatus === "Detected").length, []);
+  const totalCount = BIOS_SETTINGS.length;
 
   const levelColors: Record<string, string> = {
     Basic: "bg-red-500/10 border-red-500/20 text-red-400",
@@ -178,14 +181,23 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
           BIOS Score
           {!isPremium && <PremiumBadge className="ml-1" />}
         </h3>
-        <p className="text-[10px] text-muted-foreground mt-1">Firmware readiness analysis</p>
+        <p className="text-[10px] text-muted-foreground mt-1">Firmware readiness estimate</p>
       </div>
       <div className="px-6 pb-6 space-y-4">
         <div className="p-3 rounded-lg border bg-[hsl(270,60%,55%)]/10 border-[hsl(270,60%,55%)]/20 text-center">
           <div className="text-2xl font-bold tabular-nums text-[hsl(270,60%,55%)]" data-testid="text-bios-dashboard-score">
             {scores.competitiveReadiness}
           </div>
-          <p className="text-[10px] mt-0.5 text-muted-foreground">Competitive Readiness</p>
+          <p className="text-[10px] mt-0.5 text-muted-foreground">Readiness Estimate</p>
+          <div className="flex items-center justify-center gap-2 mt-1.5">
+            <span className="text-[9px] text-muted-foreground/60">{detectedCount}/{totalCount} detected</span>
+            <span className={cn(
+              "text-[9px] px-1.5 py-0.5 rounded border",
+              scanSource === "Live"  ? "text-emerald-400 border-emerald-400/20 bg-emerald-400/5" :
+              scanSource === "Mixed" ? "text-amber-400  border-amber-400/20  bg-amber-400/5"  :
+                                       "text-orange-400 border-orange-400/20 bg-orange-400/5"
+            )}>{scanSource}</span>
+          </div>
         </div>
         <div className="flex items-center justify-between">
           <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded border", levelColors[level])}>{level}</span>

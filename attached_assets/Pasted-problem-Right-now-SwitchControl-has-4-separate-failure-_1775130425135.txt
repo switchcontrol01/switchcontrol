@@ -1,0 +1,325 @@
+problem.
+Right now SwitchControl has 4 separate failure classes mixed together:
+Fake UI fluidity
+things animate, but the data behind them is late or wrong
+so it feels like lipstick on a broken pipeline
+Frontend pretending to stream
+AI Advisor waits for full payload, then reveals locally
+that will always feel fake if the backend takes 2 seconds first
+Telemetry truth gap
+graph, disk modal, GPU modal, firmware score all depend on data contracts that are inconsistent or partially real
+some components are reading normalized shapes, others legacy shapes, others inferred data
+State orchestration is messy
+page transitions, modals, auth focus resets, premium flows, backend-ready race conditions
+too many things are technically working but fighting each other
+So the fix is not "add more animations".
+That is exactly how people bury bad product architecture.
+What I recommend
+You need to finish this in this order:
+Phase 1: make the app honest
+Before making it prettier, make every card and modal reflect real state only.
+That means:
+no fake streaming
+no fake firmware score
+no fake telemetry values
+no instant route/modals pretending to be polished when underlying content is blank
+If you skip this, the app will still feel cheap no matter how much motion you add.
+Phase 2: unify data contracts
+Your Electron side should expose one clean shape per domain:
+AI chat response contract
+live telemetry contract
+disk telemetry contract
+GPU telemetry contract
+firmware score contract
+tweak execution contract
+Right now you are doing too much fallback logic in the UI. That is wrong.
+The backend bridge should normalize.
+The frontend should render.
+Phase 3: fix timing and sequencing
+A lot of your "not fluid" feeling is timing bugs:
+placeholder added too late
+content revealed only after full fetch
+modals open before content is ready
+transitions happen instantly because state switches are synchronous with no staged animation phases
+You need deliberate staged transitions:
+open shell
+show skeleton
+hydrate
+reveal content
+then enable interaction
+Phase 4: premium polish
+Only after the above:
+glass backgrounds
+route transitions
+modal spring tuning
+staggered entrance
+background glow depth
+finer hover states
+That is how premium is built. Not the other way round.
+The biggest fixes, specifically
+1. AI Advisor
+Your current version is still frontend reveal, not real streaming.
+That is why it feels like:
+think 2s
+dump all
+fake typewriter
+Best fix
+Implement real streaming from backend to frontend.
+Use one of these:
+SSE from backend
+fetch stream reader with chunked text
+IPC chunk relay if needed in Electron
+Target UX
+When user clicks quick prompt:
+user bubble fades in immediately
+assistant bubble appears immediately with thinking shimmer
+first tokens begin within ~150 to 400ms if backend responds
+text streams continuously
+markdown finalizes after stream completes
+If real streaming is too hard today
+Then do this interim fix:
+assistant bubble appears instantly
+after 250ms, start showing a generated staged message like:
+"Analyzing system..."
+"Checking tweaks..."
+"Building recommendations..."
+then switch directly into response reveal the moment payload arrives
+no dead 2 second freeze
+no blank pause
+no fake cursor-only state
+But real streaming is the correct end state.
+2. Live graph and disk system
+This needs ruthless cleanup.
+The real issue
+You have multiple components doing interpretation:
+main.js
+LiveGraph.tsx
+DiskTelemetryModal.tsx
+GpuModal.tsx
+Home.tsx
+That means bugs multiply.
+Correct fix
+Make main.js the single source of truth.
+telemetry:getLive should always return:
+TypeScript
+{
+  timestamp: number,
+  cpu: {
+    usagePct: number,
+    tempC: number | null,
+    coreCount: number
+  },
+  ram: {
+    usedGb: number,
+    totalGb: number,
+    usagePct: number
+  },
+  gpu: {
+    available: boolean,
+    model: string | null,
+    usagePct: number | null,
+    tempC: number | null,
+    vramUsedMb: number | null,
+    vramTotalMb: number | null,
+    vramUsagePct: number | null,
+    powerW: number | null,
+    clockMhz: number | null
+  },
+  disk: {
+    selectedMount: string | null,
+    usagePct: number,
+    readOpsPerSec: number,
+    writeOpsPerSec: number
+  },
+  network: {
+    rxKBps: number,
+    txKBps: number
+  }
+}
+Then every UI component reads the same shape. No guessing.
+Disk switching fix
+The selected mount should live in one place only:
+Home.tsx owns selectedDiskMount
+passes it to LiveGraph
+passes it to DiskTelemetryModal
+backend resolves actual selected disk
+frontend never re-decides which disk is "primary"
+Right now you still have fallback logic scattered around. Kill that.
+3. GPU telemetry
+You are partly honest already, but not strict enough.
+Correct rule
+If GPU metrics are unavailable:
+show model
+show why metrics are unavailable
+show exact dependency needed
+do not fake zeros as real idle values for AMD
+For AMD:
+prefer LHM if available
+if not available, clearly show "live load/temp unavailable"
+do not imply broken UI if it is actually unavailable telemetry support
+That is premium honesty.
+4. BIOS / firmware score
+This is one of the biggest trust risks in the app.
+Your current BIOS score is derived from static BIOS_SETTINGS and inference.
+That means it is not truly a live firmware score yet.
+So if the UI makes it look like a real detected score, that is dangerous.
+Best fix
+Split it into two layers:
+Layer A: real detected inputs
+Real values you can actually infer from OS/runtime:
+memory frequency
+CPU model
+virtualization status
+Hyper-V status
+some timer traits
+maybe ReBAR
+maybe SMT clues
+maybe thermal throttling history
+maybe power plan related indicators
+Layer B: inferred firmware opportunities
+Everything else should be explicitly labeled:
+inferred
+unknown
+not directly readable from firmware
+UI wording must change
+Not:
+"Firmware score detected"
+Instead:
+"Firmware readiness estimate"
+"Based on detected runtime indicators and inferred BIOS traits"
+That protects credibility.
+Best implementation
+Create a real BIOS advisor pipeline:
+scan source: live / mixed / inferred
+confidence score
+detected fields count
+firmware hash
+last scan timestamp
+Then show:
+score
+confidence
+source mix
+detected vs inferred counts
+That will feel far more premium and far more honest.
+5. License management and premium UI
+Black dull background means one thing: the visual system is not unified.
+Fix
+Every premium modal, settings pane, and manage-license surface should use the same glass primitive:
+translucent dark base
+subtle border
+layered shadow
+soft blur
+low-opacity spotlight/glow
+slightly brighter header area
+Do not hand-style each modal separately.
+Create one reusable component:
+PremiumGlassPanel
+PremiumModalShell
+Then use it everywhere.
+6. Route and modal fluidity
+You keep saying "everything should be fluid". Good. Then stop using instant state flips.
+Correct pattern for all route/modals
+Use 4 phases:
+closed
+opening
+visible-loading
+visible-ready
+For modals:
+backdrop fades first
+shell scales/fades in
+skeleton content appears
+real content crossfades in
+For route transitions:
+old route soft fades / slight blur
+new route shell mounts
+content enters staggered
+only then interactive hotspots are enabled
+This is the difference between amateur animation and premium motion design.
+7. Tweak execution and admin
+Your current admin model is not good enough.
+You said you do not want the whole app always run as admin. Correct. That is the right instinct.
+Best implementation
+Per-action elevation.
+That means:
+app runs standard user by default
+when a tweak requiring admin is applied or reverted:
+launch elevated helper process only for that command
+helper returns structured result
+app remains non-elevated
+Why this is the right model
+safer
+more trustworthy
+less scary
+better UX than "run app as admin always"
+closer to premium software behavior
+Do not do this
+forcing the whole Electron app to permanently run as admin
+asking the user to restart app as admin for every serious tweak set
+Implement instead
+A small elevated executor helper:
+receives tweak id + action
+runs only whitelisted commands
+returns JSON result
+main app verifies state afterward
+That is bulletproof.
+Unique ideas that would actually improve the product
+1. Confidence UI
+For AI, BIOS, telemetry, and tweaks, show confidence subtly:
+Live
+Verified
+Inferred
+Unsupported
+This makes the app feel serious.
+2. Progressive intelligence cards
+When a section opens:
+shell loads instantly
+top KPI appears first
+sub-metrics appear staggered
+charts reveal after data exists
+warnings pulse only if real
+This feels premium fast.
+3. "Why unavailable" states
+Instead of dead blanks:
+"AMD live GPU temperature requires LibreHardwareMonitor web server"
+"Firmware score is mixed-confidence because direct BIOS read is unavailable"
+"Selected disk has no valid IO delta yet, waiting for next sample"
+That builds trust.
+4. Verification-first tweak UX
+After apply:
+show command running
+show verification checking
+show verified / failed / reboot needed
+store recent log
+That is much better than toggles magically changing.
+5. Scan modes for BIOS
+Add:
+Quick scan
+Mixed scan
+Strict verified scan
+Strict verified scan only scores directly observable indicators.
+That would be a killer differentiator.
+The ruthless implementation plan
+Sprint 1: truth and contracts
+unify telemetry shapes in main.js
+make LiveGraph, DiskTelemetryModal, GpuModal consume only normalized backend objects
+remove frontend fallback guessing
+make BIOS score explicitly confidence-based
+mark all unavailable values honestly
+Sprint 2: AI and premium UX
+implement real AI streaming
+instant placeholder bubble
+no dead wait phase
+smooth staged modal open
+create shared glass shell for premium/license panels
+Sprint 3: tweak system
+keep app non-admin by default
+build per-action elevated helper
+whitelist tweak commands
+verify after execution
+show detailed execution results in UI
+Sprint 4: motion polish
+global route transitions
+modal shell stagger
+dashboard card enter timing
+soft blur/fade sequencing
+remove any snap transitions still left

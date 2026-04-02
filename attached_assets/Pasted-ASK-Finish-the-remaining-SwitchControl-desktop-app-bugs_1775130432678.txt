@@ -1,0 +1,210 @@
+ASK
+Finish the remaining SwitchControl desktop app bugs and polish in a structured way. Do NOT patch randomly. Audit the current implementation, identify root causes, then implement a proper final architecture for telemetry, AI Advisor streaming UX, BIOS/Firmware scoring, premium/license modal styling, route/modal motion, and tweak elevation flow.
+
+PRIORITY
+Truth first, polish second.
+Do not fake values.
+Do not add cosmetic animation on top of broken or blank data.
+Every UI state must reflect real system state or explicitly say why it is unavailable.
+
+PROBLEMS TO FIX
+
+1) AI ADVISOR
+Current issue:
+- user sees thinking for about 2 seconds
+- then response blurts out
+- current frontend reveal still feels fake and not fluid
+- quick preset buttons do not feel premium or smoothly sequenced
+
+Goal:
+- assistant bubble appears immediately
+- thinking state appears immediately and fluidly
+- response begins progressively as early as possible
+- no dead pause, no blank cursor-only state, no snap transitions
+- if true streaming is possible, implement real streaming
+- if true streaming is not yet possible, implement a convincing staged progressive loading flow with immediate assistant placeholder and phased status messages until content arrives
+
+Implement:
+- audit current AiAdvisor.tsx plus cloud API/backend flow
+- determine whether backend already supports or can support streaming
+- preferred solution: true streaming from backend to frontend
+- fallback solution: immediate assistant bubble + staged analyzing messages + seamless transition into progressive reveal the moment payload arrives
+- remove any logic that waits for full payload before visible assistant state
+- ensure quick prompts animate in and the assistant bubble fades/slides in fluidly
+- make message transitions premium, not abrupt
+
+2) LIVE TELEMETRY / GRAPH / DISK / GPU
+Current issues:
+- graph still missing some real data
+- selected disk switching still not consistently reflected everywhere
+- disk modal can still fail to show correct selected disk data
+- live graph and disk modal still have contract mismatch risk
+- GPU telemetry must be honest about unsupported data
+
+Goal:
+- normalize telemetry fully in Electron backend
+- frontend should render only normalized shapes, not guess or reinterpret legacy shapes
+- selected disk mount must be owned in one place and passed consistently
+- all telemetry components must use the same source of truth
+
+Implement:
+- main.js should be the single normalization layer
+- define clean normalized contracts for:
+  a) telemetry:getLive
+  b) telemetry:getDisk
+  c) telemetry:getGpu
+  d) telemetry:getHardwareTelemetry
+- update preload if needed
+- simplify Home.tsx, LiveGraph.tsx, DiskTelemetryModal.tsx, GpuModal.tsx to consume normalized backend data only
+- remove duplicate fallback logic in UI where possible
+- selected disk must be driven by Home.tsx and passed to both graph and disk modal
+- backend resolves the actual selected disk
+- if AMD live GPU load/temp is unavailable without LHM, show an explicit unavailable reason in UI, not fake zeroes
+
+Expected telemetry data shape:
+- cpu usage/temp/core count
+- ram used/total/percent
+- gpu availability/model/load/temp/vram/power/clock
+- disk selectedMount/usage/read/write
+- network rx/tx
+- timestamp
+
+3) BIOS / FIRMWARE SCORE
+Current issues:
+- BIOS/Firmware score does not feel real enough
+- dashboard wording risks overselling inferred data as real firmware detection
+
+Goal:
+- make BIOS advisor honest and premium
+- separate detected inputs from inferred firmware opportunities
+- show score confidence and source quality
+- dashboard card must load correctly and not look fake
+
+Implement:
+- audit bios-advisor-data.ts usage across Home.tsx and BIOS-related UI
+- keep current score system if needed, but label it correctly
+- introduce explicit concepts:
+  - scan source: Live / Mixed / Inferred
+  - confidence percentage
+  - detected count vs inferred count
+  - last scan timestamp or scan hash if useful
+- update copy so it does NOT imply direct BIOS reading when it is actually inferred
+- dashboard card should render real computed values, not blank or broken placeholders
+- if needed, create a helper selector/computation layer so dashboard and BIOS page share the same derived model
+
+4) LICENSE MANAGEMENT / PREMIUM UI
+Current issues:
+- license management background is flat black and dull
+- opening manage/license-related surfaces feels instant and not premium
+- visual system is inconsistent
+
+Goal:
+- all premium and license related surfaces should feel translucent, glassy, layered, and fluid
+
+Implement:
+- create or unify a shared premium glass shell component for premium/license panels and modals
+- add:
+  - translucent dark background
+  - backdrop blur
+  - soft border
+  - subtle shadow
+  - slight spotlight/glow depth
+- opening the manage/license area should animate through staged phases, not snap instantly
+- use existing motion system where appropriate, but clean up any inconsistent motion behavior
+
+5) GLOBAL FLUIDITY / MOTION
+Current issues:
+- too many state changes are still instant
+- route/page transitions and modal transitions are not consistently premium
+- some motion exists, but sequencing is not deliberate
+
+Goal:
+- every major interaction should feel fluid and intentional
+
+Implement:
+- audit App.tsx, AppLayout.tsx, motion.tsx, and any modal shells/routes involved
+- use staged transitions:
+  - backdrop in
+  - shell in
+  - skeleton/loading
+  - content reveal
+- for route changes, avoid hard snaps
+- for dashboard cards and major panels, use subtle stagger and smooth fade/slide
+- do not overdo motion
+- premium means controlled and clean, not flashy
+
+6) TWEAK EXECUTION / ADMIN FLOW
+Current issues:
+- current tweak system checks for admin and fails unless app is already admin
+- user does NOT want whole app permanently run as administrator
+- app should request elevation only when needed
+
+Goal:
+- keep app non-admin by default
+- elevate only per tweak action when required
+- preserve trust and minimize invasive behavior
+
+Implement:
+- do NOT require the whole Electron app to always run as admin
+- build a per-action elevation flow for admin tweaks
+- preferred architecture:
+  - app stays normal user
+  - when an admin tweak apply/revert is triggered, launch a small elevated helper or whitelisted elevated command path
+  - helper returns structured result
+  - main app re-verifies actual system state afterward
+- keep whitelist tight and safe
+- preserve current verification-first tweak model
+- unsupported tweaks remain clearly labeled unsupported
+- update tweak UI messaging if needed so admin-required actions are explained cleanly
+
+FILES TO AUDIT AND UPDATE
+At minimum review and update these where relevant:
+- electron/main.js
+- electron/preload.js
+- electron/tweak-executor.js
+- client/src/pages/AiAdvisor.tsx
+- client/src/components/dashboard/LiveGraph.tsx
+- client/src/components/dashboard/DiskTelemetryModal.tsx
+- client/src/components/dashboard/GpuModal.tsx
+- client/src/pages/Home.tsx
+- client/src/lib/bios-advisor-data.ts
+- client/src/App.tsx
+- client/src/components/layout/AppLayout.tsx
+- client/src/lib/api.ts
+- client/src/lib/cloud-api.ts
+- client/src/components/tweaks/TweakCard.tsx
+- client/src/pages/Tweaks.tsx
+- any license management or premium modal/page components involved
+
+IMPLEMENTATION RULES
+- do not break working auth or premium flows
+- do not silently fake values
+- if a value is unavailable, show a high-quality unavailable state with reason
+- keep backend normalization in Electron side, not spread across frontend
+- reduce duplicated logic
+- prefer one clean data contract per feature area
+- keep logs helpful but not noisy
+- preserve current design language and make it more premium, not different
+- avoid hacky one-off fixes unless absolutely necessary
+- if a bug is caused by architecture, fix the architecture
+
+CHECKLIST
+1. AI Advisor no longer feels like think-then-dump
+2. assistant placeholder appears immediately
+3. telemetry graph works with normalized real data
+4. disk switching is correct in graph and disk modal
+5. GPU modal is honest and accurate
+6. BIOS/Firmware score loads properly and has truthful wording/confidence
+7. premium/license surfaces use proper glass styling
+8. opening modals/pages feels fluid
+9. tweak actions can elevate per action without requiring whole app admin
+10. unsupported tweaks remain clearly unsupported
+11. all major UI interactions feel smoother and more deliberate
+
+FINAL OUTPUT
+Return:
+1. a root-cause summary for each fixed area
+2. exact files changed
+3. exact architectural improvements made
+4. any remaining limitations that are hardware or OS constraints rather than app bugs
+5. a short manual QA checklist for me to test inside the packaged Electron app
