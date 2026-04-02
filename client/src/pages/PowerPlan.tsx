@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
-import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
+import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal, staggerContainer, staggerItem, pageTransition } from "@/lib/motion";
 import {
   Zap, Leaf, Gauge, Cpu, Usb, Moon, Rocket, Monitor, Laptop,
   ChevronDown, ChevronUp, Info, X, RotateCcw, Check, AlertTriangle,
@@ -449,13 +449,21 @@ export default function PowerPlan() {
 
   return (
     <AppLayout>
-      <div className={cn("space-y-8 relative", !isPremium && "opacity-60 blur-[2px]")}>
-        <PageHeader
-          icon={Zap}
-          title="Power Plan"
-          badge={<PremiumHeaderBadge isLocked={!isPremium} />}
-          subtitle="Configure power profiles for optimal gaming performance."
-        />
+      <motion.div
+        className={cn("space-y-8 relative", !isPremium && "opacity-60 blur-[2px]")}
+        variants={pageTransition}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
+        <Reveal>
+          <PageHeader
+            icon={Zap}
+            title="Power Plan"
+            badge={<PremiumHeaderBadge isLocked={!isPremium} />}
+            subtitle="Configure power profiles for optimal gaming performance."
+          />
+        </Reveal>
 
         {/* Non-Electron notice */}
         {!isElectron && (
@@ -519,13 +527,19 @@ export default function PowerPlan() {
 
             {/* Profile cards */}
             {(!planLoading || !isElectron) && (
-              <div className="grid gap-4 md:grid-cols-3">
+              <motion.div
+                className="grid gap-4 md:grid-cols-3"
+                variants={staggerContainer}
+                initial="initial"
+                animate="animate"
+              >
                 {POWER_PROFILES.map((profile) => {
                   const isActive   = activeProfileId === profile.id;
                   const isApplying = applying === profile.id;
                   const Icon = profile.icon;
 
                   return (
+                    <motion.div key={profile.id} variants={staggerItem}>
                     <GlassCard
                       key={profile.id}
                       className={cn(
@@ -576,13 +590,15 @@ export default function PowerPlan() {
                         )}
                       </Button>
                     </GlassCard>
+                    </motion.div>
                   );
                 })}
-              </div>
+              </motion.div>
             )}
 
             {/* Configuration breakdown — backend-driven or static */}
             {displayProfile && displayBreakdown && !planLoading && (
+              <Reveal delay={0.12}>
               <GlassCard className="p-6" data-testid="panel-profile-breakdown">
                 <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
                   <displayProfile.icon className="size-5 text-primary" />
@@ -627,10 +643,12 @@ export default function PowerPlan() {
                   </div>
                 )}
               </GlassCard>
+              </Reveal>
             )}
 
             {/* No active match — custom state */}
             {isCustomState && !planLoading && (
+              <Reveal delay={0.12}>
               <GlassCard className="p-5 border-amber-500/20 bg-amber-500/5">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="size-5 text-amber-400 shrink-0 mt-0.5" />
@@ -643,9 +661,11 @@ export default function PowerPlan() {
                   </div>
                 </div>
               </GlassCard>
+              </Reveal>
             )}
 
             {/* Advanced overrides */}
+            <Reveal delay={0.18}>
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" className="w-full justify-between px-4 py-3 h-auto bg-white/5 hover:bg-white/10 border border-white/10">
@@ -678,10 +698,12 @@ export default function PowerPlan() {
                 })}
               </CollapsibleContent>
             </Collapsible>
+            </Reveal>
           </TabsContent>
 
           {/* ── Custom tab ────────────────────────────────────────────────── */}
           <TabsContent value="custom" className="space-y-6">
+            <Reveal>
             <GlassCard className="p-6">
               <div className="flex items-start justify-between mb-6">
                 <div>
@@ -766,9 +788,10 @@ export default function PowerPlan() {
                 </div>
               </div>
             </GlassCard>
+            </Reveal>
           </TabsContent>
         </Tabs>
-      </div>
+      </motion.div>
 
       {/* Info modal */}
       <AnimatePresence>

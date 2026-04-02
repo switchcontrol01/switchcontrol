@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,7 +36,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
+import { motion, staggerContainer, staggerItem, useMotion, Reveal, pageTransition } from "@/lib/motion";
 
 type GameProfile = {
   id: string;
@@ -261,8 +262,23 @@ export default function AppBooster() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <motion.div
+        className="space-y-6"
+        variants={pageTransition}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+      >
+        <Reveal>
+          <PageHeader
+            icon={Rocket}
+            title="App Booster"
+            subtitle="Manage per-game optimization profiles and boost active sessions."
+          />
+        </Reveal>
+
         {/* Stats Overview */}
+        <Reveal delay={0.05}>
         <Container 
           className="grid grid-cols-1 md:grid-cols-4 gap-4"
           {...(!prefersReducedMotion && { variants: staggerContainer, initial: "initial", animate: "animate" })}
@@ -293,8 +309,10 @@ export default function AppBooster() {
             </Item>
           ))}
         </Container>
+        </Reveal>
 
         {/* Action Bar */}
+        <Reveal delay={0.1}>
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -326,8 +344,10 @@ export default function AppBooster() {
             </Button>
           </div>
         </div>
+        </Reveal>
 
         {/* Main Content */}
+        <Reveal delay={0.15}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Game Library */}
           <Card className="lg:col-span-1 bg-card/50 backdrop-blur border-border/50">
@@ -589,8 +609,10 @@ export default function AppBooster() {
             )}
           </Card>
         </div>
+        </Reveal>
 
         {/* Quick Tips */}
+        <Reveal delay={0.2}>
         <Card className="bg-gradient-to-r from-primary/10 to-cyan-500/10 border-primary/20">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -607,7 +629,8 @@ export default function AppBooster() {
             </div>
           </CardContent>
         </Card>
-      </div>
+        </Reveal>
+      </motion.div>
     </AppLayout>
   );
 }
