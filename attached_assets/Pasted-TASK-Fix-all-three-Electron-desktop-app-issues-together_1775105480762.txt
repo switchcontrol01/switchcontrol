@@ -1,0 +1,165 @@
+TASK
+
+Fix all three Electron desktop app issues together, with real code changes and verification.
+
+ISSUES TO FIX
+
+1. Live System Monitor graph only shows CPU line.
+2. RAM cleaner crashes the app immediately.
+3. Black border / black top strip still exists above the custom titlebar and must be removed.
+
+FILES TO AUDIT FIRST
+
+- client/src/components/dashboard/LiveGraph.tsx
+- client/src/components/dashboard/MemoryCleanerModal.tsx
+- client/src/pages/Home.tsx
+- client/src/App.tsx
+- electron/main.js
+- any global CSS file controlling:
+  - .app-root
+  - .titlebar
+  - .app-content
+  - body / html / #root
+- WindowControls component styles if needed
+
+GOALS
+
+1. Multi-line graph must actually render CPU, RAM, Disk, GPU, and network lines whenever data exists.
+2. RAM cleaner must never crash the renderer even if the native exe returns bad data or fails.
+3. Top black border must be fully removed so the custom titlebar area looks seamless and glass.
+
+IMPLEMENTATION
+
+PART 1 — FIX LIVE GRAPH
+
+In LiveGraph.tsx, stop suppressing metrics by converting valid zero-ish values into null unless the metric is truly unavailable.
+
+Specifically audit and fix:
+
+- ram
+- disk
+- gpuLoad
+- gpuTemp
+- gpuMemPct
+- netRx
+- netTx
+
+Current logic is too aggressive and causes lines to disappear.
+
+Requirements:
+
+- 0 should be treated as a valid value, not hidden
+- graph visibility checks must not depend on “some values are non-null after several ticks”
+- if telemetry payload contains the metric key, render the line
+- keep null only for truly unavailable metrics
+- CPU, RAM, Disk should render by default if telemetry exists
+- GPU and network should render whenever present in the live payload
+- add console logging once per fetch cycle for the normalized telemetry object so packaged builds can be diagnosed
+
+Expected result:
+
+- more than one line visible in the live graph
+- RAM line visible
+- Disk line visible
+- network lines visible in expanded mode
+- GPU lines visible when available
+
+PART 2 — FIX RAM CLEANER CRASH
+
+In MemoryCleanerModal.tsx, harden the native result handling.
+
+Requirements:
+
+- do not assume api.memory.clean(...) returns valid JSON shape
+- validate that res exists and is an object
+- validate estimated_mb_freed, processes_scanned, processes_trimmed, top_trimmed, execution_ms
+- if invalid, show toast error and do not crash
+- wrap the post-clean state update logic so it cannot throw
+- add detailed renderer logs for:
+  - mode selected
+  - raw result returned from electronAPI.memory.clean
+  - validation failure reason
+- if native helper errors, surface message in toast and keep app alive
+
+Also audit electron/main.js memory:clean handler:
+
+- log exe path
+- log missing helper
+- log stdout
+- log stderr
+- if JSON parse fails, return a structured error object instead of allowing downstream ambiguity
+
+Expected result:
+
+- clicking Optimize Memory never crashes the app
+- failure path shows toast only
+- success path updates modal cleanly
+
+PART 3 — REMOVE BLACK TOP BORDER
+
+Audit the custom frameless window layout.
+
+Check:
+
+- BrowserWindow options in electron/main.js
+- titlebar / app shell CSS
+- App.tsx structure with:
+  - .app-root
+  - .titlebar
+  - .app-content
+
+Requirements:
+
+- remove any black strip above or behind the custom titlebar
+- ensure html, body, #root, .app-root fill full height with no unintended margin
+- ensure titlebar height is fixed and app-content fills remaining space
+- ensure BrowserWindow background and custom titlebar styling match the app shell
+- if needed, add or correct:
+  - titleBarStyle
+  - backgroundColor
+  - transparent usage
+  - CSS overflow/layout rules
+
+Expected result:
+
+- top border gone
+- titlebar looks integrated and glass
+- no black line at top in installed Electron app
+
+DO NOT
+
+- do not touch unrelated premium flow, BIOS score, auth, or backend logic in this task
+- do not give theoretical suggestions only
+- do actual code edits
+- do not hide errors with empty catch blocks
+
+VERIFICATION REQUIRED
+
+After changes, verify and report:
+
+1. LiveGraph:
+
+- which lines now render
+- example normalized telemetry object from console
+- why the old logic hid the lines
+
+2. Memory cleaner:
+
+- raw native result example
+- invalid response handling path
+- confirmation app no longer crashes
+
+3. Titlebar:
+
+- exact CSS or Electron config changes made
+- why the black border existed
+- confirmation it is removed
+
+FINAL OUTPUT
+
+Return:
+
+- root cause for each of the 3 issues
+- exact files changed
+- exact code sections changed
+- proof of verification for each issue

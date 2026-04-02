@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { GlassModalLayout } from "@/components/ui/GlassModalLayout";
 import { cn } from "@/lib/utils";
-import { MemoryStick, Loader2, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Zap, Shield, Rocket, Sparkles } from "lucide-react";
+import { MemoryStick, Loader2, CheckCircle2, AlertTriangle, ChevronDown, ChevronUp, Zap, Shield, Rocket, Sparkles, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useStore } from "@/lib/store";
 import { motion, AnimatePresence } from "framer-motion";
@@ -129,14 +129,33 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
     try {
       const api = (window as any).electronAPI;
+      console.log(`[MemoryCleaner] mode selected: ${selectedMode}`);
 
       if (api?.memory?.clean) {
-        const [res] = await Promise.all([api.memory.clean(selectedMode), minDelay]);
+        const [rawRes] = await Promise.all([api.memory.clean(selectedMode), minDelay]);
+        console.log('[MemoryCleaner] raw result from electronAPI.memory.clean:', JSON.stringify(rawRes));
 
-        if (res?.error) {
-          toast({ title: "Memory clean failed", description: res.message || "An error occurred.", variant: "destructive" });
+        if (!rawRes || typeof rawRes !== 'object') {
+          console.warn('[MemoryCleaner] validation fail: result is not an object', rawRes);
+          toast({ title: "Memory clean failed", description: "Native helper returned invalid data.", variant: "destructive" });
           return;
         }
+
+        if (rawRes.error) {
+          console.warn('[MemoryCleaner] helper returned error:', rawRes.message);
+          toast({ title: "Memory clean failed", description: rawRes.message || "An error occurred.", variant: "destructive" });
+          return;
+        }
+
+        const res: CleanResult = {
+          mode: typeof rawRes.mode === 'string' ? rawRes.mode : selectedMode,
+          processes_scanned: Number.isFinite(rawRes.processes_scanned) ? rawRes.processes_scanned : 0,
+          processes_trimmed: Number.isFinite(rawRes.processes_trimmed) ? rawRes.processes_trimmed : 0,
+          estimated_mb_freed: Number.isFinite(rawRes.estimated_mb_freed) ? rawRes.estimated_mb_freed : 0,
+          top_trimmed: Array.isArray(rawRes.top_trimmed) ? rawRes.top_trimmed : [],
+          execution_ms: Number.isFinite(rawRes.execution_ms) ? rawRes.execution_ms : 0,
+          errors_count: Number.isFinite(rawRes.errors_count) ? rawRes.errors_count : 0,
+        };
 
         setResult(res);
 

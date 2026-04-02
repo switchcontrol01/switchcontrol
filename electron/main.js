@@ -119,7 +119,7 @@ function createWindow() {
     width: 1300,
     height: 800,
     show: false,
-    backgroundColor: '#0b0b0b',
+    backgroundColor: '#0e0c12',
     frame: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -509,28 +509,31 @@ ipcMain.handle('memory:clean', async (event, mode) => {
     exePath = path.join(__dirname, 'bin', exeName);
   }
 
+  console.log(`[Memory] mode=${mode} exePath=${exePath} isPackaged=${app.isPackaged}`);
+
   const fs = require('fs');
   if (!fs.existsSync(exePath)) {
-    console.error('[Memory] Helper not found at:', exePath);
+    console.error('[Memory] Helper binary not found at:', exePath);
     return { error: true, message: 'Memory helper not found. Feature requires the desktop app.' };
   }
 
   return new Promise((resolve) => {
     const { execFile } = require('child_process');
-    const child = execFile(exePath, ['--mode', mode], { timeout: 10000 }, (err, stdout, stderr) => {
+    execFile(exePath, ['--mode', mode], { timeout: 10000 }, (err, stdout, stderr) => {
+      if (stderr) console.log('[Memory] stderr:', stderr.trim());
       if (err) {
-        console.error('[Memory] Helper error:', err.message);
-        if (stderr) console.error('[Memory] stderr:', stderr);
+        console.error('[Memory] execFile error:', err.message, 'killed:', err.killed);
         resolve({ error: true, message: 'Memory clean failed: ' + (err.killed ? 'timeout' : err.message) });
         return;
       }
 
+      console.log('[Memory] stdout raw:', stdout.trim());
       try {
         const result = JSON.parse(stdout.trim());
         console.log(`[Memory] ${mode} mode: scanned=${result.processes_scanned} trimmed=${result.processes_trimmed} freed=${result.estimated_mb_freed}MB`);
         resolve(result);
       } catch (parseErr) {
-        console.error('[Memory] Invalid JSON output:', stdout);
+        console.error('[Memory] JSON parse failed. stdout was:', stdout);
         resolve({ error: true, message: 'Memory clean returned invalid data.' });
       }
     });

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Activity, Info, Maximize2, Minimize2, Cpu, Thermometer, MemoryStick, HardDrive, Wifi } from "lucide-react";
+import { Activity, Info, Maximize2, Minimize2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, Legend, CartesianGrid } from "recharts";
 import { safeFixed, safeNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -111,6 +111,10 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
         const hasRam = ramTotalGb > 0;
         const ramPercent = hasRam ? Math.round((ramUsedGb / ramTotalGb) * 100) : safeNumber(live.ramUsage, 0);
 
+        const diskPercent = live.diskPercent != null ? safeNumber(live.diskPercent) : null;
+        const netRxSec = live.netRxSec != null ? safeNumber(live.netRxSec) : null;
+        const netTxSec = live.netTxSec != null ? safeNumber(live.netTxSec) : null;
+
         const telemetryState: LatestState = {
           cpuLoad,
           cpuTemp,
@@ -127,12 +131,19 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
           ramUsedGb,
           ramTotalGb,
           ramPercent,
-          showRam: hasRam || ramPercent > 0,
-          diskPercent: live.diskPercent ?? null,
-          netRxSec: live.netRxSec ?? null,
-          netTxSec: live.netTxSec ?? null,
+          showRam: hasRam || live.ramUsage != null,
+          diskPercent,
+          netRxSec,
+          netTxSec,
           coreCount: safeNumber(live.cpuCoreCount, 0),
         };
+
+        console.log('[LiveGraph] normalized telemetry:', JSON.stringify({
+          cpuLoad, cpuTemp, gpuLoad, gpuTemp, gpuMemPct,
+          ramUsedGb, ramTotalGb, ramPercent, hasRam,
+          diskPercent, netRxSec, netTxSec,
+          showGpu: telemetryState.showGpu, showRam: telemetryState.showRam,
+        }));
 
         setLatest(telemetryState);
         setError(null);
@@ -157,10 +168,10 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
             gpuLoad,
             gpuTemp,
             gpuMemPct,
-            ram: ramPercent > 0 ? ramPercent : null,
-            disk: telemetryState.diskPercent,
-            netRx: telemetryState.netRxSec,
-            netTx: telemetryState.netTxSec,
+            ram: telemetryState.showRam ? ramPercent : null,
+            disk: diskPercent,
+            netRx: netRxSec,
+            netTx: netTxSec,
           };
           const updated = [...prev, newPoint];
           return updated.length > 60 ? updated.slice(-60) : updated;
@@ -200,14 +211,14 @@ export function LiveGraph({ onTelemetryUpdate }: { onTelemetryUpdate?: (data: an
     );
   }
 
-  const hasCpuTemp = data.some(d => d.cpuTemp !== null);
-  const hasGpuLoad = data.some(d => d.gpuLoad !== null);
-  const hasGpuTemp = data.some(d => d.gpuTemp !== null);
-  const hasGpuMem = data.some(d => d.gpuMemPct !== null);
-  const hasRamData = data.some(d => d.ram !== null);
-  const hasDiskData = data.some(d => d.disk !== null);
-  const hasNetRx = data.some(d => d.netRx !== null);
-  const hasNetTx = data.some(d => d.netTx !== null);
+  const hasCpuTemp = data.some(d => d.cpuTemp !== null) || latest?.cpuTemp != null;
+  const hasGpuLoad = data.some(d => d.gpuLoad !== null) || (latest?.showGpu && latest?.gpuLoad != null);
+  const hasGpuTemp = data.some(d => d.gpuTemp !== null) || (latest?.showGpu && latest?.gpuTemp != null);
+  const hasGpuMem = data.some(d => d.gpuMemPct !== null) || (latest?.showGpu && latest?.gpuMemPct != null);
+  const hasRamData = data.some(d => d.ram !== null) || (latest?.showRam ?? false);
+  const hasDiskData = data.some(d => d.disk !== null) || latest?.diskPercent != null;
+  const hasNetRx = data.some(d => d.netRx !== null) || latest?.netRxSec != null;
+  const hasNetTx = data.some(d => d.netTx !== null) || latest?.netTxSec != null;
 
   return (
     <GlassCard className="p-4">
