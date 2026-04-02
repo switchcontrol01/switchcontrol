@@ -2,7 +2,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { GlassCard } from "@/components/ui/glass-card";
 import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
   AlertTriangle, Loader2, Zap, Shield, Send, RotateCcw,
@@ -48,7 +47,7 @@ const QUICK_PROMPTS = [
 ];
 
 function SafeMarkdown({ text }: { text: string }) {
-  const parts: Array<{ type: 'text' | 'bold' | 'code' | 'br' | 'bullet'; content: string }> = [];
+  const parts: Array<{ type: 'text' | 'bold' | 'code' | 'br'; content: string }> = [];
   const lines = text.split('\n');
 
   for (let i = 0; i < lines.length; i++) {
@@ -86,26 +85,44 @@ function SafeMarkdown({ text }: { text: string }) {
   );
 }
 
+// Premium thinking animation — three dots that fade in/out with staggered delay
 function ThinkingDots() {
   return (
-    <span className="inline-flex items-center gap-1 text-white/40">
-      <span className="text-[13px] text-primary/60 mr-1">Thinking</span>
-      <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "0ms", animationDuration: "900ms" }} />
-      <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "180ms", animationDuration: "900ms" }} />
-      <span className="w-1.5 h-1.5 rounded-full bg-primary/50 animate-bounce" style={{ animationDelay: "360ms", animationDuration: "900ms" }} />
+    <span className="inline-flex items-center gap-[5px] py-0.5">
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          className="block w-[5px] h-[5px] rounded-full bg-primary/60"
+          style={{
+            animation: "sc-pulse 1.2s ease-in-out infinite",
+            animationDelay: `${i * 0.2}s`,
+          }}
+        />
+      ))}
+      <style>{`
+        @keyframes sc-pulse {
+          0%, 80%, 100% { opacity: 0.2; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1.15); }
+        }
+      `}</style>
     </span>
   );
 }
 
 function AssistantBubbleContent({ msg }: { msg: ChatMessage }) {
   if (msg.isThinking) {
-    return <ThinkingDots />;
+    return (
+      <span className="flex items-center gap-2 text-primary/60 text-[12px]">
+        <ThinkingDots />
+        <span className="text-white/30 text-[11px]">Thinking…</span>
+      </span>
+    );
   }
   return (
     <>
       <SafeMarkdown text={msg.content} />
       {msg.isStreaming && (
-        <span className="inline-block w-0.5 h-3.5 bg-primary/70 ml-0.5 align-middle animate-[blink_0.8s_step-end_infinite]" />
+        <span className="inline-block w-px h-[14px] bg-primary/60 ml-0.5 align-middle animate-[blink_0.75s_step-end_infinite]" />
       )}
     </>
   );
@@ -128,10 +145,11 @@ export default function AiAdvisor() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  // Tracks whether we're in the reveal phase — state (not ref) so isBusy triggers re-renders
+  const [isStreaming, setIsStreaming] = useState(false);
   const [context, setContext] = useState<SystemContext | null>(null);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const contextRef = useRef<SystemContext | null>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
@@ -140,18 +158,15 @@ export default function AiAdvisor() {
   const revealCancelledRef = useRef(false);
   const isRevealingRef = useRef(false);
 
-  // Keep messagesRef in sync
-  useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
+  // Keep messagesRef in sync with state
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
-  // Smart scroll: only follow if user is within ~100px of bottom
+  // Smart scroll: only follow when within 120px of bottom
   const smartScroll = useCallback(() => {
     const el = scrollContainerRef.current;
     if (!el) return;
-    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
-    if (distanceFromBottom < 100) {
-      el.scrollTop = el.scrollHeight;
+    if (el.scrollHeight - el.scrollTop - el.clientHeight < 120) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
     }
   }, []);
 
@@ -167,8 +182,10 @@ export default function AiAdvisor() {
       revealTimerRef.current = null;
     }
     isRevealingRef.current = false;
+    setIsStreaming(false);
   }, []);
 
+  // Progressive reveal — transitions the message from isThinking→isStreaming on first tick
   const revealContent = useCallback((msgId: string, fullContent: string, onDone: () => void) => {
     cancelReveal();
     revealCancelledRef.current = false;
@@ -177,52 +194,56 @@ export default function AiAdvisor() {
       setMessages(prev => prev.map(m =>
         m.id === msgId ? { ...m, content: fullContent, isStreaming: false, isThinking: false } : m
       ));
+      setIsStreaming(false);
       onDone();
       return;
     }
 
     isRevealingRef.current = true;
+    setIsStreaming(true);
+
     let revealed = 0;
     const total = fullContent.length;
 
     const tick = () => {
       if (revealCancelledRef.current) return;
 
-      // Smart chunk: fast burst at start, then steady pace
+      // Burst phase: reveal fast to feel immediate, then settle to natural typing pace
       const remaining = total - revealed;
       let chunk: number;
-      if (revealed < 120) {
-        chunk = Math.min(40, remaining);      // fast initial burst
-      } else if (remaining < 80) {
-        chunk = remaining;                    // finish cleanly
+      if (revealed < 200) {
+        chunk = Math.min(80, remaining);         // immediate first impression
+      } else if (remaining <= 60) {
+        chunk = remaining;                        // finish cleanly, no drip
       } else {
-        chunk = Math.floor(Math.random() * 9) + 6; // 6–14 chars/tick
+        chunk = Math.floor(Math.random() * 10) + 8; // 8-17 chars/tick
       }
 
       revealed = Math.min(revealed + chunk, total);
-      const partial = fullContent.slice(0, revealed);
       const done = revealed >= total;
 
       setMessages(prev => prev.map(m =>
         m.id === msgId
-          ? { ...m, content: partial, isStreaming: !done, isThinking: false }
+          ? { ...m, content: fullContent.slice(0, revealed), isStreaming: !done, isThinking: false }
           : m
       ));
 
       smartScroll();
 
       if (!done) {
-        const delay = revealed < 120 ? 8 : Math.floor(Math.random() * 10) + 10; // 10–20ms
+        const delay = revealed < 200 ? 8 : Math.floor(Math.random() * 12) + 10;
         revealTimerRef.current = setTimeout(tick, delay);
       } else {
         isRevealingRef.current = false;
         revealTimerRef.current = null;
-        forceScrollBottom();
+        setIsStreaming(false);
+        setTimeout(forceScrollBottom, 30);
         onDone();
       }
     };
 
-    revealTimerRef.current = setTimeout(tick, 8);
+    // Small initial delay — lets the "Thinking…" state visually transition before text floods in
+    revealTimerRef.current = setTimeout(tick, 60);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
   useEffect(() => {
@@ -283,16 +304,17 @@ export default function AiAdvisor() {
   }, [cancelReveal]);
 
   const sendMessage = async (content: string) => {
-    if (!content.trim() || loading || isRevealingRef.current) return;
+    const trimmed = content.trim();
+    if (!trimmed || loading || isStreaming) return;
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
       role: "user",
-      content: content.trim(),
+      content: trimmed,
       timestamp: new Date(),
     };
 
-    // Placeholder assistant bubble appears IMMEDIATELY — before API call
+    // Assistant placeholder appears immediately — before the API call
     const assistantId = `assistant-${Date.now()}`;
     const placeholderMsg: ChatMessage = {
       id: assistantId,
@@ -306,35 +328,35 @@ export default function AiAdvisor() {
     setMessages(prev => [...prev, userMsg, placeholderMsg]);
     setInput("");
     setLoading(true);
-
-    setTimeout(forceScrollBottom, 40); // let DOM paint first
+    setTimeout(forceScrollBottom, 50);
 
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
-    // Build history from current ref (excludes the placeholder we just added)
+    // Build history from current ref snapshot (before the placeholder was added)
     const chatHistory = messagesRef.current
       .filter(m => m.id !== "welcome" && m.role !== "system" && !m.isThinking)
       .map(m => ({ role: m.role, content: m.content }));
-    chatHistory.push({ role: "user", content: content.trim() });
+    chatHistory.push({ role: "user", content: trimmed });
 
+    console.log(`[AiAdvisor] send | history=${chatHistory.length} msgs | "${trimmed.slice(0, 60)}"`);
     const t0 = Date.now();
-    console.log(`[AiAdvisor] send | history=${chatHistory.length} | msg="${content.trim().slice(0, 60)}"`);
 
     try {
-      const data = await cloudApiPost("/ai/chat", { messages: chatHistory, context: contextRef.current }, { signal: abortRef.current.signal });
+      const data = await cloudApiPost(
+        "/ai/chat",
+        { messages: chatHistory, context: contextRef.current },
+        { signal: abortRef.current.signal }
+      );
 
       if (abortRef.current?.signal.aborted || revealCancelledRef.current) return;
 
-      console.log(`[AiAdvisor] response | length=${data.content?.length} | latency=${Date.now() - t0}ms`);
+      console.log(`[AiAdvisor] response | ${data.content?.length} chars | ${Date.now() - t0}ms`);
 
       setLoading(false);
 
-      // Switch placeholder from thinking → streaming, then start reveal
-      setMessages(prev => prev.map(m =>
-        m.id === assistantId ? { ...m, isThinking: false, isStreaming: true } : m
-      ));
-
+      // No intermediate setMessages — revealContent transitions isThinking→isStreaming on first tick
+      // This prevents the empty-bubble flash that previously caused the "blurt" feeling
       revealContent(assistantId, data.content || "", () => {
         inputRef.current?.focus();
       });
@@ -344,9 +366,8 @@ export default function AiAdvisor() {
       if (abortRef.current?.signal.aborted) return;
 
       const displayMsg = getUserFriendlyError(err);
-      console.error(`[AiAdvisor] error | "${displayMsg}"`, err);
+      console.error(`[AiAdvisor] error: "${displayMsg}"`, err);
 
-      // Replace placeholder with error message
       setMessages(prev => prev
         .filter(m => m.id !== assistantId)
         .concat({
@@ -385,11 +406,26 @@ export default function AiAdvisor() {
     setMessages([{ id: "welcome", role: "assistant", content: welcomeContent, timestamp: new Date() }]);
   };
 
-  const isBusy = loading || isRevealingRef.current;
+  const isBusy = loading || isStreaming;
+
+  // Per-message animation variant — assistant thinking bubble is staggered 150ms after user msg
+  function msgTransition(msg: ChatMessage) {
+    return {
+      initial: prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 10 },
+      animate: { opacity: 1, y: 0 },
+      transition: {
+        duration: 0.2,
+        ease: "easeOut" as const,
+        delay: msg.isThinking ? 0.15 : 0,
+      },
+    };
+  }
 
   return (
     <AppLayout>
       <div className="flex flex-col h-[calc(100vh-120px)] max-w-3xl mx-auto">
+
+        {/* Header */}
         <div className="flex items-center justify-between mb-4 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-gradient-to-br from-primary/20 to-cyan-500/10 border border-primary/30">
@@ -403,22 +439,21 @@ export default function AiAdvisor() {
               <p className="text-[11px] text-muted-foreground">Ask anything about optimizing your PC</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            {messages.length > 2 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleReset}
-                className="text-[11px] text-muted-foreground hover:text-white h-7 px-2"
-                data-testid="button-new-chat"
-              >
-                <RotateCcw className="w-3 h-3 mr-1" />
-                New Chat
-              </Button>
-            )}
-          </div>
+          {messages.length > 2 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="text-[11px] text-muted-foreground hover:text-white h-7 px-2"
+              data-testid="button-new-chat"
+            >
+              <RotateCcw className="w-3 h-3 mr-1" />
+              New Chat
+            </Button>
+          )}
         </div>
 
+        {/* Spec chips */}
         {context?.system.cpu && (
           <div className="flex flex-wrap gap-1.5 mb-3 shrink-0">
             <SpecChip icon={Cpu} label="CPU" value={context.system.cpu} />
@@ -428,65 +463,72 @@ export default function AiAdvisor() {
           </div>
         )}
 
+        {/* Chat messages */}
         <div
           ref={scrollContainerRef}
           className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-3 pb-3"
           data-testid="chat-messages"
         >
           <AnimatePresence initial={false}>
-            {messages.map((msg) => (
-              <motion.div
-                key={msg.id}
-                initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.18 }}
-                className={cn("flex gap-2.5", msg.role === "user" ? "flex-row-reverse" : "flex-row")}
-              >
-                {msg.role !== "user" && (
-                  <div className={cn(
-                    "shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5",
-                    msg.role === "system"
-                      ? "bg-red-500/10 border border-red-500/20"
-                      : "bg-primary/10 border border-primary/20"
-                  )}>
-                    {msg.role === "system" ? (
-                      <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+            {messages.map((msg) => {
+              const anim = msgTransition(msg);
+              return (
+                <motion.div
+                  key={msg.id}
+                  initial={anim.initial}
+                  animate={anim.animate}
+                  transition={anim.transition}
+                  className={cn("flex gap-2.5", msg.role === "user" ? "flex-row-reverse" : "flex-row")}
+                >
+                  {/* Avatar */}
+                  {msg.role !== "user" && (
+                    <div className={cn(
+                      "shrink-0 w-7 h-7 rounded-lg flex items-center justify-center mt-0.5 transition-colors",
+                      msg.role === "system"
+                        ? "bg-red-500/10 border border-red-500/20"
+                        : msg.isThinking
+                          ? "bg-primary/15 border border-primary/25 animate-pulse"
+                          : "bg-primary/10 border border-primary/20"
+                    )}>
+                      {msg.role === "system" ? (
+                        <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                      ) : (
+                        <Bot className="w-3.5 h-3.5 text-primary" />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Bubble */}
+                  <div
+                    className={cn(
+                      "max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed",
+                      msg.role === "user"
+                        ? "bg-primary/15 border border-primary/20 text-white ml-auto rounded-br-md"
+                        : msg.role === "system"
+                          ? "bg-red-500/5 border border-red-500/15 text-red-300/80 rounded-bl-md"
+                          : "bg-white/[0.04] border border-white/[0.06] text-white/80 rounded-bl-md"
+                    )}
+                    data-testid={`chat-message-${msg.id}`}
+                  >
+                    {msg.role === "assistant" ? (
+                      <AssistantBubbleContent msg={msg} />
                     ) : (
-                      <Bot className={cn("w-3.5 h-3.5 text-primary", msg.isThinking && "animate-pulse")} />
+                      <SafeMarkdown text={msg.content} />
                     )}
                   </div>
-                )}
 
-                <div
-                  className={cn(
-                    "max-w-[85%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed",
-                    msg.role === "user"
-                      ? "bg-primary/15 border border-primary/20 text-white ml-auto rounded-br-md"
-                      : msg.role === "system"
-                        ? "bg-red-500/5 border border-red-500/15 text-red-300/80 rounded-bl-md"
-                        : "bg-white/[0.04] border border-white/[0.06] text-white/80 rounded-bl-md"
+                  {msg.role === "user" && (
+                    <div className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mt-0.5">
+                      <User className="w-3.5 h-3.5 text-white/50" />
+                    </div>
                   )}
-                  data-testid={`chat-message-${msg.id}`}
-                >
-                  {msg.role === "assistant" ? (
-                    <AssistantBubbleContent msg={msg} />
-                  ) : (
-                    <SafeMarkdown text={msg.content} />
-                  )}
-                </div>
-
-                {msg.role === "user" && (
-                  <div className="shrink-0 w-7 h-7 rounded-lg bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mt-0.5">
-                    <User className="w-3.5 h-3.5 text-white/50" />
-                  </div>
-                )}
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </AnimatePresence>
-
-          <div ref={messagesEndRef} />
         </div>
 
+        {/* Quick prompts — only when chat is fresh */}
         {messages.length <= 1 && !loading && (
           <div className="grid grid-cols-2 gap-2 mb-3 shrink-0">
             {QUICK_PROMPTS.map((qp) => {
@@ -495,7 +537,8 @@ export default function AiAdvisor() {
                 <button
                   key={qp.label}
                   onClick={() => sendMessage(qp.prompt)}
-                  className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.10] transition-all text-left group"
+                  disabled={isBusy}
+                  className="flex items-center gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:bg-white/[0.06] hover:border-white/[0.10] transition-all text-left group disabled:opacity-40 disabled:cursor-not-allowed"
                   data-testid={`button-quick-${qp.label.toLowerCase().replace(/\s+/g, "-")}`}
                 >
                   <Icon className="w-4 h-4 text-primary/60 group-hover:text-primary transition-colors shrink-0" />
@@ -507,6 +550,7 @@ export default function AiAdvisor() {
           </div>
         )}
 
+        {/* Input form */}
         <form
           onSubmit={handleSubmit}
           className="shrink-0 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.04] border border-white/[0.08] focus-within:border-primary/30 transition-colors"
@@ -530,14 +574,11 @@ export default function AiAdvisor() {
             className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
             data-testid="button-send-message"
           >
-            {loading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </form>
 
+        {/* Disclaimer */}
         <div className="flex items-center gap-1.5 mt-2 px-1 shrink-0">
           <AlertTriangle className="w-3 h-3 text-white/20 shrink-0" />
           <p className="text-[10px] text-white/20" data-testid="text-ai-disclaimer">
