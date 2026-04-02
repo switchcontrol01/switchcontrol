@@ -24,7 +24,7 @@ export function WindowControls() {
       <div className="titlebar-controls">
         <button
           onClick={handleMinimize}
-          className="titlebar-btn"
+          className="titlebar-btn titlebar-btn-minimize"
           data-testid="window-minimize"
           aria-label="Minimize"
         >
@@ -34,7 +34,7 @@ export function WindowControls() {
         </button>
         <button
           onClick={handleMaximize}
-          className="titlebar-btn"
+          className="titlebar-btn titlebar-btn-maximize"
           data-testid="window-maximize"
           aria-label="Maximize"
         >
