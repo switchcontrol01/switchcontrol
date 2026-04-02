@@ -35,6 +35,7 @@
       "main.js",
       "preload.js",
       "tweak-executor.js",
+      "power-plan-manager.js",
       "backend-launcher.js",
       "config-store.js",
       "node_modules/systeminformation/**/*"
