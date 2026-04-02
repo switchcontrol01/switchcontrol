@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
+import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -797,6 +797,14 @@ export default function PowerPlan() {
       <AnimatePresence>
         {infoToggle && <InfoModal toggle={infoToggle} onClose={() => setInfoToggle(null)} />}
       </AnimatePresence>
+
+      {!isPremium && (
+        <PremiumPageOverlay
+          featureName="Power Plan is a Premium Feature"
+          buttonText="Unlock Power Plan"
+          description="Advanced power profile management and custom overrides are available with SwitchControl Premium."
+        />
+      )}
     </AppLayout>
   );
 }
