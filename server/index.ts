@@ -265,15 +265,19 @@ app.use((req, res, next) => {
   }
 
   const port = parseInt(process.env.PORT || "5000", 10);
-  const isWindows = process.platform === "win32";
-  const host = isWindows ? "localhost" : "0.0.0.0";
-  
+  // Electron backend always binds to 127.0.0.1 so health checks and the
+  // renderer (both using 127.0.0.1) can reach it without DNS resolution.
+  // Windows with "localhost" can resolve to ::1 (IPv6) instead of 127.0.0.1,
+  // which breaks the health probe and leaves backendReady stuck at false.
+  const isElectronBackend = process.env.ELECTRON_BACKEND === "1";
+  const host = isElectronBackend ? "127.0.0.1" : "0.0.0.0";
+
   const listenOptions: any = { port, host };
-  if (!isWindows) {
+  if (!isElectronBackend) {
     listenOptions.reusePort = true;
   }
-  
+
   httpServer.listen(listenOptions, () => {
-    log(`serving on port ${port}`);
+    log(`serving on ${host}:${port}`);
   });
 })();

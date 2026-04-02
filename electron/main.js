@@ -230,6 +230,14 @@ function createWindow() {
       }
     }, 500);
 
+    // Close the race: if the backend became ready BEFORE the renderer
+    // finished loading, the backend-ready push was skipped. Send it now.
+    if (!isDev && backendLauncher.isBackendReady()) {
+      const port = backendLauncher.getBackendPort();
+      console.log('[Backend] Sending backend-ready to renderer on did-finish-load, port:', port);
+      mainWindow.webContents.send('backend-ready', { port });
+    }
+
     if (pendingDeepLinkUrl) {
       console.log('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
       mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
