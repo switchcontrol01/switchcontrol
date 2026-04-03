@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -420,7 +421,8 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
         </GlassCard>
       </motion.div>
 
-      {/* Detail modal */}
+      {/* Detail modal — portalled to body so CSS transforms on ancestors don't break fixed positioning */}
+      {createPortal(
       <AnimatePresence>
         {open && (
           <>
@@ -585,12 +587,15 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
           </>
         )}
       </AnimatePresence>
+      , document.body)}
 
+      {createPortal(
       <AnimatePresence>
         {showPremiumModal && (
           <PremiumOverlayForTweak isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
         )}
       </AnimatePresence>
+      , document.body)}
     </>
   );
 }
