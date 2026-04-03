@@ -102,8 +102,14 @@ const crypto = require('crypto');
 
 const R2_ENDPOINT = `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
-function hmac(key, data, encoding) {
-  return crypto.createHmac('sha256', key).update(data, 'utf8').digest(encoding || 'hex');
+// Raw bytes — required for intermediate steps in AWS SigV4 key derivation.
+// Each step's output Buffer is used as the key for the next step.
+function hmacBuf(key, data) {
+  return crypto.createHmac('sha256', key).update(data, 'utf8').digest();
+}
+// Hex string — used only for the final signature output.
+function hmacHex(key, data) {
+  return crypto.createHmac('sha256', key).update(data, 'utf8').digest('hex');
 }
 function hash(data) {
   return crypto.createHash('sha256').update(data).digest('hex');
@@ -173,13 +179,13 @@ function uploadFile(artifact) {
       hash(canonicalRequest),
     ].join('\n');
 
-    // Signing key
-    const signingKey = hmac(
-      hmac(hmac(hmac(`AWS4${KEY_SECRET}`, dateStamp), region), service),
-      'aws4_request',
-      null
-    );
-    const signature = hmac(signingKey, stringToSign);
+    // Signing key — each step must receive raw Buffer bytes, not a hex string.
+    // Using hex strings as intermediate keys produces the wrong HMAC (SignatureDoesNotMatch).
+    const kDate    = hmacBuf(`AWS4${KEY_SECRET}`, dateStamp);
+    const kRegion  = hmacBuf(kDate,    region);
+    const kService = hmacBuf(kRegion,  service);
+    const kSigning = hmacBuf(kService, 'aws4_request');
+    const signature = hmacHex(kSigning, stringToSign);
 
     const authorization = [
       `AWS4-HMAC-SHA256 Credential=${KEY_ID}/${credentialScope}`,
