@@ -291,23 +291,16 @@ export function WhatIsSwitchControl() {
 
   return (
     <section className="py-20 md:py-24 relative" data-reveal>
-      {/* Orbs that the glass blur renders through */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[8%] w-[480px] h-[480px] rounded-full"
-          style={{ background: 'radial-gradient(circle, hsl(270 70% 55% / 0.38) 0%, transparent 70%)', filter: 'blur(60px)' }} />
-        <div className="absolute bottom-[-5%] right-[6%] w-[360px] h-[360px] rounded-full"
-          style={{ background: 'radial-gradient(circle, hsl(220 80% 60% / 0.28) 0%, transparent 70%)', filter: 'blur(50px)' }} />
-        <div className="absolute top-[40%] right-[20%] w-[280px] h-[280px] rounded-full"
-          style={{ background: 'radial-gradient(circle, hsl(290 65% 50% / 0.22) 0%, transparent 70%)', filter: 'blur(45px)' }} />
-      </div>
-
       <div className="container mx-auto px-4 max-w-4xl">
         <Reveal duration={0.7} distance={32}>
-          <div className="relative rounded-2xl overflow-hidden">
-            {/* Glass layer — separate from overflow-hidden so backdrop-blur actually works */}
+          <div
+            className="relative rounded-2xl overflow-hidden"
+            style={{ border: '1px solid rgba(255,255,255,0.10)' }}
+          >
+            {/* White-tinted frosted glass layer */}
             <div
-              className="absolute inset-0 rounded-2xl backdrop-blur-xl pointer-events-none"
-              style={{ background: 'linear-gradient(160deg, rgba(18,12,32,0.44) 0%, rgba(10,8,20,0.38) 100%)' }}
+              className="absolute inset-0 backdrop-blur-2xl pointer-events-none"
+              style={{ background: 'rgba(255,255,255,0.06)' }}
             />
 
             <div className="relative p-7 md:p-10">
