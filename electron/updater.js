@@ -7,7 +7,9 @@
  * Renderer only consumes state via IPC — it never drives updates itself.
  *
  * Update channel: stable (beta-ready structure in place)
- * Update host:    Generic provider → https://releases.switchcontrol.org
+ * Update host:    Generic provider → https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+ *                 (temporary — will switch to https://releases.switchcontrol.org once
+ *                  domain DNS control is available; change build.publish.url in package.json)
  * Publish config: electron/package.json  build.publish
  */
 

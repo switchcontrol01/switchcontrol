@@ -1,7 +1,16 @@
 # SwitchControl Release Guide
 
-Auto-updates are served from **https://releases.switchcontrol.org** via Cloudflare R2.
-The Electron updater checks this URL for `latest.yml` on every launch.
+## Current Update Host
+
+> **Temporary bridge in effect.**
+> Auto-updates are currently served from the Cloudflare R2 public dev URL:
+>
+> `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev`
+>
+> This is a working production path. The custom domain (`releases.switchcontrol.org`) is on hold
+> until DNS control for the domain is sorted out (see [DNS Bridge → Custom Domain](#switching-to-the-custom-domain) below).
+
+The Electron updater checks the configured URL for `latest.yml` on every launch.
 
 ---
 
@@ -201,15 +210,43 @@ All three should return `HTTP/2 200`.
 "publish": [
   {
     "provider": "generic",
-    "url": "https://releases.switchcontrol.org",
+    "url": "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev",
     "channel": "stable"
   }
 ]
 ```
 
 - `provider: generic` — works with any static file host (R2, S3, etc.)
-- `url` — must match the bucket's custom domain exactly
+- `url` — must match the public host the bucket is served from
 - `channel: stable` — maps to `latest.yml` (beta would use `beta.yml`)
+
+---
+
+## Switching to the Custom Domain
+
+Once `releases.switchcontrol.org` is available (after domain transfer or DNS delegation),
+switching back requires **two changes** and a rebuild:
+
+**1. `electron/package.json` — `build.publish.url`**
+
+```json
+"url": "https://releases.switchcontrol.org"
+```
+
+**2. `electron/.env` — `R2_PUBLIC_URL`** (controls release script verification output)
+
+```
+R2_PUBLIC_URL=https://releases.switchcontrol.org
+```
+
+That's it. No other files need to change. Then rebuild and release normally:
+
+```powershell
+npm run dist:win
+npm run release
+```
+
+The release script will verify the new URL automatically after upload.
 
 ---
 

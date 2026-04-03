@@ -84,7 +84,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://releases.switchcontrol.org",
+        "url": "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev",
         "channel": "stable"
       }
     ],

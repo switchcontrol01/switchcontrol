@@ -39,7 +39,12 @@ const ACCOUNT_ID  = process.env.R2_ACCOUNT_ID;
 const KEY_ID      = process.env.R2_ACCESS_KEY_ID;
 const KEY_SECRET  = process.env.R2_SECRET_ACCESS_KEY;
 const BUCKET      = process.env.R2_BUCKET || 'switchcontrol-releases';
-const PUBLIC_URL  = 'https://releases.switchcontrol.org';
+
+// ── Update host (temporary R2 dev URL — switch back by updating R2_PUBLIC_URL) ──
+// When releases.switchcontrol.org is ready, set in electron/.env:
+//   R2_PUBLIC_URL=https://releases.switchcontrol.org
+// and update build.publish.url in electron/package.json to match.
+const PUBLIC_URL  = (process.env.R2_PUBLIC_URL || 'https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev').replace(/\/$/, '');
 
 if (!ACCOUNT_ID || !KEY_ID || !KEY_SECRET) {
   console.error(`
