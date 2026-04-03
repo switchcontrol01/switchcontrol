@@ -519,25 +519,43 @@ export default function Landing() {
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
 
-          {/* ── Sun streak — thick wide beam from top-left, lands on the headline ── */}
-          {/* Fat beam body — very tall so it reads as a WIDE shaft, short so it stops at text */}
+          {/* ── Sun streak LEFT — thick wide beam from top-left ── */}
           <div className="absolute pointer-events-none" style={{
             left: "-5%", top: "-5%",
-            width: "52%", height: "700px",
+            width: "58%", height: "800px",
             transformOrigin: "left top",
-            transform: "rotate(32deg) translateY(-350px)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.22) 30%, rgba(230,215,255,0.08) 65%, transparent 100%)",
+            transform: "rotate(32deg) translateY(-400px)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.38) 25%, rgba(230,215,255,0.14) 60%, transparent 100%)",
             filter: "blur(55px)",
             mixBlendMode: "screen",
           }} />
-          {/* Bright core strip inside the fat beam — hotter centre */}
           <div className="absolute pointer-events-none" style={{
             left: "-5%", top: "-5%",
-            width: "42%", height: "180px",
+            width: "46%", height: "220px",
             transformOrigin: "left top",
-            transform: "rotate(32deg) translateY(-90px)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.28) 35%, rgba(255,255,255,0.06) 70%, transparent 100%)",
-            filter: "blur(20px)",
+            transform: "rotate(32deg) translateY(-110px)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.48) 30%, rgba(255,255,255,0.10) 65%, transparent 100%)",
+            filter: "blur(18px)",
+            mixBlendMode: "screen",
+          }} />
+
+          {/* ── Sun streak RIGHT — mirrored beam from top-right ── */}
+          <div className="absolute pointer-events-none" style={{
+            right: "-5%", top: "-5%",
+            width: "58%", height: "800px",
+            transformOrigin: "right top",
+            transform: "rotate(-32deg) translateY(-400px)",
+            background: "linear-gradient(270deg, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.38) 25%, rgba(230,215,255,0.14) 60%, transparent 100%)",
+            filter: "blur(55px)",
+            mixBlendMode: "screen",
+          }} />
+          <div className="absolute pointer-events-none" style={{
+            right: "-5%", top: "-5%",
+            width: "46%", height: "220px",
+            transformOrigin: "right top",
+            transform: "rotate(-32deg) translateY(-110px)",
+            background: "linear-gradient(270deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.48) 30%, rgba(255,255,255,0.10) 65%, transparent 100%)",
+            filter: "blur(18px)",
             mixBlendMode: "screen",
           }} />
 
