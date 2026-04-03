@@ -12,7 +12,7 @@ console.log('[BOOT] timestamp:', new Date().toISOString());
 console.log('========================================\n\n');
 
 const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu } = require('electron');
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 const path = require('path');
 const os = require('os');
 const si = require('systeminformation');
@@ -28,6 +28,24 @@ console.log('[BOOT] app.isPackaged:', app.isPackaged);
 console.log('[BOOT] isDev:', isDev);
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
+
+// ── Admin / elevation state ───────────────────────────────────────────────────
+// Cached once at startup. True when the process has admin privileges.
+let _appIsAdmin = null;
+const SC_ELEVATED_FLAG = '--sc-elevated';
+
+function checkWindowsAdmin() {
+  if (process.platform !== 'win32') return Promise.resolve(true);
+  return new Promise((resolve) => {
+    execFile('powershell', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-ExecutionPolicy', 'Bypass', '-Command',
+      '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)',
+    ], { windowsHide: true, timeout: 6000 }, (err, stdout) => {
+      resolve(!err && stdout.trim().toLowerCase() === 'true');
+    });
+  });
+}
 
 // Deep-link queue for when renderer is not ready
 let pendingDeepLinkUrl = null;
@@ -1500,6 +1518,45 @@ app.whenReady().then(async () => {
   console.log('[BOOT] process.execPath:', process.execPath);
   console.log('[BOOT] process.resourcesPath:', process.resourcesPath);
 
+  // ── Auto-elevation (Windows only) ──────────────────────────────────────────
+  // If the app was relaunched with the SC_ELEVATED_FLAG it is already admin.
+  // Otherwise check and, if needed, re-launch with RunAs so all tweak / power
+  // plan operations run without per-action UAC prompts.
+  if (process.platform === 'win32') {
+    if (process.argv.includes(SC_ELEVATED_FLAG)) {
+      _appIsAdmin = true;
+      console.log('[UAC] Launched elevated — admin mode active.');
+    } else {
+      console.log('[UAC] Checking admin status...');
+      _appIsAdmin = await checkWindowsAdmin();
+      console.log('[UAC] isAdmin:', _appIsAdmin);
+
+      if (!_appIsAdmin && !isDev) {
+        // Packaged app only: auto-relaunch as admin so all tweaks run without
+        // per-action UAC prompts. In dev mode we skip the relaunch to avoid
+        // disrupting the development workflow.
+        console.log('[UAC] Not admin — relaunching with RunAs elevation...');
+        try {
+          const exePath  = process.execPath.replace(/'/g, "''");
+          const newArgv  = [...process.argv.slice(1), SC_ELEVATED_FLAG];
+          const argItems = newArgv.map(a => `'${a.replace(/'/g, "''")}'`).join(', ');
+          const argList  = newArgv.length > 0 ? `@(${argItems})` : '@()';
+          execFile('powershell', [
+            '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+            '-ExecutionPolicy', 'Bypass', '-Command',
+            `Start-Process '${exePath}' -ArgumentList ${argList} -Verb RunAs`,
+          ], { windowsHide: true });
+        } catch (e) {
+          console.error('[UAC] Auto-elevation launch failed:', e.message);
+        }
+        app.quit();
+        return;
+      }
+    }
+  } else {
+    _appIsAdmin = true;
+  }
+
   const userDataPath = app.getPath('userData');
   configStore.init(userDataPath);
   console.log('[BOOT] Config store initialized:', userDataPath);
@@ -1521,6 +1578,8 @@ app.whenReady().then(async () => {
   ipcMain.handle('app:getBackendError', () => {
     return backendLauncher.getLastError ? backendLauncher.getLastError() : null;
   });
+
+  ipcMain.handle('app:isAdmin', () => _appIsAdmin === true);
 
   // Start the background telemetry poll immediately.
   // This primes differential APIs (currentLoad, networkStats, disksIO) so that

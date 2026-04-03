@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPlatform: () => ipcRenderer.invoke('app:getPlatform'),
   isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
   getDeviceId: () => ipcRenderer.invoke('app:getDeviceId'),
+  isAdmin: () => ipcRenderer.invoke('app:isAdmin'),
 
   // Backend info (for packaged mode API routing)
   getBackendPort: () => ipcRenderer.invoke('app:getBackendPort'),
