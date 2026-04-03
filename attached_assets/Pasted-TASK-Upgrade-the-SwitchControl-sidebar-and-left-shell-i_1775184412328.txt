@@ -1,0 +1,263 @@
+TASK
+Upgrade the SwitchControl sidebar and left-shell interaction system so it feels premium, fluid, layered, and alive instead of flat/static.
+
+PROBLEM
+The sidebar currently works structurally, but visually it sits on one plane.
+It lacks:
+- multi-layer depth
+- noticeable ambient glows
+- fluid hover/click motion
+- premium active-state treatment
+- rich transition behavior when switching sections
+- integrated premium badge styling
+- cursor-reactive or environmental motion
+
+Right now it feels too static and dark-block-like. It needs to feel expensive.
+
+GOAL
+Turn the sidebar and left app shell into a premium animated system with:
+- layered matte/glass depth
+- soft moving glows
+- stronger hover/active states
+- fluid route switching
+- better premium badge integration
+- richer footer/profile area
+- subtle but visible animated polish everywhere
+
+IMPORTANT
+Do NOT make it gaudy, messy, or gamey.
+Do NOT add random rainbow colors.
+Do NOT make the motion too aggressive.
+Keep it clean, intentional, premium, and cohesive with the SwitchControl visual identity.
+
+CRITICAL EXECUTION RULES
+- Do NOT redesign the information architecture.
+- Do NOT remove any existing working functionality.
+- Do NOT replace the whole sidebar with a generic template.
+- Do NOT flatten the current aesthetic into a plain dashboard.
+- Do NOT remove existing glow/grid language. Refine it.
+- Keep the current SwitchControl premium identity, but make it more intentional, layered, and fluid.
+- Reuse existing motion/background primitives if already present before adding new systems.
+- Match styling and motion quality across all routes so the app feels like one product.
+
+IMPLEMENTATION
+
+1. MULTI-LAYER SIDEBAR DEPTH
+Rebuild the sidebar shell into layered surfaces:
+- base matte dark panel
+- inner glass overlay
+- ambient purple/cyan radial glow behind nav region
+- subtle noise/grain texture
+- faint grid visibility retained
+
+Add a soft right-edge seam glow where sidebar meets content.
+
+Add actual depth separation:
+- outer shell
+- inner nav rail
+- floating active-pill layer
+- footer dock layer
+
+The sidebar must no longer read as one flat rectangle.
+
+2. ACTIVE NAV ITEM SYSTEM
+Upgrade the active nav item to feel fully selected:
+- stronger inner gradient
+- brighter text and icon
+- soft outer bloom
+- inner highlight
+- tiny ambient spill around the active pill
+- premium smooth spring motion when active route changes
+
+The active state must feel like part of a system, not just a purple rectangle.
+
+Add:
+- subtle active pill magnetic settle on route change
+- active icon glow halo
+- low-frequency breathing shimmer on the active item only
+- active state edge lighting that softly bleeds into surrounding glass
+
+3. HOVER STATES
+Each nav row should have:
+- background tint fade-in
+- 1 to 2px y-lift
+- icon micro-scale
+- mild glow increase
+- smoother text brightness transition
+
+Timing should feel premium and snappy, not floaty.
+
+Specify timing:
+- hover in: 140 to 180ms
+- hover out: 180 to 220ms
+- spring must be tight, not elastic
+
+4. PREMIUM ITEM BADGES
+The crown/premium indicators are currently too detached.
+Redesign them so they feel integrated:
+- align perfectly with each row
+- reduce “sticker” feeling
+- use small glowing chip or inline premium marker
+- subtle shimmer/pulse only on hover or every few seconds
+- consistent spacing across all premium routes
+
+Important:
+- premium markers must not visually float in random positions
+- they must lock to a defined right-side alignment rail
+- spacing must be identical for every premium-locked item
+
+5. SIDEBAR BACKGROUND MOTION
+Add subtle environmental movement:
+- extremely soft drifting radial glow behind nav
+- faint particle drift or dust motes
+- low-opacity animated light wash
+- very subtle cursor-reactive light if feasible
+
+This should make the sidebar feel alive even while idle.
+
+Important:
+- no distracting particle field
+- no performance-heavy canvas unless already used efficiently
+- keep opacity low and premium
+
+6. ROUTE SWITCH TRANSITIONS
+When switching sections from sidebar:
+- old content should slightly blur/fade/shift out
+- new content should fade/slide/sharpen in
+- transition must be fluid and centered
+- no flash or hard cut
+- no double-load feeling
+
+This needs to apply across all major routes:
+Dashboard, Tweaks, Power Plan, App Booster, Focus Mode, Network Tweaks, Cleaner, Debloat, Startup, AI Advisor, BIOS Advisor, Security, History.
+
+Transition requirements:
+- outgoing content: slight blur + opacity drop + tiny downward/side shift
+- incoming content: reduced blur + opacity rise + sharpen into place
+- route transition should not fight page-level animations already in place
+- active sidebar pill should transition in sync with route content
+
+7. SCROLL REVEAL POLISH
+Strengthen the existing scroll blur/reveal system across the app shell:
+- more noticeable blur-to-sharp transition
+- subtle opacity + y-translation
+- stagger groups cleanly
+- preserve performance
+
+Apply consistently to sidebar-adjacent route sections too.
+
+Important:
+- if a reusable scroll reveal utility already exists, extend it globally instead of duplicating implementations
+- the effect must be clearly visible, not fake or barely noticeable
+- tune it to feel like the website blur reveal, but adapted for desktop app fluidity
+
+8. FOOTER / PROFILE BLOCK
+Upgrade the user block at bottom:
+- stronger panel separation
+- subtle glass effect
+- top border glow
+- better avatar treatment
+- premium badge polish
+- action icons gain hover glow and micro-motion
+
+It should feel like a premium control dock.
+
+Add:
+- avatar ring glow
+- subtle hover response for user card
+- richer badge surface
+- more intentional spacing and alignment
+- bottom dock should feel anchored, not tacked on
+
+9. COLOR SYSTEM
+Improve color hierarchy:
+- active purple/pink gradient refined
+- cyan used as secondary accent only where helpful
+- muted text cooler and cleaner
+- glow colors consistent with brand palette
+
+No muddy flat purple blocks.
+
+Important:
+- do not oversaturate every element
+- use concentrated highlights, not blanket glow
+- preserve readability and premium contrast
+
+10. MICRO-INTERACTIONS
+Add premium micro-motion:
+- icon settle animation on first render
+- hover sparkle/energy very subtle
+- active item soft breathing glow
+- footer icons respond with tiny spring
+- premium badge shimmer low-frequency only
+
+Do not overdo it.
+These effects should be felt more than noticed.
+
+11. PERFORMANCE
+Keep animations GPU-friendly:
+- transform + opacity first
+- avoid layout thrash
+- avoid overly heavy blur stacking
+- preserve responsiveness on installed Electron build
+
+Measure impact:
+- no obvious input lag on sidebar hover/click
+- no stutter during repeated route switching
+- no choppy scroll on Tweaks or Dashboard after changes
+
+12. MOTION CONSISTENCY SYSTEM
+Create a shared motion language for:
+- nav hover
+- nav active
+- route swap
+- footer dock
+- premium markers
+- shell ambient motion
+
+Use common easing/spring values so the app feels unified instead of patched together.
+
+13. VISUAL QUALITY BAR
+The result must feel:
+- premium desktop
+- expensive
+- intentionally art-directed
+- fluid under motion
+- layered and dimensional
+
+It must NOT feel:
+- template-like
+- overdecorated
+- cheap neon
+- static
+- visually noisy
+
+CHECKLIST
+- Sidebar looks layered, not flat
+- Active route feels premium and obvious
+- Hover states are fluid and noticeable
+- Premium badges are integrated
+- Route changes feel intentional and smooth
+- Footer/profile section feels polished
+- Background glow/motion is visible but tasteful
+- No visual clutter
+- No lag introduced
+- Scroll reveal is actually noticeable now
+- Motion language feels unified across the app
+
+FINAL OUTPUT
+Return:
+1. files changed
+2. what was upgraded in sidebar shell
+3. active/hover system changes
+4. route transition changes
+5. premium badge redesign summary
+6. footer/profile polish summary
+7. scroll blur/reveal changes
+8. motion timing/easing system used
+9. performance notes
+10. anything intentionally not changed and whyNON-NEGOTIABLE
+Do not stop at “slightly improved”.
+Push this until the sidebar and app shell visibly feel more premium, more layered, and more alive on first glance.
+If a change is too subtle to notice, it is not enough.
+But keep it controlled and elegant.
