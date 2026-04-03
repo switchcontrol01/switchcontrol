@@ -209,10 +209,38 @@ const tabGraphs: TabGraph[] = [
 ];
 
 const pillars = [
-  { icon: <Zap className="w-5 h-5" />, text: 'Lower input delay and faster response', color: 'text-yellow-400' },
-  { icon: <Monitor className="w-5 h-5" />, text: 'More stable FPS and smoother 1% lows', color: 'text-green-400' },
-  { icon: <Wifi className="w-5 h-5" />, text: 'Reduced ping spikes and jitter', color: 'text-blue-400' },
-  { icon: <Shield className="w-5 h-5" />, text: 'Cleaner background load while gaming', color: 'text-primary' },
+  {
+    icon: <Zap className="w-4 h-4" />,
+    text: 'Lower input delay and faster response',
+    color: 'text-yellow-400',
+    bg: 'rgba(234,179,8,0.10)',
+    borderColor: 'rgba(234,179,8,0.20)',
+    glowColor: 'rgba(234,179,8,0.15)',
+  },
+  {
+    icon: <Monitor className="w-4 h-4" />,
+    text: 'More stable FPS and smoother 1% lows',
+    color: 'text-green-400',
+    bg: 'rgba(34,197,94,0.10)',
+    borderColor: 'rgba(34,197,94,0.20)',
+    glowColor: 'rgba(34,197,94,0.15)',
+  },
+  {
+    icon: <Wifi className="w-4 h-4" />,
+    text: 'Reduced ping spikes and jitter',
+    color: 'text-blue-400',
+    bg: 'rgba(59,130,246,0.10)',
+    borderColor: 'rgba(59,130,246,0.20)',
+    glowColor: 'rgba(59,130,246,0.15)',
+  },
+  {
+    icon: <Shield className="w-4 h-4" />,
+    text: 'Cleaner background load while gaming',
+    color: 'text-primary',
+    bg: 'rgba(139,92,246,0.10)',
+    borderColor: 'rgba(139,92,246,0.20)',
+    glowColor: 'rgba(139,92,246,0.15)',
+  },
 ];
 
 export function WhatIsSwitchControl() {
@@ -230,77 +258,98 @@ export function WhatIsSwitchControl() {
     <section className="py-20 md:py-24 relative" data-reveal>
       <div className="container mx-auto px-4 max-w-4xl">
         <Reveal duration={0.7} distance={32}>
-          <motion.div
-            className={cn(
-              "relative rounded-2xl overflow-hidden",
-              "bg-gradient-to-br from-white/[0.08] to-white/[0.02]",
-              "backdrop-blur-xl border border-white/10",
-              "shadow-2xl shadow-primary/5"
-            )}
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          <div
+            className="relative rounded-2xl overflow-hidden"
+            style={{
+              background: 'linear-gradient(160deg, rgba(12,10,22,0.96) 0%, rgba(18,12,32,0.94) 100%)',
+              border: '1px solid rgba(139,92,246,0.18)',
+              boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(139,92,246,0.06)',
+            }}
           >
-            <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/20 via-transparent to-pink-500/10 opacity-50 pointer-events-none" />
-            <div className="absolute inset-[1px] rounded-2xl bg-gradient-to-b from-white/[0.05] to-transparent pointer-events-none" />
+            {/* Top accent glow line */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px pointer-events-none"
+              style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.7), rgba(139,92,246,0.5), transparent)' }} />
+            {/* Subtle inner top highlight */}
+            <div className="absolute top-0 inset-x-0 h-32 pointer-events-none"
+              style={{ background: 'linear-gradient(to bottom, rgba(139,92,246,0.06), transparent)' }} />
 
-            <div className="relative p-6 md:p-10">
-              {/* Header */}
-              <div className="mb-6">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="inline-flex items-center gap-3 md:gap-4">
-                    <span
-                      className="text-2xl md:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-white via-zinc-100 to-zinc-300 bg-clip-text text-transparent"
-                      style={{
-                        fontFamily: '"Playfair Display", serif',
-                        fontWeight: 700,
-                        filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.15))',
-                        lineHeight: 1,
-                        letterSpacing: '0.01em',
-                      }}
-                    >
-                      What is
-                    </span>
-                    <img
-                      src={wordmarkImg}
-                      alt="SwitchControl"
-                      className="h-8 md:h-10 lg:h-11 object-contain animate-logo-float"
-                      style={{ filter: 'drop-shadow(0 0 10px rgba(139, 92, 246, 0.4))', marginTop: '8px' }}
-                    />
-                  </div>
+            <div className="relative p-7 md:p-10">
+              {/* ── Header ── */}
+              <div className="mb-8">
+                {/* Eyebrow */}
+                <div className="flex justify-center mb-5">
+                  <span
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.16em]"
+                    style={{
+                      background: 'rgba(139,92,246,0.12)',
+                      border: '1px solid rgba(139,92,246,0.28)',
+                      color: 'rgba(196,168,255,0.9)',
+                    }}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-primary/80" />
+                    Windows Performance Engine
+                  </span>
                 </div>
-                <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto text-center mb-2">
-                  SwitchControl is a competitive performance control panel for Windows.
-                </p>
-                <p className="text-zinc-300 text-base md:text-lg leading-relaxed max-w-2xl mx-auto text-center">
-                  It helps reduce input delay, stabilize frame pacing, and improve network consistency by applying safe, reversible system optimizations.
+
+                {/* Title */}
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <span
+                    className="text-2xl md:text-3xl font-bold text-white/90"
+                    style={{ fontFamily: '"Playfair Display", serif', letterSpacing: '0.01em' }}
+                  >
+                    What is
+                  </span>
+                  <img
+                    src={wordmarkImg}
+                    alt="SwitchControl"
+                    className="h-8 md:h-10 object-contain"
+                    style={{ filter: 'drop-shadow(0 0 12px rgba(139,92,246,0.5))', marginTop: '6px' }}
+                  />
+                </div>
+
+                {/* Single punchy description */}
+                <p className="text-zinc-400 text-[15px] leading-relaxed max-w-xl mx-auto text-center">
+                  A competitive performance control panel for Windows — reducing input delay, stabilising frame pacing, and cleaning up your network with safe, reversible system changes.
                 </p>
               </div>
 
-              {/* Pillars */}
-              <div className="mb-8">
-                <p className="text-sm text-zinc-400 text-center mb-4">Built for competitive players who care about:</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* ── Pillars ── */}
+              <div className="mb-7">
+                <div className="grid grid-cols-2 gap-2.5">
                   {pillars.map((pillar, index) => (
                     <Reveal key={index} delay={0.1 + index * 0.07} duration={0.5}>
-                      <div className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg",
-                        "bg-white/[0.03] border border-white/5",
-                        "hover:bg-white/[0.05] hover:border-white/10 transition-all duration-300"
-                      )}>
-                        <div className={cn("flex-shrink-0", pillar.color)}>{pillar.icon}</div>
-                        <span className="text-sm text-zinc-200">{pillar.text}</span>
+                      <div
+                        className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group cursor-default"
+                        style={{
+                          background: 'rgba(255,255,255,0.03)',
+                          border: '1px solid rgba(255,255,255,0.07)',
+                        }}
+                      >
+                        <div
+                          className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                          style={{
+                            background: pillar.bg,
+                            border: `1px solid ${pillar.borderColor}`,
+                            boxShadow: `0 0 12px ${pillar.glowColor}`,
+                          }}
+                        >
+                          <div className={pillar.color}>{pillar.icon}</div>
+                        </div>
+                        <span className="text-[13px] text-zinc-300 leading-snug">{pillar.text}</span>
                       </div>
                     </Reveal>
                   ))}
                 </div>
               </div>
 
-              {/* Not placebo statement */}
-              <div className="text-center mb-8">
-                <p className="text-zinc-300 font-medium">
-                  Not a fake "FPS booster". Not placebo.{' '}
+              {/* ── Divider + statement ── */}
+              <div className="flex items-center gap-4 mb-7">
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
+                <p className="text-sm text-zinc-400 font-medium whitespace-nowrap">
+                  Not placebo.{' '}
                   <span className="text-primary">Real system control.</span>
                 </p>
+                <div className="flex-1 h-px" style={{ background: 'rgba(255,255,255,0.06)' }} />
               </div>
 
               {/* Graph tabs */}
@@ -439,7 +488,7 @@ export function WhatIsSwitchControl() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </Reveal>
       </div>
     </section>
