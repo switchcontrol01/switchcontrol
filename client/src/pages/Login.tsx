@@ -42,6 +42,7 @@ export default function Login() {
         <div className="login-orb-2" />
         <div className="login-orb-3" />
         <div className="login-rays" />
+        <div className="login-sun-streak" />
         <LoginParticles />
         <SpotlightCursor />
       </div>

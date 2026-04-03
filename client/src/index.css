@@ -90,6 +90,18 @@
   50%       { filter: blur(16px); opacity: 0.9; transform: scale(1.7) translateY(10px); }
 }
 
+@keyframes loginStreakShimmer {
+  0%, 100% { opacity: 0.45; }
+  35%       { opacity: 0.7;  }
+  55%       { opacity: 1;    }
+  75%       { opacity: 0.72; }
+}
+
+@keyframes loginTitleBeamGlow {
+  0%, 100% { filter: drop-shadow(0 0 0px transparent); }
+  50%       { filter: drop-shadow(0 0 10px rgba(255,248,200,0.55)) drop-shadow(0 0 24px rgba(200,180,255,0.32)); }
+}
+
 /* Ambient background orbs */
 .login-orb-1 {
   position: absolute; border-radius: 50%;
@@ -112,6 +124,51 @@
   background: radial-gradient(ellipse, hsl(310 80% 60% / 0.18) 0%, transparent 70%);
   animation: loginOrbDrift3 24s ease-in-out infinite;
   transform-origin: center;
+}
+
+/* ── Sun streak beam — diagonal shaft of light crossing the card ── */
+.login-sun-streak {
+  position: absolute;
+  top: -30%;
+  left: 68%;
+  width: 260px;
+  height: 280vh;
+  transform: rotate(-33deg);
+  transform-origin: top center;
+  /* Bright centre, transparent edges — cross-section of the beam */
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 252, 228, 0.0) 12%,
+    rgba(255, 250, 220, 0.05) 28%,
+    rgba(255, 255, 240, 0.13) 44%,
+    rgba(255, 255, 250, 0.18) 50%,
+    rgba(255, 255, 240, 0.13) 56%,
+    rgba(255, 250, 220, 0.05) 72%,
+    rgba(255, 252, 228, 0.0) 88%,
+    transparent 100%
+  );
+  filter: blur(22px);
+  pointer-events: none;
+  animation: loginStreakShimmer 6s ease-in-out infinite;
+}
+
+/* Tighter inner core of the streak — slightly warmer white */
+.login-sun-streak::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    transparent 42%,
+    rgba(255, 255, 248, 0.09) 47%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 248, 0.09) 53%,
+    transparent 58%,
+    transparent 100%
+  );
+  filter: blur(5px);
 }
 
 /* Rotating sun-streak rays */
@@ -195,6 +252,7 @@
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
+  animation: loginTitleBeamGlow 6s ease-in-out infinite;
 }
 
 /* Icon halo */
