@@ -513,14 +513,15 @@ function ElectronAppContent() {
     <AppAuthContext.Provider value={authContextValue}>
       <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence mode="sync">
         {phase === "splash" && (
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.015 }}
-            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, scale: 1.008, filter: "blur(8px)" }}
+            transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
             className="h-full"
+            style={{ position: "absolute", inset: 0 }}
           >
             <Splash onComplete={() => {}} />
           </motion.div>
@@ -562,9 +563,9 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.95, ease: [0.25, 0.1, 0, 1] }}
+            initial={{ opacity: 0, scale: 0.995, filter: "blur(4px)" }}
+            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <Router hook={useHashLocation}>

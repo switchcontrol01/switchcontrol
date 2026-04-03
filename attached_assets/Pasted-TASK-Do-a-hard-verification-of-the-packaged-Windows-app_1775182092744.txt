@@ -1,0 +1,55 @@
+TASK
+Do a hard verification of the packaged Windows app manifest and startup target. No guessing.
+
+PROBLEM
+The installed SwitchControl app does not show a UAC prompt on launch, even though electron-builder.json sets "requestedExecutionLevel": "requireAdministrator". This means the packaged EXE manifest is either missing, the wrong EXE is being launched, or the build config is not being applied correctly.
+
+GOAL
+Prove exactly which EXE is being launched, prove whether the built EXE contains the admin manifest, and fix packaging so the installed app always prompts for UAC on startup.
+
+IMPLEMENTATION
+1. Fix package metadata first:
+   - Add `"main": "electron/main.js"` to package.json if missing.
+   - Ensure build uses electron-builder.json and not some other hidden config.
+2. Add startup logging in electron/main.js:
+   - console.log("[BOOT] app.isPackaged =", app.isPackaged)
+   - console.log("[BOOT] process.execPath =", process.execPath)
+   - console.log("[BOOT] process.argv =", process.argv)
+   - console.log("[BOOT] app path =", app.getAppPath())
+   - console.log("[BOOT] resourcesPath =", process.resourcesPath)
+   - console.log("[UAC] isAdmin =", _appIsAdmin)
+3. After building, inspect the actual installed EXE manifest:
+   - Verify the executable contains `requestedExecutionLevel level="requireAdministrator"`
+   - Do not assume electron-builder applied it. Prove it.
+4. Verify shortcut target:
+   - Confirm the desktop/start menu shortcut points to the installed `SwitchControl.exe`
+   - Not updater stub
+   - Not electron.exe
+   - Not a helper executable
+5. If manifest is missing in the built EXE:
+   - Fix builder wiring until the manifest is embedded correctly
+6. If manifest exists but no prompt appears:
+   - Confirm whether Windows is launching another wrapper EXE first
+   - Confirm NSIS shortcut target and installed binary path
+7. Return exact evidence, not guesses:
+   - package.json relevant section
+   - electron-builder.json used at build time
+   - startup logs from installed app
+   - manifest inspection result
+   - shortcut target path
+
+CHECKLIST
+- package.json includes main: electron/main.js
+- startup logs prove installed packaged EXE path
+- shortcut target verified
+- built EXE manifest inspected
+- requireAdministrator confirmed or disproven
+- root cause identified with evidence
+
+FINAL OUTPUT
+Return:
+1. The exact EXE path being launched
+2. Whether the EXE manifest actually contains requireAdministrator
+3. Whether the shortcut target is correct
+4. The exact fix applied
+5. Whether startup UAC now appears on launch
