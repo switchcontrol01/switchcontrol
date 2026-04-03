@@ -1026,11 +1026,14 @@ export default function Landing() {
 
                   {/* Card body */}
                   <div className="relative rounded-[17px] p-8 h-full flex flex-col overflow-hidden"
-                    style={{ background: "linear-gradient(155deg, hsl(260,18%,8%,0.98) 0%, hsl(260,15%,6%,0.99) 100%)", backdropFilter: "blur(24px)" }}>
+                    style={{ background: "rgba(255,255,255,0.055)", backdropFilter: "blur(40px) saturate(1.5)" }}>
 
-                    {/* Top ambient glow */}
-                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none"
-                      style={{ background: "radial-gradient(ellipse, hsl(270,80%,55%,0.12) 0%, transparent 70%)" }} />
+                    {/* Animated aurora gradient */}
+                    <div className="pricing-aurora absolute inset-0 pointer-events-none rounded-[17px]" />
+
+                    {/* Subtle noise texture */}
+                    <div className="absolute inset-0 rounded-[17px] pointer-events-none opacity-[0.025]"
+                      style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
 
                     {/* Best Value badge */}
                     <div className="absolute top-5 right-5 flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"

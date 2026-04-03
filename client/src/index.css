@@ -2399,3 +2399,22 @@ button, a, nav, header, footer, label {
 .chart-zap-pulse {
   animation: zapPulse 2s ease-in-out infinite;
 }
+
+/* ─── Premium card animated aurora ─── */
+@keyframes pricingAuroraShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.pricing-aurora {
+  background: linear-gradient(
+    125deg,
+    hsl(270,60%,55%,0.10) 0%,
+    hsl(190,80%,55%,0.08) 25%,
+    hsl(270,50%,60%,0.06) 50%,
+    hsl(200,90%,60%,0.09) 75%,
+    hsl(270,60%,55%,0.10) 100%
+  );
+  background-size: 300% 300%;
+  animation: pricingAuroraShift 6s ease-in-out infinite;
+}
