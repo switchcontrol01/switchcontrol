@@ -7,7 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { cloudApiPost } from "@/lib/cloud-api";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
-import { motion, pageTransition, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
+import { motion, useMotion } from "@/lib/motion";
 import {
   Shield, ShieldCheck, ShieldAlert, ShieldOff,
   Scan, Zap, CheckCircle2, AlertTriangle, AlertCircle, Info,
@@ -320,29 +320,51 @@ export default function Security() {
   const stateLabel = systemState === "secure" ? "Secure" : systemState === "attention" ? "Needs Attention" : "Optimize";
 
   const MotionDiv = prefersReducedMotion ? "div" : motion.div;
-  const pageProps  = prefersReducedMotion ? {} : { variants: pageTransition, initial: "initial", animate: "animate" };
-  const listProps  = prefersReducedMotion ? {} : { variants: staggerContainer, initial: "initial", animate: "animate" };
-  const itemProps  = prefersReducedMotion ? {} : { variants: staggerItem };
+  const card = (delay: number) => prefersReducedMotion ? {} : {
+    initial: { opacity: 0, y: 22 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.38, delay, ease: [0.22, 1, 0.36, 1] as any },
+  };
 
   return (
     <AppLayout>
       <div className="relative">
-        <MotionDiv
-          className="flex flex-col gap-5 pb-10"
-          {...pageProps}
-        >
+        <div className="flex flex-col gap-5 pb-10">
           {/* Header */}
-          <div className="flex items-start justify-between gap-4">
+          <motion.div
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: -14 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+            className="flex items-start justify-between gap-4"
+          >
             <div>
               <div className="flex items-center gap-3">
+                <motion.span
+                  initial={prefersReducedMotion ? {} : { rotate: -20, scale: 0.6, opacity: 0 }}
+                  animate={{ rotate: 0, scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.08, ease: [0.34, 1.56, 0.64, 1] }}
+                  className="inline-flex"
+                >
+                  <Shield className="size-6 text-primary" />
+                </motion.span>
                 <h1 className="text-2xl font-bold tracking-tight">System Integrity</h1>
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <motion.p
+                className="text-sm text-muted-foreground mt-0.5"
+                initial={prefersReducedMotion ? {} : { opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.18 }}
+              >
                 Security posture, startup analysis, and background process monitoring.
-              </p>
+              </motion.p>
             </div>
             {scanStatus === "complete" && (
-              <div className="flex items-center gap-2 mt-1 shrink-0">
+              <motion.div
+                className="flex items-center gap-2 mt-1 shrink-0"
+                initial={prefersReducedMotion ? {} : { opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.35, delay: 0.25 }}
+              >
                 <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium", stateBg, stateColor)}>
                   <StateIcon className="size-4" />
                   {stateLabel}
@@ -353,9 +375,9 @@ export default function Security() {
                     {lastScan.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 )}
-              </div>
+              </motion.div>
             )}
-          </div>
+          </motion.div>
 
           {/* Non-Electron notice */}
           {!hasSecurity && (
@@ -373,13 +395,13 @@ export default function Security() {
 
           {/* Post-scan summary chips */}
           {scanStatus === "complete" && scanSummary && (
-            <MotionDiv className="flex items-center gap-3 flex-wrap" {...listProps}>
+            <div className="flex items-center gap-3 flex-wrap">
               {[
                 { label: `${scanSummary.threatCount} threat${scanSummary.threatCount !== 1 ? "s" : ""}`,         active: scanSummary.threatCount > 0,       cls: "text-red-400 border-red-500/25 bg-red-500/10",     Icon: ShieldAlert },
                 { label: `${scanSummary.startupIssues} startup issue${scanSummary.startupIssues !== 1 ? "s" : ""}`, active: scanSummary.startupIssues > 0, cls: "text-amber-400 border-amber-500/25 bg-amber-500/10", Icon: MonitorPlay },
                 { label: `${scanSummary.backgroundIssues} background issue${scanSummary.backgroundIssues !== 1 ? "s" : ""}`, active: scanSummary.backgroundIssues > 0, cls: "text-orange-400 border-orange-500/25 bg-orange-500/10", Icon: Cpu },
-              ].map(chip => (
-                <MotionDiv key={chip.label} {...itemProps}>
+              ].map((chip, i) => (
+                <MotionDiv key={chip.label} {...card(0.28 + i * 0.06)}>
                   <Badge variant="outline"
                     className={cn("gap-1.5 py-1 px-2.5 text-xs font-medium",
                       chip.active ? chip.cls : "text-muted-foreground border-white/10 bg-white/5"
@@ -391,17 +413,17 @@ export default function Security() {
                   </Badge>
                 </MotionDiv>
               ))}
-            </MotionDiv>
+            </div>
           )}
 
           {/* Main two-column grid */}
           <div className="grid grid-cols-1 xl:grid-cols-[288px_1fr] gap-5">
 
             {/* LEFT */}
-            <MotionDiv className="flex flex-col gap-4" {...listProps}>
+            <div className="flex flex-col gap-4">
 
               {/* Protection Status */}
-              <MotionDiv {...itemProps}>
+              <MotionDiv {...card(0.12)}>
               <GlassCard className="p-5" data-testid="card-security-status">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -447,7 +469,7 @@ export default function Security() {
               </MotionDiv>
 
               {/* Scan Actions */}
-              <MotionDiv {...itemProps}>
+              <MotionDiv {...card(0.21)}>
               <GlassCard className="p-5" data-testid="card-scan-actions">
                 <div className="flex items-center gap-2 mb-4">
                   <Scan className="size-4 text-primary" />
@@ -488,7 +510,7 @@ export default function Security() {
               </MotionDiv>
 
               {/* Screenshot Analysis */}
-              <MotionDiv {...itemProps}>
+              <MotionDiv {...card(0.30)}>
               <GlassCard className="p-5" data-testid="card-image-analysis">
                 <div className="flex items-center gap-2 mb-3">
                   <Eye className="size-4 text-primary" />
@@ -557,13 +579,13 @@ export default function Security() {
                   className="hidden" onChange={handleFileChange} data-testid="input-screenshot-file" />
               </GlassCard>
               </MotionDiv>
-            </MotionDiv>
+            </div>
 
             {/* RIGHT */}
-            <MotionDiv className="flex flex-col gap-4" {...listProps}>
+            <div className="flex flex-col gap-4">
 
               {/* Health Score */}
-              <MotionDiv {...itemProps}>
+              <MotionDiv {...card(0.16)}>
               <GlassCard className="p-5" data-testid="card-health-score">
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="size-4 text-primary" />
@@ -611,7 +633,7 @@ export default function Security() {
               </MotionDiv>
 
               {/* Startup Watch */}
-              <MotionDiv {...itemProps}>
+              <MotionDiv {...card(0.25)}>
               <GlassCard className="p-5" data-testid="card-startup-watch">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -658,7 +680,7 @@ export default function Security() {
               </MotionDiv>
 
               {/* Background Process Watch */}
-              <MotionDiv {...itemProps}>
+              <MotionDiv {...card(0.34)}>
               <GlassCard className="p-5" data-testid="card-process-watch">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -700,7 +722,7 @@ export default function Security() {
                 )}
               </GlassCard>
               </MotionDiv>
-            </MotionDiv>
+            </div>
           </div>
 
           {/* Recommendations panel */}
@@ -763,11 +785,11 @@ export default function Security() {
             )}
 
             {recommendations.length > 0 && (
-              <MotionDiv className="grid grid-cols-1 md:grid-cols-2 gap-3" {...listProps}>
-                {recommendations.map(rec => {
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {recommendations.map((rec, i) => {
                   const cfg = SEVERITY_CONFIG[rec.severity] ?? SEVERITY_CONFIG.info;
                   return (
-                    <MotionDiv key={rec.id} {...itemProps}>
+                    <MotionDiv key={rec.id} {...card(0.42 + i * 0.05)}>
                       <div className={cn("p-4 rounded-xl border space-y-2", cfg.bg)} data-testid={`card-rec-${rec.id}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -796,11 +818,11 @@ export default function Security() {
                     </MotionDiv>
                   );
                 })}
-              </MotionDiv>
+              </div>
             )}
           </GlassCard>
           </MotionDiv>
-        </MotionDiv>
+        </div>
 
       </div>
     </AppLayout>
