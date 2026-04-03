@@ -40,7 +40,7 @@ export function LoginParticles() {
     const list: Particle[] = [];
 
     // Tier 1 — small sharp dots (many)
-    const dotCount = isMobile ? 26 : 64;
+    const dotCount = isMobile ? 32 : 90;
     for (let i = 0; i < dotCount; i++) {
       list.push({
         id: i,
@@ -56,7 +56,7 @@ export function LoginParticles() {
     }
 
     // Tier 2 — medium glowing orbs (fewer)
-    const orbCount = isMobile ? 9 : 22;
+    const orbCount = isMobile ? 12 : 32;
     for (let i = 0; i < orbCount; i++) {
       list.push({
         id: dotCount + i,

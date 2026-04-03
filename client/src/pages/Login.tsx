@@ -55,12 +55,8 @@ export default function Login() {
         {/* Aura behind card — warm+violet light the card emits */}
         <div className="login-card-aura" aria-hidden="true" />
 
-        {/* Floating wrapper — slow breathing lift */}
-        <motion.div
-          className="w-full max-w-md relative z-10"
-          animate={{ y: [0, -7, -4, 0] }}
-          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", repeatType: "loop" }}
-        >
+        {/* Floating wrapper — CSS sine-wave float, buttery smooth */}
+        <div className="w-full max-w-md relative z-10 login-card-float">
         {/* Card entrance — spring up, scale, blur clears */}
         <motion.div
           className="w-full max-w-md"
@@ -177,7 +173,7 @@ export default function Login() {
             </div>
           </div>
           </motion.div>
-        </motion.div>
+        </div>
       </main>
     </WebsiteShell>
   );

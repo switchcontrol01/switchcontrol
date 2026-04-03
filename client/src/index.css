@@ -99,8 +99,7 @@
 
 @keyframes loginCardFloat {
   0%, 100% { transform: translateY(0px);  }
-  40%       { transform: translateY(-7px); }
-  70%       { transform: translateY(-4px); }
+  50%       { transform: translateY(-10px); }
 }
 
 @keyframes loginCardGlowPulse {
@@ -284,13 +283,18 @@
   z-index: 0;
 }
 
-/* Card glass — white translucent frost, emits light outward */
+/* Smooth GPU float — pure CSS, no Framer Motion keyframe jank */
+.login-card-float {
+  animation: loginCardFloat 6s ease-in-out infinite;
+}
+
+/* Card glass — soft lavender-white frost */
 .login-card-glass {
   position: relative;
   background: linear-gradient(145deg,
-    rgba(255, 255, 255, 0.22) 0%,
-    rgba(255, 255, 255, 0.14) 55%,
-    rgba(248, 246, 255, 0.10) 100%
+    rgba(220, 210, 255, 0.22) 0%,
+    rgba(215, 205, 255, 0.15) 55%,
+    rgba(210, 198, 255, 0.11) 100%
   );
   border-top:    1px solid rgba(255, 255, 255, 0.50);
   border-right:  1px solid rgba(255, 255, 255, 0.28);
