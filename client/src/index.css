@@ -2379,3 +2379,23 @@ button, a, nav, header, footer, label {
   animation: spCardEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
   animation-play-state: paused;
 }
+
+/* ─── Improvement pill shimmer ─── */
+@keyframes pillShimmer {
+  0%   { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
+  50%  { opacity: 0.4; }
+  100% { transform: translateX(200%) skewX(-15deg); opacity: 0; }
+}
+.pill-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: pillShimmer 2.8s ease-in-out infinite;
+}
+
+/* ─── Zap icon pulse ─── */
+@keyframes zapPulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50%       { opacity: 0.9; transform: scale(1.2); }
+}
+.chart-zap-pulse {
+  animation: zapPulse 2s ease-in-out infinite;
+}
