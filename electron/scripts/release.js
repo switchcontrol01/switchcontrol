@@ -88,13 +88,21 @@ if (!fs.existsSync(ymlPath)) {
 
 const allFiles = fs.readdirSync(distDir);
 
+// Also generate stable.yml shim if absent (compat for 1.0.0 builds with channel=stable)
+const stableYmlPath = path.join(distDir, 'stable.yml');
+if (!fs.existsSync(stableYmlPath)) {
+  const latestContent = fs.readFileSync(ymlPath, 'utf8');
+  fs.writeFileSync(stableYmlPath, latestContent, 'utf8');
+  console.log('stable.yml generated as compat shim from latest.yml');
+}
+
 const artifacts = allFiles
-  .filter(f => f === 'latest.yml' || f.endsWith('.exe') || f.endsWith('.exe.blockmap'))
+  .filter(f => f === 'latest.yml' || f === 'stable.yml' || f.endsWith('.exe') || f.endsWith('.exe.blockmap'))
   .map(f => ({ name: f, localPath: path.join(distDir, f) }));
 
 if (artifacts.length === 0) {
   console.error('ERROR: No release artifacts found in dist/.');
-  console.error('Expected: latest.yml, SwitchControl Setup x.y.z.exe, *.exe.blockmap');
+  console.error('Expected: latest.yml, stable.yml, SwitchControl Setup x.y.z.exe, *.exe.blockmap');
   process.exit(1);
 }
 
@@ -150,8 +158,9 @@ function uploadFile(artifact) {
     const host      = `${BUCKET}.${ACCOUNT_ID}.r2.cloudflarestorage.com`;
     const contentType = getContentType(key);
 
-    // Cache-Control: latest.yml must always be fresh; binaries can be cached
-    const cacheControl = key === 'latest.yml'
+    // Cache-Control: manifest files must always be fresh; binaries can be cached forever
+    const isManifest = key.endsWith('.yml');
+    const cacheControl = isManifest
       ? 'no-cache, no-store, must-revalidate'
       : 'public, max-age=31536000, immutable';
 

@@ -31,7 +31,7 @@ let state = {
   errorMessage: null,
   checkedAt: null,
   urgency: 'normal',         // normal | recommended | critical
-  channel: 'stable',
+  channel: 'latest',         // 'latest' = stable release channel → fetches latest.yml
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

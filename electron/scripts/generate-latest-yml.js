@@ -88,7 +88,14 @@ const yml = [
 const ymlPath = path.join(distDir, 'latest.yml');
 fs.writeFileSync(ymlPath, yml, 'utf8');
 
+// Also write stable.yml — backward-compat shim for 1.0.0 builds that had
+// autoUpdater.channel = "stable" hardcoded (looks for stable.yml on R2).
+// Safe to keep forever; uploading an identical copy is harmless.
+const stableYmlPath = path.join(distDir, 'stable.yml');
+fs.writeFileSync(stableYmlPath, yml, 'utf8');
+
 console.log(`Generated dist/latest.yml`);
+console.log(`Generated dist/stable.yml  (compat shim for v1.0.0 channel=stable)`);
 console.log(`  version  : ${version}`);
 console.log(`  file     : ${exeFile}`);
 console.log(`  size     : ${(byteSize / 1024 / 1024).toFixed(1)} MB`);
