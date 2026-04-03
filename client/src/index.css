@@ -83,10 +83,13 @@
 }
 
 @keyframes loginStreakShimmer {
-  0%, 100% { opacity: 0.35; }
-  35%       { opacity: 0.52; }
-  55%       { opacity: 0.65; }
-  75%       { opacity: 0.48; }
+  0%        { opacity: 0.05; }
+  20%       { opacity: 0.18; }
+  38%       { opacity: 0.55; }
+  50%       { opacity: 0.70; }
+  62%       { opacity: 0.55; }
+  80%       { opacity: 0.18; }
+  100%      { opacity: 0.05; }
 }
 
 @keyframes loginTitleBeamGlow {
@@ -205,7 +208,7 @@
   );
   filter: blur(22px);
   pointer-events: none;
-  animation: loginStreakShimmer 6s ease-in-out infinite 1.5s;
+  animation: loginStreakShimmer 8s ease-in-out infinite 0.8s;
 }
 
 .login-sun-streak-2::before {
@@ -265,16 +268,15 @@
   animation: loginRayRotate 140s linear infinite;
 }
 
-/* Behind-card aura — richer violet glow */
+/* Behind-card aura — tight glow, no blob */
 .login-card-aura {
   position: absolute;
   top: 50%; left: 50%;
-  width: 820px; height: 620px;
-  background: radial-gradient(ellipse at 44% 50%,
-    hsl(268 68% 55% / 0.22) 0%,
-    hsl(265 58% 48% / 0.13) 42%,
-    hsl(265 48% 42% / 0.05) 68%,
-    transparent 82%
+  width: 500px; height: 380px;
+  background: radial-gradient(ellipse at 50% 50%,
+    hsl(268 65% 52% / 0.12) 0%,
+    hsl(265 55% 45% / 0.06) 50%,
+    transparent 75%
   );
   border-radius: 50%;
   pointer-events: none;

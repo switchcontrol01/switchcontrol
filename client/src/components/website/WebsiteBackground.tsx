@@ -197,7 +197,6 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
   },
   auth: {
     gradients: `
-      radial-gradient(ellipse 85% 60% at 50% 45%, hsl(268 60% 34% / 0.28) 0%, transparent 60%),
       linear-gradient(180deg, #040508 0%, #050509 100%)
     `,
     overlays: [
