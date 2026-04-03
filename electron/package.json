@@ -11,7 +11,8 @@
     "start": "electron .",
     "prebuild": "node scripts/ensure-assets.js && node scripts/ensure-dist.js",
     "build:native": "node scripts/build-native.js",
-    "dist:win": "npm run prebuild && npm run build:native && electron-builder --win"
+    "dist:win": "npm run prebuild && npm run build:native && electron-builder --win",
+    "release": "node scripts/release.js"
   },
 
   "dependencies": {
