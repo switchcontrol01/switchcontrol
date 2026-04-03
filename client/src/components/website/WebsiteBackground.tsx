@@ -197,18 +197,13 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
   },
   auth: {
     gradients: `
-      radial-gradient(ellipse 90% 65% at 50% 45%, hsl(268 62% 36% / 0.32) 0%, transparent 58%),
-      radial-gradient(ellipse 55% 40% at 18% 35%, hsl(270 58% 38% / 0.16) 0%, transparent 55%),
-      radial-gradient(ellipse 40% 30% at 25% 75%, hsl(260 50% 38% / 0.10) 0%, transparent 50%),
+      radial-gradient(ellipse 85% 60% at 50% 45%, hsl(268 60% 34% / 0.28) 0%, transparent 60%),
       linear-gradient(180deg, #040508 0%, #050509 100%)
     `,
     overlays: [
       { Component: NodeGraph, opacity: 0.04, drift: "ws-drift-2", position: "inset-0" },
     ],
-    glowHotspots: [
-      { color: "hsl(268 62% 50%)", size: "500px", position: "top-[10%] left-[5%]", opacity: 0.09 },
-      { color: "hsl(278 52% 46%)", size: "380px", position: "bottom-[18%] right-[5%]", opacity: 0.08 },
-    ],
+    glowHotspots: [],
     silhouettes: false,
     bgImages: [
       { src: circuitTech, opacity: 0.02 },
