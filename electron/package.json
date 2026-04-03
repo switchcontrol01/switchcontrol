@@ -35,12 +35,25 @@
     "files": [
       "main.js",
       "preload.js",
+      "updater.js",
       "tweak-executor.js",
       "power-plan-manager.js",
       "backend-launcher.js",
       "config-store.js",
       "security-helper.js",
-      "node_modules/systeminformation/**/*"
+      "node_modules/systeminformation/**/*",
+      "node_modules/electron-updater/**/*",
+      "node_modules/builder-util-runtime/**/*",
+      "node_modules/semver/**/*",
+      "node_modules/js-yaml/**/*",
+      "node_modules/fs-extra/**/*",
+      "node_modules/graceful-fs/**/*",
+      "node_modules/jsonfile/**/*",
+      "node_modules/universalify/**/*",
+      "node_modules/lazy-val/**/*",
+      "node_modules/lodash.isequal/**/*",
+      "node_modules/lodash.escaperegexp/**/*",
+      "node_modules/tiny-typed-emitter/**/*"
     ],
 
     "extraResources": [
