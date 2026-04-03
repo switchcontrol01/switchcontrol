@@ -399,10 +399,10 @@ export default function PowerPlan() {
 
   // ── Intent mode → profile mapping ─────────────────────────────────────────
   const INTENT_TO_PROFILE: Record<IntentMode, FrontendProfileId> = {
-    competitive: "balanced",
-    balanced: "balanced",
-    silent: "efficiency",
-    "max-fps": "performance",
+    competitive: "performance",
+    balanced:    "balanced",
+    silent:      "efficiency",
+    "max-fps":   "performance",
   };
 
   const handleIntentMode = useCallback((mode: IntentMode) => {
