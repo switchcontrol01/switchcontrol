@@ -54,12 +54,12 @@ function FullHeader() {
     <motion.header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-        "bg-[rgba(10,8,20,0.76)] backdrop-blur-xl border-b border-white/[0.09]"
+        "bg-[rgba(255,255,255,0.07)] backdrop-blur-2xl border-b border-white/[0.18]"
       )}
       style={{
         boxShadow: scrolled
-          ? "0 10px 35px rgba(0,0,0,0.55), 0 1px 0 0 rgba(255,255,255,0.03), inset 0 -1px 0 0 rgba(139,92,246,0.06)"
-          : "0 10px 35px rgba(0,0,0,0.55)",
+          ? "0 8px 32px rgba(0,0,0,0.28), 0 1px 0 0 rgba(255,255,255,0.10), inset 0 -1px 0 0 rgba(255,255,255,0.06)"
+          : "0 4px 24px rgba(0,0,0,0.18), 0 1px 0 0 rgba(255,255,255,0.07)",
       }}
       initial={{ y: -80, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
@@ -191,9 +191,9 @@ function FullHeader() {
 function InnerHeader() {
   return (
     <header
-      className="relative z-10 bg-[rgba(10,8,20,0.76)] backdrop-blur-xl border-b border-white/[0.09]"
+      className="relative z-10 bg-[rgba(255,255,255,0.07)] backdrop-blur-2xl border-b border-white/[0.18]"
       style={{
-        boxShadow: "0 10px 35px rgba(0,0,0,0.55)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.18), 0 1px 0 0 rgba(255,255,255,0.07)",
       }}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
