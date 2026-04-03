@@ -292,125 +292,329 @@ export function setupGoogleAuth(app: Express): void {
     console.log(`[AUTH] Page will auto-launch app via deep link`);
     console.log(`[AUTH] ===================================`);
     
-    res.send(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Returning to SwitchControl</title>
-        <link rel="icon" href="/favicon.ico">
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body {
-            min-height: 100vh;
-            background: #0a0a0f;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            overflow: hidden;
-          }
-          .container {
-            text-align: center;
-            padding: 3rem 3.5rem;
-            animation: fadeIn 0.5s ease-out;
-          }
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .spinner-wrap {
-            width: 56px;
-            height: 56px;
-            margin: 0 auto 2rem;
-            position: relative;
-          }
-          .spinner-ring {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 2px solid rgba(139, 92, 246, 0.1);
-          }
-          .spinner-arc {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 2px solid transparent;
-            border-top-color: rgba(139, 92, 246, 0.7);
-            animation: spin 1.2s linear infinite;
-          }
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-          h1 {
-            color: rgba(255, 255, 255, 0.85);
-            font-size: 1.25rem;
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            letter-spacing: -0.01em;
-          }
-          .subtitle {
-            color: rgba(255, 255, 255, 0.3);
-            font-size: 0.8125rem;
-            letter-spacing: 0.04em;
-          }
-          .glow {
-            position: fixed;
-            width: 400px;
-            height: 400px;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.12) 0%, transparent 70%);
-            pointer-events: none;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            animation: glowPulse 4s ease-in-out infinite;
-          }
-          @keyframes glowPulse {
-            0%, 100% { opacity: 0.4; transform: translate(-50%, -50%) scale(1); }
-            50% { opacity: 0.7; transform: translate(-50%, -50%) scale(1.1); }
-          }
-          .brand {
-            position: fixed;
-            bottom: 2rem;
-            left: 50%;
-            transform: translateX(-50%);
-            color: rgba(255, 255, 255, 0.06);
-            font-size: 0.625rem;
-            letter-spacing: 0.3em;
-            text-transform: uppercase;
-          }
-          @media (prefers-reduced-motion: reduce) {
-            .spinner-arc { animation-duration: 3s; }
-            .glow { animation: none; opacity: 0.5; }
-            .container { animation: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="glow"></div>
-        <div class="container">
-          <div class="spinner-wrap">
-            <div class="spinner-ring"></div>
-            <div class="spinner-arc"></div>
-          </div>
-          <h1>Returning to SwitchControl</h1>
-          <p class="subtitle">Sign-in complete</p>
-        </div>
-        <div class="brand">SwitchControl</div>
-        <script>
-          (function() {
-            var deepLink = "${deepLink}";
-            try {
-              window.location.href = deepLink;
-            } catch (e) {
-              console.error("[DesktopReturn] Deep link failed:", e);
-            }
-          })();
-        </script>
-      </body>
-      </html>
-    `);
+    const providerLabel = provider === 'discord' ? 'Discord' : 'Google';
+    res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Signed in — SwitchControl</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      background: #07090D;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    /* ── Atmospheric hazes ───────────────────────────────────────── */
+    .haze {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(90px);
+    }
+    .haze-violet {
+      width: 72vw; height: 72vw;
+      top: -10%; left: -12%;
+      background: radial-gradient(ellipse, rgba(139,92,246,0.30) 0%, rgba(80,40,180,0.10) 45%, transparent 70%);
+      animation: drift1 16s ease-in-out infinite;
+    }
+    .haze-cyan {
+      width: 62vw; height: 62vw;
+      bottom: -8%; right: -8%;
+      background: radial-gradient(ellipse, rgba(0,190,255,0.24) 0%, rgba(0,120,210,0.08) 48%, transparent 70%);
+      filter: blur(100px);
+      animation: drift2 19s ease-in-out infinite;
+    }
+    .haze-amber {
+      width: 44vw; height: 44vw;
+      bottom: 12%; left: 22%;
+      background: radial-gradient(ellipse, rgba(236,72,153,0.14) 0%, transparent 68%);
+      filter: blur(80px);
+      animation: drift3 22s ease-in-out infinite;
+    }
+    @keyframes drift1 {
+      0%,100% { transform: translate(0,0) scale(1); opacity: .55; }
+      50%      { transform: translate(22px,14px) scale(1.07); opacity: .88; }
+    }
+    @keyframes drift2 {
+      0%,100% { transform: translate(0,0) scale(1); opacity: .45; }
+      50%      { transform: translate(-18px,-12px) scale(1.10); opacity: .80; }
+    }
+    @keyframes drift3 {
+      0%,100% { transform: translate(0,0) scale(1); opacity: .30; }
+      50%      { transform: translate(12px,0) scale(1.12); opacity: .60; }
+    }
+
+    /* ── Sun streaks ─────────────────────────────────────────────── */
+    .streaks { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
+    .streak {
+      position: absolute;
+      height: 1px;
+      transform-origin: left center;
+    }
+    .streak-1 {
+      width: 150vw; left: 5%; top: 20%;
+      background: linear-gradient(90deg, transparent, rgba(168,85,247,0.20), transparent);
+      transform: rotate(24deg);
+      animation: streakPulse 9s ease-in-out infinite;
+      filter: blur(1px);
+    }
+    .streak-2 {
+      width: 130vw; left: 10%; top: 42%;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, rgba(0,200,255,0.16), transparent);
+      transform: rotate(20deg);
+      animation: streakPulse 11s ease-in-out infinite 1.4s;
+      filter: blur(1.2px);
+    }
+    .streak-3 {
+      width: 120vw; left: 0%; top: 65%;
+      background: linear-gradient(90deg, transparent, rgba(200,130,255,0.12), transparent);
+      transform: rotate(18deg);
+      animation: streakPulse 13s ease-in-out infinite 3s;
+      filter: blur(0.8px);
+    }
+    @keyframes streakPulse {
+      0%,100% { opacity: 0; }
+      30%,70%  { opacity: 1; }
+    }
+
+    /* ── Vignette ────────────────────────────────────────────────── */
+    .vignette {
+      position: fixed; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse 80% 80% at 50% 50%, transparent 32%, rgba(7,9,13,0.90) 100%);
+    }
+
+    /* ── Center content ──────────────────────────────────────────── */
+    .content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      animation: contentIn 0.9s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    @keyframes contentIn {
+      from { opacity: 0; transform: translateY(20px); filter: blur(12px); }
+      to   { opacity: 1; transform: translateY(0);    filter: blur(0); }
+    }
+
+    /* Check mark glow orb */
+    .orb-wrap {
+      position: relative;
+      width: 120px; height: 120px;
+      margin-bottom: 2.5rem;
+    }
+    .orb-halo {
+      position: absolute;
+      inset: -36px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(139,92,246,0.42) 0%, rgba(0,200,255,0.16) 44%, transparent 72%);
+      filter: blur(22px);
+      animation: haloPulse 3.2s ease-in-out infinite;
+    }
+    @keyframes haloPulse {
+      0%,100% { opacity: .55; transform: scale(1); }
+      50%      { opacity: .95; transform: scale(1.18); }
+    }
+    .orb-ring {
+      position: absolute;
+      inset: -10px;
+      border-radius: 50%;
+      border: 1px solid rgba(168,85,247,0.30);
+      box-shadow: 0 0 28px rgba(139,92,246,0.20), 0 0 60px rgba(0,210,255,0.10);
+      animation: ringPulse 3.8s ease-in-out infinite;
+    }
+    @keyframes ringPulse {
+      0%,100% { opacity: .35; }
+      50%      { opacity: .80; }
+    }
+    .orb-body {
+      position: absolute; inset: 0;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 38% 35%, rgba(168,85,247,0.28) 0%, rgba(0,0,20,0.60) 70%);
+      border: 1px solid rgba(255,255,255,0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+    .check-icon {
+      width: 48px; height: 48px;
+      animation: checkIn 0.6s cubic-bezier(0.22,1,0.36,1) 0.5s both;
+    }
+    @keyframes checkIn {
+      from { opacity: 0; transform: scale(0.5); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .check-path {
+      stroke: url(#checkGrad);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      fill: none;
+      stroke-dasharray: 40;
+      stroke-dashoffset: 40;
+      animation: drawCheck 0.55s ease-out 0.55s forwards;
+    }
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+
+    /* Typography */
+    .wordmark {
+      font-size: 2.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      margin-bottom: 0.6rem;
+      background: linear-gradient(90deg, #fff 30%, rgba(168,85,247,0.9) 60%, rgba(0,210,255,0.85) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .headline {
+      font-size: 1.05rem;
+      font-weight: 400;
+      color: rgba(255,255,255,0.70);
+      letter-spacing: -0.005em;
+      margin-bottom: 0.4rem;
+    }
+    .sub {
+      font-size: 0.8125rem;
+      color: rgba(255,255,255,0.28);
+      letter-spacing: 0.02em;
+      margin-bottom: 2.5rem;
+    }
+    .provider-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.75rem;
+      color: rgba(255,255,255,0.30);
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 100px;
+      padding: 0.25rem 0.75rem;
+      margin-bottom: 2.8rem;
+      letter-spacing: 0.02em;
+    }
+    .provider-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: rgba(139,92,246,0.7);
+      box-shadow: 0 0 6px rgba(139,92,246,0.50);
+    }
+
+    /* Progress bar */
+    .progress-wrap {
+      width: 200px;
+      height: 1.5px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 100px;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, rgba(139,92,246,0.80), rgba(0,210,255,0.90));
+      box-shadow: 0 0 8px rgba(139,92,246,0.55);
+      animation: progressGrow 3.8s cubic-bezier(0.25,0.46,0.45,0.94) 0.2s both;
+    }
+    @keyframes progressGrow {
+      from { width: 0%; }
+      to   { width: 100%; }
+    }
+    .progress-gleam {
+      position: absolute;
+      top: 0; height: 100%;
+      width: 48px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+      animation: gleam 1.4s ease-in-out infinite 0.4s;
+    }
+    @keyframes gleam {
+      from { left: -48px; }
+      to   { left: 248px; }
+    }
+    .opening-label {
+      margin-top: 1.1rem;
+      font-size: 0.6875rem;
+      color: rgba(255,255,255,0.20);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      animation: blink 2s ease-in-out infinite;
+    }
+    @keyframes blink {
+      0%,100% { opacity: .5; }
+      50%      { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Atmosphere -->
+  <div class="haze haze-violet"></div>
+  <div class="haze haze-cyan"></div>
+  <div class="haze haze-amber"></div>
+  <div class="streaks">
+    <div class="streak streak-1"></div>
+    <div class="streak streak-2"></div>
+    <div class="streak streak-3"></div>
+  </div>
+  <div class="vignette"></div>
+
+  <!-- Content -->
+  <div class="content">
+    <!-- Check orb -->
+    <div class="orb-wrap">
+      <div class="orb-halo"></div>
+      <div class="orb-ring"></div>
+      <div class="orb-body">
+        <svg class="check-icon" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="checkGrad" x1="8" y1="24" x2="40" y2="24" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#a78bfa"/>
+              <stop offset="100%" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+          <polyline class="check-path" points="10,26 20,36 38,14"/>
+        </svg>
+      </div>
+    </div>
+
+    <p class="wordmark">SwitchControl</p>
+    <p class="headline">You're signed in.</p>
+    <p class="sub">Opening the app&hellip;</p>
+
+    <div class="provider-chip">
+      <span class="provider-dot"></span>
+      via ${providerLabel}
+    </div>
+
+    <div class="progress-wrap">
+      <div class="progress-fill"></div>
+      <div class="progress-gleam"></div>
+    </div>
+    <p class="opening-label">Launching</p>
+  </div>
+
+  <script>
+    (function() {
+      var deepLink = "${deepLink}";
+      try { window.location.href = deepLink; } catch(e) {}
+    })();
+  </script>
+</body>
+</html>`);
   });
 
   app.get("/auth/google", (req, res, next) => {
