@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Sidebar } from "./Sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
@@ -84,6 +84,20 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const isTourNav = typeof document !== 'undefined' && document.body.classList.contains('tour-navigating');
   const shouldAnimate = !prefersReducedMotion && !isTourNav;
 
+  // After the page-enter animation finishes, strip the residual `filter` and
+  // `transform` inline styles so this element no longer acts as a CSS
+  // "containing block" for `position:fixed` descendants (modals, drawers, etc.).
+  // Without this, fixed modals open but are positioned relative to this div
+  // instead of the viewport — they appear clipped / invisible.
+  const pageRef = useRef<HTMLDivElement | null>(null);
+  const clearContainingBlock = useCallback(() => {
+    const el = pageRef.current;
+    if (!el) return;
+    el.style.filter = '';
+    el.style.transform = '';
+    el.style.willChange = '';
+  }, []);
+
   return (
     <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">
       <AppBackground />
@@ -108,14 +122,16 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         <AnimatePresence mode="wait">
           <motion.div
             key={location}
+            ref={pageRef}
             className="container max-w-7xl mx-auto p-8"
-            initial={shouldAnimate ? { opacity: 0, y: 10, scale: 0.993, filter: "blur(6px)" } : { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            initial={shouldAnimate ? { opacity: 0, y: 10, scale: 0.993, filter: "blur(6px)" } : { opacity: 1, y: 0, scale: 1 }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
-            exit={shouldAnimate ? { opacity: 0, y: -6, scale: 0.993, filter: "blur(5px)" } : { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={shouldAnimate ? { opacity: 0, y: -6, scale: 0.993, filter: "blur(5px)" } : { opacity: 1, y: 0, scale: 1 }}
             transition={{ 
               duration: shouldAnimate ? 0.32 : 0,
               ease: [0.22, 1, 0.36, 1] as const,
             }}
+            onAnimationComplete={clearContainingBlock}
           >
             {children}
           </motion.div>
