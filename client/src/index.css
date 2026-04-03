@@ -2409,12 +2409,12 @@ button, a, nav, header, footer, label {
 .pricing-aurora {
   background: linear-gradient(
     125deg,
-    hsl(270,60%,55%,0.10) 0%,
-    hsl(190,80%,55%,0.08) 25%,
-    hsl(270,50%,60%,0.06) 50%,
-    hsl(200,90%,60%,0.09) 75%,
-    hsl(270,60%,55%,0.10) 100%
+    hsl(270,40%,55%,0.025) 0%,
+    hsl(190,50%,55%,0.018) 30%,
+    hsl(260,30%,60%,0.015) 55%,
+    hsl(200,50%,60%,0.022) 80%,
+    hsl(270,40%,55%,0.025) 100%
   );
   background-size: 300% 300%;
-  animation: pricingAuroraShift 6s ease-in-out infinite;
+  animation: pricingAuroraShift 8s ease-in-out infinite;
 }

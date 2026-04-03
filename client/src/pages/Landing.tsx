@@ -1018,15 +1018,15 @@ export default function Landing() {
               {/* ── Premium card — animated border ── */}
               <Reveal direction="right">
                 <div className="relative h-full rounded-[18px] p-px overflow-hidden"
-                  style={{ background: "linear-gradient(135deg, hsl(270,70%,55%,0.55) 0%, hsl(190,90%,50%,0.35) 50%, hsl(270,70%,55%,0.55) 100%)" }}>
+                  style={{ background: "linear-gradient(135deg, hsl(270,40%,55%,0.35) 0%, hsl(200,45%,55%,0.25) 50%, hsl(270,40%,55%,0.35) 100%)" }}>
 
                   {/* Rotating conic gradient border */}
                   <div className="pricing-border-spin absolute w-[200%] h-[200%] -top-1/2 -left-1/2 pointer-events-none"
-                    style={{ background: "conic-gradient(from 0deg, transparent 0%, hsl(270,80%,62%) 15%, hsl(190,95%,55%) 35%, hsl(270,80%,62%) 55%, transparent 70%)" }} />
+                    style={{ background: "conic-gradient(from 0deg, transparent 0%, hsl(270,45%,58%,0.7) 15%, hsl(190,55%,55%,0.6) 35%, hsl(270,45%,58%,0.7) 55%, transparent 70%)" }} />
 
                   {/* Card body */}
                   <div className="relative rounded-[17px] p-8 h-full flex flex-col overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.055)", backdropFilter: "blur(40px) saturate(1.5)" }}>
+                    style={{ background: "rgba(255,255,255,0.042)", backdropFilter: "blur(36px)" }}>
 
                     {/* Animated aurora gradient */}
                     <div className="pricing-aurora absolute inset-0 pointer-events-none rounded-[17px]" />
