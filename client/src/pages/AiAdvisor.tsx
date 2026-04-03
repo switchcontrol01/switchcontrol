@@ -27,6 +27,7 @@ import { TWEAKS_DATA } from "@/lib/mock-data";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
 import { useAuth } from "@/hooks/use-auth";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -528,6 +529,7 @@ function SuggestedPrompts({ onSelect, disabled }: { onSelect: (p: string) => voi
 export default function AiAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
+  const { isOnline } = useNetworkStatus();
   const { stats, tweaks } = useStore();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
 
@@ -763,6 +765,16 @@ export default function AiAdvisor() {
     const messageContent = trimmed || (imgData ? "Please analyze this image." : "");
     if (!messageContent || loading || isStreaming || !isPremium) return;
 
+    if (!isOnline) {
+      setMessages(prev => [...prev, {
+        id: `offline-${Date.now()}`,
+        role: "system" as const,
+        content: "You are offline. Your message is saved — connect to the internet and try again.",
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+
     const thisReqId = ++reqIdRef.current;
 
     const userMsg: ChatMessage = {
@@ -876,7 +888,7 @@ export default function AiAdvisor() {
       setLoading(false);
       inputRef.current?.focus();
     }
-  }, [loading, isStreaming, isPremium, forceScrollBottom, revealContent]);
+  }, [loading, isStreaming, isPremium, isOnline, forceScrollBottom, revealContent]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1031,6 +1043,22 @@ export default function AiAdvisor() {
               )}
             </AnimatePresence>
 
+            {/* Offline inline notice */}
+            <AnimatePresence>
+              {!isOnline && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 2 }}
+                  className="flex items-center gap-2 px-3 py-2 mb-2 rounded-xl bg-amber-500/8 border border-amber-500/20 text-[11px] text-amber-400/90"
+                  data-testid="status-ai-offline"
+                >
+                  <AlertTriangle className="w-3 h-3 shrink-0" />
+                  AI Advisor requires internet. Your draft is preserved — send when back online.
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Image error */}
             <AnimatePresence>
               {imageError && (
@@ -1063,7 +1091,7 @@ export default function AiAdvisor() {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={isBusy}
+                disabled={isBusy || !isOnline}
                 className={cn(
                   "shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-colors",
                   attachedImage
@@ -1072,7 +1100,7 @@ export default function AiAdvisor() {
                   "disabled:opacity-30 disabled:cursor-not-allowed"
                 )}
                 data-testid="button-attach-image"
-                title="Attach image"
+                title={!isOnline ? "Image upload unavailable offline" : "Attach image"}
               >
                 <Paperclip className="w-3.5 h-3.5" />
               </button>
@@ -1082,7 +1110,7 @@ export default function AiAdvisor() {
                 type="text"
                 value={input}
                 onChange={e => setInput(e.target.value)}
-                placeholder={attachedImage ? "Ask about this image…" : "Ask about optimizations, tweaks, games…"}
+                placeholder={!isOnline ? "Offline — draft saved, send when connected…" : attachedImage ? "Ask about this image…" : "Ask about optimizations, tweaks, games…"}
                 className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
                 disabled={isBusy}
                 data-testid="input-chat-message"
@@ -1091,9 +1119,10 @@ export default function AiAdvisor() {
               <Button
                 type="submit"
                 size="sm"
-                disabled={(!input.trim() && !attachedImage) || isBusy}
+                disabled={(!input.trim() && !attachedImage) || isBusy || !isOnline}
                 className="h-8 w-8 p-0 rounded-xl bg-primary/20 hover:bg-primary/30 text-primary border-0 disabled:opacity-30"
                 data-testid="button-send-message"
+                title={!isOnline ? "Offline — cannot send" : undefined}
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
               </Button>

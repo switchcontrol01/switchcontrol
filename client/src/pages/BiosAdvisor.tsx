@@ -15,6 +15,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
 import { 
@@ -490,6 +491,7 @@ function ScanProgress({ state }: { state: ScanState }) {
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
+  const { isOnline } = useNetworkStatus();
   const { stats } = useStore();
 
   const {
@@ -628,6 +630,12 @@ export default function BiosAdvisor() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (!isOnline) {
+      setPhotoError("BIOS photo analysis requires internet. You are currently offline.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
+
     const validTypes = ["image/png", "image/jpeg", "image/webp"];
     if (!validTypes.includes(file.type)) {
       setPhotoError("Please upload a PNG, JPEG, or WebP image.");
@@ -675,10 +683,14 @@ export default function BiosAdvisor() {
       setPhotoUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
-  }, [storeSetPhotoDetections, storeUpdateScores, detections]);
+  }, [storeSetPhotoDetections, storeUpdateScores, detections, isOnline]);
 
   const handleAiExplain = useCallback(async () => {
     if (allDetections.length === 0) return;
+    if (!isOnline) {
+      setAiExplainError("AI explanation requires internet. You are currently offline.");
+      return;
+    }
     setAiExplainLoading(true);
     setAiExplainError(null);
 
@@ -709,7 +721,7 @@ export default function BiosAdvisor() {
     } finally {
       setAiExplainLoading(false);
     }
-  }, [allDetections, lastTelemetry, stats, scores, storeSetAiExplanation, analysisHash]);
+  }, [allDetections, lastTelemetry, stats, scores, storeSetAiExplanation, analysisHash, isOnline]);
 
   const isScanning = scanState !== "idle" && scanState !== "complete";
   const displayedScore = useCountUp(hasScanned ? scores.competitiveReadiness : 0, prefersReducedMotion ? 0 : 1.2, prefersReducedMotion ? 0 : 0.3);
@@ -762,13 +774,14 @@ export default function BiosAdvisor() {
               <Button 
                 variant="outline"
                 size="sm"
-                className="text-xs border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10"
+                className="text-xs border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 disabled:opacity-40"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={photoUploading}
+                disabled={photoUploading || !isOnline}
                 data-testid="button-upload-photo"
+                title={!isOnline ? "Photo scan unavailable offline" : undefined}
               >
                 {photoUploading ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Camera className="w-3.5 h-3.5 mr-1.5" />}
-                {photoUploading ? "Scanning..." : "Upload BIOS Photo"}
+                {photoUploading ? "Scanning..." : !isOnline ? "Offline" : "Upload BIOS Photo"}
               </Button>
               <Button 
                 onClick={handleScan} 
@@ -1055,19 +1068,27 @@ export default function BiosAdvisor() {
                       {aiExplanation ? "AI-Powered" : "Local"}
                     </Badge>
                   </h3>
-                  {hasScanned && allDetections.length > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="text-[10px] h-7 text-primary hover:text-primary hover:bg-primary/10"
-                      onClick={handleAiExplain}
-                      disabled={aiExplainLoading}
-                      data-testid="button-ai-explain"
-                    >
-                      {aiExplainLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
-                      {aiExplainLoading ? "Analyzing..." : aiExplanation ? "Refresh AI Analysis" : "Get AI Explanation"}
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!isOnline && aiExplanation && (
+                      <span className="text-[9px] text-amber-400/60 font-medium uppercase tracking-wider border border-amber-500/20 px-1.5 py-0.5 rounded">
+                        Cached
+                      </span>
+                    )}
+                    {hasScanned && allDetections.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-[10px] h-7 text-primary hover:text-primary hover:bg-primary/10 disabled:opacity-40"
+                        onClick={handleAiExplain}
+                        disabled={aiExplainLoading || !isOnline}
+                        data-testid="button-ai-explain"
+                        title={!isOnline ? "AI explanation unavailable offline" : undefined}
+                      >
+                        {aiExplainLoading ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : <Sparkles className="w-3 h-3 mr-1" />}
+                        {aiExplainLoading ? "Analyzing..." : !isOnline ? "Offline" : aiExplanation ? "Refresh AI Analysis" : "Get AI Explanation"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {aiExplainError && !aiExplainLoading && (

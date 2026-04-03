@@ -1,0 +1,334 @@
+TASK
+Implement a complete offline-aware system for SwitchControl so the app remains fully usable offline for local features, degrades gracefully for cloud features, and feels premium instead of broken when internet is unavailable.
+
+PROBLEM
+Right now SwitchControl has online-dependent systems:
+- AI Advisor
+- BIOS photo scan / BIOS explain
+- premium/license refresh
+- app updates
+
+This creates a risk that:
+- the app may feel broken offline
+- premium users may lose access temporarily if license cannot refresh
+- users get errors instead of clear offline handling
+- startup may block on failed requests
+- there is no visible offline/online state
+- there is no reconnect retry logic
+- cloud-only actions cannot gracefully recover
+
+The app must be offline-first, not internet-required.
+
+GOAL
+Make SwitchControl behave like a professional desktop app:
+- app launches and works without internet
+- local features always work offline
+- cloud features show elegant offline states
+- premium status supports secure cached grace behavior
+- app detects reconnects automatically
+- users can retry failed cloud actions cleanly
+- UI clearly communicates offline mode without looking cheap
+- no startup blocking on cloud requests
+- cloud actions fail gracefully, not noisily
+
+IMPORTANT
+Do NOT make internet required to open the app.
+Do NOT block render while waiting for cloud state.
+Do NOT break premium UX for users who were recently verified.
+Do NOT show ugly raw network errors.
+Do NOT create fake success states for cloud features.
+Be honest, graceful, and resilient.
+
+IMPLEMENTATION
+
+1. GLOBAL NETWORK / CONNECTIVITY SYSTEM
+Create a single shared connectivity store/hook.
+
+Implement:
+- `navigator.onLine` baseline detection
+- active heartbeat / lightweight cloud reachability check to SwitchControl backend
+- distinction between:
+  - `online`
+  - `offline`
+  - `reconnecting`
+  - `degraded` (internet exists but backend unreachable)
+- debounce state changes to avoid flicker
+- expose:
+  - `isOnline`
+  - `isBackendReachable`
+  - `networkState`
+  - `lastOnlineAt`
+  - `lastCheckedAt`
+  - `retryConnectionCheck()`
+
+Suggested files:
+- `client/src/stores/networkStore.ts`
+- `client/src/hooks/use-network-status.ts`
+
+2. OFFLINE-FIRST STARTUP
+Audit app startup and ensure no cloud call blocks the UI render.
+
+Requirements:
+- app shell must render immediately
+- dashboard must render immediately
+- local telemetry and local tweak systems must initialize normally
+- cloud checks must happen in background
+- if cloud is unavailable, UI still loads and only cloud modules degrade
+
+Search for:
+- auth refresh on app load
+- premium refresh on app load
+- update checks on startup
+- AI warmup calls
+- BIOS route calls
+Any of these must not block initial render.
+
+3. PREMIUM LICENSE CACHED GRACE MODE
+Implement a real offline premium grace system.
+
+Requirements:
+- when a premium user is successfully verified online, cache a signed/persisted local premium snapshot:
+  - `isPremium`
+  - `lastVerifiedAt`
+  - `plan`
+  - `userId`
+- if offline or backend unreachable:
+  - allow premium access if last successful verification is within a grace window
+- recommended grace window:
+  - 7 days standard
+- if grace window expires:
+  - do NOT silently claim premium is active
+  - show a graceful “verification required” state
+- UI must distinguish:
+  - Active Premium (verified online)
+  - Premium Offline Grace
+  - Verification Required
+  - Free
+
+Important:
+- License Management modal must stop always showing “Active Premium”
+- it must reflect REAL state from backend + cached verification
+- the modal must display:
+  - Current plan
+  - Verification status
+  - Last verified time
+  - Offline grace remaining (if applicable)
+  - whether backend is reachable
+
+Do NOT use fake frontend-only premium state.
+
+4. CLOUD FEATURE GUARDS
+Guard every cloud-only feature with elegant offline handling.
+
+Apply to:
+- AI Advisor chat
+- AI Advisor image upload
+- BIOS photo scan
+- BIOS explain
+- update checking / download
+- any premium refresh endpoint
+- any cloud recommendation endpoint
+
+Behavior:
+- if offline:
+  - disable submit/send buttons when appropriate
+  - show premium-quality inline message, not raw error
+  - preserve user input where possible
+- if backend unreachable but user has internet:
+  - show “service temporarily unavailable” state
+- if reconnect happens:
+  - automatically re-enable actions
+
+5. OFFLINE UI SYSTEM
+Add a premium offline-mode UI system across the app.
+
+Implement:
+- subtle top status pill/banner or shell indicator
+- states:
+  - Online
+  - Offline
+  - Reconnecting
+  - Cloud unavailable
+- must be visually premium:
+  - soft glow
+  - matte/glass styling
+  - no harsh warning bars unless critical
+- location suggestions:
+  - app shell top-right status chip
+  - optional small global banner below titlebar only when offline/degraded
+- copy examples:
+  - “Offline mode: local tools remain available”
+  - “Reconnecting to SwitchControl services…”
+  - “Cloud services unavailable. Local tools still work.”
+
+Do NOT spam the user with repeated toasts.
+
+6. AI ADVISOR OFFLINE / RETRY / QUEUE
+Upgrade AI Advisor behavior for offline resilience.
+
+Requirements:
+- if user opens AI Advisor offline:
+  - show premium empty-state card:
+    - “AI Advisor requires internet”
+    - explain that local diagnostics still remain available if applicable
+- if user types a message while offline:
+  - keep draft in input
+  - do not discard it
+  - show inline offline warning
+- add a retry button for failed requests
+- optionally add queued-send behavior:
+  - if message submit occurs offline, keep it in pending draft state
+  - when connection returns, user can send with one tap
+  - do NOT auto-send without user confirmation unless explicitly designed
+- image upload in AI Advisor:
+  - disabled offline
+  - clear inline reason shown
+- if request fails mid-stream:
+  - keep partial state safe
+  - allow “Try again”
+
+7. BIOS ADVISOR OFFLINE BEHAVIOR
+Implement graceful offline handling for BIOS cloud features.
+
+Requirements:
+- local firmware behavior analysis should still work offline if it is based on local telemetry
+- BIOS photo upload and AI explain must be clearly marked cloud-required
+- if offline:
+  - hide or disable upload/AI explain buttons appropriately
+  - explain why
+- preserve last successful BIOS results in persisted store
+- if user revisits offline:
+  - show last analysis with “cached result” tag
+  - show when it was generated
+
+8. UPDATER OFFLINE BEHAVIOR
+Professionalize update system behavior.
+
+Requirements:
+- if offline:
+  - updater does not show scary errors
+  - show “Unable to check for updates while offline”
+- if backend/release server unavailable:
+  - show “Update service unavailable”
+- if reconnect occurs:
+  - user can check again
+- do not auto-loop noisy retries
+- Settings update card must reflect:
+  - last checked time
+  - current state
+  - retry option
+  - offline state
+
+9. GLOBAL REQUEST ERROR NORMALIZATION
+Create a clean network error normalization layer.
+
+For all cloud fetches:
+- map raw failures into:
+  - offline
+  - backend unreachable
+  - timeout
+  - auth expired
+  - rate limited
+  - unknown
+- return clean user-facing copy
+- never show raw stack/network text in UI
+
+Add helper(s):
+- `isOfflineError`
+- `isBackendUnavailableError`
+- `getCloudUserFacingError`
+
+10. RECONNECT DETECTION + SOFT RECOVERY
+When internet returns:
+- detect it globally
+- update shell status from offline to reconnecting to online
+- re-enable disabled cloud UI
+- optionally auto-refresh:
+  - premium entitlement
+  - update state
+  - AI availability state
+- do this quietly
+- no aggressive reloading
+- no route reset
+- no modal closures
+
+11. LAST KNOWN GOOD DATA
+Persist last useful cloud-derived data where appropriate:
+- last AI session draft text
+- last BIOS explanation
+- last premium verification timestamp
+- last update check result
+- last known network state
+
+Only persist what improves UX.
+Do NOT persist junk or transient loading flags.
+
+12. SETTINGS / LICENSE MANAGEMENT IMPROVEMENT
+Upgrade the License Management modal and Settings to show true system state.
+
+License modal must show:
+- real plan status
+- verified online / offline grace / verification required / free
+- last verification time
+- device id
+- app version
+- platform
+- backend reachability
+- refresh button
+- restore purchase button
+- support CTA
+
+Settings should also include:
+- network status card
+- update service state
+- last backend contact time
+- optional diagnostics section
+
+13. DEVELOPER LOGGING
+Add structured logs for:
+- connectivity changes
+- premium verification fallback usage
+- grace window checks
+- cloud request failures by type
+- reconnect events
+- update check state changes
+
+Use concise prefixed logs like:
+- `[Network]`
+- `[Premium]`
+- `[Cloud]`
+- `[Updater]`
+
+14. SECURITY / TRUTHFULNESS RULES
+Do NOT fake premium if there is no valid cached verification.
+Do NOT claim AI is available when offline.
+Do NOT claim update server is reachable without checking.
+Do NOT permanently trust stale premium cache forever.
+
+CHECKLIST
+- App launches and works offline
+- Local features still usable offline
+- AI Advisor gracefully handles offline mode
+- BIOS local features remain available offline
+- BIOS cloud actions gracefully disable offline
+- Premium users keep temporary offline grace access
+- Free users are not falsely shown as premium
+- License Management reflects true backend/cache state
+- Update system behaves cleanly offline
+- Network state is visible and premium-looking
+- No startup blocking
+- No raw fetch/network errors shown to user
+- Reconnect recovery works without page reload
+- Drafts/results persist where useful
+- Logging added for debugging
+
+FINAL OUTPUT
+Return:
+1. files changed
+2. network architecture summary
+3. premium grace logic summary
+4. offline UI states added
+5. cloud feature guard summary
+6. update behavior summary
+7. startup safety summary
+8. any assumptions or grace-window values used

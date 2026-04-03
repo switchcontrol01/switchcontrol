@@ -1,0 +1,86 @@
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+export const GRACE_WINDOW_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+export type PremiumVerificationStatus =
+  | 'active'         // verified online, within grace
+  | 'grace'          // offline/degraded but within 7-day window
+  | 'expired'        // grace window elapsed — cannot trust
+  | 'free'           // no premium, never was or explicitly false
+  | 'unknown';       // no data yet
+
+export interface PremiumGraceSnapshot {
+  isPremium: boolean;
+  plan: string | null;
+  userId: string | null;
+  lastVerifiedAt: number | null; // epoch ms
+}
+
+interface PremiumGraceStore extends PremiumGraceSnapshot {
+  setVerified: (isPremium: boolean, plan: string | null, userId: string | null) => void;
+  clear: () => void;
+  getStatus: (isBackendReachable: boolean) => PremiumVerificationStatus;
+  graceRemainingMs: () => number;
+}
+
+export const usePremiumGraceStore = create<PremiumGraceStore>()(
+  persist(
+    (set, get) => ({
+      isPremium: false,
+      plan: null,
+      userId: null,
+      lastVerifiedAt: null,
+
+      setVerified(isPremium, plan, userId) {
+        const prev = get();
+        const now = Date.now();
+        console.log(`[Premium] Grace snapshot updated — isPremium=${isPremium} plan=${plan} userId=${userId}`);
+        set({
+          isPremium,
+          plan,
+          userId,
+          lastVerifiedAt: isPremium ? now : prev.lastVerifiedAt,
+        });
+      },
+
+      clear() {
+        set({ isPremium: false, plan: null, userId: null, lastVerifiedAt: null });
+      },
+
+      getStatus(isBackendReachable) {
+        const { isPremium, lastVerifiedAt } = get();
+
+        if (isBackendReachable) {
+          if (isPremium) return 'active';
+          return 'free';
+        }
+
+        // Backend not reachable — check grace cache
+        if (!isPremium || !lastVerifiedAt) return 'free';
+        const age = Date.now() - lastVerifiedAt;
+        if (age <= GRACE_WINDOW_MS) {
+          console.log(`[Premium] Grace mode — verified ${Math.round(age / 3_600_000)}h ago`);
+          return 'grace';
+        }
+        console.log('[Premium] Grace window expired');
+        return 'expired';
+      },
+
+      graceRemainingMs() {
+        const { lastVerifiedAt } = get();
+        if (!lastVerifiedAt) return 0;
+        return Math.max(0, GRACE_WINDOW_MS - (Date.now() - lastVerifiedAt));
+      },
+    }),
+    {
+      name: 'sc_premium_grace_v1',
+      partialize: (s) => ({
+        isPremium: s.isPremium,
+        plan: s.plan,
+        userId: s.userId,
+        lastVerifiedAt: s.lastVerifiedAt,
+      }),
+    }
+  )
+);

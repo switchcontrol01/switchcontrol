@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import {
   Download, RefreshCw, ArrowUpCircle, CheckCircle2, AlertTriangle,
-  Loader2, RotateCcw, ChevronDown, ChevronUp, Shield, Radio
+  Loader2, RotateCcw, ChevronDown, ChevronUp, Shield, Radio, WifiOff
 } from 'lucide-react';
 import { useState } from 'react';
 import { useUpdater } from '@/hooks/use-updater';
+import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -65,6 +66,7 @@ const URGENCY_CONFIG = {
 
 export function UpdateCard() {
   const { state, check, download, install, isElectron } = useUpdater();
+  const { isOnline } = useNetworkStatus();
   const [showNotes, setShowNotes] = useState(false);
 
   if (!isElectron) return null;
@@ -112,8 +114,21 @@ export function UpdateCard() {
           <span className="font-mono text-white/70">{currentVersion ?? '—'}</span>
         </div>
 
+        {/* ── offline ── */}
+        {!isOnline && (status === 'idle' || status === 'not-available' || status === 'error') && (
+          <GlassCard className="p-4 flex items-center gap-3 border-amber-500/20 bg-amber-500/5">
+            <div className="size-9 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0">
+              <WifiOff className="size-5 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-white/80">No internet connection</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Update checks require internet access.</p>
+            </div>
+          </GlassCard>
+        )}
+
         {/* ── idle / not-available ── */}
-        {(status === 'idle' || status === 'not-available') && (
+        {isOnline && (status === 'idle' || status === 'not-available') && (
           <GlassCard className="p-4 flex items-center gap-3">
             <div className="size-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
               <CheckCircle2 className="size-5 text-emerald-400" />
@@ -280,7 +295,7 @@ export function UpdateCard() {
         )}
 
         {/* ── error ── */}
-        {status === 'error' && (
+        {isOnline && status === 'error' && (
           <GlassCard className="p-4 space-y-3 border-red-500/20 bg-red-500/5">
             <div className="flex items-start gap-3">
               <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />

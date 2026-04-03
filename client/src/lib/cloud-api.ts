@@ -1,5 +1,6 @@
 import { useAuthStore } from "./auth-store";
 import { ApiError } from "./api";
+import { getCloudUserFacingError } from "./network-errors";
 
 const isElectron =
   typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
@@ -24,6 +25,11 @@ export async function cloudApiPost<T = any>(
   body?: unknown,
   options?: CloudRequestOptions
 ): Promise<T> {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    console.warn(`[CloudAPI] Blocked (offline) | POST ${path}`);
+    throw new ApiError(0, "You are offline. Please check your connection.");
+  }
+
   const url = `${CLOUD_BASE}${path.startsWith("/") ? path : `/${path}`}`;
   const jwt = useAuthStore.getState().jwt;
 
@@ -73,19 +79,21 @@ export async function cloudApiPost<T = any>(
     });
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
-    console.error(`[CloudAPI] Network error | POST ${path}`, err);
-    throw new ApiError(0, "AI service is temporarily unavailable. Please check your connection.");
+    const normalized = getCloudUserFacingError(err);
+    console.error(`[CloudAPI] ${normalized.kind} | POST ${path}`, err);
+    throw new ApiError(0, normalized.userMessage);
   }
 
   if (!res.ok) {
-    let msg = `Request failed (${res.status})`;
+    let rawMsg = `Request failed (${res.status})`;
     try {
       const data = await res.json();
-      if (data.error) msg = data.error;
-      else if (data.message) msg = data.message;
+      if (data.error) rawMsg = data.error;
+      else if (data.message) rawMsg = data.message;
     } catch {}
-    console.error(`[CloudAPI] HTTP ${res.status} | POST ${path} | ${msg}`);
-    throw new ApiError(res.status, msg);
+    const normalized = getCloudUserFacingError(new Error(rawMsg), res.status);
+    console.error(`[CloudAPI] HTTP ${res.status} | POST ${path} | ${normalized.userMessage}`);
+    throw new ApiError(res.status, normalized.userMessage);
   }
 
   console.log(`[CloudAPI] OK | POST ${path} | status=${res.status}`);

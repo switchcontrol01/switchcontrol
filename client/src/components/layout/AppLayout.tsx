@@ -5,10 +5,12 @@ import { motion, AnimatePresence, useMotion, easing, timing } from "@/lib/motion
 import { AppBackground } from "@/components/AppBackground";
 import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { UpdateBanner } from "@/components/UpdateBanner";
+import { NetworkStatusChip } from "@/components/NetworkStatusChip";
 import { useLocation } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
+import { useNetworkStatus } from "@/hooks/use-network-status";
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== "undefined" && window.location.protocol === "file:";
@@ -64,6 +66,7 @@ function BackendStartingBanner() {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion, hasLoaded } = useMotion();
   const [location] = useLocation();
+  useNetworkStatus(); // boot network listeners + heartbeat once
 
   // Central reveal system — re-fires on every navigation so all pages get blur-in reveals
   useRevealOnScroll({ locationKey: location });
@@ -79,8 +82,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />
-      <div className="pl-64 pt-2">
-        <UpdateBanner />
+      <div className="pl-64 pt-2 flex items-start gap-2 pr-4">
+        <div className="flex-1">
+          <UpdateBanner />
+        </div>
+        <div className="pt-1 shrink-0">
+          <NetworkStatusChip />
+        </div>
       </div>
       <main
         className="pl-64 h-full overflow-y-auto overflow-x-hidden relative z-10"

@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuthStore, refreshEntitlements } from '@/lib/auth-store';
+import { usePremiumGraceStore } from '@/stores/premiumGraceStore';
 
 interface UseEntitlementRefreshOptions {
   refreshOnFocus?: boolean;
@@ -13,6 +14,7 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
   } = options;
   
   const user = useAuthStore((state) => state.user);
+  const setVerified = usePremiumGraceStore((s) => s.setVerified);
   const isRefreshing = useRef(false);
   const lastRefreshTime = useRef(0);
   const MIN_REFRESH_INTERVAL = 10000;
@@ -28,13 +30,17 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
     lastRefreshTime.current = now;
 
     try {
-      await refreshEntitlements();
+      const result = await refreshEntitlements();
+      if (result?.user) {
+        setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
+        console.log(`[Premium] Grace snapshot saved — isPremium=${result.user.isPremium}`);
+      }
     } catch (err) {
       console.error('[Entitlement] Refresh failed:', err);
     } finally {
       isRefreshing.current = false;
     }
-  }, [user?.loggedIn]);
+  }, [user?.loggedIn, setVerified]);
 
   useEffect(() => {
     if (refreshOnMount && user?.loggedIn) {
