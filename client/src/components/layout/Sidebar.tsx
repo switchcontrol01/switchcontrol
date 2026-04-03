@@ -153,7 +153,7 @@ function NavItemRow({
             initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.94 }}
-            transition={{ duration: 0.3, ease: EASE_PREMIUM }}
+            transition={{ duration: 0.18, ease: EASE_PREMIUM }}
           >
             <div
               className="absolute inset-0 rounded-xl"
