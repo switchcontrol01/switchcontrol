@@ -349,25 +349,25 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
             <Legend wrapperStyle={{ fontSize: '10px', paddingTop: '8px' }} iconSize={8} />
 
             {/* ── COLLAPSED + EXPANDED: Core three lines ── */}
+            {/* Disk rendered first (lowest z-order) so RAM and CPU are always visible on top */}
+            <Line
+              yAxisId="pct" type="monotone" dataKey="disk"
+              name="Disk (%)" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
+              strokeDasharray="5 2"
+              dot={false} activeDot={{ r: 3 }} connectNulls
+              hide={!hasDiskData}
+            />
+            <Line
+              yAxisId="pct" type="monotone" dataKey="ram"
+              name="RAM (%)" stroke={C.ram} strokeWidth={2}
+              dot={false} activeDot={{ r: 3 }} connectNulls
+              hide={!hasRamData}
+            />
             <Line
               yAxisId="pct" type="monotone" dataKey="cpuLoad"
               name="CPU (%)" stroke={C.cpuLoad} strokeWidth={2}
               dot={false} activeDot={{ r: 3 }}
             />
-            {hasRamData && (
-              <Line
-                yAxisId="pct" type="monotone" dataKey="ram"
-                name="RAM (%)" stroke={C.ram} strokeWidth={2}
-                dot={false} activeDot={{ r: 3 }} connectNulls
-              />
-            )}
-            {hasDiskData && (
-              <Line
-                yAxisId="pct" type="monotone" dataKey="disk"
-                name="Disk (%)" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
-                dot={false} activeDot={{ r: 3 }} connectNulls
-              />
-            )}
 
             {/* ── EXPANDED ONLY: Extra percentage lines ── */}
             {expanded && hasCpuTemp && (
