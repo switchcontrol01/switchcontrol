@@ -1,0 +1,260 @@
+TASK
+Implement a unified patch notes / “What’s New” system across both the SwitchControl website and the desktop app.
+
+GOAL
+I want patch notes to exist as a real product feature, not just static text.
+
+This needs to work across:
+
+1. Website
+2. Desktop app
+3. App startup flow
+4. App settings page
+
+The system must feel premium, fluid, intentional, and cohesive with SwitchControl’s visual style.
+
+IMPORTANT
+Do NOT build this as disconnected hardcoded text in multiple places.
+Do NOT duplicate the patch notes manually across app and website.
+Do NOT make the website landing hero messy.
+Do NOT make the app popup feel cheap or template-like.
+Do NOT make the modal appear every single startup forever.
+
+This must be one clean system with one source of truth.
+
+ARCHITECTURE GOAL
+Create a single patch notes source that both the website and app can read from.
+
+Preferred approach:
+- one JSON source of truth
+- website reads it
+- app reads it
+- app stores last seen version locally
+- website can also track last seen version when logged in if practical
+
+IMPLEMENTATION
+
+1. SINGLE SOURCE OF TRUTH
+Create a shared patch notes source.
+
+Preferred:
+- a JSON file such as:
+  /public/patch-notes.json
+or another clean shared location that both website and app frontend can fetch from.
+
+Example structure:
+{
+  "version": "1.0.1",
+  "title": "Performance + Stability Update",
+  "headline": "Cleaner updates, smoother motion, and improved reliability.",
+  "date": "2026-04-03",
+  "changes": [
+    "Fixed update pipeline reliability",
+    "Improved animation smoothness across key UI surfaces",
+    "Resolved disk telemetry loading inconsistency",
+    "General performance and polish improvements"
+  ],
+  "type": "minor"
+}
+
+Also support a small optional history array if helpful:
+{
+  "latest": {...},
+  "history": [...]
+}
+
+2. WEBSITE IMPLEMENTATION
+Do NOT place patch notes in the landing hero.
+
+Add patch notes to the logged-in download experience / download area.
+
+Exact placement:
+- on the website download page or logged-in download section
+- directly BELOW the main download card
+- above lower-priority content
+
+The patch notes card must:
+- match the existing premium glass style
+- feel integrated with the download surface
+- have a small “What’s New” / version badge
+- include title, headline, and bullet list
+- allow “View full changelog” if helpful
+- have tasteful motion on load
+- not overwhelm the page
+
+If the user is logged in, make this feel even more personalized:
+- optional tiny “New since your last visit” badge if last seen version differs
+
+3. APP SETTINGS PAGE
+Add a proper Patch Notes section in app Settings.
+
+Requirements:
+- clear “Patch Notes” or “What’s New” section
+- latest version summary at top
+- optional version history below
+- glass styling consistent with SwitchControl
+- smooth reveal animation on mount / scroll
+- readable, premium formatting
+- no clutter
+
+This should feel like a real product settings section, not dumped text.
+
+4. APP STARTUP PATCH NOTES MODAL
+After the startup animation completes, show a one-time patch notes modal if the installed app version is newer than the user’s last seen version.
+
+Requirements:
+- appears AFTER startup animation, not before
+- smooth fluid entrance
+- premium glass modal styling
+- subtle motion, no cartoonish effects
+- elegant layered glow
+- blur/fade/translate entrance
+- polished exit
+- not too aggressive
+- must feel expensive
+
+The modal should contain:
+- version number
+- title / headline
+- short bullet list of changes
+- Continue button
+- optional “View full notes” action
+- optional small “New” badge
+
+Important:
+- show ONCE per new version
+- store last seen version locally
+- do not repeatedly show on every startup of the same version
+
+5. APP VERSION MATCHING LOGIC
+Use the app’s installed version as the comparison source.
+
+Logic:
+- read current app version
+- compare against local stored last seen patch version
+- if current version > last seen version, show modal
+- once dismissed, store current version as seen
+
+Handle first install cleanly:
+- acceptable to show patch notes once on first launch
+- but do not keep showing them repeatedly
+
+6. WEBSITE LAST-SEEN HANDLING
+If practical and clean:
+- store last seen version in logged-in user state or local storage
+- website can optionally show “New since your last visit”
+
+Do NOT overengineer backend persistence unless it is easy and already fits existing auth/user systems.
+If backend storage is messy, local storage is acceptable for now.
+
+7. MOTION / VISUAL QUALITY
+This must feel premium.
+
+Modal/card motion direction:
+- opacity
+- slight y-shift
+- blur-to-sharp
+- soft scale settle
+- subtle glow ramp
+- elegant stagger for bullet points
+
+Do NOT:
+- use explosive motion
+- use random neon spam
+- use heavy distracting particle overload
+- make it gamey or gaudy
+
+The patch notes system should feel:
+- calm
+- premium
+- intentional
+- expensive
+- cohesive with the SwitchControl visual language
+
+8. DESIGN DETAILS
+Use SwitchControl’s existing visual identity:
+- matte dark base
+- glass surfaces
+- purple / pink primary accents
+- cyan only as a secondary accent where helpful
+- soft edge glow
+- premium typography hierarchy
+
+Recommended modal structure:
+- compact hero header
+- version chip
+- title
+- one-line headline
+- bullet list
+- primary CTA
+- optional secondary CTA
+
+9. BACKEND / DATA SIDE
+Implement whatever is needed so both app and website can access the same patch notes source reliably.
+
+If a backend endpoint is cleaner than raw public JSON, that is acceptable.
+But keep it simple and maintainable.
+
+Preferred priorities:
+- simplest robust shared source
+- easy for future updates
+- easy to change version notes without editing many files
+- no duplicate hardcoded data across app and website
+
+10. FUTURE-PROOFING
+Make future updates easy.
+
+I want to be able to change patch notes for future versions by editing one obvious place only.
+
+Examples:
+- update version
+- update title/headline
+- update bullets
+- republish
+
+No multi-file manual syncing.
+
+11. EXTRA IDEAS TO INCLUDE IF THEY FIT CLEANLY
+If they fit naturally, include these tasteful additions:
+- “New” badge when unseen
+- version history list in settings
+- “View full changelog” drawer/modal
+- tiny dismiss memory on website
+- smooth staggered bullet reveal
+- subtle icon accent for each change category if tasteful
+
+Only include extras if they are clean and do not clutter the experience.
+
+12. DOWNLOAD PAGE COPY FIX
+On the website download card, change the size label from:
+- ~25 MB
+to:
+- ~350 MB
+
+Use clean wording like:
+- ~350 MB • Installs in under 30 seconds
+or another polished equivalent that matches the design.
+
+CHECKLIST
+- one shared patch notes source exists
+- website reads from it
+- app reads from it
+- website shows patch notes under the download card
+- app shows patch notes in settings
+- app shows one-time startup modal after startup animation
+- modal only appears once per new version
+- last seen version is stored cleanly
+- UI is premium and fluid
+- no duplicated hardcoded patch notes across multiple surfaces
+- size copy on website updated from 25 MB to ~350 MB
+
+FINAL OUTPUT
+Return:
+1. files changed
+2. where the shared patch notes source lives
+3. website placement summary
+4. app settings implementation summary
+5. startup modal implementation summary
+6. version tracking logic summary
+7. any backend/data endpoint added
+8. how I update patch notes for future versions in one place

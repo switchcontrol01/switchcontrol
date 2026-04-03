@@ -9,6 +9,28 @@ import { GlowButton } from "@/components/website/GlowButton";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
 import faviconImg from "@/assets/favicon.png";
 
+// ── Side particle data ─────────────────────────────────────────────────────────
+const LEFT_PARTICLES = [
+  { top: "18%",  size: 3,   dur: 2.8, delay: 0,    color: "rgba(168,85,246,0.55)" },
+  { top: "34%",  size: 2,   dur: 3.4, delay: 0.6,  color: "rgba(139,92,246,0.40)" },
+  { top: "50%",  size: 4,   dur: 2.5, delay: 1.1,  color: "rgba(103,232,249,0.45)" },
+  { top: "65%",  size: 2.5, dur: 3.8, delay: 0.3,  color: "rgba(168,85,246,0.35)" },
+  { top: "80%",  size: 3,   dur: 3.0, delay: 1.6,  color: "rgba(255,255,255,0.25)" },
+  { top: "27%",  size: 2,   dur: 4.1, delay: 0.9,  color: "rgba(103,232,249,0.30)" },
+  { top: "56%",  size: 3.5, dur: 2.9, delay: 2.0,  color: "rgba(168,85,246,0.50)" },
+  { top: "72%",  size: 2,   dur: 3.6, delay: 0.4,  color: "rgba(255,255,255,0.20)" },
+];
+const RIGHT_PARTICLES = [
+  { top: "22%",  size: 3,   dur: 3.1, delay: 0.2,  color: "rgba(103,232,249,0.50)" },
+  { top: "40%",  size: 2,   dur: 2.6, delay: 0.8,  color: "rgba(168,85,246,0.40)" },
+  { top: "55%",  size: 4,   dur: 3.3, delay: 1.4,  color: "rgba(139,92,246,0.55)" },
+  { top: "70%",  size: 2.5, dur: 2.8, delay: 0.1,  color: "rgba(103,232,249,0.35)" },
+  { top: "84%",  size: 3,   dur: 3.7, delay: 1.8,  color: "rgba(255,255,255,0.22)" },
+  { top: "30%",  size: 2,   dur: 4.0, delay: 0.5,  color: "rgba(168,85,246,0.30)" },
+  { top: "62%",  size: 3.5, dur: 2.7, delay: 2.2,  color: "rgba(103,232,249,0.45)" },
+  { top: "46%",  size: 2,   dur: 3.5, delay: 1.0,  color: "rgba(255,255,255,0.18)" },
+];
+
 export default function DownloadPage() {
   const { user } = useAuth();
   const { prefersReducedMotion } = useMotion();
@@ -40,10 +62,68 @@ export default function DownloadPage() {
             animation: logoFloat 8s ease-in-out infinite, glowPulse 6s ease-in-out infinite;
           }
         }
+        @keyframes sideParticle {
+          0%   { opacity: 0;    transform: translate(0, 0)    scale(1); }
+          15%  { opacity: 1; }
+          80%  { opacity: 0.6; }
+          100% { opacity: 0;    transform: translate(var(--dx), -80px) scale(0.3); }
+        }
+        .side-particle {
+          animation: sideParticle var(--dur) ease-out var(--delay) infinite;
+          border-radius: 50%;
+          position: absolute;
+          pointer-events: none;
+          will-change: transform, opacity;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .side-particle { animation-duration: calc(var(--dur) * 2.5); }
+        }
       `}</style>
 
       <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)] relative">
         <SectionGlow color="purple" intensity="strong" />
+
+        {/* Card wrapper — particles are positioned relative to this */}
+        <div className="relative w-full max-w-lg">
+
+          {/* Left-side particles */}
+          {LEFT_PARTICLES.map((p, i) => (
+            <div
+              key={`lp-${i}`}
+              className="side-particle"
+              style={{
+                top: p.top,
+                left: `-${10 + (i % 3) * 6}px`,
+                width: p.size,
+                height: p.size,
+                background: p.color,
+                boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+                "--dur": `${p.dur}s`,
+                "--delay": `${p.delay}s`,
+                "--dx": `${-12 - (i % 4) * 5}px`,
+              } as React.CSSProperties}
+            />
+          ))}
+
+          {/* Right-side particles */}
+          {RIGHT_PARTICLES.map((p, i) => (
+            <div
+              key={`rp-${i}`}
+              className="side-particle"
+              style={{
+                top: p.top,
+                right: `-${10 + (i % 3) * 6}px`,
+                width: p.size,
+                height: p.size,
+                background: p.color,
+                boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+                "--dur": `${p.dur}s`,
+                "--delay": `${p.delay}s`,
+                "--dx": `${12 + (i % 4) * 5}px`,
+              } as React.CSSProperties}
+            />
+          ))}
+
         <GlassPanel variant="elevated" glow="purple" className="w-full max-w-lg p-0">
           <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
             <div className="flex justify-center mb-4">
@@ -92,7 +172,7 @@ export default function DownloadPage() {
               </div>
               <div className="flex items-center gap-3 text-sm text-white/50">
                 <Clock className="size-4 text-amber-400 shrink-0" />
-                <span>~25 MB • Installs in under 30 seconds</span>
+                <span>~350 MB • Installs in under 30 seconds</span>
               </div>
             </div>
 
@@ -143,6 +223,7 @@ export default function DownloadPage() {
             </div>
           </div>
         </GlassPanel>
+        </div>{/* end particle wrapper */}
       </main>
     </WebsiteShell>
   );
