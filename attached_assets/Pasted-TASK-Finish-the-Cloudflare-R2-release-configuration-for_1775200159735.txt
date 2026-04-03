@@ -1,0 +1,85 @@
+TASK
+Finish the Cloudflare R2 release configuration for SwitchControl by making the Electron release script load credentials from electron/.env cleanly and reliably.
+
+CONTEXT
+The build already succeeds.
+The release step currently fails with:
+
+ERROR: Missing R2 credentials.
+Set these in electron/.env or your shell environment:
+- R2_ACCOUNT_ID
+- R2_ACCESS_KEY_ID
+- R2_SECRET_ACCESS_KEY
+- R2_BUCKET
+
+I am NOT bumping to 1.0.1 yet.
+We are staying on 1.0.0 for now.
+The immediate goal is only to make the release/upload step work correctly for the current version.
+
+GOAL
+Make `npm run release` work by:
+- loading credentials from `electron/.env`
+- documenting exactly what values I need to paste there
+- keeping the current release workflow simple and reliable
+
+IMPORTANT
+Do NOT change app version.
+Do NOT redesign the updater.
+Do NOT change provider type.
+Do NOT overengineer secrets management.
+Just make the current release script read electron/.env correctly and fail clearly if values are missing.
+
+IMPLEMENTATION
+
+1. VERIFY ENV LOADING IN RELEASE SCRIPT
+Audit `electron/scripts/release.js` and confirm whether it actually loads `electron/.env`.
+
+If it does not:
+- add reliable dotenv loading from the electron directory
+- ensure `.env` is loaded before any R2 credential checks happen
+
+If it already does:
+- verify path resolution is correct when running `npm run release` from the electron folder
+
+2. SUPPORT THESE ENV VARIABLES
+The release script must read exactly these:
+- R2_ACCOUNT_ID
+- R2_ACCESS_KEY_ID
+- R2_SECRET_ACCESS_KEY
+- R2_BUCKET
+- R2_PUBLIC_URL
+
+3. CREATE OR FIX `.env.example`
+Make sure `electron/.env.example` exists and contains the exact template:
+
+R2_ACCOUNT_ID=
+R2_ACCESS_KEY_ID=
+R2_SECRET_ACCESS_KEY=
+R2_BUCKET=switchcontrol-releases
+R2_PUBLIC_URL=https://pub-c4010f9528c74cbd98d82c9c7c2306d2.r2.dev
+
+4. DOCUMENT EXACT NEXT STEP
+Add a short note in the release guide telling me:
+- where to create `electron/.env`
+- exactly which values to paste from Cloudflare
+- that we are staying on 1.0.0 for now
+- that version bumping is NOT part of this step
+
+5. KEEP ERROR OUTPUT CLEAN
+If any variable is still missing, the script should fail clearly and list the exact missing keys.
+
+6. DO NOT TOUCH VERSION
+Do not modify:
+- electron/package.json version
+- latest.yml versioning logic
+- updater behavior
+
+This task is only about getting release credentials working.
+
+FINAL OUTPUT
+Return:
+1. files changed
+2. whether dotenv loading was missing or broken
+3. exact `.env` template now expected
+4. exact next command I should run after filling `.env`
+5. any manual Cloudflare values I still need to copy

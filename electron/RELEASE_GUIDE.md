@@ -14,6 +14,42 @@ The Electron updater checks the configured URL for `latest.yml` on every launch.
 
 ---
 
+## Credentials Setup
+
+**Do this once before running `npm run release` for the first time.**
+
+### 1. Create `electron/.env`
+
+```powershell
+# PowerShell (from the electron/ directory)
+Copy-Item .env.example .env
+
+# cmd
+copy .env.example .env
+```
+
+### 2. Fill in the values
+
+Open `electron/.env` and paste the values from Cloudflare:
+
+| Variable | Where to find it in Cloudflare |
+|---|---|
+| `R2_ACCOUNT_ID` | [dash.cloudflare.com](https://dash.cloudflare.com) → top-right account menu → **Account ID** |
+| `R2_ACCESS_KEY_ID` | R2 → **Manage R2 API Tokens** → Create token → copy **Access Key ID** |
+| `R2_SECRET_ACCESS_KEY` | Same token creation screen → copy **Secret Access Key** (shown once only) |
+| `R2_BUCKET` | `switchcontrol-releases` — already set as the default, leave it unless you renamed the bucket |
+| `R2_PUBLIC_URL` | Already set to the R2 dev URL in `.env.example` — leave it as-is for now |
+
+The token needs **Object Read & Write** permission scoped to the `switchcontrol-releases` bucket.
+
+### 3. Note on versioning
+
+We are staying on **v1.0.0** for now. `npm run release` uploads whatever
+`electron/dist/` contains — it does **not** bump the version. Do not change
+`electron/package.json` version unless you are intentionally cutting a new release.
+
+---
+
 ## One-time Cloudflare Setup
 
 Do this once. After that, every release is just build → upload.

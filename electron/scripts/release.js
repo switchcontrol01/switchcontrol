@@ -46,15 +46,22 @@ const BUCKET      = process.env.R2_BUCKET || 'switchcontrol-releases';
 // and update build.publish.url in electron/package.json to match.
 const PUBLIC_URL  = (process.env.R2_PUBLIC_URL || 'https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev').replace(/\/$/, '');
 
-if (!ACCOUNT_ID || !KEY_ID || !KEY_SECRET) {
-  console.error(`
-ERROR: Missing R2 credentials.
-Set these in electron/.env or your shell environment:
+const missing = [
+  !ACCOUNT_ID  && 'R2_ACCOUNT_ID',
+  !KEY_ID      && 'R2_ACCESS_KEY_ID',
+  !KEY_SECRET  && 'R2_SECRET_ACCESS_KEY',
+].filter(Boolean);
 
-  R2_ACCOUNT_ID=your_cloudflare_account_id
-  R2_ACCESS_KEY_ID=your_r2_key_id
-  R2_SECRET_ACCESS_KEY=your_r2_key_secret
-  R2_BUCKET=switchcontrol-releases   (optional, this is the default)
+if (missing.length > 0) {
+  console.error('\nERROR: Missing R2 credentials in electron/.env:\n');
+  for (const k of missing) console.error(`  ${k}`);
+  console.error(`
+Create electron/.env by copying the example:
+
+  PowerShell:  Copy-Item .env.example .env
+  cmd:         copy .env.example .env
+
+Then fill in the missing values. See RELEASE_GUIDE.md → "Credentials Setup" for where to find each value in Cloudflare.
 `);
   process.exit(1);
 }
