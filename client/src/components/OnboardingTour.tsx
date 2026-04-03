@@ -105,7 +105,6 @@ function TourLineGraph({ points, color, width = 360, height = 52, delay = 0, lab
         </defs>
         {/* Fill */}
         <motion.path
-          ref={svgFillRef}
           d={fillPath}
           fill={`url(#${uid}-fill)`}
           initial={{ opacity: 0 }}
