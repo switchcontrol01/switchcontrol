@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "./Sidebar";
 import { Toaster } from "@/components/ui/toaster";
-import { motion, AnimatePresence, useMotion, easing, timing } from "@/lib/motion";
+import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
-import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { NetworkStatusChip } from "@/components/NetworkStatusChip";
 import { useLocation } from "wouter";
@@ -77,9 +76,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">
       <AppBackground />
-      <SpotlightEffect />
       <BackendStartingBanner />
-      <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />
       <div className="pl-64 pt-2 flex items-start gap-2 pr-4">

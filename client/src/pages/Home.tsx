@@ -92,7 +92,7 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
       <div className="absolute -right-12 -top-12 h-36 w-36 bg-primary/8 blur-3xl rounded-full pointer-events-none group-hover:bg-primary/15 transition-colors duration-500" />
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
-          <Sparkles className="size-4 text-primary animate-pulse" />
+          <Sparkles className="size-4 text-primary/70" />
         ) : (
           <AnimatedCrown size="sm" tooltipText="Premium feature" />
         )}
@@ -456,43 +456,12 @@ export default function Home() {
                   Good {getGreeting()},
                 </h1>
 
-                {/* Username — cyan→violet gradient + shimmer sweep */}
-                <span className="relative inline-flex items-center gap-2 overflow-hidden">
-                  <span
-                    className="text-3xl font-bold tracking-tight leading-tight select-none"
-                    style={{
-                      background: 'linear-gradient(105deg, #22d3ee 0%, #a78bfa 50%, #c084fc 100%)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
-                    }}
-                    data-testid="text-dashboard-username"
-                  >
-                    {getUserDisplayName()}
-                  </span>
-
-                  {/* Soft glow behind username */}
-                  <span
-                    className="absolute inset-0 rounded-md pointer-events-none"
-                    style={{
-                      background: 'radial-gradient(ellipse 80% 100% at 40% 50%, rgba(139,92,246,0.22) 0%, transparent 70%)',
-                      filter: 'blur(8px)',
-                    }}
-                  />
-
-                  {/* Shimmer sweep — plays every 8 s */}
-                  <motion.span
-                    className="absolute inset-0 pointer-events-none rounded-md"
-                    style={{
-                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.28) 50%, transparent 100%)',
-                      backgroundSize: '50% 100%',
-                    }}
-                    animate={{ backgroundPositionX: ['-100%', '300%'] }}
-                    transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 7.2, ease: 'easeInOut' }}
-                  />
+                <span
+                  className="text-3xl font-bold tracking-tight leading-tight text-white/90 select-none"
+                  data-testid="text-dashboard-username"
+                >
+                  {getUserDisplayName()}
                 </span>
-
-                {isPremium && <AnimatedCrown />}
               </motion.div>
 
               {/* Rotating live-status subtitle with crossfade */}
@@ -526,11 +495,11 @@ export default function Home() {
             >
               {/* Live status chip */}
               <div
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm"
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded border border-white/[0.07] bg-white/[0.03]"
                 data-testid="chip-system-status"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs text-white/50 font-medium tracking-wide">System Active</span>
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-xs text-white/40 font-medium tracking-wide">System Active</span>
               </div>
 
               <Link href="/history">
@@ -541,7 +510,7 @@ export default function Home() {
               </Link>
               <Link href="/tweaks">
                 <Button
-                  className="gap-2 shadow-lg shadow-[hsl(190,90%,50%,0.25)] bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold border-0"
+                  className="gap-2 bg-primary hover:bg-primary/90 text-white font-medium border-0"
                   data-testid="button-optimize-now"
                 >
                   <Zap className="size-4" />
