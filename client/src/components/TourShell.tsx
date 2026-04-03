@@ -29,75 +29,139 @@ interface TourShellProps {
   isPremium?: boolean;
 }
 
-// ── Clean "You're All Set" completion screen ──────────────────────────────
+// ── "You're All Set" completion screen ───────────────────────────────────────
 function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium?: boolean }) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('hold'), 2000);
-    const t2 = setTimeout(() => setPhase('exit'), 4000);
-    const t3 = setTimeout(onDone, 5000);
+    const t1 = setTimeout(() => setPhase('hold'), 2200);
+    const t2 = setTimeout(() => setPhase('exit'), 4800);
+    const t3 = setTimeout(onDone, 6200);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onDone]);
 
   const isExiting = phase === 'exit';
-  const glowColor = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
-  const accentHex  = isPremium ? '#fbbf24' : '#a855f7';
+  const c1 = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
+  const c2 = isPremium ? 'rgba(245,158,11,' : 'rgba(168,85,247,';
+  const c3 = isPremium ? 'rgba(252,211,77,' : 'rgba(192,132,252,';
+  const accentHex = isPremium ? '#fbbf24' : '#a855f7';
+  const accentHex2 = isPremium ? '#f59e0b' : '#7c3aed';
 
   return (
     <motion.div
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{ background: 'rgba(4,3,14,0.97)' }}
-      initial={{ opacity: 0 }}
+      initial={{ opacity: 0, filter: 'blur(20px)', scale: 0.97 }}
       animate={isExiting
-        ? { opacity: 0, filter: 'blur(12px)' }
-        : { opacity: 1, filter: 'blur(0px)' }
+        ? { opacity: 0, filter: 'blur(28px)', scale: 1.06 }
+        : { opacity: 1, filter: 'blur(0px)', scale: 1 }
       }
       transition={isExiting
-        ? { duration: 1.0, ease: [0.4, 0, 1, 1] }
-        : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        ? { duration: 1.4, ease: [0.4, 0, 0.8, 1] }
+        : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Single soft radial glow — centered */}
-      <div
+      {/* Outer ambient halo — slow breathe */}
+      <motion.div
         className="absolute pointer-events-none"
         style={{
           top: '50%', left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '55vw', height: '55vw',
-          background: `radial-gradient(ellipse, ${glowColor}0.12) 0%, transparent 68%)`,
-          filter: 'blur(60px)',
+          width: '80vw', height: '80vw',
+          background: `radial-gradient(ellipse, ${c1}0.16) 0%, ${c1}0.06) 42%, transparent 68%)`,
+          filter: 'blur(70px)',
         }}
+        animate={{ opacity: [0.5, 1, 0.5], scale: [0.95, 1.05, 0.95] }}
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      {/* Mid-ring glow — faster breathe */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '50vw', height: '50vw',
+          background: `radial-gradient(ellipse, ${c2}0.28) 0%, ${c2}0.10) 38%, transparent 62%)`,
+          filter: 'blur(40px)',
+        }}
+        animate={{ opacity: [0.4, 0.9, 0.4], scale: [0.97, 1.04, 0.97] }}
+        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+      />
+      {/* Core orb — tight and bright */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '22vw', height: '22vw',
+          background: `radial-gradient(ellipse, ${c3}0.45) 0%, ${c3}0.18) 50%, transparent 78%)`,
+          filter: 'blur(20px)',
+        }}
+        animate={{ opacity: [0.55, 1, 0.55], scale: [0.94, 1.06, 0.94] }}
+        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
       />
 
       {/* Center content */}
       <motion.div
-        className="relative flex flex-col items-center gap-5 text-center z-10"
-        initial={{ opacity: 0, y: 18 }}
+        className="relative flex flex-col items-center gap-6 text-center z-10"
+        initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
       >
-        {/* Logo with gentle glow */}
-        <div className="relative flex items-center justify-center mb-1">
-          <div
+        {/* Logo — bigger, with layered glow */}
+        <div className="relative flex items-center justify-center mb-2">
+          <motion.div
             className="absolute rounded-full pointer-events-none"
             style={{
-              width: 120, height: 120,
-              background: `radial-gradient(ellipse, ${glowColor}0.18) 0%, transparent 72%)`,
-              filter: 'blur(18px)',
+              width: 200, height: 200,
+              background: `radial-gradient(ellipse, ${c1}0.35) 0%, ${c2}0.14) 45%, transparent 72%)`,
+              filter: 'blur(22px)',
             }}
+            animate={{ opacity: [0.5, 1, 0.5], scale: [0.92, 1.08, 0.92] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           />
-          <img src={logoImg} alt="SwitchControl" className="w-16 h-16 object-contain rounded-[22%] relative z-10" draggable={false} />
+          <motion.div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              width: 110, height: 110,
+              background: `radial-gradient(ellipse, ${c3}0.55) 0%, transparent 70%)`,
+              filter: 'blur(10px)',
+            }}
+            animate={{ opacity: [0.4, 0.85, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+          />
+          <motion.img
+            src={logoImg}
+            alt="SwitchControl"
+            className="w-24 h-24 object-contain rounded-[22%] relative z-10"
+            draggable={false}
+            animate={{
+              filter: [
+                `drop-shadow(0 0 10px ${accentHex}66)`,
+                `drop-shadow(0 0 24px ${accentHex}99)`,
+                `drop-shadow(0 0 10px ${accentHex}66)`,
+              ],
+            }}
+            transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+          />
         </div>
 
-        {/* "You're all set." — staggered reveal */}
-        <div className="flex flex-wrap justify-center gap-x-2.5 gap-y-1">
+        {/* "You're all set." — word-by-word blur-in */}
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
           {["You're", 'all', 'set.'].map((word, i) => (
             <motion.span
               key={word}
-              className="text-[38px] font-extrabold text-white leading-none tracking-tight"
-              initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
+              className="text-[56px] font-extrabold leading-none tracking-tight"
+              style={{
+                color: i === 2 ? 'transparent' : 'white',
+                backgroundImage: i === 2
+                  ? `linear-gradient(135deg, ${accentHex} 0%, ${accentHex2} 55%, white 100%)`
+                  : undefined,
+                backgroundClip: i === 2 ? 'text' : undefined,
+                WebkitBackgroundClip: i === 2 ? 'text' : undefined,
+              }}
+              initial={{ opacity: 0, y: 22, filter: 'blur(10px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ delay: 0.4 + i * 0.15, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ delay: 0.35 + i * 0.18, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
             >
               {word}
             </motion.span>
@@ -106,24 +170,33 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
 
         {/* Subtitle */}
         <motion.p
-          className="text-[13px] max-w-[240px] leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.4)' }}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="text-[15px] max-w-[310px] leading-relaxed"
+          style={{ color: 'rgba(255,255,255,0.55)' }}
+          initial={{ opacity: 0, y: 10, filter: 'blur(6px)' }}
+          animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+          transition={{ delay: 1.1, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         >
           {isPremium
             ? 'Full premium access unlocked. Every optimization is now yours.'
             : 'SwitchControl is configured and ready to boost your system.'}
         </motion.p>
 
-        {/* Thin accent line */}
+        {/* Glowing accent line */}
         <motion.div
-          style={{ height: 1, background: `linear-gradient(90deg, transparent, ${accentHex}99, transparent)` }}
+          className="relative"
+          style={{ height: 2, borderRadius: 2, overflow: 'visible' }}
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 140, opacity: 1 }}
-          transition={{ delay: 1.6, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        />
+          animate={{ width: 200, opacity: 1 }}
+          transition={{ delay: 1.7, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div
+            style={{
+              position: 'absolute', inset: 0, borderRadius: 2,
+              background: `linear-gradient(90deg, transparent, ${accentHex}, ${accentHex2}, ${accentHex}, transparent)`,
+              boxShadow: `0 0 10px 2px ${accentHex}88, 0 0 24px 4px ${accentHex}44`,
+            }}
+          />
+        </motion.div>
       </motion.div>
     </motion.div>
   );
