@@ -797,9 +797,12 @@ html {
 /* Scroll blur reveal system */
 [data-reveal] {
   opacity: 0;
-  transform: translate3d(0, 18px, 0);
-  filter: blur(10px);
-  transition: opacity 700ms ease, transform 700ms ease, filter 700ms ease;
+  transform: translate3d(0, 24px, 0);
+  filter: blur(14px);
+  transition:
+    opacity  0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    filter   0.65s cubic-bezier(0.22, 1, 0.36, 1);
   will-change: opacity, transform, filter;
 }
 
@@ -809,24 +812,27 @@ html {
   filter: blur(0px);
 }
 
-[data-reveal][data-delay="1"] { transition-delay: 60ms; }
-[data-reveal][data-delay="2"] { transition-delay: 120ms; }
-[data-reveal][data-delay="3"] { transition-delay: 180ms; }
-[data-reveal][data-delay="4"] { transition-delay: 240ms; }
+[data-reveal][data-delay="1"] { transition-delay: 80ms; }
+[data-reveal][data-delay="2"] { transition-delay: 160ms; }
+[data-reveal][data-delay="3"] { transition-delay: 240ms; }
+[data-reveal][data-delay="4"] { transition-delay: 320ms; }
+[data-reveal][data-delay="5"] { transition-delay: 400ms; }
+[data-reveal][data-delay="6"] { transition-delay: 480ms; }
 
 @media (max-width: 768px) {
   [data-reveal] {
-    filter: blur(6px);
-    transform: translate3d(0, 12px, 0);
-    transition-duration: 600ms;
+    filter: blur(8px);
+    transform: translate3d(0, 16px, 0);
+    transition-duration: 0.55s;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   [data-reveal] {
-    filter: blur(6px);
-    transform: translate3d(0, 10px, 0);
-    transition-duration: 400ms;
+    filter: none;
+    transform: none;
+    opacity: 0;
+    transition: opacity 300ms ease;
   }
 }
 

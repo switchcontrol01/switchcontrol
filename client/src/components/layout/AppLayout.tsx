@@ -7,6 +7,7 @@ import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { useLocation } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
 import { Loader2 } from "lucide-react";
+import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== "undefined" && window.location.protocol === "file:";
@@ -62,6 +63,9 @@ function BackendStartingBanner() {
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const { prefersReducedMotion, hasLoaded } = useMotion();
   const [location] = useLocation();
+
+  // Central reveal system — re-fires on every navigation so all pages get blur-in reveals
+  useRevealOnScroll({ locationKey: location });
 
   const isTourNav = typeof document !== 'undefined' && document.body.classList.contains('tour-navigating');
   const shouldAnimate = !prefersReducedMotion && !isTourNav;

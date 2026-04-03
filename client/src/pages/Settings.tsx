@@ -50,7 +50,7 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-4xl">
+      <div className="space-y-6 max-w-4xl" data-reveal>
         <PageHeader
           icon={SettingsIcon}
           title="Settings"

@@ -341,7 +341,7 @@ export default function NetworkTweaks() {
 
   return (
     <AppLayout>
-      <div className={cn("p-8 space-y-8", !isPremium && "opacity-60 blur-[2px]")} data-tour="network-content">
+      <div className={cn("p-8 space-y-8", !isPremium && "opacity-60 blur-[2px]")} data-tour="network-content" data-reveal>
         <motion.div
           className="space-y-2"
           initial={{ opacity: 0, y: -14 }}

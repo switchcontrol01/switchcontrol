@@ -176,7 +176,7 @@ export default function Debloater() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" data-reveal>
         <PageHeader
           icon={ShieldCheck}
           title="Debloater"

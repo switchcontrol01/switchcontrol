@@ -331,8 +331,8 @@ export function Reveal({
       style={{
         opacity: isVisible ? 1 : 0,
         transform: getTransform(),
-        filter: isVisible ? 'blur(0px)' : `blur(${prefersReducedMotion ? 4 : 8}px)`,
-        transition: `opacity ${reducedDuration}s ease-out ${delay}s, transform ${reducedDuration}s ease-out ${delay}s, filter ${reducedDuration}s ease-out ${delay}s`,
+        filter: isVisible ? 'blur(0px)' : `blur(${prefersReducedMotion ? 4 : 14}px)`,
+        transition: `opacity ${reducedDuration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform ${reducedDuration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter ${reducedDuration}s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
         willChange: 'opacity, transform, filter',
       }}
     >

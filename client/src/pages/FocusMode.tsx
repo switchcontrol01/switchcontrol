@@ -173,7 +173,7 @@ export default function FocusMode() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" data-reveal>
         <PageHeader
           icon={Moon}
           title="Focus Mode"

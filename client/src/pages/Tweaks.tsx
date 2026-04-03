@@ -22,7 +22,7 @@ export default function Tweaks() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 h-full">
+      <div className="space-y-6 h-full" data-reveal>
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}

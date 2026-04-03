@@ -553,7 +553,7 @@ export default function Home() {
         </div>
 
         {/* Activity Monitor Grid */}
-        <div className="space-y-4">
+        <div className="space-y-4" data-reveal>
           <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
             <Activity className="size-5 text-primary" />
             Activity Monitor
@@ -657,13 +657,17 @@ export default function Home() {
         </div>
 
         {/* Live Graph */}
-        <LiveGraph
-          onTelemetryUpdate={handleTelemetryUpdate}
-          selectedDiskMount={selectedDisk?.mount ?? null}
-        />
+        <div data-reveal data-delay="1">
+          <LiveGraph
+            onTelemetryUpdate={handleTelemetryUpdate}
+            selectedDiskMount={selectedDisk?.mount ?? null}
+          />
+        </div>
 
         {/* Storage Section */}
-        <StorageCards ssds={ssdData} />
+        <div data-reveal data-delay="2">
+          <StorageCards ssds={ssdData} />
+        </div>
 
         {/* Bottom Section */}
         <motion.div 

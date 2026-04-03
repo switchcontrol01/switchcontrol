@@ -327,7 +327,7 @@ export default function Security() {
 
   return (
     <AppLayout>
-      <div className="relative">
+      <div className="relative" data-reveal>
         <div className="flex flex-col gap-5 pb-10">
           {/* Header */}
           <motion.div

@@ -222,7 +222,7 @@ export default function SystemCleaner() {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-6" data-reveal>
         <PageHeader
           icon={Trash2}
           title="System Cleaner"
