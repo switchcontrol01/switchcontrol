@@ -354,38 +354,38 @@ export function setupGoogleAuth(app: Express): void {
       50%      { transform: translate(12px,0) scale(1.12); opacity: .60; }
     }
 
-    /* ── Sun streaks ─────────────────────────────────────────────── */
+    /* ── Sun streak — single beam from top-left corner ──────────── */
     .streaks { position: fixed; inset: 0; overflow: hidden; pointer-events: none; }
-    .streak {
-      position: absolute;
-      height: 1px;
-      transform-origin: left center;
-    }
     .streak-1 {
-      width: 150vw; left: 5%; top: 20%;
-      background: linear-gradient(90deg, transparent, rgba(168,85,247,0.20), transparent);
-      transform: rotate(24deg);
-      animation: streakPulse 9s ease-in-out infinite;
-      filter: blur(1px);
+      position: absolute;
+      left: -4%; top: -2%;
+      width: 160vw; height: 2px;
+      transform-origin: left top;
+      transform: rotate(28deg);
+      background: linear-gradient(90deg,
+        rgba(168,85,247,0.55) 0%,
+        rgba(168,85,247,0.22) 25%,
+        rgba(120,100,255,0.10) 60%,
+        transparent 100%);
+      filter: blur(1.5px);
+      animation: streakPulse 16s ease-in-out infinite;
     }
-    .streak-2 {
-      width: 130vw; left: 10%; top: 42%;
-      height: 1.5px;
-      background: linear-gradient(90deg, transparent, rgba(0,200,255,0.16), transparent);
-      transform: rotate(20deg);
-      animation: streakPulse 11s ease-in-out infinite 1.4s;
-      filter: blur(1.2px);
-    }
-    .streak-3 {
-      width: 120vw; left: 0%; top: 65%;
-      background: linear-gradient(90deg, transparent, rgba(200,130,255,0.12), transparent);
-      transform: rotate(18deg);
-      animation: streakPulse 13s ease-in-out infinite 3s;
-      filter: blur(0.8px);
+    /* Wide corner halo that ties the streak to the corner */
+    .streak-corner-glow {
+      position: absolute;
+      left: -18%; top: -18%;
+      width: 55vw; height: 55vw;
+      border-radius: 50%;
+      background: radial-gradient(ellipse at 20% 20%,
+        rgba(168,85,247,0.18) 0%,
+        rgba(100,80,255,0.08) 38%,
+        transparent 72%);
+      filter: blur(28px);
+      animation: streakPulse 16s ease-in-out infinite;
     }
     @keyframes streakPulse {
-      0%,100% { opacity: 0; }
-      30%,70%  { opacity: 1; }
+      0%,100% { opacity: 0.15; }
+      45%,65%  { opacity: 1; }
     }
 
     /* ── Vignette ────────────────────────────────────────────────── */
@@ -566,9 +566,8 @@ export function setupGoogleAuth(app: Express): void {
   <div class="haze haze-cyan"></div>
   <div class="haze haze-amber"></div>
   <div class="streaks">
-    <div class="streak streak-1"></div>
-    <div class="streak streak-2"></div>
-    <div class="streak streak-3"></div>
+    <div class="streak-corner-glow"></div>
+    <div class="streak-1"></div>
   </div>
   <div class="vignette"></div>
 
