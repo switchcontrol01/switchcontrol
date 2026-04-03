@@ -1,7 +1,6 @@
 import { Link, useSearch } from "wouter";
 import { brand } from "@/config/brand";
 import { motion } from "@/lib/motion";
-import { LoginParticles } from "@/components/LoginParticles";
 import { SpotlightCursor } from "@/components/SpotlightCursor";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 
@@ -38,12 +37,9 @@ export default function Login() {
     <WebsiteShell variant="inner" bgVariant="auth" showFooter={false}>
       {/* ── Full-screen ambient layer ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="login-orb-1" />
-        <div className="login-orb-2" />
-        <div className="login-orb-3" />
+        <div className="login-focal-glow" />
         <div className="login-rays" />
         <div className="login-sun-streak" />
-        <LoginParticles />
         <SpotlightCursor />
       </div>
 

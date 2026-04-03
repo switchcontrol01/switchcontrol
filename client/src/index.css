@@ -60,19 +60,10 @@
 
 /* ── Login page visual system ─────────────────────────────────── */
 
-@keyframes loginOrbDrift1 {
-  0%, 100% { transform: translate(0, 0)     scale(1);    }
-  33%       { transform: translate(50px, -40px)  scale(1.06); }
-  66%       { transform: translate(-30px, 25px)  scale(0.94); }
-}
-@keyframes loginOrbDrift2 {
-  0%, 100% { transform: translate(0, 0)     scale(1);    }
-  33%       { transform: translate(-60px, 50px)  scale(1.09); }
-  66%       { transform: translate(40px, -25px)  scale(0.91); }
-}
-@keyframes loginOrbDrift3 {
-  0%, 100% { transform: translate(-50%, -50%) scale(1);    }
-  50%       { transform: translate(-50%, -50%) scale(1.12); }
+@keyframes loginFocalPulse {
+  0%, 100% { opacity: 0.7; transform: translate(-50%, -50%) scale(1);    }
+  40%       { opacity: 0.9; transform: translate(-50%, -50%) scale(1.06); }
+  70%       { opacity: 1;   transform: translate(-50%, -50%) scale(1.03); }
 }
 
 @keyframes loginRayRotate {
@@ -102,28 +93,21 @@
   50%       { filter: drop-shadow(0 0 10px rgba(255,248,200,0.55)) drop-shadow(0 0 24px rgba(200,180,255,0.32)); }
 }
 
-/* Ambient background orbs */
-.login-orb-1 {
-  position: absolute; border-radius: 50%;
-  width: 700px; height: 700px;
-  top: -200px; left: -200px;
-  background: radial-gradient(ellipse, hsl(270 80% 55% / 0.28) 0%, transparent 70%);
-  animation: loginOrbDrift1 16s ease-in-out infinite;
-}
-.login-orb-2 {
-  position: absolute; border-radius: 50%;
-  width: 600px; height: 600px;
-  bottom: -180px; right: -160px;
-  background: radial-gradient(ellipse, hsl(190 90% 50% / 0.22) 0%, transparent 70%);
-  animation: loginOrbDrift2 20s ease-in-out infinite;
-}
-.login-orb-3 {
-  position: absolute; border-radius: 50%;
-  width: 480px; height: 480px;
-  top: 50%; left: 55%;
-  background: radial-gradient(ellipse, hsl(310 80% 60% / 0.18) 0%, transparent 70%);
-  animation: loginOrbDrift3 24s ease-in-out infinite;
-  transform-origin: center;
+/* Single focal sun glow — the light source behind the card */
+.login-focal-glow {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 960px; height: 960px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%,
+    rgba(255, 254, 245, 0.13)  0%,
+    rgba(220, 210, 255, 0.10) 18%,
+    rgba(180, 160, 255, 0.065) 36%,
+    rgba(140, 120, 240, 0.03)  55%,
+    transparent 72%
+  );
+  animation: loginFocalPulse 9s ease-in-out infinite;
 }
 
 /* ── Sun streak beam — diagonal shaft of light crossing the card ── */
@@ -171,7 +155,7 @@
   filter: blur(5px);
 }
 
-/* Rotating sun-streak rays */
+/* Monochromatic rotating light rays — silver-violet, slow */
 .login-rays {
   position: absolute;
   top: 50%; left: 50%;
@@ -187,40 +171,44 @@
   background: conic-gradient(
     from 0deg,
     transparent 0deg,
-    hsl(270 80% 60% / 0.055) 8deg,   transparent 16deg,
-    hsl(190 90% 55% / 0.04)  30deg,  transparent 38deg,
-    hsl(310 80% 65% / 0.05)  55deg,  transparent 63deg,
-    transparent 80deg,
-    hsl(270 80% 60% / 0.045) 95deg,  transparent 103deg,
-    hsl(190 90% 55% / 0.055) 118deg, transparent 126deg,
-    hsl(310 80% 65% / 0.04)  145deg, transparent 153deg,
-    transparent 170deg,
-    hsl(270 80% 60% / 0.05)  185deg, transparent 193deg,
-    hsl(190 90% 55% / 0.04)  210deg, transparent 218deg,
-    hsl(310 80% 65% / 0.055) 235deg, transparent 243deg,
-    transparent 260deg,
-    hsl(270 80% 60% / 0.04)  275deg, transparent 283deg,
-    hsl(190 90% 55% / 0.05)  300deg, transparent 308deg,
-    hsl(310 80% 65% / 0.045) 325deg, transparent 333deg,
+    hsl(265 60% 78% / 0.055) 5deg,  transparent 13deg,
+    transparent 35deg,
+    hsl(265 55% 80% / 0.045) 42deg, transparent 50deg,
+    transparent 70deg,
+    hsl(265 65% 75% / 0.06)  78deg, transparent 86deg,
+    transparent 108deg,
+    hsl(265 60% 78% / 0.04)  115deg, transparent 123deg,
+    transparent 148deg,
+    hsl(265 55% 80% / 0.055) 155deg, transparent 163deg,
+    transparent 182deg,
+    hsl(265 65% 75% / 0.045) 190deg, transparent 198deg,
+    transparent 220deg,
+    hsl(265 60% 78% / 0.06)  228deg, transparent 236deg,
+    transparent 258deg,
+    hsl(265 55% 80% / 0.04)  265deg, transparent 273deg,
+    transparent 295deg,
+    hsl(265 65% 75% / 0.05)  302deg, transparent 310deg,
+    transparent 332deg,
+    hsl(265 60% 78% / 0.045) 340deg, transparent 348deg,
     transparent 360deg
   );
-  animation: loginRayRotate 90s linear infinite;
+  animation: loginRayRotate 140s linear infinite;
 }
 
 /* Aura glow centered on the card */
 .login-card-aura {
   position: absolute;
   top: 50%; left: 50%;
-  width: 560px; height: 460px;
+  width: 580px; height: 480px;
   background: radial-gradient(ellipse at center,
-    hsl(270 80% 55% / 0.35) 0%,
-    hsl(300 80% 60% / 0.18) 35%,
-    hsl(190 90% 50% / 0.08) 60%,
-    transparent 75%
+    hsl(268 75% 58% / 0.32) 0%,
+    hsl(265 65% 55% / 0.14) 40%,
+    hsl(265 55% 50% / 0.05) 65%,
+    transparent 80%
   );
   border-radius: 50%;
   pointer-events: none;
-  animation: loginAuraPulse 5s ease-in-out infinite;
+  animation: loginAuraPulse 8s ease-in-out infinite;
   z-index: 0;
 }
 
