@@ -285,15 +285,13 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                       </div>
                     )}
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                      <div className="space-y-3">
-                        <div>
-                          <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-1">What it is</h4>
-                          <p className="text-sm text-white/80">{setting.whatItIs}</p>
-                        </div>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-medium text-white/50 uppercase tracking-wider">What it is</h4>
+                        <p className="text-sm text-white/80">{setting.whatItIs}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {setting.affects.map((affect) => (
-                            <Badge key={affect} variant="secondary" className="text-[10px] bg-white/5">{affect}</Badge>
+                            <Badge key={affect} className="text-[10px] bg-violet-500/15 text-violet-300 border border-violet-500/25 hover:bg-violet-500/20">{affect}</Badge>
                           ))}
                         </div>
                       </div>
