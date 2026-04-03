@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
 import { LandingPerformanceCharts } from "@/components/LandingPerformanceCharts";
+import { LandingStatsCharts } from "@/components/LandingStatsCharts";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
@@ -724,11 +725,7 @@ export default function Landing() {
           </div>
 
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 md:mt-20">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-0 divide-x divide-white/[0.04]">
-              {STATS.map((stat, i) => (
-                <StatCard key={stat.label} stat={stat} index={i} />
-              ))}
-            </div>
+            <LandingStatsCharts />
             <p className="text-center text-[11px] text-white/20 mt-6 tracking-wide">
               Based on internal testing. Results vary by hardware.
             </p>
