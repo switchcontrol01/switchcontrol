@@ -39,6 +39,7 @@ export default function Login() {
       {/* ── Full-screen ambient layer ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="login-sun-streak" />
+        <div className="login-sun-streak-2" />
         <SpotlightCursor />
         {/* Side particles — left strip */}
         <div className="absolute inset-0" style={{ clipPath: "inset(0 52% 0 0)" }}>
