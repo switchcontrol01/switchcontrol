@@ -390,98 +390,190 @@ function MockupSideParticles() {
   );
 }
 
+/* ── Mini inline sparkline (pure SVG, no library) ── */
+function MiniSparkline({ pts, stroke }: { pts: string; stroke: string }) {
+  const id = `mspk-${stroke.replace(/[^a-z0-9]/gi, "")}`;
+  return (
+    <svg width="46" height="20" viewBox="0 0 46 20" fill="none">
+      <defs>
+        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={stroke} stopOpacity="0.28" />
+          <stop offset="100%" stopColor={stroke} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polyline points={pts} fill="none" stroke={stroke} strokeWidth="1.6"
+        strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function HeroAppMockup() {
-  const [tweakCount, setTweakCount] = useState(12);
+  const [tweakCount, setTweakCount] = useState(14);
   useEffect(() => {
     const id = setInterval(() => {
       setTweakCount(prev => {
         const next = prev + (Math.random() > 0.5 ? 1 : -1);
-        return Math.max(10, Math.min(16, next));
+        return Math.max(11, Math.min(17, next));
       });
-    }, 1500);
+    }, 1800);
     return () => clearInterval(id);
   }, []);
 
+  const RESOURCES = [
+    {
+      label: "CPU", base: 4, range: 7, barBase: 4, barRange: 7,
+      barColor: "bg-emerald-500", textColor: "text-emerald-400",
+      accentL: "hsl(160,80%,50%)", tintBg: "hsl(160 70% 30% / 0.08)",
+      borderColor: "rgba(52,211,153,0.18)", interval: 1200,
+    },
+    {
+      label: "RAM", base: 34, range: 9, barBase: 34, barRange: 9,
+      barColor: "bg-sky-500", textColor: "text-sky-400",
+      accentL: "hsl(200,85%,55%)", tintBg: "hsl(200 70% 30% / 0.08)",
+      borderColor: "rgba(56,189,248,0.18)", interval: 1400,
+    },
+    {
+      label: "GPU", base: 2, range: 6, barBase: 2, barRange: 6,
+      barColor: "bg-violet-500", textColor: "text-violet-400",
+      accentL: "hsl(270,75%,62%)", tintBg: "hsl(270 60% 30% / 0.08)",
+      borderColor: "rgba(167,139,250,0.18)", interval: 1300,
+    },
+  ] as const;
+
   return (
     <div className="ws-hero-mockup relative animate-mockup-float">
-      <div className="absolute -inset-12 rounded-3xl blur-[60px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 60%, hsl(270 60% 50% / 0.25), hsl(190 80% 50% / 0.12), transparent 70%)' }} />
-
-      <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%] h-20 rounded-full pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsl(190 90% 50% / 0.6), transparent 70%)', filter: 'blur(80px)' }} />
+      {/* Ambient bloom */}
+      <div className="absolute -inset-16 rounded-3xl blur-[70px] pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at 50% 55%, hsl(270 55% 48% / 0.22), hsl(190 75% 48% / 0.10), transparent 68%)" }} />
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[85%] h-16 rounded-full pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at center, hsl(190 90% 50% / 0.55), transparent 70%)", filter: "blur(60px)" }} />
 
       <MockupSideParticles />
 
-      <div className="relative rounded-xl overflow-hidden border border-white/[0.15] bg-[hsl(260,22%,6%)] shadow-2xl shadow-primary/20">
-        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">
+      {/* Window — gradient border via box-shadow */}
+      <div className="relative rounded-2xl overflow-hidden bg-[hsl(255,20%,5.5%)] shadow-[0_32px_80px_-12px_rgba(0,0,0,0.7),inset_0_0_0_1px_rgba(255,255,255,0.1)]">
+        <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-2xl">
           <div className="mockup-reflection-sweep" />
           <div className="mockup-reflection-sweep-secondary" />
           <div className="mockup-surface-highlight" />
         </div>
-        <div className="absolute inset-0 pointer-events-none mockup-edge-glow rounded-xl" />
+        <div className="absolute inset-0 pointer-events-none mockup-edge-glow rounded-2xl" />
 
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.03] border-b border-white/[0.06]">
+        {/* ── Title bar ── */}
+        <div className="relative flex items-center gap-2 px-4 py-3 border-b border-white/[0.07]"
+          style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.045), transparent)" }}>
+          {/* macOS dots with depth */}
           <div className="flex gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
+            {[
+              "radial-gradient(circle at 38% 38%, #ff8a80, #e53935)",
+              "radial-gradient(circle at 38% 38%, #ffe57f, #f9a825)",
+              "radial-gradient(circle at 38% 38%, #b9f6ca, #43a047)",
+            ].map((bg, i) => (
+              <div key={i} className="w-3 h-3 rounded-full" style={{ background: bg, boxShadow: "0 1px 3px rgba(0,0,0,0.4)" }} />
+            ))}
           </div>
           <div className="flex-1 text-center">
-            <span className="text-[10px] text-white/30 tracking-wider uppercase font-medium">SwitchControl</span>
+            <span className="text-[10px] text-white/35 tracking-[0.22em] uppercase font-semibold">SwitchControl</span>
+          </div>
+          {/* LIVE pill */}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border"
+            style={{ background: "hsl(160 80% 30% / 0.14)", borderColor: "hsl(160 70% 50% / 0.25)" }}>
+            <div className="w-1.5 h-1.5 rounded-full mockup-live-dot" style={{ background: "hsl(160,80%,52%)" }} />
+            <span className="text-[8.5px] font-bold tracking-widest" style={{ color: "hsl(160,80%,58%)" }}>LIVE</span>
           </div>
         </div>
 
         <div className="p-4 space-y-3">
+
+          {/* ── Resource cards ── */}
           <div className="grid grid-cols-3 gap-2">
-            {[
-              { label: "CPU", base: 3, range: 8, color: "bg-emerald-500", textColor: "text-emerald-400", barInterval: 1200 },
-              { label: "RAM", base: 34, range: 10, color: "bg-sky-500", textColor: "text-sky-400", barInterval: 1400 },
-              { label: "GPU", base: 1, range: 6, color: "bg-violet-500", textColor: "text-violet-400", barInterval: 1300 },
-            ].map((m) => (
-              <div key={m.label} className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
-                <div className="text-[9px] text-white/50 mb-1 uppercase tracking-wide font-medium">{m.label}</div>
-                <div className={cn("text-sm font-bold transition-all duration-500", m.textColor)}>
-                  <LiveMockupValue base={m.base} range={m.range} suffix="%" interval={m.barInterval} />
+            {RESOURCES.map((m) => (
+              <div key={m.label} className="relative rounded-xl p-3 overflow-hidden border"
+                style={{ background: m.tintBg, borderColor: m.borderColor }}>
+                {/* Left accent bar */}
+                <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full"
+                  style={{ background: `linear-gradient(to bottom, ${m.accentL}, transparent)` }} />
+                <div className="text-[8.5px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: "rgba(255,255,255,0.38)" }}>{m.label}</div>
+                <div className={cn("text-[17px] font-bold font-mono leading-none transition-all duration-500", m.textColor)}>
+                  <LiveMockupValue base={m.base} range={m.range} suffix="%" interval={m.interval} />
                 </div>
-                <LiveBar base={m.base} range={m.range} color={m.color} interval={m.barInterval} />
+                <LiveBar base={m.barBase} range={m.barRange} color={m.barColor} interval={m.interval} />
               </div>
             ))}
           </div>
 
-          <div className="bg-white/[0.05] rounded-lg p-3 border border-white/[0.08]">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] text-white/50 tracking-wide uppercase font-medium">Active Tweaks</span>
-              <span className="text-[10px] text-emerald-400 font-semibold transition-all duration-500">{tweakCount} / 38</span>
+          {/* ── Active Tweaks ── */}
+          <div className="rounded-xl p-3 border border-white/[0.07]" style={{ background: "rgba(255,255,255,0.038)" }}>
+            <div className="flex items-center justify-between mb-2.5">
+              <span className="text-[8.5px] text-white/40 uppercase tracking-widest font-semibold">Active Tweaks</span>
+              <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border"
+                style={{ background: "hsl(160 70% 28% / 0.18)", borderColor: "hsl(160 70% 50% / 0.22)" }}>
+                <span className="text-[9px] font-bold text-emerald-400 transition-all duration-500">{tweakCount}</span>
+                <span className="text-[8px] text-white/30 font-medium">/ 38</span>
+              </div>
             </div>
-            <div className="flex gap-1">
-              {Array.from({ length: 20 }).map((_, i) => (
+            <div className="flex gap-[3px]">
+              {Array.from({ length: 22 }).map((_, i) => (
                 <div
                   key={i}
-                  className={cn(
-                    "flex-1 h-1.5 rounded-full transition-all duration-500",
-                    i < tweakCount ? "mockup-tweak-bar" : "bg-white/[0.04]"
-                  )}
+                  className={cn("flex-1 h-[7px] rounded-full transition-all duration-500",
+                    i < tweakCount ? "mockup-tweak-bar" : "bg-white/[0.04]")}
                   style={i < tweakCount ? {
-                    background: "linear-gradient(90deg, hsl(160 80% 45% / 0.6), hsl(170 80% 50% / 0.5))",
-                    animationDelay: `${i * 0.12}s`,
+                    background: `linear-gradient(90deg, hsl(${152 + i * 1.5} 75% 45%), hsl(170 75% 52%))`,
+                    boxShadow: "0 0 5px hsl(160 80% 48% / 0.35)",
+                    animationDelay: `${i * 0.08}s`,
                   } : undefined}
                 />
               ))}
             </div>
           </div>
 
+          {/* ── Metric cards with sparklines ── */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
-              <div className="text-[9px] text-white/40 mb-0.5 font-medium">Latency</div>
-              <div className="text-base font-bold text-emerald-400">
-                -<LiveMockupValue base={8} range={8} suffix="ms" interval={1200} />
+            {/* Latency */}
+            <div className="relative rounded-xl p-3 border overflow-hidden mockup-metric-emerald">
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: "radial-gradient(ellipse at 0% 100%, hsl(160 70% 40% / 0.12), transparent 65%)" }} />
+              <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>Latency</div>
+              <div className="flex items-end justify-between">
+                <div className="text-[19px] font-bold font-mono text-emerald-400 leading-none">
+                  −<LiveMockupValue base={8} range={7} suffix="ms" interval={1200} />
+                </div>
+                <MiniSparkline stroke="hsl(160,78%,50%)"
+                  pts="2,17 6,15 10,16 14,13 18,12 22,11 26,10 30,11 34,8 38,7 44,5" />
               </div>
+              <div className="text-[7.5px] mt-1.5 font-medium" style={{ color: "hsl(160,70%,55%)" }}>↓ vs stock baseline</div>
             </div>
-            <div className="bg-white/[0.05] rounded-lg p-2.5 border border-white/[0.08] mockup-card-glow">
-              <div className="text-[9px] text-white/40 mb-0.5 font-medium">FPS Stability</div>
-              <div className="text-base font-bold text-[hsl(190,85%,50%)]">
-                +<LiveMockupValue base={12} range={10} suffix="%" interval={1300} />
+
+            {/* FPS Stability */}
+            <div className="relative rounded-xl p-3 border overflow-hidden mockup-metric-cyan">
+              <div className="absolute inset-0 pointer-events-none"
+                style={{ background: "radial-gradient(ellipse at 100% 100%, hsl(190 70% 40% / 0.12), transparent 65%)" }} />
+              <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>FPS Stability</div>
+              <div className="flex items-end justify-between">
+                <div className="text-[19px] font-bold font-mono leading-none" style={{ color: "hsl(190,85%,54%)" }}>
+                  +<LiveMockupValue base={13} range={9} suffix="%" interval={1300} />
+                </div>
+                <MiniSparkline stroke="hsl(190,80%,54%)"
+                  pts="2,17 6,16 10,15 14,14 18,12 22,10 26,9 30,8 34,7 38,5 44,3" />
               </div>
+              <div className="text-[7.5px] mt-1.5 font-medium" style={{ color: "hsl(190,70%,55%)" }}>↑ frame consistency</div>
             </div>
           </div>
+
+          {/* ── Status bar ── */}
+          <div className="flex items-center gap-3 pt-1 border-t border-white/[0.05]">
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[8px] font-semibold" style={{ color: "rgba(255,255,255,0.28)" }}>Gaming Pro</span>
+            </div>
+            <div className="w-px h-2.5 bg-white/[0.08]" />
+            <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.18)" }}>144 fps target</span>
+            <div className="ml-auto">
+              <span className="text-[8px] font-semibold" style={{ color: "hsl(160,70%,52%)" }}>Optimized ✓</span>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

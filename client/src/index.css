@@ -2400,6 +2400,25 @@ button, a, nav, header, footer, label {
   animation: zapPulse 2s ease-in-out infinite;
 }
 
+/* ─── Mockup window — live pill dot ─── */
+@keyframes mockupLiveDot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 hsl(160 80% 50% / 0.6); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 4px hsl(160 80% 50% / 0); }
+}
+.mockup-live-dot {
+  animation: mockupLiveDot 2s ease-in-out infinite;
+}
+
+/* ─── Mockup metric cards ─── */
+.mockup-metric-emerald {
+  background: linear-gradient(135deg, hsl(160 70% 30% / 0.14) 0%, hsl(160 70% 40% / 0.06) 100%);
+  border-color: hsl(160 70% 50% / 0.22);
+}
+.mockup-metric-cyan {
+  background: linear-gradient(135deg, hsl(190 70% 30% / 0.14) 0%, hsl(190 70% 40% / 0.06) 100%);
+  border-color: hsl(190 70% 50% / 0.22);
+}
+
 /* ─── Premium card animated aurora ─── */
 @keyframes pricingAuroraShift {
   0%   { background-position: 0% 50%; }
