@@ -286,20 +286,21 @@ export default function Security() {
     if (!imageBase64 || !imageFile || imageAnalyzing) return;
     setImageAnalyzing(true); setImageError(null);
     try {
-      const aiRes = await cloudApiPost<{ reply: string }>("/ai/chat", {
-        messages: [{
-          role: "user",
-          content: "Please analyze this Windows screenshot for security issues and gaming performance concerns. Identify threats, misconfigured settings, high-resource processes, unnecessary startup entries, or any other problems you can see. Be specific about what is visible."
-        }],
-        context: { page: "security-screenshot-analysis" },
+      const aiRes = await cloudApiPost<{
+        analysisType: string;
+        findings: { title: string; severity: string; description: string }[];
+        recommendations: string[];
+        rawAnalysis: string;
+      }>("/security/image-analysis", {
         imageData: imageBase64,
         imageType: imageFile.type,
+        analysisType: "generic",
       });
       setImageResult({
-        analysisType: "generic",
-        findings: [],
-        recommendations: [],
-        rawAnalysis: aiRes.reply ?? "No analysis returned.",
+        analysisType: aiRes.analysisType ?? "generic",
+        findings: aiRes.findings ?? [],
+        recommendations: aiRes.recommendations ?? [],
+        rawAnalysis: aiRes.rawAnalysis ?? "No analysis returned.",
       });
     } catch (err: any) {
       setImageError(err?.message ?? "Analysis failed. Please try again.");
@@ -500,17 +501,17 @@ export default function Security() {
 
                 {imagePreview ? (
                   <div className="space-y-3">
-                    <div className="relative rounded-lg overflow-hidden">
-                      <img src={imagePreview} alt="Screenshot to analyze" className="w-full max-h-32 object-cover rounded-lg" />
-                      <button onClick={clearImage}
-                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
-                        data-testid="button-clear-image">
-                        <X className="size-3 text-white" />
-                      </button>
+                    <div className="rounded-lg overflow-hidden border border-white/10">
+                      <img src={imagePreview} alt="Screenshot to analyze" className="w-full max-h-40 object-cover" />
                     </div>
-                    <Button className="w-full gap-2 text-sm" onClick={analyzeImage} disabled={imageAnalyzing} data-testid="button-analyze-image">
-                      {imageAnalyzing ? <><Loader2 className="size-3.5 animate-spin" />Analyzing…</> : <><Eye className="size-3.5" />Analyze Screenshot</>}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button className="flex-1 gap-2 text-sm" onClick={analyzeImage} disabled={imageAnalyzing} data-testid="button-analyze-image">
+                        {imageAnalyzing ? <><Loader2 className="size-3.5 animate-spin" />Analyzing…</> : <><Eye className="size-3.5" />Analyze Screenshot</>}
+                      </Button>
+                      <Button variant="outline" size="icon" onClick={clearImage} className="shrink-0 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors" data-testid="button-clear-image">
+                        <X className="size-4" />
+                      </Button>
+                    </div>
                     {imageError && <p className="text-xs text-red-400">{imageError}</p>}
                     {imageResult && (
                       <div className="space-y-2">

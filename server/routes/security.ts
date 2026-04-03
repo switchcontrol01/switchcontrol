@@ -165,15 +165,16 @@ const SECURITY_IMAGE_PROMPTS: Record<string, string> = {
   "task-manager": "The user has uploaded a Task Manager screenshot. Analyze the processes, CPU/memory usage, startup impact, and identify any processes that look suspicious, unusually resource-intensive, or unnecessary for gaming performance. Provide specific recommendations.",
   "startup-apps": "The user has uploaded a screenshot showing startup applications (Task Manager startup tab or similar). List what you can see, identify launcher/overlay/updater apps, flag unnecessary items, and recommend which to disable for better performance.",
   "bios": "The user has uploaded a BIOS screenshot. Analyze any security-related settings visible (Secure Boot, TPM, virtualization, boot order) and any performance-relevant settings. Identify what could be optimized.",
-  "generic": "The user has uploaded a system screenshot for security and performance analysis. Describe what you see, identify any issues, security concerns, or performance problems, and provide actionable recommendations.",
+  "generic": "The user has uploaded a Windows system screenshot. Look carefully at everything visible: application names, process names, status indicators, warning icons, resource usage numbers, firewall status, network connections, enabled/disabled toggles, version numbers, or any text shown. Describe every notable element you can see. Identify security risks, misconfigured settings, performance issues, suspicious processes, high resource usage, or anything that looks unusual. Be very specific about what is actually visible in the image.",
 };
 
 securityRouter.post("/image-analysis", requireJwt, async (req: Request, res: Response) => {
   const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
-  const model = process.env.AI_MODEL || "gpt-4o-mini";
+  // Always use a vision-capable model for image analysis
+  const model = "gpt-4o-mini";
   const ts = new Date().toISOString();
 
-  console.log(`[Security:image] ${ts} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false}`);
+  console.log(`[Security:image] ${ts} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model}`);
 
   if (!cloudUser?.isPremium) {
     console.warn(`[Security:image] FORBIDDEN | user=${cloudUser?.id ?? "none"}`);
