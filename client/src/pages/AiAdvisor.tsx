@@ -4,6 +4,16 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
   AlertTriangle, Loader2, Zap, Send, RotateCcw,
   Bot, User, MonitorCog, Activity, Eye,
@@ -12,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useStore } from "@/lib/store";
+import { useAiChatStore } from "@/lib/ai-chat-store";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
@@ -518,8 +529,13 @@ export default function AiAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
   const { stats, tweaks } = useStore();
+  const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
 
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    storedMessages
+      .filter(m => m.content.length > 0)
+      .map(m => ({ ...m, timestamp: new Date(m.timestamp) }))
+  );
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
@@ -527,6 +543,7 @@ export default function AiAdvisor() {
   const [isSlowRequest, setIsSlowRequest] = useState(false);
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -541,6 +558,19 @@ export default function AiAdvisor() {
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  useEffect(() => {
+    const toStore = messages
+      .filter(m => !m.isThinking && m.content.length > 0)
+      .map(m => ({
+        id: m.id,
+        role: m.role,
+        content: m.content,
+        timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
+        ...(m.imageDataUrl ? { imageDataUrl: m.imageDataUrl } : {}),
+      }));
+    syncToStore(toStore);
+  }, [messages, syncToStore]);
 
   const smartScroll = useCallback(() => {
     const el = scrollContainerRef.current;
@@ -856,6 +886,7 @@ export default function AiAdvisor() {
   const handleReset = () => {
     abortRef.current?.abort();
     cancelReveal();
+    clearStore();
     setLoading(false);
     setInput("");
     setAttachedImage(null);
@@ -948,7 +979,7 @@ export default function AiAdvisor() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleReset}
+              onClick={() => setShowClearConfirm(true)}
               className="text-[11px] text-muted-foreground hover:text-white h-7 px-2"
               data-testid="button-new-chat"
             >
@@ -1092,6 +1123,30 @@ export default function AiAdvisor() {
           description="System analysis, image-based troubleshooting, AI optimization suggestions, and game-specific tuning are available with SwitchControl Premium."
         />
       )}
+
+      <AlertDialog open={showClearConfirm} onOpenChange={setShowClearConfirm}>
+        <AlertDialogContent data-testid="dialog-clear-chat">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clear chat history?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete your entire conversation and start a fresh chat. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-clear-chat-cancel">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setShowClearConfirm(false);
+                handleReset();
+              }}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-clear-chat-confirm"
+            >
+              Clear Chat
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }
