@@ -2,6 +2,7 @@ import { Link, useSearch } from "wouter";
 import { brand } from "@/config/brand";
 import { motion } from "@/lib/motion";
 import { SpotlightCursor } from "@/components/SpotlightCursor";
+import { LoginParticles } from "@/components/LoginParticles";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 
 function GoogleIcon({ className }: { className?: string }) {
@@ -41,30 +42,37 @@ export default function Login() {
         <div className="login-rays" />
         <div className="login-sun-streak" />
         <SpotlightCursor />
+        {/* Side particles — left strip */}
+        <div className="absolute inset-0" style={{ clipPath: "inset(0 60% 0 0)" }}>
+          <LoginParticles />
+        </div>
+        {/* Side particles — right strip */}
+        <div className="absolute inset-0" style={{ clipPath: "inset(0 0 0 60%)" }}>
+          <LoginParticles />
+        </div>
       </div>
 
       <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)] relative z-10">
-        {/* Aura behind card */}
+        {/* Aura behind card — warm+violet light the card emits */}
         <div className="login-card-aura" aria-hidden="true" />
 
-        {/* Card entrance — spring up, scale, blur clears */}
+        {/* Floating wrapper — slow breathing lift */}
         <motion.div
           className="w-full max-w-md relative z-10"
-          initial={{ opacity: 0, y: 48, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.75, ease }}
-          style={{ filter: undefined }}
+          animate={{ y: [0, -7, -4, 0] }}
+          transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", repeatType: "loop" }}
         >
-          <motion.div
-            className="w-full max-w-md"
-            initial={{ filter: "blur(18px)" }}
-            animate={{ filter: "blur(0px)" }}
-            transition={{ duration: 0.75, ease }}
-          >
+        {/* Card entrance — spring up, scale, blur clears */}
+        <motion.div
+          className="w-full max-w-md"
+          initial={{ opacity: 0, y: 48, scale: 0.9, filter: "blur(18px)" }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.75, ease }}
+        >
           <div className="login-card-glass rounded-2xl overflow-hidden">
 
             {/* ── Header ── */}
-            <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
+            <div className="p-6 sm:p-8 text-center border-b border-white/[0.12]">
 
               {/* Logo — bounces in with spring */}
               <motion.div
