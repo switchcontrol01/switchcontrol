@@ -145,44 +145,25 @@ function NavItemRow({
 
   return (
     <div className="relative">
-      {/* Tour highlight glow layer — rendered BEHIND the button */}
+      {/* Tour highlight layer — rendered BEHIND the button */}
       <AnimatePresence>
         {isTourHighlighted && (
           <motion.div
             className="absolute inset-0 rounded-xl pointer-events-none overflow-hidden"
-            initial={{ opacity: 0, scale: 0.92 }}
+            initial={{ opacity: 0, scale: 0.94 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            transition={{ duration: 0.45, ease: EASE_PREMIUM }}
+            exit={{ opacity: 0, scale: 0.94 }}
+            transition={{ duration: 0.3, ease: EASE_PREMIUM }}
           >
-            <motion.div
+            <div
               className="absolute inset-0 rounded-xl"
               style={{
-                background: "linear-gradient(90deg, rgba(139,92,246,0.28) 0%, rgba(168,85,247,0.12) 70%, transparent 100%)",
+                background: "linear-gradient(90deg, rgba(139,92,246,0.22) 0%, rgba(168,85,247,0.08) 70%, transparent 100%)",
               }}
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
             />
-            <motion.div
-              className="absolute -inset-[2px] rounded-[13px] border"
-              style={{ borderColor: "rgba(168,85,247,0.5)" }}
-              animate={{
-                boxShadow: [
-                  "0 0 0px rgba(168,85,247,0)",
-                  "0 0 16px rgba(168,85,247,0.5), inset 0 0 8px rgba(168,85,247,0.15)",
-                  "0 0 0px rgba(168,85,247,0)",
-                ],
-              }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            />
-            <motion.div
-              className="absolute inset-0 rounded-xl"
-              style={{
-                background: "linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.08) 50%, transparent 65%)",
-                backgroundSize: "200% 100%",
-              }}
-              animate={{ backgroundPosition: ["-100% 0", "200% 0"] }}
-              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.8 }}
+            <div
+              className="absolute -inset-[1px] rounded-[13px] border"
+              style={{ borderColor: "rgba(168,85,247,0.45)" }}
             />
           </motion.div>
         )}
@@ -248,12 +229,6 @@ function NavItemRow({
         )}
         whileHover={!isActive && !isTourHighlighted ? { y: -1, transition: { duration: 0.15, ease: EASE_PREMIUM } } : undefined}
         whileTap={{ scale: 0.975, transition: { duration: 0.1 } }}
-        animate={
-          isTourHighlighted
-            ? { scale: [1, 1.015, 1] }
-            : { scale: 1 }
-        }
-        transition={isTourHighlighted ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" } : {}}
       >
         {/* Hover background (non-active items) */}
         {!isActive && !isTourHighlighted && (
@@ -275,36 +250,13 @@ function NavItemRow({
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
               initial={{ height: 0, opacity: 0 }}
-              animate={
-                isTourHighlighted
-                  ? {
-                      height: [18, 24, 18],
-                      boxShadow: [
-                        "0 0 6px rgba(168,85,247,0.5)",
-                        "0 0 18px rgba(168,85,247,0.9), 0 0 30px rgba(236,72,153,0.4)",
-                        "0 0 6px rgba(168,85,247,0.5)",
-                      ],
-                    }
-                  : {
-                      height: 20,
-                      boxShadow: [
-                        "0 0 8px rgba(139,92,246,0.5)",
-                        "0 0 14px rgba(139,92,246,0.8)",
-                        "0 0 8px rgba(139,92,246,0.5)",
-                      ],
-                    }
-              }
+              animate={{ height: 20, opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
-              transition={
-                isTourHighlighted
-                  ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" }
-                  : { ...SPRING_SNAPPY, boxShadow: { duration: 2.4, repeat: Infinity, ease: "easeInOut" } }
-              }
+              transition={SPRING_SNAPPY}
               style={{
                 width: 3,
-                background: isTourHighlighted
-                  ? "linear-gradient(180deg, #c084fc, #a855f7, #ec4899)"
-                  : "linear-gradient(180deg, #c084fc 0%, #8b5cf6 60%, #a855f7 100%)",
+                background: "linear-gradient(180deg, #c084fc 0%, #8b5cf6 60%, #a855f7 100%)",
+                boxShadow: "0 0 8px rgba(139,92,246,0.5)",
               }}
             />
           )}
@@ -315,25 +267,14 @@ function NavItemRow({
           className="z-10 relative shrink-0"
           animate={
             isTourHighlighted
-              ? {
-                  filter: [
-                    "drop-shadow(0 0 4px rgba(168,85,247,0.4))",
-                    "drop-shadow(0 0 12px rgba(168,85,247,0.9)) drop-shadow(0 0 20px rgba(236,72,153,0.5))",
-                    "drop-shadow(0 0 4px rgba(168,85,247,0.4))",
-                  ],
-                  scale: [1, 1.2, 1],
-                }
+              ? { scale: 1.08, filter: "drop-shadow(0 0 5px rgba(168,85,247,0.55))" }
               : isActive
               ? { scale: 1.08, filter: "drop-shadow(0 0 6px rgba(139,92,246,0.7))" }
               : hovered
               ? { scale: 1.06, filter: "drop-shadow(0 0 4px rgba(139,92,246,0.35))" }
               : { scale: 1, filter: "none" }
           }
-          transition={
-            isTourHighlighted
-              ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" }
-              : SPRING_SNAPPY
-          }
+          transition={SPRING_SNAPPY}
         >
           <item.icon
             className={cn(
@@ -350,18 +291,14 @@ function NavItemRow({
           className="z-10 flex-1 truncate"
           animate={
             isTourHighlighted
-              ? { color: ["#e9d5ff", "#ffffff", "#e9d5ff"] }
+              ? { color: "#e9d5ff", x: 0 }
               : isActive
               ? { color: "#ffffff", x: 1 }
               : hovered
-              ? { color: "rgba(255,255,255,0.88)" }
+              ? { color: "rgba(255,255,255,0.88)", x: 0 }
               : { color: undefined, x: 0 }
           }
-          transition={
-            isTourHighlighted
-              ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" }
-              : { duration: hovered ? 0.15 : 0.20, ease: EASE_PREMIUM }
-          }
+          transition={{ duration: 0.18, ease: EASE_PREMIUM }}
         >
           {item.label}
         </motion.span>
