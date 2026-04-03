@@ -488,12 +488,12 @@ export default function Home() {
                 transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
                 className="flex items-center flex-wrap gap-x-2 gap-y-1"
               >
-                <h1 className="text-3xl font-bold tracking-tight text-white leading-tight">
+                <h1 className="greeting-glow text-3xl font-bold tracking-tight text-white leading-tight">
                   Good {getGreeting()},
                 </h1>
 
                 <span
-                  className="text-3xl font-bold tracking-tight leading-tight text-white/90 select-none"
+                  className="username-gradient text-3xl font-bold tracking-tight leading-tight select-none"
                   data-testid="text-dashboard-username"
                 >
                   {getUserDisplayName()}

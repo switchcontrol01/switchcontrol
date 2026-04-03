@@ -2193,3 +2193,26 @@ button, a, nav, header, footer, label {
     animation-duration: 4s;
   }
 }
+
+/* ── Dashboard greeting glow + username gradient ─────────────────── */
+.greeting-glow {
+  animation: greetingBreathe 5s ease-in-out infinite;
+}
+@keyframes greetingBreathe {
+  0%, 100% { text-shadow: 0 0 0px transparent; }
+  50%       { text-shadow: 0 0 18px rgba(168,85,247,0.40), 0 0 36px rgba(0,210,255,0.18); }
+}
+
+.username-gradient {
+  background: linear-gradient(90deg, #fff 0%, #a78bfa 30%, #22d3ee 60%, #a78bfa 80%, #fff 100%);
+  background-size: 280% 100%;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: usernameFlow 5s ease-in-out infinite;
+}
+@keyframes usernameFlow {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
