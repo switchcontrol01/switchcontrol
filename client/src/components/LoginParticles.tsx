@@ -40,49 +40,49 @@ export function LoginParticles() {
     const list: Particle[] = [];
 
     // Tier 1 — small sharp dots (many)
-    const dotCount = isMobile ? 18 : 36;
+    const dotCount = isMobile ? 28 : 60;
     for (let i = 0; i < dotCount; i++) {
       list.push({
         id: i,
         x: Math.random() * 100,
         y: Math.random() * 100,
-        size: randomBetween(1.5, 3),
-        opacity: randomBetween(0.18, 0.45),
-        speed: randomBetween(14, 26),
+        size: randomBetween(1.5, 3.5),
+        opacity: randomBetween(0.22, 0.55),
+        speed: randomBetween(12, 24),
         delay: Math.random() * 10,
         colorIndex: Math.floor(Math.random() * PARTICLE_COLORS.length),
         tier: 'dot',
       });
     }
 
-    // Tier 2 — medium glowing orbs (fewer)
-    const orbCount = isMobile ? 6 : 12;
+    // Tier 2 — medium glowing orbs
+    const orbCount = isMobile ? 10 : 20;
     for (let i = 0; i < orbCount; i++) {
       list.push({
         id: dotCount + i,
         x: Math.random() * 100,
         y: Math.random() * 100,
-        size: randomBetween(5, 10),
-        opacity: randomBetween(0.12, 0.3),
-        speed: randomBetween(20, 38),
+        size: randomBetween(6, 14),
+        opacity: randomBetween(0.18, 0.42),
+        speed: randomBetween(18, 36),
         delay: Math.random() * 12,
         colorIndex: Math.floor(Math.random() * PARTICLE_COLORS.length),
         tier: 'orb',
       });
     }
 
-    // Tier 3 — large soft blobs (very few, big radial glow)
-    const blobCount = isMobile ? 3 : 6;
+    // Tier 3 — large soft blobs (big radial glow)
+    const blobCount = isMobile ? 5 : 10;
     for (let i = 0; i < blobCount; i++) {
       list.push({
         id: dotCount + orbCount + i,
-        x: randomBetween(10, 90),
-        y: randomBetween(10, 90),
-        size: randomBetween(60, 120),
-        opacity: randomBetween(0.04, 0.09),
-        speed: randomBetween(28, 50),
+        x: randomBetween(5, 95),
+        y: randomBetween(5, 95),
+        size: randomBetween(80, 160),
+        opacity: randomBetween(0.06, 0.13),
+        speed: randomBetween(26, 48),
         delay: Math.random() * 15,
-        colorIndex: [0, 2, 5][i % 3],
+        colorIndex: [0, 1, 2, 3, 5, 6][i % 6],
         tier: 'blob',
       });
     }

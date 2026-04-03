@@ -38,10 +38,15 @@ export default function Login() {
     <WebsiteShell variant="inner" bgVariant="auth" showFooter={false}>
       {/* ── Full-screen ambient layer ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
+        {/* Color orbs — 5 vivid clouds */}
         <div className="login-orb-1" />
         <div className="login-orb-2" />
         <div className="login-orb-3" />
-        <div className="login-rays" />
+        <div className="login-orb-4" />
+        <div className="login-orb-5" />
+        {/* Single large white sunstreak from the left — the hero beam */}
+        <div className="login-sunstreak-main" />
+        <div className="login-sunstreak-secondary" />
         <LoginParticles />
         <SpotlightCursor />
       </div>
@@ -50,31 +55,26 @@ export default function Login() {
         {/* Aura behind card */}
         <div className="login-card-aura" aria-hidden="true" />
 
-        {/* Card entrance — spring up, scale, blur clears */}
+        {/* Card entrance — spring up, scale, blur clears, then floats */}
         <motion.div
           className="w-full max-w-md relative z-10"
-          initial={{ opacity: 0, y: 48, scale: 0.9 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.75, ease }}
-          style={{ filter: undefined }}
+          initial={{ opacity: 0, y: 52, scale: 0.88, filter: "blur(22px)" }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          transition={{ duration: 0.85, ease }}
         >
-          <motion.div
-            className="w-full max-w-md"
-            initial={{ filter: "blur(18px)" }}
-            animate={{ filter: "blur(0px)" }}
-            transition={{ duration: 0.75, ease }}
-          >
+          {/* Continuous gentle float after entry */}
+          <div className="login-card-float">
           <div className="login-card-glass rounded-2xl overflow-hidden">
 
             {/* ── Header ── */}
-            <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
+            <div className="p-6 sm:p-8 text-center border-b border-white/[0.08]">
 
-              {/* Logo — bounces in with spring */}
+              {/* Logo — spring bounce in */}
               <motion.div
                 className="flex justify-center mb-5"
-                initial={{ opacity: 0, y: -24, scale: 0.5 }}
+                initial={{ opacity: 0, y: -30, scale: 0.45 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.18, duration: 0.55, type: "spring", stiffness: 280, damping: 18 }}
+                transition={{ delay: 0.22, duration: 0.60, type: "spring", stiffness: 300, damping: 17 }}
               >
                 <div className="relative">
                   <img
@@ -90,9 +90,9 @@ export default function Login() {
               <motion.h1
                 className="text-2xl font-bold login-title-gradient"
                 data-testid="text-login-title"
-                initial={{ opacity: 0, y: 14 }}
+                initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.36, duration: 0.5, ease }}
+                transition={{ delay: 0.40, duration: 0.55, ease }}
               >
                 Welcome to {brand.name}
               </motion.h1>
@@ -100,9 +100,9 @@ export default function Login() {
               {/* Subtitle */}
               <motion.p
                 className="text-sm text-white/50 mt-1.5"
-                initial={{ opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.48, duration: 0.5, ease }}
+                transition={{ delay: 0.52, duration: 0.50, ease }}
               >
                 Sign in to access your optimization dashboard
               </motion.p>
@@ -111,23 +111,23 @@ export default function Login() {
             {/* ── Body ── */}
             <div className="p-6 sm:p-8 space-y-3.5">
               <motion.p
-                className="text-sm text-center text-white/38 mb-4"
+                className="text-sm text-center text-white/40 mb-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.58, duration: 0.45 }}
+                transition={{ delay: 0.62, duration: 0.45 }}
               >
                 Sign in securely with your preferred account
               </motion.p>
 
               {/* Google */}
               <motion.div
-                initial={{ opacity: 0, y: 18, scale: 0.95 }}
+                initial={{ opacity: 0, y: 20, scale: 0.94 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.65, duration: 0.48, ease }}
+                transition={{ delay: 0.70, duration: 0.50, ease }}
               >
                 <a href={googleAuthUrl} className="block">
                   <button
-                    className="login-btn-google w-full h-14 text-base font-medium rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.015] active:scale-[0.99] cursor-pointer"
+                    className="login-btn-google w-full h-14 text-base font-medium rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.018] active:scale-[0.99] cursor-pointer"
                     data-testid="button-login-google"
                   >
                     <GoogleIcon className="size-5" />
@@ -138,13 +138,13 @@ export default function Login() {
 
               {/* Discord */}
               <motion.div
-                initial={{ opacity: 0, y: 18, scale: 0.95 }}
+                initial={{ opacity: 0, y: 20, scale: 0.94 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ delay: 0.78, duration: 0.48, ease }}
+                transition={{ delay: 0.83, duration: 0.50, ease }}
               >
                 <a href={discordAuthUrl} className="block">
                   <button
-                    className="login-btn-discord w-full h-14 text-base font-medium rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.015] active:scale-[0.99] cursor-pointer"
+                    className="login-btn-discord w-full h-14 text-base font-medium rounded-xl flex items-center justify-center gap-3 transition-all duration-200 hover:scale-[1.018] active:scale-[0.99] cursor-pointer"
                     data-testid="button-login-discord"
                   >
                     <DiscordIcon className="size-5" />
@@ -157,7 +157,7 @@ export default function Login() {
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.95, duration: 0.5 }}
+                transition={{ delay: 1.0, duration: 0.5 }}
                 className="pt-2"
               >
                 <p className="text-xs text-center text-white/32 mt-4">
@@ -172,7 +172,7 @@ export default function Login() {
               </motion.div>
             </div>
           </div>
-          </motion.div>
+          </div>
         </motion.div>
       </main>
     </WebsiteShell>
