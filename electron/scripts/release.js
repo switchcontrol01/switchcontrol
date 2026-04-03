@@ -75,6 +75,17 @@ if (!fs.existsSync(distDir)) {
   process.exit(1);
 }
 
+// Auto-generate latest.yml if electron-builder didn't produce it.
+// (electron-builder v25 only writes latest.yml when it performs its own upload;
+//  since we upload separately, we generate the file ourselves when absent.)
+const ymlPath = path.join(distDir, 'latest.yml');
+if (!fs.existsSync(ymlPath)) {
+  console.log('latest.yml not found in dist/ — generating from installer...');
+  require('./generate-latest-yml.js');
+  console.log();
+  // Re-check: if the generator failed it would have process.exit(1)'d already.
+}
+
 const allFiles = fs.readdirSync(distDir);
 
 const artifacts = allFiles
