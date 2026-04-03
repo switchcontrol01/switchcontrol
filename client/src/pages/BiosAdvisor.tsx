@@ -812,6 +812,65 @@ export default function BiosAdvisor() {
           </Item>
         )}
 
+        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+          <GlassCard className="p-6 bg-gradient-to-br from-[hsl(270,60%,55%)/0.1] to-[hsl(280,70%,65%)/0.05] border-[hsl(270,60%,55%)/0.2]">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="flex flex-col justify-center">
+                <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                  <Target className="w-5 h-5 text-[hsl(270,60%,55%)]" />
+                  Firmware Score
+                </h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Competitive readiness based on detected firmware behavior
+                </p>
+                
+                <div className="flex items-center gap-3 mb-3">
+                  <motion.div 
+                    className="text-5xl font-bold bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] bg-clip-text text-transparent"
+                    initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.5 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                    data-testid="text-firmware-score"
+                  >
+                    {hasScanned ? displayedScore : "—"}
+                  </motion.div>
+                  <div className="text-lg text-muted-foreground font-medium">/ 100</div>
+                  <div className="ml-2">
+                    <Badge className={cn("text-xs font-semibold", LEVEL_COLORS[hasScanned ? optimizationLevel : "Basic"])} data-testid="badge-optimization-level">
+                      {hasScanned ? optimizationLevel : "Not Scanned"}
+                    </Badge>
+                    <p className="text-xs text-muted-foreground mt-1">{hasScanned ? scores.profileBias : "Run a scan to see your score"}</p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mt-2">
+                  {Object.entries(categoryScores).map(([cat, data]) => {
+                    const Icon = CATEGORY_ICONS[cat as BiosCategory];
+                    return (
+                      <div key={cat} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10">
+                        {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[10px] text-muted-foreground truncate">{cat.split(" ")[0]}</div>
+                          <div className="flex items-center gap-2">
+                            <Progress value={hasScanned ? data.score : 0} className="h-1 flex-1" />
+                            <span className="text-[10px] font-bold text-white w-6 text-right">{hasScanned ? data.score : "—"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-center gap-6 lg:gap-10">
+                <ScoreGauge label="Latency" value={hasScanned ? scores.latency : 0} color="text-primary" delay={0.1} />
+                <ScoreGauge label="Frametime" value={hasScanned ? scores.frametime : 0} color="text-blue-400" delay={0.2} />
+                <ScoreGauge label="Stability" value={hasScanned ? scores.stability : 0} color="text-emerald-400" delay={0.3} />
+              </div>
+            </div>
+          </GlassCard>
+        </Item>
+
         {hasScanned && (
           <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
             <GlassCard className="p-4 bg-white/[0.02]">
@@ -983,65 +1042,6 @@ export default function BiosAdvisor() {
             </GlassCard>
           </Item>
         )}
-
-        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
-          <GlassCard className="p-6 bg-gradient-to-br from-[hsl(270,60%,55%)/0.1] to-[hsl(280,70%,65%)/0.05] border-[hsl(270,60%,55%)/0.2]">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <div className="flex flex-col justify-center">
-                <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-[hsl(270,60%,55%)]" />
-                  Firmware Score
-                </h2>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Competitive readiness based on detected firmware behavior
-                </p>
-                
-                <div className="flex items-center gap-3 mb-3">
-                  <motion.div 
-                    className="text-5xl font-bold bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] bg-clip-text text-transparent"
-                    initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.3, duration: 0.5 }}
-                    data-testid="text-firmware-score"
-                  >
-                    {hasScanned ? displayedScore : "—"}
-                  </motion.div>
-                  <div className="text-lg text-muted-foreground font-medium">/ 100</div>
-                  <div className="ml-2">
-                    <Badge className={cn("text-xs font-semibold", LEVEL_COLORS[hasScanned ? optimizationLevel : "Basic"])} data-testid="badge-optimization-level">
-                      {hasScanned ? optimizationLevel : "Not Scanned"}
-                    </Badge>
-                    <p className="text-xs text-muted-foreground mt-1">{hasScanned ? scores.profileBias : "Run a scan to see your score"}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mt-2">
-                  {Object.entries(categoryScores).map(([cat, data]) => {
-                    const Icon = CATEGORY_ICONS[cat as BiosCategory];
-                    return (
-                      <div key={cat} className="flex items-center gap-2 p-2 rounded-lg bg-white/5 border border-white/10">
-                        {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-[10px] text-muted-foreground truncate">{cat.split(" ")[0]}</div>
-                          <div className="flex items-center gap-2">
-                            <Progress value={hasScanned ? data.score : 0} className="h-1 flex-1" />
-                            <span className="text-[10px] font-bold text-white w-6 text-right">{hasScanned ? data.score : "—"}</span>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              
-              <div className="flex items-center justify-center gap-6 lg:gap-10">
-                <ScoreGauge label="Latency" value={hasScanned ? scores.latency : 0} color="text-primary" delay={0.1} />
-                <ScoreGauge label="Frametime" value={hasScanned ? scores.frametime : 0} color="text-blue-400" delay={0.2} />
-                <ScoreGauge label="Stability" value={hasScanned ? scores.stability : 0} color="text-emerald-400" delay={0.3} />
-              </div>
-            </div>
-          </GlassCard>
-        </Item>
 
         <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
           <GlassCard className="p-5 bg-gradient-to-br from-primary/5 to-cyan-500/5 border-primary/20">
