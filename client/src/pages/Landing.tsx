@@ -519,34 +519,30 @@ export default function Landing() {
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
 
-          {/* ── Sun streak — thick white light shaft from top-left onto the headline ── */}
-          {/* Wide white beam core — the main visible light shaft */}
-          <div className="absolute pointer-events-none ws-sun-streak-2" style={{
-            left: "-2%", top: "-2%",
-            width: "85%", height: "160px",
-            transformOrigin: "left top",
-            transform: "rotate(26deg)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.30) 18%, rgba(220,210,255,0.12) 50%, transparent 80%)",
-            filter: "blur(22px)",
+          {/* ── Sun streak — diagonal white shaft from top-left through the headline ── */}
+          {/* Broad diagonal glow panel — fills the top-left→center diagonal zone */}
+          <div className="absolute inset-0 pointer-events-none" style={{
+            background: "linear-gradient(148deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.18) 18%, rgba(210,190,255,0.08) 38%, transparent 58%)",
             mixBlendMode: "screen",
           }} />
-          {/* Tight bright core — sharp bright centre of the beam */}
-          <div className="absolute pointer-events-none ws-sun-streak-1" style={{
-            left: "-2%", top: "-2%",
-            width: "60%", height: "40px",
+          {/* Crisp beam centerline — thin hot edge that reads as a directional shaft */}
+          <div className="absolute pointer-events-none" style={{
+            left: "-5%", top: "-5%",
+            width: "130%", height: "14px",
             transformOrigin: "left top",
-            transform: "rotate(26deg)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.70) 0%, rgba(255,255,255,0.35) 25%, rgba(255,255,255,0.08) 55%, transparent 80%)",
-            filter: "blur(6px)",
+            transform: "rotate(35deg)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.50) 18%, rgba(255,255,255,0.12) 50%, transparent 80%)",
+            filter: "blur(4px)",
             mixBlendMode: "screen",
           }} />
-          {/* Outer haze — wide ambient bloom around the beam origin */}
-          <div className="absolute pointer-events-none ws-sun-streak-3" style={{
-            left: "-15%", top: "-15%",
-            width: "55vw", height: "55vw",
-            borderRadius: "50%",
-            background: "radial-gradient(ellipse at 22% 22%, rgba(255,255,255,0.10) 0%, rgba(200,180,255,0.06) 35%, transparent 68%)",
-            filter: "blur(40px)",
+          {/* Wide soft haze around the beam — gives it body and width */}
+          <div className="absolute pointer-events-none" style={{
+            left: "-5%", top: "-5%",
+            width: "130%", height: "200px",
+            transformOrigin: "left top",
+            transform: "rotate(35deg) translateY(-100px)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.14) 25%, rgba(255,255,255,0.04) 55%, transparent 80%)",
+            filter: "blur(35px)",
             mixBlendMode: "screen",
           }} />
 
