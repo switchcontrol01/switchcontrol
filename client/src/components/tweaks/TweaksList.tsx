@@ -179,7 +179,7 @@ export function TweaksList() {
       </AnimatePresence>
 
       {/* Tweaks Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-12 items-start">
         <AnimatePresence mode="sync">
           {filteredTweaks.map((tweak, index) => (
             <motion.div
