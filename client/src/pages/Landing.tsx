@@ -519,45 +519,49 @@ export default function Landing() {
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
 
-          {/* ── Sun streak LEFT — thick wide beam from top-left ── */}
-          <div className="absolute pointer-events-none" style={{
-            left: "-5%", top: "-5%",
-            width: "44%", height: "560px",
-            transformOrigin: "left top",
-            transform: "rotate(32deg) translateY(-280px)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
-            filter: "blur(55px)",
-            mixBlendMode: "screen",
-          }} />
-          <div className="absolute pointer-events-none" style={{
-            left: "-5%", top: "-5%",
-            width: "36%", height: "150px",
-            transformOrigin: "left top",
-            transform: "rotate(32deg) translateY(-75px)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
-            filter: "blur(18px)",
-            mixBlendMode: "screen",
-          }} />
+          {/* ── Sun streak LEFT ── */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div style={{
+              position: "absolute", left: "-5%", top: "-5%",
+              width: "44%", height: "560px",
+              transformOrigin: "left top",
+              transform: "rotate(32deg) translateY(-280px)",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
+              filter: "blur(55px)",
+              mixBlendMode: "screen",
+            }} />
+            <div style={{
+              position: "absolute", left: "-5%", top: "-5%",
+              width: "36%", height: "150px",
+              transformOrigin: "left top",
+              transform: "rotate(32deg) translateY(-75px)",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
+              filter: "blur(18px)",
+              mixBlendMode: "screen",
+            }} />
+          </div>
 
-          {/* ── Sun streak RIGHT — mirrored beam from top-right ── */}
-          <div className="absolute pointer-events-none" style={{
-            right: "-5%", top: "-5%",
-            width: "44%", height: "560px",
-            transformOrigin: "right top",
-            transform: "rotate(-32deg) translateY(-280px)",
-            background: "linear-gradient(270deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
-            filter: "blur(55px)",
-            mixBlendMode: "screen",
-          }} />
-          <div className="absolute pointer-events-none" style={{
-            right: "-5%", top: "-5%",
-            width: "36%", height: "150px",
-            transformOrigin: "right top",
-            transform: "rotate(-32deg) translateY(-75px)",
-            background: "linear-gradient(270deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
-            filter: "blur(18px)",
-            mixBlendMode: "screen",
-          }} />
+          {/* ── Sun streak RIGHT — pixel-perfect mirror of left via scaleX(-1) ── */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ transform: "scaleX(-1)" }}>
+            <div style={{
+              position: "absolute", left: "-5%", top: "-5%",
+              width: "44%", height: "560px",
+              transformOrigin: "left top",
+              transform: "rotate(32deg) translateY(-280px)",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
+              filter: "blur(55px)",
+              mixBlendMode: "screen",
+            }} />
+            <div style={{
+              position: "absolute", left: "-5%", top: "-5%",
+              width: "36%", height: "150px",
+              transformOrigin: "left top",
+              transform: "rotate(32deg) translateY(-75px)",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
+              filter: "blur(18px)",
+              mixBlendMode: "screen",
+            }} />
+          </div>
 
           <TelemetryLineOverlay />
 
