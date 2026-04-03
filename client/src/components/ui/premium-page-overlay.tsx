@@ -1,8 +1,7 @@
 import { Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { AnimatedCrown } from "@/components/ui/animated-crown";
 import { openPricing } from "@/lib/pricing";
 
@@ -21,18 +20,19 @@ export function PremiumPageOverlay({ featureName, buttonText, description }: Pre
     setTimeout(() => setIsAnimating(false), 300);
   };
 
-  const overlay = (
+  return (
     <div
-      className="fixed inset-0 z-30 flex items-center justify-center bg-black/30 backdrop-blur-[1px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px]"
       onClick={triggerAttentionAnimation}
       data-testid="premium-overlay"
     >
       <motion.div
         className="text-center space-y-4 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4"
-        initial={{ opacity: 0, scale: 0.96 }}
+        initial={{ opacity: 0, scale: 0.95, y: 8 }}
         animate={isAnimating ? {
           opacity: 1,
           scale: [1, 1.03, 1],
+          y: 0,
           boxShadow: [
             "0 0 40px rgba(168,85,247,0.2)",
             "0 0 60px rgba(168,85,247,0.4)",
@@ -41,9 +41,10 @@ export function PremiumPageOverlay({ featureName, buttonText, description }: Pre
         } : {
           opacity: 1,
           scale: 1,
+          y: 0,
           boxShadow: "0 0 40px rgba(168,85,247,0.2)"
         }}
-        transition={{ duration: 0.3, ease: "easeOut" }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         onClick={(e) => e.stopPropagation()}
       >
         <AnimatedCrown size="lg" className="mx-auto pointer-events-none" />
@@ -65,8 +66,6 @@ export function PremiumPageOverlay({ featureName, buttonText, description }: Pre
       </motion.div>
     </div>
   );
-
-  return createPortal(overlay, document.body);
 }
 
 interface PremiumCardOverlayProps {
@@ -99,10 +98,11 @@ export function PremiumCardOverlay({ featureName, buttonText, children, isLocked
       >
         <motion.div
           className="text-center space-y-4 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4"
-          initial={{ opacity: 0, scale: 0.96 }}
+          initial={{ opacity: 0, scale: 0.95, y: 8 }}
           animate={isAnimating ? {
             opacity: 1,
             scale: [1, 1.03, 1],
+            y: 0,
             boxShadow: [
               "0 0 40px rgba(168,85,247,0.2)",
               "0 0 60px rgba(168,85,247,0.4)",
@@ -111,9 +111,10 @@ export function PremiumCardOverlay({ featureName, buttonText, children, isLocked
           } : {
             opacity: 1,
             scale: 1,
+            y: 0,
             boxShadow: "0 0 40px rgba(168,85,247,0.2)"
           }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
+          transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           onClick={(e) => e.stopPropagation()}
         >
           <AnimatedCrown size="lg" className="mx-auto pointer-events-none" />
