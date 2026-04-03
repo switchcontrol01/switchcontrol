@@ -7,402 +7,393 @@ interface SplashProps {
   onComplete: () => void;
 }
 
-const PARTICLES = Array.from({ length: 90 }, (_, i) => ({
-  id: i,
-  left: `${4 + (i * 3.7 + i * i * 0.13) % 92}%`,
-  top:  `${6 + (i * 5.3 + i * 0.9) % 88}%`,
-  size: i % 7 === 0 ? 6 + (i % 3) : i % 4 === 0 ? 4 : 2 + (i % 3) * 1.1,
-  color:
-    i % 5 === 0 ? "rgba(0,230,255,0.80)"
-    : i % 5 === 1 ? "rgba(168,85,247,0.85)"
-    : i % 5 === 2 ? "rgba(236,72,153,0.65)"
-    : i % 5 === 3 ? "rgba(255,255,255,0.55)"
-    :               "rgba(130,90,255,0.70)",
-  glow:
-    i % 5 === 0 ? "0 0 10px rgba(0,230,255,0.95), 0 0 20px rgba(0,200,255,0.4)"
-    : i % 5 === 1 ? "0 0 12px rgba(168,85,247,0.95), 0 0 24px rgba(140,70,240,0.4)"
-    : i % 5 === 2 ? "0 0 8px rgba(236,72,153,0.8)"
-    : "0 0 6px rgba(255,255,255,0.4)",
-  dur: 3.2 + (i % 8) * 0.45,
-  delay: i * 0.05,
-  dy: 18 + (i % 6) * 5,
-  dx: 6 + (i % 5) * 4,
+/* ── Static particle field — deterministic, no random() ─────────────── */
+const PARTICLES = Array.from({ length: 140 }, (_, i) => {
+  const t = i / 140;
+  const hue =
+    i % 6 === 0 ? "rgba(0,230,255,"
+    : i % 6 === 1 ? "rgba(168,85,247,"
+    : i % 6 === 2 ? "rgba(236,72,153,"
+    : i % 6 === 3 ? "rgba(255,200,80,"
+    : i % 6 === 4 ? "rgba(80,200,255,"
+    :               "rgba(200,130,255,";
+  const alpha = 0.55 + (i % 7) * 0.06;
+  const size  = i % 9 === 0 ? 8 + (i % 4) : i % 5 === 0 ? 5 : 2.5 + (i % 3);
+  const glowR = i % 6 === 0 ? "0,230,255" : i % 6 === 1 ? "168,85,247" : i % 6 === 2 ? "236,72,153" : i % 6 === 3 ? "255,200,80" : "80,200,255";
+  return {
+    id: i,
+    left: `${3 + ((i * 4.3 + i * i * 0.09) % 94)}%`,
+    top:  `${4 + ((i * 6.1 + i * 0.7)      % 92)}%`,
+    size,
+    color:  `${hue}${alpha})`,
+    glow:   `0 0 ${size * 1.8}px rgba(${glowR},0.9), 0 0 ${size * 3.5}px rgba(${glowR},0.35)`,
+    dur:    2.8 + (i % 9) * 0.4,
+    delay:  (i * 0.033) % 3,
+    dy:     14 + (i % 7) * 6,
+    dx:     5  + (i % 5) * 5,
+    scale:  [1, 1.4 + (i % 3) * 0.2, 1] as [number, number, number],
+    opac:   [0.08, 0.75 + (i % 4) * 0.07, 0.08] as [number, number, number],
+  };
+});
+
+/* ── Streaks — diagonal light beams ─────────────────────────────────── */
+const STREAKS = [
+  { top: "48%", deg: "-13deg",  c1: "rgba(168,85,247,0.32)",  c2: "rgba(0,220,255,0.22)", dur: 3.4, delay: 0.3 },
+  { top: "35%", deg: "-22deg",  c1: "rgba(139,92,246,0.24)",  c2: "rgba(255,255,255,0.14)", dur: 5.1, delay: 1.5 },
+  { top: "63%", deg: "-8deg",   c1: "rgba(0,200,255,0.26)",   c2: "rgba(168,85,247,0.16)", dur: 4.0, delay: 2.6 },
+  { top: "28%", deg: "-30deg",  c1: "rgba(236,72,153,0.20)",  c2: "rgba(168,85,247,0.12)", dur: 6.2, delay: 0.9 },
+  { top: "72%", deg: "5deg",    c1: "rgba(255,200,80,0.16)",  c2: "rgba(0,210,255,0.12)",  dur: 4.8, delay: 3.4 },
+  { top: "55%", deg: "-38deg",  c1: "rgba(100,60,255,0.20)",  c2: "rgba(236,72,153,0.14)", dur: 5.6, delay: 2.1 },
+];
+
+/* ── Sun ray spokes config ───────────────────────────────────────────── */
+const PRIMARY_RAYS = Array.from({ length: 14 }, (_, i) => ({
+  angle: i * (360 / 14),
+  h: i % 3 === 0 ? "2.5px" : "1.5px",
+  grad: i % 3 === 0
+    ? "linear-gradient(90deg,transparent 3%,rgba(168,85,247,0.55) 30%,rgba(0,220,255,0.45) 50%,rgba(168,85,247,0.55) 70%,transparent 97%)"
+    : i % 3 === 1
+      ? "linear-gradient(90deg,transparent 3%,rgba(255,255,255,0.28) 38%,rgba(0,230,255,0.35) 50%,rgba(255,255,255,0.28) 62%,transparent 97%)"
+      : "linear-gradient(90deg,transparent 3%,rgba(139,92,246,0.4) 35%,rgba(200,150,255,0.3) 50%,rgba(139,92,246,0.4) 65%,transparent 97%)",
+}));
+
+const SECONDARY_RAYS = Array.from({ length: 8 }, (_, i) => ({
+  angle: i * 45 + 22.5,
+  grad: "linear-gradient(90deg,transparent 8%,rgba(255,255,255,0.25) 42%,rgba(0,235,255,0.32) 50%,rgba(255,255,255,0.25) 58%,transparent 92%)",
 }));
 
 export default function Splash({ onComplete }: SplashProps) {
   const [logoReady, setLogoReady] = useState(false);
   const [textReady, setTextReady] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const tagline = useMemo(() => getTagline(), []);
+  const [progress,  setProgress]  = useState(0);
+  const tagline    = useMemo(() => getTagline(), []);
   const [statusText, setStatusText] = useState(tagline);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setLogoReady(true), 300);
-    const t2 = setTimeout(() => setTextReady(true), 900);
+    const t1 = setTimeout(() => setLogoReady(true), 260);
+    const t2 = setTimeout(() => setTextReady(true), 820);
+    const si = setInterval(() => setStatusText(getTagline()), 2000);
 
-    const statusInterval = setInterval(() => setStatusText(getTagline()), 2000);
-
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) return 100;
-        const remaining = 100 - prev;
-        if (prev < 40) return prev + 2.2;
-        if (prev < 75) return prev + Math.max(remaining * 0.12, 0.5);
-        return prev + Math.max(remaining * 0.07, 0.2);
+    const pi = setInterval(() => {
+      setProgress(p => {
+        if (p >= 100) return 100;
+        const r = 100 - p;
+        if (p < 40) return p + 2.4;
+        if (p < 75) return p + Math.max(r * 0.13, 0.5);
+        return p + Math.max(r * 0.07, 0.2);
       });
-    }, 40);
+    }, 38);
 
-    const completeTimer = setTimeout(() => onComplete(), 4800);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(completeTimer);
-      clearInterval(progressInterval);
-      clearInterval(statusInterval);
-    };
+    const done = setTimeout(() => onComplete(), 4600);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(done); clearInterval(pi); clearInterval(si); };
   }, [onComplete]);
 
   return (
-    <div className="fixed inset-0 bg-[#080810] overflow-hidden flex items-center justify-center">
+    <div className="fixed inset-0 overflow-hidden flex items-center justify-center" style={{ background: "#07090D" }}>
 
-      {/* ── Large ambient orbs ─────────────────────────────────────────── */}
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          left: "10%", top: "15%",
-          width: "55vw", height: "55vw",
-          background: "radial-gradient(ellipse, rgba(139,92,246,0.28) 0%, rgba(120,60,220,0.10) 45%, transparent 70%)",
-          filter: "blur(80px)",
-        }}
-        animate={{ scale: [1, 1.12, 1], opacity: [0.7, 1, 0.7] }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      />
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          right: "5%", bottom: "10%",
-          width: "50vw", height: "50vw",
-          background: "radial-gradient(ellipse, rgba(0,200,255,0.22) 0%, rgba(0,150,220,0.08) 45%, transparent 70%)",
-          filter: "blur(90px)",
-        }}
-        animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.9, 0.5] }}
-        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-      />
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          left: "55%", top: "5%",
-          width: "35vw", height: "35vw",
-          background: "radial-gradient(ellipse, rgba(236,72,153,0.15) 0%, transparent 65%)",
-          filter: "blur(70px)",
-        }}
-        animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.75, 0.4] }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-      />
+      {/* ── Aurora base — large slow shifting hazes ─────────────────────── */}
+      <motion.div className="absolute pointer-events-none" style={{
+        left: "0%", top: "0%", width: "70vw", height: "70vw",
+        background: "radial-gradient(ellipse, rgba(139,92,246,0.32) 0%, rgba(100,50,210,0.12) 42%, transparent 68%)",
+        filter: "blur(90px)",
+      }} animate={{ scale: [1, 1.14, 1], opacity: [0.65, 1, 0.65] }}
+        transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }} />
 
-      {/* ── Subtle centre core pulse ───────────────────────────────────── */}
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          left: "50%", top: "50%",
-          width: "45vw", height: "45vw",
-          marginLeft: "-22.5vw", marginTop: "-22.5vw",
-          background: "radial-gradient(ellipse, rgba(168,85,247,0.22) 0%, rgba(0,210,255,0.10) 50%, transparent 70%)",
-          filter: "blur(40px)",
-        }}
-        animate={{ opacity: [0.4, 0.9, 0.4], scale: [0.9, 1.1, 0.9] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
-      />
+      <motion.div className="absolute pointer-events-none" style={{
+        right: "-5%", bottom: "0%", width: "60vw", height: "60vw",
+        background: "radial-gradient(ellipse, rgba(0,200,255,0.26) 0%, rgba(0,140,220,0.10) 45%, transparent 70%)",
+        filter: "blur(100px)",
+      }} animate={{ scale: [1, 1.18, 1], opacity: [0.5, 0.95, 0.5] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut", delay: 1 }} />
 
-      {/* ── Contour field ─────────────────────────────────────────────── */}
-      <div
-        className="absolute inset-0 overflow-hidden pointer-events-none opacity-25"
-        style={{ transform: "rotate(-12deg) scale(1.6)" }}
-      >
-        <motion.div
-          className="absolute inset-0"
-          animate={{ x: [0, 60, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-        >
+      <motion.div className="absolute pointer-events-none" style={{
+        left: "50%", top: "-5%", width: "45vw", height: "45vw",
+        background: "radial-gradient(ellipse, rgba(236,72,153,0.20) 0%, transparent 65%)",
+        filter: "blur(80px)",
+      }} animate={{ scale: [1, 1.22, 1], opacity: [0.38, 0.75, 0.38] }}
+        transition={{ duration: 9, repeat: Infinity, ease: "easeInOut", delay: 2.5 }} />
+
+      <motion.div className="absolute pointer-events-none" style={{
+        left: "20%", bottom: "5%", width: "40vw", height: "40vw",
+        background: "radial-gradient(ellipse, rgba(255,170,60,0.14) 0%, transparent 65%)",
+        filter: "blur(80px)",
+      }} animate={{ scale: [1, 1.16, 1], opacity: [0.3, 0.65, 0.3] }}
+        transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 4 }} />
+
+      {/* ── Atmospheric center glow ──────────────────────────────────────── */}
+      <motion.div className="absolute pointer-events-none" style={{
+        left: "50%", top: "50%",
+        width: "50vw", height: "50vw",
+        marginLeft: "-25vw", marginTop: "-25vw",
+        background: "radial-gradient(ellipse, rgba(168,85,247,0.26) 0%, rgba(0,210,255,0.14) 45%, transparent 72%)",
+        filter: "blur(50px)",
+      }} animate={{ opacity: [0.45, 1, 0.45], scale: [0.88, 1.12, 0.88] }}
+        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }} />
+
+      {/* ── Animated contour wave lines ──────────────────────────────────── */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ opacity: 0.3, transform: "rotate(-10deg) scale(1.7)" }}>
+        <motion.div className="absolute inset-0"
+          animate={{ x: [0, 80, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
-              <pattern id="sc1" x="0" y="0" width="300" height="200" patternUnits="userSpaceOnUse">
-                <path d="M0 50 Q75 20 150 50 T300 50"   fill="none" stroke="hsl(270 55% 55%)" strokeWidth="0.9" opacity="0.6"/>
-                <path d="M0 100 Q75 70 150 100 T300 100" fill="none" stroke="hsl(190 90% 50%)" strokeWidth="0.6" opacity="0.45"/>
-                <path d="M0 150 Q75 120 150 150 T300 150" fill="none" stroke="hsl(280 50% 50%)" strokeWidth="0.7" opacity="0.45"/>
+              <pattern id="wv1" x="0" y="0" width="320" height="220" patternUnits="userSpaceOnUse">
+                <path d="M0 55 Q80 22 160 55 T320 55"   fill="none" stroke="hsl(270,60%,58%)" strokeWidth="1.0" opacity="0.65"/>
+                <path d="M0 110 Q80 77 160 110 T320 110" fill="none" stroke="hsl(190,90%,55%)" strokeWidth="0.7" opacity="0.5"/>
+                <path d="M0 165 Q80 132 160 165 T320 165" fill="none" stroke="hsl(310,70%,60%)" strokeWidth="0.8" opacity="0.45"/>
               </pattern>
             </defs>
-            <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#sc1)" />
+            <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#wv1)" />
           </svg>
         </motion.div>
-        <motion.div
-          className="absolute inset-0"
-          animate={{ x: [0, -40, 0] }}
-          transition={{ duration: 17, repeat: Infinity, ease: "linear" }}
-        >
+        <motion.div className="absolute inset-0"
+          animate={{ x: [0, -50, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "linear" }}>
           <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
             <defs>
-              <pattern id="sc2" x="0" y="0" width="250" height="180" patternUnits="userSpaceOnUse">
-                <path d="M0 45 Q62 18 125 45 T250 45"  fill="none" stroke="hsl(190 80% 55%)" strokeWidth="0.5" opacity="0.5"/>
-                <path d="M0 95 Q62 68 125 95 T250 95"  fill="none" stroke="hsl(265 55% 50%)" strokeWidth="0.4" opacity="0.4"/>
-                <path d="M0 145 Q62 118 125 145 T250 145" fill="none" stroke="hsl(280 50% 55%)" strokeWidth="0.55" opacity="0.45"/>
+              <pattern id="wv2" x="0" y="0" width="260" height="180" patternUnits="userSpaceOnUse">
+                <path d="M0 45 Q65 18 130 45 T260 45"  fill="none" stroke="hsl(195,85%,58%)" strokeWidth="0.6" opacity="0.55"/>
+                <path d="M0 95 Q65 68 130 95 T260 95"  fill="none" stroke="hsl(268,60%,55%)" strokeWidth="0.5" opacity="0.45"/>
+                <path d="M0 145 Q65 118 130 145 T260 145" fill="none" stroke="hsl(320,70%,62%)" strokeWidth="0.65" opacity="0.5"/>
               </pattern>
             </defs>
-            <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#sc2)" />
+            <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#wv2)" />
+          </svg>
+        </motion.div>
+        <motion.div className="absolute inset-0"
+          animate={{ x: [0, 30, 0] }}
+          transition={{ duration: 26, repeat: Infinity, ease: "linear" }}>
+          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+            <defs>
+              <pattern id="wv3" x="0" y="0" width="380" height="260" patternUnits="userSpaceOnUse">
+                <path d="M0 65 Q95 30 190 65 T380 65"   fill="none" stroke="hsl(30,90%,65%)" strokeWidth="0.5" opacity="0.35"/>
+                <path d="M0 130 Q95 95 190 130 T380 130" fill="none" stroke="hsl(190,90%,55%)" strokeWidth="0.4" opacity="0.3"/>
+                <path d="M0 195 Q95 160 190 195 T380 195" fill="none" stroke="hsl(270,65%,60%)" strokeWidth="0.55" opacity="0.4"/>
+              </pattern>
+            </defs>
+            <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#wv3)" />
           </svg>
         </motion.div>
       </div>
 
-      {/* ── Particles ─────────────────────────────────────────────────── */}
+      {/* ── Particle field ───────────────────────────────────────────────── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {PARTICLES.map(p => (
           <motion.div
             key={p.id}
             className="absolute rounded-full"
-            style={{
-              left: p.left, top: p.top,
-              width: `${p.size}px`, height: `${p.size}px`,
-              background: p.color,
-              boxShadow: p.glow,
-            }}
-            animate={{
-              y: [-p.dy, p.dy, -p.dy],
-              x: [-p.dx, p.dx, -p.dx],
-              opacity: [0.1, 0.85, 0.1],
-              scale: [1, 1.5, 1],
-            }}
-            transition={{
-              duration: p.dur,
-              repeat: Infinity,
-              delay: p.delay,
-              ease: "easeInOut",
-            }}
+            style={{ left: p.left, top: p.top, width: `${p.size}px`, height: `${p.size}px`, background: p.color, boxShadow: p.glow }}
+            animate={{ y: [-p.dy, p.dy, -p.dy], x: [-p.dx, p.dx, -p.dx], opacity: p.opac, scale: p.scale }}
+            transition={{ duration: p.dur, repeat: Infinity, delay: p.delay, ease: "easeInOut" }}
           />
         ))}
       </div>
 
-      {/* ── Sweeping light streaks ────────────────────────────────────── */}
-      {[
-        { top: "50%", deg: "-14deg", color1: "rgba(168,85,247,0.28)", color2: "rgba(0,210,255,0.16)", dur: 3.5, delay: 0.4 },
-        { top: "38%", deg: "-20deg", color1: "rgba(139,92,246,0.20)", color2: "rgba(255,255,255,0.10)", dur: 5, delay: 1.8 },
-        { top: "62%", deg: "-10deg", color1: "rgba(0,200,255,0.22)", color2: "rgba(168,85,247,0.12)", dur: 4.2, delay: 2.8 },
-      ].map((s, i) => (
+      {/* ── Diagonal light sweeps ─────────────────────────────────────────── */}
+      {STREAKS.map((s, i) => (
         <motion.div
           key={i}
           className="absolute pointer-events-none"
           style={{
-            width: "200%", height: "2px",
-            left: "-50%", top: s.top,
-            background: `linear-gradient(90deg, transparent, ${s.color1}, ${s.color2}, ${s.color1}, transparent)`,
+            width: "220%", height: i % 2 === 0 ? "2.5px" : "1.5px",
+            left: "-60%", top: s.top,
+            background: `linear-gradient(90deg, transparent, ${s.c1}, ${s.c2}, ${s.c1}, transparent)`,
             transform: `rotate(${s.deg})`,
+            filter: "blur(0.8px)",
           }}
           animate={{ opacity: [0, 1, 0], x: ["-20%", "20%"] }}
           transition={{ duration: s.dur, repeat: Infinity, ease: "easeInOut", delay: s.delay }}
         />
       ))}
 
-      {/* ── Vignette ──────────────────────────────────────────────────── */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(8,8,16,0.88) 100%)" }}
-      />
+      {/* ── Sun streak / god ray system — centered behind logo ───────────── */}
+      <div className="absolute pointer-events-none" style={{ left: "50%", top: "44%", transform: "translate(-50%,-50%)", zIndex: 5 }}>
 
-      {/* ── Sun streak / god rays — behind content ────────────────────── */}
-      <div
-        className="absolute pointer-events-none"
-        style={{ left: "50%", top: "44%", transform: "translate(-50%, -50%)", zIndex: 5 }}
-      >
-        {/* Wide deep glow */}
-        <motion.div
-          className="absolute"
-          style={{
-            width: "700px", height: "700px",
-            marginLeft: "-350px", marginTop: "-350px",
-            background: "radial-gradient(ellipse, rgba(139,92,246,0.42) 0%, rgba(0,210,255,0.18) 30%, rgba(168,85,247,0.08) 55%, transparent 70%)",
-            filter: "blur(50px)",
-          }}
-          animate={{ opacity: [0.65, 1, 0.65], scale: [0.95, 1.06, 0.95] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* Deep wide haze */}
+        <motion.div className="absolute" style={{
+          width: "780px", height: "780px", marginLeft: "-390px", marginTop: "-390px",
+          background: "radial-gradient(ellipse, rgba(139,92,246,0.46) 0%, rgba(0,210,255,0.22) 28%, rgba(168,85,247,0.08) 55%, transparent 72%)",
+          filter: "blur(55px)",
+        }} animate={{ opacity: [0.6, 1, 0.6], scale: [0.93, 1.07, 0.93] }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }} />
 
-        {/* Bright core spot */}
-        <motion.div
-          className="absolute"
-          style={{
-            width: "220px", height: "220px",
-            marginLeft: "-110px", marginTop: "-110px",
-            background: "radial-gradient(circle, rgba(255,255,255,0.75) 0%, rgba(210,150,255,0.55) 18%, rgba(0,210,255,0.35) 40%, transparent 68%)",
-            filter: "blur(14px)",
-          }}
-          animate={{ opacity: [0.7, 1, 0.7], scale: [0.88, 1.12, 0.88] }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* Mid glow */}
+        <motion.div className="absolute" style={{
+          width: "400px", height: "400px", marginLeft: "-200px", marginTop: "-200px",
+          background: "radial-gradient(ellipse, rgba(200,130,255,0.38) 0%, rgba(0,230,255,0.22) 40%, transparent 70%)",
+          filter: "blur(32px)",
+        }} animate={{ opacity: [0.55, 0.95, 0.55], scale: [0.9, 1.15, 0.9] }}
+          transition={{ duration: 3.1, repeat: Infinity, ease: "easeInOut", delay: 0.6 }} />
 
-        {/* Inner hot point */}
-        <motion.div
-          className="absolute"
-          style={{
-            width: "60px", height: "60px",
-            marginLeft: "-30px", marginTop: "-30px",
-            background: "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(200,180,255,0.7) 40%, transparent 70%)",
-            filter: "blur(4px)",
-          }}
-          animate={{ opacity: [0.8, 1, 0.8], scale: [0.9, 1.15, 0.9] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-        />
+        {/* Bright core */}
+        <motion.div className="absolute" style={{
+          width: "240px", height: "240px", marginLeft: "-120px", marginTop: "-120px",
+          background: "radial-gradient(circle, rgba(255,255,255,0.80) 0%, rgba(220,160,255,0.60) 18%, rgba(0,215,255,0.40) 42%, transparent 68%)",
+          filter: "blur(16px)",
+        }} animate={{ opacity: [0.7, 1, 0.7], scale: [0.86, 1.14, 0.86] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }} />
 
-        {/* Primary rotating sun rays */}
-        <motion.div
-          className="absolute"
-          style={{ width: "900px", height: "900px", marginLeft: "-450px", marginTop: "-450px" }}
+        {/* Hot point */}
+        <motion.div className="absolute" style={{
+          width: "70px", height: "70px", marginLeft: "-35px", marginTop: "-35px",
+          background: "radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(200,180,255,0.75) 38%, transparent 72%)",
+          filter: "blur(5px)",
+        }} animate={{ opacity: [0.75, 1, 0.75], scale: [0.88, 1.18, 0.88] }}
+          transition={{ duration: 1.9, repeat: Infinity, ease: "easeInOut" }} />
+
+        {/* Pink accent flare */}
+        <motion.div className="absolute" style={{
+          width: "180px", height: "180px", marginLeft: "-90px", marginTop: "-90px",
+          background: "radial-gradient(ellipse at 35% 40%, rgba(236,72,153,0.30) 0%, transparent 65%)",
+          filter: "blur(22px)",
+        }} animate={{ opacity: [0.4, 0.85, 0.4], rotate: [0, 30, 0] }}
+          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }} />
+
+        {/* Amber warmth flare */}
+        <motion.div className="absolute" style={{
+          width: "160px", height: "160px", marginLeft: "-80px", marginTop: "-80px",
+          background: "radial-gradient(ellipse at 65% 60%, rgba(255,190,60,0.22) 0%, transparent 65%)",
+          filter: "blur(20px)",
+        }} animate={{ opacity: [0.3, 0.7, 0.3], rotate: [0, -20, 0] }}
+          transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 1.5 }} />
+
+        {/* Primary rotating spokes */}
+        <motion.div className="absolute"
+          style={{ width: "1000px", height: "1000px", marginLeft: "-500px", marginTop: "-500px" }}
           animate={{ rotate: [0, 360] }}
-          transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
-        >
-          {Array.from({ length: 10 }, (_, i) => (
-            <div
-              key={i}
-              className="absolute"
-              style={{
-                width: "100%", height: i % 2 === 0 ? "2px" : "1.5px",
-                top: "50%", left: "0",
-                marginTop: i % 2 === 0 ? "-1px" : "-0.75px",
-                transform: `rotate(${i * 18}deg)`,
-                transformOrigin: "50% 50%",
-                background: i % 3 === 0
-                  ? "linear-gradient(90deg, transparent 5%, rgba(168,85,247,0.5) 35%, rgba(0,210,255,0.4) 50%, rgba(168,85,247,0.5) 65%, transparent 95%)"
-                  : i % 3 === 1
-                    ? "linear-gradient(90deg, transparent 5%, rgba(255,255,255,0.25) 40%, rgba(0,220,255,0.3) 50%, rgba(255,255,255,0.25) 60%, transparent 95%)"
-                    : "linear-gradient(90deg, transparent 5%, rgba(139,92,246,0.35) 38%, rgba(200,150,255,0.25) 50%, rgba(139,92,246,0.35) 62%, transparent 95%)",
-                filter: "blur(1px)",
-              }}
-            />
+          transition={{ duration: 32, repeat: Infinity, ease: "linear" }}>
+          {PRIMARY_RAYS.map((r, i) => (
+            <div key={i} className="absolute" style={{
+              width: "100%", height: r.h,
+              top: "50%", left: 0,
+              marginTop: r.h === "2.5px" ? "-1.25px" : "-0.75px",
+              transform: `rotate(${r.angle}deg)`,
+              transformOrigin: "50% 50%",
+              background: r.grad,
+              filter: "blur(1px)",
+            }} />
           ))}
         </motion.div>
 
-        {/* Secondary counter-rotating rays (shorter, brighter) */}
-        <motion.div
-          className="absolute"
-          style={{ width: "550px", height: "550px", marginLeft: "-275px", marginTop: "-275px" }}
+        {/* Secondary counter-rotating spokes */}
+        <motion.div className="absolute"
+          style={{ width: "620px", height: "620px", marginLeft: "-310px", marginTop: "-310px" }}
           animate={{ rotate: [0, -360] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
-        >
-          {Array.from({ length: 6 }, (_, i) => (
-            <div
-              key={i}
-              className="absolute"
-              style={{
-                width: "100%", height: "1px",
-                top: "50%", left: "0",
-                marginTop: "-0.5px",
-                transform: `rotate(${i * 30 + 15}deg)`,
-                transformOrigin: "50% 50%",
-                background: "linear-gradient(90deg, transparent 10%, rgba(255,255,255,0.22) 42%, rgba(0,230,255,0.28) 50%, rgba(255,255,255,0.22) 58%, transparent 90%)",
-              }}
-            />
+          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}>
+          {SECONDARY_RAYS.map((r, i) => (
+            <div key={i} className="absolute" style={{
+              width: "100%", height: "1px",
+              top: "50%", left: 0, marginTop: "-0.5px",
+              transform: `rotate(${r.angle}deg)`,
+              transformOrigin: "50% 50%",
+              background: r.grad,
+            }} />
           ))}
         </motion.div>
 
-        {/* Lens flare horizontal streak */}
-        <motion.div
-          className="absolute"
-          style={{
-            width: "800px", height: "3px",
-            marginLeft: "-400px", marginTop: "-1.5px",
-            background: "linear-gradient(90deg, transparent, rgba(168,85,247,0.15) 20%, rgba(255,255,255,0.35) 45%, rgba(0,220,255,0.45) 50%, rgba(255,255,255,0.35) 55%, rgba(168,85,247,0.15) 80%, transparent)",
-            filter: "blur(1.5px)",
-          }}
-          animate={{ opacity: [0.5, 0.9, 0.5], scaleX: [0.95, 1.05, 0.95] }}
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
-        />
+        {/* Horizontal lens flare */}
+        <motion.div className="absolute" style={{
+          width: "860px", height: "4px",
+          marginLeft: "-430px", marginTop: "-2px",
+          background: "linear-gradient(90deg, transparent, rgba(168,85,247,0.18) 18%, rgba(255,255,255,0.40) 44%, rgba(0,225,255,0.50) 50%, rgba(255,255,255,0.40) 56%, rgba(168,85,247,0.18) 82%, transparent)",
+          filter: "blur(1.8px)",
+        }} animate={{ opacity: [0.45, 0.9, 0.45], scaleX: [0.94, 1.06, 0.94] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }} />
+
+        {/* Vertical lens flare */}
+        <motion.div className="absolute" style={{
+          width: "4px", height: "700px",
+          marginLeft: "-2px", marginTop: "-350px",
+          background: "linear-gradient(180deg, transparent, rgba(0,225,255,0.14) 22%, rgba(255,255,255,0.30) 45%, rgba(168,85,247,0.38) 50%, rgba(255,255,255,0.30) 55%, rgba(0,225,255,0.14) 78%, transparent)",
+          filter: "blur(1.8px)",
+        }} animate={{ opacity: [0.3, 0.7, 0.3], scaleY: [0.92, 1.08, 0.92] }}
+          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.2 }} />
       </div>
 
-      {/* ── Logo + UI content ─────────────────────────────────────────── */}
-      <div className="relative flex flex-col items-center gap-6" style={{ zIndex: 10 }}>
+      {/* ── Vignette ──────────────────────────────────────────────────────── */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        background: "radial-gradient(ellipse 82% 82% at 50% 50%, transparent 28%, rgba(7,9,13,0.92) 100%)",
+      }} />
 
-        {/* Glass frost backdrop */}
-        <div
-          className="absolute pointer-events-none rounded-[40px]"
-          style={{
-            inset: "-48px -70px",
-            backdropFilter: "blur(22px)",
-            WebkitBackdropFilter: "blur(22px)",
-            background: "radial-gradient(ellipse at 50% 30%, rgba(168,85,247,0.05) 0%, rgba(0,10,30,0.14) 100%)",
-            border: "1px solid rgba(255,255,255,0.06)",
-            boxShadow: "0 0 100px rgba(139,92,246,0.08), inset 0 1px 0 rgba(255,255,255,0.05)",
-          }}
-        />
+      {/* ── Logo + text content ───────────────────────────────────────────── */}
+      <div className="relative flex flex-col items-center gap-7" style={{ zIndex: 10 }}>
 
-        {/* logo halo */}
+        {/* Glass frost halo behind content */}
+        <div className="absolute pointer-events-none rounded-[40px]" style={{
+          inset: "-52px -80px",
+          backdropFilter: "blur(24px)",
+          WebkitBackdropFilter: "blur(24px)",
+          background: "radial-gradient(ellipse at 50% 32%, rgba(168,85,247,0.07) 0%, rgba(0,10,30,0.18) 100%)",
+          border: "1px solid rgba(255,255,255,0.055)",
+          boxShadow: "0 0 120px rgba(139,92,246,0.10), inset 0 1px 0 rgba(255,255,255,0.05)",
+        }} />
+
+        {/* Logo reveal */}
         <AnimatePresence>
           {logoReady && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.6 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 12, filter: "blur(14px)" }}
+              animate={{ opacity: 1, y: 0,  filter: "blur(0px)" }}
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
               className="relative flex flex-col items-center"
             >
-              {/* outer rotating ring */}
-              <motion.div
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  width: "180px", height: "180px",
-                  top: "50%", left: "50%",
-                  marginLeft: "-90px", marginTop: "-90px",
-                  border: "1px solid rgba(168,85,247,0.30)",
-                  boxShadow: "0 0 40px rgba(168,85,247,0.18), inset 0 0 40px rgba(0,210,255,0.10)",
-                }}
-                animate={{ rotate: 360, opacity: [0.4, 0.85, 0.4] }}
-                transition={{ rotate: { duration: 12, repeat: Infinity, ease: "linear" }, opacity: { duration: 3, repeat: Infinity, ease: "easeInOut" } }}
-              />
-              {/* second ring cyan */}
-              <motion.div
-                className="absolute rounded-full pointer-events-none"
-                style={{
-                  width: "152px", height: "152px",
-                  top: "50%", left: "50%",
-                  marginLeft: "-76px", marginTop: "-76px",
-                  border: "1px solid rgba(0,210,255,0.22)",
-                }}
-                animate={{ rotate: -360, opacity: [0.3, 0.65, 0.3] }}
-                transition={{ rotate: { duration: 18, repeat: Infinity, ease: "linear" }, opacity: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 } }}
-              />
+              {/* Outer rotating ring — violet */}
+              <motion.div className="absolute rounded-full pointer-events-none" style={{
+                width: "192px", height: "192px",
+                top: "50%", left: "50%", marginLeft: "-96px", marginTop: "-96px",
+                border: "1px solid rgba(168,85,247,0.32)",
+                boxShadow: "0 0 45px rgba(168,85,247,0.20), inset 0 0 45px rgba(0,215,255,0.10)",
+              }}
+                animate={{ rotate: 360, opacity: [0.38, 0.88, 0.38] }}
+                transition={{ rotate: { duration: 11, repeat: Infinity, ease: "linear" }, opacity: { duration: 3.2, repeat: Infinity, ease: "easeInOut" } }} />
 
-              {/* wide ambient halo */}
-              <motion.div
-                className="absolute -inset-20 rounded-full pointer-events-none"
-                style={{
-                  background: "radial-gradient(ellipse, rgba(139,92,246,0.35) 0%, rgba(0,210,255,0.12) 40%, transparent 65%)",
-                  filter: "blur(20px)",
-                }}
-                animate={{ scale: [1, 1.28, 1], opacity: [0.55, 1, 0.55] }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-              />
+              {/* Inner ring — cyan */}
+              <motion.div className="absolute rounded-full pointer-events-none" style={{
+                width: "158px", height: "158px",
+                top: "50%", left: "50%", marginLeft: "-79px", marginTop: "-79px",
+                border: "1px solid rgba(0,215,255,0.25)",
+                boxShadow: "0 0 25px rgba(0,215,255,0.15)",
+              }}
+                animate={{ rotate: -360, opacity: [0.28, 0.68, 0.28] }}
+                transition={{ rotate: { duration: 17, repeat: Infinity, ease: "linear" }, opacity: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 } }} />
 
-              {/* logo icon */}
-              <motion.div
-                className="relative"
+              {/* Outermost pulse ring — pink */}
+              <motion.div className="absolute rounded-full pointer-events-none" style={{
+                width: "230px", height: "230px",
+                top: "50%", left: "50%", marginLeft: "-115px", marginTop: "-115px",
+                border: "0.5px solid rgba(236,72,153,0.18)",
+              }}
+                animate={{ rotate: 360, opacity: [0.2, 0.5, 0.2], scale: [0.96, 1.04, 0.96] }}
+                transition={{ rotate: { duration: 24, repeat: Infinity, ease: "linear" }, opacity: { duration: 5, repeat: Infinity, ease: "easeInOut", delay: 2 }, scale: { duration: 5, repeat: Infinity, ease: "easeInOut" } }} />
+
+              {/* Wide ambient halo */}
+              <motion.div className="absolute -inset-20 rounded-full pointer-events-none" style={{
+                background: "radial-gradient(ellipse, rgba(139,92,246,0.40) 0%, rgba(0,215,255,0.16) 38%, transparent 68%)",
+                filter: "blur(22px)",
+              }}
+                animate={{ scale: [1, 1.30, 1], opacity: [0.50, 1, 0.50] }}
+                transition={{ duration: 2.9, repeat: Infinity, ease: "easeInOut" }} />
+
+              {/* Logo icon */}
+              <motion.div className="relative"
                 animate={{
                   filter: [
-                    "drop-shadow(0 0 24px rgba(139,92,246,0.6)) drop-shadow(0 0 60px rgba(0,210,255,0.25))",
-                    "drop-shadow(0 0 48px rgba(139,92,246,0.9)) drop-shadow(0 0 100px rgba(0,210,255,0.45))",
-                    "drop-shadow(0 0 24px rgba(139,92,246,0.6)) drop-shadow(0 0 60px rgba(0,210,255,0.25))",
+                    "drop-shadow(0 0 26px rgba(139,92,246,0.65)) drop-shadow(0 0 65px rgba(0,215,255,0.28))",
+                    "drop-shadow(0 0 52px rgba(139,92,246,0.95)) drop-shadow(0 0 110px rgba(0,215,255,0.50)) drop-shadow(0 0 8px rgba(255,180,80,0.30))",
+                    "drop-shadow(0 0 26px rgba(139,92,246,0.65)) drop-shadow(0 0 65px rgba(0,215,255,0.28))",
                   ],
-                  y: [0, -4, 0],
+                  y: [0, -5, 0],
                 }}
-                transition={{ duration: 2.8, repeat: Infinity, ease: "easeInOut" }}
-              >
-                {/* shimmer sweep */}
+                transition={{ duration: 2.9, repeat: Infinity, ease: "easeInOut" }}>
+                {/* Shimmer sweep */}
                 <div className="absolute inset-0 rounded-[22%] overflow-hidden">
                   <motion.div
-                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent"
-                    animate={{ x: ["-100%", "150%"] }}
-                    transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 1.2, ease: "easeInOut" }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                    animate={{ x: ["-100%", "160%"] }}
+                    transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1.0, ease: "easeInOut" }}
                   />
                 </div>
-                <img
-                  src={logoImg}
-                  alt="SwitchControl"
+                <img src={logoImg} alt="SwitchControl"
                   className="w-28 h-28 max-w-[112px] max-h-[112px] object-contain rounded-[22%]"
                   draggable={false}
                 />
@@ -411,23 +402,21 @@ export default function Splash({ onComplete }: SplashProps) {
           )}
         </AnimatePresence>
 
-        {/* title */}
+        {/* Title + progress */}
         <AnimatePresence>
           {textReady && (
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 18, filter: "blur(8px)" }}
+              animate={{ opacity: 1, y: 0,  filter: "blur(0px)" }}
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-center gap-3"
             >
               <h1 className="text-3xl font-bold text-white tracking-tight">
-                Switch<span
-                  style={{
-                    background: "linear-gradient(90deg, hsl(270,65%,68%), hsl(190,90%,62%))",
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
-                  }}
-                >Control</span>
+                Switch<span style={{
+                  background: "linear-gradient(90deg, hsl(270,65%,70%), hsl(190,90%,64%), hsl(320,70%,72%))",
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                }}>Control</span>
               </h1>
 
               <div className="h-5 overflow-hidden">
@@ -439,48 +428,46 @@ export default function Splash({ onComplete }: SplashProps) {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: 0.28 }}
                   >
                     {statusText}
                   </motion.p>
                 </AnimatePresence>
               </div>
 
-              {/* progress bar */}
+              {/* Progress bar */}
               <motion.div
-                className="mt-3 w-52"
+                className="mt-2 w-56"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.3, duration: 0.4 }}
+                transition={{ delay: 0.28, duration: 0.4 }}
               >
                 <div className="h-[3px] bg-white/8 rounded-full overflow-hidden relative">
                   <motion.div
-                    className="h-full rounded-full relative overflow-hidden"
+                    className="h-full rounded-full"
                     style={{
                       width: `${progress}%`,
-                      background: "linear-gradient(90deg, hsl(270,60%,58%), hsl(190,90%,58%), hsl(270,60%,58%))",
-                      backgroundSize: "200% 100%",
-                      boxShadow: "0 0 10px rgba(168,85,247,0.8), 0 0 24px rgba(0,210,255,0.4)",
+                      background: "linear-gradient(90deg, hsl(270,60%,60%), hsl(195,90%,58%), hsl(310,70%,65%), hsl(270,60%,60%))",
+                      backgroundSize: "300% 100%",
+                      boxShadow: "0 0 12px rgba(168,85,247,0.85), 0 0 26px rgba(0,215,255,0.45)",
                     }}
                     animate={{ backgroundPosition: ["0% 0%", "200% 0%"] }}
-                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                    transition={{ duration: 2.2, repeat: Infinity, ease: "linear" }}
                   />
-                  {/* trailing spark */}
-                  <motion.div
-                    className="absolute top-0 h-full w-4 rounded-full"
-                    style={{
-                      left: `calc(${progress}% - 8px)`,
-                      background: "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(0,210,255,0.6) 50%, transparent 80%)",
-                      filter: "blur(2px)",
-                    }}
-                  />
+                  {/* Trailing spark */}
+                  <div className="absolute top-0 h-full w-5 rounded-full pointer-events-none" style={{
+                    left: `calc(${progress}% - 10px)`,
+                    background: "radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(0,220,255,0.65) 48%, transparent 82%)",
+                    filter: "blur(2px)",
+                  }} />
                 </div>
+
                 <div className="flex items-center justify-center gap-2 mt-3">
                   <motion.div
                     className="w-1.5 h-1.5 rounded-full"
-                    style={{ background: "hsl(190,90%,58%)" }}
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.4, 1, 0.4] }}
-                    transition={{ duration: 1, repeat: Infinity }}
+                    style={{ background: "hsl(190,90%,60%)", boxShadow: "0 0 6px rgba(0,215,255,0.9)" }}
+                    animate={{ scale: [1, 1.6, 1], opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1.1, repeat: Infinity }}
                   />
                   <span className="text-xs text-muted-foreground tracking-wide">Initializing…</span>
                 </div>

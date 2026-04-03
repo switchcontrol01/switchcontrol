@@ -1,0 +1,204 @@
+TASK
+Redesign the entire SwitchControl app background into a high-end, bright, reactive, fluid system with strong depth, animated glow layers, and a cursor spotlight effect.
+
+PROBLEM
+The current background is too flat and static. It lacks:
+- depth
+- motion
+- visual identity
+- interactivity
+
+It feels like a surface instead of an environment.
+
+GOAL
+Create a background that is:
+- bright (controlled, not messy)
+- fluid and animated
+- layered with depth
+- reactive to mouse movement
+- visually premium and unique
+
+It must feel like:
+> a living system, not a static UI
+
+---
+
+IMPORTANT RULES
+
+DO NOT:
+- use rainbow gradients
+- spam particles everywhere
+- create visual noise
+- destroy readability
+- drop performance below smooth 60fps
+
+DO:
+- use controlled glow
+- use layered animation
+- use soft blending
+- use GPU-friendly transforms
+- keep UI readable at all times
+
+---
+
+IMPLEMENTATION
+
+1. BASE LAYER
+Replace background with deep base:
+
+#07090D
+
+This anchors everything.
+
+---
+
+2. PRIMARY FLUID GLOW LAYER
+
+Create large animated radial gradient:
+
+- purple/pink core (primary)
+- cyan secondary
+- slow drifting motion (10–20s loop)
+
+Example concept:
+- top-left glow (primary)
+- bottom-right glow (secondary)
+- both slowly shifting positions
+
+Use transform-based animation, not layout changes.
+
+---
+
+3. CURSOR SPOTLIGHT EFFECT (CRITICAL)
+
+Implement real-time mouse tracking:
+
+- soft circular glow follows cursor
+- size: 200–350px
+- blur: high (soft edges)
+- opacity: low-medium
+
+Blend mode:
+- screen or soft-light
+
+Behavior:
+- follows smoothly (lerped, not snapping)
+- slight delay for fluid feel
+- expands slightly on click
+
+---
+
+4. DEPTH LAYERS
+
+Stack multiple layers:
+
+Layer 1: base matte  
+Layer 2: large ambient glow  
+Layer 3: moving gradient field  
+Layer 4: cursor spotlight  
+Layer 5: optional micro particles (very subtle)
+
+Each layer must have:
+- different speed
+- different opacity
+- different scale
+
+This creates parallax depth.
+
+---
+
+5. FLUID MOTION SYSTEM
+
+All motion must feel:
+
+- continuous
+- slow
+- breathing
+- never stopping abruptly
+
+Use:
+- sine-based movement
+- easing curves (not linear)
+
+No jitter.
+
+---
+
+6. LIGHT DISTORTION / ENERGY FLOW
+
+Add subtle animated distortion:
+
+- slow wave or gradient shift
+- barely visible but present
+
+This gives “energy” to the background.
+
+---
+
+7. INTERACTION RESPONSE
+
+When user:
+- hovers UI → nearby glow intensifies slightly
+- clicks → small ripple expands from cursor
+- switches page → background subtly shifts
+
+Keep it subtle but noticeable.
+
+---
+
+8. VIGNETTE DEPTH
+
+Add slight edge darkening:
+
+- keeps focus center
+- enhances depth
+
+---
+
+9. PERFORMANCE SAFEGUARDS
+
+- use transform + opacity only
+- avoid heavy blur stacking
+- no layout reflows
+- throttle mouse updates
+- use requestAnimationFrame
+
+Must remain smooth in Electron.
+
+---
+
+10. INTEGRATION
+
+Apply this background globally:
+- app shell
+- all sidebar pages
+- dashboard
+- tweaks
+- AI advisor
+- BIOS
+- settings
+
+No section should fall back to flat color.
+
+---
+
+CHECKLIST
+
+- background is bright but controlled
+- clear depth between layers
+- cursor spotlight works smoothly
+- motion is fluid, not distracting
+- UI remains readable
+- no performance drops
+- no flat/static areas left
+
+---
+
+FINAL OUTPUT
+
+Return:
+1. files created/updated
+2. how cursor tracking is implemented
+3. how layers are structured
+4. animation system used
+5. performance safeguards

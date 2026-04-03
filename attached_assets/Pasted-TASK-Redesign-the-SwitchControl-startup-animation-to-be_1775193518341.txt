@@ -1,0 +1,196 @@
+TASK
+Redesign the SwitchControl startup animation to be cinematic, fluid, premium, and minimal — removing all cartoonish, flashy, or circus-like behavior.
+
+PROBLEM
+The current startup animation:
+- feels cartoonish and over-stylized
+- lacks cinematic flow
+- feels disconnected from the rest of the UI
+- uses effects that look cheap instead of intentional
+
+This damages perceived quality immediately on launch.
+
+GOAL
+Create a startup animation that feels:
+- cinematic
+- smooth and fluid
+- premium and intentional
+- clean and controlled
+
+It should feel like:
+> a high-end system initializing, not a flashy intro animation
+
+---
+
+IMPORTANT RULES
+
+DO NOT:
+- use bright flashing effects
+- use harsh streaks or thin light flashes
+- use cartoon-like motion
+- use random particles everywhere
+- use aggressive scaling or bouncing
+- use multiple conflicting animations
+
+DO:
+- use controlled motion
+- use soft glow
+- use layered transitions
+- use subtle depth
+- keep it minimal and refined
+
+---
+
+ANIMATION CONCEPT
+
+1. DARK INIT STATE
+Start from near-black (#07090D)
+
+- very subtle ambient glow
+- no sudden appearance
+- slight fade-in of environment
+
+---
+
+2. SOFT SYSTEM WAKE
+Introduce a low-opacity radial glow:
+
+- purple core glow (very soft)
+- faint cyan secondary accent
+- slow expansion (scale + opacity)
+
+No hard edges.
+
+---
+
+3. LOGO / WORDMARK REVEAL
+
+Reveal “SwitchControl”:
+
+- fade + slight upward motion (translateY 10px → 0)
+- blur → sharp transition (6px → 0)
+- duration ~400–600ms
+
+No zooming. No snapping.
+
+---
+
+4. SUBTLE ENERGY PASS (REPLACES “FLASH”)
+
+Instead of a harsh flash:
+
+- a soft horizontal light sweep passes across the logo
+- very low opacity
+- slightly blurred
+- slow and smooth
+
+This replaces the current thin flash completely.
+
+---
+
+5. UI EMERGENCE
+
+The app UI should not “pop in”.
+
+Instead:
+
+- background UI fades in behind logo
+- slight depth shift (scale 0.98 → 1)
+- blur reduces to sharp
+
+Feels like the system is “coming online”.
+
+---
+
+6. HANDOFF TO APP
+
+Logo gently fades out OR dissolves into UI:
+
+- opacity fade
+- no abrupt cut
+- no second “load jump”
+
+Must avoid:
+→ the current double-load / recenter bug
+
+---
+
+TIMING
+
+Total duration:
+- 1.2s to 1.8s max
+
+Breakdown:
+- 0–300ms: environment fade
+- 300–900ms: logo + glow
+- 900–1400ms: UI reveal
+- finish cleanly
+
+---
+
+MOTION SPEC
+
+Use:
+- cubic-bezier(0.22, 1, 0.36, 1)
+- spring-like easing (no bounce)
+
+Avoid:
+- linear motion
+- sharp ease-in/out
+- elastic/bounce curves
+
+---
+
+VISUAL STYLE
+
+- matte dark base
+- soft purple glow
+- minimal cyan accent
+- no gradients that look “RGB”
+- no noise overload
+
+---
+
+PERFORMANCE
+
+- GPU-friendly only (transform, opacity)
+- avoid heavy blur stacking
+- no layout shifts
+- no reflow spikes
+
+---
+
+BUG FIX (IMPORTANT)
+
+Fix the issue where:
+- app loads slightly off-center
+- then snaps into place
+
+Ensure:
+- layout is correct BEFORE animation starts
+- no second layout recalculation
+
+---
+
+CHECKLIST
+
+- animation feels smooth and cinematic
+- no cartoon or flashy effects
+- no harsh flashes
+- no double load / reposition bug
+- logo reveal is clean
+- UI transition is fluid
+- total duration under 2 seconds
+- no performance drops
+
+---
+
+FINAL OUTPUT
+
+Return:
+1. files updated
+2. animation structure (timeline)
+3. motion values used
+4. how flash was replaced
+5. how layout jump was fixed
+6. performance notes
