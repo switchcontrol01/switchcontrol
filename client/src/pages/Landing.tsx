@@ -423,20 +423,20 @@ function HeroAppMockup() {
     {
       label: "CPU", base: 4, range: 7, barBase: 4, barRange: 7,
       barColor: "bg-emerald-500", textColor: "text-emerald-400",
-      accentL: "hsl(160,80%,50%)", tintBg: "hsl(160 70% 22% / 0.38)",
-      borderColor: "rgba(52,211,153,0.22)", interval: 1200,
+      accentL: "hsl(160,80%,50%)", tintBg: "rgba(0,0,0,0.32)",
+      borderColor: "rgba(52,211,153,0.25)", interval: 1200,
     },
     {
       label: "RAM", base: 34, range: 9, barBase: 34, barRange: 9,
       barColor: "bg-sky-500", textColor: "text-sky-400",
-      accentL: "hsl(200,85%,55%)", tintBg: "hsl(200 70% 22% / 0.38)",
-      borderColor: "rgba(56,189,248,0.22)", interval: 1400,
+      accentL: "hsl(200,85%,55%)", tintBg: "rgba(0,0,0,0.32)",
+      borderColor: "rgba(56,189,248,0.25)", interval: 1400,
     },
     {
       label: "GPU", base: 2, range: 6, barBase: 2, barRange: 6,
       barColor: "bg-violet-500", textColor: "text-violet-400",
-      accentL: "hsl(270,75%,62%)", tintBg: "hsl(270 60% 22% / 0.38)",
-      borderColor: "rgba(167,139,250,0.22)", interval: 1300,
+      accentL: "hsl(270,75%,62%)", tintBg: "rgba(0,0,0,0.32)",
+      borderColor: "rgba(167,139,250,0.25)", interval: 1300,
     },
   ] as const;
 
@@ -453,8 +453,8 @@ function HeroAppMockup() {
       {/* Window — faked glass (gradient top-edge + white glow, no backdrop-filter) */}
       <div className="relative rounded-2xl overflow-hidden"
         style={{
-          background: "linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(12,9,30,0.93) 12%, rgba(10,8,26,0.96) 100%)",
-          boxShadow: "0 32px 80px -12px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.13), 0 0 72px -16px rgba(255,255,255,0.14)"
+          background: "linear-gradient(145deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.13) 35%, rgba(255,255,255,0.08) 65%, rgba(10,7,28,0.78) 100%)",
+          boxShadow: "0 32px 80px -12px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.22), 0 0 80px -10px rgba(255,255,255,0.22), inset 0 1px 0 rgba(255,255,255,0.35)"
         }}>
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-2xl">
           <div className="mockup-reflection-sweep" />
@@ -464,8 +464,8 @@ function HeroAppMockup() {
         <div className="absolute inset-0 pointer-events-none mockup-edge-glow rounded-2xl" />
 
         {/* ── Title bar ── */}
-        <div className="relative flex items-center gap-2 px-4 py-3 border-b border-white/[0.14]"
-          style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.09), rgba(255,255,255,0.02))" }}>
+        <div className="relative flex items-center gap-2 px-4 py-3 border-b border-white/[0.20]"
+          style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.05))" }}>
           {/* macOS dots with depth */}
           <div className="flex gap-1.5">
             {[
@@ -507,7 +507,7 @@ function HeroAppMockup() {
           </div>
 
           {/* ── Active Tweaks ── */}
-          <div className="rounded-xl p-3 border border-white/[0.12]" style={{ background: "rgba(255,255,255,0.07)" }}>
+          <div className="rounded-xl p-3 border border-white/[0.18]" style={{ background: "rgba(0,0,0,0.28)" }}>
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-[8.5px] text-white/40 uppercase tracking-widest font-semibold">Active Tweaks</span>
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border"
