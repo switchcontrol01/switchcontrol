@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, type ReactNode } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -572,7 +572,18 @@ export default function BiosAdvisor() {
   const detectionSummary = useMemo(() => getDetectionSummary(allDetections), [allDetections]);
   
   const Container = "div";
-  const Item = "div";
+  const Item = ({ children, className, ...props }: { children?: ReactNode; className?: string; [key: string]: unknown }) => (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 16, scale: 0.99 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+      {...(props as any)}
+    >
+      {children}
+    </motion.div>
+  );
 
   const handleScan = useCallback(async () => {
     setScanState("collecting");
@@ -730,7 +741,6 @@ export default function BiosAdvisor() {
     <AppLayout>
       <Container
         data-tour="bios-content"
-        data-reveal
         className={cn("space-y-6 p-6 max-w-7xl mx-auto", !isPremium && "opacity-60 blur-[2px]")}
       >
         <Item>
