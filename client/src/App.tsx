@@ -13,6 +13,7 @@ import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen } from "@/lib/auth-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
+import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -128,6 +129,8 @@ function ElectronAppContent() {
   const [entitlementsOk, setEntitlementsOk] = useState(false);
   const [entitlementsVerified, setEntitlementsVerified] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
+  const [showPatchNotes, setShowPatchNotes] = useState(false);
+  const patchNotesCheckedRef = React.useRef(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
   const { token, jwt, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
@@ -285,6 +288,23 @@ function ElectronAppContent() {
       };
     }
   }, [activeFlow]);
+
+  useEffect(() => {
+    if (phase !== "authenticated") return;
+    if (activeFlow !== "none") return;
+    if (patchNotesCheckedRef.current) return;
+    patchNotesCheckedRef.current = true;
+
+    fetch("/patch-notes.json")
+      .then((r) => r.json())
+      .then((notes: { version: string }) => {
+        const lastSeen = localStorage.getItem(PATCH_NOTES_STORAGE_KEY);
+        if (notes.version !== lastSeen) {
+          setShowPatchNotes(true);
+        }
+      })
+      .catch(() => {});
+  }, [phase, activeFlow]);
 
   useEffect(() => {
     // Fire bloom ~1000ms before splash exits so it peaks during the dissolve.
@@ -632,6 +652,13 @@ function ElectronAppContent() {
             setShowPendingActivation(false);
           }}
           onDismiss={() => setShowPendingActivation(false)}
+        />
+      )}
+
+      {!isResetting && (
+        <PatchNotesModal
+          show={showPatchNotes}
+          onDismiss={() => setShowPatchNotes(false)}
         />
       )}
     </AppAuthContext.Provider>

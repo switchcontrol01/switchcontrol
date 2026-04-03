@@ -15,7 +15,87 @@ import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
 import { useAuthStore } from "@/lib/auth-store";
 import { LicenseManagementModal } from "@/components/LicenseManagementModal";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Sparkles, CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import { PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
+
+interface PatchNotes {
+  version: string;
+  title: string;
+  headline: string;
+  date: string;
+  changes: string[];
+  type: string;
+}
+
+function PatchNotesSection() {
+  const [notes, setNotes] = useState<PatchNotes | null>(null);
+
+  useEffect(() => {
+    fetch("/patch-notes.json")
+      .then((r) => r.json())
+      .then(setNotes)
+      .catch(() => {});
+  }, []);
+
+  if (!notes) return null;
+
+  const lastSeen = localStorage.getItem(PATCH_NOTES_STORAGE_KEY);
+  const isNew = lastSeen !== notes.version;
+
+  return (
+    <GlassCard blur="sm" hoverEffect={false} className="p-6 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center size-8 rounded-lg"
+            style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.22)" }}>
+            <Sparkles className="size-4" style={{ color: "rgba(192,155,255,0.85)" }} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-white">What's New</h3>
+              {isNew && (
+                <span className="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full"
+                  style={{ background: "rgba(139,92,246,0.18)", color: "rgba(192,155,255,0.9)", border: "1px solid rgba(139,92,246,0.25)" }}>
+                  New
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{notes.title}</p>
+          </div>
+        </div>
+        <span className="text-[11px] font-medium px-2 py-0.5 rounded-md"
+          style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.30)", border: "1px solid rgba(255,255,255,0.07)" }}>
+          v{notes.version}
+        </span>
+      </div>
+
+      <p className="text-[13px] leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
+        {notes.headline}
+      </p>
+
+      <div className="space-y-2.5 pt-1">
+        {notes.changes.map((change, i) => (
+          <motion.div
+            key={i}
+            className="flex items-start gap-2.5"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.35, delay: 0.08 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <CheckCircle2 className="size-3.5 mt-[2px] shrink-0" style={{ color: "rgba(139,92,246,0.65)" }} />
+            <p className="text-[12.5px] leading-snug" style={{ color: "rgba(255,255,255,0.50)" }}>{change}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <p className="text-[10px] pt-1" style={{ color: "rgba(255,255,255,0.18)" }}>
+        {new Date(notes.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+      </p>
+    </GlassCard>
+  );
+}
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -170,9 +250,14 @@ export default function Settings() {
           </Card>
           </AnimatedSection>
 
+          {/* What's New — patch notes */}
+          <AnimatedSection index={2}>
+            <PatchNotesSection />
+          </AnimatedSection>
+
           {/* Software Update — Electron only */}
           {isElectron && (
-            <AnimatedSection index={2}>
+            <AnimatedSection index={3}>
               <UpdateCard />
             </AnimatedSection>
           )}

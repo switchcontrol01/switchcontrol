@@ -1,13 +1,96 @@
 import { Link } from "wouter";
-import { Download, Shield, CheckCircle, Monitor, Clock } from "lucide-react";
+import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
 import { brand } from "@/config/brand";
 import { motion, useMotion } from "@/lib/motion";
+import { useState, useEffect } from "react";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlassPanel } from "@/components/website/GlassPanel";
 import { GlowButton } from "@/components/website/GlowButton";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
 import faviconImg from "@/assets/favicon.png";
+
+interface PatchNotes {
+  version: string;
+  title: string;
+  headline: string;
+  date: string;
+  changes: string[];
+  type: string;
+}
+
+function DownloadPatchNotesCard() {
+  const [notes, setNotes] = useState<PatchNotes | null>(null);
+
+  useEffect(() => {
+    fetch("/patch-notes.json")
+      .then((r) => r.json())
+      .then(setNotes)
+      .catch(() => {});
+  }, []);
+
+  if (!notes) return null;
+
+  return (
+    <motion.div
+      className="w-full max-w-lg"
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.55, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <div className="rounded-xl border p-5 space-y-3"
+        style={{
+          background: "rgba(12,10,20,0.70)",
+          backdropFilter: "blur(16px)",
+          WebkitBackdropFilter: "blur(16px)",
+          borderColor: "rgba(255,255,255,0.07)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06)",
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-3.5" style={{ color: "rgba(192,155,255,0.75)" }} />
+            <span className="text-[11px] font-semibold tracking-widest uppercase"
+              style={{ color: "rgba(192,155,255,0.70)", letterSpacing: "0.10em" }}>
+              What&apos;s New
+            </span>
+          </div>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+            style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.28)", border: "1px solid rgba(255,255,255,0.07)" }}>
+            v{notes.version}
+          </span>
+        </div>
+
+        {/* Title + headline */}
+        <div>
+          <p className="text-[13px] font-semibold text-white/80 leading-snug">{notes.title}</p>
+          <p className="text-[12px] leading-relaxed mt-0.5" style={{ color: "rgba(255,255,255,0.38)" }}>
+            {notes.headline}
+          </p>
+        </div>
+
+        {/* Bullets — show first 3 only to keep it compact */}
+        <div className="space-y-1.5">
+          {notes.changes.slice(0, 4).map((change, i) => (
+            <div key={i} className="flex items-start gap-2">
+              <span className="mt-[4px] size-1 rounded-full shrink-0"
+                style={{ background: "rgba(139,92,246,0.60)" }} />
+              <p className="text-[11.5px] leading-snug" style={{ color: "rgba(255,255,255,0.42)" }}>
+                {change}
+              </p>
+            </div>
+          ))}
+          {notes.changes.length > 4 && (
+            <p className="text-[11px] pl-3" style={{ color: "rgba(255,255,255,0.22)" }}>
+              +{notes.changes.length - 4} more improvements
+            </p>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 // ── Side particle data ─────────────────────────────────────────────────────────
 const LEFT_PARTICLES = [
@@ -80,7 +163,7 @@ export default function DownloadPage() {
         }
       `}</style>
 
-      <main className="flex-1 flex items-center justify-center p-4 min-h-[calc(100vh-80px)] relative">
+      <main className="flex-1 flex flex-col items-center justify-center p-4 py-10 min-h-[calc(100vh-80px)] relative gap-5">
         <SectionGlow color="purple" intensity="strong" />
 
         {/* Card wrapper — particles are positioned relative to this */}
@@ -224,6 +307,9 @@ export default function DownloadPage() {
           </div>
         </GlassPanel>
         </div>{/* end particle wrapper */}
+
+        {/* ── What's New card — below main download panel ────────────────── */}
+        <DownloadPatchNotesCard />
       </main>
     </WebsiteShell>
   );
