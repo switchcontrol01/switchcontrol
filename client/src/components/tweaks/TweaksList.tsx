@@ -180,19 +180,19 @@ export function TweaksList() {
 
       {/* Tweaks Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-12 items-start">
-        <AnimatePresence mode="sync">
+        <AnimatePresence mode="popLayout">
           {filteredTweaks.map((tweak, index) => (
             <motion.div
               key={tweak.id}
-              initial={{ opacity: 0, y: 20, scale: 0.97 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-48px" }}
-              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.1 } }}
               transition={{
-                duration: 0.3,
-                delay: (index % 10) * 0.028,
+                duration: 0.25,
+                delay: Math.min(index, 8) * 0.03,
                 ease: [0.22, 1, 0.36, 1],
               }}
+              style={{ willChange: "opacity, transform" }}
             >
               <TweakCard
                 tweak={tweak}

@@ -313,6 +313,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
         transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
       >
         <GlassCard
+          blur="sm"
           className={cn(
             "group flex flex-col transition-all duration-500",
             isEnabled && !isUnsupported
