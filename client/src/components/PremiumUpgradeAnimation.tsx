@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import logoImg from '@/assets/logo.png';
+import logoImg from '@/assets/logo.webp';
 
 
 interface PremiumUpgradeAnimationProps {

@@ -1,4 +1,4 @@
-import iconUrl from '@/assets/brand/icon.png';
+import iconUrl from '@/assets/brand/icon.webp';
 import wordmarkUrl from '@/assets/brand/wordmark.png';
 
 export const brand = {

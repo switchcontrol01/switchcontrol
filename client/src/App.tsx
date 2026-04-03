@@ -1,4 +1,4 @@
-import React, { useEffect, useState, createContext, useContext, useCallback } from "react";
+import React, { useEffect, useState, createContext, useContext, useCallback, lazy, Suspense } from "react";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -28,19 +28,19 @@ import AppBooster from "@/pages/AppBooster";
 import FocusMode from "@/pages/FocusMode";
 import Debloater from "@/pages/Debloater";
 import StartupApps from "@/pages/StartupApps";
-import BiosAdvisor from "@/pages/BiosAdvisor";
-import AiAdvisor from "@/pages/AiAdvisor";
-import Security from "@/pages/Security";
 import Tweaks from "@/pages/Tweaks";
-import History from "@/pages/History";
-import Landing from "@/pages/Landing";
-import Pricing from "@/pages/Pricing";
-import Download from "@/pages/Download";
-import Terms from "@/pages/Terms";
-import Privacy from "@/pages/Privacy";
-import Success from "@/pages/Success";
-import PremiumSuccess from "@/pages/PremiumSuccess";
-import LoginPage from "@/pages/Login";
+const BiosAdvisor = lazy(() => import("@/pages/BiosAdvisor"));
+const AiAdvisor = lazy(() => import("@/pages/AiAdvisor"));
+const Security = lazy(() => import("@/pages/Security"));
+const History = lazy(() => import("@/pages/History"));
+const Landing = lazy(() => import("@/pages/Landing"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const Download = lazy(() => import("@/pages/Download"));
+const Terms = lazy(() => import("@/pages/Terms"));
+const Privacy = lazy(() => import("@/pages/Privacy"));
+const Success = lazy(() => import("@/pages/Success"));
+const PremiumSuccess = lazy(() => import("@/pages/PremiumSuccess"));
+const LoginPage = lazy(() => import("@/pages/Login"));
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
@@ -70,44 +70,48 @@ export function useAppAuth() {
 
 function ElectronAppRoutes() {
   return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/dashboard" component={Home} />
-      <Route path="/tweaks" component={Tweaks} />
-      <Route path="/power-plan" component={PowerPlan} />
-      <Route path="/app-booster" component={AppBooster} />
-      <Route path="/focus" component={FocusMode} />
-      <Route path="/network" component={NetworkTweaks} />
-      <Route path="/cleaner" component={SystemCleaner} />
-      <Route path="/debloat" component={Debloater} />
-      <Route path="/startup" component={StartupApps} />
-      <Route path="/bios-advisor" component={BiosAdvisor} />
-      <Route path="/ai-advisor" component={AiAdvisor} />
-      <Route path="/security" component={Security} />
-      <Route path="/history" component={History} />
-      <Route path="/settings" component={Settings} />
-      <Route>
-        <Home />
-      </Route>
-    </Switch>
+    <Suspense fallback={null}>
+      <Switch>
+        <Route path="/" component={Home} />
+        <Route path="/dashboard" component={Home} />
+        <Route path="/tweaks" component={Tweaks} />
+        <Route path="/power-plan" component={PowerPlan} />
+        <Route path="/app-booster" component={AppBooster} />
+        <Route path="/focus" component={FocusMode} />
+        <Route path="/network" component={NetworkTweaks} />
+        <Route path="/cleaner" component={SystemCleaner} />
+        <Route path="/debloat" component={Debloater} />
+        <Route path="/startup" component={StartupApps} />
+        <Route path="/bios-advisor" component={BiosAdvisor} />
+        <Route path="/ai-advisor" component={AiAdvisor} />
+        <Route path="/security" component={Security} />
+        <Route path="/history" component={History} />
+        <Route path="/settings" component={Settings} />
+        <Route>
+          <Home />
+        </Route>
+      </Switch>
+    </Suspense>
   );
 }
 
 function WebsiteRoutes() {
   return (
-    <Switch>
-      <Route path="/" component={Landing} />
-      <Route path="/pricing" component={Pricing} />
-      <Route path="/download" component={Download} />
-      <Route path="/login" component={LoginPage} />
-      <Route path="/terms" component={Terms} />
-      <Route path="/privacy" component={Privacy} />
-      <Route path="/success" component={Success} />
-      <Route path="/premium-success" component={PremiumSuccess} />
-      <Route>
-        <Landing />
-      </Route>
-    </Switch>
+    <Suspense fallback={null}>
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/pricing" component={Pricing} />
+        <Route path="/download" component={Download} />
+        <Route path="/login" component={LoginPage} />
+        <Route path="/terms" component={Terms} />
+        <Route path="/privacy" component={Privacy} />
+        <Route path="/success" component={Success} />
+        <Route path="/premium-success" component={PremiumSuccess} />
+        <Route>
+          <Landing />
+        </Route>
+      </Switch>
+    </Suspense>
   );
 }
 

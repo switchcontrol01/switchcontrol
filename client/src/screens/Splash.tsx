@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/logo.webp";
 import { getTagline } from "@/lib/taglines";
 
 interface SplashProps {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/logo.webp";
 import { Crown, Zap } from "lucide-react";
 
 interface WelcomeAnimationProps {

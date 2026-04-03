@@ -2,11 +2,11 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { BlueprintImageOverlay } from "./BlueprintImageOverlay";
 
-import heroBackdrop from "@/assets/bg/hero-backdrop.png";
-import circuitTech from "@/assets/bg/circuit-tech.png";
-import perfDashboard from "@/assets/bg/perf-dashboard.png";
-import hardwareDetail from "@/assets/bg/hardware-detail.png";
-import networkFlow from "@/assets/bg/network-flow.png";
+import heroBackdrop from "@/assets/bg/hero-backdrop.webp";
+import circuitTech from "@/assets/bg/circuit-tech.webp";
+import perfDashboard from "@/assets/bg/perf-dashboard.webp";
+import hardwareDetail from "@/assets/bg/hardware-detail.webp";
+import networkFlow from "@/assets/bg/network-flow.webp";
 
 type BackgroundVariant = "landing" | "pricing" | "download" | "auth" | "legal" | "success";
 

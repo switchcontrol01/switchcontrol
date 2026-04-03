@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { useTourStore } from '@/lib/tour-store';
-import logoImg from '@/assets/logo.png';
+import logoImg from '@/assets/logo.webp';
 
 export interface TourStep {
   id: string;

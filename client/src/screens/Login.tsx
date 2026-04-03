@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/lib/auth-store";
-import logoImg from "@/assets/logo.png";
+import logoImg from "@/assets/logo.webp";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
 const OAUTH_TIMEOUT_MS = 120_000;

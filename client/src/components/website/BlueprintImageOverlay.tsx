@@ -33,7 +33,7 @@ export function BlueprintImageOverlay() {
         }}
       >
         <img
-          src="/assets/blueprints/bp-chip.png"
+          src="/assets/blueprints/bp-chip.webp"
           alt=""
           draggable={false}
           className="w-full h-auto"
@@ -75,7 +75,7 @@ export function BlueprintImageOverlay() {
         }}
       >
         <img
-          src="/assets/blueprints/bp-graphs.png"
+          src="/assets/blueprints/bp-graphs.webp"
           alt=""
           draggable={false}
           className="w-full h-auto"
@@ -117,7 +117,7 @@ export function BlueprintImageOverlay() {
         }}
       >
         <img
-          src="/assets/blueprints/bp-parts.png"
+          src="/assets/blueprints/bp-parts.webp"
           alt=""
           draggable={false}
           className="w-full h-auto"
