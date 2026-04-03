@@ -16,6 +16,7 @@
 
   "dependencies": {
     "systeminformation": "^5.23.5",
+    "ws": "^8.18.0",
     "electron-updater": "^6.3.9"
   },
   "devDependencies": {
@@ -41,7 +42,6 @@
       "backend-launcher.js",
       "config-store.js",
       "security-helper.js",
-      "node_modules/systeminformation/**/*",
       "node_modules/electron-updater/**/*",
       "node_modules/builder-util-runtime/**/*",
       "node_modules/semver/**/*",
@@ -69,6 +69,14 @@
         "from": "bin",
         "to": "bin",
         "filter": ["**/*"]
+      },
+      {
+        "from": "node_modules/ws",
+        "to": "dist/node_modules/ws"
+      },
+      {
+        "from": "node_modules/systeminformation",
+        "to": "dist/node_modules/systeminformation"
       }
     ],
 

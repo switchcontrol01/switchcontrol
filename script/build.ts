@@ -20,9 +20,11 @@ const FORCE_EXTERNAL = [
   // dev tooling — never needed at server runtime
   "vite",
   "drizzle-kit",
-  // native binary modules (if any are added in future)
-  // "bcrypt",
-  // "canvas",
+  // Cannot be bundled — use dynamic require() paths esbuild can't trace,
+  // or ship platform-specific native bindings. These are placed next to the
+  // server bundle via electron extraResources so require() finds them at runtime.
+  "ws",
+  "systeminformation",
 ];
 
 async function buildAll() {
