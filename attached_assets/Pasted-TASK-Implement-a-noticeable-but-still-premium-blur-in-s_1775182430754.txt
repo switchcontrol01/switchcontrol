@@ -1,0 +1,117 @@
+TASK
+Implement a noticeable but still premium blur-in scroll transition across the entire SwitchControl app, matching the website’s scroll feel more closely.
+
+PROBLEM
+The app either:
+1. already has a blur transition but it is too weak to notice, or
+2. only applies it in limited places.
+
+Right now, when scrolling through sections like Tweaks, Dashboard, Network Tweaks, AI Advisor, BIOS Advisor, Settings, and every other sidebar page, the content does not feel fluid or cinematic enough. The website already has a stronger blur-in feel while scrolling. The app needs that same motion language.
+
+GOAL
+Make scroll-based reveal transitions feel:
+- intentional
+- premium
+- smooth
+- noticeable
+- consistent across every app section
+
+This is not meant to be aggressive, messy, or overdone. It should be clearly visible, but still elegant and expensive.
+
+IMPLEMENTATION
+1. Find the current scroll reveal / blur reveal logic already used in the app.
+   - If it already exists, increase the strength so it becomes visibly noticeable.
+   - If it only exists on some pages, move it into a shared reusable app-wide reveal system.
+
+2. Apply the same scroll reveal behavior to every major page and scrollable section, including:
+   - Dashboard
+   - Tweaks
+   - Power Plan
+   - App Booster
+   - Focus Mode
+   - Network Tweaks
+   - Cleaner
+   - Debloater
+   - AI Advisor
+   - BIOS Advisor
+   - Security
+   - Settings
+   - any other sidebar route / full page section
+
+3. Reveal animation requirements:
+   - start slightly blurred
+   - slightly offset vertically
+   - low opacity
+   - transition into sharp focus, full opacity, and settled position as the element enters the viewport
+
+4. Increase blur strength enough to be noticeable.
+   Current issue is that the blur is too weak to feel intentional.
+   Target feel:
+   - blur should be clearly visible at entry
+   - not so strong that content becomes ugly or muddy
+   - should feel similar to the website scroll reveal
+
+5. Use consistent motion values across the app:
+   Recommended target:
+   - initial blur: around 10px to 16px
+   - initial opacity: 0 to 0.25
+   - initial y offset: 18px to 28px
+   - duration: around 0.45s to 0.7s
+   - easing: smooth premium curve, not springy bounce
+
+6. Support stagger for grouped content where appropriate:
+   - card grids
+   - dashboard widgets
+   - tweak lists
+   - advisor sections
+   - settings blocks
+
+7. Do NOT make every tiny child animate independently if it creates noise.
+   Prioritize:
+   - section wrappers
+   - cards
+   - panels
+   - grouped rows
+   - key content blocks
+
+8. Make the effect reusable.
+   Create or improve a shared reveal component / motion utility so all sections use the same animation system rather than page-specific duplicated code.
+
+9. Ensure the animation replays correctly when navigating between sidebar pages if that fits the current routing structure.
+   Page transitions and scroll reveals should feel like one coherent motion system.
+
+10. Preserve performance.
+   - avoid heavy layout thrashing
+   - avoid animating too many nested elements at once
+   - avoid strong blur on huge full-screen layers if it causes lag
+   - use a balanced implementation that still feels rich
+
+DESIGN DIRECTION
+This should feel like:
+- premium glass UI
+- fluid reveal
+- visible focus transition
+- cinematic but controlled
+
+Not:
+- exaggerated blur spam
+- cheap bounce
+- cluttered over-animation
+- laggy scrolling
+
+CHECKLIST
+- blur reveal is clearly noticeable now
+- same effect works in all sidebar sections
+- motion system is shared and reusable
+- cards and content blocks reveal smoothly on scroll
+- overall feel matches the website more closely
+- performance remains smooth
+
+FINAL OUTPUT
+Return:
+1. exact files changed
+2. what the old reveal behavior was
+3. what values were strengthened
+4. how the shared blur reveal system now works across the app
+5. any performance protections addedIMPORTANT
+If a blur reveal already exists somewhere in the app, do not rebuild the motion system from scratch unless necessary. First inspect the current implementation and strengthen / expand it so the app keeps one unified motion language.

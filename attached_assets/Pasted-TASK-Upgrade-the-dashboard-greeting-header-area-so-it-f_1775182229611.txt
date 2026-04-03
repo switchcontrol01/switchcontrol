@@ -1,0 +1,63 @@
+TASK
+Upgrade the dashboard greeting/header area so it feels alive, premium, and fluid while keeping the time-aware greeting logic exactly as it is.
+
+GOAL
+Keep:
+- time-based greeting text like “Good morning” / “Good afternoon”
+- the personalized username
+
+Improve:
+- motion
+- visual hierarchy
+- color usage
+- ambient depth
+- subtitle liveliness
+
+IMPLEMENTATION
+1. Keep the greeting structure:
+   - “Good morning,” / “Good afternoon,” in white
+   - username highlighted separately with a premium animated gradient
+2. Username styling:
+   - apply cyan-to-violet gradient text
+   - add soft blurred glow behind username
+   - add a very subtle shimmer sweep every 8s
+3. Greeting entrance animation:
+   - masked upward reveal + fade on load
+   - subtitle fades in slightly after heading
+   - status chips animate in last
+4. Ambient background behind header:
+   - 2-3 soft blurred gradient orbs
+   - slow-moving spotlight/radial glow
+   - faint low-opacity floating particles
+5. Subtitle improvement:
+   - replace static subtitle with rotating live status text
+   - examples: “Memory pressure stable”, “Telemetry active”, “GPU ready”, “System balanced”
+   - use gentle crossfade, not hard text swap
+6. Time-of-day mood variants:
+   - morning: lighter cyan/lavender glow
+   - afternoon: richer violet with subtle warm edge
+   - evening/night: deeper blue/indigo glow
+7. Layout polish:
+   - make the greeting area feel like a hero section, not plain text above cards
+   - add a small live chip or system status chip to the right side
+   - preserve clean spacing and premium feel
+8. Motion rules:
+   - no bounce
+   - no aggressive pulsing
+   - no clutter
+   - all motion should feel slow, intentional, expensive
+
+CHECKLIST
+- time-aware greeting unchanged
+- username has premium gradient treatment
+- header has ambient motion
+- subtitle feels live
+- page entry sequence feels fluid
+- overall result feels more expensive and alive without becoming messy
+
+FINAL OUTPUT
+Return the exact files changed and summarize:
+- visual changes
+- animation changes
+- time-of-day styling logic
+- how the new header avoids feeling static

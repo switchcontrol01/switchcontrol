@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
-import { ChevronRight, ChevronLeft, X, Sparkles, CheckCircle2 } from 'lucide-react';
+import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { useTourStore } from '@/lib/tour-store';
+import logoImg from '@/assets/logo.png';
 
 export interface TourStep {
   id: string;
@@ -10,6 +11,7 @@ export interface TourStep {
   description: string;
   icon: ReactNode;
   action?: ReactNode;
+  preview?: ReactNode;
   targetSelector?: string;
   route?: string;
   sidebarHighlight?: string;
@@ -32,28 +34,82 @@ function seededRand(seed: number) {
   return x - Math.floor(x);
 }
 
-// ── Completion burst ─────────────────────────────────────────────────────────
+// ── Cinematic "You're All Set" completion screen ───────────────────────────
 function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium?: boolean }) {
+  const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
+
   useEffect(() => {
-    const t = setTimeout(onDone, 2400);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setPhase('hold'), 2200);
+    const t2 = setTimeout(() => setPhase('exit'), 4200);
+    const t3 = setTimeout(onDone, 5300);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onDone]);
 
-  const color1 = isPremium ? 'rgba(251,191,36,0.7)' : 'rgba(139,92,246,0.7)';
-  const color2 = isPremium ? 'rgba(245,158,11,0.5)' : 'rgba(236,72,153,0.5)';
-  const glowColor = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
+  const isExiting = phase === 'exit';
 
-  const particles = useMemo(() => Array.from({ length: 28 }, (_, i) => ({
+  const color1 = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
+  const color2 = isPremium ? 'rgba(245,158,11,' : 'rgba(0,210,255,';
+  const glowColor = isPremium ? '#fbbf24' : '#a855f7';
+
+  const particles = useMemo(() => Array.from({ length: 48 }, (_, i) => ({
     id: i,
-    angle: (i / 28) * Math.PI * 2,
-    radius: 40 + seededRand(i * 7) * 60,
-    size: 2 + seededRand(i * 13) * 4,
-    delay: seededRand(i * 5) * 0.3,
-    color: i % 3 === 0 ? color1 : i % 3 === 1 ? color2 : 'rgba(255,255,255,0.4)',
+    angle: (i / 48) * Math.PI * 2 + seededRand(i * 3) * 0.4,
+    radius: 60 + seededRand(i * 7) * 120,
+    size: 2 + seededRand(i * 13) * 5,
+    delay: seededRand(i * 5) * 0.5,
+    dur: 0.8 + seededRand(i * 11) * 0.7,
+    color: i % 4 === 0 ? `${color1}0.9)` : i % 4 === 1 ? `${color2}0.8)` : i % 4 === 2 ? 'rgba(236,72,153,0.7)' : 'rgba(255,255,255,0.5)',
+  })), []);
+
+  const floatParticles = useMemo(() => Array.from({ length: 30 }, (_, i) => ({
+    id: i,
+    left: 5 + seededRand(i * 9) * 90,
+    top: 5 + seededRand(i * 17) * 90,
+    size: 1 + seededRand(i * 23) * 3,
+    delay: seededRand(i * 7) * 4,
+    dur: 3 + seededRand(i * 11) * 3,
+    dy: 15 + seededRand(i * 13) * 25,
   })), []);
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center">
+    <motion.div
+      className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
+      style={{ background: 'rgba(4,3,14,0.98)' }}
+      initial={{ opacity: 0 }}
+      animate={isExiting
+        ? { opacity: 0, scale: 1.04, filter: 'blur(14px)' }
+        : { opacity: 1, scale: 1, filter: 'blur(0px)' }
+      }
+      transition={isExiting ? { duration: 1.1, ease: [0.4, 0, 1, 1] } : { duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Ambient orbs */}
+      <motion.div className="absolute pointer-events-none" style={{
+        left: '20%', top: '15%', width: '50vw', height: '50vw',
+        background: `radial-gradient(ellipse, ${color1}0.22) 0%, transparent 65%)`,
+        filter: 'blur(80px)',
+      }} animate={{ scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
+      <motion.div className="absolute pointer-events-none" style={{
+        right: '10%', bottom: '20%', width: '40vw', height: '40vw',
+        background: `radial-gradient(ellipse, ${color2}0.16) 0%, transparent 65%)`,
+        filter: 'blur(90px)',
+      }} animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }} />
+
+      {/* Floating ambient particles */}
+      {floatParticles.map(p => (
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full pointer-events-none"
+          style={{
+            left: `${p.left}%`, top: `${p.top}%`,
+            width: p.size, height: p.size,
+            background: isPremium ? `rgba(251,191,36,${0.3 + seededRand(p.id) * 0.4})` : `rgba(168,85,247,${0.3 + seededRand(p.id) * 0.4})`,
+          }}
+          animate={{ y: [-p.dy, p.dy, -p.dy], opacity: [0, 0.7, 0] }}
+          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      ))}
+
+      {/* Center burst origin */}
       <div className="absolute" style={{ left: '50%', top: '50%' }}>
         {particles.map(p => (
           <motion.div
@@ -65,75 +121,109 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
               background: p.color,
               boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
             }}
-            initial={{ x: 0, y: 0, opacity: 1, scale: 0 }}
+            initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
             animate={{
               x: Math.cos(p.angle) * p.radius,
               y: Math.sin(p.angle) * p.radius,
               opacity: [0, 1, 0],
-              scale: [0, 1.5, 0],
+              scale: [0, 1.8, 0],
             }}
-            transition={{ duration: 0.9 + p.delay, delay: 0.2 + p.delay, ease: 'easeOut' }}
+            transition={{ duration: p.dur + 0.4, delay: 0.35 + p.delay, ease: 'easeOut' }}
           />
         ))}
       </div>
 
+      {/* Main center content */}
       <motion.div
-        className="flex flex-col items-center gap-5 text-center"
-        initial={{ scale: 0.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 280, damping: 22, delay: 0.1 }}
+        className="relative flex flex-col items-center gap-6 text-center z-10"
+        initial={{ scale: 0.7, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 24, delay: 0.15 }}
       >
+        {/* Logo + expanding rings */}
         <div className="relative flex items-center justify-center">
+          {/* Expanding pulse rings */}
           {[0, 1, 2].map(i => (
             <motion.div
               key={i}
-              className="absolute rounded-full border"
-              style={{ borderColor: i === 0 ? color1 : color2, opacity: 0 }}
-              initial={{ width: 64, height: 64, opacity: 0.8 }}
-              animate={{ width: 64 + (i + 1) * 44, height: 64 + (i + 1) * 44, opacity: 0 }}
-              transition={{ duration: 1.2, delay: 0.3 + i * 0.22, ease: 'easeOut' }}
+              className="absolute rounded-full"
+              style={{ border: `1px solid ${glowColor}` }}
+              initial={{ width: 80, height: 80, opacity: 0.8 }}
+              animate={{ width: 80 + (i + 1) * 60, height: 80 + (i + 1) * 60, opacity: 0 }}
+              transition={{ duration: 1.6, delay: 0.3 + i * 0.28, ease: 'easeOut' }}
             />
           ))}
+          {/* Persistent glow ring */}
           <motion.div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center relative"
-            style={{
-              background: isPremium
-                ? 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(245,158,11,0.15))'
-                : 'linear-gradient(135deg, rgba(139,92,246,0.35), rgba(168,85,247,0.2))',
-              border: `1px solid ${isPremium ? 'rgba(251,191,36,0.4)' : 'rgba(168,85,247,0.4)'}`,
-            }}
+            className="absolute rounded-full pointer-events-none"
+            style={{ width: '140px', height: '140px', background: `radial-gradient(ellipse, ${color1}0.25) 0%, transparent 70%)`, filter: 'blur(16px)' }}
+            animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          {/* Logo itself */}
+          <motion.div
             animate={{
-              boxShadow: [
-                `0 0 30px ${glowColor}0.4)`,
-                `0 0 60px ${glowColor}0.7)`,
-                `0 0 30px ${glowColor}0.4)`,
+              y: [0, -6, 0],
+              filter: [
+                `drop-shadow(0 0 20px ${glowColor}80) drop-shadow(0 0 60px ${glowColor}40)`,
+                `drop-shadow(0 0 40px ${glowColor}cc) drop-shadow(0 0 100px ${glowColor}60)`,
+                `drop-shadow(0 0 20px ${glowColor}80) drop-shadow(0 0 60px ${glowColor}40)`,
               ],
             }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           >
-            {isPremium
-              ? <Sparkles className="w-7 h-7 text-amber-300" />
-              : <CheckCircle2 className="w-7 h-7 text-purple-200" />
-            }
+            <img src={logoImg} alt="SwitchControl" className="w-20 h-20 object-contain rounded-[22%]" draggable={false} />
           </motion.div>
         </div>
 
-        <div>
-          <motion.p className="text-xl font-bold text-white"
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
-            {isPremium ? 'Premium Activated' : "You're all set"}
-          </motion.p>
-          <motion.p className="text-sm text-white/45 mt-1.5"
-            initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}>
-            {isPremium
-              ? 'Full access unlocked. Let the gains begin.'
-              : 'SwitchControl is ready to optimize your system'}
-          </motion.p>
+        {/* Brand name */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.85, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          className="text-xs font-bold uppercase tracking-[0.28em]"
+          style={{ color: glowColor, opacity: 0.7 }}
+        >
+          SwitchControl
+        </motion.div>
+
+        {/* "You're all set." — word stagger */}
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
+          {["You're", 'all', 'set.'].map((word, i) => (
+            <motion.span
+              key={word}
+              className="text-4xl font-extrabold text-white leading-none"
+              initial={{ opacity: 0, y: 22, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              transition={{ delay: 1.1 + i * 0.2, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {word}
+            </motion.span>
+          ))}
         </div>
+
+        {/* Subtitle */}
+        <motion.p
+          className="text-sm max-w-xs leading-relaxed"
+          style={{ color: 'rgba(255,255,255,0.45)' }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.8, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {isPremium
+            ? 'Full premium access unlocked. Every optimization is now yours.'
+            : 'SwitchControl is configured and ready to boost your system.'}
+        </motion.p>
+
+        {/* Animated underline accent */}
+        <motion.div
+          style={{ height: 1, background: `linear-gradient(90deg, transparent, ${glowColor}, transparent)` }}
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: 160, opacity: 0.6 }}
+          transition={{ delay: 2.2, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        />
       </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -185,10 +275,16 @@ export function TourShell({
   const [, navigate] = useLocation();
   const { setTourHighlight, setTourActive } = useTourStore();
 
-  // Apply step's highlight + route whenever step changes
   const applyStep = useCallback((index: number) => {
     const s = steps[index];
-    if (s?.sidebarHighlight) setTourHighlight(s.sidebarHighlight);
+    if (s?.sidebarHighlight) {
+      setTourHighlight(s.sidebarHighlight);
+      // Auto-scroll sidebar item into view after next render
+      setTimeout(() => {
+        const el = document.querySelector(`[data-tour="${s.sidebarHighlight}"]`);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    }
     if (s?.route) navigate(s.route);
   }, [steps, setTourHighlight, navigate]);
 
@@ -241,7 +337,6 @@ export function TourShell({
     onComplete();
   }, [onComplete, setTourActive, setTourHighlight]);
 
-  // Accent palette
   const pal = isPremium
     ? {
         primary: 'rgba(251,191,36,',
@@ -291,7 +386,7 @@ export function TourShell({
         data-testid={testId}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
+        exit={{ opacity: 0, transition: { duration: 0.5 } }}
         transition={{ duration: 0.35 }}
       >
         {/* ── Dark overlay — only over the CONTENT area (right of sidebar) ── */}
@@ -299,10 +394,7 @@ export function TourShell({
           className="absolute inset-y-0 right-0 pointer-events-auto"
           style={{ left: 256 }}
         >
-          <div
-            className="absolute inset-0"
-            style={{ background: 'rgba(4,3,12,0.82)' }}
-          />
+          <div className="absolute inset-0" style={{ background: 'rgba(4,3,12,0.82)' }} />
           <div
             className="absolute inset-0 opacity-[0.025]"
             style={{
@@ -310,7 +402,6 @@ export function TourShell({
               backgroundSize: '36px 36px',
             }}
           />
-          {/* Animated color orbs */}
           <AnimatePresence mode="wait">
             <motion.div
               key={`orbs-${stepIndex}`}
@@ -327,21 +418,21 @@ export function TourShell({
         <div
           className="absolute inset-y-0 pointer-events-none"
           style={{
-            left: 256,
-            width: 80,
+            left: 256, width: 80,
             background: `linear-gradient(90deg, ${pal.primary}0.12) 0%, transparent 100%)`,
             filter: 'blur(4px)',
           }}
         />
 
-        {/* ── Completing state ── */}
+        {/* ── Cinematic completion overlay (fullscreen, over sidebar too) ── */}
         <AnimatePresence>
           {completing && (
             <motion.div
               key="completing"
-              className="absolute inset-0 z-10 pointer-events-auto"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-              transition={{ duration: 0.3 }}
+              className="absolute inset-0 z-20 pointer-events-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4 }}
             >
               <CompletionMoment onDone={handleComplete} isPremium={isPremium} />
             </motion.div>
@@ -417,7 +508,7 @@ export function TourShell({
                   )}
 
                   {/* Icon + step label */}
-                  <div className="flex items-center gap-3.5 mb-6">
+                  <div className="flex items-center gap-3.5 mb-5">
                     <motion.div
                       className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{ background: pal.iconBg, border: `1px solid ${pal.iconBorder}` }}
@@ -456,7 +547,7 @@ export function TourShell({
 
                   {/* Title */}
                   <motion.h3
-                    className="text-[19px] font-bold leading-snug mb-3"
+                    className="text-[19px] font-bold leading-snug mb-2"
                     initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
                   >
@@ -474,17 +565,29 @@ export function TourShell({
                     {step?.description}
                   </motion.p>
 
+                  {/* Live preview showcase */}
+                  {step?.preview && (
+                    <motion.div
+                      className="mt-4"
+                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ duration: 0.45, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      {step.preview}
+                    </motion.div>
+                  )}
+
                   {step?.action && (
-                    <motion.div className="mt-5"
+                    <motion.div className="mt-4"
                       initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: 0.15 }}
+                      transition={{ duration: 0.4, delay: 0.18 }}
                     >
                       {step.action}
                     </motion.div>
                   )}
 
                   {/* Footer */}
-                  <div className="flex items-center justify-between mt-8">
+                  <div className="flex items-center justify-between mt-6">
                     {/* Progress pills */}
                     <div className="flex items-center gap-1">
                       {steps.map((_, i) => (
