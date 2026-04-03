@@ -303,6 +303,17 @@ export default function Home() {
   const [gpuModalOpen, setGpuModalOpen] = useState(false);
   const [gpuDetailAvailable, setGpuDetailAvailable] = useState<boolean | null>(null);
   const [diskModalOpen, setDiskModalOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState(() => navigator.onLine);
+  useEffect(() => {
+    const goOnline  = () => setIsOnline(true);
+    const goOffline = () => setIsOnline(false);
+    window.addEventListener("online",  goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online",  goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
@@ -529,13 +540,15 @@ export default function Home() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
             >
-              {/* Live status chip */}
+              {/* Live status chip — no box, just dot + label */}
               <div
-                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded border border-white/[0.07] bg-white/[0.03]"
+                className="hidden md:flex items-center gap-2"
                 data-testid="chip-system-status"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                <span className="text-xs text-white/40 font-medium tracking-wide">System Active</span>
+                <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500" : "bg-red-500"}`} />
+                <span className="text-xs text-white/40 font-medium tracking-wide">
+                  {isOnline ? "System Active" : "No Connection"}
+                </span>
               </div>
 
               <Link href="/history">
