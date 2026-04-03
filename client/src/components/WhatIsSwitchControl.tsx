@@ -34,7 +34,7 @@ interface LiveSparklineProps {
 }
 
 function LiveSparkline({
-  initialPoints, generate, color, height = 64, interval = 650, uid,
+  initialPoints, generate, color, height = 64, interval = 200, uid,
 }: LiveSparklineProps) {
   const W = 260; const H = height;
   const pad = 4;
@@ -77,7 +77,7 @@ function LiveSparkline({
         d={fillPath}
         fill={`url(#${uid}-fill)`}
         animate={{ d: fillPath }}
-        transition={{ duration: 0.55, ease: 'easeInOut' }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
       />
 
       {/* Line — morphs as data shifts */}
@@ -90,7 +90,7 @@ function LiveSparkline({
         strokeLinejoin="round"
         filter={`url(#${uid}-glow)`}
         animate={{ d: linePath }}
-        transition={{ duration: 0.55, ease: 'easeInOut' }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
       />
 
       {/* Glow dot at the live tip */}
@@ -101,7 +101,7 @@ function LiveSparkline({
         fill={`${color}1)`}
         filter={`url(#${uid}-glow)`}
         animate={{ cx: lastPt[0], cy: lastPt[1] }}
-        transition={{ duration: 0.55, ease: 'easeInOut' }}
+        transition={{ duration: 0.16, ease: 'easeOut' }}
       />
       {/* Outer pulse ring */}
       <motion.circle
@@ -116,10 +116,10 @@ function LiveSparkline({
           r: [4, 10], opacity: [0.6, 0],
         }}
         transition={{
-          cx: { duration: 0.55, ease: 'easeInOut' },
-          cy: { duration: 0.55, ease: 'easeInOut' },
-          r: { duration: 1.4, repeat: Infinity, ease: 'easeOut' },
-          opacity: { duration: 1.4, repeat: Infinity, ease: 'easeOut' },
+          cx: { duration: 0.16, ease: 'easeOut' },
+          cy: { duration: 0.16, ease: 'easeOut' },
+          r: { duration: 1.2, repeat: Infinity, ease: 'easeOut' },
+          opacity: { duration: 1.2, repeat: Infinity, ease: 'easeOut' },
         }}
       />
     </svg>
