@@ -13,7 +13,7 @@ import {
   Upload, Camera, Eye, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
+import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { getUserFriendlyError } from "@/lib/api";
@@ -571,8 +571,8 @@ export default function BiosAdvisor() {
   
   const detectionSummary = useMemo(() => getDetectionSummary(allDetections), [allDetections]);
   
-  const Container = prefersReducedMotion ? "div" : motion.div;
-  const Item = prefersReducedMotion ? "div" : motion.div;
+  const Container = "div";
+  const Item = "div";
 
   const handleScan = useCallback(async () => {
     setScanState("collecting");
@@ -728,12 +728,12 @@ export default function BiosAdvisor() {
 
   return (
     <AppLayout>
-      <Container 
+      <Container
         data-tour="bios-content"
+        data-reveal
         className={cn("space-y-6 p-6 max-w-7xl mx-auto", !isPremium && "opacity-60 blur-[2px]")}
-        {...(!prefersReducedMotion && { variants: staggerContainer, initial: "initial", animate: "animate" })}
       >
-        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+        <Item>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -804,7 +804,7 @@ export default function BiosAdvisor() {
         <ScanProgress state={scanState} />
 
         {photoError && (
-          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+          <Item>
             <div className="flex items-center gap-2 p-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               {photoError}
@@ -814,7 +814,7 @@ export default function BiosAdvisor() {
         )}
 
         {photoDetections.length > 0 && (
-          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+          <Item>
             <GlassCard className="p-3 bg-violet-500/5 border-violet-500/20">
               <div className="flex items-center gap-2 text-xs">
                 <Camera className="w-3.5 h-3.5 text-violet-400" />
@@ -825,7 +825,7 @@ export default function BiosAdvisor() {
           </Item>
         )}
 
-        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+        <Item>
           <GlassCard className="p-6 bg-gradient-to-br from-[hsl(270,60%,55%)/0.1] to-[hsl(280,70%,65%)/0.05] border-[hsl(270,60%,55%)/0.2]">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="flex flex-col justify-center">
@@ -885,7 +885,7 @@ export default function BiosAdvisor() {
         </Item>
 
         {hasScanned && (
-          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+          <Item>
             <GlassCard className="p-4 bg-white/[0.02]">
               <p className="text-[10px] text-muted-foreground mb-3" data-testid="text-detection-disclaimer">
                 {DETECTION_DISCLAIMER}
@@ -994,7 +994,7 @@ export default function BiosAdvisor() {
         )}
 
         {hasScanned && (
-          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+          <Item>
             <GlassCard className="p-5 bg-white/[0.02]">
               <h3 className="text-xs font-semibold text-white mb-4 flex items-center gap-2">
                 <Activity className="w-3.5 h-3.5 text-primary" />
@@ -1056,7 +1056,7 @@ export default function BiosAdvisor() {
           </Item>
         )}
 
-        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+        <Item>
           <GlassCard className="p-5 bg-gradient-to-br from-primary/5 to-cyan-500/5 border-primary/20">
             <div className="flex items-start gap-3">
               <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
@@ -1157,7 +1157,7 @@ export default function BiosAdvisor() {
           </GlassCard>
         </Item>
 
-        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+        <Item>
           <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
             <div className="flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 shrink-0" />
@@ -1166,7 +1166,7 @@ export default function BiosAdvisor() {
           </div>
         </Item>
 
-        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+        <Item>
           <div className="flex gap-2 mb-4">
             <Button
               variant={activeTab === "opportunities" ? "default" : "outline"}
@@ -1192,7 +1192,7 @@ export default function BiosAdvisor() {
         </Item>
 
         {activeTab === "opportunities" && (
-          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+          <Item>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {opportunities.map((opp, i) => (
                 <OpportunityCard key={opp.setting.id} opportunity={opp} index={i} />
@@ -1202,7 +1202,7 @@ export default function BiosAdvisor() {
         )}
 
         {activeTab === "settings" && (
-          <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+          <Item>
             <Tabs value={activeCategory} onValueChange={(v) => setActiveCategory(v as BiosCategory)}>
               <TabsList className="grid grid-cols-2 lg:grid-cols-4 gap-2 bg-transparent h-auto p-0">
                 {BIOS_CATEGORIES.map((category) => {
@@ -1256,7 +1256,7 @@ export default function BiosAdvisor() {
           </Item>
         )}
 
-        <Item {...(!prefersReducedMotion && { variants: staggerItem })}>
+        <Item>
           <GlassCard className="p-4 bg-white/5">
             <div className="flex items-start gap-3">
               <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
