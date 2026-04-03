@@ -320,54 +320,65 @@ function LiveBar({ base, range, color, interval = 2500 }: { base: number; range:
   );
 }
 
-// Stable particle data — computed once at module level so positions don't shift on re-render
-const LEFT_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+// Stable particle data — 6 per side, slow outward drift
+const LEFT_PARTICLES = Array.from({ length: 6 }, (_, i) => ({
   id: i,
-  top: 8 + (i / 16) * 84,
-  size: 2.5 + (i % 3) * 1,
-  dur: 2.4 + (i % 4) * 0.45,
-  delay: (i * 0.31) % 3.8,
+  top: 15 + (i / 5) * 70,
+  size: 3 + (i % 2) * 1.5,
+  dur: 4.5 + (i % 3) * 0.8,
+  delay: (i * 0.7) % 4,
 }));
-const RIGHT_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+const RIGHT_PARTICLES = Array.from({ length: 6 }, (_, i) => ({
   id: i,
-  top: 8 + (i / 16) * 84,
-  size: 2.5 + ((i + 1) % 3) * 1,
-  dur: 2.4 + ((i + 2) % 4) * 0.45,
-  delay: (i * 0.37) % 3.8,
+  top: 15 + (i / 5) * 70,
+  size: 3 + ((i + 1) % 2) * 1.5,
+  dur: 4.5 + ((i + 1) % 3) * 0.8,
+  delay: (i * 0.85) % 4,
 }));
 
 function MockupSideParticles() {
   return (
     <>
-      {/* Left side — cyan */}
+      {/* Left haze — cyan gradient bleeding from the edge */}
+      <div
+        className="absolute inset-y-0 left-0 w-24 pointer-events-none"
+        style={{ background: 'linear-gradient(to right, hsl(190 90% 55% / 0.18), transparent)' }}
+      />
+      {/* Right haze — purple gradient bleeding from the edge */}
+      <div
+        className="absolute inset-y-0 right-0 w-24 pointer-events-none"
+        style={{ background: 'linear-gradient(to left, hsl(270 80% 62% / 0.18), transparent)' }}
+      />
+
+      {/* Left particles — drift outward, very low opacity */}
       {LEFT_PARTICLES.map(p => (
         <div
           key={p.id}
           className="mockup-particle-l absolute pointer-events-none rounded-full"
           style={{
             top: `${p.top}%`,
-            left: 0,
+            left: 2,
             width: p.size,
             height: p.size,
-            background: 'hsl(190 95% 62%)',
-            boxShadow: '0 0 8px 3px hsl(190 95% 62% / 0.7)',
+            background: 'hsl(190 95% 65%)',
+            boxShadow: '0 0 6px 2px hsl(190 95% 65% / 0.4)',
             ['--dur' as string]: `${p.dur}s`,
             ['--delay' as string]: `${p.delay}s`,
           }}
         />
       ))}
-      {/* Right side — purple */}
+      {/* Right particles — drift outward, very low opacity */}
       {RIGHT_PARTICLES.map(p => (
         <div
           key={p.id}
           className="mockup-particle-r absolute pointer-events-none rounded-full"
           style={{
             top: `${p.top}%`,
-            right: 0,
+            right: 2,
             width: p.size,
             height: p.size,
-            background: 'hsl(270 85% 68%)',
-            boxShadow: '0 0 8px 3px hsl(270 85% 68% / 0.7)',
+            background: 'hsl(270 85% 70%)',
+            boxShadow: '0 0 6px 2px hsl(270 85% 70% / 0.4)',
             ['--dur' as string]: `${p.dur}s`,
             ['--delay' as string]: `${p.delay}s`,
           }}
