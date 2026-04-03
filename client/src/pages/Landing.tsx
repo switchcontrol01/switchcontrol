@@ -519,30 +519,25 @@ export default function Landing() {
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
 
-          {/* ── Sun streak — diagonal white shaft from top-left through the headline ── */}
-          {/* Broad diagonal glow panel — fills the top-left→center diagonal zone */}
-          <div className="absolute inset-0 pointer-events-none" style={{
-            background: "linear-gradient(148deg, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.18) 18%, rgba(210,190,255,0.08) 38%, transparent 58%)",
-            mixBlendMode: "screen",
-          }} />
-          {/* Crisp beam centerline — thin hot edge that reads as a directional shaft */}
+          {/* ── Sun streak — thick wide beam from top-left, lands on the headline ── */}
+          {/* Fat beam body — very tall so it reads as a WIDE shaft, short so it stops at text */}
           <div className="absolute pointer-events-none" style={{
             left: "-5%", top: "-5%",
-            width: "130%", height: "14px",
+            width: "52%", height: "700px",
             transformOrigin: "left top",
-            transform: "rotate(35deg)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.90) 0%, rgba(255,255,255,0.50) 18%, rgba(255,255,255,0.12) 50%, transparent 80%)",
-            filter: "blur(4px)",
+            transform: "rotate(32deg) translateY(-350px)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.22) 30%, rgba(230,215,255,0.08) 65%, transparent 100%)",
+            filter: "blur(55px)",
             mixBlendMode: "screen",
           }} />
-          {/* Wide soft haze around the beam — gives it body and width */}
+          {/* Bright core strip inside the fat beam — hotter centre */}
           <div className="absolute pointer-events-none" style={{
             left: "-5%", top: "-5%",
-            width: "130%", height: "200px",
+            width: "42%", height: "180px",
             transformOrigin: "left top",
-            transform: "rotate(35deg) translateY(-100px)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.14) 25%, rgba(255,255,255,0.04) 55%, transparent 80%)",
-            filter: "blur(35px)",
+            transform: "rotate(32deg) translateY(-90px)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.28) 35%, rgba(255,255,255,0.06) 70%, transparent 100%)",
+            filter: "blur(20px)",
             mixBlendMode: "screen",
           }} />
 
