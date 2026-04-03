@@ -23,6 +23,7 @@ import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
 import { LandingPerformanceCharts } from "@/components/LandingPerformanceCharts";
 import { LandingStatsCharts } from "@/components/LandingStatsCharts";
+import { SocialProofCharts } from "@/components/SocialProofCharts";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
@@ -943,6 +944,7 @@ export default function Landing() {
                 We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.
               </p>
             </Reveal>
+            <SocialProofCharts />
           </div>
         </section>
 
