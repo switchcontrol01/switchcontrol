@@ -77,6 +77,157 @@
   animation: toast-exit 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
 }
 
+/* ── Premium / Free tier badge animations ─────────────────────── */
+
+/* Shared sweep keyframe — gradient moves left → right */
+@keyframes badge-sweep {
+  0%   { background-position: 200% center; }
+  100% { background-position: -200% center; }
+}
+
+/* Crown icon floats and glows gold */
+@keyframes crown-float {
+  0%, 100% { transform: translateY(0)    rotate(-6deg); filter: drop-shadow(0 0 2px hsl(48 95% 65% / 0.5)); }
+  50%       { transform: translateY(-2px) rotate(6deg);  filter: drop-shadow(0 0 7px hsl(48 95% 75% / 1.0)); }
+}
+
+/* Outer aura pulse on the premium badge container */
+@keyframes premium-aura {
+  0%, 100% { box-shadow: 0 0 6px 1px hsl(270 80% 60% / 0.25), inset 0 0 6px 0 hsl(270 80% 60% / 0.06); }
+  50%       { box-shadow: 0 0 14px 3px hsl(300 80% 65% / 0.45), inset 0 0 10px 0 hsl(290 80% 65% / 0.12); }
+}
+
+/* Animated gradient border via mask trick */
+.premium-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px 2px 5px;
+  border-radius: 6px;
+  background: linear-gradient(135deg, hsl(270 80% 55% / 0.14), hsl(300 80% 60% / 0.08), hsl(270 80% 55% / 0.14));
+  animation: premium-aura 3s ease-in-out infinite;
+  width: fit-content;
+  cursor: default;
+}
+
+/* Gradient border ring */
+.premium-badge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  padding: 1px;
+  background: linear-gradient(90deg,
+    hsl(270 80% 65%),
+    hsl(310 80% 70%),
+    hsl(48 95% 70%),
+    hsl(310 80% 70%),
+    hsl(270 80% 65%)
+  );
+  background-size: 300% 100%;
+  animation: badge-sweep 2.8s linear infinite;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* Subtle shimmer sheen */
+.premium-badge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.07) 50%, transparent 80%);
+  background-size: 200% 100%;
+  animation: badge-sweep 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Gradient shimmer text */
+.premium-badge-text {
+  background: linear-gradient(90deg,
+    hsl(270 70% 78%),
+    hsl(300 75% 80%),
+    hsl(48 90% 72%),
+    hsl(300 75% 80%),
+    hsl(270 70% 78%)
+  );
+  background-size: 300% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: badge-sweep 2.8s linear infinite;
+  font-weight: 700;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Crown icon animation — badge (floats + rotates + glows gold) */
+.crown-animated {
+  animation: crown-float 2.4s ease-in-out infinite;
+  display: flex;
+  align-items: center;
+}
+
+/* Crown icon on nav items — subtle glow pulse only */
+@keyframes crown-nav-glow {
+  0%, 100% { filter: drop-shadow(0 0 0px hsl(270 80% 60% / 0)); }
+  50%       { filter: drop-shadow(0 0 4px hsl(270 80% 65% / 0.7)); }
+}
+
+.crown-nav {
+  animation: crown-nav-glow 3s ease-in-out infinite;
+}
+
+/* ── Free badge ── subtle ghost sheen on grey ── */
+
+@keyframes free-sheen {
+  0%   { transform: translateX(-150%) skewX(-12deg); }
+  100% { transform: translateX(350%)  skewX(-12deg); }
+}
+
+@keyframes free-pulse-border {
+  0%, 100% { border-color: rgba(255,255,255,0.07); }
+  50%       { border-color: rgba(255,255,255,0.16); }
+}
+
+.free-badge {
+  position: relative;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  width: fit-content;
+  animation: free-pulse-border 4s ease-in-out infinite;
+  cursor: default;
+}
+
+/* Ghost sheen that sweeps across slowly */
+.free-badge::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.09), transparent);
+  animation: free-sheen 5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  pointer-events: none;
+}
+
+.free-badge-text {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.32);
+}
+
 /* Force Dark Mode */
 :root {
   color-scheme: dark;

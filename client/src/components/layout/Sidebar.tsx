@@ -244,7 +244,9 @@ export function Sidebar() {
                 </motion.span>
 
                 {item.isPremium && (
-                  <Crown className="size-3.5 text-[hsl(270,60%,55%)] z-10 shrink-0" />
+                  <span className="crown-nav z-10 shrink-0 flex items-center">
+                    <Crown className="size-3.5 text-[hsl(270,60%,65%)]" />
+                  </span>
                 )}
               </motion.button>
 
@@ -287,17 +289,19 @@ export function Sidebar() {
               {userInitials}
             </div>
           )}
-          <div className="flex flex-col flex-1 min-w-0">
+          <div className="flex flex-col flex-1 min-w-0 gap-0.5">
             <span className="text-sm font-medium text-white truncate">{userName}</span>
             {isPremium ? (
-              <span className="text-[10px] text-[hsl(270,60%,65%)] font-medium bg-[hsl(270,60%,55%,0.15)] px-1.5 py-0.5 rounded w-fit border border-[hsl(270,60%,55%,0.2)] flex items-center gap-1">
-                <Crown className="size-2.5" />
-                Premium
-              </span>
+              <div className="premium-badge">
+                <span className="crown-animated">
+                  <Crown className="size-2.5" style={{ color: 'hsl(48 95% 70%)' }} />
+                </span>
+                <span className="premium-badge-text">Premium</span>
+              </div>
             ) : (
-              <span className="text-[10px] text-muted-foreground font-medium bg-white/5 px-1.5 py-0.5 rounded w-fit border border-white/10">
-                Free
-              </span>
+              <div className="free-badge">
+                <span className="free-badge-text">Free</span>
+              </div>
             )}
           </div>
           <Tooltip>
