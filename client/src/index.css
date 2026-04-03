@@ -62,143 +62,104 @@
 
 @keyframes loginOrbDrift1 {
   0%, 100% { transform: translate(0, 0)     scale(1);    }
-  33%       { transform: translate(60px, -50px)  scale(1.08); }
-  66%       { transform: translate(-40px, 35px)  scale(0.93); }
+  33%       { transform: translate(50px, -40px)  scale(1.06); }
+  66%       { transform: translate(-30px, 25px)  scale(0.94); }
 }
 @keyframes loginOrbDrift2 {
   0%, 100% { transform: translate(0, 0)     scale(1);    }
-  33%       { transform: translate(-70px, 55px)  scale(1.12); }
-  66%       { transform: translate(50px, -30px)  scale(0.90); }
+  33%       { transform: translate(-60px, 50px)  scale(1.09); }
+  66%       { transform: translate(40px, -25px)  scale(0.91); }
 }
 @keyframes loginOrbDrift3 {
   0%, 100% { transform: translate(-50%, -50%) scale(1);    }
-  50%       { transform: translate(-50%, -50%) scale(1.15); }
-}
-@keyframes loginOrbDrift4 {
-  0%, 100% { transform: translate(0, 0) scale(1);    opacity: 0.55; }
-  40%       { transform: translate(40px, -60px) scale(1.1); opacity: 0.75; }
-  70%       { transform: translate(-20px, 30px) scale(0.92); opacity: 0.45; }
-}
-@keyframes loginOrbDrift5 {
-  0%, 100% { transform: translate(0, 0) scale(1);    opacity: 0.4; }
-  50%       { transform: translate(-50px, 40px) scale(1.08); opacity: 0.65; }
+  50%       { transform: translate(-50%, -50%) scale(1.12); }
 }
 
-/* Single large white sunstreak from left — the hero beam */
-@keyframes loginSunstreakPulse {
-  0%, 100% { opacity: 1;    transform: scale(1) rotate(0deg)     translateY(0px); }
-  33%       { opacity: 0.80; transform: scale(1.03) rotate(0.6deg)  translateY(10px); }
-  66%       { opacity: 0.92; transform: scale(0.98) rotate(-0.4deg) translateY(-6px); }
-}
-@keyframes loginSunstreakSecondary {
-  0%, 100% { opacity: 0.55; transform: scale(1) translateY(0px); }
-  50%       { opacity: 0.75; transform: scale(1.04) translateY(12px); }
+@keyframes loginRayRotate {
+  from { transform: translate(-50%, -50%) rotate(0deg);   }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
 @keyframes loginAuraPulse {
-  0%, 100% { opacity: 0.65; transform: translate(-50%, -50%) scale(1);    }
-  50%       { opacity: 1;    transform: translate(-50%, -50%) scale(1.15); }
+  0%, 100% { opacity: 0.55; transform: translate(-50%, -50%) scale(1);    }
+  50%       { opacity: 0.85; transform: translate(-50%, -50%) scale(1.1);  }
 }
 
 @keyframes loginIconGlow {
-  0%, 100% { filter: blur(10px); opacity: 0.65; transform: scale(1.5) translateY(8px); }
-  50%       { filter: blur(18px); opacity: 1;    transform: scale(1.8) translateY(11px); }
+  0%, 100% { filter: blur(10px); opacity: 0.6; transform: scale(1.5) translateY(8px); }
+  50%       { filter: blur(16px); opacity: 0.9; transform: scale(1.7) translateY(10px); }
 }
 
-/* Card continuous float after entry */
-@keyframes loginCardFloat {
-  0%, 100% { transform: translateY(0px); }
-  50%       { transform: translateY(-7px); }
-}
-.login-card-float {
-  animation: loginCardFloat 6s ease-in-out 0.85s infinite;
-}
-
-/* Ambient background orbs — bigger, more vivid */
+/* Ambient background orbs */
 .login-orb-1 {
   position: absolute; border-radius: 50%;
-  width: 900px; height: 900px;
-  top: -280px; left: -260px;
-  background: radial-gradient(ellipse, hsl(265 85% 58% / 0.38) 0%, hsl(280 70% 50% / 0.12) 50%, transparent 70%);
-  animation: loginOrbDrift1 18s ease-in-out infinite;
+  width: 700px; height: 700px;
+  top: -200px; left: -200px;
+  background: radial-gradient(ellipse, hsl(270 80% 55% / 0.28) 0%, transparent 70%);
+  animation: loginOrbDrift1 16s ease-in-out infinite;
 }
 .login-orb-2 {
   position: absolute; border-radius: 50%;
-  width: 750px; height: 750px;
-  bottom: -220px; right: -180px;
-  background: radial-gradient(ellipse, hsl(190 95% 52% / 0.30) 0%, hsl(210 80% 55% / 0.10) 50%, transparent 70%);
-  animation: loginOrbDrift2 22s ease-in-out infinite;
+  width: 600px; height: 600px;
+  bottom: -180px; right: -160px;
+  background: radial-gradient(ellipse, hsl(190 90% 50% / 0.22) 0%, transparent 70%);
+  animation: loginOrbDrift2 20s ease-in-out infinite;
 }
 .login-orb-3 {
   position: absolute; border-radius: 50%;
-  width: 600px; height: 600px;
+  width: 480px; height: 480px;
   top: 50%; left: 55%;
-  background: radial-gradient(ellipse, hsl(310 85% 62% / 0.26) 0%, hsl(330 70% 55% / 0.08) 50%, transparent 70%);
-  animation: loginOrbDrift3 26s ease-in-out infinite;
+  background: radial-gradient(ellipse, hsl(310 80% 60% / 0.18) 0%, transparent 70%);
+  animation: loginOrbDrift3 24s ease-in-out infinite;
   transform-origin: center;
 }
-.login-orb-4 {
-  position: absolute; border-radius: 50%;
-  width: 500px; height: 500px;
-  top: 20%; right: -80px;
-  background: radial-gradient(ellipse, hsl(330 90% 60% / 0.22) 0%, hsl(310 75% 55% / 0.08) 50%, transparent 70%);
-  animation: loginOrbDrift4 28s ease-in-out infinite;
-}
-.login-orb-5 {
-  position: absolute; border-radius: 50%;
-  width: 420px; height: 420px;
-  bottom: 10%; left: 15%;
-  background: radial-gradient(ellipse, hsl(220 90% 65% / 0.20) 0%, hsl(200 80% 55% / 0.07) 50%, transparent 70%);
-  animation: loginOrbDrift5 32s ease-in-out infinite;
-}
 
-/* ── Single large white sunstreak from the left (hero beam) ── */
-.login-sunstreak-main {
+/* Rotating sun-streak rays */
+.login-rays {
   position: absolute;
-  top: -40%;
-  left: -20%;
-  width: 145%;
-  height: 145%;
-  background: linear-gradient(
-    132deg,
-    rgba(255, 255, 255, 0.34) 0%,
-    rgba(210, 185, 255, 0.22) 8%,
-    rgba(170, 215, 255, 0.12) 20%,
-    rgba(150, 190, 255, 0.05) 33%,
-    transparent 50%
-  );
+  top: 50%; left: 50%;
+  width: 1px; height: 1px;
   pointer-events: none;
-  animation: loginSunstreakPulse 11s ease-in-out infinite;
-  transform-origin: top left;
 }
-/* Secondary narrower beam — violet tint */
-.login-sunstreak-secondary {
+.login-rays::before {
+  content: '';
   position: absolute;
-  top: -20%;
-  left: -10%;
-  width: 80%;
-  height: 110%;
-  background: linear-gradient(
-    125deg,
-    rgba(200, 160, 255, 0.20) 0%,
-    rgba(160, 200, 255, 0.12) 18%,
-    transparent 40%
+  width: 300vmax; height: 300vmax;
+  top: 0; left: 0;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg,
+    hsl(270 80% 60% / 0.055) 8deg,   transparent 16deg,
+    hsl(190 90% 55% / 0.04)  30deg,  transparent 38deg,
+    hsl(310 80% 65% / 0.05)  55deg,  transparent 63deg,
+    transparent 80deg,
+    hsl(270 80% 60% / 0.045) 95deg,  transparent 103deg,
+    hsl(190 90% 55% / 0.055) 118deg, transparent 126deg,
+    hsl(310 80% 65% / 0.04)  145deg, transparent 153deg,
+    transparent 170deg,
+    hsl(270 80% 60% / 0.05)  185deg, transparent 193deg,
+    hsl(190 90% 55% / 0.04)  210deg, transparent 218deg,
+    hsl(310 80% 65% / 0.055) 235deg, transparent 243deg,
+    transparent 260deg,
+    hsl(270 80% 60% / 0.04)  275deg, transparent 283deg,
+    hsl(190 90% 55% / 0.05)  300deg, transparent 308deg,
+    hsl(310 80% 65% / 0.045) 325deg, transparent 333deg,
+    transparent 360deg
   );
-  pointer-events: none;
-  animation: loginSunstreakSecondary 14s ease-in-out infinite;
-  transform-origin: top left;
+  animation: loginRayRotate 90s linear infinite;
 }
 
 /* Aura glow centered on the card */
 .login-card-aura {
   position: absolute;
   top: 50%; left: 50%;
-  width: 640px; height: 540px;
+  width: 560px; height: 460px;
   background: radial-gradient(ellipse at center,
-    hsl(270 85% 58% / 0.45) 0%,
-    hsl(300 85% 62% / 0.22) 30%,
-    hsl(190 90% 52% / 0.10) 55%,
-    transparent 72%
+    hsl(270 80% 55% / 0.35) 0%,
+    hsl(300 80% 60% / 0.18) 35%,
+    hsl(190 90% 50% / 0.08) 60%,
+    transparent 75%
   );
   border-radius: 50%;
   pointer-events: none;
@@ -206,32 +167,29 @@
   z-index: 0;
 }
 
-/* Card glass — true glass, translucent not dark */
+/* Card glass */
 .login-card-glass {
   background: linear-gradient(145deg,
-    rgba(255, 255, 255, 0.08) 0%,
-    rgba(180, 140, 255, 0.06) 50%,
-    rgba(140, 200, 255, 0.04) 100%
+    hsl(262 28% 11% / 0.92) 0%,
+    hsl(268 22% 9%  / 0.96) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.09);
   box-shadow:
-    0 0 0 1px hsl(270 80% 60% / 0.15),
-    0 32px 80px -18px rgba(0, 0, 0, 0.60),
-    0 0 150px -35px hsl(270 80% 58% / 0.60),
-    0 0 70px -18px hsl(290 80% 62% / 0.32),
-    0 0 30px -8px hsl(190 90% 52% / 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.20),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
-    inset 1px 0 0 rgba(255, 255, 255, 0.10);
-  backdrop-filter: blur(40px) saturate(1.6) brightness(1.06);
+    0 0 0 1px hsl(270 80% 60% / 0.12),
+    0 30px 60px -15px rgba(0, 0, 0, 0.75),
+    0 0 100px -25px hsl(270 80% 55% / 0.45),
+    0 0 40px -10px hsl(290 80% 60% / 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(24px);
 }
 
 /* Title shimmer gradient */
 .login-title-gradient {
   background: linear-gradient(135deg,
     #ffffff 0%,
-    hsl(270 70% 88%) 35%,
-    hsl(190 90% 84%) 65%,
+    hsl(270 70% 88%) 40%,
+    hsl(190 90% 82%) 70%,
     hsl(310 80% 88%) 100%
   );
   -webkit-background-clip: text;
@@ -243,7 +201,7 @@
 .login-icon-halo {
   position: absolute; inset: 0;
   border-radius: 12px;
-  background: radial-gradient(ellipse at center, hsl(270 80% 62% / 0.80) 0%, hsl(290 70% 55% / 0.30) 50%, transparent 75%);
+  background: radial-gradient(ellipse at center, hsl(270 80% 60% / 0.7) 0%, transparent 70%);
   animation: loginIconGlow 3s ease-in-out infinite;
 }
 
@@ -251,22 +209,22 @@
 .login-btn-google {
   background: rgba(255, 255, 255, 0.95);
   color: #1a1a1a;
-  box-shadow: 0 4px 24px rgba(255,255,255,0.12), 0 1px 4px rgba(0,0,0,0.35);
+  box-shadow: 0 4px 24px rgba(255,255,255,0.1), 0 1px 4px rgba(0,0,0,0.4);
 }
 .login-btn-google:hover {
   background: #fff;
-  box-shadow: 0 8px 40px rgba(255,255,255,0.25), 0 0 0 1px rgba(255,255,255,0.30);
+  box-shadow: 0 8px 36px rgba(255,255,255,0.2), 0 0 0 1px rgba(255,255,255,0.25);
 }
 
 /* Discord button */
 .login-btn-discord {
   background: linear-gradient(135deg, hsl(234 89% 64%), hsl(228 73% 65%));
   color: white;
-  box-shadow: 0 4px 24px hsl(234 89% 64% / 0.42), 0 0 0 1px hsl(234 89% 64% / 0.18);
+  box-shadow: 0 4px 24px hsl(234 89% 64% / 0.38), 0 0 0 1px hsl(234 89% 64% / 0.15);
 }
 .login-btn-discord:hover {
   background: linear-gradient(135deg, hsl(234 89% 58%), hsl(228 73% 60%));
-  box-shadow: 0 8px 40px hsl(234 89% 64% / 0.60), 0 0 0 1px hsl(234 89% 64% / 0.32);
+  box-shadow: 0 8px 36px hsl(234 89% 64% / 0.55), 0 0 0 1px hsl(234 89% 64% / 0.28);
 }
 
 /* ── Toast animations ─────────────────────────────────────────── */
