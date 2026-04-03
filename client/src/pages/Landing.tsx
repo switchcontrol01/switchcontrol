@@ -519,9 +519,28 @@ export default function Landing() {
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
 
-          <div className="absolute inset-0 pointer-events-none ws-sun-streak-1"></div>
-          <div className="absolute inset-0 pointer-events-none ws-sun-streak-2"></div>
-          <div className="absolute inset-0 pointer-events-none ws-sun-streak-3"></div>
+          {/* ── Top-left sun streak hitting the hero text ── */}
+          {/* Wide corner halo — origin point of the light source */}
+          <div className="absolute pointer-events-none ws-sun-streak-1" style={{
+            top: 0, left: 0,
+            width: "55%", height: "65%",
+            background: "radial-gradient(ellipse at 0% 0%, rgba(160,110,255,0.22) 0%, rgba(100,150,255,0.10) 38%, transparent 68%)",
+            filter: "blur(18px)",
+          }} />
+          {/* Main beam — sharp diagonal slash from top-left corner through the headline */}
+          <div className="absolute pointer-events-none ws-sun-streak-2" style={{
+            top: "-8%", left: "-4%",
+            width: "72%", height: "110%",
+            background: "linear-gradient(138deg, rgba(255,255,255,0.11) 0%, rgba(190,140,255,0.20) 7%, rgba(120,170,255,0.10) 22%, transparent 46%)",
+            filter: "blur(2px)",
+          }} />
+          {/* Accent beam — slightly narrower, offset angle, colder tone */}
+          <div className="absolute pointer-events-none ws-sun-streak-3" style={{
+            top: "-5%", left: "2%",
+            width: "50%", height: "90%",
+            background: "linear-gradient(145deg, rgba(200,220,255,0.07) 0%, rgba(140,190,255,0.12) 15%, transparent 42%)",
+            filter: "blur(6px)",
+          }} />
 
           <TelemetryLineOverlay />
 
