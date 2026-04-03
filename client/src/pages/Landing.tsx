@@ -320,6 +320,63 @@ function LiveBar({ base, range, color, interval = 2500 }: { base: number; range:
   );
 }
 
+// Stable particle data — computed once at module level so positions don't shift on re-render
+const LEFT_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+  id: i,
+  top: 8 + (i / 16) * 84,
+  size: 2.5 + (i % 3) * 1,
+  dur: 2.4 + (i % 4) * 0.45,
+  delay: (i * 0.31) % 3.8,
+}));
+const RIGHT_PARTICLES = Array.from({ length: 16 }, (_, i) => ({
+  id: i,
+  top: 8 + (i / 16) * 84,
+  size: 2.5 + ((i + 1) % 3) * 1,
+  dur: 2.4 + ((i + 2) % 4) * 0.45,
+  delay: (i * 0.37) % 3.8,
+}));
+
+function MockupSideParticles() {
+  return (
+    <>
+      {/* Left side — cyan */}
+      {LEFT_PARTICLES.map(p => (
+        <div
+          key={p.id}
+          className="mockup-particle-l absolute pointer-events-none rounded-full"
+          style={{
+            top: `${p.top}%`,
+            left: 0,
+            width: p.size,
+            height: p.size,
+            background: 'hsl(190 95% 62%)',
+            boxShadow: '0 0 8px 3px hsl(190 95% 62% / 0.7)',
+            ['--dur' as string]: `${p.dur}s`,
+            ['--delay' as string]: `${p.delay}s`,
+          }}
+        />
+      ))}
+      {/* Right side — purple */}
+      {RIGHT_PARTICLES.map(p => (
+        <div
+          key={p.id}
+          className="mockup-particle-r absolute pointer-events-none rounded-full"
+          style={{
+            top: `${p.top}%`,
+            right: 0,
+            width: p.size,
+            height: p.size,
+            background: 'hsl(270 85% 68%)',
+            boxShadow: '0 0 8px 3px hsl(270 85% 68% / 0.7)',
+            ['--dur' as string]: `${p.dur}s`,
+            ['--delay' as string]: `${p.delay}s`,
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 function HeroAppMockup() {
   const [tweakCount, setTweakCount] = useState(12);
   useEffect(() => {
@@ -337,6 +394,8 @@ function HeroAppMockup() {
       <div className="absolute -inset-12 rounded-3xl blur-[60px] pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 60%, hsl(270 60% 50% / 0.25), hsl(190 80% 50% / 0.12), transparent 70%)' }} />
 
       <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 w-[90%] h-20 rounded-full pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, hsl(190 90% 50% / 0.6), transparent 70%)', filter: 'blur(80px)' }} />
+
+      <MockupSideParticles />
 
       <div className="relative rounded-xl overflow-hidden border border-white/[0.15] bg-[hsl(260,22%,6%)] shadow-2xl shadow-primary/20">
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-xl">

@@ -703,6 +703,20 @@ html {
   animation: cyan-glow 2s ease-in-out infinite;
 }
 
+/* Mockup side particle animations */
+@keyframes particle-left {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  12%  { opacity: 1; }
+  100% { transform: translateY(-90px) translateX(-28px); opacity: 0; }
+}
+@keyframes particle-right {
+  0%   { transform: translateY(0) translateX(0); opacity: 0; }
+  12%  { opacity: 1; }
+  100% { transform: translateY(-90px) translateX(28px); opacity: 0; }
+}
+.mockup-particle-l { animation: particle-left  var(--dur, 3s) ease-out var(--delay, 0s) infinite; }
+.mockup-particle-r { animation: particle-right var(--dur, 3s) ease-out var(--delay, 0s) infinite; }
+
 /* Purple ambient pulse - slow background effect */
 @keyframes purple-ambient {
   0%, 100% { 
