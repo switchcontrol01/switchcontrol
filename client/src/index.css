@@ -2333,3 +2333,33 @@ button, a, nav, header, footer, label {
 .pricing-glow-pulse {
   animation: pricingGlowPulse 3s ease-in-out infinite;
 }
+
+/* ─── Landing performance chart card entrance ─── */
+@keyframes chartCardEnter {
+  from { opacity: 0; transform: translateY(28px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.landing-chart-card {
+  opacity: 0;
+  animation: chartCardEnter 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-play-state: paused;
+}
+
+/* Live blinking dot */
+@keyframes chartLiveBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.2; }
+}
+.chart-live-blink {
+  animation: chartLiveBlink 1.8s ease-in-out infinite;
+}
+
+/* Outer pulse ring on active dot */
+@keyframes chartPulseOuter {
+  0%   { r: 5; opacity: 0.25; }
+  70%  { r: 9; opacity: 0; }
+  100% { r: 9; opacity: 0; }
+}
+.chart-pulse-outer {
+  animation: chartPulseOuter 1.6s ease-out infinite;
+}
