@@ -294,11 +294,11 @@ export function WhatIsSwitchControl() {
       <div className="container mx-auto px-4 max-w-4xl">
         <Reveal duration={0.7} distance={32}>
           <div
-            className="relative rounded-2xl overflow-hidden"
+            className="relative rounded-2xl overflow-hidden backdrop-blur-xl"
             style={{
-              background: 'linear-gradient(160deg, rgba(12,10,22,0.96) 0%, rgba(18,12,32,0.94) 100%)',
-              border: '1px solid rgba(139,92,246,0.18)',
-              boxShadow: '0 0 0 1px rgba(255,255,255,0.04) inset, 0 32px 80px rgba(0,0,0,0.5), 0 0 60px rgba(139,92,246,0.06)',
+              background: 'linear-gradient(160deg, rgba(18,12,32,0.55) 0%, rgba(10,8,20,0.50) 100%)',
+              border: '1px solid rgba(139,92,246,0.12)',
+              boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 60px rgba(0,0,0,0.3), 0 0 40px rgba(139,92,246,0.04)',
             }}
           >
             {/* Top accent glow line */}
