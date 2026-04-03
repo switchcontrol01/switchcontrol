@@ -133,6 +133,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getStartupApps:  () => ipcRenderer.invoke('security:getStartupApps'),
     getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
   },
+
+  // Auto-Updater — renderer reads state, main process owns all logic
+  updater: {
+    getState:      () => ipcRenderer.invoke('updater:getState'),
+    check:         () => ipcRenderer.invoke('updater:check'),
+    download:      () => ipcRenderer.invoke('updater:download'),
+    install:       () => ipcRenderer.invoke('updater:install'),
+    onEvent: (callback) => {
+      const handler = (event, payload) => callback(payload);
+      ipcRenderer.on('updater:event', handler);
+      return () => ipcRenderer.removeListener('updater:event', handler);
+    },
+  },
 });
 
 window.addEventListener('DOMContentLoaded', () => {

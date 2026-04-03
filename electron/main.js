@@ -21,6 +21,7 @@ const powerPlanManager = require('./power-plan-manager');
 const backendLauncher = require('./backend-launcher');
 require('./security-helper');
 const configStore = require('./config-store');
+const updaterService = require('./updater');
 
 app.setName('SwitchControl');
 const isDev = !app.isPackaged;
@@ -1616,6 +1617,35 @@ app.whenReady().then(async () => {
     }
     return { success: true };
   });
+
+  // ── Auto-Updater IPC ──────────────────────────────────────────────────────
+  // Main process owns all update logic. Renderer only reads state + triggers.
+
+  ipcMain.handle('updater:getState', () => updaterService.getState());
+
+  ipcMain.handle('updater:check', () => {
+    updaterService.checkForUpdates();
+    return true;
+  });
+
+  ipcMain.handle('updater:download', () => {
+    updaterService.downloadUpdate();
+    return true;
+  });
+
+  ipcMain.handle('updater:install', () => {
+    updaterService.quitAndInstall();
+    return true;
+  });
+
+  // Initialize updater. In packaged builds, do a silent check after 8 seconds.
+  updaterService.initUpdater(isDev);
+  if (!isDev) {
+    setTimeout(() => {
+      console.log('[Updater] Startup check (8s after ready)...');
+      updaterService.checkForUpdates();
+    }, 8000);
+  }
 
   // DEBUG ISSUE 1: Log all cookies on app ready
   const { session } = require('electron');

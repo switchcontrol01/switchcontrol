@@ -15,7 +15,8 @@
   },
 
   "dependencies": {
-    "systeminformation": "^5.23.5"
+    "systeminformation": "^5.23.5",
+    "electron-updater": "^6.3.9"
   },
   "devDependencies": {
     "electron": "^33.4.11",
@@ -55,6 +56,14 @@
         "from": "bin",
         "to": "bin",
         "filter": ["**/*"]
+      }
+    ],
+
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://releases.switchcontrol.org",
+        "channel": "stable"
       }
     ],
 

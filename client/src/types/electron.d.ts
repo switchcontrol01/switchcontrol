@@ -181,7 +181,33 @@ declare global {
         getLocalState: () => Promise<LocalTweakState>;
         getInfo: () => Promise<TweakInfo[]>;
       };
+
+      updater: {
+        getState: () => Promise<UpdaterState>;
+        check: () => Promise<boolean>;
+        download: () => Promise<boolean>;
+        install: () => Promise<boolean>;
+        onEvent: (callback: (payload: { event: string; state: UpdaterState }) => void) => () => void;
+      };
     };
+  }
+}
+
+declare global {
+  interface UpdaterState {
+    status: 'idle' | 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error';
+    currentVersion: string | null;
+    availableVersion: string | null;
+    downloadPercent: number;
+    bytesPerSecond: number;
+    transferred: number;
+    total: number;
+    releaseNotes: string | null;
+    releaseDate: string | null;
+    errorMessage: string | null;
+    checkedAt: string | null;
+    urgency: 'normal' | 'recommended' | 'critical';
+    channel: 'stable' | 'beta';
   }
 }
 

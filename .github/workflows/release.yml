@@ -1,0 +1,122 @@
+name: Release SwitchControl
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'      # stable:  v1.2.3
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta*' # beta:    v1.2.3-beta.1
+
+permissions:
+  contents: write   # needed to create/update GitHub releases
+
+jobs:
+  release-windows:
+    name: Build & Publish Windows Installer
+    runs-on: windows-latest
+
+    steps:
+      # ── 1. Checkout ─────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ── 2. Node.js setup ────────────────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── 3. Extract version from tag ─────────────────────────────────────────
+      - name: Extract version
+        id: version
+        shell: bash
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Release version: $VERSION"
+
+      # ── 4. Bump app version in electron/package.json ────────────────────────
+      - name: Sync electron package version
+        shell: bash
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          node -e "
+            const fs = require('fs');
+            const p = JSON.parse(fs.readFileSync('electron/package.json', 'utf8'));
+            p.version = '$VERSION';
+            fs.writeFileSync('electron/package.json', JSON.stringify(p, null, 2) + '\n');
+            console.log('electron/package.json version set to', p.version);
+          "
+
+      # ── 5. Install root dependencies (web app) ──────────────────────────────
+      - name: Install root dependencies
+        run: npm ci
+
+      # ── 6. Build the React frontend ─────────────────────────────────────────
+      - name: Build frontend
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      # ── 7. Copy frontend dist into electron/dist-frontend ───────────────────
+      - name: Copy frontend to electron
+        shell: bash
+        run: |
+          mkdir -p electron/dist-frontend
+          cp -r dist/public/. electron/dist-frontend/
+          echo "Frontend dist contents:"
+          ls -la electron/dist-frontend/ | head -20
+
+      # ── 8. Install Electron dependencies ────────────────────────────────────
+      - name: Install Electron dependencies
+        working-directory: electron
+        run: npm ci
+
+      # ── 9. Build native modules (if any) ────────────────────────────────────
+      - name: Build native modules
+        working-directory: electron
+        run: |
+          if [ -f "scripts/build-native.js" ]; then
+            node scripts/build-native.js || echo "Native build skipped (non-fatal)"
+          fi
+        shell: bash
+
+      # ── 10. Build NSIS installer + update metadata ──────────────────────────
+      #   GH_TOKEN lets electron-builder publish directly to GitHub Releases.
+      #   The `publish always` flag ensures metadata (latest.yml) is uploaded.
+      #   For private release server: set GEN_RELEASES_TOKEN secret instead.
+      - name: Build installer & publish
+        working-directory: electron
+        run: npx electron-builder --win --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # If using a private release server (generic provider), configure:
+          # RELEASES_SERVER_TOKEN: ${{ secrets.RELEASES_SERVER_TOKEN }}
+
+      # ── 11. Verify artifacts ─────────────────────────────────────────────────
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "=== Build artifacts ==="
+          ls -lh electron/dist/ || echo "No dist directory"
+          find electron/dist -name "*.exe" -o -name "*.yml" -o -name "*.yaml" 2>/dev/null | head -20
+
+      # ── 12. Upload artifacts to GitHub Release ───────────────────────────────
+      - name: Create / update GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: SwitchControl ${{ steps.version.outputs.tag }}
+          draft: false
+          prerelease: ${{ contains(steps.version.outputs.tag, '-beta') || contains(steps.version.outputs.tag, '-alpha') }}
+          generate_release_notes: true
+          files: |
+            electron/dist/*.exe
+            electron/dist/latest.yml
+            electron/dist/latest-mac.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

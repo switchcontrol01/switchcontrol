@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown } from "lucide-react";
+import { UpdateCard } from "@/components/UpdateCard";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
@@ -168,6 +169,13 @@ export default function Settings() {
             </CardContent>
           </Card>
           </AnimatedSection>
+
+          {/* Software Update — Electron only */}
+          {isElectron && (
+            <AnimatedSection index={2}>
+              <UpdateCard />
+            </AnimatedSection>
+          )}
 
           {isPremium && (
             <AnimatedSection index={2}>

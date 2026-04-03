@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { motion, AnimatePresence, useMotion, easing, timing } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
 import { SpotlightEffect } from "@/components/SpotlightEffect";
+import { UpdateBanner } from "@/components/UpdateBanner";
 import { useLocation } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
 import { Loader2 } from "lucide-react";
@@ -78,6 +79,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="fixed inset-0 z-0 bg-noise opacity-30 pointer-events-none mix-blend-overlay" />
       
       <Sidebar />
+      <div className="pl-64 pt-2">
+        <UpdateBanner />
+      </div>
       <main
         className="pl-64 h-full overflow-y-auto overflow-x-hidden relative z-10"
         style={{
