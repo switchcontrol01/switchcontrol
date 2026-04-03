@@ -110,49 +110,50 @@
   animation: loginFocalPulse 9s ease-in-out infinite;
 }
 
-/* ── Sun streak beam — diagonal shaft of light crossing the card ── */
+/* ── Sun streak — originates upper-left, strikes through the card ── */
+/*    Centered on the card (translate -50%/-50%) so the beam passes    */
+/*    through the card. Positive rotation = upper-left → lower-right.  */
 .login-sun-streak {
   position: absolute;
-  top: -30%;
-  left: 68%;
-  width: 260px;
-  height: 280vh;
-  transform: rotate(-33deg);
-  transform-origin: top center;
-  /* Bright centre, transparent edges — cross-section of the beam */
+  top: 50%;
+  left: 50%;
+  width: 320px;
+  height: 210vh;
+  transform: translate(-50%, -50%) rotate(26deg);
+  /* Soft outer haze — wide feathered edges, bright centre strip */
   background: linear-gradient(
     to right,
-    transparent 0%,
-    rgba(255, 252, 228, 0.0) 12%,
-    rgba(255, 250, 220, 0.05) 28%,
-    rgba(255, 255, 240, 0.13) 44%,
-    rgba(255, 255, 250, 0.18) 50%,
-    rgba(255, 255, 240, 0.13) 56%,
-    rgba(255, 250, 220, 0.05) 72%,
-    rgba(255, 252, 228, 0.0) 88%,
-    transparent 100%
+    transparent                  0%,
+    rgba(255, 248, 210, 0.00)    8%,
+    rgba(255, 248, 215, 0.055)  26%,
+    rgba(255, 252, 230, 0.14)   42%,
+    rgba(255, 255, 245, 0.22)   50%,
+    rgba(255, 252, 230, 0.14)   58%,
+    rgba(255, 248, 215, 0.055)  74%,
+    rgba(255, 248, 210, 0.00)   92%,
+    transparent                 100%
   );
   filter: blur(22px);
   pointer-events: none;
   animation: loginStreakShimmer 6s ease-in-out infinite;
 }
 
-/* Tighter inner core of the streak — slightly warmer white */
+/* Inner bright core — tighter, slightly warmer */
 .login-sun-streak::before {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to right,
-    transparent 0%,
-    transparent 42%,
-    rgba(255, 255, 248, 0.09) 47%,
-    rgba(255, 255, 255, 0.14) 50%,
-    rgba(255, 255, 248, 0.09) 53%,
-    transparent 58%,
-    transparent 100%
+    transparent              0%,
+    transparent             43%,
+    rgba(255,255,248,0.10)  47%,
+    rgba(255,255,255,0.16)  50%,
+    rgba(255,255,248,0.10)  53%,
+    transparent             57%,
+    transparent            100%
   );
-  filter: blur(5px);
+  filter: blur(4px);
 }
 
 /* Monochromatic rotating light rays — silver-violet, slow */
@@ -195,15 +196,16 @@
   animation: loginRayRotate 140s linear infinite;
 }
 
-/* Aura glow centered on the card */
+/* Aura glow — offset left to simulate light emanating from streak impact */
 .login-card-aura {
   position: absolute;
-  top: 50%; left: 50%;
-  width: 580px; height: 480px;
-  background: radial-gradient(ellipse at center,
-    hsl(268 75% 58% / 0.32) 0%,
-    hsl(265 65% 55% / 0.14) 40%,
-    hsl(265 55% 50% / 0.05) 65%,
+  top: 50%; left: 44%;
+  width: 620px; height: 500px;
+  /* Asymmetric ellipse: brighter on left where the streak hits */
+  background: radial-gradient(ellipse at 38% 50%,
+    hsl(268 75% 58% / 0.34) 0%,
+    hsl(265 65% 55% / 0.16) 38%,
+    hsl(265 55% 50% / 0.06) 62%,
     transparent 80%
   );
   border-radius: 50%;
@@ -218,14 +220,25 @@
     hsl(262 28% 11% / 0.92) 0%,
     hsl(268 22% 9%  / 0.96) 100%
   );
-  border: 1px solid rgba(255, 255, 255, 0.09);
+  /* Left edge brighter — simulates the streak beam striking from the left */
+  border-top:    1px solid rgba(255, 255, 255, 0.09);
+  border-right:  1px solid rgba(255, 255, 255, 0.07);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  border-left:   1px solid rgba(255, 250, 220, 0.20);
   box-shadow:
+    /* Left-side streak illumination — warm light spilling onto card face */
+    -60px 0 90px -20px rgba(255, 248, 200, 0.08),
+    -30px 0 50px -10px rgba(255, 240, 180, 0.06),
+    /* Ambient purple outer glow */
     0 0 0 1px hsl(270 80% 60% / 0.12),
     0 30px 60px -15px rgba(0, 0, 0, 0.75),
     0 0 100px -25px hsl(270 80% 55% / 0.45),
     0 0 40px -10px hsl(290 80% 60% / 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.02);
+    /* Inset top highlight — picks up the streak's light */
+    inset 0 1px 0 rgba(255, 255, 230, 0.10),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.02),
+    /* Inset left edge gleam */
+    inset 2px 0 18px -4px rgba(255, 248, 200, 0.07);
   backdrop-filter: blur(24px);
 }
 
