@@ -1,24 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import {
   AreaChart, Area, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ReferenceLine, ResponsiveContainer,
-  ReferenceDot,
+  ReferenceLine, ReferenceDot, ResponsiveContainer,
 } from "recharts";
-import { motion } from "@/lib/motion";
-import { useMotion } from "@/lib/motion";
 
-/* ─── Version milestone data ─── */
-const VERSIONS = [
-  { v: "v0.8", label: "Oct '25" },
-  { v: "v0.9", label: "Nov '25" },
-  { v: "v1.0", label: "Dec '25" },
-  { v: "v1.2", label: "Jan '26" },
-  { v: "v1.5", label: "Feb '26" },
-  { v: "v2.0", label: "Mar '26" },
-];
-
-/* Seeded RNG */
+/* ─── Seeded RNG ─── */
 function rng(seed: number) {
   let s = seed;
   return () => {
@@ -27,27 +14,99 @@ function rng(seed: number) {
   };
 }
 
+/* ─── Version milestones ─── */
+const VERSIONS = [
+  { v: "v0.8", label: "Oct '25" },
+  { v: "v0.9", label: "Nov '25" },
+  { v: "v1.0", label: "Dec '25" },
+  { v: "v1.2", label: "Jan '26" },
+  { v: "v1.5", label: "Feb '26" },
+  { v: "v2.0", label: "Mar '26" },
+];
+const VERSION_INDICES = [0, 3, 5, 8, 12, 17];
+
+/* ─── Full timeline data (18 pts, growing trend) ─── */
 function buildTimelineData() {
   const r = rng(42);
-  /* 18 data points across ~6 months */
   return Array.from({ length: 18 }, (_, i) => {
     const t = i / 17;
     return {
       i,
-      /* FPS improvement score: grows from ~8% → ~22%, with noise */
-      fps: Math.round((8 + t * 14 + r() * 2.5) * 10) / 10,
-      /* Latency reduction: grows from ~3ms → ~12ms */
-      latency: Math.round((3 + t * 9 + r() * 1.5) * 10) / 10,
-      /* Input delay: grows from ~2ms → ~8ms */
-      input: Math.round((2 + t * 6 + r() * 1.2) * 10) / 10,
+      fps:     Math.round((8  + t * 14 + r() * 2.5) * 10) / 10,
+      latency: Math.round((3  + t * 9  + r() * 1.5) * 10) / 10,
+      input:   Math.round((2  + t * 6  + r() * 1.2) * 10) / 10,
     };
   });
 }
+const FULL_TIMELINE = buildTimelineData();
 
-/* Map version to data index (6 versions across 18 pts) */
-const VERSION_INDICES = [0, 3, 5, 8, 12, 17];
+/* ─── Sparkline stream generators ─── */
+function buildSparkData(seed: number, base: number, growth: number, noise: number) {
+  const r = rng(seed);
+  return Array.from({ length: 22 }, (_, i) => ({
+    i,
+    v: Math.round((base + (i / 21) * growth + (r() - 0.5) * noise) * 10) / 10,
+  }));
+}
 
-/* Tooltip styles */
+function nextSparkPoint(prev: { i: number; v: number }[], base: number, growth: number, noise: number, r: () => number) {
+  const last = prev[prev.length - 1];
+  return { i: last.i + 1, v: Math.round((base + growth + (r() - 0.5) * noise) * 10) / 10 };
+}
+
+/* ─── IntersectionObserver hook ─── */
+function useInView(threshold = 0.12) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setInView(true); },
+      { threshold }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [threshold]);
+  return { ref, inView };
+}
+
+/* ─── Progressive timeline draw-in hook ─── */
+function useProgressiveDraw(full: typeof FULL_TIMELINE, active: boolean) {
+  const [visibleCount, setVisibleCount] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    if (visibleCount >= full.length) return;
+    const id = setTimeout(() => setVisibleCount(c => c + 1), visibleCount === 0 ? 200 : 65);
+    return () => clearTimeout(id);
+  }, [active, visibleCount, full.length]);
+  return full.slice(0, visibleCount);
+}
+
+/* ─── Live streaming sparkline hook ─── */
+function useStreamSpark(
+  initial: { i: number; v: number }[],
+  base: number, growth: number, noise: number,
+  rngSeed: number,
+  active: boolean,
+) {
+  const [data, setData] = useState(initial);
+  const rRef = useRef(rng(rngSeed + 500));
+  const dRef = useRef(initial);
+  useEffect(() => {
+    if (!active) return;
+    const id = setInterval(() => {
+      const next = nextSparkPoint(dRef.current, base, growth, noise, rRef.current);
+      const updated = [...dRef.current.slice(dRef.current.length >= 22 ? 1 : 0), next];
+      dRef.current = updated;
+      setData([...updated]);
+    }, 500);
+    return () => clearInterval(id);
+  }, [active, base, growth, noise]);
+  return data;
+}
+
+/* ─── Tooltip ─── */
 const TT_STYLE = {
   backgroundColor: "rgba(5,3,14,0.97)",
   border: "1px solid rgba(255,255,255,0.08)",
@@ -57,7 +116,6 @@ const TT_STYLE = {
   boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
 };
 
-/* Custom tooltip */
 function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   return (
@@ -65,10 +123,10 @@ function CustomTooltip({ active, payload }: any) {
       {payload.map((p: any) => (
         <div key={p.dataKey} className="flex items-center gap-2 py-0.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
-          <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "10px" }}>
-            {p.dataKey === "fps" ? "FPS Improvement" : p.dataKey === "latency" ? "Latency Reduction" : "Input Delay Reduction"}
+          <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>
+            {p.dataKey === "fps" ? "FPS Improvement" : p.dataKey === "latency" ? "Latency Reduction" : "Input Delay"}
           </span>
-          <span className="ml-auto font-semibold" style={{ color: p.color }}>
+          <span className="ml-2 font-bold" style={{ color: p.color }}>
             {p.dataKey === "fps" ? `+${p.value}%` : `-${p.value}ms`}
           </span>
         </div>
@@ -77,62 +135,51 @@ function CustomTooltip({ active, payload }: any) {
   );
 }
 
-/* Pill badge */
-function Pill({ color, label, value }: { color: string; label: string; value: string }) {
-  return (
-    <div className="flex items-center gap-2">
-      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
-      <span className="text-[11px] text-white/35">{label}</span>
-      <span className="text-[11px] font-bold ml-1" style={{ color }}>{value}</span>
-    </div>
-  );
-}
-
-/* ─── Compact metric sparkline ─── */
-interface MetricMiniProps {
+/* ─── Metric mini card ─── */
+interface MiniProps {
   label: string;
   value: string;
-  trend: "up" | "down";
   accentColor: string;
-  data: { i: number; v: number }[];
-  index: number;
+  sparkData: { i: number; v: number }[];
+  animDelay: string;
+  inView: boolean;
 }
 
-function MetricMini({ label, value, trend, accentColor, data, index }: MetricMiniProps) {
-  const { prefersReducedMotion } = useMotion();
+function MetricMini({ label, value, accentColor, sparkData, animDelay, inView }: MiniProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.45, delay: 0.3 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-xl border border-white/[0.07] px-4 pt-3 pb-2 flex flex-col gap-1"
+    <div
+      className="sp-mini-card rounded-xl border border-white/[0.07] px-4 pt-3 pb-3 flex flex-col gap-1 relative overflow-hidden"
       style={{
-        background: "rgba(255,255,255,0.025)",
-        backdropFilter: "blur(12px)",
+        background: "rgba(255,255,255,0.028)",
+        backdropFilter: "blur(14px)",
+        animationDelay: animDelay,
+        animationPlayState: inView ? "running" : "paused",
       }}
     >
-      <div className="text-[10px] text-white/30 uppercase tracking-widest">{label}</div>
+      {/* Accent glow */}
+      <div className="absolute top-0 right-0 w-20 h-20 pointer-events-none"
+        style={{ background: `radial-gradient(circle at top right, ${accentColor}18, transparent 65%)` }} />
+
+      <div className="text-[10px] text-white/25 uppercase tracking-widest font-medium">{label}</div>
       <div className="text-2xl font-black tracking-tight" style={{ color: accentColor }}>{value}</div>
-      <div style={{ height: 36 }}>
-        <ResponsiveContainer width="100%" height={36}>
-          <LineChart data={data} margin={{ top: 2, right: 2, left: 2, bottom: 2 }}>
+
+      <div style={{ height: 38 }}>
+        <ResponsiveContainer width="100%" height={38}>
+          <LineChart data={sparkData} margin={{ top: 3, right: 2, left: 2, bottom: 3 }}>
             <Line
-              type="monotone" dataKey="v"
+              type="basis" dataKey="v"
               stroke={accentColor} strokeWidth={2}
-              dot={false}
-              isAnimationActive animationDuration={900} animationEasing="ease-out"
+              dot={false} isAnimationActive={false}
             />
           </LineChart>
         </ResponsiveContainer>
       </div>
-      <div
-        className="text-[9px] tracking-wide"
-        style={{ color: accentColor, opacity: 0.7 }}
-      >
-        {trend === "up" ? "▲" : "▼"} improving each version
+
+      <div className="flex items-center gap-1.5 text-[9px]" style={{ color: accentColor, opacity: 0.65 }}>
+        <span className="w-1 h-1 rounded-full chart-live-blink" style={{ backgroundColor: accentColor }} />
+        improving each version
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -140,142 +187,114 @@ function MetricMini({ label, value, trend, accentColor, data, index }: MetricMin
    Main export
 ═══════════════════════════════════════════ */
 export function SocialProofCharts() {
-  const { prefersReducedMotion } = useMotion();
-  const timelineData = useMemo(buildTimelineData, []);
+  const { ref, inView } = useInView(0.1);
 
-  /* Build per-metric sparkline data */
-  const fpsSpark    = timelineData.map((d, i) => ({ i, v: d.fps }));
-  const latSpark    = timelineData.map((d, i) => ({ i, v: d.latency }));
-  const inputSpark  = timelineData.map((d, i) => ({ i, v: d.input }));
+  /* Progressive timeline draw-in */
+  const timelineData = useProgressiveDraw(FULL_TIMELINE, inView);
+
+  /* Streaming sparklines */
+  const fpsSpark   = useStreamSpark(useMemo(() => buildSparkData(10, 8,  14, 2.5), []), 8,  14, 2.5, 10,  inView);
+  const latSpark   = useStreamSpark(useMemo(() => buildSparkData(20, 3,  9,  1.5), []), 3,  9,  1.5, 20,  inView);
+  const inputSpark = useStreamSpark(useMemo(() => buildSparkData(30, 2,  6,  1.2), []), 2,  6,  1.2, 30,  inView);
+
+  /* Latest endpoint dots */
+  const last = timelineData[timelineData.length - 1];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: "-60px" }}
-      transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-      className="mt-12"
-    >
-      {/* ── Three metric mini cards ── */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <MetricMini
-          label="FPS Improvement"
-          value="+22%"
-          trend="up"
-          accentColor="#34d399"
-          data={fpsSpark}
-          index={0}
-        />
-        <MetricMini
-          label="Latency Reduction"
-          value="−12ms"
-          trend="up"
-          accentColor="#22d3ee"
-          data={latSpark}
-          index={1}
-        />
-        <MetricMini
-          label="Input Delay"
-          value="−8ms"
-          trend="up"
-          accentColor="#818cf8"
-          data={inputSpark}
-          index={2}
-        />
+    <div ref={ref} className="mt-12">
+      {/* ── Three mini sparkline cards ── */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        <MetricMini label="FPS Improvement"  value="+22%" accentColor="#34d399" sparkData={fpsSpark}   animDelay="0ms"   inView={inView} />
+        <MetricMini label="Latency Reduction" value="−12ms" accentColor="#22d3ee" sparkData={latSpark}   animDelay="80ms"  inView={inView} />
+        <MetricMini label="Input Delay"       value="−8ms"  accentColor="#818cf8" sparkData={inputSpark} animDelay="160ms" inView={inView} />
       </div>
 
       {/* ── Main timeline chart ── */}
       <div
-        className="rounded-2xl border border-white/[0.07] p-4 pb-2"
+        className="sp-timeline-card rounded-2xl border border-white/[0.07] p-4 pb-2"
         style={{
-          background: "linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.015) 100%)",
-          backdropFilter: "blur(16px)",
+          background: "linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.016) 100%)",
+          backdropFilter: "blur(18px)",
+          animationDelay: "240ms",
+          animationPlayState: inView ? "running" : "paused",
         }}
       >
-        {/* Header row */}
+        {/* Header */}
         <div className="flex items-start justify-between mb-3 px-1">
           <div>
             <p className="text-[10px] text-white/25 uppercase tracking-widest">Performance trajectory</p>
             <p className="text-xs text-white/50 mt-0.5">Each release pushes the ceiling higher</p>
           </div>
           <div className="flex flex-col gap-1.5 items-end">
-            <Pill color="#34d399" label="FPS gain"        value="+22%" />
-            <Pill color="#22d3ee" label="Latency"         value="−12ms" />
-            <Pill color="#818cf8" label="Input delay"     value="−8ms" />
+            {[
+              { color: "#34d399", label: "FPS gain",   value: "+22%" },
+              { color: "#22d3ee", label: "Latency",    value: "−12ms" },
+              { color: "#818cf8", label: "Input delay", value: "−8ms" },
+            ].map(({ color, label, value }) => (
+              <div key={label} className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+                <span className="text-[10px] text-white/30">{label}</span>
+                <span className="text-[10px] font-bold" style={{ color }}>{value}</span>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Chart */}
-        <div style={{ height: 160 }}>
+        {/* Chart — progressive draw-in */}
+        <div style={{ height: 168 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={timelineData} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
+            <AreaChart data={timelineData} margin={{ top: 8, right: 6, left: -28, bottom: 0 }}>
               <defs>
-                <linearGradient id="gFps" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#34d399" stopOpacity={0.28} />
+                <linearGradient id="spGFps" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#34d399" stopOpacity={0.30} />
                   <stop offset="95%" stopColor="#34d399" stopOpacity={0.02} />
                 </linearGradient>
-                <linearGradient id="gLat" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#22d3ee" stopOpacity={0.22} />
+                <linearGradient id="spGLat" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#22d3ee" stopOpacity={0.24} />
                   <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.02} />
                 </linearGradient>
-                <linearGradient id="gInput" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#818cf8" stopOpacity={0.22} />
+                <linearGradient id="spGInput" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#818cf8" stopOpacity={0.24} />
                   <stop offset="95%" stopColor="#818cf8" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
 
               <CartesianGrid strokeDasharray="3 4" stroke="rgba(255,255,255,0.04)" />
-              <XAxis
-                dataKey="i"
-                tick={false}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                tick={{ fill: "rgba(255,255,255,0.2)", fontSize: 9 }}
-                axisLine={false}
-                tickLine={false}
-                tickCount={4}
-              />
-
+              <XAxis dataKey="i" tick={false} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "rgba(255,255,255,0.18)", fontSize: 9 }} axisLine={false} tickLine={false} tickCount={4} />
               <Tooltip content={<CustomTooltip />} />
 
-              {/* Version milestone lines */}
-              {VERSION_INDICES.map((idx, vi) => (
-                <ReferenceLine
-                  key={vi}
-                  x={idx}
-                  stroke="rgba(255,255,255,0.07)"
-                  strokeDasharray="3 3"
-                  label={{
-                    value: VERSIONS[vi].v,
-                    position: "top",
-                    fill: "rgba(255,255,255,0.25)",
-                    fontSize: 9,
-                    fontWeight: 600,
-                  }}
+              {/* Version milestone markers */}
+              {VERSION_INDICES.filter(idx => idx < timelineData.length).map((idx, vi) => (
+                <ReferenceLine key={vi} x={idx}
+                  stroke="rgba(255,255,255,0.07)" strokeDasharray="3 3"
+                  label={{ value: VERSIONS[vi].v, position: "top", fill: "rgba(255,255,255,0.22)", fontSize: 9, fontWeight: 600 }}
                 />
               ))}
 
-              <Area type="monotone" dataKey="fps"     stroke="#34d399" strokeWidth={2}   fill="url(#gFps)"   dot={false} isAnimationActive animationDuration={1000} animationEasing="ease-out" />
-              <Area type="monotone" dataKey="latency" stroke="#22d3ee" strokeWidth={1.8} fill="url(#gLat)"   dot={false} isAnimationActive animationDuration={1100} animationEasing="ease-out" />
-              <Area type="monotone" dataKey="input"   stroke="#818cf8" strokeWidth={1.6} fill="url(#gInput)" dot={false} isAnimationActive animationDuration={1200} animationEasing="ease-out" />
+              <Area type="basis" dataKey="fps"     stroke="#34d399" strokeWidth={2}   fill="url(#spGFps)"   dot={false} isAnimationActive={false} />
+              <Area type="basis" dataKey="latency" stroke="#22d3ee" strokeWidth={1.8} fill="url(#spGLat)"   dot={false} isAnimationActive={false} />
+              <Area type="basis" dataKey="input"   stroke="#818cf8" strokeWidth={1.6} fill="url(#spGInput)" dot={false} isAnimationActive={false} />
 
-              {/* Highlight dots at latest version (v2.0) */}
-              <ReferenceDot x={17} y={timelineData[17].fps}     r={4} fill="#34d399" stroke="rgba(0,0,0,0.6)" strokeWidth={1.5} />
-              <ReferenceDot x={17} y={timelineData[17].latency} r={4} fill="#22d3ee" stroke="rgba(0,0,0,0.6)" strokeWidth={1.5} />
-              <ReferenceDot x={17} y={timelineData[17].input}   r={4} fill="#818cf8" stroke="rgba(0,0,0,0.6)" strokeWidth={1.5} />
+              {/* Leading-edge dots — only shown once draw-in completes */}
+              {last && timelineData.length === FULL_TIMELINE.length && (
+                <>
+                  <ReferenceDot x={last.i} y={last.fps}     r={4} fill="#34d399" stroke="rgba(0,0,0,0.7)" strokeWidth={1.5} />
+                  <ReferenceDot x={last.i} y={last.latency} r={4} fill="#22d3ee" stroke="rgba(0,0,0,0.7)" strokeWidth={1.5} />
+                  <ReferenceDot x={last.i} y={last.input}   r={4} fill="#818cf8" stroke="rgba(0,0,0,0.7)" strokeWidth={1.5} />
+                </>
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        {/* X-axis version labels */}
+        {/* X-axis labels */}
         <div className="flex justify-between mt-1 px-1">
           {VERSIONS.map((v) => (
-            <span key={v.v} className="text-[9px] text-white/20">{v.label}</span>
+            <span key={v.v} className="text-[9px] text-white/18">{v.label}</span>
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }
