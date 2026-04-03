@@ -140,9 +140,12 @@ function uploadFile(artifact) {
     const canonicalHeaders = Object.keys(headers).sort()
       .map(k => `${k}:${headers[k]}\n`).join('');
 
+    // Canonical URI must use the same percent-encoded path as the actual request
+    const canonicalUri = `/${encodeURIComponent(key)}`;
+
     const canonicalRequest = [
       'PUT',
-      `/${key}`,
+      canonicalUri,
       '',
       canonicalHeaders,
       signedHeaders,
@@ -175,9 +178,14 @@ function uploadFile(artifact) {
     const reqHeaders = { ...headers, authorization };
     delete reqHeaders.host;
 
+    // URL-encode the key so filenames with spaces ("SwitchControl Setup x.y.z.exe")
+    // are sent correctly over the wire.  encodeURIComponent covers spaces → %20
+    // and leaves dots/digits untouched, which is exactly what R2/S3 expect.
+    const encodedKey = encodeURIComponent(key);
+
     const options = {
       hostname: host,
-      path:     `/${key}`,
+      path:     `/${encodedKey}`,
       method:   'PUT',
       headers:  reqHeaders,
     };
@@ -200,11 +208,38 @@ function uploadFile(artifact) {
   });
 }
 
-// ── Run uploads sequentially ──────────────────────────────────────────────────
+// ── Verification ─────────────────────────────────────────────────────────────
+
+/**
+ * HEAD request to a public URL.  Returns { ok, status, url }.
+ * Follows up to 3 redirects automatically.
+ */
+function headRequest(url, redirectsLeft = 3) {
+  return new Promise((resolve) => {
+    const parsed = new URL(url);
+    const options = {
+      hostname: parsed.hostname,
+      path:     parsed.pathname + parsed.search,
+      method:   'HEAD',
+      headers:  { 'user-agent': 'SwitchControl-Release-Script/1.0' },
+    };
+    const req = https.request(options, res => {
+      if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location && redirectsLeft > 0) {
+        resolve(headRequest(res.headers.location, redirectsLeft - 1));
+        return;
+      }
+      resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, url });
+    });
+    req.on('error', err => resolve({ ok: false, status: null, url, error: err.message }));
+    req.end();
+  });
+}
+
+// ── Run uploads sequentially, then verify ────────────────────────────────────
 
 (async () => {
   // Upload installer + blockmap first, latest.yml last
-  // (so the metadata only goes live once binaries are available)
+  // (metadata only goes live once binaries are available)
   const sorted = [
     ...artifacts.filter(a => a.name !== 'latest.yml'),
     ...artifacts.filter(a => a.name === 'latest.yml'),
@@ -222,12 +257,34 @@ function uploadFile(artifact) {
     }
   }
 
-  console.log('\nPublic URLs:');
+  // ── Post-upload verification ──────────────────────────────────────────────
+  console.log('\nVerifying public URLs ...');
+
+  let allOk = true;
   for (const a of artifacts) {
-    console.log(`  ${PUBLIC_URL}/${a.name}`);
+    // URL-encode the filename so spaces → %20 in the printed/verified URL
+    const publicUrl = `${PUBLIC_URL}/${encodeURIComponent(a.name)}`;
+    process.stdout.write(`  ${publicUrl} ... `);
+    const result = await headRequest(publicUrl);
+    if (result.ok) {
+      console.log(`${result.status} OK`);
+    } else {
+      const detail = result.error || `HTTP ${result.status}`;
+      console.log(`FAILED (${detail})`);
+      allOk = false;
+    }
   }
 
-  console.log('\nVerify latest.yml is live:');
-  console.log(`  curl -I ${PUBLIC_URL}/latest.yml`);
+  if (!allOk) {
+    console.error('\nERROR: One or more files are not publicly reachable.');
+    console.error('Check your R2 bucket public access settings and custom domain.');
+    process.exit(1);
+  }
+
+  console.log('\nAll files live and reachable.');
+  console.log('\nPublic URLs:');
+  for (const a of artifacts) {
+    console.log(`  ${PUBLIC_URL}/${encodeURIComponent(a.name)}`);
+  }
   console.log('\nDone.\n');
 })();

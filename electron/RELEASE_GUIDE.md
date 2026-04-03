@@ -58,10 +58,16 @@ Installers and blockmaps don't need a rule — they're immutable files.
 
 ### 6. Create your local .env
 
-In the `electron/` folder:
+In the `electron/` folder — pick the command for your shell:
 
+**PowerShell (recommended):**
+```powershell
+Copy-Item .env.example .env
 ```
-cp .env.example .env
+
+**Command Prompt:**
+```cmd
+copy .env.example .env
 ```
 
 Fill in your values:
@@ -110,34 +116,47 @@ This produces in `electron/dist/`:
 npm run release
 ```
 
-The script uploads all three files in the right order (installer first, `latest.yml` last so
-the metadata only goes live once the binary is available).
+The script:
+- Uploads installer + blockmap first, `latest.yml` last (metadata only goes live once binaries are ready)
+- URL-encodes all filenames so spaces in the installer name are handled correctly
+- Automatically HEAD-checks every public URL after upload and exits non-zero if anything is unreachable
 
 Output looks like:
 
 ```
 Found 3 artifact(s) to upload:
-  latest.yml  (0.0 MB)
   SwitchControl Setup 1.0.1.exe  (94.3 MB)
   SwitchControl Setup 1.0.1.exe.blockmap  (0.1 MB)
+  latest.yml  (0.0 MB)
 
   Uploading SwitchControl Setup 1.0.1.exe ... OK
   Uploading SwitchControl Setup 1.0.1.exe.blockmap ... OK
   Uploading latest.yml ... OK
 
-Public URLs:
-  https://releases.switchcontrol.org/latest.yml
-  https://releases.switchcontrol.org/SwitchControl Setup 1.0.1.exe
-  https://releases.switchcontrol.org/SwitchControl Setup 1.0.1.exe.blockmap
+Verifying public URLs ...
+  https://releases.switchcontrol.org/latest.yml ... 200 OK
+  https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe ... 200 OK
+  https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe.blockmap ... 200 OK
+
+All files live and reachable.
 ```
 
-### Step 4 — Verify
+If any file returns non-200, the script prints `FAILED` and exits with code 1 — it won't silently
+leave a broken release in place.
 
-```bash
+### Step 4 — Manual spot-check (optional)
+
+The script already verifies everything, but if you want to check manually:
+
+```powershell
+# latest.yml — always use unencoded (plain text, no spaces)
 curl -s https://releases.switchcontrol.org/latest.yml
+
+# installer — quote the URL or use encoded form to handle spaces
+curl -I "https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe"
 ```
 
-Should return something like:
+`latest.yml` should return something like:
 
 ```yaml
 version: 1.0.1
@@ -154,20 +173,23 @@ releaseDate: '2026-04-03T...'
 
 After every release confirm these URLs respond with 200:
 
+`npm run release` checks all three automatically. For manual checks:
+
 | URL | Expected |
 |-----|----------|
 | `https://releases.switchcontrol.org/latest.yml` | YAML metadata |
-| `https://releases.switchcontrol.org/SwitchControl Setup x.y.z.exe` | Binary download |
-| `https://releases.switchcontrol.org/SwitchControl Setup x.y.z.exe.blockmap` | Blockmap file |
+| `https://releases.switchcontrol.org/SwitchControl%20Setup%20x.y.z.exe` | Binary download |
+| `https://releases.switchcontrol.org/SwitchControl%20Setup%20x.y.z.exe.blockmap` | Blockmap file |
 
-Quick check:
+Quick check (PowerShell / curl — note `%20` for spaces):
 
-```bash
+```powershell
 curl -I https://releases.switchcontrol.org/latest.yml
-curl -I "https://releases.switchcontrol.org/SwitchControl Setup 1.0.1.exe"
+curl -I "https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe"
+curl -I "https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe.blockmap"
 ```
 
-Both should return `HTTP/2 200`.
+All three should return `HTTP/2 200`.
 
 ---
 
