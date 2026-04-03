@@ -156,6 +156,10 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         : 0;
 
       const diskPercent = live.disk?.usagePct != null ? safeNumber(live.disk.usagePct) : 0;
+      // I/O ops-per-sec is dynamic (fluctuates every poll). Fill% is static — useless on a chart.
+      // Normalize: 200 IOPS maps to 100 on the 0-100 Y-axis.
+      const diskIoRaw     = safeNumber(live.disk?.readOpsPerSec, 0) + safeNumber(live.disk?.writeOpsPerSec, 0);
+      const diskIoDisplay = Math.min(diskIoRaw / 2, 100);
       const netRxSec    = typeof live.network?.rxKBps === 'number' ? safeNumber(live.network.rxKBps) : null;
       const netTxSec    = typeof live.network?.txKBps === 'number' ? safeNumber(live.network.txKBps) : null;
 
@@ -194,7 +198,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           gpuTemp,
           gpuMemPct,
           ram: ramPercent,
-          disk: diskPercent,
+          disk: diskIoDisplay,
           netRx: netRxSec,
           netTx: netTxSec,
         };
@@ -265,8 +269,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
   // Tooltip: detect which yAxisId the value belongs to and format accordingly
   const tooltipFormatter = (value: number, name: string) => {
-    if (name.includes('KB/s')) return [`${safeFixed(value, 0)} KB/s`, name];
-    if (name.includes('°C')) return [`${safeFixed(value, 1)} °C`, name];
+    if (name.includes('KB/s'))  return [`${safeFixed(value, 0)} KB/s`, name];
+    if (name.includes('°C'))    return [`${safeFixed(value, 1)} °C`,   name];
+    if (name.includes('I/O'))   return [`${safeFixed(value, 1)}`,      name];
     return [`${safeFixed(value, 1)} %`, name];
   };
 
@@ -386,8 +391,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
             {/* Disk rendered first (lowest z-order) so RAM and CPU are always visible on top */}
             <Line
               yAxisId="pct" type="monotone" dataKey="disk"
-              name="Disk (%)" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
-              strokeDasharray="5 2"
+              name="Disk I/O" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
               dot={false} activeDot={{ r: 3 }}
             />
             <Line
