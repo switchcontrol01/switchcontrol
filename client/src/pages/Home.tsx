@@ -2,7 +2,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { LiveGraph } from "@/components/dashboard/LiveGraph";
 import { StorageCards } from "@/components/dashboard/StorageCards";
-import { DashboardHeaderParticles } from "@/components/DashboardHeaderParticles";
+import { DashboardHeaderParticles, type DashboardTimeOfDay } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
 import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight } from "lucide-react";
@@ -14,12 +14,11 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
-import { motion, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
+import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useAuth } from "@/hooks/use-auth";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
-import { useDashboardTagline } from "@/lib/taglines";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
 
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
@@ -259,6 +258,35 @@ function getGreeting(): string {
   return "evening";
 }
 
+function getTimeOfDay(): DashboardTimeOfDay {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+const LIVE_STATUSES = [
+  "Memory pressure stable",
+  "Telemetry active",
+  "GPU ready",
+  "System balanced",
+  "CPU threads aligned",
+  "Latency optimized",
+  "Network calibrated",
+  "All systems nominal",
+  "Performance envelope prepared",
+  "Runtime services initialized",
+];
+
+function useLiveStatus(): string {
+  const [idx, setIdx] = useState(() => Math.floor(Math.random() * LIVE_STATUSES.length));
+  useEffect(() => {
+    const id = setInterval(() => setIdx(prev => (prev + 1) % LIVE_STATUSES.length), 3500);
+    return () => clearInterval(id);
+  }, []);
+  return LIVE_STATUSES[idx];
+}
+
 export default function Home() {
   const { stats, account, setStats } = useStore();
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
@@ -274,6 +302,8 @@ export default function Home() {
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
   useRevealOnScroll();
+  const liveStatus = useLiveStatus();
+  const timeOfDay = useMemo(() => getTimeOfDay(), []);
   
   const getUserDisplayName = (): string => {
     if (user?.firstName) return user.firstName;
@@ -407,42 +437,118 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="space-y-8">
-        {/* Header with particles */}
-        <div className="relative" data-tour="dashboard-hero">
-          <DashboardHeaderParticles />
-          <div className="flex items-center justify-between relative z-10">
-            <motion.div
-              initial={{ opacity: 0, y: -14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white via-[hsl(270,60%,75%)] to-white/60 bg-clip-text text-transparent">
-                Good {getGreeting()}, {getUserDisplayName()} {isPremium && <span className="text-2xl">👑</span>}
-              </h1>
-              <motion.p
-                className="text-muted-foreground mt-1"
-                data-testid="text-dashboard-tagline"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.45, delay: 0.2 }}
+        {/* ── Dashboard hero header ── */}
+        <div className="relative py-2 pb-4 min-h-[88px]" data-tour="dashboard-hero">
+          <DashboardHeaderParticles timeOfDay={timeOfDay} />
+
+          <div className="relative z-10 flex items-center justify-between gap-4">
+            {/* LEFT — greeting + subtitle */}
+            <div className="min-w-0">
+
+              {/* Heading row with masked upward reveal */}
+              <motion.div
+                initial={{ opacity: 0, y: 18, filter: 'blur(5px)' }}
+                animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+                transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
+                className="flex items-center flex-wrap gap-x-2 gap-y-1"
               >
-                {useDashboardTagline()}
-              </motion.p>
-            </motion.div>
-            <div className="flex items-center gap-3">
-               <Link href="/history">
-                 <Button variant="outline" className="gap-2 hidden sm:flex">
-                   <Activity className="size-4" />
-                   View Logs
-                 </Button>
-               </Link>
-               <Link href="/tweaks">
-                 <Button className="gap-2 shadow-lg shadow-[hsl(190,90%,50%,0.25)] bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold border-0">
-                   <Zap className="size-4" />
-                   Optimize Now
-                 </Button>
-               </Link>
+                <h1 className="text-3xl font-bold tracking-tight text-white leading-tight">
+                  Good {getGreeting()},
+                </h1>
+
+                {/* Username — cyan→violet gradient + shimmer sweep */}
+                <span className="relative inline-flex items-center gap-2 overflow-hidden">
+                  <span
+                    className="text-3xl font-bold tracking-tight leading-tight select-none"
+                    style={{
+                      background: 'linear-gradient(105deg, #22d3ee 0%, #a78bfa 50%, #c084fc 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                    }}
+                    data-testid="text-dashboard-username"
+                  >
+                    {getUserDisplayName()}
+                  </span>
+
+                  {/* Soft glow behind username */}
+                  <span
+                    className="absolute inset-0 rounded-md pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(ellipse 80% 100% at 40% 50%, rgba(139,92,246,0.22) 0%, transparent 70%)',
+                      filter: 'blur(8px)',
+                    }}
+                  />
+
+                  {/* Shimmer sweep — plays every 8 s */}
+                  <motion.span
+                    className="absolute inset-0 pointer-events-none rounded-md"
+                    style={{
+                      background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.28) 50%, transparent 100%)',
+                      backgroundSize: '50% 100%',
+                    }}
+                    animate={{ backgroundPositionX: ['-100%', '300%'] }}
+                    transition={{ duration: 1.3, repeat: Infinity, repeatDelay: 7.2, ease: 'easeInOut' }}
+                  />
+                </span>
+
+                {isPremium && <AnimatedCrown />}
+              </motion.div>
+
+              {/* Rotating live-status subtitle with crossfade */}
+              <div className="relative h-5 mt-1.5 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.p
+                    key={liveStatus}
+                    className="absolute inset-0 text-sm text-muted-foreground flex items-center gap-1.5"
+                    data-testid="text-dashboard-tagline"
+                    initial={{ opacity: 0, y: 6,  filter: 'blur(3px)' }}
+                    animate={{ opacity: 1, y: 0,  filter: 'blur(0px)' }}
+                    exit={{    opacity: 0, y: -6, filter: 'blur(3px)' }}
+                    transition={{ duration: 0.45, ease: 'easeInOut' }}
+                  >
+                    <span
+                      className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"
+                      style={{ boxShadow: '0 0 5px rgba(52,211,153,0.8)' }}
+                    />
+                    {liveStatus}
+                  </motion.p>
+                </AnimatePresence>
+              </div>
             </div>
+
+            {/* RIGHT — system chip + action buttons */}
+            <motion.div
+              className="flex items-center gap-3 shrink-0"
+              initial={{ opacity: 0, x: 14 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.55, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {/* Live status chip */}
+              <div
+                className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm"
+                data-testid="chip-system-status"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-xs text-white/50 font-medium tracking-wide">System Active</span>
+              </div>
+
+              <Link href="/history">
+                <Button variant="outline" className="gap-2 hidden sm:flex" data-testid="button-view-logs">
+                  <Activity className="size-4" />
+                  View Logs
+                </Button>
+              </Link>
+              <Link href="/tweaks">
+                <Button
+                  className="gap-2 shadow-lg shadow-[hsl(190,90%,50%,0.25)] bg-[hsl(190,90%,50%)] hover:bg-[hsl(190,90%,45%)] text-black font-semibold border-0"
+                  data-testid="button-optimize-now"
+                >
+                  <Zap className="size-4" />
+                  Optimize Now
+                </Button>
+              </Link>
+            </motion.div>
           </div>
         </div>
 
