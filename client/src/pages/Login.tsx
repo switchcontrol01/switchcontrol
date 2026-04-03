@@ -40,16 +40,12 @@ export default function Login() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="login-sun-streak" />
         <SpotlightCursor />
-        {/* Full-screen sparse background layer — dots & hazes everywhere */}
-        <div className="absolute inset-0" style={{ opacity: 0.5 }}>
+        {/* Side particles — left strip */}
+        <div className="absolute inset-0" style={{ clipPath: "inset(0 52% 0 0)" }}>
           <LoginParticles />
         </div>
-        {/* Side particles — left strip, denser */}
-        <div className="absolute inset-0" style={{ clipPath: "inset(0 55% 0 0)" }}>
-          <LoginParticles />
-        </div>
-        {/* Side particles — right strip, denser */}
-        <div className="absolute inset-0" style={{ clipPath: "inset(0 0 0 55%)" }}>
+        {/* Side particles — right strip */}
+        <div className="absolute inset-0" style={{ clipPath: "inset(0 0 0 52%)" }}>
           <LoginParticles />
         </div>
       </div>

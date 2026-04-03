@@ -229,10 +229,10 @@
   top: 50%; left: 50%;
   width: 820px; height: 620px;
   background: radial-gradient(ellipse at 44% 50%,
-    hsl(268 70% 58% / 0.30) 0%,
-    hsl(265 60% 50% / 0.18) 38%,
-    hsl(265 50% 44% / 0.08) 65%,
-    transparent 80%
+    hsl(268 68% 55% / 0.22) 0%,
+    hsl(265 58% 48% / 0.13) 42%,
+    hsl(265 48% 42% / 0.05) 68%,
+    transparent 82%
   );
   border-radius: 50%;
   pointer-events: none;
@@ -244,17 +244,17 @@
 .login-card-glass {
   position: relative;
   background: linear-gradient(145deg,
-    rgba(255, 255, 255, 0.10) 0%,
-    rgba(255, 255, 255, 0.065) 60%,
-    rgba(235, 230, 255, 0.07) 100%
+    rgba(255, 255, 255, 0.22) 0%,
+    rgba(255, 255, 255, 0.14) 55%,
+    rgba(248, 246, 255, 0.10) 100%
   );
-  border-top:    1px solid rgba(255, 255, 255, 0.28);
-  border-right:  1px solid rgba(255, 255, 255, 0.14);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.10);
-  border-left:   1px solid rgba(255, 250, 220, 0.32);
+  border-top:    1px solid rgba(255, 255, 255, 0.50);
+  border-right:  1px solid rgba(255, 255, 255, 0.28);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+  border-left:   1px solid rgba(255, 255, 255, 0.38);
   animation: loginCardGlowPulse 8s ease-in-out infinite;
-  backdrop-filter: blur(32px) saturate(1.4);
-  -webkit-backdrop-filter: blur(32px) saturate(1.4);
+  backdrop-filter: blur(40px) saturate(1.6);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
 }
 
 /* Glass shimmer sweep — periodic gleam across card face */
@@ -266,12 +266,13 @@
   background: linear-gradient(
     105deg,
     transparent            0%,
-    rgba(255,255,255,0.00) 38%,
-    rgba(255,255,255,0.12) 50%,
-    rgba(255,255,255,0.00) 62%,
+    rgba(255,255,255,0.00) 35%,
+    rgba(255,255,255,0.20) 48%,
+    rgba(255,255,255,0.08) 54%,
+    rgba(255,255,255,0.00) 65%,
     transparent           100%
   );
-  animation: loginShimmerSweep 5s cubic-bezier(0.4, 0, 0.6, 1) infinite 2s;
+  animation: loginShimmerSweep 4.5s cubic-bezier(0.4, 0, 0.6, 1) infinite 1.5s;
   pointer-events: none;
   z-index: 1;
 }
