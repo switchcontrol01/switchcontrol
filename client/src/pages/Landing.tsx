@@ -519,27 +519,32 @@ export default function Landing() {
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
 
-          {/* ── Top-left sun streak hitting the hero text ── */}
-          {/* Wide corner halo — origin point of the light source */}
+          {/* ── Sun streak — top-left corner beam hitting the headline ── */}
+          {/* Corner halo: wide soft origin glow anchored to top-left */}
           <div className="absolute pointer-events-none ws-sun-streak-1" style={{
-            top: 0, left: 0,
-            width: "55%", height: "65%",
-            background: "radial-gradient(ellipse at 0% 0%, rgba(160,110,255,0.22) 0%, rgba(100,150,255,0.10) 38%, transparent 68%)",
-            filter: "blur(18px)",
+            left: "-12%", top: "-12%",
+            width: "60vw", height: "60vw",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse at 20% 20%, rgba(168,85,247,0.22) 0%, rgba(100,80,255,0.10) 38%, transparent 72%)",
+            filter: "blur(32px)",
           }} />
-          {/* Main beam — sharp diagonal slash from top-left corner through the headline */}
+          {/* Primary beam: thin rotated element — starts top-left, slashes diagonally to the text */}
           <div className="absolute pointer-events-none ws-sun-streak-2" style={{
-            top: "-8%", left: "-4%",
-            width: "72%", height: "110%",
-            background: "linear-gradient(138deg, rgba(255,255,255,0.11) 0%, rgba(190,140,255,0.20) 7%, rgba(120,170,255,0.10) 22%, transparent 46%)",
-            filter: "blur(2px)",
+            left: "0%", top: "0%",
+            width: "180%", height: "3px",
+            transformOrigin: "left top",
+            transform: "rotate(24deg)",
+            background: "linear-gradient(90deg, rgba(168,85,247,0.65) 0%, rgba(168,85,247,0.28) 20%, rgba(120,100,255,0.12) 50%, transparent 80%)",
+            filter: "blur(1.5px)",
           }} />
-          {/* Accent beam — slightly narrower, offset angle, colder tone */}
+          {/* Secondary beam: slightly wider, softer haze alongside the primary */}
           <div className="absolute pointer-events-none ws-sun-streak-3" style={{
-            top: "-5%", left: "2%",
-            width: "50%", height: "90%",
-            background: "linear-gradient(145deg, rgba(200,220,255,0.07) 0%, rgba(140,190,255,0.12) 15%, transparent 42%)",
-            filter: "blur(6px)",
+            left: "0%", top: "0%",
+            width: "160%", height: "18px",
+            transformOrigin: "left top",
+            transform: "rotate(24deg)",
+            background: "linear-gradient(90deg, rgba(140,80,255,0.18) 0%, rgba(100,120,255,0.09) 30%, transparent 65%)",
+            filter: "blur(8px)",
           }} />
 
           <TelemetryLineOverlay />
