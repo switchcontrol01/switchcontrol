@@ -14,7 +14,7 @@ let _backendReady = !isPackagedElectron;
 let _backendReadyListeners: Array<() => void> = [];
 
 const ELECTRON_PORT_POLL_INTERVAL = 80;
-const ELECTRON_PORT_POLL_TIMEOUT = 25000;
+const ELECTRON_PORT_POLL_TIMEOUT = 50000;
 
 export function isBackendReady(): boolean {
   return _backendReady;

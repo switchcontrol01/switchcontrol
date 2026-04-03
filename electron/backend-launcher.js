@@ -205,7 +205,7 @@ async function startBackend(app) {
     });
 
     console.log('[Backend] Polling health endpoint: http://127.0.0.1:' + port + '/api/health');
-    await waitForBackend(port, 20000);
+    await waitForBackend(port, 40000);
     backendReady = true;
     lastError = null;
 

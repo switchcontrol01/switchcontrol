@@ -14,6 +14,8 @@ import { useNetworkStatus } from "@/hooks/use-network-status";
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== "undefined" && window.location.protocol === "file:";
 
+const BACKEND_TIMEOUT_MS = 45_000;
+
 function BackendStartingBanner() {
   const [ready, setReady] = useState(isBackendReady());
   const [error, setError] = useState<string | null>(null);
@@ -37,9 +39,18 @@ function BackendStartingBanner() {
       });
     }
 
+    // Safety net: if no IPC signal arrives within the timeout window,
+    // show an actionable error so the user is never left with a forever spinner.
+    const safetyTimer = setTimeout(() => {
+      if (!isBackendReady()) {
+        setError("Backend did not start in time. Please restart the app.");
+      }
+    }, BACKEND_TIMEOUT_MS);
+
     return () => {
       unsub();
       errCleanup?.();
+      clearTimeout(safetyTimer);
     };
   }, []);
 

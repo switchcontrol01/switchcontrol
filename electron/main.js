@@ -307,22 +307,30 @@ function createWindow() {
     console.log('[SwitchControl] Renderer did-finish-load');
     rendererReady = true;
 
-    console.log('[DevTools] FORCING DEVTOOLS OPEN');
-    setTimeout(() => {
-      try {
-        mainWindow?.webContents.openDevTools({ mode: 'detach' });
-        console.log('[DevTools] openDevTools called successfully');
-      } catch (err) {
-        console.error('[DevTools] Failed to open DevTools:', err);
-      }
-    }, 500);
+    if (isDev) {
+      setTimeout(() => {
+        try {
+          mainWindow?.webContents.openDevTools({ mode: 'detach' });
+          console.log('[DevTools] openDevTools called successfully');
+        } catch (err) {
+          console.error('[DevTools] Failed to open DevTools:', err);
+        }
+      }, 500);
+    }
 
-    // Close the race: if the backend became ready BEFORE the renderer
-    // finished loading, the backend-ready push was skipped. Send it now.
-    if (!isDev && backendLauncher.isBackendReady()) {
-      const port = backendLauncher.getBackendPort();
-      console.log('[Backend] Sending backend-ready to renderer on did-finish-load, port:', port);
-      mainWindow.webContents.send('backend-ready', { port });
+    if (!isDev) {
+      // Race: backend became READY before renderer finished loading
+      if (backendLauncher.isBackendReady()) {
+        const port = backendLauncher.getBackendPort();
+        console.log('[Backend] Sending backend-ready to renderer on did-finish-load, port:', port);
+        mainWindow.webContents.send('backend-ready', { port });
+      }
+      // Race: backend FAILED before renderer finished loading
+      const lastErr = backendLauncher.getLastError ? backendLauncher.getLastError() : null;
+      if (lastErr && !backendLauncher.isBackendReady()) {
+        console.error('[Backend] Sending backend-error to renderer on did-finish-load:', lastErr);
+        mainWindow.webContents.send('backend-error', { error: lastErr });
+      }
     }
 
     if (pendingDeepLinkUrl) {
