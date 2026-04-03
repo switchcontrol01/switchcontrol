@@ -1209,13 +1209,11 @@ ipcMain.handle('system:getAllDisks', async () => {
   try {
     const disks = await si.fsSize();
     return (disks || []).map(d => ({
-      fs: d.fs,
-      type: d.type,
-      size: d.size,
-      used: d.used,
-      available: d.available,
-      use: d.use,
-      mount: d.mount
+      mount:       d.mount || 'Unknown',
+      name:        d.fs   || d.mount || 'Unknown',
+      totalGB:     safeNum((d.size || 0) / 1024 / 1024 / 1024),
+      usedGB:      safeNum((d.used || 0) / 1024 / 1024 / 1024),
+      usedPercent: safeNum(d.use  || 0),
     }));
   } catch (e) {
     return [];
