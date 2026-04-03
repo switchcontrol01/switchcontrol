@@ -21,6 +21,8 @@ import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTourStore } from "@/lib/tour-store";
 
 
 function DiscordIcon({ className }: { className?: string }) {
@@ -69,6 +71,7 @@ export function Sidebar() {
   const [location, setLocation] = useLocation();
   const { user, isPremium, logout } = useAuth();
   const activeItemRef = useRef<HTMLDivElement>(null);
+  const { activeTourHighlight, isTourActive } = useTourStore();
 
   useEffect(() => {
     const handleWindowBlur = () => {
@@ -96,6 +99,24 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-[hsl(270,60%,55%,0.08)] via-sidebar/90 to-sidebar/95 backdrop-blur-xl border-r border-[hsl(270,60%,55%,0.15)] flex flex-col z-50 shadow-2xl">
+      {/* Tour active: gentle vignette on the sidebar top/bottom edges */}
+      <AnimatePresence>
+        {isTourActive && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none rounded-none overflow-hidden"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'radial-gradient(ellipse 100% 60% at 50% 50%, transparent 40%, rgba(139,92,246,0.07) 100%)',
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div className="p-6">
         <BrandLogo size="lg" linkTo="#/dashboard" />
       </div>
@@ -103,35 +124,151 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 scrollbar-thin scrollbar-thumb-sidebar-accent scrollbar-track-transparent">
         {NAV_ITEMS.map((item) => {
           const isActive = currentPath === item.href;
+          const isTourHighlighted = isTourActive && item.tourId === activeTourHighlight;
           
           return (
-            <div key={item.href} ref={isActive ? activeItemRef : undefined}>
-              <button
+            <div key={item.href} ref={isActive ? activeItemRef : undefined} className="relative">
+
+              {/* Tour highlight glow layer — rendered BEHIND the button */}
+              <AnimatePresence>
+                {isTourHighlighted && (
+                  <motion.div
+                    className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden"
+                    initial={{ opacity: 0, scale: 0.92 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.92 }}
+                    transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    {/* Main glow fill */}
+                    <motion.div
+                      className="absolute inset-0 rounded-lg"
+                      style={{
+                        background: 'linear-gradient(90deg, rgba(139,92,246,0.28) 0%, rgba(168,85,247,0.12) 70%, transparent 100%)',
+                      }}
+                      animate={{ opacity: [0.7, 1, 0.7] }}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    {/* Outer glow ring */}
+                    <motion.div
+                      className="absolute -inset-[2px] rounded-[10px] border"
+                      style={{ borderColor: 'rgba(168,85,247,0.5)' }}
+                      animate={{ boxShadow: [
+                        '0 0 0px rgba(168,85,247,0)',
+                        '0 0 16px rgba(168,85,247,0.5), inset 0 0 8px rgba(168,85,247,0.15)',
+                        '0 0 0px rgba(168,85,247,0)',
+                      ]}}
+                      transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    {/* Shimmer sweep */}
+                    <motion.div
+                      className="absolute inset-0 rounded-lg"
+                      style={{
+                        background: 'linear-gradient(105deg, transparent 35%, rgba(255,255,255,0.08) 50%, transparent 65%)',
+                        backgroundSize: '200% 100%',
+                      }}
+                      animate={{ backgroundPosition: ['-100% 0', '200% 0'] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 0.8 }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <motion.button
                 onClick={() => navigate(item.href)}
                 data-tour={item.tourId}
                 className={cn(
                   "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium group relative overflow-hidden text-left",
-                  isActive 
-                    ? "text-white shadow-lg shadow-black/20" 
+                  isActive || isTourHighlighted
+                    ? "text-white shadow-lg shadow-black/20"
                     : "text-muted-foreground hover:text-white hover:bg-white/5"
                 )}
+                animate={isTourHighlighted ? { scale: [1, 1.015, 1] } : { scale: 1 }}
+                transition={isTourHighlighted ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : {}}
               >
-                {isActive && (
+                {/* Standard active background */}
+                {isActive && !isTourHighlighted && (
                   <div className="absolute inset-0 bg-gradient-to-r from-[hsl(270,60%,55%,0.25)] to-transparent" />
                 )}
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full shadow-[0_0_12px_hsl(270,60%,55%,0.6)]" />
+
+                {/* Left accent bar — active or tour-highlighted */}
+                {(isActive || isTourHighlighted) && (
+                  <motion.div
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 rounded-r-full"
+                    style={{
+                      height: isTourHighlighted ? 20 : 18,
+                      background: isTourHighlighted
+                        ? 'linear-gradient(180deg, #c084fc, #a855f7, #ec4899)'
+                        : 'hsl(270,60%,55%)',
+                    }}
+                    animate={isTourHighlighted ? {
+                      boxShadow: [
+                        '0 0 6px rgba(168,85,247,0.5)',
+                        '0 0 18px rgba(168,85,247,0.9), 0 0 30px rgba(236,72,153,0.4)',
+                        '0 0 6px rgba(168,85,247,0.5)',
+                      ],
+                      height: [18, 24, 18],
+                    } : {
+                      boxShadow: '0 0 12px hsl(270,60%,55%,0.6)',
+                    }}
+                    transition={isTourHighlighted ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : {}}
+                  />
                 )}
                 
-                <item.icon className={cn(
-                  "size-4 z-10", 
-                  isActive ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(270,60%,55%,0.5)]" : ""
-                )} />
-                <span className={cn("z-10 flex-1", isActive && "translate-x-0.5")}>{item.label}</span>
+                {/* Icon */}
+                <motion.div
+                  className="z-10"
+                  animate={isTourHighlighted ? {
+                    filter: [
+                      'drop-shadow(0 0 4px rgba(168,85,247,0.4))',
+                      'drop-shadow(0 0 12px rgba(168,85,247,0.9)) drop-shadow(0 0 20px rgba(236,72,153,0.5))',
+                      'drop-shadow(0 0 4px rgba(168,85,247,0.4))',
+                    ],
+                    scale: [1, 1.2, 1],
+                  } : {}}
+                  transition={isTourHighlighted ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : {}}
+                >
+                  <item.icon className={cn(
+                    "size-4",
+                    isActive && !isTourHighlighted ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(270,60%,55%,0.5)]" : "",
+                    isTourHighlighted ? "text-violet-300" : "",
+                  )} />
+                </motion.div>
+
+                {/* Label */}
+                <motion.span
+                  className={cn("z-10 flex-1", (isActive || isTourHighlighted) && "translate-x-0.5")}
+                  animate={isTourHighlighted ? { color: ['#e9d5ff', '#ffffff', '#e9d5ff'] } : {}}
+                  transition={isTourHighlighted ? { duration: 1.8, repeat: Infinity, ease: 'easeInOut' } : {}}
+                >
+                  {item.label}
+                </motion.span>
+
                 {item.isPremium && (
                   <Crown className="size-3.5 text-[hsl(270,60%,55%)] z-10 shrink-0" />
                 )}
-              </button>
+              </motion.button>
+
+              {/* Tour: beam shooting rightward from this item */}
+              <AnimatePresence>
+                {isTourHighlighted && (
+                  <motion.div
+                    className="absolute pointer-events-none"
+                    style={{
+                      top: '50%',
+                      left: '100%',
+                      height: 1,
+                      width: 40,
+                      marginTop: -0.5,
+                      background: 'linear-gradient(90deg, rgba(168,85,247,0.6), transparent)',
+                      filter: 'blur(1px)',
+                    }}
+                    initial={{ opacity: 0, scaleX: 0 }}
+                    animate={{ opacity: [0, 1, 0], scaleX: [0, 1, 1] }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 1.4, repeat: Infinity, ease: 'easeOut', repeatDelay: 0.4 }}
+                  />
+                )}
+              </AnimatePresence>
             </div>
           );
         })}
