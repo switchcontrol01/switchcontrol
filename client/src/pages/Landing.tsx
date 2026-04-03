@@ -21,7 +21,7 @@ import {
 import { cn } from "@/lib/utils";
 import { motion, useMotion, Reveal } from "@/lib/motion";
 import AnimateIn from "@/components/AnimateIn";
-import { ComparisonSlider } from "@/components/ComparisonSlider";
+import { LandingPerformanceCharts } from "@/components/LandingPerformanceCharts";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
@@ -922,41 +922,10 @@ export default function Landing() {
             <SectionHeader
               title="Real Results,"
               titleAccent="Real Improvements"
-              subtitle="Drag the sliders to compare before and after optimization results."
+              subtitle="Live performance data from sessions before and after SwitchControl optimization."
             />
 
-            <div className="grid md:grid-cols-3 gap-6">
-              <ComparisonSlider
-                title="FPS Performance"
-                beforeLabel="Stock Windows"
-                afterLabel="SwitchControl"
-                beforeValue="98"
-                afterValue="142"
-                unit=" FPS"
-                beforeSubtext="1% Low FPS"
-                afterSubtext="1% Low FPS"
-              />
-              <ComparisonSlider
-                title="Input Delay"
-                beforeLabel="Stock Windows"
-                afterLabel="SwitchControl"
-                beforeValue="24"
-                afterValue="16"
-                unit="ms"
-                beforeSubtext="Average delay"
-                afterSubtext="Average delay"
-              />
-              <ComparisonSlider
-                title="Network Latency"
-                beforeLabel="Stock Windows"
-                afterLabel="SwitchControl"
-                beforeValue="±18"
-                afterValue="±4"
-                unit="ms"
-                beforeSubtext="Jitter variance"
-                afterSubtext="Jitter variance"
-              />
-            </div>
+            <LandingPerformanceCharts />
           </div>
         </section>
 
