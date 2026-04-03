@@ -522,19 +522,19 @@ export default function Landing() {
           {/* ── Sun streak LEFT — thick wide beam from top-left ── */}
           <div className="absolute pointer-events-none" style={{
             left: "-5%", top: "-5%",
-            width: "58%", height: "800px",
+            width: "44%", height: "560px",
             transformOrigin: "left top",
-            transform: "rotate(32deg) translateY(-400px)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.38) 25%, rgba(230,215,255,0.14) 60%, transparent 100%)",
+            transform: "rotate(32deg) translateY(-280px)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
             filter: "blur(55px)",
             mixBlendMode: "screen",
           }} />
           <div className="absolute pointer-events-none" style={{
             left: "-5%", top: "-5%",
-            width: "46%", height: "220px",
+            width: "36%", height: "150px",
             transformOrigin: "left top",
-            transform: "rotate(32deg) translateY(-110px)",
-            background: "linear-gradient(90deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.48) 30%, rgba(255,255,255,0.10) 65%, transparent 100%)",
+            transform: "rotate(32deg) translateY(-75px)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
             filter: "blur(18px)",
             mixBlendMode: "screen",
           }} />
@@ -542,19 +542,19 @@ export default function Landing() {
           {/* ── Sun streak RIGHT — mirrored beam from top-right ── */}
           <div className="absolute pointer-events-none" style={{
             right: "-5%", top: "-5%",
-            width: "58%", height: "800px",
+            width: "44%", height: "560px",
             transformOrigin: "right top",
-            transform: "rotate(-32deg) translateY(-400px)",
-            background: "linear-gradient(270deg, rgba(255,255,255,0.62) 0%, rgba(255,255,255,0.38) 25%, rgba(230,215,255,0.14) 60%, transparent 100%)",
+            transform: "rotate(-32deg) translateY(-280px)",
+            background: "linear-gradient(270deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
             filter: "blur(55px)",
             mixBlendMode: "screen",
           }} />
           <div className="absolute pointer-events-none" style={{
             right: "-5%", top: "-5%",
-            width: "46%", height: "220px",
+            width: "36%", height: "150px",
             transformOrigin: "right top",
-            transform: "rotate(-32deg) translateY(-110px)",
-            background: "linear-gradient(270deg, rgba(255,255,255,0.80) 0%, rgba(255,255,255,0.48) 30%, rgba(255,255,255,0.10) 65%, transparent 100%)",
+            transform: "rotate(-32deg) translateY(-75px)",
+            background: "linear-gradient(270deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
             filter: "blur(18px)",
             mixBlendMode: "screen",
           }} />
