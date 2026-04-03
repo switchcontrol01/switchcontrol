@@ -26,26 +26,32 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
-function FloatingParticle({ delay, duration, startX, startY, size = 1, hue }: { delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number }) {
+function FloatingParticle({ delay, duration, startX, startY, size = 1, hue, dx, dy }: { delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number; dx: number; dy: number }) {
+  const alpha = 0.75 + (size > 1.8 ? 0.25 : size > 1.2 ? 0.15 : 0);
   const color = hue !== undefined
-    ? `hsla(${hue}, 80%, 70%, 0.5)`
-    : 'rgba(139,92,246,0.4)';
+    ? `hsla(${hue}, 90%, 72%, ${alpha})`
+    : `rgba(139,92,246,${alpha})`;
+  const glowPx = size * 11;
+  const glow = size > 0.9
+    ? `0 0 ${glowPx}px ${color}, 0 0 ${glowPx * 2}px ${color.replace(/[\d.]+\)$/, '0.35)')}`
+    : undefined;
   return (
     <motion.div
       className="absolute rounded-full"
       style={{
         left: `${startX}%`,
         top: `${startY}%`,
-        width: `${size * 4}px`,
-        height: `${size * 4}px`,
+        width: `${size * 4.5}px`,
+        height: `${size * 4.5}px`,
         background: color,
-        boxShadow: size > 1.2 ? `0 0 ${size * 6}px ${color}` : undefined,
+        boxShadow: glow,
       }}
+      initial={{ opacity: 0, scale: 0 }}
       animate={{
-        y: [0, -80 - Math.random() * 120, -180 - Math.random() * 80],
-        x: [0, Math.random() * 50 - 25, Math.random() * 70 - 35],
-        opacity: [0, 0.8 + Math.random() * 0.2, 0],
-        scale: [0, 1 + Math.random() * 0.8, 0],
+        y: [0, -dy * 0.5, -dy],
+        x: [0, dx * 0.5, dx],
+        opacity: [0, alpha, 0],
+        scale: [0.2, 1 + (size > 1.5 ? 0.4 : 0.2), 0.1],
       }}
       transition={{
         duration,
@@ -60,7 +66,7 @@ function FloatingParticle({ delay, duration, startX, startY, size = 1, hue }: { 
 export default function Login() {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number }>>([]);
+  const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number; dx: number; dy: number }>>([]);
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { electronAuthState, oauthError } = useAuthStore();
 
@@ -97,15 +103,17 @@ export default function Login() {
   }, [clearAllTimers]);
 
   useEffect(() => {
-    const hues = [250, 260, 270, 280, 290, 310, 330];
-    const newParticles = Array.from({ length: 65 }, (_, i) => ({
+    const hues = [250, 258, 265, 272, 280, 290, 310, 330, 185, 195, 340];
+    const newParticles = Array.from({ length: 90 }, (_, i) => ({
       id: i,
-      delay: Math.random() * 6,
-      duration: 2.5 + Math.random() * 5,
-      startX: Math.random() * 100,
-      startY: 30 + Math.random() * 70,
-      size: 0.5 + Math.random() * 2,
-      hue: hues[Math.floor(Math.random() * hues.length)],
+      delay: (i / 90) * 1.2,                    // evenly spread 0–1.2s, all visible fast
+      duration: 2.8 + (i % 9) * 0.4,            // 2.8–6.0s, deterministic
+      startX: 3 + ((i * 4.7 + i * i * 0.11) % 94),
+      startY: 5 + ((i * 6.3 + i * 0.8)       % 90),
+      size: 0.9 + (i % 7) * 0.35,               // 0.9–3.2px radius factor
+      hue: hues[i % hues.length],
+      dx: (i % 5 === 0 ? -1 : 1) * (10 + (i % 5) * 9),
+      dy: 55 + (i % 6) * 20,                    // 55–155px upward drift
     }));
     setParticles(newParticles);
   }, []);
@@ -341,16 +349,77 @@ export default function Login() {
         transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md mx-4"
       >
+        {/* Wide outer halo */}
         <motion.div
-          className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-primary/20 via-pink-500/10 to-blue-500/20 blur-xl"
-          animate={{
-            opacity: [0.4, 0.7, 0.4],
+          className="absolute -inset-6 rounded-3xl"
+          style={{
+            background: "radial-gradient(ellipse 120% 110% at 50% 50%, rgba(139,92,246,0.22) 0%, rgba(168,85,247,0.10) 45%, transparent 70%)",
+            filter: "blur(24px)",
           }}
+          animate={{ opacity: [0.55, 1, 0.55] }}
           transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
         />
+        {/* Left-edge blaze */}
+        <motion.div
+          className="absolute rounded-3xl"
+          style={{
+            top: "10%", bottom: "10%",
+            left: "-28px", width: "56px",
+            background: "radial-gradient(ellipse 100% 80% at 0% 50%, rgba(192,132,252,0.90) 0%, rgba(168,85,247,0.55) 35%, rgba(139,92,246,0.18) 65%, transparent 90%)",
+            filter: "blur(10px)",
+          }}
+          animate={{ opacity: [0.6, 1, 0.6], scaleY: [0.9, 1.08, 0.9] }}
+          transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Right-edge blaze */}
+        <motion.div
+          className="absolute rounded-3xl"
+          style={{
+            top: "10%", bottom: "10%",
+            right: "-28px", width: "56px",
+            background: "radial-gradient(ellipse 100% 80% at 100% 50%, rgba(96,165,250,0.85) 0%, rgba(59,130,246,0.50) 35%, rgba(99,102,241,0.18) 65%, transparent 90%)",
+            filter: "blur(10px)",
+          }}
+          animate={{ opacity: [0.5, 0.9, 0.5], scaleY: [0.9, 1.1, 0.9] }}
+          transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
+        />
+        {/* Bright left rim line */}
+        <motion.div
+          className="absolute"
+          style={{
+            top: "20%", bottom: "20%",
+            left: "-4px", width: "3px",
+            borderRadius: "4px",
+            background: "linear-gradient(180deg, transparent 0%, rgba(216,180,254,0.95) 30%, rgba(192,132,252,1) 50%, rgba(216,180,254,0.95) 70%, transparent 100%)",
+            filter: "blur(2px)",
+          }}
+          animate={{ opacity: [0.65, 1, 0.65] }}
+          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Bright right rim line */}
+        <motion.div
+          className="absolute"
+          style={{
+            top: "20%", bottom: "20%",
+            right: "-4px", width: "3px",
+            borderRadius: "4px",
+            background: "linear-gradient(180deg, transparent 0%, rgba(147,197,253,0.95) 30%, rgba(96,165,250,1) 50%, rgba(147,197,253,0.95) 70%, transparent 100%)",
+            filter: "blur(2px)",
+          }}
+          animate={{ opacity: [0.55, 0.95, 0.55] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
+        />
         
-        <div className="relative bg-card/90 backdrop-blur-2xl border border-white/10 rounded-2xl p-8 shadow-2xl overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-pink-500/5 pointer-events-none" />
+        <div
+          className="relative bg-card/90 backdrop-blur-2xl rounded-2xl p-8 overflow-hidden"
+          style={{
+            border: "1px solid rgba(255,255,255,0.12)",
+            borderLeft: "1px solid rgba(192,132,252,0.45)",
+            borderRight: "1px solid rgba(96,165,250,0.40)",
+            boxShadow: "-8px 0 32px rgba(168,85,247,0.28), 8px 0 32px rgba(59,130,246,0.22), 0 25px 50px rgba(0,0,0,0.6)",
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-violet-500/8 via-transparent to-blue-500/8 pointer-events-none" />
           
           <div className="relative flex flex-col items-center gap-6 mb-8">
             <motion.div
