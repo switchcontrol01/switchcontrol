@@ -957,50 +957,152 @@ export default function Landing() {
         <SectionDivider glow />
 
         {/* ──── Pricing Preview ──── */}
-        <section id="pricing" className="py-24 md:py-32 relative ws-section-glow" data-reveal>
-          <div id="pricing-top"></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <section id="pricing" className="py-28 md:py-36 relative ws-section-glow" data-reveal>
+          <div id="pricing-top" />
+
+          {/* Section background glow */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[500px] pricing-glow-pulse"
+              style={{ background: "radial-gradient(ellipse, hsl(270 60% 50% / 0.07) 0%, transparent 65%)" }} />
+          </div>
+
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <SectionHeader
               title="Simple,"
               titleAccent="One-Time Pricing"
-              subtitle="Pay once, get premium features forever. No subscriptions."
+              subtitle="Pay once, own it forever. No subscriptions, no hidden fees."
             />
 
-            <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-5 mt-14">
+
+              {/* ── Free card ── */}
               <Reveal direction="left">
-                <GlassPanel hover className="p-8 h-full">
-                  <h3 className="text-xl font-bold text-white mb-2">Free</h3>
-                  <div className="text-3xl font-bold text-white mb-1">
-                    $0
+                <div className="rounded-2xl border border-white/[0.07] p-8 h-full flex flex-col relative overflow-hidden group transition-all duration-500 hover:border-white/[0.12]"
+                  style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%)", backdropFilter: "blur(24px)" }}>
+
+                  {/* Hover shimmer */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
+                  <div className="text-[10px] text-white/25 uppercase tracking-widest font-semibold mb-5">Free Plan</div>
+
+                  <div className="flex items-end gap-1 mb-1">
+                    <span className="text-white/40 text-xl font-medium self-start mt-2">$</span>
+                    <span className="text-6xl font-black text-white tracking-tight leading-none">0</span>
                   </div>
-                  <p className="text-white/30 text-sm mb-6">forever</p>
-                  <p className="text-white/40 text-sm mb-8">Essential optimization tools</p>
+                  <p className="text-white/25 text-sm mb-7">forever · no card required</p>
+
+                  <div className="h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent mb-7" />
+
+                  <ul className="space-y-3.5 flex-1 mb-8">
+                    {[
+                      "System monitoring dashboard",
+                      "7 beginner-safe tweaks",
+                      "Basic RAM cleanup tools",
+                      "Community support",
+                    ].map((f) => (
+                      <li key={f} className="flex items-center gap-3 text-sm text-white/45">
+                        <span className="flex-shrink-0 w-4 h-4 rounded-full border border-white/[0.12] flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-white/30" fill="none" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        </span>
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+
                   <GhostButton className="w-full" onClick={handleAuthAwareClick} data-testid="button-get-started-pricing">
-                    Get Started
+                    Get Started Free
                   </GhostButton>
-                </GlassPanel>
+                </div>
               </Reveal>
 
+              {/* ── Premium card — animated border ── */}
               <Reveal direction="right">
-                <GlassPanel variant="elevated" glow="purple" className="p-8 h-full relative overflow-hidden" style={{ borderColor: 'hsl(270 55% 50% / 0.3)' }}>
-                  <div className="absolute top-0 right-0 bg-gradient-to-r from-[hsl(270,55%,50%)] to-[hsl(280,50%,45%)] text-white text-[10px] font-semibold px-3 py-1.5 rounded-bl-xl flex items-center gap-1 tracking-wide uppercase">
-                    <Crown className="size-3" />
-                    Best Value
+                <div className="relative h-full rounded-[18px] p-px overflow-hidden"
+                  style={{ background: "linear-gradient(135deg, hsl(270,70%,55%,0.55) 0%, hsl(190,90%,50%,0.35) 50%, hsl(270,70%,55%,0.55) 100%)" }}>
+
+                  {/* Rotating conic gradient border */}
+                  <div className="pricing-border-spin absolute w-[200%] h-[200%] -top-1/2 -left-1/2 pointer-events-none"
+                    style={{ background: "conic-gradient(from 0deg, transparent 0%, hsl(270,80%,62%) 15%, hsl(190,95%,55%) 35%, hsl(270,80%,62%) 55%, transparent 70%)" }} />
+
+                  {/* Card body */}
+                  <div className="relative rounded-[17px] p-8 h-full flex flex-col overflow-hidden"
+                    style={{ background: "linear-gradient(155deg, rgba(14,8,32,0.97) 0%, rgba(10,5,22,0.99) 100%)", backdropFilter: "blur(24px)" }}>
+
+                    {/* Top ambient glow */}
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none"
+                      style={{ background: "radial-gradient(ellipse, hsl(270,80%,55%,0.12) 0%, transparent 70%)" }} />
+
+                    {/* Best Value badge */}
+                    <div className="absolute top-5 right-5 flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style={{ background: "linear-gradient(90deg, hsl(270,70%,55%), hsl(280,65%,50%))", color: "#fff", boxShadow: "0 0 16px hsl(270,70%,55%,0.5)" }}>
+                      <Crown className="size-3" />
+                      Best Value
+                    </div>
+
+                    <div className="text-[10px] text-violet-400/60 uppercase tracking-widest font-semibold mb-5">Premium Plan</div>
+
+                    <div className="flex items-end gap-1 mb-1">
+                      <span className="text-violet-300/60 text-xl font-medium self-start mt-2">$</span>
+                      <span className="text-6xl font-black text-white tracking-tight leading-none">50</span>
+                    </div>
+                    <p className="text-white/25 text-sm mb-7">one-time · lifetime access</p>
+
+                    <div className="h-px mb-7"
+                      style={{ background: "linear-gradient(90deg, transparent, hsl(270,60%,55%,0.25), hsl(190,80%,55%,0.20), transparent)" }} />
+
+                    <ul className="space-y-3 flex-1 mb-8">
+                      {[
+                        { text: "Everything in Free", dim: false },
+                        { text: "Advanced system tweaks", dim: false },
+                        { text: "Power Plan control", dim: false },
+                        { text: "Network optimization", dim: false },
+                        { text: "AI Advisor", dim: false },
+                        { text: "BIOS Advisor (guidance)", dim: false },
+                        { text: "Competitive performance tuning", dim: false },
+                        { text: "Priority support", dim: false },
+                      ].map((f) => (
+                        <li key={f.text} className="flex items-center gap-3 text-sm text-white/60">
+                          <span className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
+                            style={{ background: "linear-gradient(135deg, hsl(270,70%,55%,0.3), hsl(190,90%,50%,0.2))", border: "1px solid hsl(270,60%,60%,0.35)" }}>
+                            <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none">
+                              <path d="M2 5l2 2 4-4" stroke="#a78bfa" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                          {f.text}
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Link href="/pricing">
+                      <GlowButton variant="cyan" className="w-full">
+                        Get Premium
+                      </GlowButton>
+                    </Link>
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">Premium</h3>
-                  <div className="text-3xl font-bold text-white mb-1">
-                    $50
-                  </div>
-                  <p className="text-white/30 text-sm mb-6">one-time</p>
-                  <p className="text-white/40 text-sm mb-8">Lifetime access to all features</p>
-                  <Link href="/pricing">
-                    <GlowButton variant="cyan" className="w-full">
-                      Get Premium
-                    </GlowButton>
-                  </Link>
-                </GlassPanel>
+                </div>
               </Reveal>
             </div>
+
+            {/* ── Trust badges ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-40px" }}
+              transition={{ duration: 0.5, delay: 0.35 }}
+              className="flex flex-wrap justify-center items-center gap-x-8 gap-y-3 mt-10"
+            >
+              {[
+                { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"/></svg>, label: "Secure checkout" },
+                { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/></svg>, label: "One-time payment" },
+                { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>, label: "Instant access" },
+                { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3"/></svg>, label: "Windows 10 / 11" },
+              ].map(({ icon, label }) => (
+                <div key={label} className="flex items-center gap-2 text-white/25 text-xs">
+                  <span className="text-white/20">{icon}</span>
+                  {label}
+                </div>
+              ))}
+            </motion.div>
           </div>
         </section>
 
