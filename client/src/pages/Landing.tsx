@@ -519,32 +519,35 @@ export default function Landing() {
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />
 
-          {/* ── Sun streak — top-left corner beam hitting the headline ── */}
-          {/* Corner halo: wide soft origin glow anchored to top-left */}
-          <div className="absolute pointer-events-none ws-sun-streak-1" style={{
-            left: "-12%", top: "-12%",
-            width: "60vw", height: "60vw",
-            borderRadius: "50%",
-            background: "radial-gradient(ellipse at 20% 20%, rgba(168,85,247,0.22) 0%, rgba(100,80,255,0.10) 38%, transparent 72%)",
-            filter: "blur(32px)",
-          }} />
-          {/* Primary beam: thin rotated element — starts top-left, slashes diagonally to the text */}
+          {/* ── Sun streak — thick white light shaft from top-left onto the headline ── */}
+          {/* Wide white beam core — the main visible light shaft */}
           <div className="absolute pointer-events-none ws-sun-streak-2" style={{
-            left: "0%", top: "0%",
-            width: "180%", height: "3px",
+            left: "-2%", top: "-2%",
+            width: "85%", height: "160px",
             transformOrigin: "left top",
-            transform: "rotate(24deg)",
-            background: "linear-gradient(90deg, rgba(168,85,247,0.65) 0%, rgba(168,85,247,0.28) 20%, rgba(120,100,255,0.12) 50%, transparent 80%)",
-            filter: "blur(1.5px)",
+            transform: "rotate(26deg)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.30) 18%, rgba(220,210,255,0.12) 50%, transparent 80%)",
+            filter: "blur(22px)",
+            mixBlendMode: "screen",
           }} />
-          {/* Secondary beam: slightly wider, softer haze alongside the primary */}
-          <div className="absolute pointer-events-none ws-sun-streak-3" style={{
-            left: "0%", top: "0%",
-            width: "160%", height: "18px",
+          {/* Tight bright core — sharp bright centre of the beam */}
+          <div className="absolute pointer-events-none ws-sun-streak-1" style={{
+            left: "-2%", top: "-2%",
+            width: "60%", height: "40px",
             transformOrigin: "left top",
-            transform: "rotate(24deg)",
-            background: "linear-gradient(90deg, rgba(140,80,255,0.18) 0%, rgba(100,120,255,0.09) 30%, transparent 65%)",
-            filter: "blur(8px)",
+            transform: "rotate(26deg)",
+            background: "linear-gradient(90deg, rgba(255,255,255,0.70) 0%, rgba(255,255,255,0.35) 25%, rgba(255,255,255,0.08) 55%, transparent 80%)",
+            filter: "blur(6px)",
+            mixBlendMode: "screen",
+          }} />
+          {/* Outer haze — wide ambient bloom around the beam origin */}
+          <div className="absolute pointer-events-none ws-sun-streak-3" style={{
+            left: "-15%", top: "-15%",
+            width: "55vw", height: "55vw",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse at 22% 22%, rgba(255,255,255,0.10) 0%, rgba(200,180,255,0.06) 35%, transparent 68%)",
+            filter: "blur(40px)",
+            mixBlendMode: "screen",
           }} />
 
           <TelemetryLineOverlay />
