@@ -229,17 +229,16 @@
   animation: loginRayRotate 140s linear infinite;
 }
 
-/* Behind-card aura — warm+violet light the card emits outward */
+/* Behind-card aura — subtle violet only, no warm white */
 .login-card-aura {
   position: absolute;
   top: 50%; left: 50%;
-  width: 780px; height: 600px;
+  width: 680px; height: 520px;
   background: radial-gradient(ellipse at 44% 50%,
-    rgba(255, 248, 200, 0.20) 0%,
-    rgba(195, 165, 255, 0.22) 22%,
-    rgba(150, 120, 255, 0.12) 50%,
-    rgba(100,  80, 200, 0.04) 72%,
-    transparent 85%
+    hsl(268 65% 55% / 0.18) 0%,
+    hsl(265 55% 48% / 0.10) 40%,
+    hsl(265 45% 42% / 0.04) 68%,
+    transparent 82%
   );
   border-radius: 50%;
   pointer-events: none;

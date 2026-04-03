@@ -122,6 +122,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
   silhouettes: boolean;
   bgImages: BgImageConfig[];
   particles: boolean;
+  sunStreaks?: boolean;
 }> = {
   landing: {
     gradients: `
@@ -212,6 +213,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { src: circuitTech, opacity: 0.02 },
     ],
     particles: false,
+    sunStreaks: false,
   },
   legal: {
     gradients: `
@@ -343,6 +345,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
         />
       ))}
 
+      {(config.sunStreaks !== false) && (<>
       <div
         className="absolute ws-sun-streak-1"
         style={{
@@ -394,6 +397,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           transform: `rotate(-30deg) translateY(${parallaxOffset * 0.1}px)`,
         }}
       />
+      </>)}
 
       <div
         className="absolute"
