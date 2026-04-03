@@ -54,7 +54,7 @@ function FullHeader() {
     <motion.header
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500",
-        "bg-white/[0.06] backdrop-blur-xl border-b border-white/[0.12]"
+        "bg-[rgba(10,8,20,0.76)] backdrop-blur-xl border-b border-white/[0.09]"
       )}
       style={{
         boxShadow: scrolled
@@ -191,7 +191,7 @@ function FullHeader() {
 function InnerHeader() {
   return (
     <header
-      className="relative z-10 bg-white/[0.06] backdrop-blur-xl border-b border-white/[0.12]"
+      className="relative z-10 bg-[rgba(10,8,20,0.76)] backdrop-blur-xl border-b border-white/[0.09]"
       style={{
         boxShadow: "0 10px 35px rgba(0,0,0,0.55)",
       }}

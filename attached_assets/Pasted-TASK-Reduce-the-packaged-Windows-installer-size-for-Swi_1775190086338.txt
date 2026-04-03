@@ -1,0 +1,117 @@
+TASK
+Reduce the packaged Windows installer size for SwitchControl as much as possible without breaking runtime behavior, updater behavior, native helpers, or Electron functionality.
+
+PROBLEM
+The installer is far too large, around 350 to 390 MB. This is too heavy for distribution and likely means the build is packaging unnecessary assets, dependencies, source files, maps, or duplicated runtime content.
+
+GOAL
+Shrink the installer aggressively but safely.
+Do NOT break:
+- Electron startup
+- updater
+- native binaries
+- telemetry
+- tweak execution
+- backend connectivity
+- premium/auth flows
+- frontend rendering
+
+IMPORTANT
+Do NOT do reckless deletion.
+Do NOT remove runtime dependencies blindly.
+Do NOT break packaged app behavior.
+Audit first, then reduce intelligently.
+
+IMPLEMENTATION
+
+1. AUDIT PACKAGE SIZE
+Inspect the packaged output and identify the biggest contributors:
+- dist/win-unpacked/resources/app.asar
+- dist/win-unpacked/resources/app.asar.unpacked
+- packaged node_modules
+- bundled assets
+- native binaries
+- duplicate dist content
+
+Return the largest folders/files by size.
+
+2. PACKAGE ONLY RUNTIME FILES
+Tighten the electron-builder files list so only runtime-required files are included.
+Exclude:
+- src/**
+- tests/**
+- scripts/**
+- docs/**
+- README*
+- .git*
+- *.map
+- tsconfig*
+- vite config files
+- unused configs
+- any build-time-only files
+
+3. FIX NODE_MODULES BLOAT
+Audit which modules are truly required at runtime.
+Avoid packaging broad unnecessary dependency trees.
+Only include what Electron main process and packaged runtime actually need.
+
+4. KEEP ASAR TIGHT
+Pack as much as possible into app.asar.
+Only keep truly required binaries/modules in asarUnpack.
+Audit whether too much is currently unpacked.
+
+5. COMPRESS LARGE ASSETS
+Identify all large frontend image assets.
+Convert oversized PNGs to WebP where safe.
+Resize assets to actual render dimensions.
+Keep PNG only where transparency or exact fidelity is required.
+
+6. FRONTEND BUNDLE REDUCTION
+Add route-level lazy loading for heavy pages/components where safe:
+- AI Advisor
+- BIOS Advisor
+- Security
+- History
+- heavy chart/modals
+Only if this does not break transitions or UX.
+
+7. REMOVE UNUSED DEPENDENCIES
+Audit package.json and electron/package.json for unused packages.
+Remove dead dependencies only if confirmed unused.
+
+8. VERIFY UPDATER SAFETY
+Do NOT break updater packaging.
+Ensure updater.js and all required runtime updater dependencies are still included correctly.
+
+9. VERIFY NATIVE BINARIES
+Do NOT remove or break:
+- sc_memory.exe
+- SensorsHelper.exe
+- elevate.exe
+- any required native runtime helpers
+
+10. FINAL VALIDATION
+After reductions:
+- build Windows package
+- confirm app launches
+- confirm updater wiring still loads
+- confirm no missing module/runtime errors
+- compare new installer size vs previous size
+
+CHECKLIST
+- installer size reduced materially
+- no missing runtime files
+- updater still works
+- native helpers still work
+- frontend still loads
+- no dev junk packaged
+- no oversized raw assets left
+
+FINAL OUTPUT
+Return:
+1. previous installer size
+2. new installer size
+3. biggest causes of bloat found
+4. files/config changed
+5. what was safely removed or compressed
+6. what was intentionally kept for runtime safety

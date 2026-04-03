@@ -350,7 +350,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-10%",
           width: "120%",
           height: "80%",
-          background: "linear-gradient(135deg, rgba(255,255,255,0.30) 0%, rgba(180,140,255,0.20) 15%, transparent 40%)",
+          background: "linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(180,140,255,0.14) 15%, transparent 40%)",
           opacity: beamFade,
           transform: `translateY(${-parallaxOffset * 0.2}px)`,
         }}
@@ -363,7 +363,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "5%",
           width: "60%",
           height: "70%",
-          background: "linear-gradient(145deg, rgba(255,255,255,0.22) 0%, rgba(140,180,255,0.14) 20%, transparent 45%)",
+          background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(140,180,255,0.10) 20%, transparent 45%)",
           opacity: beamFade * 0.7,
           transform: `translateY(${-parallaxOffset * 0.15}px)`,
         }}
@@ -389,7 +389,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           right: "-5%",
           width: "60%",
           height: "70%",
-          background: "linear-gradient(315deg, rgba(255,255,255,0.12) 0%, rgba(140,180,255,0.08) 15%, transparent 40%)",
+          background: "linear-gradient(315deg, rgba(180,140,255,0.06) 0%, rgba(140,180,255,0.05) 15%, transparent 40%)",
           opacity: beamFade * 0.4,
           transform: `rotate(-30deg) translateY(${parallaxOffset * 0.1}px)`,
         }}
@@ -402,7 +402,7 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           left: "-5%",
           width: "60%",
           height: "50%",
-          background: "radial-gradient(ellipse at 20% 20%, rgba(255,255,255,0.40) 0%, rgba(180,140,255,0.30) 20%, rgba(120,80,200,0.14) 40%, transparent 65%)",
+          background: "radial-gradient(ellipse at 20% 20%, rgba(180,140,255,0.18) 0%, rgba(150,110,220,0.12) 20%, rgba(120,80,200,0.06) 40%, transparent 65%)",
           opacity: beamFade,
         }}
       />
