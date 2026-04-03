@@ -31,6 +31,11 @@ export function SystemAura({ telemetry, className }: SystemAuraProps) {
     >
       <motion.div
         className="absolute -top-32 -right-32 h-[420px] w-[420px] rounded-full"
+        initial={{
+          backgroundColor: cfg.color,
+          opacity: cfg.opacity,
+          filter: `blur(${cfg.blur}px)`,
+        }}
         animate={{
           backgroundColor: cfg.color,
           opacity: cfg.opacity,

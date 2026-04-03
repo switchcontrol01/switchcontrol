@@ -47,17 +47,17 @@ function BackendStartingBanner() {
 
   if (error) {
     return (
-      <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-xs text-red-400 backdrop-blur-sm">
-        <span className="shrink-0">⚠</span>
+      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-950/80 border border-red-800/40 text-[11px] text-red-400/80 backdrop-blur-md shadow-lg">
+        <span className="shrink-0 text-red-500">⚠</span>
         <span>{error}</span>
       </div>
     );
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-2 px-4 py-2 bg-primary/10 border-b border-primary/20 text-xs text-primary/80 backdrop-blur-sm">
-      <Loader2 className="size-3 animate-spin shrink-0" />
-      <span>Starting local backend… This takes a few seconds on first launch.</span>
+    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 border border-white/[0.07] text-[11px] text-white/35 backdrop-blur-md shadow-lg">
+      <Loader2 className="size-3 animate-spin shrink-0 text-white/25" />
+      <span>Starting backend…</span>
     </div>
   );
 }

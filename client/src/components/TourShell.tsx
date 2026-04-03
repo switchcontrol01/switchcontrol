@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
@@ -29,173 +29,75 @@ interface TourShellProps {
   isPremium?: boolean;
 }
 
-function seededRand(seed: number) {
-  const x = Math.sin(seed + 1) * 10000;
-  return x - Math.floor(x);
-}
-
-// ── Cinematic "You're All Set" completion screen ───────────────────────────
+// ── Clean "You're All Set" completion screen ──────────────────────────────
 function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium?: boolean }) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('hold'), 2200);
-    const t2 = setTimeout(() => setPhase('exit'), 4200);
-    const t3 = setTimeout(onDone, 5300);
+    const t1 = setTimeout(() => setPhase('hold'), 2000);
+    const t2 = setTimeout(() => setPhase('exit'), 4000);
+    const t3 = setTimeout(onDone, 5000);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onDone]);
 
   const isExiting = phase === 'exit';
-
-  const color1 = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
-  const color2 = isPremium ? 'rgba(245,158,11,' : 'rgba(0,210,255,';
-  const glowColor = isPremium ? '#fbbf24' : '#a855f7';
-
-  const particles = useMemo(() => Array.from({ length: 48 }, (_, i) => ({
-    id: i,
-    angle: (i / 48) * Math.PI * 2 + seededRand(i * 3) * 0.4,
-    radius: 60 + seededRand(i * 7) * 120,
-    size: 2 + seededRand(i * 13) * 5,
-    delay: seededRand(i * 5) * 0.5,
-    dur: 0.8 + seededRand(i * 11) * 0.7,
-    color: i % 4 === 0 ? `${color1}0.9)` : i % 4 === 1 ? `${color2}0.8)` : i % 4 === 2 ? 'rgba(236,72,153,0.7)' : 'rgba(255,255,255,0.5)',
-  })), []);
-
-  const floatParticles = useMemo(() => Array.from({ length: 30 }, (_, i) => ({
-    id: i,
-    left: 5 + seededRand(i * 9) * 90,
-    top: 5 + seededRand(i * 17) * 90,
-    size: 1 + seededRand(i * 23) * 3,
-    delay: seededRand(i * 7) * 4,
-    dur: 3 + seededRand(i * 11) * 3,
-    dy: 15 + seededRand(i * 13) * 25,
-  })), []);
+  const glowColor = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
+  const accentHex  = isPremium ? '#fbbf24' : '#a855f7';
 
   return (
     <motion.div
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
-      style={{ background: 'rgba(4,3,14,0.98)' }}
+      style={{ background: 'rgba(4,3,14,0.97)' }}
       initial={{ opacity: 0 }}
       animate={isExiting
-        ? { opacity: 0, scale: 1.04, filter: 'blur(14px)' }
-        : { opacity: 1, scale: 1, filter: 'blur(0px)' }
+        ? { opacity: 0, filter: 'blur(12px)' }
+        : { opacity: 1, filter: 'blur(0px)' }
       }
-      transition={isExiting ? { duration: 1.1, ease: [0.4, 0, 1, 1] } : { duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+      transition={isExiting
+        ? { duration: 1.0, ease: [0.4, 0, 1, 1] }
+        : { duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Ambient orbs */}
-      <motion.div className="absolute pointer-events-none" style={{
-        left: '20%', top: '15%', width: '50vw', height: '50vw',
-        background: `radial-gradient(ellipse, ${color1}0.22) 0%, transparent 65%)`,
-        filter: 'blur(80px)',
-      }} animate={{ scale: [1, 1.1, 1], opacity: [0.6, 1, 0.6] }} transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }} />
-      <motion.div className="absolute pointer-events-none" style={{
-        right: '10%', bottom: '20%', width: '40vw', height: '40vw',
-        background: `radial-gradient(ellipse, ${color2}0.16) 0%, transparent 65%)`,
-        filter: 'blur(90px)',
-      }} animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.8, 0.4] }} transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1 }} />
+      {/* Single soft radial glow — centered */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '55vw', height: '55vw',
+          background: `radial-gradient(ellipse, ${glowColor}0.12) 0%, transparent 68%)`,
+          filter: 'blur(60px)',
+        }}
+      />
 
-      {/* Floating ambient particles */}
-      {floatParticles.map(p => (
-        <motion.div
-          key={p.id}
-          className="absolute rounded-full pointer-events-none"
-          style={{
-            left: `${p.left}%`, top: `${p.top}%`,
-            width: p.size, height: p.size,
-            background: isPremium ? `rgba(251,191,36,${0.3 + seededRand(p.id) * 0.4})` : `rgba(168,85,247,${0.3 + seededRand(p.id) * 0.4})`,
-          }}
-          animate={{ y: [-p.dy, p.dy, -p.dy], opacity: [0, 0.7, 0] }}
-          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      ))}
-
-      {/* Center burst origin */}
-      <div className="absolute" style={{ left: '50%', top: '50%' }}>
-        {particles.map(p => (
-          <motion.div
-            key={p.id}
-            className="absolute rounded-full"
-            style={{
-              width: p.size, height: p.size,
-              marginLeft: -p.size / 2, marginTop: -p.size / 2,
-              background: p.color,
-              boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-            }}
-            initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
-            animate={{
-              x: Math.cos(p.angle) * p.radius,
-              y: Math.sin(p.angle) * p.radius,
-              opacity: [0, 1, 0],
-              scale: [0, 1.8, 0],
-            }}
-            transition={{ duration: p.dur + 0.4, delay: 0.35 + p.delay, ease: 'easeOut' }}
-          />
-        ))}
-      </div>
-
-      {/* Main center content */}
+      {/* Center content */}
       <motion.div
-        className="relative flex flex-col items-center gap-6 text-center z-10"
-        initial={{ scale: 0.7, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ type: 'spring', stiffness: 220, damping: 24, delay: 0.15 }}
+        className="relative flex flex-col items-center gap-5 text-center z-10"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
       >
-        {/* Logo + expanding rings */}
-        <div className="relative flex items-center justify-center">
-          {/* Expanding pulse rings */}
-          {[0, 1, 2].map(i => (
-            <motion.div
-              key={i}
-              className="absolute rounded-full"
-              style={{ border: `1px solid ${glowColor}` }}
-              initial={{ width: 80, height: 80, opacity: 0.8 }}
-              animate={{ width: 80 + (i + 1) * 60, height: 80 + (i + 1) * 60, opacity: 0 }}
-              transition={{ duration: 1.6, delay: 0.3 + i * 0.28, ease: 'easeOut' }}
-            />
-          ))}
-          {/* Persistent glow ring */}
-          <motion.div
+        {/* Logo with gentle glow */}
+        <div className="relative flex items-center justify-center mb-1">
+          <div
             className="absolute rounded-full pointer-events-none"
-            style={{ width: '140px', height: '140px', background: `radial-gradient(ellipse, ${color1}0.25) 0%, transparent 70%)`, filter: 'blur(16px)' }}
-            animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
-            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          {/* Logo itself */}
-          <motion.div
-            animate={{
-              y: [0, -6, 0],
-              filter: [
-                `drop-shadow(0 0 20px ${glowColor}80) drop-shadow(0 0 60px ${glowColor}40)`,
-                `drop-shadow(0 0 40px ${glowColor}cc) drop-shadow(0 0 100px ${glowColor}60)`,
-                `drop-shadow(0 0 20px ${glowColor}80) drop-shadow(0 0 60px ${glowColor}40)`,
-              ],
+            style={{
+              width: 120, height: 120,
+              background: `radial-gradient(ellipse, ${glowColor}0.18) 0%, transparent 72%)`,
+              filter: 'blur(18px)',
             }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            <img src={logoImg} alt="SwitchControl" className="w-20 h-20 object-contain rounded-[22%]" draggable={false} />
-          </motion.div>
+          />
+          <img src={logoImg} alt="SwitchControl" className="w-16 h-16 object-contain rounded-[22%] relative z-10" draggable={false} />
         </div>
 
-        {/* Brand name */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.85, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          className="text-xs font-bold uppercase tracking-[0.28em]"
-          style={{ color: glowColor, opacity: 0.7 }}
-        >
-          SwitchControl
-        </motion.div>
-
-        {/* "You're all set." — word stagger */}
-        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
+        {/* "You're all set." — staggered reveal */}
+        <div className="flex flex-wrap justify-center gap-x-2.5 gap-y-1">
           {["You're", 'all', 'set.'].map((word, i) => (
             <motion.span
               key={word}
-              className="text-4xl font-extrabold text-white leading-none"
-              initial={{ opacity: 0, y: 22, filter: 'blur(8px)' }}
+              className="text-[38px] font-extrabold text-white leading-none tracking-tight"
+              initial={{ opacity: 0, y: 18, filter: 'blur(6px)' }}
               animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
-              transition={{ delay: 1.1 + i * 0.2, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ delay: 0.4 + i * 0.15, duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             >
               {word}
             </motion.span>
@@ -204,58 +106,43 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
 
         {/* Subtitle */}
         <motion.p
-          className="text-sm max-w-xs leading-relaxed"
-          style={{ color: 'rgba(255,255,255,0.45)' }}
-          initial={{ opacity: 0, y: 10 }}
+          className="text-[13px] max-w-[240px] leading-relaxed"
+          style={{ color: 'rgba(255,255,255,0.4)' }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.8, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ delay: 1.1, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
         >
           {isPremium
             ? 'Full premium access unlocked. Every optimization is now yours.'
             : 'SwitchControl is configured and ready to boost your system.'}
         </motion.p>
 
-        {/* Animated underline accent */}
+        {/* Thin accent line */}
         <motion.div
-          style={{ height: 1, background: `linear-gradient(90deg, transparent, ${glowColor}, transparent)` }}
+          style={{ height: 1, background: `linear-gradient(90deg, transparent, ${accentHex}99, transparent)` }}
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 160, opacity: 0.6 }}
-          transition={{ delay: 2.2, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          animate={{ width: 140, opacity: 1 }}
+          transition={{ delay: 1.6, duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         />
       </motion.div>
     </motion.div>
   );
 }
 
-// ── Backdrop orbs that shift per step ────────────────────────────────────────
-function BackdropOrbs({ stepIndex, isPremium }: { stepIndex: number; isPremium?: boolean }) {
-  const hues = isPremium
-    ? ['rgba(251,191,36,', 'rgba(245,158,11,', 'rgba(234,179,8,']
-    : ['rgba(139,92,246,', 'rgba(236,72,153,', 'rgba(56,189,248,',
-       'rgba(168,85,247,', 'rgba(20,184,166,', 'rgba(251,146,60,', 'rgba(99,102,241,'];
-  const c  = hues[stepIndex % hues.length];
-  const c2 = hues[(stepIndex + 1) % hues.length];
+// ── Subtle static backdrop — single color, no circus ─────────────────────────
+function TourBackdrop({ isPremium }: { isPremium?: boolean }) {
+  const glow = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
   return (
-    <>
-      <motion.div className="absolute pointer-events-none"
-        style={{
-          left: '40%', top: '20%', width: '50vw', height: '50vw',
-          background: `radial-gradient(ellipse, ${c}0.14) 0%, transparent 70%)`,
-          filter: 'blur(80px)',
-        }}
-        animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.1, 1] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div className="absolute pointer-events-none"
-        style={{
-          right: '10%', bottom: '20%', width: '35vw', height: '35vw',
-          background: `radial-gradient(ellipse, ${c2}0.1) 0%, transparent 70%)`,
-          filter: 'blur(70px)',
-        }}
-        animate={{ opacity: [0.4, 0.8, 0.4], scale: [1, 1.15, 1] }}
-        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
-      />
-    </>
+    <div
+      className="absolute pointer-events-none"
+      style={{
+        top: '50%', left: '55%',
+        transform: 'translate(-50%, -50%)',
+        width: '60vw', height: '60vw',
+        background: `radial-gradient(ellipse, ${glow}0.09) 0%, transparent 68%)`,
+        filter: 'blur(70px)',
+      }}
+    />
   );
 }
 
@@ -367,14 +254,6 @@ export function TourShell({
         cardBg: 'linear-gradient(145deg, rgba(14,10,28,0.92) 0%, rgba(10,8,24,0.96) 100%)',
       };
 
-  const cardParticles = useMemo(() => Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    x: 10 + seededRand(i * 9) * 80,
-    y: 10 + seededRand(i * 17) * 80,
-    size: 1 + seededRand(i * 23) * 2,
-    delay: seededRand(i * 7) * 2,
-    dur: 2.5 + seededRand(i * 11) * 2,
-  })), []);
 
   if (!show) return null;
 
@@ -402,16 +281,7 @@ export function TourShell({
               backgroundSize: '36px 36px',
             }}
           />
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={`orbs-${stepIndex}`}
-              className="absolute inset-0"
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              transition={{ duration: 0.7 }}
-            >
-              <BackdropOrbs stepIndex={stepIndex} isPremium={isPremium} />
-            </motion.div>
-          </AnimatePresence>
+          <TourBackdrop isPremium={isPremium} />
         </div>
 
         {/* ── Soft vignette on left edge of content area ── */}
@@ -479,21 +349,6 @@ export function TourShell({
                     filter: 'blur(20px)',
                   }}
                 />
-
-                {/* Floating card particles */}
-                {cardParticles.map(p => (
-                  <motion.div
-                    key={p.id}
-                    className="absolute rounded-full pointer-events-none"
-                    style={{
-                      left: `${p.x}%`, top: `${p.y}%`,
-                      width: p.size, height: p.size,
-                      background: isPremium ? 'rgba(251,191,36,0.5)' : 'rgba(168,85,247,0.5)',
-                    }}
-                    animate={{ opacity: [0, 0.6, 0], y: [0, -14, 0] }}
-                    transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
-                  />
-                ))}
 
                 {/* Inner content */}
                 <div className="p-7">
