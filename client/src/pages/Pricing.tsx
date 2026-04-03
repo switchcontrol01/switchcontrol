@@ -14,7 +14,7 @@ import {
   ChevronDown,
   MessageCircle
 } from "lucide-react";
-import { motion, useMotion, Reveal } from "@/lib/motion";
+import { motion, useMotion } from "@/lib/motion";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -89,42 +89,75 @@ const FAQ_ITEMS = [
   },
 ];
 
-function FAQItem({ question, answer }: { question: string; answer: string }) {
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+function FadeUp({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const { prefersReducedMotion } = useMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 6 : 28, filter: prefersReducedMotion ? "blur(0px)" : "blur(12px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: prefersReducedMotion ? 0.2 : 0.55, delay, ease: EASE }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function ScrollFadeUp({ children, delay = 0, className }: { children: React.ReactNode; delay?: number; className?: string }) {
+  const { prefersReducedMotion } = useMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 6 : 28, filter: prefersReducedMotion ? "blur(0px)" : "blur(12px)" }}
+      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      viewport={{ once: true, amount: 0.15 }}
+      transition={{ duration: prefersReducedMotion ? 0.2 : 0.55, delay, ease: EASE }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function FAQItem({ question, answer, index }: { question: string; answer: string; index: number }) {
   const [isOpen, setIsOpen] = useState(false);
   const { prefersReducedMotion } = useMotion();
   
   return (
-    <GlassPanel
-      variant={isOpen ? "elevated" : "default"}
-      className="overflow-hidden hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all"
-    >
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.03] transition-colors"
-        data-testid={`faq-${question.slice(0, 20).replace(/\s/g, '-').toLowerCase()}`}
+    <ScrollFadeUp delay={index * 0.06}>
+      <GlassPanel
+        variant={isOpen ? "elevated" : "default"}
+        className="overflow-hidden hover:bg-white/[0.04] hover:-translate-y-0.5 transition-all"
       >
-        <span className="font-medium text-white pr-4">{question}</span>
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-full flex items-center justify-between p-4 text-left hover:bg-white/[0.03] transition-colors"
+          data-testid={`faq-${question.slice(0, 20).replace(/\s/g, '-').toLowerCase()}`}
         >
-          <ChevronDown className="size-5 text-white/40 shrink-0" />
+          <span className="font-medium text-white pr-4">{question}</span>
+          <motion.div
+            animate={{ rotate: isOpen ? 180 : 0 }}
+            transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
+          >
+            <ChevronDown className="size-5 text-white/40 shrink-0" />
+          </motion.div>
+        </button>
+        <motion.div
+          initial={false}
+          animate={{ 
+            height: isOpen ? 'auto' : 0,
+            opacity: isOpen ? 1 : 0
+          }}
+          transition={{ duration: prefersReducedMotion ? 0.15 : 0.3, ease: "easeInOut" }}
+          className="overflow-hidden"
+        >
+          <div className="px-4 pb-4 text-sm text-white/50 leading-relaxed">
+            {answer}
+          </div>
         </motion.div>
-      </button>
-      <motion.div
-        initial={false}
-        animate={{ 
-          height: isOpen ? 'auto' : 0,
-          opacity: isOpen ? 1 : 0
-        }}
-        transition={{ duration: prefersReducedMotion ? 0.15 : 0.3, ease: "easeInOut" }}
-        className="overflow-hidden"
-      >
-        <div className="px-4 pb-4 text-sm text-white/50 leading-relaxed">
-          {answer}
-        </div>
-      </motion.div>
-    </GlassPanel>
+      </GlassPanel>
+    </ScrollFadeUp>
   );
 }
 
@@ -205,8 +238,9 @@ export default function Pricing() {
           subtitle="Start free forever. Upgrade once for lifetime premium access."
         />
 
+        {/* Pricing cards — staggered blur+rise entrance */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          <Reveal delay={0.1}>
+          <FadeUp delay={0.1}>
             <GlassPanel variant="default" hover className="h-full p-8">
               <h3 className="text-2xl font-bold text-white mb-2" data-testid="text-plan-free">Free</h3>
               <div className="flex items-baseline gap-1 mb-2">
@@ -216,11 +250,17 @@ export default function Pricing() {
               <p className="text-white/50 mb-6">Get started with essential optimizations</p>
               
               <ul className="space-y-3 mb-8">
-                {FREE_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm text-white/60">
+                {FREE_FEATURES.map((feature, i) => (
+                  <motion.li
+                    key={feature}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.25 + i * 0.07, ease: EASE }}
+                    className="flex items-center gap-3 text-sm text-white/60"
+                  >
                     <Check className="size-4 text-emerald-400 shrink-0" />
                     {feature}
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
               
@@ -232,9 +272,9 @@ export default function Pricing() {
                 Get Started
               </button>
             </GlassPanel>
-          </Reveal>
+          </FadeUp>
 
-          <Reveal delay={0.2}>
+          <FadeUp delay={0.22}>
             <GlassPanel 
               variant="elevated" 
               glow="purple" 
@@ -244,6 +284,14 @@ export default function Pricing() {
                 borderColor: 'hsl(270 60% 55% / 0.35)',
               }}
             >
+              {/* Ambient glow behind premium card */}
+              <div
+                className="absolute -inset-4 rounded-3xl pointer-events-none -z-10"
+                style={{
+                  background: "radial-gradient(ellipse at 50% 50%, hsl(270 60% 55% / 0.18) 0%, transparent 70%)",
+                  filter: "blur(20px)",
+                }}
+              />
               <div className="absolute -top-3 right-6 bg-gradient-to-r from-[hsl(270,60%,52%)] to-[hsl(280,55%,48%)] text-white text-xs font-semibold px-4 py-1.5 rounded-full flex items-center gap-1.5 shadow-lg shadow-[hsl(270,60%,55%,0.3)]">
                 <Crown className="size-3" />
                 Best Value
@@ -256,11 +304,17 @@ export default function Pricing() {
               <p className="text-white/50 mb-6">Lifetime access to all premium features</p>
               
               <ul className="space-y-3 mb-8">
-                {PREMIUM_FEATURES.map((feature) => (
-                  <li key={feature} className="flex items-center gap-3 text-sm text-white/60">
+                {PREMIUM_FEATURES.map((feature, i) => (
+                  <motion.li
+                    key={feature}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.37 + i * 0.06, ease: EASE }}
+                    className="flex items-center gap-3 text-sm text-white/60"
+                  >
                     <Check className="size-4 text-emerald-400 shrink-0" />
                     {feature}
-                  </li>
+                  </motion.li>
                 ))}
               </ul>
               
@@ -288,10 +342,11 @@ export default function Pricing() {
                 )}
               </GlowButton>
             </GlassPanel>
-          </Reveal>
+          </FadeUp>
         </div>
 
-        <Reveal delay={0.3}>
+        {/* Trust badges */}
+        <FadeUp delay={0.38}>
           <div className="mt-12 flex flex-wrap justify-center gap-6 md:gap-12">
             {TRUST_ITEMS.map((item) => (
               <div key={item.label} className="flex items-center gap-2 text-white/40">
@@ -300,10 +355,11 @@ export default function Pricing() {
               </div>
             ))}
           </div>
-        </Reveal>
+        </FadeUp>
 
         <SectionDivider className="my-20" />
 
+        {/* Comparison section */}
         <section className="max-w-4xl mx-auto relative">
           <SectionGlow color="cyan" intensity="strong" />
           <SectionHeader
@@ -312,7 +368,7 @@ export default function Pricing() {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Reveal delay={0.1}>
+            <ScrollFadeUp delay={0.1}>
               <GlassPanel variant="default" className="p-6 h-full">
                 <h3 className="text-lg font-semibold text-white mb-4" data-testid="text-comparison-free">Free</h3>
                 <ul className="space-y-3">
@@ -328,34 +384,45 @@ export default function Pricing() {
                   ))}
                 </ul>
               </GlassPanel>
-            </Reveal>
+            </ScrollFadeUp>
 
-            <Reveal delay={0.2}>
-              <GlassPanel 
-                variant="elevated" 
-                glow="purple" 
-                className="p-6 h-full"
-                style={{ borderColor: 'hsl(270 60% 55% / 0.2)' }}
-              >
-                <div className="flex items-center gap-2 mb-4">
-                  <h3 className="text-lg font-semibold text-white" data-testid="text-comparison-premium">Premium</h3>
-                  <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">Recommended</span>
-                </div>
-                <ul className="space-y-3">
-                  {COMPARISON_ITEMS.map((item) => (
-                    <li key={`premium-${item.feature}`} className="flex items-center gap-3 text-sm text-white/60">
-                      <Check className="size-4 text-emerald-400 shrink-0" />
-                      {item.feature}
-                    </li>
-                  ))}
-                </ul>
-              </GlassPanel>
-            </Reveal>
+            <ScrollFadeUp delay={0.2}>
+              <div className="relative h-full">
+                {/* Glow behind premium comparison card */}
+                <div
+                  className="absolute -inset-4 rounded-3xl pointer-events-none -z-10"
+                  style={{
+                    background: "radial-gradient(ellipse at 50% 50%, hsl(270 60% 55% / 0.14) 0%, transparent 70%)",
+                    filter: "blur(16px)",
+                  }}
+                />
+                <GlassPanel 
+                  variant="elevated" 
+                  glow="purple" 
+                  className="p-6 h-full"
+                  style={{ borderColor: 'hsl(270 60% 55% / 0.2)' }}
+                >
+                  <div className="flex items-center gap-2 mb-4">
+                    <h3 className="text-lg font-semibold text-white" data-testid="text-comparison-premium">Premium</h3>
+                    <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">Recommended</span>
+                  </div>
+                  <ul className="space-y-3">
+                    {COMPARISON_ITEMS.map((item) => (
+                      <li key={`premium-${item.feature}`} className="flex items-center gap-3 text-sm text-white/60">
+                        <Check className="size-4 text-emerald-400 shrink-0" />
+                        {item.feature}
+                      </li>
+                    ))}
+                  </ul>
+                </GlassPanel>
+              </div>
+            </ScrollFadeUp>
           </div>
         </section>
 
         <SectionDivider className="my-20" />
 
+        {/* FAQ */}
         <section className="max-w-3xl mx-auto relative">
           <SectionGlow color="mixed" intensity="strong" />
           <div className="absolute inset-0 -inset-x-12 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 50% 40%, hsl(270 50% 45% / 0.03) 0%, transparent 70%)" }} />
@@ -364,15 +431,15 @@ export default function Pricing() {
           />
 
           <div className="space-y-3 relative">
-            {FAQ_ITEMS.map((item) => (
-              <FAQItem key={item.question} question={item.question} answer={item.answer} />
+            {FAQ_ITEMS.map((item, i) => (
+              <FAQItem key={item.question} question={item.question} answer={item.answer} index={i} />
             ))}
           </div>
         </section>
 
         <SectionDivider className="my-16" />
 
-        <Reveal>
+        <ScrollFadeUp>
           <div className="text-center pb-8 relative">
             <SectionGlow color="purple" intensity="strong" />
             <p className="text-white/40 mb-4">Still have questions?</p>
@@ -387,7 +454,7 @@ export default function Pricing() {
               Join our Discord community
             </a>
           </div>
-        </Reveal>
+        </ScrollFadeUp>
       </main>
     </WebsiteShell>
   );
