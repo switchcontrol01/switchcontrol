@@ -5,83 +5,83 @@ import { cn } from '@/lib/utils';
 import { Reveal } from '@/lib/motion';
 import wordmarkImg from '@/assets/wordmark.png';
 
-// ── Animated sparkline (Catmull-Rom, draw-in, glow dot) ──────────────────────
-interface SparklineProps {
-  points: number[];
-  color: string;        // e.g. 'rgba(168,85,247,'
-  width?: number;
-  height?: number;
-  delay?: number;
-  animKey?: string | number;
+// ── Shared Catmull-Rom path builder ──────────────────────────────────────────
+function catmullRom(pts: [number, number][]) {
+  if (pts.length < 2) return '';
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)];
+    const p1 = pts[i];
+    const p2 = pts[i + 1];
+    const p3 = pts[Math.min(pts.length - 1, i + 2)];
+    const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2[0]} ${p2[1]}`;
+  }
+  return d;
 }
 
-function Sparkline({ points, color, width = 260, height = 60, delay = 0, animKey }: SparklineProps) {
-  const svgRef = useRef<SVGPathElement>(null);
-  const [pathLen, setPathLen] = useState(0);
+// ── Live streaming sparkline — new data point every interval, path morphs ───
+interface LiveSparklineProps {
+  initialPoints: number[];
+  generate: () => number;   // called each tick to produce the next value
+  color: string;            // 'rgba(R,G,B,'  — trailing comma, no close paren
+  height?: number;
+  interval?: number;        // ms between ticks
+  uid: string;              // stable unique id for SVG defs
+}
 
+function LiveSparkline({
+  initialPoints, generate, color, height = 64, interval = 650, uid,
+}: LiveSparklineProps) {
+  const W = 260; const H = height;
   const pad = 4;
-  const w = width - pad * 2;
-  const h = height - pad * 2;
+  const w = W - pad * 2;
+  const h = H - pad * 2;
+
+  const [points, setPoints] = useState<number[]>(initialPoints);
+
+  // Stream new data every tick
+  useEffect(() => {
+    const id = setInterval(() => {
+      setPoints(prev => [...prev.slice(1), Math.min(100, Math.max(0, generate()))]);
+    }, interval);
+    return () => clearInterval(id);
+  }, [generate, interval]);
 
   const toX = (i: number) => pad + (i / (points.length - 1)) * w;
   const toY = (v: number) => pad + h - (v / 100) * h;
 
-  function catmullRom(pts: [number, number][]) {
-    if (pts.length < 2) return '';
-    let d = `M ${pts[0][0]} ${pts[0][1]}`;
-    for (let i = 0; i < pts.length - 1; i++) {
-      const p0 = pts[Math.max(0, i - 1)];
-      const p1 = pts[i];
-      const p2 = pts[i + 1];
-      const p3 = pts[Math.min(pts.length - 1, i + 2)];
-      const cp1x = p1[0] + (p2[0] - p0[0]) / 6;
-      const cp1y = p1[1] + (p2[1] - p0[1]) / 6;
-      const cp2x = p2[0] - (p3[0] - p1[0]) / 6;
-      const cp2y = p2[1] - (p3[1] - p1[1]) / 6;
-      d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${p2[0]} ${p2[1]}`;
-    }
-    return d;
-  }
-
   const coords: [number, number][] = points.map((v, i) => [toX(i), toY(v)]);
   const linePath = catmullRom(coords);
   const lastPt = coords[coords.length - 1];
-  const fillPath = linePath + ` L ${lastPt[0]} ${height} L ${pad} ${height} Z`;
-
-  const uid = `spark-${color.slice(6, 12).replace(/[^a-z0-9]/gi, '')}-${delay}-${animKey ?? ''}`;
-
-  useEffect(() => {
-    if (svgRef.current) setPathLen(svgRef.current.getTotalLength());
-  }, [points]);
+  const fillPath = linePath + ` L ${lastPt[0]} ${H} L ${pad} ${H} Z`;
 
   return (
-    <svg
-      key={animKey}
-      viewBox={`0 0 ${width} ${height}`}
-      style={{ overflow: 'visible', width: '100%', height: `${height}px` }}
-    >
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', width: '100%', height: `${H}px` }}>
       <defs>
         <linearGradient id={`${uid}-fill`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={`${color}0.22)`} />
+          <stop offset="0%" stopColor={`${color}0.25)`} />
           <stop offset="100%" stopColor={`${color}0)`} />
         </linearGradient>
         <filter id={`${uid}-glow`}>
           <feGaussianBlur stdDeviation="2.5" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
+
+      {/* Fill — morphs smoothly as path changes */}
       <motion.path
         d={fillPath}
         fill={`url(#${uid}-fill)`}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.6, delay: delay + 0.3 }}
+        animate={{ d: fillPath }}
+        transition={{ duration: 0.55, ease: 'easeInOut' }}
       />
+
+      {/* Line — morphs as data shifts */}
       <motion.path
-        ref={svgRef}
         d={linePath}
         fill="none"
         stroke={`${color}0.9)`}
@@ -89,22 +89,39 @@ function Sparkline({ points, color, width = 260, height = 60, delay = 0, animKey
         strokeLinecap="round"
         strokeLinejoin="round"
         filter={`url(#${uid}-glow)`}
-        style={{ strokeDasharray: pathLen || 1000, strokeDashoffset: pathLen || 1000 }}
-        animate={{ strokeDashoffset: 0 }}
-        transition={{ duration: 1.1, delay, ease: [0.22, 1, 0.36, 1] }}
+        animate={{ d: linePath }}
+        transition={{ duration: 0.55, ease: 'easeInOut' }}
       />
-      {coords.length > 0 && (
-        <motion.circle
-          cx={lastPt[0]}
-          cy={lastPt[1]}
-          r="4"
-          fill={`${color}1)`}
-          filter={`url(#${uid}-glow)`}
-          initial={{ opacity: 0, scale: 0 }}
-          animate={{ opacity: [0, 1, 0.75, 1], scale: 1 }}
-          transition={{ duration: 0.4, delay: delay + 1.0 }}
-        />
-      )}
+
+      {/* Glow dot at the live tip */}
+      <motion.circle
+        cx={lastPt[0]}
+        cy={lastPt[1]}
+        r={4}
+        fill={`${color}1)`}
+        filter={`url(#${uid}-glow)`}
+        animate={{ cx: lastPt[0], cy: lastPt[1] }}
+        transition={{ duration: 0.55, ease: 'easeInOut' }}
+      />
+      {/* Outer pulse ring */}
+      <motion.circle
+        cx={lastPt[0]}
+        cy={lastPt[1]}
+        r={4}
+        fill="none"
+        stroke={`${color}0.5)`}
+        strokeWidth="1.5"
+        animate={{
+          cx: lastPt[0], cy: lastPt[1],
+          r: [4, 10], opacity: [0.6, 0],
+        }}
+        transition={{
+          cx: { duration: 0.55, ease: 'easeInOut' },
+          cy: { duration: 0.55, ease: 'easeInOut' },
+          r: { duration: 1.4, repeat: Infinity, ease: 'easeOut' },
+          opacity: { duration: 1.4, repeat: Infinity, ease: 'easeOut' },
+        }}
+      />
     </svg>
   );
 }
@@ -119,6 +136,7 @@ interface TabGraph {
   description: string;
   before: {
     points: number[];
+    generate: () => number;
     color: string;
     label: string;
     stat: string;
@@ -127,6 +145,7 @@ interface TabGraph {
   };
   after: {
     points: number[];
+    generate: () => number;
     color: string;
     label: string;
     stat: string;
@@ -135,6 +154,16 @@ interface TabGraph {
   };
   yLabel: string;
 }
+
+// Stable generator references — defined outside component to avoid re-mounts
+const gen = {
+  latencyBefore: () => Math.random() > 0.6 ? 55 + Math.random() * 38 : 22 + Math.random() * 22,
+  latencyAfter:  () => 11 + Math.random() * 8,
+  framesBefore:  () => Math.random() > 0.75 ? 18 + Math.random() * 28 : 63 + Math.random() * 9,
+  framesAfter:   () => 88 + Math.random() * 7,
+  netBefore:     () => Math.random() > 0.55 ? 58 + Math.random() * 36 : 18 + Math.random() * 18,
+  netAfter:      () => 17 + Math.random() * 6,
+};
 
 const tabGraphs: TabGraph[] = [
   {
@@ -145,6 +174,7 @@ const tabGraphs: TabGraph[] = [
     yLabel: 'Input lag (ms)',
     before: {
       points: [44, 78, 31, 91, 38, 85, 27, 93, 42, 76, 35, 88, 29, 96, 40, 72, 33, 89, 24, 94],
+      generate: gen.latencyBefore,
       color: 'rgba(239,68,68,',
       label: 'Before',
       stat: '~62',
@@ -153,6 +183,7 @@ const tabGraphs: TabGraph[] = [
     },
     after: {
       points: [17, 14, 18, 13, 16, 15, 18, 14, 17, 13, 16, 15, 17, 14, 18, 13, 16, 15, 18, 14],
+      generate: gen.latencyAfter,
       color: 'rgba(168,85,247,',
       label: 'After',
       stat: '~15',
@@ -168,6 +199,7 @@ const tabGraphs: TabGraph[] = [
     yLabel: 'FPS',
     before: {
       points: [68, 65, 70, 38, 67, 69, 24, 66, 71, 41, 68, 65, 32, 70, 67, 28, 69, 66, 36, 71],
+      generate: gen.framesBefore,
       color: 'rgba(249,115,22,',
       label: 'Before',
       stat: '~57',
@@ -176,6 +208,7 @@ const tabGraphs: TabGraph[] = [
     },
     after: {
       points: [90, 91, 92, 90, 93, 91, 92, 90, 93, 92, 91, 93, 90, 92, 91, 93, 90, 92, 91, 93],
+      generate: gen.framesAfter,
       color: 'rgba(34,197,94,',
       label: 'After',
       stat: '~144',
@@ -191,6 +224,7 @@ const tabGraphs: TabGraph[] = [
     yLabel: 'Ping (ms)',
     before: {
       points: [32, 74, 28, 91, 35, 68, 22, 87, 30, 78, 25, 94, 33, 65, 27, 88, 31, 72, 24, 96],
+      generate: gen.netBefore,
       color: 'rgba(239,68,68,',
       label: 'Before',
       stat: '~58',
@@ -199,6 +233,7 @@ const tabGraphs: TabGraph[] = [
     },
     after: {
       points: [22, 21, 23, 21, 22, 23, 21, 22, 21, 23, 22, 21, 22, 23, 21, 22, 23, 21, 22, 21],
+      generate: gen.netAfter,
       color: 'rgba(6,182,212,',
       label: 'After',
       stat: '~18',
@@ -425,13 +460,12 @@ export function WhatIsSwitchControl() {
                               <span className="text-[10px] font-normal opacity-70">{activeGraph.before.unit}</span>
                             </span>
                           </div>
-                          <Sparkline
-                            points={activeGraph.before.points}
+                          <LiveSparkline
+                            initialPoints={activeGraph.before.points}
+                            generate={activeGraph.before.generate}
                             color={activeGraph.before.color}
-                            width={240}
                             height={64}
-                            delay={0}
-                            animKey={animKey}
+                            uid={`${activeTab}-before`}
                           />
                           <p className="text-[10px] text-zinc-500 mt-2 text-center">{activeGraph.before.caption}</p>
                         </div>
@@ -459,13 +493,12 @@ export function WhatIsSwitchControl() {
                               <span className="text-[10px] font-normal opacity-70">{activeGraph.after.unit}</span>
                             </span>
                           </div>
-                          <Sparkline
-                            points={activeGraph.after.points}
+                          <LiveSparkline
+                            initialPoints={activeGraph.after.points}
+                            generate={activeGraph.after.generate}
                             color={activeGraph.after.color}
-                            width={240}
                             height={64}
-                            delay={0.15}
-                            animKey={animKey}
+                            uid={`${activeTab}-after`}
                           />
                           <p className="text-[10px] text-zinc-500 mt-2 text-center">{activeGraph.after.caption}</p>
                         </div>
