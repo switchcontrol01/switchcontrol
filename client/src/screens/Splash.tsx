@@ -7,6 +7,19 @@ interface SplashProps {
   onComplete: () => void;
 }
 
+/* ── Floating dust particles — stable positions, never re-randomise ── */
+const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
+  id: i,
+  x: (i * 37 + 11) % 100,          // % across screen
+  y: (i * 53 + 7)  % 100,          // % down screen
+  size: 1.2 + (i % 4) * 0.6,       // 1.2–3.0px
+  opacity: 0.12 + (i % 5) * 0.06,  // 0.12–0.36
+  dur: 6 + (i % 7) * 2.2,          // 6–19s per cycle
+  dx: ((i % 9) - 4) * 18,          // drift X  –72 to +72px
+  dy: ((i % 6) - 3) * 12,          // drift Y  –36 to +36px
+  delay: (i * 0.55) % 8,
+}));
+
 /* ── Static sun-streak beams — angled like early light through haze ── */
 const STREAKS = [
   { left: "8%",  top: "-10%", rot: "28deg",  w: "160vw", h: "1.5px", color: "rgba(168,85,247,0.22)",  blur: 1.2, dur: 8,  delay: 0   },
@@ -27,7 +40,7 @@ export default function Splash({ onComplete }: SplashProps) {
   useEffect(() => {
     const t1 = setTimeout(() => setLogoReady(true),  320);
     const t2 = setTimeout(() => setTextReady(true), 1000);
-    const t3 = setTimeout(() => setExiting(true),   4000);
+    const t3 = setTimeout(() => setExiting(true),   3800);
     const si = setInterval(() => setStatusText(getTagline()), 2200);
 
     const pi = setInterval(() => {
@@ -40,7 +53,7 @@ export default function Splash({ onComplete }: SplashProps) {
       });
     }, 36);
 
-    const done = setTimeout(() => onComplete(), 4700);
+    const done = setTimeout(() => onComplete(), 5200);
     return () => {
       clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(done);
       clearInterval(pi); clearInterval(si);
@@ -51,8 +64,8 @@ export default function Splash({ onComplete }: SplashProps) {
     <motion.div
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{ background: "#07090D" }}
-      animate={exiting ? { opacity: 0, scale: 1.018, filter: "blur(14px)" } : { opacity: 1, scale: 1, filter: "blur(0px)" }}
-      transition={exiting ? { duration: 0.7, ease: [0.4, 0, 1, 1] } : { duration: 0 }}
+      animate={exiting ? { opacity: 0, scale: 1.04, filter: "blur(28px)" } : { opacity: 1, scale: 1, filter: "blur(0px)" }}
+      transition={exiting ? { duration: 1.3, ease: [0.4, 0, 0.8, 1] } : { duration: 0 }}
     >
 
       {/* ── Layer A: wide atmospheric color hazes ────────────────────────── */}
@@ -111,7 +124,36 @@ export default function Splash({ onComplete }: SplashProps) {
         ))}
       </div>
 
-      {/* ── Layer C: sun-haze bloom origin — lower-left, rising ──────────── */}
+      {/* ── Layer C: floating dust particles ─────────────────────────────── */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 3 }}>
+        {PARTICLES.map(p => (
+          <motion.div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              left: `${p.x}%`,
+              top:  `${p.y}%`,
+              width:  p.size,
+              height: p.size,
+              background: p.id % 3 === 0 ? 'rgba(168,85,247,1)' : p.id % 3 === 1 ? 'rgba(0,210,255,1)' : 'rgba(210,160,255,1)',
+              boxShadow: `0 0 ${p.size * 2}px ${p.size}px ${p.id % 3 === 0 ? 'rgba(168,85,247,0.5)' : p.id % 3 === 1 ? 'rgba(0,210,255,0.5)' : 'rgba(210,160,255,0.5)'}`,
+            }}
+            animate={{
+              x: [0, p.dx, 0],
+              y: [0, p.dy, 0],
+              opacity: [0, p.opacity, p.opacity * 0.4, p.opacity, 0],
+            }}
+            transition={{
+              duration: p.dur,
+              repeat: Infinity,
+              ease: 'easeInOut',
+              delay: p.delay,
+            }}
+          />
+        ))}
+      </div>
+
+      {/* ── Layer D: sun-haze bloom origin — lower-left, rising ──────────── */}
       <div className="absolute pointer-events-none" style={{ left: "14%", top: "58%", zIndex: 2 }}>
         <motion.div style={{
           width: "900px", height: "540px",
