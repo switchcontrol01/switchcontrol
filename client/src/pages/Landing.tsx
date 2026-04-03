@@ -577,10 +577,10 @@ function HeroAppMockup() {
             </div>
           </div>
 
-        </div>{/* /p-4 */}
-        </div>{/* /inner overflow-hidden */}
-      </div>{/* /outer backdrop-filter */}
-    </div>{/* /ws-hero-mockup */}
+        </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
