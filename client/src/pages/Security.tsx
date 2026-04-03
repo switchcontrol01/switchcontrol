@@ -4,7 +4,7 @@ import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { cloudApiPost } from "@/lib/cloud-api";
+import { apiPost } from "@/lib/api";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
 import { motion, useMotion } from "@/lib/motion";
@@ -286,7 +286,7 @@ export default function Security() {
     if (!imageBase64 || !imageFile || imageAnalyzing) return;
     setImageAnalyzing(true); setImageError(null);
     try {
-      const aiRes = await cloudApiPost<{
+      const aiRes = await apiPost<{
         analysisType: string;
         findings: { title: string; severity: string; description: string }[];
         recommendations: string[];

@@ -1,4 +1,5 @@
 import { queryClient } from "./queryClient";
+import { useAuthStore } from "./auth-store";
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== 'undefined' && window.location.protocol === 'file:';
@@ -241,6 +242,13 @@ export async function apiFetch(
     for (const [k, v] of Object.entries(incoming)) {
       headers[k] = v;
     }
+  }
+
+  // Include JWT in Authorization header when the user is authenticated via JWT
+  // (e.g. packaged Electron). This lets requireJwt middleware accept local API calls.
+  const jwt = useAuthStore.getState().jwt;
+  if (jwt && !headers['Authorization'] && !headers['authorization']) {
+    headers['Authorization'] = `Bearer ${jwt}`;
   }
 
   const deviceId = await getDeviceId();
