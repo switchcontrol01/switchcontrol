@@ -343,10 +343,11 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     return res.status(400).json({ error: "Conversation too long. Please start a new chat." });
   }
 
-  // Validate optional image payload
-  const hasImage = imageData !== undefined;
+  // Validate optional image payload — must be non-empty base64 string
+  const hasImage = typeof imageData === "string" && imageData.length > 10;
+  console.log(`[AI:chat] hasImage=${hasImage} imageType=${imageType ?? "none"} imageLen=${typeof imageData === "string" ? imageData.length : 0}`);
   if (hasImage) {
-    if (typeof imageData !== "string" || imageData.length > 7_000_000) {
+    if (imageData.length > 7_000_000) {
       return res.status(400).json({ error: "Image too large. Maximum size is 5 MB." });
     }
     const supportedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
@@ -365,7 +366,13 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
   try {
     const contextInfo = buildChatContext(context);
-    const systemMessage = `${chatSystemPrompt}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
+    const imageNote = hasImage
+      ? "\n\nThe user has attached a screenshot or image for you to analyze. Examine it carefully and provide specific, actionable insights based on what you see."
+      : "";
+    const systemMessage = `${chatSystemPrompt}${imageNote}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
+
+    // For image requests, always use a vision-capable model
+    const visionModel = hasImage ? "gpt-4o-mini" : model;
 
     const sliced = messages.slice(-10);
 
@@ -398,11 +405,11 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       }),
     ];
 
-    console.log(`[AI:chat] Calling OpenAI | user=${cloudUser?.id} | messages=${openaiMessages.length} | hasImage=${hasImage} | model=${model}`);
+    console.log(`[AI:chat] Calling OpenAI | user=${cloudUser?.id} | messages=${openaiMessages.length} | hasImage=${hasImage} | model=${visionModel}`);
 
     const completion = await openai.chat.completions.create({
-      model,
-      max_tokens: hasImage ? 1000 : 800,
+      model: visionModel,
+      max_tokens: hasImage ? 1200 : 800,
       temperature: 0.5,
       messages: openaiMessages as any,
     });

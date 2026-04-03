@@ -784,7 +784,7 @@ export default function AiAdvisor() {
         messages: chatHistory,
         context: contextRef.current,
       };
-      if (imgData) {
+      if (imgData?.base64 && imgData.base64.length > 10) {
         requestBody.imageData = imgData.base64;
         requestBody.imageType = imgData.mimeType;
       }
