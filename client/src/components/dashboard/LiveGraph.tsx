@@ -13,8 +13,8 @@ interface DataPoint {
   gpuLoad: number | null;
   gpuTemp: number | null;
   gpuMemPct: number | null;
-  ram: number | null;
-  disk: number | null;
+  ram: number;
+  disk: number;
   netRx: number | null;
   netTx: number | null;
 }
@@ -121,7 +121,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         ? safeNumber(live.ram?.usagePct, Math.round((ramUsedGb / ramTotalGb) * 100))
         : 0;
 
-      const diskPercent = live.disk?.usagePct != null ? safeNumber(live.disk.usagePct) : null;
+      const diskPercent = live.disk?.usagePct != null ? safeNumber(live.disk.usagePct) : 0;
       const netRxSec    = typeof live.network?.rxKBps === 'number' ? safeNumber(live.network.rxKBps) : null;
       const netTxSec    = typeof live.network?.txKBps === 'number' ? safeNumber(live.network.txKBps) : null;
 
@@ -159,7 +159,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           gpuLoad,
           gpuTemp,
           gpuMemPct,
-          ram: telemetryState.showRam ? ramPercent : null,
+          ram: ramPercent,
           disk: diskPercent,
           netRx: netRxSec,
           netTx: netTxSec,
@@ -354,14 +354,12 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               yAxisId="pct" type="monotone" dataKey="disk"
               name="Disk (%)" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
               strokeDasharray="5 2"
-              dot={false} activeDot={{ r: 3 }} connectNulls
-              hide={!hasDiskData}
+              dot={false} activeDot={{ r: 3 }}
             />
             <Line
               yAxisId="pct" type="monotone" dataKey="ram"
               name="RAM (%)" stroke={C.ram} strokeWidth={2}
-              dot={false} activeDot={{ r: 3 }} connectNulls
-              hide={!hasRamData}
+              dot={false} activeDot={{ r: 3 }}
             />
             <Line
               yAxisId="pct" type="monotone" dataKey="cpuLoad"
