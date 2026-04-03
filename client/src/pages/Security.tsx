@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { apiPost } from "@/lib/api";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
+import { AnimatePresence } from "framer-motion";
 import { motion, useMotion } from "@/lib/motion";
 import {
   Shield, ShieldCheck, ShieldAlert, ShieldOff,
@@ -325,6 +326,13 @@ export default function Security() {
     transition: { duration: prefersReducedMotion ? 0.2 : 0.38, delay: prefersReducedMotion ? delay * 0.5 : delay, ease: [0.22, 1, 0.36, 1] as any },
   });
 
+  const dataReveal = (delay = 0) => ({
+    initial: { opacity: 0, y: prefersReducedMotion ? 0 : 10 },
+    animate: { opacity: 1, y: 0 },
+    exit:    { opacity: 0, y: prefersReducedMotion ? 0 : -6 },
+    transition: { duration: prefersReducedMotion ? 0.15 : 0.32, delay, ease: [0.22, 1, 0.36, 1] as any },
+  });
+
   return (
     <AppLayout>
       <div className="relative" data-reveal>
@@ -437,33 +445,33 @@ export default function Security() {
                     </Button>
                   )}
                 </div>
-                {securityStatus ? (
-                  <div className="space-y-0.5">
-                    <StatusRow label="Real-time Protection"
-                      value={securityStatus.realtimeProtection === true ? "Enabled" : securityStatus.realtimeProtection === false ? "Disabled" : "Unknown"}
-                      state={securityStatus.realtimeProtection === true ? "ok" : securityStatus.realtimeProtection === false ? "off" : "unknown"} />
-                    <StatusRow label="Firewall"
-                      value={securityStatus.firewallEnabled === true ? "Active" : securityStatus.firewallEnabled === false ? "Off" : "Unknown"}
-                      state={securityStatus.firewallEnabled === true ? "ok" : securityStatus.firewallEnabled === false ? "off" : "unknown"} />
-                    <StatusRow label="Anti-spyware"
-                      value={securityStatus.antispywareEnabled === true ? "Enabled" : securityStatus.antispywareEnabled === false ? "Disabled" : "Unknown"}
-                      state={securityStatus.antispywareEnabled === true ? "ok" : securityStatus.antispywareEnabled === false ? "off" : "unknown"} />
-                    <StatusRow label="Tamper Protection"
-                      value={securityStatus.tamperProtection === true ? "On" : securityStatus.tamperProtection === false ? "Off" : "Unknown"}
-                      state={securityStatus.tamperProtection === true ? "ok" : securityStatus.tamperProtection === false ? "warn" : "unknown"} />
-                    {securityStatus.lastQuickScan && (
-                      <div className="pt-2 mt-1 border-t border-white/5 text-xs text-muted-foreground flex justify-between">
-                        <span>Last Quick Scan</span>
-                        <span>{formatDate(securityStatus.lastQuickScan)}</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground text-sm">
-                    <ShieldOff className="size-8 mx-auto opacity-30 mb-2" />
-                    {hasSecurity ? "Run a scan to detect status" : "Available on Windows desktop"}
-                  </div>
-                )}
+                <AnimatePresence mode="wait">
+                  {securityStatus ? (
+                    <motion.div key="status-data" {...dataReveal()} className="space-y-0.5">
+                      {[
+                        { label: "Real-time Protection", value: securityStatus.realtimeProtection === true ? "Enabled" : securityStatus.realtimeProtection === false ? "Disabled" : "Unknown", state: securityStatus.realtimeProtection === true ? "ok" : securityStatus.realtimeProtection === false ? "off" : "unknown" },
+                        { label: "Firewall",             value: securityStatus.firewallEnabled === true ? "Active" : securityStatus.firewallEnabled === false ? "Off" : "Unknown",           state: securityStatus.firewallEnabled === true ? "ok" : securityStatus.firewallEnabled === false ? "off" : "unknown" },
+                        { label: "Anti-spyware",         value: securityStatus.antispywareEnabled === true ? "Enabled" : securityStatus.antispywareEnabled === false ? "Disabled" : "Unknown", state: securityStatus.antispywareEnabled === true ? "ok" : securityStatus.antispywareEnabled === false ? "off" : "unknown" },
+                        { label: "Tamper Protection",    value: securityStatus.tamperProtection === true ? "On" : securityStatus.tamperProtection === false ? "Off" : "Unknown",               state: securityStatus.tamperProtection === true ? "ok" : securityStatus.tamperProtection === false ? "warn" : "unknown" },
+                      ].map((row, i) => (
+                        <motion.div key={row.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}>
+                          <StatusRow label={row.label} value={row.value} state={row.state as any} />
+                        </motion.div>
+                      ))}
+                      {securityStatus.lastQuickScan && (
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.28 }} className="pt-2 mt-1 border-t border-white/5 text-xs text-muted-foreground flex justify-between">
+                          <span>Last Quick Scan</span>
+                          <span>{formatDate(securityStatus.lastQuickScan)}</span>
+                        </motion.div>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="status-empty" {...dataReveal()} className="text-center py-6 text-muted-foreground text-sm">
+                      <ShieldOff className="size-8 mx-auto opacity-30 mb-2" />
+                      {hasSecurity ? "Run a scan to detect status" : "Available on Windows desktop"}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </GlassCard>
               </motion.div>
 
@@ -590,44 +598,46 @@ export default function Security() {
                   <Zap className="size-4 text-primary" />
                   <h3 className="font-semibold text-sm">System Health Score</h3>
                 </div>
-                {healthScore !== null && scanSummary ? (
-                  <div className="flex items-center gap-6">
-                    <HealthScoreRing score={healthScore} state={systemState} />
-                    <div className="flex-1 space-y-3">
+                <AnimatePresence mode="wait">
+                  {healthScore !== null && scanSummary ? (
+                    <motion.div key="health-data" {...dataReveal()} className="flex items-center gap-6">
+                      <HealthScoreRing score={healthScore} state={systemState} />
+                      <div className="flex-1 space-y-3">
+                        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>
+                          <p className={cn("text-lg font-bold", stateColor)}>{stateLabel}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {systemState === "secure" ? "Your system is well-configured for gaming."
+                            : systemState === "attention" ? "Security issues require your attention."
+                            : "Performance optimizations are available."}
+                          </p>
+                        </motion.div>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { label: "Threats",    value: String(scanSummary.threatCount),             bad: scanSummary.threatCount > 0 },
+                            { label: "Startup",    value: `${scanSummary.startupIssues} to review`,    bad: scanSummary.startupIssues > 0 },
+                            { label: "Background", value: `${scanSummary.backgroundIssues} heavy`,     bad: scanSummary.backgroundIssues > 0 },
+                            { label: "Score",      value: `${healthScore}/100`,                        bad: healthScore < 60 },
+                          ].map((item, i) => (
+                            <motion.div key={item.label} initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25, delay: 0.14 + i * 0.05, ease: [0.22, 1, 0.36, 1] }} className="bg-white/[0.03] rounded-lg p-2.5">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
+                              <p className={cn("text-sm font-semibold mt-0.5", item.bad ? "text-amber-400" : "text-foreground")}>{item.value}</p>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : (
+                    <motion.div key="health-empty" {...dataReveal()} className="flex items-center gap-4 py-4">
+                      <div className="w-24 h-24 rounded-full border-[3px] border-white/10 flex items-center justify-center shrink-0">
+                        <Zap className="size-8 opacity-20" />
+                      </div>
                       <div>
-                        <p className={cn("text-lg font-bold", stateColor)}>{stateLabel}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {systemState === "secure" ? "Your system is well-configured for gaming."
-                          : systemState === "attention" ? "Security issues require your attention."
-                          : "Performance optimizations are available."}
-                        </p>
+                        <p className="text-sm font-medium text-muted-foreground">No data yet</p>
+                        <p className="text-xs text-muted-foreground mt-1">Run a scan to calculate your system health score.</p>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {[
-                          { label: "Threats",    value: String(scanSummary.threatCount),             bad: scanSummary.threatCount > 0 },
-                          { label: "Startup",    value: `${scanSummary.startupIssues} to review`,    bad: scanSummary.startupIssues > 0 },
-                          { label: "Background", value: `${scanSummary.backgroundIssues} heavy`,     bad: scanSummary.backgroundIssues > 0 },
-                          { label: "Score",      value: `${healthScore}/100`,                        bad: healthScore < 60 },
-                        ].map(item => (
-                          <div key={item.label} className="bg-white/[0.03] rounded-lg p-2.5">
-                            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
-                            <p className={cn("text-sm font-semibold mt-0.5", item.bad ? "text-amber-400" : "text-foreground")}>{item.value}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-4 py-4">
-                    <div className="w-24 h-24 rounded-full border-[3px] border-white/10 flex items-center justify-center shrink-0">
-                      <Zap className="size-8 opacity-20" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-muted-foreground">No data yet</p>
-                      <p className="text-xs text-muted-foreground mt-1">Run a scan to calculate your system health score.</p>
-                    </div>
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </GlassCard>
               </motion.div>
 
@@ -643,38 +653,41 @@ export default function Security() {
                     <Badge variant="outline" className="text-xs text-muted-foreground">{startupItems.length} apps</Badge>
                   )}
                 </div>
-                {startupItems.length > 0 ? (
-                  <div className="space-y-0.5">
-                    {startupItems.slice(0, 10).map((item, i) => {
-                      const impactColor = item.impact === "high" ? "text-red-400" : item.impact === "medium" ? "text-amber-400" : "text-emerald-400";
-                      const recCls = item.recommendation === "disable" ? "bg-red-500/15 border-red-500/25 text-red-400"
-                                   : item.recommendation === "review"  ? "bg-amber-500/15 border-amber-500/25 text-amber-400"
-                                   : "bg-emerald-500/15 border-emerald-500/25 text-emerald-400";
-                      return (
-                        <div key={i} className="flex items-center gap-2 py-2 border-b border-white/5 last:border-0" data-testid={`row-startup-${i}`}>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{item.name}</p>
-                            <p className="text-[10px] text-muted-foreground capitalize">{item.category} · {item.location || "Startup folder"}</p>
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={cn("text-xs font-medium capitalize", impactColor)}>{item.impact}</span>
-                            <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", recCls)}>{item.recommendation}</Badge>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {startupItems.length > 10 && (
-                      <p className="text-xs text-muted-foreground text-center pt-2">+{startupItems.length - 10} more</p>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 py-5 text-muted-foreground">
-                    <MonitorPlay className="size-8 opacity-20 shrink-0" />
-                    <p className="text-sm">
-                      {hasSecurity ? (scanStatus === "idle" ? "Run Smart Scan to discover startup apps." : "No startup data collected.") : "Available on Windows desktop."}
-                    </p>
-                  </div>
-                )}
+                <AnimatePresence mode="wait">
+                  {startupItems.length > 0 ? (
+                    <motion.div key="startup-data" {...dataReveal()} className="space-y-0.5">
+                      {startupItems.slice(0, 10).map((item, i) => {
+                        const impactColor = item.impact === "high" ? "text-red-400" : item.impact === "medium" ? "text-amber-400" : "text-emerald-400";
+                        const recCls = item.recommendation === "disable" ? "bg-red-500/15 border-red-500/25 text-red-400"
+                                     : item.recommendation === "review"  ? "bg-amber-500/15 border-amber-500/25 text-amber-400"
+                                     : "bg-emerald-500/15 border-emerald-500/25 text-emerald-400";
+                        return (
+                          <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.26, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
+                            className="flex items-center gap-2 py-2 border-b border-white/5 last:border-0" data-testid={`row-startup-${i}`}>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium truncate">{item.name}</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">{item.category} · {item.location || "Startup folder"}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={cn("text-xs font-medium capitalize", impactColor)}>{item.impact}</span>
+                              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", recCls)}>{item.recommendation}</Badge>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                      {startupItems.length > 10 && (
+                        <p className="text-xs text-muted-foreground text-center pt-2">+{startupItems.length - 10} more</p>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="startup-empty" {...dataReveal()} className="flex items-center gap-3 py-5 text-muted-foreground">
+                      <MonitorPlay className="size-8 opacity-20 shrink-0" />
+                      <p className="text-sm">
+                        {hasSecurity ? (scanStatus === "idle" ? "Run Smart Scan to discover startup apps." : "No startup data collected.") : "Available on Windows desktop."}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </GlassCard>
               </motion.div>
 
@@ -690,35 +703,38 @@ export default function Security() {
                     <Badge variant="outline" className="text-xs text-muted-foreground">Top {Math.min(topProcesses.length, 8)} by CPU</Badge>
                   )}
                 </div>
-                {topProcesses.length > 0 ? (
-                  <div>
-                    <div className="grid grid-cols-[1fr_64px_64px] gap-2 text-[10px] text-muted-foreground uppercase tracking-wide pb-2 border-b border-white/5">
-                      <span>Process</span><span className="text-right">CPU</span><span className="text-right">RAM</span>
-                    </div>
-                    {topProcesses.slice(0, 8).map((proc, i) => {
-                      const cls = proc.impact === "high" ? "text-red-400" : proc.impact === "medium" ? "text-amber-400" : "";
-                      return (
-                        <div key={i} className="grid grid-cols-[1fr_64px_64px] gap-2 py-2 border-b border-white/5 last:border-0 items-center" data-testid={`row-process-${i}`}>
-                          <div className="min-w-0">
-                            <p className={cn("text-sm font-medium truncate", cls)}>{proc.name}</p>
-                            <p className="text-[10px] text-muted-foreground capitalize">{proc.category}</p>
-                          </div>
-                          <p className={cn("text-xs text-right font-mono", cls)}>{formatCpu(proc.cpuSec)}</p>
-                          <p className="text-xs text-right font-mono text-muted-foreground">
-                            {proc.memMb !== null ? `${proc.memMb.toFixed(0)}M` : "—"}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3 py-5 text-muted-foreground">
-                    <Cpu className="size-8 opacity-20 shrink-0" />
-                    <p className="text-sm">
-                      {hasSecurity ? (scanStatus === "idle" ? "Run Smart Scan to monitor background processes." : "No process data collected.") : "Available on Windows desktop."}
-                    </p>
-                  </div>
-                )}
+                <AnimatePresence mode="wait">
+                  {topProcesses.length > 0 ? (
+                    <motion.div key="process-data" {...dataReveal()}>
+                      <div className="grid grid-cols-[1fr_64px_64px] gap-2 text-[10px] text-muted-foreground uppercase tracking-wide pb-2 border-b border-white/5">
+                        <span>Process</span><span className="text-right">CPU</span><span className="text-right">RAM</span>
+                      </div>
+                      {topProcesses.slice(0, 8).map((proc, i) => {
+                        const cls = proc.impact === "high" ? "text-red-400" : proc.impact === "medium" ? "text-amber-400" : "";
+                        return (
+                          <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.26, delay: i * 0.045, ease: [0.22, 1, 0.36, 1] }}
+                            className="grid grid-cols-[1fr_64px_64px] gap-2 py-2 border-b border-white/5 last:border-0 items-center" data-testid={`row-process-${i}`}>
+                            <div className="min-w-0">
+                              <p className={cn("text-sm font-medium truncate", cls)}>{proc.name}</p>
+                              <p className="text-[10px] text-muted-foreground capitalize">{proc.category}</p>
+                            </div>
+                            <p className={cn("text-xs text-right font-mono", cls)}>{formatCpu(proc.cpuSec)}</p>
+                            <p className="text-xs text-right font-mono text-muted-foreground">
+                              {proc.memMb !== null ? `${proc.memMb.toFixed(0)}M` : "—"}
+                            </p>
+                          </motion.div>
+                        );
+                      })}
+                    </motion.div>
+                  ) : (
+                    <motion.div key="process-empty" {...dataReveal()} className="flex items-center gap-3 py-5 text-muted-foreground">
+                      <Cpu className="size-8 opacity-20 shrink-0" />
+                      <p className="text-sm">
+                        {hasSecurity ? (scanStatus === "idle" ? "Run Smart Scan to monitor background processes." : "No process data collected.") : "Available on Windows desktop."}
+                      </p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </GlassCard>
               </motion.div>
             </div>
@@ -742,79 +758,75 @@ export default function Security() {
               )}
             </div>
 
-            {scanStatus === "idle" && (
-              <div className="flex flex-col items-center gap-3 py-12 text-center">
-                <div className="size-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                  <Scan className="size-7 text-primary opacity-60" />
-                </div>
-                <div>
-                  <p className="font-medium">Run a scan to get recommendations</p>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                    Smart Scan analyzes your security posture, startup overhead, and background load — then generates personalized suggestions.
+            <AnimatePresence mode="wait">
+              {scanStatus === "idle" ? (
+                <motion.div key="rec-idle" {...dataReveal()} className="flex flex-col items-center gap-3 py-12 text-center">
+                  <div className="size-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                    <Scan className="size-7 text-primary opacity-60" />
+                  </div>
+                  <div>
+                    <p className="font-medium">Run a scan to get recommendations</p>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
+                      Smart Scan analyzes your security posture, startup overhead, and background load — then generates personalized suggestions.
+                    </p>
+                  </div>
+                  <Button className="gap-2 mt-1" onClick={() => startScan("smart")} data-testid="button-start-scan-cta">
+                    <Zap className="size-4" />Start Smart Scan
+                  </Button>
+                </motion.div>
+              ) : scanning ? (
+                <motion.div key="rec-scanning" {...dataReveal()} className="flex flex-col items-center gap-3 py-12">
+                  <Loader2 className="size-8 animate-spin text-primary opacity-60" />
+                  <p className="text-sm text-muted-foreground">
+                    {SCAN_STAGES[Math.min(scanStage, SCAN_STAGES.length - 1)]}…
                   </p>
-                </div>
-                <Button className="gap-2 mt-1" onClick={() => startScan("smart")} data-testid="button-start-scan-cta">
-                  <Zap className="size-4" />Start Smart Scan
-                </Button>
-              </div>
-            )}
-
-            {scanning && (
-              <div className="flex flex-col items-center gap-3 py-12">
-                <Loader2 className="size-8 animate-spin text-primary opacity-60" />
-                <p className="text-sm text-muted-foreground">
-                  {SCAN_STAGES[Math.min(scanStage, SCAN_STAGES.length - 1)]}…
-                </p>
-              </div>
-            )}
-
-            {scanStatus === "complete" && recommendations.length === 0 && (
-              <div className="flex flex-col items-center gap-2 py-10 text-center">
-                <ShieldCheck className="size-10 opacity-30" />
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  {!hasSecurity
-                    ? "No system data available. Install SwitchControl on Windows to get personalized recommendations."
-                    : "No issues found. Your system looks well-configured."}
-                </p>
-              </div>
-            )}
-
-            {recommendations.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {recommendations.map((rec, i) => {
-                  const cfg = SEVERITY_CONFIG[rec.severity] ?? SEVERITY_CONFIG.info;
-                  return (
-                    <motion.div key={rec.id} {...cardAnim(0.42 + i * 0.05)}>
-                      <div className={cn("p-4 rounded-xl border space-y-2", cfg.bg)} data-testid={`card-rec-${rec.id}`}>
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <cfg.Icon className={cn("size-4 shrink-0", cfg.color)} />
-                            <p className={cn("text-sm font-semibold leading-tight", cfg.color)}>{rec.title}</p>
+                </motion.div>
+              ) : scanStatus === "complete" && recommendations.length === 0 ? (
+                <motion.div key="rec-empty" {...dataReveal()} className="flex flex-col items-center gap-2 py-10 text-center">
+                  <ShieldCheck className="size-10 opacity-30" />
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    {!hasSecurity
+                      ? "No system data available. Install SwitchControl on Windows to get personalized recommendations."
+                      : "No issues found. Your system looks well-configured."}
+                  </p>
+                </motion.div>
+              ) : recommendations.length > 0 ? (
+                <motion.div key="rec-list" {...dataReveal()} className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {recommendations.map((rec, i) => {
+                    const cfg = SEVERITY_CONFIG[rec.severity] ?? SEVERITY_CONFIG.info;
+                    return (
+                      <motion.div key={rec.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}>
+                        <div className={cn("p-4 rounded-xl border space-y-2", cfg.bg)} data-testid={`card-rec-${rec.id}`}>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-center gap-2 flex-1 min-w-0">
+                              <cfg.Icon className={cn("size-4 shrink-0", cfg.color)} />
+                              <p className={cn("text-sm font-semibold leading-tight", cfg.color)}>{rec.title}</p>
+                            </div>
+                            <Badge variant="outline" className={cn("text-[10px] px-1.5 shrink-0 border-current", cfg.color)}>{cfg.label}</Badge>
                           </div>
-                          <Badge variant="outline" className={cn("text-[10px] px-1.5 shrink-0 border-current", cfg.color)}>{cfg.label}</Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground leading-relaxed">{rec.summary}</p>
-                        <div className="flex items-center justify-between pt-0.5">
-                          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                            {rec.performanceImpact !== "none" && (
-                              <span className={cn("font-medium", IMPACT_COLORS[rec.performanceImpact])}>Perf: {rec.performanceImpact}</span>
-                            )}
-                            {rec.securityImpact !== "none" && (
-                              <span className={cn("font-medium", IMPACT_COLORS[rec.securityImpact])}>Security: {rec.securityImpact}</span>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{rec.summary}</p>
+                          <div className="flex items-center justify-between pt-0.5">
+                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+                              {rec.performanceImpact !== "none" && (
+                                <span className={cn("font-medium", IMPACT_COLORS[rec.performanceImpact])}>Perf: {rec.performanceImpact}</span>
+                              )}
+                              {rec.securityImpact !== "none" && (
+                                <span className={cn("font-medium", IMPACT_COLORS[rec.securityImpact])}>Security: {rec.securityImpact}</span>
+                              )}
+                            </div>
+                            {rec.actionLabel && (
+                              <button className={cn("text-[10px] font-medium flex items-center gap-0.5 hover:opacity-80 transition-opacity", cfg.color)}>
+                                {rec.actionLabel}<ChevronRight className="size-3" />
+                              </button>
                             )}
                           </div>
-                          {rec.actionLabel && (
-                            <button className={cn("text-[10px] font-medium flex items-center gap-0.5 hover:opacity-80 transition-opacity", cfg.color)}>
-                              {rec.actionLabel}<ChevronRight className="size-3" />
-                            </button>
-                          )}
                         </div>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
           </GlassCard>
           </motion.div>
         </div>
