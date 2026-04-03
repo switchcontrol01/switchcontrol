@@ -22,6 +22,28 @@ function formatSpeed(bps: number): string {
   return `${(bps / (1024 * 1024)).toFixed(1)} MB/s`;
 }
 
+function humanizeError(msg: string | null): string {
+  if (!msg) return 'Something went wrong. Please try again.';
+  const m = msg.toLowerCase();
+  if (m.includes('err_name_not_resolved') || m.includes('enotfound'))
+    return 'Update server is unreachable. Check your connection or try again later.';
+  if (m.includes('err_internet_disconnected') || m.includes('err_network_changed') || m.includes('err_proxy_connection_failed'))
+    return 'No internet connection.';
+  if (m.includes('econnrefused') || m.includes('econnreset') || m.includes('err_connection_refused'))
+    return 'Connection refused by update server.';
+  if (m.includes('etimedout') || m.includes('err_connection_timed_out') || m.includes('err_timed_out'))
+    return 'Connection timed out. Please try again.';
+  if (m.includes('err_ssl') || m.includes('certificate'))
+    return 'Secure connection failed. Please try again.';
+  if (m.includes('404') || m.includes('not found'))
+    return 'No update package found on server.';
+  if (m.includes('403') || m.includes('forbidden') || m.includes('401') || m.includes('unauthorized'))
+    return 'Access denied by update server.';
+  // Trim long internal messages
+  if (msg.length > 120) return msg.slice(0, 120) + '…';
+  return msg;
+}
+
 function formatDate(iso: string | null): string {
   if (!iso) return '';
   try {
@@ -301,9 +323,9 @@ export function UpdateCard() {
               <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-white/80">Update check failed</p>
-                {errorMessage && (
-                  <p className="text-xs text-red-400/70 mt-1 break-words">{errorMessage}</p>
-                )}
+                <p className="text-xs text-red-400/70 mt-1 break-words">
+                  {humanizeError(errorMessage)}
+                </p>
               </div>
             </div>
             <Button
