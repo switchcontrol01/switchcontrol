@@ -8,8 +8,7 @@ import { motion } from "framer-motion";
      1  large ambient orbs — slow breathing drift
      2  energy-flow wave grid (SVG, very subtle)
      3  cursor spotlight — lerped, RAF-driven (no React re-renders)
-     4  click ripple — DOM-driven
-     5  vignette edge darkening
+     4  vignette edge darkening
    ───────────────────────────────────────────────────────────── */
 
 function lerp(a: number, b: number, t: number) {
@@ -18,7 +17,6 @@ function lerp(a: number, b: number, t: number) {
 
 export function AppBackground() {
   const spotRef  = useRef<HTMLDivElement>(null);
-  const rippleRef = useRef<HTMLDivElement>(null);
   const mousePos = useRef({ x: -500, y: -500 });
   const curPos   = useRef({ x: -500, y: -500 });
   const rafId    = useRef<number>(0);
@@ -48,29 +46,6 @@ export function AppBackground() {
       window.removeEventListener("mousemove", onMove);
       cancelAnimationFrame(rafId.current);
     };
-  }, []);
-
-  /* ── Click ripple ────────────────────────────────────────────── */
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      const r = rippleRef.current;
-      if (!r) return;
-
-      r.style.transition = "none";
-      r.style.left    = `${e.clientX}px`;
-      r.style.top     = `${e.clientY}px`;
-      r.style.opacity = "1";
-      r.style.transform = "translate(-50%, -50%) scale(0.1)";
-
-      void r.offsetWidth;
-
-      r.style.transition = "transform 0.7s cubic-bezier(0.22,1,0.36,1), opacity 0.7s ease-out";
-      r.style.transform  = "translate(-50%, -50%) scale(1)";
-      r.style.opacity    = "0";
-    };
-
-    window.addEventListener("click", onClick, { passive: true });
-    return () => window.removeEventListener("click", onClick);
   }, []);
 
   return (
@@ -235,23 +210,6 @@ export function AppBackground() {
           mixBlendMode: "screen",
           willChange: "transform",
           pointerEvents: "none",
-        }}
-      />
-
-      {/* ── Layer 4: click ripple ────────────────────────────────── */}
-      <div
-        ref={rippleRef}
-        style={{
-          position: "fixed",
-          width: "280px", height: "280px",
-          borderRadius: "50%",
-          border: "1px solid rgba(168,85,247,0.28)",
-          boxShadow: "0 0 20px rgba(168,85,247,0.15), inset 0 0 20px rgba(0,210,255,0.10)",
-          left: 0, top: 0,
-          opacity: 0,
-          pointerEvents: "none",
-          willChange: "transform, opacity",
-          transform: "translate(-50%, -50%) scale(0.1)",
         }}
       />
 
