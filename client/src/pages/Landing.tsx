@@ -1026,7 +1026,7 @@ export default function Landing() {
 
                   {/* Card body */}
                   <div className="relative rounded-[17px] p-8 h-full flex flex-col overflow-hidden"
-                    style={{ background: "linear-gradient(155deg, rgba(14,8,32,0.97) 0%, rgba(10,5,22,0.99) 100%)", backdropFilter: "blur(24px)" }}>
+                    style={{ background: "linear-gradient(155deg, hsl(260,18%,8%,0.98) 0%, hsl(260,15%,6%,0.99) 100%)", backdropFilter: "blur(24px)" }}>
 
                     {/* Top ambient glow */}
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-32 pointer-events-none"
