@@ -102,24 +102,18 @@
 
 @keyframes loginCardGlowPulse {
   0%, 100% { box-shadow:
-    0 0 60px -10px rgba(168, 120, 255, 0.28),
-    0 0 120px -20px rgba(255, 248, 200, 0.14),
-    -40px 0 70px -15px rgba(255, 248, 200, 0.10),
+    0 0 50px -12px hsl(268 70% 55% / 0.25),
     0 28px 56px -14px rgba(0,0,0,0.45),
-    0 0 0 1px rgba(255,255,255,0.13),
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    inset 0 -1px 0 rgba(255,255,255,0.05),
-    inset 2px 0 24px -4px rgba(255,248,200,0.06);
+    0 0 0 1px rgba(255,255,255,0.12),
+    inset 0 1px 0 rgba(255,255,255,0.20),
+    inset 0 -1px 0 rgba(255,255,255,0.04);
   }
   45% { box-shadow:
-    0 0 100px -8px rgba(168, 120, 255, 0.45),
-    0 0 180px -16px rgba(255, 248, 200, 0.28),
-    -50px 0 90px -10px rgba(255, 248, 200, 0.18),
+    0 0 80px -10px hsl(268 70% 58% / 0.38),
     0 36px 72px -18px rgba(0,0,0,0.50),
-    0 0 0 1px rgba(255,255,255,0.18),
-    inset 0 1px 0 rgba(255,255,255,0.30),
-    inset 0 -1px 0 rgba(255,255,255,0.06),
-    inset 2px 0 28px -4px rgba(255,248,200,0.10);
+    0 0 0 1px rgba(255,255,255,0.16),
+    inset 0 1px 0 rgba(255,255,255,0.26),
+    inset 0 -1px 0 rgba(255,255,255,0.05);
   }
 }
 

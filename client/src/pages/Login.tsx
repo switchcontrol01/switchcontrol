@@ -38,7 +38,6 @@ export default function Login() {
     <WebsiteShell variant="inner" bgVariant="auth" showFooter={false}>
       {/* ── Full-screen ambient layer ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
-        <div className="login-focal-glow" />
         <div className="login-sun-streak" />
         <SpotlightCursor />
         {/* Side particles — left strip */}
