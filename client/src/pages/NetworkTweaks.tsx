@@ -37,6 +37,8 @@ import { Link } from "wouter";
 import { PremiumSurface } from "@/components/ui/premium-surface";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
+import { useNetworkDiagnostics } from "@/hooks/useNetworkDiagnostics";
+import { NetworkDiagnosticsHero, NetworkDiagnosticsFooter } from "@/components/network/NetworkDiagnosticsPanel";
 
 const SafetyBadge = ({ level }: { level: SafetyLevel }) => {
   const colors = {
@@ -341,6 +343,8 @@ export default function NetworkTweaks() {
     setSelectedTweak(null);
   }, []);
 
+  const diagnostics = useNetworkDiagnostics();
+
   return (
     <AppLayout>
       <div className={cn("p-8 space-y-8", !isPremium && "opacity-60 blur-[2px]")} data-tour="network-content" data-reveal>
@@ -384,6 +388,9 @@ export default function NetworkTweaks() {
             </GlassCard>
           </motion.div>
         )}
+
+        {/* ── Live diagnostics hero ── */}
+        <NetworkDiagnosticsHero {...diagnostics} />
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -516,6 +523,9 @@ export default function NetworkTweaks() {
           </div>
         )}
         </motion.div>
+
+        {/* ── Advanced diagnostics footer ── */}
+        <NetworkDiagnosticsFooter {...diagnostics} />
       </div>
 
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />
