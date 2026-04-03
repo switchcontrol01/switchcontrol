@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -164,13 +165,9 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
 
   useEffect(() => {
     if (!tweak) return;
-    
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
-    
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [tweak, onClose]);
@@ -180,15 +177,14 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
     ["Latency", tweak.expected.latency],
     ["Risk", tweak.expected.stabilityRisk],
   ] : [];
-  
   const activeExpected = expectedEntries.filter(([, v]) => v && v !== "None");
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {tweak && (
         <>
-          <motion.div 
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+          <motion.div
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm pointer-events-auto"
             onClick={onClose}
             data-testid="modal-backdrop"
             variants={modalBackdrop}
@@ -196,20 +192,20 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
             animate="animate"
             exit="exit"
           />
-          <motion.div 
-            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg"
+          <motion.div
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-lg pointer-events-auto"
             role="dialog"
             aria-modal="true"
-            data-testid={`modal-tweak-${tweak.id}`}
+            data-testid={`modal-network-tweak-${tweak.id}`}
             variants={modalContent}
             initial="initial"
             animate="animate"
             exit="exit"
           >
-            <div className="relative bg-black/90 border border-white/10 rounded-lg p-6 shadow-2xl backdrop-blur-xl max-h-[80vh] overflow-y-auto">
+            <div className="relative bg-gradient-to-br from-white/[0.08] via-white/[0.05] to-white/[0.03] backdrop-blur-2xl border border-white/[0.10] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.10)] max-h-[80vh] overflow-y-auto">
               <motion.button
                 type="button"
-                onClick={onClose}
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
                 className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
                 data-testid="button-close-modal"
                 whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
@@ -218,24 +214,24 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                 <X className="h-5 w-5 text-white" />
                 <span className="sr-only">Close</span>
               </motion.button>
-              
+
               <div className="space-y-1.5 pr-8">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-white flex items-center gap-2 flex-wrap">
                   {tweak.name}
+                  <SafetyBadge level={tweak.safety} />
                 </h2>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-sm text-muted-foreground">{tweak.category}</span>
                   <LevelBadge level={tweak.level} />
-                  <SafetyBadge level={tweak.safety} />
                 </div>
               </div>
-              
+
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-white">Description</h4>
                   <p className="text-sm text-muted-foreground">{tweak.description}</p>
                 </div>
-                
+
                 {activeExpected.length > 0 && (
                   <div className="space-y-2">
                     <h4 className="text-sm font-medium text-white">Expected Change</h4>
@@ -246,12 +242,15 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                     </div>
                   </div>
                 )}
-                
+
                 <div className="space-y-2">
                   <h4 className="text-sm font-medium text-white">Impact</h4>
                   <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                     {tweak.impact.map((item, index) => (
-                      <li key={index} className={item.toLowerCase().includes("risk") || item.toLowerCase().includes("break") ? "text-yellow-400" : undefined}>
+                      <li
+                        key={index}
+                        className={item.toLowerCase().includes("risk") || item.toLowerCase().includes("break") ? "text-yellow-400" : undefined}
+                      >
                         {item}
                       </li>
                     ))}
@@ -269,7 +268,8 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
 
