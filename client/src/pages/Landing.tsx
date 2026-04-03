@@ -450,11 +450,12 @@ function HeroAppMockup() {
 
       <MockupSideParticles />
 
-      {/* Window — outer glass layer (backdrop-filter ONLY, no overflow-hidden) */}
-      <div className="relative rounded-2xl shadow-[0_32px_80px_-12px_rgba(0,0,0,0.6),inset_0_0_0_1px_rgba(255,255,255,0.14),0_0_80px_-20px_rgba(255,255,255,0.12)]"
-        style={{ background: "rgba(255,255,255,0.065)", backdropFilter: "blur(52px) saturate(1.15)", WebkitBackdropFilter: "blur(52px) saturate(1.15)" }}>
-        {/* Inner content wrapper — overflow-hidden on its own element (never combine with backdrop-filter) */}
-        <div className="relative rounded-2xl overflow-hidden">
+      {/* Window — faked glass (gradient top-edge + white glow, no backdrop-filter) */}
+      <div className="relative rounded-2xl overflow-hidden"
+        style={{
+          background: "linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(12,9,30,0.93) 12%, rgba(10,8,26,0.96) 100%)",
+          boxShadow: "0 32px 80px -12px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(255,255,255,0.13), 0 0 72px -16px rgba(255,255,255,0.14)"
+        }}>
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-2xl">
           <div className="mockup-reflection-sweep" />
           <div className="mockup-reflection-sweep-secondary" />
@@ -577,7 +578,6 @@ function HeroAppMockup() {
             </div>
           </div>
 
-        </div>
         </div>
       </div>
     </div>
