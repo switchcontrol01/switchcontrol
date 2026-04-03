@@ -40,12 +40,16 @@ export default function Login() {
       <div className="absolute inset-0 pointer-events-none overflow-hidden" aria-hidden="true">
         <div className="login-sun-streak" />
         <SpotlightCursor />
-        {/* Side particles — left strip */}
-        <div className="absolute inset-0" style={{ clipPath: "inset(0 60% 0 0)" }}>
+        {/* Full-screen sparse background layer — dots & hazes everywhere */}
+        <div className="absolute inset-0" style={{ opacity: 0.5 }}>
           <LoginParticles />
         </div>
-        {/* Side particles — right strip */}
-        <div className="absolute inset-0" style={{ clipPath: "inset(0 0 0 60%)" }}>
+        {/* Side particles — left strip, denser */}
+        <div className="absolute inset-0" style={{ clipPath: "inset(0 55% 0 0)" }}>
+          <LoginParticles />
+        </div>
+        {/* Side particles — right strip, denser */}
+        <div className="absolute inset-0" style={{ clipPath: "inset(0 0 0 55%)" }}>
           <LoginParticles />
         </div>
       </div>
@@ -83,7 +87,7 @@ export default function Login() {
                   <img
                     src={brand.icon}
                     alt={`${brand.name} logo`}
-                    className="w-16 h-16 rounded-xl relative z-10 shadow-lg"
+                    className="w-20 h-20 rounded-2xl relative z-10 shadow-xl"
                   />
                   <div className="login-icon-halo" />
                 </div>

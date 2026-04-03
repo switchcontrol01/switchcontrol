@@ -197,16 +197,19 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
   },
   auth: {
     gradients: `
-      radial-gradient(ellipse 80% 50% at 50% 30%, hsl(270 55% 35% / 0.25) 0%, transparent 55%),
-      radial-gradient(ellipse 40% 30% at 30% 60%, hsl(260 50% 40% / 0.1) 0%, transparent 50%),
+      radial-gradient(ellipse 100% 70% at 50% 40%, hsl(268 65% 38% / 0.38) 0%, transparent 58%),
+      radial-gradient(ellipse 70% 45% at 15% 30%, hsl(270 60% 40% / 0.20) 0%, transparent 55%),
+      radial-gradient(ellipse 55% 40% at 85% 65%, hsl(280 55% 42% / 0.16) 0%, transparent 52%),
+      radial-gradient(ellipse 40% 30% at 30% 75%, hsl(260 50% 40% / 0.12) 0%, transparent 50%),
       linear-gradient(180deg, #040508 0%, #050509 100%)
     `,
     overlays: [
-      { Component: NodeGraph, opacity: 0.04, drift: "ws-drift-2", position: "inset-0" },
+      { Component: NodeGraph, opacity: 0.05, drift: "ws-drift-2", position: "inset-0" },
     ],
     glowHotspots: [
-      { color: "hsl(270 50% 55%)", size: "550px", position: "top-[12%] left-[12%]", opacity: 0.15 },
-      { color: "hsl(280 45% 45%)", size: "300px", position: "bottom-[30%] right-[15%]", opacity: 0.07 },
+      { color: "hsl(268 65% 52%)", size: "600px", position: "top-[8%] left-[8%]", opacity: 0.12 },
+      { color: "hsl(280 55% 48%)", size: "450px", position: "bottom-[15%] right-[8%]", opacity: 0.10 },
+      { color: "hsl(265 60% 50%)", size: "700px", position: "top-[30%] left-[25%]", opacity: 0.08 },
     ],
     silhouettes: false,
     bgImages: [
