@@ -5,7 +5,7 @@ import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { apiPost } from "@/lib/api";
+import { useAuthStore } from "@/lib/auth-store";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
 import { AnimatePresence } from "framer-motion";
@@ -16,6 +16,8 @@ import {
   RefreshCw, X, Eye, Cpu, MonitorPlay,
   Play, Loader2, Clock, ChevronRight, ImageIcon,
 } from "lucide-react";
+
+const CLOUD_API_BASE = "https://switchcontrol.org/api";
 
 // ── Local types ──────────────────────────────────────────────────────────────
 
@@ -289,16 +291,27 @@ export default function Security() {
     if (!imageBase64 || !imageFile || imageAnalyzing) return;
     setImageAnalyzing(true); setImageError(null);
     try {
-      const aiRes = await apiPost<{
-        analysisType: string;
-        findings: { title: string; severity: string; description: string }[];
-        recommendations: string[];
-        rawAnalysis: string;
-      }>("/security/image-analysis", {
-        imageData: imageBase64,
-        imageType: imageFile.type,
-        analysisType: "generic",
+      const jwt = useAuthStore.getState().jwt;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
+
+      const response = await fetch(`${CLOUD_API_BASE}/security/image-analysis`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+        body: JSON.stringify({
+          imageData: imageBase64,
+          imageType: imageFile.type,
+          analysisType: "generic",
+        }),
       });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? `Analysis failed (${response.status})`);
+      }
+
+      const aiRes = await response.json();
       setImageResult({
         analysisType: aiRes.analysisType ?? "generic",
         findings: aiRes.findings ?? [],
