@@ -134,11 +134,13 @@ function NavItemRow({
   item,
   isActive,
   isTourHighlighted,
+  isTourLocked,
   onClick,
 }: {
   item: NavItem;
   isActive: boolean;
   isTourHighlighted: boolean;
+  isTourLocked: boolean;
   onClick: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -217,18 +219,20 @@ function NavItemRow({
       )}
 
       <motion.button
-        onClick={onClick}
-        onHoverStart={() => setHovered(true)}
+        onClick={isTourLocked ? undefined : onClick}
+        onHoverStart={() => { if (!isTourLocked) setHovered(true); }}
         onHoverEnd={() => setHovered(false)}
         data-tour={item.tourId}
         className={cn(
           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium group relative overflow-hidden text-left select-none",
           isActive || isTourHighlighted
             ? "text-white"
-            : "text-muted-foreground"
+            : "text-muted-foreground",
+          isTourLocked && !isTourHighlighted && !isActive && "opacity-35",
+          isTourLocked && "cursor-default pointer-events-none",
         )}
-        whileHover={!isActive && !isTourHighlighted ? { y: -1, transition: { duration: 0.15, ease: EASE_PREMIUM } } : undefined}
-        whileTap={{ scale: 0.975, transition: { duration: 0.1 } }}
+        whileHover={!isActive && !isTourHighlighted && !isTourLocked ? { y: -1, transition: { duration: 0.15, ease: EASE_PREMIUM } } : undefined}
+        whileTap={!isTourLocked ? { scale: 0.975, transition: { duration: 0.1 } } : undefined}
       >
         {/* Hover background (non-active items) */}
         {!isActive && !isTourHighlighted && (
@@ -424,7 +428,8 @@ export function Sidebar() {
                 item={item}
                 isActive={isActive}
                 isTourHighlighted={isTourHighlighted}
-                onClick={() => navigate(item.href)}
+                isTourLocked={isTourActive}
+                onClick={() => { if (!isTourActive) navigate(item.href); }}
               />
             </div>
           );
