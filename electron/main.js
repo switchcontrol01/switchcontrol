@@ -31,8 +31,9 @@ let mainWindow = null;
 
 // ── Admin / elevation state ───────────────────────────────────────────────────
 // Cached once at startup. True when the process has admin privileges.
+// In packaged builds the exe manifest (requestedExecutionLevel=requireAdministrator)
+// ensures the app always starts elevated, so this will always be true.
 let _appIsAdmin = null;
-const SC_ELEVATED_FLAG = '--sc-elevated';
 
 function checkWindowsAdmin() {
   if (process.platform !== 'win32') return Promise.resolve(true);
@@ -1518,44 +1519,16 @@ app.whenReady().then(async () => {
   console.log('[BOOT] process.execPath:', process.execPath);
   console.log('[BOOT] process.resourcesPath:', process.resourcesPath);
 
-  // ── Auto-elevation (Windows only) ──────────────────────────────────────────
-  // If the app was relaunched with the SC_ELEVATED_FLAG it is already admin.
-  // Otherwise check and, if needed, re-launch with RunAs so all tweak / power
-  // plan operations run without per-action UAC prompts.
-  if (process.platform === 'win32') {
-    if (process.argv.includes(SC_ELEVATED_FLAG)) {
-      _appIsAdmin = true;
-      console.log('[UAC] Launched elevated — admin mode active.');
-    } else {
-      console.log('[UAC] Checking admin status...');
-      _appIsAdmin = await checkWindowsAdmin();
-      console.log('[UAC] isAdmin:', _appIsAdmin);
-
-      if (!_appIsAdmin && !isDev) {
-        // Packaged app only: auto-relaunch as admin so all tweaks run without
-        // per-action UAC prompts. In dev mode we skip the relaunch to avoid
-        // disrupting the development workflow.
-        console.log('[UAC] Not admin — relaunching with RunAs elevation...');
-        try {
-          const exePath  = process.execPath.replace(/'/g, "''");
-          const newArgv  = [...process.argv.slice(1), SC_ELEVATED_FLAG];
-          const argItems = newArgv.map(a => `'${a.replace(/'/g, "''")}'`).join(', ');
-          const argList  = newArgv.length > 0 ? `@(${argItems})` : '@()';
-          execFile('powershell', [
-            '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
-            '-ExecutionPolicy', 'Bypass', '-Command',
-            `Start-Process '${exePath}' -ArgumentList ${argList} -Verb RunAs`,
-          ], { windowsHide: true });
-        } catch (e) {
-          console.error('[UAC] Auto-elevation launch failed:', e.message);
-        }
-        app.quit();
-        return;
-      }
-    }
-  } else {
-    _appIsAdmin = true;
-  }
+  // ── Admin status check (Windows only) ─────────────────────────────────────
+  // The packaged exe has requestedExecutionLevel=requireAdministrator in its
+  // manifest (via electron-builder.json) so Windows always elevates on launch.
+  // We cache the result here so the renderer can read it via app:isAdmin IPC.
+  checkWindowsAdmin().then(v => {
+    _appIsAdmin = v;
+    console.log('[UAC] isAdmin:', v);
+  }).catch(() => {
+    _appIsAdmin = false;
+  });
 
   const userDataPath = app.getPath('userData');
   configStore.init(userDataPath);
