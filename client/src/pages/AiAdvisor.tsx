@@ -548,6 +548,7 @@ export default function AiAdvisor() {
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -1086,7 +1087,15 @@ export default function AiAdvisor() {
             {/* Input area */}
             <form
               onSubmit={handleSubmit}
-              className="shrink-0 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.04] border border-white/[0.08] focus-within:border-white/[0.14] transition-colors"
+              onFocus={() => setInputFocused(true)}
+              onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setInputFocused(false); }}
+              className="shrink-0 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.04] border transition-all duration-200"
+              style={{
+                borderColor: inputFocused ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)',
+                boxShadow: inputFocused
+                  ? '0 0 0 1px rgba(139,92,246,0.15), inset 0 1px 0 rgba(255,255,255,0.03)'
+                  : 'none',
+              }}
               data-testid="chat-input-form"
             >
               {/* Image upload button */}
@@ -1103,6 +1112,7 @@ export default function AiAdvisor() {
                 )}
                 data-testid="button-attach-image"
                 title={!isOnline ? "Image upload unavailable offline" : "Attach image"}
+                style={{ outline: 'none' }}
               >
                 <Paperclip className="w-3.5 h-3.5" />
               </button>
@@ -1113,7 +1123,8 @@ export default function AiAdvisor() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder={!isOnline ? "Offline — draft saved, send when connected…" : attachedImage ? "Ask about this image…" : "Ask about optimizations, tweaks, games…"}
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25 outline-none"
+                className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25"
+                style={{ outline: 'none' }}
                 disabled={isBusy}
                 data-testid="input-chat-message"
               />
