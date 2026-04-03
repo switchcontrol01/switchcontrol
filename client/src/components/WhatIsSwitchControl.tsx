@@ -303,20 +303,12 @@ export function WhatIsSwitchControl() {
 
       <div className="container mx-auto px-4 max-w-4xl">
         <Reveal duration={0.7} distance={32}>
-          <div
-            className="relative rounded-2xl overflow-hidden backdrop-blur-xl"
-            style={{
-              background: 'linear-gradient(160deg, rgba(18,12,32,0.42) 0%, rgba(10,8,20,0.38) 100%)',
-              border: '1px solid rgba(168,85,247,0.22)',
-              boxShadow: '0 0 0 1px rgba(255,255,255,0.05) inset, 0 24px 60px rgba(0,0,0,0.25)',
-            }}
-          >
-            {/* Top accent glow line */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2/3 h-px pointer-events-none"
-              style={{ background: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.7), rgba(139,92,246,0.5), transparent)' }} />
-            {/* Subtle inner top highlight */}
-            <div className="absolute top-0 inset-x-0 h-32 pointer-events-none"
-              style={{ background: 'linear-gradient(to bottom, rgba(139,92,246,0.06), transparent)' }} />
+          <div className="relative rounded-2xl overflow-hidden">
+            {/* Glass layer — separate from overflow-hidden so backdrop-blur actually works */}
+            <div
+              className="absolute inset-0 rounded-2xl backdrop-blur-xl pointer-events-none"
+              style={{ background: 'linear-gradient(160deg, rgba(18,12,32,0.44) 0%, rgba(10,8,20,0.38) 100%)' }}
+            />
 
             <div className="relative p-7 md:p-10">
               {/* ── Header ── */}
