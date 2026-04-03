@@ -130,12 +130,14 @@ function useStreamData(
 
 /* ─── Shared styles ─── */
 const TT = {
-  backgroundColor: "rgba(5,3,14,0.97)",
-  border: "1px solid rgba(255,255,255,0.09)",
-  borderRadius: "8px",
+  backgroundColor: "rgba(255,255,255,0.07)",
+  backdropFilter: "blur(24px) saturate(1.8)",
+  WebkitBackdropFilter: "blur(24px) saturate(1.8)",
+  border: "1px solid rgba(255,255,255,0.16)",
+  borderRadius: "10px",
   fontSize: "11px",
   padding: "8px 12px",
-  boxShadow: "0 8px 32px rgba(0,0,0,0.55)",
+  boxShadow: "0 4px 24px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.12)",
 };
 const TICK = { fill: "rgba(255,255,255,0.2)", fontSize: 9 };
 
