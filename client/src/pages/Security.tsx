@@ -319,12 +319,11 @@ export default function Security() {
   const stateBg    = systemState === "secure" ? "bg-emerald-500/10 border-emerald-500/25" : systemState === "attention" ? "bg-red-500/10 border-red-500/25" : "bg-amber-500/10 border-amber-500/25";
   const stateLabel = systemState === "secure" ? "Secure" : systemState === "attention" ? "Needs Attention" : "Optimize";
 
-  const MotionDiv = prefersReducedMotion ? "div" : motion.div;
-  const card = (delay: number) => prefersReducedMotion ? {} : {
-    initial: { opacity: 0, y: 22 },
+  const cardAnim = (delay: number) => ({
+    initial: { opacity: 0, y: prefersReducedMotion ? 6 : 22 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.38, delay, ease: [0.22, 1, 0.36, 1] as any },
-  };
+    transition: { duration: prefersReducedMotion ? 0.2 : 0.38, delay: prefersReducedMotion ? delay * 0.5 : delay, ease: [0.22, 1, 0.36, 1] as any },
+  });
 
   return (
     <AppLayout>
@@ -401,7 +400,7 @@ export default function Security() {
                 { label: `${scanSummary.startupIssues} startup issue${scanSummary.startupIssues !== 1 ? "s" : ""}`, active: scanSummary.startupIssues > 0, cls: "text-amber-400 border-amber-500/25 bg-amber-500/10", Icon: MonitorPlay },
                 { label: `${scanSummary.backgroundIssues} background issue${scanSummary.backgroundIssues !== 1 ? "s" : ""}`, active: scanSummary.backgroundIssues > 0, cls: "text-orange-400 border-orange-500/25 bg-orange-500/10", Icon: Cpu },
               ].map((chip, i) => (
-                <MotionDiv key={chip.label} {...card(0.28 + i * 0.06)}>
+                <motion.div key={chip.label} {...cardAnim(0.28 + i * 0.06)}>
                   <Badge variant="outline"
                     className={cn("gap-1.5 py-1 px-2.5 text-xs font-medium",
                       chip.active ? chip.cls : "text-muted-foreground border-white/10 bg-white/5"
@@ -411,7 +410,7 @@ export default function Security() {
                     <chip.Icon className="size-3" />
                     {chip.label}
                   </Badge>
-                </MotionDiv>
+                </motion.div>
               ))}
             </div>
           )}
@@ -423,7 +422,7 @@ export default function Security() {
             <div className="flex flex-col gap-4">
 
               {/* Protection Status */}
-              <MotionDiv {...card(0.12)}>
+              <motion.div {...cardAnim(0.12)}>
               <GlassCard className="p-5" data-testid="card-security-status">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -466,10 +465,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
-              </MotionDiv>
+              </motion.div>
 
               {/* Scan Actions */}
-              <MotionDiv {...card(0.21)}>
+              <motion.div {...cardAnim(0.21)}>
               <GlassCard className="p-5" data-testid="card-scan-actions">
                 <div className="flex items-center gap-2 mb-4">
                   <Scan className="size-4 text-primary" />
@@ -507,10 +506,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
-              </MotionDiv>
+              </motion.div>
 
               {/* Screenshot Analysis */}
-              <MotionDiv {...card(0.30)}>
+              <motion.div {...cardAnim(0.30)}>
               <GlassCard className="p-5" data-testid="card-image-analysis">
                 <div className="flex items-center gap-2 mb-3">
                   <Eye className="size-4 text-primary" />
@@ -578,14 +577,14 @@ export default function Security() {
                 <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
                   className="hidden" onChange={handleFileChange} data-testid="input-screenshot-file" />
               </GlassCard>
-              </MotionDiv>
+              </motion.div>
             </div>
 
             {/* RIGHT */}
             <div className="flex flex-col gap-4">
 
               {/* Health Score */}
-              <MotionDiv {...card(0.16)}>
+              <motion.div {...cardAnim(0.16)}>
               <GlassCard className="p-5" data-testid="card-health-score">
                 <div className="flex items-center gap-2 mb-4">
                   <Zap className="size-4 text-primary" />
@@ -630,10 +629,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
-              </MotionDiv>
+              </motion.div>
 
               {/* Startup Watch */}
-              <MotionDiv {...card(0.25)}>
+              <motion.div {...cardAnim(0.25)}>
               <GlassCard className="p-5" data-testid="card-startup-watch">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -677,10 +676,10 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
-              </MotionDiv>
+              </motion.div>
 
               {/* Background Process Watch */}
-              <MotionDiv {...card(0.34)}>
+              <motion.div {...cardAnim(0.34)}>
               <GlassCard className="p-5" data-testid="card-process-watch">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
@@ -721,16 +720,12 @@ export default function Security() {
                   </div>
                 )}
               </GlassCard>
-              </MotionDiv>
+              </motion.div>
             </div>
           </div>
 
           {/* Recommendations panel */}
-          <MotionDiv
-            initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <motion.div {...cardAnim(0.42)}>
           <GlassCard className="p-5" data-testid="card-recommendations">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
@@ -789,7 +784,7 @@ export default function Security() {
                 {recommendations.map((rec, i) => {
                   const cfg = SEVERITY_CONFIG[rec.severity] ?? SEVERITY_CONFIG.info;
                   return (
-                    <MotionDiv key={rec.id} {...card(0.42 + i * 0.05)}>
+                    <motion.div key={rec.id} {...cardAnim(0.42 + i * 0.05)}>
                       <div className={cn("p-4 rounded-xl border space-y-2", cfg.bg)} data-testid={`card-rec-${rec.id}`}>
                         <div className="flex items-start justify-between gap-2">
                           <div className="flex items-center gap-2 flex-1 min-w-0">
@@ -815,13 +810,13 @@ export default function Security() {
                           )}
                         </div>
                       </div>
-                    </MotionDiv>
+                    </motion.div>
                   );
                 })}
               </div>
             )}
           </GlassCard>
-          </MotionDiv>
+          </motion.div>
         </div>
 
       </div>
