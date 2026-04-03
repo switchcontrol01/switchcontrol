@@ -93,11 +93,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <motion.div
             key={location}
             className="container max-w-7xl mx-auto p-8"
-            initial={shouldAnimate ? { opacity: 0, y: 8, scale: 0.995 } : { opacity: 1, y: 0, scale: 1 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={shouldAnimate ? { opacity: 0, y: -4, scale: 0.995 } : { opacity: 1, y: 0, scale: 1 }}
+            initial={shouldAnimate ? { opacity: 0, y: 10, scale: 0.993, filter: "blur(6px)" } : { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={shouldAnimate ? { opacity: 0, y: -6, scale: 0.993, filter: "blur(5px)" } : { opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             transition={{ 
-              duration: shouldAnimate ? timing.page : 0,
+              duration: shouldAnimate ? 0.32 : 0,
               ease: [0.22, 1, 0.36, 1] as const,
             }}
           >

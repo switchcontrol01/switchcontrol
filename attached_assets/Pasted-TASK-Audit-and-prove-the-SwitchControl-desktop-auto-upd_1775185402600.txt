@@ -1,0 +1,183 @@
+TASK
+Audit and prove the SwitchControl desktop auto-updater end-to-end on a REAL installed Windows build. Do not just describe architecture. Do not just say “implemented”. Prove the updater actually works, or identify the exact failure point.
+
+PROBLEM
+The current updater work sounds structurally fine, but there are several places where it may be falsely “complete” while still failing in production:
+- wrong package.json boundary for electron-updater
+- wrong Electron Builder package context
+- generic provider URL or file layout mismatch
+- latest.yml not being served correctly
+- startup check lifecycle too fragile
+- duplicate renderer state flow
+- no real install/update proof
+- missing code-signing truthfulness
+
+GOAL
+Return a verified updater audit with hard evidence, not assumptions.
+
+IMPORTANT
+Do NOT hand-wave.
+Do NOT say “should work”.
+Do NOT say “architecture is correct” unless it has been proven against the actual build config and release flow.
+If something is uncertain, say uncertain.
+If something is broken, say exactly what is broken and why.
+
+WHAT TO AUDIT
+
+1. BUILD CONTEXT TRUTH
+Determine exactly which package.json Electron Builder is using for the real Windows installed build.
+I need proof, not assumption.
+
+Verify:
+- root package.json
+- electron/package.json
+- electron-builder config source
+- actual main entry point used by packaged app
+- whether electron-updater is actually bundled into the installed app
+
+Return:
+- exact package boundary used at build time
+- whether electron-updater is in the effective runtime dependency graph
+- whether the current placement is correct or wrong
+
+2. PACKAGING TRUTH
+Inspect the actual build scripts and config.
+Verify:
+- build command
+- dist output
+- win target
+- main entry
+- publish config
+- artifact naming
+- latest.yml generation path
+
+Return:
+- exact build flow for installed Windows app
+- exact files generated for release
+- exact files the updater expects to find remotely
+
+3. GENERIC PROVIDER VALIDATION
+Audit the configured update URL and expected remote structure.
+
+Verify:
+- exact publish URL
+- exact expected URL to latest.yml
+- exact expected URL to installer file
+- whether the filenames in latest.yml match built artifacts
+- whether the host will serve latest.yml correctly
+- whether caching could break detection
+
+Return:
+- final remote file map
+- any mismatch risk
+- whether current setup is production-safe
+
+4. RENDERER STATE FLOW
+Audit the React updater hook and event flow.
+
+Verify:
+- initial state hydration path
+- event subscription path
+- whether polling duplicates event-driven state
+- whether flicker, double transitions, or stale state can occur
+- whether banner and settings card can disagree
+
+Return:
+- state lifecycle from app open to install
+- any duplication or race conditions
+- exact fix if flawed
+
+5. STARTUP CHECK LIFECYCLE
+Audit the current “startup check at 8 seconds” design.
+
+Verify:
+- where it is triggered
+- what app/window/auth state exists at that time
+- whether it can fire too early or too late
+- whether it should instead attach to ready-to-show / renderer-ready / idle window state
+
+Return:
+- current lifecycle truth
+- whether 8s delay is acceptable or a hack
+- exact better production lifecycle if needed
+
+6. WINDOWS REALITY CHECK
+Tell the truth about code signing and Windows trust.
+
+Verify:
+- whether installer is signed
+- whether update artifacts are signed
+- whether publisher identity is stable
+- whether SmartScreen friction is expected
+- whether this can honestly be called production-ready today
+
+Return:
+- signed or unsigned
+- consequences for users
+- exact production gap if not ready
+
+7. END-TO-END TEST PLAN
+Create the exact real-world proof sequence:
+- build version A
+- install version A
+- publish version B
+- open app
+- detect update
+- download update
+- restart/install
+- verify version B is active
+
+This must be a real executable test plan, not theory.
+
+Return:
+- exact commands
+- exact files to publish
+- exact URLs to verify
+- exact expected logs in main and renderer
+- exact UI states expected in app
+
+8. FAILURE TABLE
+Build a failure table with:
+- symptom
+- likely cause
+- where to inspect
+- exact fix
+
+Include at least:
+- no update detected
+- update available but download fails
+- banner appears but install never completes
+- latest.yml found but artifact mismatch
+- updater module missing in packaged app
+- renderer card stuck on checking
+- signed build issues / SmartScreen warnings
+
+CHECKLIST
+- Identify actual Electron Builder package boundary
+- Verify electron-updater is truly bundled
+- Verify remote artifact structure
+- Verify latest.yml naming/path expectations
+- Audit hook/event duplication risk
+- Audit startup delay strategy
+- Tell truth about signing
+- Provide real end-to-end proof plan
+- Provide failure matrix
+
+FINAL OUTPUT
+Return exactly:
+
+1. EFFECTIVE BUILD CONTEXT
+2. IS electron-updater ACTUALLY WIRED CORRECTLY?
+3. REMOTE FILE STRUCTURE REQUIRED
+4. CURRENT RISKS / FALSE ASSUMPTIONS
+5. STARTUP LIFECYCLE VERDICT
+6. SIGNING / WINDOWS TRUST VERDICT
+7. EXACT END-TO-END TEST PLAN
+8. FAILURE TABLE
+9. FINAL VERDICT:
+   - NOT READY
+   - READY FOR LOCAL TEST ONLY
+   - READY FOR STAGED WINDOWS TEST
+   - PRODUCTION READY
+
+Be strict. Be factual. No fake confidence.
