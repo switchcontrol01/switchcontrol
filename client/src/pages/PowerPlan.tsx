@@ -15,6 +15,7 @@ import {
   ChevronDown, ChevronUp, Info, X, RotateCcw, Check, AlertTriangle,
   Settings2, Lock, Battery, Loader2, RefreshCw, ShieldAlert,
 } from "lucide-react";
+import { IntentModeSelector, IntentModeDescription, type IntentMode } from "@/components/intelligence/IntentModeSelector";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
@@ -295,6 +296,7 @@ export default function PowerPlan() {
   const [activeTab, setActiveTab]   = useState<"profiles" | "custom">("profiles");
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [infoToggle, setInfoToggle]     = useState<OverrideToggle | null>(null);
+  const [intentMode, setIntentMode]     = useState<IntentMode>("balanced");
 
   const isElectron = isElectronWithPowerPlans();
 
@@ -394,6 +396,20 @@ export default function PowerPlan() {
       setApplying(null);
     }
   }, [isElectron, applyAction, toast]);
+
+  // ── Intent mode → profile mapping ─────────────────────────────────────────
+  const INTENT_TO_PROFILE: Record<IntentMode, FrontendProfileId> = {
+    competitive: "balanced",
+    balanced: "balanced",
+    silent: "efficiency",
+    "max-fps": "performance",
+  };
+
+  const handleIntentMode = useCallback((mode: IntentMode) => {
+    setIntentMode(mode);
+    const profileId = INTENT_TO_PROFILE[mode];
+    activateProfile(profileId);
+  }, [activateProfile]);
 
   // ── Overrides (kept as local-only for now) ──────────────────────────────────
   const updateLocalState = useCallback((updates: Partial<typeof localState>) => {
@@ -502,6 +518,17 @@ export default function PowerPlan() {
             </button>
           </div>
         )}
+
+        {/* ── System Intent Mode ───────────────────────────────────────── */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Rocket className="size-4 text-primary" />
+            <span className="text-sm font-medium">System Intent</span>
+            <span className="text-[10px] text-muted-foreground">Quick-select your scenario</span>
+          </div>
+          <IntentModeSelector value={intentMode} onChange={handleIntentMode} />
+          <IntentModeDescription mode={intentMode} />
+        </div>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profiles" | "custom")} className="space-y-6">
           <TabsList className="bg-black/40 border border-white/10">

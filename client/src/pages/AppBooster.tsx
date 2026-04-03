@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -175,6 +176,7 @@ const GPU_LABELS = {
 export default function AppBooster() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
+  const { telemetry: liveTel } = useLiveTelemetry();
   const [games, setGames] = useState<GameProfile[]>(SAMPLE_GAMES);
   const [selectedGame, setSelectedGame] = useState<GameProfile | null>(SAMPLE_GAMES[0]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -287,7 +289,7 @@ export default function AppBooster() {
             { label: "Games Detected", value: games.length, icon: Gamepad2, color: "text-primary" },
             { label: "Currently Boosted", value: boostedGames, icon: Rocket, color: "text-green-400" },
             { label: "Optimized Profiles", value: optimizedGames, icon: CheckCircle, color: "text-blue-400" },
-            { label: "FPS Potential", value: "+15-40%", icon: Gauge, color: "text-yellow-400" },
+            { label: "CPU Load", value: liveTel ? `${liveTel.cpu.load.toFixed(0)}%` : "—", icon: Gauge, color: liveTel && liveTel.cpu.load > 75 ? "text-red-400" : "text-yellow-400" },
           ].map((stat, i) => (
             <Item 
               key={stat.label}

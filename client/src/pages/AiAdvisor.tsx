@@ -28,6 +28,7 @@ import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -531,6 +532,7 @@ export default function AiAdvisor() {
   const { isPremium } = useAuth();
   const { isOnline } = useNetworkStatus();
   const { stats, tweaks } = useStore();
+  const { telemetry: liveTel } = useLiveTelemetry();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -672,10 +674,10 @@ export default function AiAdvisor() {
       enabledTweaks,
       disabledTweaks,
       telemetry: {
-        cpuTempC: null,
-        gpuTempC: null,
-        ramUsedGB: typeof stats.usedRamGb === "number" ? stats.usedRamGb : null,
-        cpuLoadPct: null,
+        cpuTempC: liveTel?.temps?.cpu ?? null,
+        gpuTempC: liveTel?.temps?.gpu ?? null,
+        ramUsedGB: liveTel?.ram.usedGB ?? (typeof stats.usedRamGb === "number" ? stats.usedRamGb : null),
+        cpuLoadPct: liveTel?.cpu.load ?? null,
         gpuLoadPct: null,
         avgFps: null,
         pingMs: null,
@@ -683,7 +685,7 @@ export default function AiAdvisor() {
     };
     setContext(ctx);
     contextRef.current = ctx;
-  }, [stats, tweaks]);
+  }, [stats, tweaks, liveTel]);
 
   // Auto-analysis welcome message
   useEffect(() => {

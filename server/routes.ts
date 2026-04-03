@@ -12,6 +12,8 @@ import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
 import securityRouter from "./routes/security";
+import { getSnapshot, getSystemSpecs } from "./lib/telemetry";
+import { setupWebSocketServer } from "./lib/wsServer";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -305,38 +307,42 @@ export async function registerRoutes(
 
   app.get("/api/telemetry", async (req, res) => {
     try {
-      const fluctuate = (base: number, range: number) => 
-        parseFloat((base + (Math.random() * range * 2 - range)).toFixed(1));
-      
+      const snap = await getSnapshot();
       res.json({
-        temps: {
-          cpu: fluctuate(65, 8),
-          gpu: fluctuate(58, 10),
-          mobo: fluctuate(42, 3)
-        },
-        ram: {
-          totalGB: 32,
-          usedGB: fluctuate(12.5, 2)
-        },
-        ssds: [
-          { 
-            name: "C:", 
-            totalGB: 512, 
-            usedGB: fluctuate(285, 5),
-            status: Math.random() > 0.7 ? "Active" : "Idle"
-          },
-          { 
-            name: "D:", 
-            totalGB: 1024, 
-            usedGB: fluctuate(620, 10),
-            status: Math.random() > 0.8 ? "Active" : "Idle"
-          }
-        ]
+        ts: snap.ts,
+        cpu: snap.cpu,
+        ram: snap.ram,
+        network: snap.network,
+        temps: snap.temps,
+        processes: snap.processes,
+        load_trend: snap.load_trend,
       });
     } catch (error) {
+      console.error("Telemetry error:", error);
       res.status(500).json({ error: "Failed to fetch telemetry" });
     }
   });
+
+  app.get("/api/specs", async (req, res) => {
+    try {
+      const specs = await getSystemSpecs();
+      res.json(specs);
+    } catch (error) {
+      console.error("Specs error:", error);
+      res.status(500).json({ error: "Failed to fetch system specs" });
+    }
+  });
+
+  app.post("/api/metrics/snapshot", csrfProtection, async (req, res) => {
+    try {
+      const snap = await getSnapshot();
+      res.json(snap);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to capture snapshot" });
+    }
+  });
+
+  setupWebSocketServer(httpServer);
 
   app.post("/api/clear-ram", csrfProtection, async (req, res) => {
     try {

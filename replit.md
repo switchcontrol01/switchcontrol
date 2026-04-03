@@ -48,11 +48,28 @@ The application is structured into `client/src` (frontend components, hooks, uti
 - **Tour System**: State-machine-driven (`useReducer`) with choreographed phases: `idle → dimming → navigating → scrolling → spotlighting → presenting → fading_out → done`. Single source of truth controls route transitions, sidebar highlighting (`[data-tour-highlight]` attribute), scroll positioning, and tooltip display. Steps support `sidebarHighlight` field.
 - **Dashboard Card Hierarchy**: Top row (Activity Monitor) uses `StatCard` → `GlassCard`. Bottom row (System Health, AI Advisor, BIOS Score) upgraded to `GlassCard` with colored corner glows and consistent padding layout.
 
+### Live Telemetry Infrastructure
+Real systeminformation-powered backend with no fake or randomized data:
+- **`server/lib/telemetry.ts`**: Polls `systeminformation` for CPU load/speed/temp, RAM usage, network RX/TX, process count every 1.5s. Exposes `getSnapshot()` and `subscribe(cb)`.
+- **`server/lib/wsServer.ts`**: WebSocket server at `/ws/telemetry`. Broadcasts `LiveTelemetry` snapshots every 1.5s to all connected clients.
+- **`client/src/hooks/useLiveTelemetry.ts`**: React hook consuming the WebSocket. Maintains 30-point rolling history for sparklines. Exposes `{ telemetry, history, connected }`.
+- **`client/src/hooks/useCauseEffect.ts`**: Before/after delta engine for tracking metric changes around actions.
+- **REST fallbacks**: `/api/telemetry` (snapshot), `/api/specs` (static system info), `/api/metrics/snapshot` (combined).
+
+### Intelligence UI Components (`client/src/components/intelligence/`)
+- **`SystemAura`**: Ambient background gradient driven by live CPU load — calm blue at low load, warm amber/red at high load.
+- **`PredictiveWarnings`**: Strip of real-time system warnings (high CPU temp, rising RAM, network latency) derived from live telemetry.
+- **`LatencyMap`**: Pipeline diagram (CPU → RAM → Network → IO) with live latency visualizations.
+- **`IntentModeSelector`**: Intent mode picker (Competitive / Balanced / Silent / Max FPS) that maps to power profiles.
+- **`TrustLayer`**: Expand panel on tweak cards showing risk, impact, and before/after delta details.
+
 ### Key Features
-- **Dashboard**: Displays system stats, simulates RAM clearing, initiates AI advisor scans, and shows live telemetry graphs (CPU, RAM).
-- **Tweaks**: Offers categorized, searchable system optimization toggles with informational modals.
-- **Network Tweaks**: Provides simulated optimizations for SMB, TCP/IP, UDP, DNS, and security settings.
-- **Power Plan**: Allows selection and customization of power profiles.
+- **Dashboard**: Live RAM from WebSocket, SystemAura ambient background, PredictiveWarnings strip, LatencyMap pipeline section. LiveGraph with real telemetry data.
+- **Tweaks**: TrustLayer integration on tweak cards — expand to see risk/impact/delta details.
+- **Network Tweaks**: LatencyMap + live RX/TX display.
+- **Power Plan**: IntentModeSelector for competitive/balanced/silent/max-fps modes.
+- **AI Advisor**: Live telemetry wired into AI context (real CPU load %, CPU/GPU temps, RAM usage from WebSocket).
+- **Security, FocusMode, SystemCleaner, StartupApps, Debloater, AppBooster**: Live resource strip showing real CPU%, RAM%, process count from WebSocket data.
 - **History**: Logs simulated actions with JSON export.
 - **Settings**: Manages account preferences and app configuration.
 

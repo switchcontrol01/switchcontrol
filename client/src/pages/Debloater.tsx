@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,6 +98,7 @@ const RISK_COLORS = {
 export default function Debloater() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
+  const { telemetry: liveTel } = useLiveTelemetry();
   const [role, setRole] = useState<SystemRole>("gaming");
   const [level, setLevel] = useState<DebloatLevel>("safe");
   const [items, setItems] = useState(DEBLOAT_ITEMS);
@@ -182,6 +184,22 @@ export default function Debloater() {
           title="Debloater"
           subtitle={<>Role-based debloating that removes what you don't need while protecting what you do.<span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span></>}
         />
+
+        {liveTel && (
+          <motion.div
+            className="flex items-center gap-4 px-3 py-2 rounded-lg border border-white/8 bg-white/3 text-[11px] text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <span>{liveTel.processes.total} active processes</span>
+            <span className="w-px h-3 bg-white/15" />
+            <span>RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400 font-mono" : "text-cyan-400 font-mono"}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
+            <span className="w-px h-3 bg-white/15" />
+            <span>CPU <span className="font-mono">{liveTel.cpu.load.toFixed(0)}%</span></span>
+            <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-5 gap-3">
           {SYSTEM_ROLES.map((r, i) => {

@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
+import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
+import { LatencyMap } from "@/components/intelligence/LatencyMap";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -272,8 +274,8 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
 }
 
 export default function NetworkTweaks() {
-  console.log("MOUNT NetworkTweaks");
   const { isPremium } = useAuth();
+  const { telemetry: liveTel } = useLiveTelemetry();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<NetworkCategory | "All">("All");
   const [enabledTweaks, setEnabledTweaks] = useState<Set<string>>(() => {
@@ -363,6 +365,25 @@ export default function NetworkTweaks() {
             Optimize latency, throughput, and stability. Apply carefully.
           </motion.p>
         </motion.div>
+
+        {/* Live system pipeline */}
+        {liveTel && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            <GlassCard className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-medium text-muted-foreground">Live network activity</span>
+                <span className="ml-auto text-[10px] font-mono text-muted-foreground/60">
+                  ↓ {formatKbps(liveTel.network.rx_sec)} &nbsp; ↑ {formatKbps(liveTel.network.tx_sec)}
+                </span>
+              </div>
+              <LatencyMap />
+            </GlassCard>
+          </motion.div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}

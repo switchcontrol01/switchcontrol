@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -119,6 +120,7 @@ const RISK_COLORS = {
 export default function SystemCleaner() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
+  const { telemetry: liveTel } = useLiveTelemetry();
   const [categories, setCategories] = useState(CLEANING_CATEGORIES);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["performance", "latency"]));
   const [mode, setMode] = useState<"safe" | "advanced">("safe");
@@ -233,6 +235,22 @@ export default function SystemCleaner() {
             </Badge>
           }
         />
+
+        {liveTel && (
+          <motion.div
+            className="flex items-center gap-4 px-3 py-2 rounded-lg border border-white/8 bg-white/3 text-[11px] text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <span>RAM used <span className={liveTel.ram.usedPercent > 80 ? "text-red-400 font-mono" : "text-cyan-400 font-mono"}>{liveTel.ram.usedGB.toFixed(1)} GB</span> of {liveTel.ram.totalGB.toFixed(0)} GB</span>
+            <span className="w-px h-3 bg-white/15" />
+            <span>CPU <span className="font-mono text-muted-foreground">{liveTel.cpu.load.toFixed(0)}%</span></span>
+            <span className="w-px h-3 bg-white/15" />
+            <span>{liveTel.processes.total} processes</span>
+            <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
+          </motion.div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
           {[

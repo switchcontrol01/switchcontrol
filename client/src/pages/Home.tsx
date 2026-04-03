@@ -5,7 +5,11 @@ import { StorageCards } from "@/components/dashboard/StorageCards";
 import { DashboardHeaderParticles, type DashboardTimeOfDay } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
-import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight } from "lucide-react";
+import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi } from "lucide-react";
+import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
+import { PredictiveWarnings } from "@/components/intelligence/PredictiveWarnings";
+import { LatencyMap } from "@/components/intelligence/LatencyMap";
+import { SystemAura } from "@/components/intelligence/SystemAura";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Link } from "wouter";
@@ -289,6 +293,7 @@ function useLiveStatus(): string {
 
 export default function Home() {
   const { stats, account, setStats } = useStore();
+  const { telemetry: liveTel } = useLiveTelemetry();
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
@@ -376,6 +381,31 @@ export default function Home() {
       }).catch(() => {});
     } else {
       setGpuDetailAvailable(false);
+      // Web fallback: fetch specs from server API
+      fetch("/api/specs")
+        .then((r) => r.json())
+        .then((specs: any) => {
+          setStats({
+            cpuName: specs.cpu?.model || "Unavailable",
+            cpuCores: specs.cpu?.cores || 0,
+            cpuThreads: specs.cpu?.threads || 0,
+            cpuSpeed: specs.cpu?.speed || "Unavailable",
+            gpuName: specs.gpu?.model || "Unavailable",
+            gpuVendor: specs.gpu?.vendor || "Unavailable",
+            vramGb: specs.gpu?.vramGB || 0,
+            totalRamGb: specs.ram?.totalGB || 0,
+            usedRamGb: specs.ram?.usedGB || 0,
+            freeRamGb: specs.ram?.freeGB || 0,
+            diskName: specs.disk?.name || "Unavailable",
+            diskUsedGb: 0,
+            diskTotalGb: specs.disk?.size || 0,
+            osName: specs.system?.os || "Unavailable",
+            osVersion: specs.system?.osVersion || "",
+            osArch: specs.system?.arch || "",
+            hostname: specs.system?.hostname || "",
+          });
+        })
+        .catch(() => {});
     }
   }, []);
 
@@ -421,7 +451,10 @@ export default function Home() {
     setSsdData(data.ssds);
   }, []);
   
-  const ramPercent = (stats.usedRamGb / stats.totalRamGb) * 100;
+  // Prefer live WebSocket telemetry for RAM (always up-to-date)
+  const liveRamUsedGb = liveTel?.ram.usedGB ?? stats.usedRamGb;
+  const liveRamTotalGb = liveTel?.ram.totalGB ?? stats.totalRamGb;
+  const ramPercent = liveRamTotalGb > 0 ? (liveRamUsedGb / liveRamTotalGb) * 100 : (stats.usedRamGb / stats.totalRamGb) * 100;
   
   const selectedDisk = allDisks.length > 0 ? allDisks[selectedDiskIndex] : null;
   const currentDiskUsed = selectedDisk?.usedGB ?? stats.diskUsedGb;
@@ -437,6 +470,9 @@ export default function Home() {
   return (
     <AppLayout>
       <div className="space-y-8">
+        {/* SystemAura — reactive ambient background */}
+        <SystemAura telemetry={liveTel} className="fixed" />
+
         {/* ── Dashboard hero header ── */}
         <div className="relative py-2 pb-4 min-h-[88px]" data-tour="dashboard-hero">
           <DashboardHeaderParticles timeOfDay={timeOfDay} />
@@ -521,6 +557,9 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Predictive warnings strip — only renders when there are real warnings */}
+        <PredictiveWarnings telemetry={liveTel} />
+
         {/* Activity Monitor Grid */}
         <div className="space-y-4" data-reveal>
           <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
@@ -542,8 +581,8 @@ export default function Home() {
             >
               <StatCard
                 title="Memory"
-                value={typeof stats.usedRamGb === 'number' && Number.isFinite(stats.usedRamGb) ? stats.usedRamGb.toFixed(1) : '0.0'}
-                total={stats.totalRamGb}
+                value={Number.isFinite(liveRamUsedGb) ? liveRamUsedGb.toFixed(1) : '0.0'}
+                total={liveRamTotalGb}
                 unit="GB"
                 icon={MemoryStick}
                 onIconClick={() => setMemIntelOpen(true)}
@@ -632,6 +671,20 @@ export default function Home() {
             selectedDiskMount={selectedDisk?.mount ?? null}
           />
         </div>
+
+        {/* System Pipeline — Latency Map */}
+        {liveTel && (
+          <div data-reveal data-delay="1">
+            <GlassCard className="p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Wifi className="size-4 text-primary" />
+                <span className="text-sm font-medium">System Pipeline</span>
+                <span className="text-[10px] text-muted-foreground ml-auto">Live</span>
+              </div>
+              <LatencyMap />
+            </GlassCard>
+          </div>
+        )}
 
         {/* Storage Section */}
         <div data-reveal data-delay="2">

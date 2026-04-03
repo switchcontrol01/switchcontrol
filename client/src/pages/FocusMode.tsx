@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,6 +119,7 @@ const TIME_PRESETS = [
 export default function FocusMode() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
+  const { telemetry: liveTel } = useLiveTelemetry();
   const [isActive, setIsActive] = useState(false);
   const [activeProfile, setActiveProfile] = useState<string>("gaming");
   const [triggers, setTriggers] = useState(FOCUS_TRIGGERS);
@@ -198,6 +200,23 @@ export default function FocusMode() {
             </Button>
           }
         />
+
+        {/* Live resource context hint */}
+        {liveTel && (
+          <motion.div
+            className="flex items-center gap-4 px-3 py-2 rounded-lg border border-white/8 bg-white/3 text-[11px] text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <span>CPU <span className={liveTel.cpu.load > 75 ? "text-red-400 font-mono" : "text-emerald-400 font-mono"}>{liveTel.cpu.load.toFixed(0)}%</span></span>
+            <span className="w-px h-3 bg-white/15" />
+            <span>RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400 font-mono" : "text-cyan-400 font-mono"}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
+            <span className="w-px h-3 bg-white/15" />
+            <span>{liveTel.processes.total} processes</span>
+            {isActive && <span className="ml-auto text-emerald-400 font-medium">Focus active — overhead reduced</span>}
+          </motion.div>
+        )}
 
         {isActive && (
           <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30">

@@ -83,8 +83,42 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const fetchTelemetry = useCallback(async () => {
     try {
       const api = (window as any).electronAPI;
+
+      // Web fallback: use real server telemetry when Electron API not present
       if (!api?.telemetry?.getLive) {
-        setError("Telemetry not available in browser");
+        const res = await fetch("/api/telemetry");
+        if (!res.ok) { setError("Telemetry unavailable"); return; }
+        const snap = await res.json();
+        const cpuLoad   = snap.cpu?.load ?? 0;
+        const cpuTemp   = snap.temps?.cpu ?? null;
+        const ramUsedGb  = snap.ram?.usedGB ?? 0;
+        const ramTotalGb = snap.ram?.totalGB ?? 0;
+        const ramPercent = snap.ram?.usedPercent ?? 0;
+        const netRxSec   = snap.network?.rx_sec != null ? snap.network.rx_sec / 1024 : null;
+        const netTxSec   = snap.network?.tx_sec != null ? snap.network.tx_sec / 1024 : null;
+
+        const telemetryState: LatestState = {
+          cpuLoad, cpuTemp,
+          gpuTemp: snap.temps?.gpu ?? null,
+          gpuLoad: null, gpuMemUsed: null, gpuMemTotal: null, gpuMemPct: null, gpuPower: null, gpuClockMhz: null,
+          showGpu: false,
+          ramUsedGb, ramTotalGb, ramPercent,
+          showRam: ramTotalGb > 0,
+          diskPercent: 0,
+          netRxSec, netTxSec,
+          coreCount: snap.cpu?.cores ?? 0,
+        };
+        setLatest(telemetryState);
+        setError(null);
+        retryCountRef.current = 0;
+
+        const now = new Date();
+        const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, '0')}`;
+        setData(prev => {
+          const pt: DataPoint = { time: timeStr, cpuLoad, cpuTemp, gpuLoad: null, gpuTemp: null, gpuMemPct: null, ram: ramPercent, disk: 0, netRx: netRxSec, netTx: netTxSec };
+          const updated = [...prev, pt];
+          return updated.length > 60 ? updated.slice(-60) : updated;
+        });
         return;
       }
 

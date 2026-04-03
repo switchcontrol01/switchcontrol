@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
+import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -169,6 +170,7 @@ function HealthScoreRing({ score, state }: { score: number; state: ScanSummary["
 export default function Security() {
   const { prefersReducedMotion } = useMotion();
   const hasSecurity = isElectronWithSecurity();
+  const { telemetry: liveTel } = useLiveTelemetry();
 
   const [securityStatus,  setSecurityStatus]  = useState<SecurityStatus | null>(null);
   const [startupItems,    setStartupItems]    = useState<StartupItem[]>([]);
@@ -385,6 +387,44 @@ export default function Security() {
               </motion.div>
             )}
           </motion.div>
+
+          {/* Live resource strip */}
+          {liveTel && (
+            <motion.div
+              className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/8 bg-white/3 flex-wrap"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.3 }}
+            >
+              <div className="flex items-center gap-1.5">
+                <Cpu className="size-3 text-muted-foreground" />
+                <span className="text-[11px] font-mono tabular-nums">
+                  CPU <span className={liveTel.cpu.load > 75 ? "text-red-400" : liveTel.cpu.load > 50 ? "text-amber-400" : "text-emerald-400"}>{liveTel.cpu.load.toFixed(0)}%</span>
+                </span>
+              </div>
+              <div className="h-3 w-[1px] bg-white/15" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
+                  RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400" : liveTel.ram.usedPercent > 60 ? "text-amber-400" : "text-cyan-400"}>{liveTel.ram.usedPercent.toFixed(0)}%</span>
+                </span>
+              </div>
+              <div className="h-3 w-[1px] bg-white/15" />
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-muted-foreground">
+                  {liveTel.processes.total} processes running
+                </span>
+              </div>
+              {liveTel.load_trend !== "stable" && (
+                <>
+                  <div className="h-3 w-[1px] bg-white/15" />
+                  <span className={cn("text-[10px]", liveTel.load_trend === "rising" ? "text-amber-400" : "text-emerald-400")}>
+                    Load {liveTel.load_trend}
+                  </span>
+                </>
+              )}
+              <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
+            </motion.div>
+          )}
 
           {/* Non-Electron notice */}
           {!hasSecurity && (

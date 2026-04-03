@@ -5,8 +5,9 @@ import { GlassCard } from "@/components/ui/glass-card";
 import {
   Info, AlertTriangle, ShieldCheck, X, Lock, Crown, Loader2,
   Zap, CheckCircle2, XCircle, Terminal, RefreshCw, ShieldOff, AlertCircle,
-  ShieldAlert, Ban, HelpCircle, ChevronDown, ChevronUp,
+  ShieldAlert, Ban, HelpCircle, ChevronDown, ChevronUp, BarChart2,
 } from "lucide-react";
+import { TrustLayer } from "@/components/intelligence/TrustLayer";
 import { Tweak, RiskLevel, TweakLevel, TweakExpected, ImpactLevel } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
@@ -220,6 +221,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
 // ── Main card ─────────────────────────────────────────────────────────────────
 export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   const [open, setOpen]               = useState(false);
+  const [trustOpen, setTrustOpen]     = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [failureInfo, setFailureInfo] = useState<FailureInfo | null>(null);
   const failureTimer                  = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -347,6 +349,20 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
             <div className="flex items-center gap-4 pl-4 shrink-0">
               <motion.div whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
                 <Button
+                  variant="ghost" size="icon"
+                  onClick={() => setTrustOpen(!trustOpen)}
+                  data-testid={`button-trust-${tweak.id}`}
+                  className={cn(
+                    "size-8 hover:bg-white/10 transition-all duration-300 rounded-full",
+                    trustOpen ? "text-primary opacity-100" : "text-muted-foreground opacity-0 group-hover:opacity-100"
+                  )}
+                  title="Show impact details"
+                >
+                  <BarChart2 className="size-3.5" />
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
+                <Button
                   variant="ghost" size="icon" onClick={openModal}
                   data-testid={`button-info-${tweak.id}`}
                   className="size-8 text-muted-foreground hover:text-foreground hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
@@ -398,6 +414,9 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               />
             )}
           </AnimatePresence>
+
+          {/* TrustLayer — expandable impact breakdown */}
+          <TrustLayer tweak={tweak} isOpen={trustOpen} />
         </GlassCard>
       </motion.div>
 
