@@ -1025,7 +1025,7 @@ export default function AiAdvisor() {
             {/* Input area */}
             <form
               onSubmit={handleSubmit}
-              className="shrink-0 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.04] border border-white/[0.08] focus-within:border-primary/30 transition-colors"
+              className="shrink-0 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.04] border border-white/[0.08] focus-within:border-white/[0.14] transition-colors"
               data-testid="chat-input-form"
             >
               {/* Image upload button */}
