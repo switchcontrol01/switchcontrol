@@ -291,14 +291,24 @@ export function WhatIsSwitchControl() {
 
   return (
     <section className="py-20 md:py-24 relative" data-reveal>
+      {/* Orbs that the glass blur renders through */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[8%] w-[480px] h-[480px] rounded-full"
+          style={{ background: 'radial-gradient(circle, hsl(270 70% 55% / 0.38) 0%, transparent 70%)', filter: 'blur(60px)' }} />
+        <div className="absolute bottom-[-5%] right-[6%] w-[360px] h-[360px] rounded-full"
+          style={{ background: 'radial-gradient(circle, hsl(220 80% 60% / 0.28) 0%, transparent 70%)', filter: 'blur(50px)' }} />
+        <div className="absolute top-[40%] right-[20%] w-[280px] h-[280px] rounded-full"
+          style={{ background: 'radial-gradient(circle, hsl(290 65% 50% / 0.22) 0%, transparent 70%)', filter: 'blur(45px)' }} />
+      </div>
+
       <div className="container mx-auto px-4 max-w-4xl">
         <Reveal duration={0.7} distance={32}>
           <div
             className="relative rounded-2xl overflow-hidden backdrop-blur-xl"
             style={{
-              background: 'linear-gradient(160deg, rgba(18,12,32,0.55) 0%, rgba(10,8,20,0.50) 100%)',
-              border: '1px solid rgba(139,92,246,0.12)',
-              boxShadow: '0 0 0 1px rgba(255,255,255,0.03) inset, 0 24px 60px rgba(0,0,0,0.3), 0 0 40px rgba(139,92,246,0.04)',
+              background: 'linear-gradient(160deg, rgba(18,12,32,0.42) 0%, rgba(10,8,20,0.38) 100%)',
+              border: '1px solid rgba(168,85,247,0.22)',
+              boxShadow: '0 0 0 1px rgba(255,255,255,0.05) inset, 0 24px 60px rgba(0,0,0,0.25)',
             }}
           >
             {/* Top accent glow line */}
