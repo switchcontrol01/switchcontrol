@@ -1,0 +1,109 @@
+TASK
+
+Extend the Live System Monitor so it supports additional real metrics cleanly, starting with Disk and GPU.
+
+PROBLEM
+
+The current main graph only shows CPU and RAM.
+Network exists only in expanded view.
+Disk is missing.
+GPU should also be available if the installed GPU dependency is already working, but it must be fully wired from collection through renderer, not just installed.
+
+GOAL
+
+Add real additional system metrics to the monitoring pipeline and graph system without making the UI cluttered or unreadable.
+
+PRIORITY ORDER
+
+1. Disk
+2. GPU
+3. Network integration improvements
+4. Optional expanded metrics like VRAM and temperatures
+
+IMPLEMENTATION
+
+1. AUDIT CURRENT TELEMETRY PIPELINE
+
+Trace all available metrics from:
+
+- systeminformation
+- any added GPU-specific node dependency
+- existing network telemetry source
+
+Confirm what is actually available and stable for:
+
+- CPU %
+- RAM %
+- Disk active time % or read/write throughput
+- GPU utilization %
+- VRAM usage
+- Network upload/download
+- Temperatures if reliable
+
+2. ADD DISK METRIC TO MAIN GRAPH
+
+Implement Disk as a real live metric.
+
+Choose ONE clear primary disk metric for the main graph:
+
+- preferred: Disk active time %
+  or
+- alternative: Disk throughput (read/write combined or clearly labeled)
+
+Do not use total disk capacity for the live graph.
+Capacity belongs in cards, not live activity line.
+
+3. ADD GPU METRIC TO MAIN GRAPH
+
+If the GPU package is already installed and data is working, add:
+
+- GPU utilization % as the primary GPU line
+
+Optional expanded metrics:
+
+- VRAM usage
+- GPU temperature
+- GPU power draw
+  Only if reliable and not fake.
+
+4. DO NOT MAKE THE MAIN GRAPH MESSY
+
+Main graph default should remain clean.
+
+Recommended default visible lines:
+
+- CPU
+- RAM
+- Disk
+- GPU
+
+Network should either:
+
+- stay in expanded mode
+  or
+- be toggleable into the graph
+
+5. ADD TOGGLES
+
+Add metric toggles above the graph:
+
+- CPU
+- RAM
+- Disk
+- GPU
+- Network
+
+Users can show/hide lines.
+Preserve state cleanly.
+
+6. VISUAL DIFFERENTIATION
+
+Make each line clearly distinct:
+
+- CPU = bold solid
+- RAM = medium solid
+- Disk = dotted or alternate style
+- GPU = distinct solid
+- Network = lighter or optional
+
+Do not allow overlapping lines to become unreadable.

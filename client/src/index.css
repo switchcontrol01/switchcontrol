@@ -1323,8 +1323,8 @@ html {
   [data-reveal] {
     filter: none;
     transform: none;
-    opacity: 1;
-    transition: none;
+    opacity: 0;
+    transition: opacity 0.45s ease;
   }
   [data-reveal].is-visible {
     opacity: 1;
@@ -1670,9 +1670,10 @@ html {
   }
   
   [data-reveal] {
-    opacity: 1;
+    opacity: 0;
     transform: none;
-    transition: none;
+    filter: none;
+    transition: opacity 0.45s ease;
   }
   
   .page-enter {

@@ -11,38 +11,31 @@ type Options = {
 
 export function useRevealOnScroll({
   selector = "[data-reveal]",
-  rootMargin = "0px 0px -8% 0px",
-  threshold = 0.08,
+  rootMargin = "0px 0px -6% 0px",
+  threshold = 0.06,
   once = true,
   locationKey,
 }: Options = {}) {
   useEffect(() => {
-    // If reduced motion is preferred, immediately reveal all elements
-    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    // Reset previously-revealed elements
+    // Reset previously-revealed elements so new page starts hidden
     document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
       el.classList.remove("is-visible");
     });
 
-    if (prefersReduced) {
-      // Immediately show all — no animation needed
-      document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
-        el.classList.add("is-visible");
-      });
-      return;
-    }
-
     let io: IntersectionObserver | null = null;
 
-    // Emergency fallback: force all visible after 600ms in case observer fails
+    // Smart emergency fallback: after 900ms reveal only elements
+    // already in the viewport (not elements further down the page)
     const emergencyTimer = setTimeout(() => {
       document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
-        el.classList.add("is-visible");
+        const rect = el.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 1.1 && rect.bottom > 0) {
+          el.classList.add("is-visible");
+        }
       });
-    }, 600);
+    }, 900);
 
-    // Small delay: let the incoming page finish mounting/painting before observing
+    // Small delay: let the incoming page finish mounting before observing
     const timerId = setTimeout(() => {
       const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
       if (!els.length) return;
@@ -69,7 +62,7 @@ export function useRevealOnScroll({
       clearTimeout(emergencyTimer);
       io?.disconnect();
     };
-  // locationKey is intentionally the only dependency that drives re-runs on nav
+  // locationKey drives re-runs on navigation
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationKey]);
 }

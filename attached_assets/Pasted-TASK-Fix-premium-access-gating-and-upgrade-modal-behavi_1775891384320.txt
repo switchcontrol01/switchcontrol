@@ -1,0 +1,113 @@
+TASK
+
+Fix premium access gating and upgrade modal behavior across the app.
+
+PROBLEM 1: Premium features are not consistently locked
+
+- Free users can access or see premium features without restriction
+- Some areas show upgrade modal, others do not
+- Entitlement logic is inconsistent across components
+
+PROBLEM 2: Upgrade modal cannot be closed
+
+- Clicking background does not close modal
+- No escape key handling
+- User gets stuck and must restart app
+
+This is a critical UX issue.
+
+GOAL
+
+1. Ensure all premium features are properly gated based on user entitlement
+2. Fix modal so it can ALWAYS be exited safely
+
+IMPLEMENTATION
+
+PART 1: CENTRALIZED ENTITLEMENT SYSTEM
+
+Create a single source of truth for user access:
+
+Example structure:
+
+- plan: "free" | "trial" | "premium"
+- isPremium: boolean
+- trialActive: boolean
+
+This state must be:
+
+- globally accessible (context/store)
+- used consistently across ALL components
+
+Replace all scattered checks with this centralized logic.
+
+PART 2: ENFORCE GATING
+
+For every premium feature:
+
+- blur or visually lock content if user is not premium
+- intercept click actions
+- trigger upgrade modal instead of executing action
+
+Apply this to:
+
+- tweak cards
+- buttons
+- premium-only features
+- AI advisor locked features
+- any advanced functionality
+
+PART 3: FIX UPGRADE MODAL
+
+Modal must ALWAYS be closable.
+
+Implement:
+
+1. Overlay click closes modal:
+
+- clicking dark background should close
+
+2. Escape key closes modal:
+
+- add global key listener
+
+3. Close button:
+
+- visible X button in top corner
+
+4. Prevent event blocking:
+
+- ensure overlay has pointer-events enabled
+- ensure modal layering (z-index) is correct
+
+5. State reset:
+
+- modal state must properly toggle true/false
+- no stuck states
+
+PART 4: FALLBACK SAFETY
+
+Add safety fallback:
+
+- if modal is open for too long or state breaks, allow forced close
+- ensure app never traps user in modal state
+
+CHECKLIST
+
+- free user cannot execute premium tweak
+- all premium UI elements are visually locked
+- clicking premium feature always opens modal
+- modal closes on:
+  - background click
+  - escape key
+  - close button
+- no need to restart app ever
+- entitlement logic consistent across entire app
+
+FINAL OUTPUT
+
+Return:
+
+- where entitlement logic is stored
+- all components updated
+- modal behavior confirmation
+- confirmation bug is fully resolved

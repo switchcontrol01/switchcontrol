@@ -664,17 +664,14 @@ export default function Home() {
             Activity Monitor
           </h2>
           
-          <motion.div 
-            className="grid gap-4 md:grid-cols-2 lg:grid-cols-4"
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-          >
-            <motion.div 
-              variants={staggerItem}
-              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title="Memory"
@@ -691,11 +688,13 @@ export default function Home() {
               />
             </motion.div>
             
-            <motion.div 
-              variants={staggerItem}
-              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+              transition={{ duration: 0.5, delay: 0.07, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title="CPU"
@@ -708,11 +707,13 @@ export default function Home() {
               />
             </motion.div>
             
-            <motion.div 
-              variants={staggerItem}
-              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.2 }}
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+              transition={{ duration: 0.5, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title="GPU"
@@ -724,11 +725,13 @@ export default function Home() {
               />
             </motion.div>
             
-            <motion.div 
-              variants={staggerItem}
-              initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.3 }}
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+              transition={{ duration: 0.5, delay: 0.21, ease: [0.22, 1, 0.36, 1] }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title={
@@ -762,7 +765,7 @@ export default function Home() {
                 loading={specStatus === "loading"}
               />
             </motion.div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Live Graph */}
@@ -798,18 +801,15 @@ export default function Home() {
         </div>
 
         {/* Bottom Section */}
-        <motion.div 
-          className="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
-          variants={staggerContainer}
-          initial="initial"
-          animate="animate"
-        >
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Account Status Card - Updated */}
-          <motion.div 
-            variants={staggerItem}
-            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
+          <motion.div
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20, filter: prefersReducedMotion ? "none" : "blur(12px)" }}
+            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            viewport={{ once: true, margin: "0px 0px -80px 0px" }}
+            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.99 }}
           >
             <GlassCard className="overflow-hidden relative group h-full">
             <div className="absolute -right-16 -top-16 h-40 w-40 bg-emerald-500/8 blur-3xl rounded-full pointer-events-none group-hover:bg-emerald-500/15 transition-colors duration-500" />
@@ -862,26 +862,30 @@ export default function Home() {
           </motion.div>
 
           {/* AI Advisor Summary Widget */}
-          <motion.div 
-            variants={staggerItem}
-            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.1 }}
+          <motion.div
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20, filter: prefersReducedMotion ? "none" : "blur(12px)" }}
+            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            viewport={{ once: true, margin: "0px 0px -80px 0px" }}
+            transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.99 }}
             data-tour="ai-advisor"
           >
             <AIAdvisorSummaryCard isPremium={isPremium} />
           </motion.div>
 
           {/* BIOS Score Summary Card */}
-          <motion.div 
-            variants={staggerItem}
-            initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: 0.2 }}
+          <motion.div
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20, filter: prefersReducedMotion ? "none" : "blur(12px)" }}
+            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            viewport={{ once: true, margin: "0px 0px -80px 0px" }}
+            transition={{ duration: 0.55, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.99 }}
           >
             <BiosScoreSummaryCard isPremium={isPremium} />
           </motion.div>
-        </motion.div>
+        </div>
 
         {/* Dashboard Insights — scroll-depth section with real system intelligence */}
         <div data-reveal data-delay="3">
