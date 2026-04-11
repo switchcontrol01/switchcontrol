@@ -199,12 +199,12 @@ async function pollTelemetry() {
 
     gpuPollCache = newGpu;
 
-    console.log('[telemetry:poll] GPU:', JSON.stringify({
-      load: gpuPollCache.load, source: gpuPollCache.source,
-      temp: gpuPollCache.temp, power: gpuPollCache.power,
-      memUsedMb: gpuPollCache.memUsedMb, memTotalMb: gpuPollCache.memTotalMb,
-      counterRaw: gpuCounterLoad, lhmLoad: lhm?.gpuLoad ?? null,
-    }));
+    console.log('[GPU:debug] source=' + gpuPollCache.source +
+      ' finalLoad=' + gpuPollCache.load + '%' +
+      ' | engines(sum-per-type)=' + JSON.stringify(lastGpuEngineBreakdown) +
+      ' | lhmLoad=' + (lhm?.gpuLoad ?? null) +
+      ' | temp=' + gpuPollCache.temp + 'C power=' + gpuPollCache.power + 'W' +
+      ' vram=' + gpuPollCache.memUsedMb + '/' + gpuPollCache.memTotalMb + 'MB');
     console.log('[telemetry:poll] CPU/RAM/Disk:',
       JSON.stringify({
         currentLoad: load.currentLoad,
@@ -239,8 +239,8 @@ async function startTelemetryPolling() {
   await new Promise(r => setTimeout(r, 1500));
   await pollTelemetry();
 
-  telemetryPollInterval = setInterval(pollTelemetry, 2000);
-  console.log('[telemetry:poll] background poll started (2s interval)');
+  telemetryPollInterval = setInterval(pollTelemetry, 1000);
+  console.log('[telemetry:poll] background poll started (1s interval)');
 }
 
 // Register protocol handler BEFORE app is ready
@@ -672,36 +672,51 @@ function parseLhmData(data) {
 
 // ─── Windows GPU Performance Counter ─────────────────────────────────────────
 // Reads "\GPU Engine(*)\Utilization Percentage" counters via PowerShell.
-// Groups by engine type, takes the peak value per type, sums across types,
-// clamped to 0-100. This mirrors how Task Manager computes total GPU usage.
+//
+// AGGREGATION MODEL (Option A — max, not sum):
+//   1. Query all GPU Engine utilization counter instances
+//   2. Group by engine type (3D, Compute, VideoDecode, VideoEncode, Copy, etc.)
+//   3. SUM across process instances of the SAME engine type
+//      (multiple processes can share one physical engine)
+//   4. Take the MAX across engine types
+//      (engines are independent processing units — summing them overcounts)
+//
+// WHY MAX NOT SUM:
+//   Different engine types (3D, Compute, Video…) are physically separate parts
+//   of the GPU die. A 3D engine at 60% + VideoDecode at 30% does NOT mean the
+//   GPU is 90% busy — it means one unit is at 60% and another at 30%.
+//   Task Manager reports the highest engine utilization as the overall GPU %.
+//   Summing would produce inflated values and require an arbitrary clamp to 100.
+//
 // Works on AMD, NVIDIA, and Intel GPUs without any extra software.
 // Only runs on win32 — returns null immediately on other platforms.
 let gpuPerfCounterFailCount = 0;
 const GPU_PERF_COUNTER_MAX_FAILS = 5; // stop trying after 5 consecutive failures
 
+// Last per-engine breakdown — exposed for debug logging
+let lastGpuEngineBreakdown = {};
+
 async function getGpuPerfCounterLoad() {
   if (process.platform !== 'win32') return null;
   if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS) return null;
 
-  // PowerShell script:
-  //  1. Query all GPU Engine utilization counter instances
-  //  2. Group by engine type (the part after '_engtype_' in the instance name)
-  //  3. Take the SUM for each engine type across all adapter instances
-  //  4. Sum across all engine types and clamp to 100
-  //  (This matches Task Manager: 3D + VideoDecode + VideoEncode + Compute, etc.)
+  // PowerShell outputs JSON: { "max": <number>, "engines": { <type>: <sum>, ... } }
   const ps = `
 try {
   $s = (Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction Stop).CounterSamples
-  # Group by engine type (after _engtype_)
   $byType = $s | Group-Object { if ($_.InstanceName -match '_engtype_(.+)$') { $Matches[1] } else { 'other' } }
-  $total = 0
+  $engines = @{}
+  $maxLoad = 0.0
   foreach ($g in $byType) {
-    # Sum across adapter instances of the same engine type
-    $total += ($g.Group | Measure-Object -Property CookedValue -Sum).Sum
+    # Sum across all process instances of this engine type to get total engine load
+    $engineSum = [Math]::Round(($g.Group | Measure-Object -Property CookedValue -Sum).Sum, 2)
+    $engines[$g.Name] = $engineSum
+    if ($engineSum -gt $maxLoad) { $maxLoad = $engineSum }
   }
-  [Math]::Min([Math]::Round($total, 2), 100)
+  $enginesJson = ($engines.GetEnumerator() | ForEach-Object { '"' + $_.Key + '":' + $_.Value }) -join ','
+  '{"max":' + [Math]::Round($maxLoad, 2) + ',"engines":{' + $enginesJson + '}}'
 } catch {
-  -1
+  '{"max":-1,"engines":{}}'
 }`.trim();
 
   return new Promise((resolve) => {
@@ -714,14 +729,22 @@ try {
         console.warn(`[GPU:perf] PowerShell error (fail ${gpuPerfCounterFailCount}):`, err.message);
         return resolve(null);
       }
-      const val = parseFloat(stdout.trim());
-      if (!Number.isFinite(val) || val < 0) {
+      try {
+        const parsed = JSON.parse(stdout.trim());
+        const max = parsed.max;
+        if (!Number.isFinite(max) || max < 0) {
+          gpuPerfCounterFailCount++;
+          console.warn(`[GPU:perf] unexpected max value (fail ${gpuPerfCounterFailCount}): ${max}`);
+          return resolve(null);
+        }
+        gpuPerfCounterFailCount = 0; // reset on success
+        lastGpuEngineBreakdown = parsed.engines || {};
+        resolve(parseFloat(max.toFixed(1)));
+      } catch (parseErr) {
         gpuPerfCounterFailCount++;
-        console.warn(`[GPU:perf] unexpected output (fail ${gpuPerfCounterFailCount}): "${stdout.trim()}"`);
-        return resolve(null);
+        console.warn(`[GPU:perf] JSON parse error (fail ${gpuPerfCounterFailCount}): "${stdout.trim()}"`);
+        resolve(null);
       }
-      gpuPerfCounterFailCount = 0; // reset on success
-      resolve(parseFloat(val.toFixed(1)));
     });
   });
 }
@@ -1236,7 +1259,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     const ramPercent = ramTotal > 0 ? Math.round((ramUsed / ramTotal) * 100) : 0;
 
     // --- GPU telemetry: read from background-polled gpuPollCache (fast, non-blocking) ---
-    // gpuPollCache is updated every 2s by pollTelemetry() using Windows Perf Counters + LHM.
+    // gpuPollCache is updated every 1s by pollTelemetry() using Windows Perf Counters + LHM.
     const gpuLoad     = gpuPollCache.load;
     const gpuTemp     = gpuPollCache.temp;
     const gpuMemUsed  = gpuPollCache.memUsedMb;
@@ -1296,6 +1319,11 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         vramUsagePct,
         powerW:      gpuPower    != null && gpuPower    > 0 ? gpuPower    : null,
         clockMhz:    gpuClockMhz != null && gpuClockMhz > 0 ? gpuClockMhz : null,
+        _debug: {
+          source:          gpuPollCache.source,
+          engines:         lastGpuEngineBreakdown,
+          aggregation:     'max-of-engine-sums',
+        },
       },
       disk: {
         selectedMount:  selectedDisk?.mount || null,
@@ -1336,6 +1364,8 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       gpu_usagePct: result.gpu.usagePct,
       gpu_tempC: result.gpu.tempC,
       gpu_source: gpuPollCache.source,
+      gpu_engines: lastGpuEngineBreakdown,
+      gpu_aggregation: 'max-of-engine-sums',
     }));
     return result;
   } catch (e) {
