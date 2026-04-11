@@ -55,6 +55,7 @@ interface LocalTweakState {
 const HKCU_TWEAKS = [
   'gaming-mode', 'notifications', 'copilot', 'cortana', 'search-highlights',
   'storage-sense', 'compact-explorer', 'recent-files', 'xbox-bar', 'bg-apps',
+  'disable-fso', 'disable-pointer-precision',
 ];
 
 const ADMIN_TWEAKS = [
@@ -63,6 +64,8 @@ const ADMIN_TWEAKS = [
   'prefetch', 'superfetch', 'mem-opt', 'telemetry', 'nvidia-telemetry',
   'tune-priority', 'bluetooth', 'wifi', 'xbox-services', 'fax-printer',
   'synth-timers', 'preemption',
+  'disable-mpo', 'usb-selective-suspend', 'pcie-link-state', 'mmcss-gaming',
+  'disable-delivery-opt', 'disable-wer', 'win-search-index', 'disable-activity-history',
 ];
 
 export const UNSUPPORTED_TWEAKS: Record<string, string> = {

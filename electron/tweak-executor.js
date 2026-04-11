@@ -347,6 +347,22 @@ const HKCU_TWEAKS = {
     revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -Value 0 -Type DWord -Force`,
     check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\BackgroundAccessApplications" -Name "GlobalUserDisabled" -EA SilentlyContinue).GlobalUserDisabled -eq 1`,
   },
+  'disable-fso': {
+    name: 'Disable Fullscreen Optimizations',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKCU:\\System\\GameConfigStore" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_FSEBehaviorMode" -Value 2 -Type DWord -Force; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_FSEBehavior" -Value 2 -Type DWord -Force; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_DXGIHonorFSEWindowsCompatible" -Value 1 -Type DWord -Force; Set-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_HonorUserFSEBehaviorMode" -Value 0 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_FSEBehaviorMode" -EA SilentlyContinue; Remove-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_FSEBehavior" -EA SilentlyContinue; Remove-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_DXGIHonorFSEWindowsCompatible" -EA SilentlyContinue; Remove-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_HonorUserFSEBehaviorMode" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\System\\GameConfigStore" -Name "GameDVR_FSEBehaviorMode" -EA SilentlyContinue).GameDVR_FSEBehaviorMode -eq 2`,
+  },
+  'disable-pointer-precision': {
+    name: 'Disable Enhanced Pointer Precision',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKCU:\\Control Panel\\Mouse" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseSpeed" -Value "0" -Type String -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold1" -Value "0" -Type String -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold2" -Value "0" -Type String -Force`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseSpeed" -Value "1" -Type String -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold1" -Value "6" -Type String -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold2" -Value "10" -Type String -Force`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseSpeed" -EA SilentlyContinue).MouseSpeed -eq "0"`,
+  },
 };
 
 // ─── ADMIN tweaks (HKLM / services / bcdedit – require elevation) ──────────────
@@ -517,6 +533,76 @@ const ADMIN_TWEAKS = {
     apply:  `New-Item -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name "HwSchMode" -Value 2 -Type DWord -Force`,
     revert: `Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name "HwSchMode" -Value 1 -Type DWord -Force`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\GraphicsDrivers" -Name "HwSchMode" -EA SilentlyContinue).HwSchMode -eq 2`,
+  },
+  'disable-mpo': {
+    name: 'Disable Multi-Plane Overlay',
+    requiresAdmin:  true,
+    requiresReboot: true,
+    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Dwm" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Dwm" -Name "OverlayTestMode" -Value 5 -Type DWord -Force`,
+    revert: `Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Dwm" -Name "OverlayTestMode" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Dwm" -Name "OverlayTestMode" -EA SilentlyContinue).OverlayTestMode -eq 5`,
+  },
+  'usb-selective-suspend': {
+    name: 'Disable USB Selective Suspend',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    // Sub-group: USB (2a737441-1930-4402-8d77-b2bebba308a3)
+    // Setting: USB selective suspend (48e6b7a6-50f5-4782-a5d4-53bb8f07e226)
+    // 0 = Disabled, 1 = Enabled
+    apply:  `& powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
+    revert: `& powercfg /setacvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 1 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 1 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
+    check:  `$out = (& powercfg /query SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 2>&1 | Out-String); [bool]($out -match "Current AC Power Setting Index: 0x00000000")`,
+  },
+  'pcie-link-state': {
+    name: 'Disable PCIe Link State Power Management',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    // Sub-group: PCI Express (501a4d13-42af-4429-9fd1-a8218c268e20)
+    // Setting: Link State Power Management (ee12f906-d277-404b-b6da-e5fa1a576df5)
+    // 0 = Off, 1 = Moderate, 2 = Maximum
+    apply:  `& powercfg /setacvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 0 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 0 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
+    revert: `& powercfg /setacvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2 2>&1 | Out-Null; & powercfg /setdcvalueindex SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2 2>&1 | Out-Null; & powercfg /setactive SCHEME_CURRENT 2>&1 | Out-Null; exit 0`,
+    check:  `$out = (& powercfg /query SCHEME_CURRENT 501a4d13-42af-4429-9fd1-a8218c268e20 ee12f906-d277-404b-b6da-e5fa1a576df5 2>&1 | Out-String); [bool]($out -match "Current AC Power Setting Index: 0x00000000")`,
+  },
+  'mmcss-gaming': {
+    name: 'Optimize MMCSS for Gaming',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile"; Set-ItemProperty -Path $p -Name "SystemResponsiveness" -Value 0 -Type DWord -Force; $g = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games"; New-Item -Path $g -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $g -Name "Scheduling Category" -Value "High" -Force; Set-ItemProperty -Path $g -Name "SFIO Rate" -Value "High" -Force; Set-ItemProperty -Path $g -Name "Background Only" -Value "False" -Force; Set-ItemProperty -Path $g -Name "Priority" -Value 6 -Type DWord -Force; Set-ItemProperty -Path $g -Name "GPU Priority" -Value 8 -Type DWord -Force; Set-ItemProperty -Path $g -Name "Clock Rate" -Value 10000 -Type DWord -Force`,
+    revert: `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile"; Set-ItemProperty -Path $p -Name "SystemResponsiveness" -Value 20 -Type DWord -Force; $g = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile\\Tasks\\Games"; Set-ItemProperty -Path $g -Name "Scheduling Category" -Value "Medium" -EA SilentlyContinue; Set-ItemProperty -Path $g -Name "SFIO Rate" -Value "Medium" -EA SilentlyContinue; Set-ItemProperty -Path $g -Name "Priority" -Value 2 -Type DWord -EA SilentlyContinue; Set-ItemProperty -Path $g -Name "GPU Priority" -Value 8 -Type DWord -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile" -Name "SystemResponsiveness" -EA SilentlyContinue).SystemResponsiveness -eq 0`,
+  },
+  'disable-delivery-opt': {
+    name: 'Disable Delivery Optimization',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$s = Get-Service -Name DoSvc -EA SilentlyContinue; if ($s) { Stop-Service DoSvc -Force -EA SilentlyContinue; Set-Service DoSvc -StartupType Disabled }; New-Item -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Name "DODownloadMode" -Value 0 -Type DWord -Force`,
+    revert: `$s = Get-Service -Name DoSvc -EA SilentlyContinue; if ($s) { Set-Service DoSvc -StartupType Automatic; Start-Service DoSvc -EA SilentlyContinue }; Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Name "DODownloadMode" -EA SilentlyContinue`,
+    check:  `$s = Get-Service -Name DoSvc -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
+  },
+  'disable-wer': {
+    name: 'Disable Windows Error Reporting',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$s = Get-Service -Name WerSvc -EA SilentlyContinue; if ($s) { Stop-Service WerSvc -Force -EA SilentlyContinue; Set-Service WerSvc -StartupType Disabled }; New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting" -Name "Disabled" -Value 1 -Type DWord -Force`,
+    revert: `$s = Get-Service -Name WerSvc -EA SilentlyContinue; if ($s) { Set-Service WerSvc -StartupType Manual }; Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting" -Name "Disabled" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\Windows Error Reporting" -Name "Disabled" -EA SilentlyContinue).Disabled -eq 1`,
+  },
+  'win-search-index': {
+    name: 'Disable Windows Search Indexing',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { Stop-Service WSearch -Force -EA SilentlyContinue; Set-Service WSearch -StartupType Disabled }`,
+    revert: `$s = Get-Service -Name WSearch -EA SilentlyContinue; if ($s) { Set-Service WSearch -StartupType Automatic; Start-Service WSearch -EA SilentlyContinue }`,
+    check:  `$s = Get-Service -Name WSearch -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
+  },
+  'disable-activity-history': {
+    name: 'Disable Activity History',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$p = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "EnableActivityFeed" -Value 0 -Type DWord -Force; Set-ItemProperty -Path $p -Name "PublishUserActivities" -Value 0 -Type DWord -Force; Set-ItemProperty -Path $p -Name "UploadUserActivities" -Value 0 -Type DWord -Force`,
+    revert: `$p = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System"; Remove-ItemProperty -Path $p -Name "EnableActivityFeed" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "PublishUserActivities" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "UploadUserActivities" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System" -Name "EnableActivityFeed" -EA SilentlyContinue).EnableActivityFeed -eq 0`,
   },
 };
 

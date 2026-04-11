@@ -536,6 +536,159 @@ export const TWEAKS_DATA: Tweak[] = [
     risk: "Safe" 
   },
 
+  // Input
+  {
+    id: "disable-pointer-precision",
+    title: "Disable Enhanced Pointer Precision",
+    description: "Turns off Windows mouse acceleration so pointer movement maps 1:1 to physical motion.",
+    impact: [
+      "Removes variable mouse acceleration — pointer moves exactly as far as you move the mouse",
+      "Critical for consistent aiming in FPS games — muscle memory becomes reliable",
+      "Takes full effect at next login; does not affect hardware DPI setting"
+    ],
+    expected: { latency: "Low", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "None" },
+    category: "Input",
+    level: "Recommended",
+    risk: "Safe"
+  },
+
+  // Gaming / Latency additions
+  {
+    id: "disable-fso",
+    title: "Disable Fullscreen Optimizations",
+    description: "Forces games to use true exclusive fullscreen instead of DWM-managed borderless mode.",
+    impact: [
+      "Can reduce GPU scheduling overhead introduced by DWM interception",
+      "Ensures lower input latency in latency-sensitive titles that respond to exclusive FS mode",
+      "Some capture tools or Alt-Tab behavior may feel different"
+    ],
+    expected: { latency: "Low", gpu: "Low", cpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency",
+    level: "Recommended",
+    risk: "Safe"
+  },
+  {
+    id: "usb-selective-suspend",
+    title: "Disable USB Selective Suspend",
+    description: "Prevents Windows from suspending USB ports to save power — eliminates USB-induced latency spikes.",
+    impact: [
+      "Eliminates brief stutter or missed input caused by USB device wakeup latency",
+      "Keeps mice, keyboards, and controllers in fully-active state at all times",
+      "Small increase in idle power draw — minimal on desktop systems"
+    ],
+    expected: { latency: "Medium", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency",
+    level: "Recommended",
+    risk: "Safe"
+  },
+  {
+    id: "mmcss-gaming",
+    title: "Optimize MMCSS for Gaming",
+    description: "Sets Multimedia Class Scheduler SystemResponsiveness to 0 and tunes the Games task profile for maximum CPU allocation.",
+    impact: [
+      "Removes background CPU reservation — game gets more of every scheduler quantum",
+      "Raises GPU priority hint for the Games MMCSS task to 8",
+      "Risk: background workloads (streams, encodes) may be starved under load"
+    ],
+    expected: { latency: "Medium", cpu: "Medium", gpu: "Low", ram: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
+    category: "Gaming and Latency",
+    level: "Advanced",
+    risk: "Moderate"
+  },
+
+  // System and Power additions
+  {
+    id: "pcie-link-state",
+    title: "Disable PCIe Link State Power Management",
+    description: "Prevents PCIe from entering low-power states — eliminates micro-stutters caused by GPU/NVMe power transitions.",
+    impact: [
+      "Removes PCIe link-state transition latency affecting GPU and NVMe",
+      "Can smooth frametime spikes in games that stress VRAM bandwidth",
+      "Increases idle power consumption slightly — negligible on desktops"
+    ],
+    expected: { latency: "Medium", gpu: "Low", disk: "Low", cpu: "None", ram: "None", network: "None", stabilityRisk: "Low" },
+    category: "System and Power",
+    level: "Advanced",
+    risk: "Safe"
+  },
+
+  // GPU additions
+  {
+    id: "disable-mpo",
+    title: "Disable Multi-Plane Overlay",
+    description: "Disables DWM Multi-Plane Overlay — fixes black screen flickers and stutter issues on many setups.",
+    impact: [
+      "Eliminates black screen flashes and DWM stutter caused by MPO on some GPU/driver combos",
+      "Recommended if you see flickering, black frames, or screen corruption in games",
+      "DWM handles composition differently without MPO — no user-visible downside on most systems"
+    ],
+    expected: { gpu: "Low", latency: "Low", cpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "GPU and Graphics",
+    level: "Advanced",
+    risk: "Safe",
+    requiresReboot: true
+  },
+
+  // Privacy additions
+  {
+    id: "disable-delivery-opt",
+    title: "Disable Delivery Optimization",
+    description: "Stops Windows from using your bandwidth to upload Windows Update data to other PCs on the internet.",
+    impact: [
+      "Prevents unexpected background upload activity during gameplay",
+      "Eliminates bandwidth sharing to Microsoft's P2P update network",
+      "Updates still download normally — only upload sharing is disabled"
+    ],
+    expected: { network: "Low", cpu: "Low", disk: "None", ram: "None", gpu: "None", latency: "Low", stabilityRisk: "Low" },
+    category: "Privacy and Telemetry",
+    level: "Recommended",
+    risk: "Safe"
+  },
+  {
+    id: "disable-wer",
+    title: "Disable Windows Error Reporting",
+    description: "Disables the Windows Error Reporting service and crash data collection.",
+    impact: [
+      "Eliminates WER background disk writes and upload activity after crashes",
+      "Reduces service overhead from WerSvc sitting in memory",
+      "Crash dump data will not be sent to Microsoft — no local debugging impact"
+    ],
+    expected: { cpu: "Low", disk: "Low", network: "Low", ram: "None", gpu: "None", latency: "None", stabilityRisk: "Low" },
+    category: "Privacy and Telemetry",
+    level: "Advanced",
+    risk: "Safe"
+  },
+  {
+    id: "disable-activity-history",
+    title: "Disable Activity History",
+    description: "Disables Windows Timeline and Activity Feed — stops local and cloud activity recording.",
+    impact: [
+      "Stops Windows logging app/document/activity history in the background",
+      "Prevents uploading activity data to Microsoft account",
+      "Windows Timeline and Jump List history features no longer populate"
+    ],
+    expected: { cpu: "Low", disk: "Low", network: "Low", ram: "None", gpu: "None", latency: "None", stabilityRisk: "Low" },
+    category: "Privacy and Telemetry",
+    level: "Recommended",
+    risk: "Safe"
+  },
+
+  // Memory / Storage additions
+  {
+    id: "win-search-index",
+    title: "Disable Windows Search Indexing",
+    description: "Stops the Windows Search indexing service — eliminates background disk I/O from content indexing.",
+    impact: [
+      "Removes constant low-level disk activity from the WSearch indexer process",
+      "Can reduce SSD write amplification and background I/O spikes during gaming",
+      "File search via Explorer becomes slower as results are no longer pre-indexed"
+    ],
+    expected: { disk: "High", cpu: "Low", ram: "Low", gpu: "None", network: "None", latency: "Low", stabilityRisk: "Low" },
+    category: "Memory and Storage",
+    level: "Advanced",
+    risk: "Safe"
+  },
+
   // UX
   { 
     id: "compact-explorer", 
