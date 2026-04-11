@@ -42,6 +42,7 @@ import AiAdvisor from "@/pages/AiAdvisor";
 import Security from "@/pages/Security";
 import History from "@/pages/History";
 const Landing = lazy(() => import("@/pages/Landing"));
+const Features = lazy(() => import("@/pages/Features"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 const Download = lazy(() => import("@/pages/Download"));
 const Terms = lazy(() => import("@/pages/Terms"));
@@ -111,6 +112,7 @@ function WebsiteRoutes() {
     <Suspense fallback={null}>
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/features" component={Features} />
         <Route path="/pricing" component={Pricing} />
         <Route path="/download" component={Download} />
         <Route path="/login" component={LoginPage} />

@@ -28,7 +28,7 @@ interface WebsiteShellProps {
 }
 
 const NAV_LINKS = [
-  { label: "Features", href: "#features" },
+  { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
   { label: "FAQ", href: "#faq" },
 ];
@@ -71,16 +71,20 @@ function FullHeader() {
           <BrandLogo size="lg" linkTo="/" />
 
           <nav className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="relative text-sm font-semibold text-white/80 hover:text-white transition-colors duration-300 tracking-wide py-1 group"
-              >
-                {link.label}
-                <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
-              </a>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const linkClass = "relative text-sm font-semibold text-white/80 hover:text-white transition-colors duration-300 tracking-wide py-1 group";
+              const inner = (
+                <>
+                  {link.label}
+                  <span className="absolute inset-x-0 -bottom-px h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                </>
+              );
+              return link.href.startsWith("/") ? (
+                <Link key={link.label} href={link.href} className={linkClass}>{inner}</Link>
+              ) : (
+                <a key={link.label} href={link.href} className={linkClass}>{inner}</a>
+              );
+            })}
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
@@ -151,16 +155,27 @@ function FullHeader() {
           transition={{ duration: 0.2 }}
         >
           <div className="px-4 py-4 space-y-3">
-            {NAV_LINKS.map((link) => (
-              <a
-                key={link.label}
-                href={link.href}
-                className="block text-sm text-white/80 hover:text-white transition-colors py-2"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
+            {NAV_LINKS.map((link) =>
+              link.href.startsWith("/") ? (
+                <Link
+                  key={link.label}
+                  href={link.href}
+                  className="block text-sm text-white/80 hover:text-white transition-colors py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ) : (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  className="block text-sm text-white/80 hover:text-white transition-colors py-2"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </a>
+              )
+            )}
             <div className="pt-3 border-t border-white/[0.06] space-y-2">
               {user ? (
                 <>
@@ -247,9 +262,9 @@ function WebsiteFooter() {
             <h4 className="font-medium text-white/60 mb-4 text-xs tracking-[0.15em] uppercase">Product</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <a href="#features" className="text-white/30 hover:text-white/60 transition-colors">
+                <Link href="/features" className="text-white/30 hover:text-white/60 transition-colors">
                   Features
-                </a>
+                </Link>
               </li>
               <li>
                 <Link href="/pricing" className="text-white/30 hover:text-white/60 transition-colors">

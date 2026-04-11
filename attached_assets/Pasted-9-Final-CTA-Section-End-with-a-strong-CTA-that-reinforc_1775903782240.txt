@@ -1,0 +1,123 @@
+9. Final CTA Section
+   End with a strong CTA that reinforces the value proposition.
+
+Message direction:
+
+- stop guessing
+- stop using blind tweak tools
+- use a smarter system
+- optimize with clarity
+
+Could include:
+
+- Download Now
+- View Pricing
+- See Features in Action
+
+DESIGN REQUIREMENTS
+
+The page must be visually exceptional.
+
+Required design qualities:
+
+- premium dark matte base
+- neon/glass accents
+- strong blur/glassmorphism usage
+- soft glow lighting
+- depth and layering
+- smooth reveal animations
+- fluid transitions
+- strong spacing and hierarchy
+- zero template feel
+- no bland generic SaaS layout
+
+Animation requirements:
+
+- smooth scroll reveals
+- soft parallax where appropriate
+- animated graphs/pulses/nodes
+- hover states with subtle lift and glow
+- fluid section transitions
+- premium loading feel
+- desktop effects must be fully present, not mobile-only
+
+Visual elements to include throughout:
+
+- charts
+- graphs
+- animated lines
+- telemetry-style UI
+- glass cards
+- comparison panels
+- spotlight/glow effects
+- abstract hardware/performance visuals
+
+ROUTING / NAVIGATION REQUIREMENTS
+
+1. Replace current Features nav behavior
+
+- remove homepage anchor-scroll behavior for Features
+- make navbar Features item route to "/features"
+
+2. Add full page route
+
+- ensure "/features" is a standalone page in the app/site router
+
+3. Keep navigation consistent
+
+- navbar and footer should link to "/features"
+
+CONTENT DIRECTION
+
+The writing on this page must feel confident, modern, and product-driven.
+
+Avoid:
+
+- generic marketing fluff
+- fake corporate wording
+- vague claims with no substance
+- overexplaining
+
+Aim for:
+
+- clear product differentiation
+- sharp copy
+- strong visual storytelling
+- confident but believable claims
+
+IMPLEMENTATION NOTES
+
+- Reuse and extend the existing premium design system from the rest of the site
+- Keep visual cohesion with homepage, pricing, and product style
+- Create reusable section/card components if needed
+- Ensure performance remains good despite animation richness
+- Make desktop experience especially strong
+- Build with responsive design, but do not sacrifice desktop visual impact
+
+CHECKLIST
+
+- Create standalone "/features" page
+- Update navbar Features link to route there
+- Remove old homepage-only Features behavior
+- Add strong hero section
+- Add "Why SwitchControl is different" section
+- Add AI Advisor feature section
+- Add BIOS Advisor feature section
+- Add telemetry/monitoring section
+- Add guided workflow section
+- Add animated feature grid
+- Add competitive comparison section
+- Add final CTA section
+- Add premium charts/graphs/visual motion across page
+- Ensure smooth animations and glass/blur effects throughout
+- Ensure page feels custom, premium, fluid, and not templated
+- Ensure desktop visuals are fully enabled
+
+FINAL OUTPUT
+
+Return:
+
+1. the completed "/features" page
+2. updated navigation behavior
+3. a short summary of what was changed
+4. any new components/files created
