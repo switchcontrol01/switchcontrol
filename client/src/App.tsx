@@ -749,6 +749,13 @@ function ElectronAppContent() {
             const store = useAuthStore.getState();
             if (store.user) store.setUser({ ...store.user, hasSeenTrialActivation: true });
             await postTrialActivationSeen();
+
+            // Arm the trialTour loop-guards before transitioning so the flow
+            // eval cannot re-fire the tour once it finishes.
+            const userId = useAuthStore.getState().user?.id;
+            if (userId) localStorage.setItem(`sc_trial_tour_seen_${userId}`, '1');
+            trialTourFiredThisSessionRef.current = true;
+
             setActiveFlow("trialTour");
           }}
         />
@@ -778,6 +785,14 @@ function ElectronAppContent() {
             }
             console.log('[AppFlow] Posting unlock-seen to server');
             await postUnlockSeen();
+
+            // Set the same loop-guards the flow-eval branch would have set so that
+            // when the tour finishes and setActiveFlow("none") re-runs the flow
+            // eval, both guards are already armed and the tour cannot re-fire.
+            const userId = useAuthStore.getState().user?.id;
+            if (userId) localStorage.setItem(`sc_tour_seen_${userId}`, '1');
+            premiumTourFiredThisSessionRef.current = true;
+
             console.log('[AppFlow] Unlock persisted — transitioning to premiumTour');
             setActiveFlow("premiumTour");
           }} 
