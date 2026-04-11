@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { useAppAuth } from "@/App";
@@ -286,7 +287,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     );
   };
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <>
@@ -437,6 +438,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
           </motion.div>
         </>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

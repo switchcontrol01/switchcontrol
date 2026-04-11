@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -232,7 +233,7 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
     return () => document.removeEventListener("keydown", h);
   }, [onClose]);
 
-  return (
+  return createPortal(
     <>
       <motion.div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[6px] pointer-events-auto" onClick={onClose} variants={modalBackdrop} initial="initial" animate="animate" exit="exit" />
       <motion.div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md pointer-events-auto" variants={modalContent} initial="initial" animate="animate" exit="exit">
@@ -259,7 +260,8 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
           </div>
         </div>
       </motion.div>
-    </>
+    </>,
+    document.body
   );
 }
 
