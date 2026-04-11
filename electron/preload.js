@@ -135,6 +135,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
   },
 
+  // System Cleaner — real file scanning and deletion
+  cleaner: {
+    scan:    (itemIds) => ipcRenderer.invoke('cleaner:scan', itemIds),
+    clean:   (itemIds) => ipcRenderer.invoke('cleaner:clean', itemIds),
+    verify:  (itemIds) => ipcRenderer.invoke('cleaner:verify', itemIds),
+  },
+
   // Debloat Manager — real Windows app/registry/service removal
   debloat: {
     scan:        (items)  => ipcRenderer.invoke('debloat:scan', items),
