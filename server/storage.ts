@@ -58,6 +58,10 @@ export interface IStorage {
   markPremiumTourSeen(userId: string): Promise<User>;
   updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void>;
 
+  // Device binding
+  bindPremiumDevice(userId: string, deviceId: string): Promise<User>;
+  clearPremiumDevice(userId: string): Promise<User>;
+
   // Admin
   listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
   countAdmins(): Promise<number>;
@@ -179,6 +183,14 @@ class MockStorage implements IStorage {
 
   async updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void> {
     // no-op in mock mode
+  }
+
+  async bindPremiumDevice(_userId: string, _deviceId: string): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async clearPremiumDevice(_userId: string): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
   }
 
   async listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }> {
@@ -512,6 +524,34 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(adminLogs.createdAt))
       .limit(limit)
       .offset(offset);
+  }
+
+  async bindPremiumDevice(userId: string, deviceId: string): Promise<User> {
+    const [updated] = await db!
+      .update(users)
+      .set({
+        premiumBoundDeviceId: deviceId,
+        premiumBoundAt: new Date(),
+        premiumLastSeenDeviceId: deviceId,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async clearPremiumDevice(userId: string): Promise<User> {
+    const [updated] = await db!
+      .update(users)
+      .set({
+        premiumBoundDeviceId: null,
+        premiumBoundAt: null,
+        premiumLastSeenDeviceId: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
   }
 }
 

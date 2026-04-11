@@ -572,5 +572,63 @@ export async function registerRoutes(
     }
   });
 
+  // ─── Premium Device Binding ──────────────────────────────────────────────────
+  //
+  // POST /api/device/premium-validate
+  //
+  // Called by the Electron desktop app at startup after authentication.
+  // Sends the stable device ID via x-device-id header.
+  //
+  // Logic:
+  //   - User not premium          → { status: 'not_premium' }
+  //   - No bound device yet       → bind this device, { status: 'ok', isFirstBind: true }
+  //   - Device matches bound      → update lastSeen, { status: 'ok' }
+  //   - Device differs from bound → { status: 'locked' }
+  //
+  // NOTE: uses requireJwt only (not requireCloudPremium) so the validation call
+  //       itself is never blocked by the device lock it is trying to evaluate.
+  app.post("/api/device/premium-validate", requireJwt, async (req, res) => {
+    try {
+      const cloudUser = req.cloudUser!;
+      const deviceId = req.headers["x-device-id"] as string | undefined;
+
+      if (!deviceId) {
+        return res.status(400).json({ error: "Missing x-device-id header.", code: "missing_device_id" });
+      }
+
+      if (!cloudUser.isPremium) {
+        return res.json({ status: "not_premium" });
+      }
+
+      const user = await storage.getUser(cloudUser.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found." });
+      }
+
+      if (!user.premiumBoundDeviceId) {
+        // First premium activation on this account — bind the device
+        await storage.bindPremiumDevice(cloudUser.id, deviceId);
+        console.log(`[DeviceBinding] First bind | user=${cloudUser.id} | device=${deviceId}`);
+        return res.json({ status: "ok", isFirstBind: true });
+      }
+
+      if (user.premiumBoundDeviceId === deviceId) {
+        // Correct device — validated
+        console.log(`[DeviceBinding] Valid | user=${cloudUser.id} | device=${deviceId}`);
+        return res.json({ status: "ok", isFirstBind: false });
+      }
+
+      // Device mismatch — block
+      console.warn(`[DeviceBinding] Mismatch | user=${cloudUser.id} | bound=${user.premiumBoundDeviceId} | presented=${deviceId}`);
+      return res.json({
+        status: "locked",
+        message: "This premium license is already linked to a different device and can't be used here.",
+      });
+    } catch (err) {
+      console.error("[DeviceBinding] Validate error:", err);
+      res.status(500).json({ error: "Device validation failed. Please try again." });
+    }
+  });
+
   return httpServer;
 }

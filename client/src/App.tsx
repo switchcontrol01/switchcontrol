@@ -14,6 +14,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen } from "@/lib/auth-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
+import { DeviceLockModal } from "@/components/DeviceLockModal";
+import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -137,6 +139,14 @@ function ElectronAppContent() {
   const suppressFlowsRef = React.useRef(false);
   const { token, jwt, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
+
+  // Premium device lock — Electron only, runs after entitlements confirmed from server
+  const isPremiumVerified = entitlementsOk && (user?.isPremium ?? false);
+  const {
+    status: deviceLockStatus,
+    isChecking: isDeviceLockChecking,
+    retry: retryDeviceLock,
+  } = usePremiumDeviceLock(isElectron, isPremiumVerified, user?.loggedIn ?? false);
 
   useEffect(() => {
     if (phase !== 'authenticated') return;
@@ -661,6 +671,16 @@ function ElectronAppContent() {
         <PatchNotesModal
           show={showPatchNotes}
           onDismiss={() => setShowPatchNotes(false)}
+        />
+      )}
+
+      {/* Premium device lock — must be last (highest z-order), not dismissible */}
+      {isElectron && deviceLockStatus === "locked" && (
+        <DeviceLockModal
+          userEmail={user?.email ?? null}
+          userId={user?.id ?? null}
+          onRetry={retryDeviceLock}
+          isRetrying={isDeviceLockChecking}
         />
       )}
     </AppAuthContext.Provider>

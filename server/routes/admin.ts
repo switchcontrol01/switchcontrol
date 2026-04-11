@@ -419,6 +419,48 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
   }
 });
 
+// ─── Premium Device Reset ─────────────────────────────────────────────────────
+
+// POST /api/admin/users/:id/reset-premium-device
+// Clears the premium device binding — used for legitimate hardware changes / support
+router.post("/users/:id/reset-premium-device", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const previousBound = existing.premiumBoundDeviceId;
+
+    if (!previousBound) {
+      return res.json({ ok: true, message: "No device binding to reset.", previousBoundDeviceId: null });
+    }
+
+    const updated = await storage.clearPremiumDevice(targetId);
+
+    await auditLog(
+      admin.id,
+      targetId,
+      "reset_premium_device",
+      { premiumBoundDeviceId: previousBound },
+      { premiumBoundDeviceId: null },
+      { adminEmail: admin.email }
+    );
+
+    console.log(`[DeviceBinding] Admin reset | admin=${admin.email} | user=${targetId} | cleared=${previousBound}`);
+    res.json({
+      ok: true,
+      userId: targetId,
+      previousBoundDeviceId: previousBound,
+      premiumBoundDeviceId: updated.premiumBoundDeviceId,
+    });
+  } catch (err) {
+    console.error("[admin] resetPremiumDevice error:", err);
+    res.status(500).json({ error: "Failed to reset premium device binding." });
+  }
+});
+
 // ─── Logs ────────────────────────────────────────────────────────────────────
 
 // GET /api/admin/logs

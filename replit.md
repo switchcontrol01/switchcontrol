@@ -22,6 +22,17 @@ Key data models include `userSettings` (preferences, tier), `appliedTweaks` (ena
 ### Application Structure
 The application is structured into `client/src` (frontend components, hooks, utilities, pages), `server/` (Express entry, routes, database), and `shared/` (Drizzle schema, auth models).
 
+### Premium Device Lock (Desktop App Only)
+- **Schema** (`shared/models/auth.ts`): `users` table has `premiumBoundDeviceId` (VARCHAR), `premiumBoundAt` (TIMESTAMP), `premiumLastSeenDeviceId` (VARCHAR). Columns auto-created on server startup via `server/lib/deviceBindingMigration.ts`.
+- **Binding endpoint** (`POST /api/device/premium-validate`): Electron-only. Uses `x-device-id` header. If no bound device → first-bind (stores device). If device matches → OK. If device differs → `{ status: 'locked' }`. Uses `requireJwt` only (never requireCloudPremium) so the check itself is never self-blocked.
+- **Enforcement** (`server/middleware/requireCloudAuth.ts`): `requireCloudPremium` checks `x-device-id` against `premiumBoundDeviceId`. If both present and mismatched → 403 `device_locked`. Website/browser sessions never send `x-device-id` so they are unaffected.
+- **Admin reset** (`POST /api/admin/users/:id/reset-premium-device`): Clears the device binding. Audit-logged. Used for hardware changes / support recovery.
+- **Frontend hook** (`client/src/hooks/usePremiumDeviceLock.ts`): Runs after `entitlementsOk` is confirmed. Returns `{ status, isChecking, retry }`.
+- **Frontend modal** (`client/src/components/DeviceLockModal.tsx`): Non-dismissible full-screen glass overlay. Z-index 9999. Buttons: Contact Support (mailto: prefilled), Retry (re-validates), Exit App (`electronAPI.quitApp()`). Not gated by `isResetting`.
+- **App integration** (`client/src/App.tsx`): `usePremiumDeviceLock` called inside `ElectronAppContent`. Modal rendered as last element (highest z-order). Only fires when `isElectron && entitlementsOk && isPremium`.
+- **Electron IPC**: `app:quit` IPC handler in `electron/main.js`. `quitApp()` exposed in `electron/preload.js`.
+- **Website unaffected**: Device lock only applies when `x-device-id` header is present (Electron only). All browser/web sessions work normally.
+
 ### Admin System
 - **Schema** (`shared/models/auth.ts`): `users` table extended with `plan` (free/trial/premium), `trialStartedAt`, `trialEndsAt`, `trialDurationHours`, `isAdmin`, `lastLoginAt`, `lastAppActiveAt`; new `adminLogs` table for audit trail.
 - **Plan Resolution** (`server/lib/planUtils.ts`): `resolveEffectivePlan` is the single source of truth — Stripe premium overrides everything; admin-set `plan='premium'/'trial'` applies if active; else free.

@@ -663,6 +663,11 @@ ipcMain.handle('app:restart', () => {
   app.exit(0);
 });
 
+ipcMain.handle('app:quit', () => {
+  console.log('[App] Quit requested by renderer (device lock)');
+  app.quit();
+});
+
 ipcMain.handle('app:resetData', async () => {
   try {
     const fs = require('fs');

@@ -15,6 +15,7 @@ import { getStripeClient, isStripeConfigured, logStripeStartupConfig } from "./s
 import { WebhookHandlers } from "./webhookHandlers";
 import { csrfTokenMiddleware } from "./middleware/csrf";
 import { runJwtSelfTest } from "./lib/jwt";
+import { runDeviceBindingMigration } from "./lib/deviceBindingMigration";
 import fs from "fs";
 import path from "path";
 
@@ -119,6 +120,7 @@ declare module "http" {
 
 async function initStripe() {
   logStripeStartupConfig();
+  runDeviceBindingMigration().catch((e) => console.error("[DeviceBinding] Migration error:", e));
   if (!isStripeConfigured) {
     return;
   }

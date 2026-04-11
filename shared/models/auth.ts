@@ -44,6 +44,11 @@ export const users = pgTable("users", {
   // Admin flag
   isAdmin: boolean("is_admin").notNull().default(false),
 
+  // Premium device binding (desktop app only)
+  premiumBoundDeviceId: varchar("premium_bound_device_id"),
+  premiumBoundAt: timestamp("premium_bound_at"),
+  premiumLastSeenDeviceId: varchar("premium_last_seen_device_id"),
+
   // Onboarding
   hasSeenPremiumUnlock: boolean("has_seen_premium_unlock").notNull().default(false),
   hasSeenPremiumTour: boolean("has_seen_premium_tour").notNull().default(false),

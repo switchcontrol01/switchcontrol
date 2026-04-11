@@ -6,7 +6,15 @@ import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
 declare global {
   namespace Express {
     interface Request {
-      cloudUser?: { id: string; isPremium: boolean; plan: string; trialEndsAt: Date | null; email: string | null; isAdmin: boolean };
+      cloudUser?: {
+        id: string;
+        isPremium: boolean;
+        plan: string;
+        trialEndsAt: Date | null;
+        email: string | null;
+        isAdmin: boolean;
+        premiumBoundDeviceId: string | null;
+      };
     }
   }
 }
@@ -34,6 +42,7 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
         trialEndsAt: user.trialEndsAt ?? null,
         email: user.email ?? null,
         isAdmin: user.isAdmin ?? false,
+        premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
       };
       console.log(`[CloudAuth] JWT OK | user=${user.id} effectivePlan=${effectivePlan} isPremium=${req.cloudUser.isPremium}`);
       return next();
@@ -56,6 +65,7 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
           trialEndsAt: user.trialEndsAt ?? null,
           email: user.email ?? null,
           isAdmin: user.isAdmin ?? false,
+          premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
         };
         return next();
       }
@@ -75,5 +85,20 @@ export const requireCloudPremium: RequestHandler = (req, res, next) => {
       code: "premium_required",
     });
   }
+
+  // Device lock enforcement — only applied when Electron sends x-device-id
+  // Website/browser sessions never send this header, so they are unaffected
+  const deviceId = req.headers["x-device-id"] as string | undefined;
+  const boundDeviceId = req.cloudUser.premiumBoundDeviceId;
+  if (deviceId && boundDeviceId && deviceId !== boundDeviceId) {
+    console.warn(
+      `[DeviceLock] Blocked premium API access | user=${req.cloudUser.id} | bound=${boundDeviceId} | presented=${deviceId}`
+    );
+    return res.status(403).json({
+      error: "Premium is locked to another device.",
+      code: "device_locked",
+    });
+  }
+
   return next();
 };
