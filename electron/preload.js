@@ -135,6 +135,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
   },
 
+  // Debloat Manager — real Windows app/registry/service removal
+  debloat: {
+    scan:        (items)  => ipcRenderer.invoke('debloat:scan', items),
+    removeItem:  (item)   => ipcRenderer.invoke('debloat:removeItem', item),
+    restoreItem: (item)   => ipcRenderer.invoke('debloat:restoreItem', item),
+    verifyItem:  (item)   => ipcRenderer.invoke('debloat:verifyItem', item),
+  },
+
   // Startup Manager — real Windows startup control
   // setEnabled uses the StartupApproved registry key (same method as Task Manager)
   // setDelay creates/removes a Task Scheduler delayed task

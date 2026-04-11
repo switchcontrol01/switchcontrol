@@ -40,6 +40,7 @@ try {
 const powerPlanManager = require('./power-plan-manager');
 const backendLauncher = require('./backend-launcher');
 require('./security-helper');
+require('./debloat-helper');
 const configStore = require('./config-store');
 const updaterService = require('./updater');
 

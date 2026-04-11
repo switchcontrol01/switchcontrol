@@ -1,114 +1,352 @@
-import { useState, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  ShieldCheck, 
-  Gamepad2,
-  Monitor,
-  Laptop,
-  Cpu,
-  Zap,
-  RefreshCw,
-  CheckCircle,
-  AlertTriangle,
-  Info,
-  ChevronDown,
-  ChevronUp,
-  Shield,
-  Eye,
-  RotateCcw,
-  Play,
-  Trash2,
-  ToggleLeft,
-  Lock,
-  Wifi,
-  Bell,
-  Camera,
-  MessageSquare,
-  Cloud
+import {
+  ShieldCheck, Gamepad2, Monitor, Laptop, Cpu, Zap,
+  RefreshCw, CheckCircle, AlertTriangle, Info, ChevronDown, ChevronUp,
+  RotateCcw, Play, Trash2, History, Clock, X, AlertCircle,
+  MemoryStick, HardDrive, Eye, TrendingDown, BarChart3, Layers,
+  Minus, PcCase, Radio, Settings2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { motion, useMotion } from "@/lib/motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useMotion } from "@/lib/motion";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type SystemRole = "gaming" | "streaming" | "workstation" | "laptop" | "minimal";
 type DebloatLevel = "safe" | "balanced" | "aggressive" | "extreme";
+type SafetyTier = "safe" | "medium" | "high";
+type ItemType = "appx" | "registry" | "service";
+type DebloatCategory = "consumer-apps" | "telemetry" | "gaming" | "cloud" | "system-services" | "shell-features";
+type ResultStatus = "removed" | "restored" | "already-absent" | "already-present"
+  | "failed" | "verification-failed" | "unsupported" | "partial" | "pending";
 
-type DebloatItem = {
+interface DebloatItem {
   id: string;
   name: string;
   description: string;
-  dependencies: string[];
-  cpuImpact: number;
-  ramImpact: number;
-  riskLevel: "low" | "medium" | "high" | "critical";
-  level: DebloatLevel;
-  category: string;
-  enabled: boolean;
+  type: ItemType;
+  category: DebloatCategory;
+  minLevel: DebloatLevel;
+  safety: SafetyTier;
   canRestore: boolean;
-};
+  restoreNotes: string | null;
+  requiresAdmin: boolean;
+  requiresRestart: boolean;
+  requiresSignOut: boolean;
+  estimatedRamMb: number;
+  estimatedDiskMb: number;
+  affectedFeatures: string[];
+  defaultSelected: boolean;
+}
+
+interface ApplyResult {
+  id: string;
+  name: string;
+  status: ResultStatus;
+  requiresRestart?: boolean;
+  requiresSignOut?: boolean;
+  error?: string;
+  verification?: string;
+  storeRequired?: boolean;
+}
+
+interface ApplySession {
+  role: SystemRole;
+  level: DebloatLevel;
+  results: ApplyResult[];
+  successCount: number;
+  failCount: number;
+  requiresRestart: boolean;
+  requiresSignOut: boolean;
+  appliedAt: string;
+  action: "apply" | "restore";
+}
+
+interface HistoryEntry {
+  id: number;
+  item_id: string;
+  item_name: string;
+  action: string;
+  status: string;
+  role: string | null;
+  level: string | null;
+  verification: string;
+  restart_req: boolean;
+  applied_at: string;
+}
+
+// ── Static config ─────────────────────────────────────────────────────────────
 
 const SYSTEM_ROLES: { id: SystemRole; name: string; icon: React.ComponentType<{ className?: string }>; description: string }[] = [
-  { id: "gaming", name: "Gaming PC", icon: Gamepad2, description: "Maximum performance for games" },
-  { id: "streaming", name: "Streaming / Recording", icon: Camera, description: "Balanced for OBS and gameplay" },
-  { id: "workstation", name: "Workstation", icon: Monitor, description: "Productivity and stability" },
-  { id: "laptop", name: "Laptop / Battery", icon: Laptop, description: "Battery life optimization" },
-  { id: "minimal", name: "Minimal OS", icon: Cpu, description: "Bare minimum Windows" },
+  { id: "gaming",      name: "Gaming PC",          icon: Gamepad2, description: "Remove consumer noise, keep gaming tools" },
+  { id: "streaming",   name: "Streaming / Rec",    icon: Radio,    description: "OBS-focused, keep overlays & audio" },
+  { id: "workstation", name: "Workstation",         icon: Monitor,  description: "Stability first, minimal removals" },
+  { id: "laptop",      name: "Laptop / Battery",    icon: Laptop,   description: "Reduce background drain" },
+  { id: "minimal",     name: "Minimal OS",          icon: PcCase,   description: "Bare Windows, power users only" },
 ];
 
-const DEBLOAT_LEVELS: { id: DebloatLevel; name: string; description: string; color: string }[] = [
-  { id: "safe", name: "Safe", description: "Removes universally useless apps only", color: "bg-green-500/20 text-green-400 border-green-500/30" },
-  { id: "balanced", name: "Balanced", description: "Disables telemetry & unused features", color: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-  { id: "aggressive", name: "Aggressive", description: "Cortana, Copilot, Widgets removed", color: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-  { id: "extreme", name: "Extreme", description: "Power users only - creates restore point", color: "bg-red-500/20 text-red-400 border-red-500/30" },
+const DEBLOAT_LEVELS: {
+  id: DebloatLevel; name: string; description: string;
+  accent: string; bg: string; border: string;
+}[] = [
+  { id: "safe",       name: "Safe",       description: "Registry & policy only — fully reversible",
+    accent: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/30" },
+  { id: "balanced",   name: "Balanced",   description: "Consumer apps + telemetry",
+    accent: "text-blue-400",    bg: "bg-blue-500/10",    border: "border-blue-500/30" },
+  { id: "aggressive", name: "Aggressive", description: "Cortana, Copilot, Widgets, Xbox overlay",
+    accent: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/30" },
+  { id: "extreme",    name: "Extreme",    description: "Services — power users only",
+    accent: "text-red-400",     bg: "bg-red-500/10",     border: "border-red-500/30" },
 ];
 
-const DEBLOAT_ITEMS: DebloatItem[] = [
-  { id: "cortana", name: "Cortana", description: "Microsoft's voice assistant", dependencies: [], cpuImpact: 3, ramImpact: 150, riskLevel: "low", level: "aggressive", category: "Microsoft Apps", enabled: true, canRestore: true },
-  { id: "copilot", name: "Windows Copilot", description: "AI assistant in Windows 11", dependencies: [], cpuImpact: 5, ramImpact: 200, riskLevel: "low", level: "aggressive", category: "Microsoft Apps", enabled: true, canRestore: true },
-  { id: "widgets", name: "Windows Widgets", description: "News and widgets panel", dependencies: [], cpuImpact: 4, ramImpact: 180, riskLevel: "low", level: "balanced", category: "Microsoft Apps", enabled: true, canRestore: true },
-  { id: "xbox_gamebar", name: "Xbox Game Bar", description: "Gaming overlay and recording", dependencies: ["Xbox services"], cpuImpact: 2, ramImpact: 80, riskLevel: "medium", level: "aggressive", category: "Gaming", enabled: false, canRestore: true },
-  { id: "onedrive", name: "OneDrive", description: "Cloud sync and storage", dependencies: [], cpuImpact: 3, ramImpact: 120, riskLevel: "low", level: "balanced", category: "Cloud Services", enabled: true, canRestore: true },
-  { id: "teams", name: "Microsoft Teams", description: "Chat and collaboration app", dependencies: [], cpuImpact: 4, ramImpact: 250, riskLevel: "low", level: "safe", category: "Microsoft Apps", enabled: true, canRestore: true },
-  { id: "tips", name: "Windows Tips", description: "Tip notifications and suggestions", dependencies: [], cpuImpact: 1, ramImpact: 20, riskLevel: "low", level: "safe", category: "System Features", enabled: true, canRestore: true },
-  { id: "feedback_hub", name: "Feedback Hub", description: "Microsoft feedback app", dependencies: [], cpuImpact: 0, ramImpact: 0, riskLevel: "low", level: "safe", category: "Microsoft Apps", enabled: true, canRestore: true },
-  { id: "people", name: "People App", description: "Contact management app", dependencies: [], cpuImpact: 0, ramImpact: 0, riskLevel: "low", level: "safe", category: "Microsoft Apps", enabled: true, canRestore: true },
-  { id: "diagnostic_tracking", name: "Diagnostic Tracking", description: "Windows telemetry service", dependencies: [], cpuImpact: 2, ramImpact: 50, riskLevel: "medium", level: "balanced", category: "Telemetry", enabled: true, canRestore: true },
-  { id: "advertising_id", name: "Advertising ID", description: "Personalized ad targeting", dependencies: [], cpuImpact: 0, ramImpact: 10, riskLevel: "low", level: "balanced", category: "Telemetry", enabled: true, canRestore: true },
-  { id: "location_tracking", name: "Background Location", description: "Location data collection", dependencies: [], cpuImpact: 1, ramImpact: 30, riskLevel: "low", level: "balanced", category: "Telemetry", enabled: true, canRestore: true },
-  { id: "search_indexer", name: "Windows Search Indexer", description: "File indexing service", dependencies: ["Windows Search"], cpuImpact: 5, ramImpact: 200, riskLevel: "high", level: "extreme", category: "System Services", enabled: false, canRestore: true },
-  { id: "superfetch", name: "SysMain (Superfetch)", description: "Preloads apps into memory", dependencies: [], cpuImpact: 3, ramImpact: 0, riskLevel: "medium", level: "aggressive", category: "System Services", enabled: false, canRestore: true },
-  { id: "print_spooler", name: "Print Spooler", description: "Printing service", dependencies: ["Printing"], cpuImpact: 1, ramImpact: 40, riskLevel: "medium", level: "extreme", category: "System Services", enabled: false, canRestore: true },
-];
-
-const RISK_COLORS = {
-  low: "bg-green-500/20 text-green-400",
-  medium: "bg-yellow-500/20 text-yellow-400",
-  high: "bg-orange-500/20 text-orange-400",
-  critical: "bg-red-500/20 text-red-400"
+const CATEGORY_META: Record<DebloatCategory, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
+  "consumer-apps":   { label: "Consumer Apps",   icon: Layers,     color: "text-purple-400" },
+  "telemetry":       { label: "Telemetry",        icon: Eye,        color: "text-cyan-400" },
+  "gaming":          { label: "Gaming",           icon: Gamepad2,   color: "text-blue-400" },
+  "cloud":           { label: "Cloud",            icon: MemoryStick, color: "text-sky-400" },
+  "system-services": { label: "System Services",  icon: Settings2,  color: "text-orange-400" },
+  "shell-features":  { label: "Shell & UI",       icon: Monitor,    color: "text-pink-400" },
 };
+
+const SAFETY_CONFIG: Record<SafetyTier, { label: string; color: string; bg: string }> = {
+  safe:   { label: "Safe",   color: "text-emerald-400", bg: "bg-emerald-500/15 border-emerald-500/25" },
+  medium: { label: "Medium", color: "text-amber-400",   bg: "bg-amber-500/15 border-amber-500/25" },
+  high:   { label: "High",   color: "text-red-400",     bg: "bg-red-500/15 border-red-500/25" },
+};
+
+const STATUS_CONFIG: Record<ResultStatus, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
+  removed:             { label: "Removed",           icon: CheckCircle,    color: "text-emerald-400" },
+  restored:            { label: "Restored",          icon: RotateCcw,      color: "text-blue-400" },
+  "already-absent":    { label: "Already absent",    icon: Minus,          color: "text-muted-foreground" },
+  "already-present":   { label: "Already present",   icon: Minus,          color: "text-muted-foreground" },
+  failed:              { label: "Failed",             icon: X,              color: "text-red-400" },
+  "verification-failed": { label: "Verify failed",   icon: AlertCircle,    color: "text-orange-400" },
+  unsupported:         { label: "Not supported",      icon: AlertTriangle,  color: "text-muted-foreground" },
+  partial:             { label: "Partial",            icon: AlertTriangle,  color: "text-amber-400" },
+  pending:             { label: "Pending",            icon: Clock,          color: "text-muted-foreground" },
+};
+
+const LEVEL_ORDER: DebloatLevel[] = ["safe", "balanced", "aggressive", "extreme"];
+
+// ── Electron helpers ──────────────────────────────────────────────────────────
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      debloat?: {
+        scan: (items: any[]) => Promise<any>;
+        removeItem: (item: any) => Promise<any>;
+        restoreItem: (item: any) => Promise<any>;
+        verifyItem: (item: any) => Promise<any>;
+      };
+    };
+  }
+}
+
+const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.debloat;
+
+// ── Impact graph component ────────────────────────────────────────────────────
+
+function ImpactBar({ label, value, max, color, unit }: {
+  label: string; value: number; max: number; color: string; unit: string;
+}) {
+  const pct = max > 0 ? Math.min(100, (value / max) * 100) : 0;
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={cn("font-mono font-semibold", color)}>
+          {value > 0 ? `${value} ${unit}` : "—"}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+        <motion.div
+          className={cn("h-full rounded-full", color.replace("text-", "bg-"))}
+          initial={{ width: 0 }}
+          animate={{ width: `${pct}%` }}
+          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function SafetyRing({ safe, medium, high }: { safe: number; medium: number; high: number }) {
+  const total = safe + medium + high;
+  if (total === 0) return null;
+  const pSafe   = Math.round((safe   / total) * 100);
+  const pMedium = Math.round((medium / total) * 100);
+  const pHigh   = Math.round((high   / total) * 100);
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="flex h-2 flex-1 rounded-full overflow-hidden gap-px">
+        {pSafe   > 0 && <div className="bg-emerald-500/70 transition-all duration-500" style={{ width: `${pSafe}%` }} />}
+        {pMedium > 0 && <div className="bg-amber-500/70  transition-all duration-500" style={{ width: `${pMedium}%` }} />}
+        {pHigh   > 0 && <div className="bg-red-500/70    transition-all duration-500" style={{ width: `${pHigh}%` }} />}
+      </div>
+      <div className="flex items-center gap-2 text-[10px] text-muted-foreground whitespace-nowrap">
+        {safe   > 0 && <span className="text-emerald-400">{safe} safe</span>}
+        {medium > 0 && <span className="text-amber-400">{medium} med</span>}
+        {high   > 0 && <span className="text-red-400">{high} high</span>}
+      </div>
+    </div>
+  );
+}
+
+// ── Result status chip ────────────────────────────────────────────────────────
+
+function StatusChip({ status }: { status: ResultStatus }) {
+  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
+  const Icon = cfg.icon;
+  return (
+    <span className={cn("inline-flex items-center gap-1 text-[10px] font-medium", cfg.color)}>
+      <Icon className="size-3" />
+      {cfg.label}
+    </span>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function Debloater() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
+
   const [role, setRole] = useState<SystemRole>("gaming");
   const [level, setLevel] = useState<DebloatLevel>("safe");
-  const [items, setItems] = useState(DEBLOAT_ITEMS);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set(["Microsoft Apps", "Telemetry"]));
-  const [debloating, setDebloating] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [items, setItems] = useState<DebloatItem[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [itemState, setItemState] = useState<Record<string, "present" | "absent" | "unknown">>({});
+  const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const [expandedCategories, setExpandedCategories] = useState<Set<DebloatCategory>>(
+    new Set<DebloatCategory>(["consumer-apps", "telemetry"])
+  );
+  const [session, setSession] = useState<ApplySession | null>(null);
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [activeView, setActiveView] = useState<"items" | "results" | "history">("items");
 
-  const categories = Array.from(new Set(items.map(i => i.category)));
+  // ── Fetch items from backend ────────────────────────────────────────────────
 
-  const toggleCategory = (cat: string) => {
+  const fetchItems = useCallback(async (r: SystemRole, l: DebloatLevel) => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/debloat/items?role=${r}&level=${l}`);
+      const data = await res.json();
+      if (data.ok) {
+        setItems(data.items);
+        const defaults = new Set<string>(
+          data.items.filter((i: DebloatItem) => i.defaultSelected).map((i: DebloatItem) => i.id)
+        );
+        setSelected(defaults);
+      }
+    } catch (e) {
+      toast({ title: "Failed to load items", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => { fetchItems(role, level); }, [role, level, fetchItems]);
+
+  // ── Fetch history ───────────────────────────────────────────────────────────
+
+  const fetchHistory = useCallback(async () => {
+    try {
+      const res = await fetch("/api/debloat/history");
+      const data = await res.json();
+      if (data.ok) setHistory(data.history);
+    } catch {}
+  }, []);
+
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  // ── Scan via Electron IPC ──────────────────────────────────────────────────
+
+  const runScan = useCallback(async () => {
+    if (!isElectron()) return;
+    setScanning(true);
+    try {
+      const scanPayload = items.map(item => ({
+        id: item.id, type: item.type,
+        packageName: (item as any).packageName,
+        regPath: (item as any).regPath, regName: (item as any).regName,
+        expectedDisabledValue: (item as any).expectedDisabledValue,
+        serviceName: (item as any).serviceName,
+      }));
+      const result = await window.electronAPI!.debloat!.scan(scanPayload);
+      if (result.ok) {
+        setItemState(result.results);
+      }
+    } catch (e) {
+      console.warn("[Debloater] scan failed", e);
+    } finally {
+      setScanning(false);
+    }
+  }, [items]);
+
+  // ── Compute visible items ──────────────────────────────────────────────────
+
+  const visibleItems = useMemo(() => {
+    const cutoff = LEVEL_ORDER.indexOf(level);
+    return items.filter(i => LEVEL_ORDER.indexOf(i.minLevel) <= cutoff);
+  }, [items, level]);
+
+  const selectedItems = useMemo(() => {
+    return visibleItems.filter(i => selected.has(i.id));
+  }, [visibleItems, selected]);
+
+  // ── Stats ──────────────────────────────────────────────────────────────────
+
+  const stats = useMemo(() => {
+    const sel = selectedItems;
+    const totalRam  = sel.reduce((a, i) => a + i.estimatedRamMb, 0);
+    const totalDisk = sel.reduce((a, i) => a + i.estimatedDiskMb, 0);
+    const safeCnt   = sel.filter(i => i.safety === "safe").length;
+    const medCnt    = sel.filter(i => i.safety === "medium").length;
+    const highCnt   = sel.filter(i => i.safety === "high").length;
+    const restorableCnt = sel.filter(i => i.canRestore).length;
+    const adminReq  = sel.some(i => i.requiresAdmin);
+    const restartReq = sel.some(i => i.requiresRestart);
+
+    // Max values across ALL items for bar scaling
+    const allRam  = items.reduce((a, i) => a + i.estimatedRamMb, 0);
+    const allDisk = items.reduce((a, i) => a + i.estimatedDiskMb, 0);
+
+    return { count: sel.length, totalRam, totalDisk, safeCnt, medCnt, highCnt,
+      restorableCnt, adminReq, restartReq, allRam, allDisk };
+  }, [selectedItems, items]);
+
+  const categories = useMemo(() => {
+    const cats = new Set<DebloatCategory>(visibleItems.map(i => i.category));
+    return Array.from(cats);
+  }, [visibleItems]);
+
+  // ── Selection helpers ──────────────────────────────────────────────────────
+
+  const toggleItem = (id: string) => {
+    setSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleCategory = (cat: DebloatCategory) => {
     setExpandedCategories(prev => {
       const next = new Set(prev);
       if (next.has(cat)) next.delete(cat);
@@ -117,286 +355,959 @@ export default function Debloater() {
     });
   };
 
-  const toggleItem = (id: string) => {
-    setItems(prev => prev.map(item => 
-      item.id === id ? { ...item, enabled: !item.enabled } : item
-    ));
-  };
+  const selectAll = () => setSelected(new Set(visibleItems.map(i => i.id)));
+  const clearAll  = () => setSelected(new Set());
 
-  const getVisibleItems = useCallback(() => {
-    const levelOrder: DebloatLevel[] = ["safe", "balanced", "aggressive", "extreme"];
-    const currentIndex = levelOrder.indexOf(level);
-    return items.filter(item => levelOrder.indexOf(item.level) <= currentIndex);
-  }, [items, level]);
+  // ── Apply debloat ─────────────────────────────────────────────────────────
 
-  const getSelectedItems = useCallback(() => {
-    return getVisibleItems().filter(item => item.enabled);
-  }, [getVisibleItems]);
-
-  const getTotalStats = useCallback(() => {
-    const selected = getSelectedItems();
-    return {
-      count: selected.length,
-      cpu: selected.reduce((acc, item) => acc + item.cpuImpact, 0),
-      ram: selected.reduce((acc, item) => acc + item.ramImpact, 0),
-    };
-  }, [getSelectedItems]);
-
-  const runDebloat = async () => {
-    const selected = getSelectedItems();
-    if (selected.length === 0) {
-      toast({ title: "Nothing Selected", description: "Select items to debloat first.", variant: "destructive" });
+  const applyDebloat = useCallback(async () => {
+    if (selectedItems.length === 0) {
+      toast({ title: "Nothing selected", description: "Select items to debloat.", variant: "destructive" });
+      return;
+    }
+    if (level === "extreme" && !confirm("Extreme mode modifies Windows services. Create a restore point first if needed. Continue?")) {
       return;
     }
 
-    if (level === "extreme") {
-      toast({ title: "Creating Restore Point", description: "Saving system state before changes..." });
-      await new Promise(r => setTimeout(r, 1000));
-    }
+    setApplying(true);
+    setActiveView("results");
 
-    setDebloating(true);
-    setProgress(0);
-
-    for (let i = 0; i <= 100; i += 5) {
-      await new Promise(r => setTimeout(r, 80));
-      setProgress(i);
-    }
-
-    const stats = getTotalStats();
-    setDebloating(false);
-    setProgress(0);
-
-    toast({
-      title: "Debloat Complete",
-      description: `Removed/disabled ${stats.count} items. Est. ${stats.ram}MB RAM saved.`,
+    // Build preliminary result list
+    const prelimResults: ApplyResult[] = selectedItems.map(i => ({
+      id: i.id, name: i.name, status: "pending",
+      requiresRestart: i.requiresRestart, requiresSignOut: i.requiresSignOut,
+    }));
+    setSession({
+      role, level, results: prelimResults,
+      successCount: 0, failCount: 0,
+      requiresRestart: false, requiresSignOut: false,
+      appliedAt: new Date().toISOString(), action: "apply",
     });
-  };
 
-  const stats = getTotalStats();
-  const visibleItems = getVisibleItems();
+    const electronResults: Record<string, { ok: boolean; status?: string; error?: string }> = {};
+
+    // If Electron is available, execute IPC per item
+    if (isElectron()) {
+      for (const item of selectedItems) {
+        setProcessingId(item.id);
+        try {
+          const ipcPayload = buildIpcPayload(item);
+          const result = await window.electronAPI!.debloat!.removeItem(ipcPayload);
+          electronResults[item.id] = {
+            ok: result.ok,
+            status: result.status,
+            error: result.error,
+          };
+          // Update preliminary result live
+          setSession(prev => prev ? {
+            ...prev,
+            results: prev.results.map(r => r.id === item.id
+              ? { ...r, status: result.ok ? (result.status as ResultStatus ?? "removed") : "failed", error: result.error }
+              : r),
+          } : null);
+        } catch (e: any) {
+          electronResults[item.id] = { ok: false, error: e.message };
+        }
+      }
+    }
+
+    setProcessingId(null);
+
+    // POST to backend with results
+    try {
+      const res = await fetch("/api/debloat/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          role, level,
+          itemIds: selectedItems.map(i => i.id),
+          electronResults: isElectron() ? electronResults : undefined,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        setSession({
+          role, level, results: data.results,
+          successCount: data.successCount, failCount: data.failCount,
+          requiresRestart: data.requiresRestart, requiresSignOut: data.requiresSignOut,
+          appliedAt: new Date().toISOString(), action: "apply",
+        });
+        fetchHistory();
+
+        toast({
+          title: isElectron()
+            ? `${data.successCount} items processed`
+            : "Debloat queued for next boot",
+          description: isElectron()
+            ? data.failCount > 0 ? `${data.failCount} failed — see results` : "All items handled."
+            : "Running on Windows will execute changes in real-time.",
+        });
+      }
+    } catch (e) {
+      toast({ title: "Backend error", variant: "destructive" });
+    } finally {
+      setApplying(false);
+    }
+  }, [selectedItems, role, level, toast, fetchHistory]);
+
+  // ── Restore ───────────────────────────────────────────────────────────────
+
+  const restoreItems = useCallback(async (itemIds: string[]) => {
+    const restorableIds = itemIds.filter(id => items.find(i => i.id === id)?.canRestore);
+    if (restorableIds.length === 0) {
+      toast({ title: "Nothing to restore", description: "No restorable items in selection.", variant: "destructive" });
+      return;
+    }
+
+    setApplying(true);
+
+    const electronResults: Record<string, { ok: boolean; status?: string; error?: string }> = {};
+
+    if (isElectron()) {
+      for (const id of restorableIds) {
+        const item = items.find(i => i.id === id)!;
+        setProcessingId(id);
+        try {
+          const ipcPayload = buildRestoreIpcPayload(item);
+          const result = await window.electronAPI!.debloat!.restoreItem(ipcPayload);
+          electronResults[id] = { ok: result.ok, status: result.status, error: result.error };
+        } catch (e: any) {
+          electronResults[id] = { ok: false, error: e.message };
+        }
+      }
+    }
+    setProcessingId(null);
+
+    try {
+      const res = await fetch("/api/debloat/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          itemIds: restorableIds,
+          electronResults: isElectron() ? electronResults : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setSession({
+          role, level, results: data.results,
+          successCount: data.results.filter((r: ApplyResult) => r.status === "restored").length,
+          failCount: data.results.filter((r: ApplyResult) => r.status === "failed").length,
+          requiresRestart: false, requiresSignOut: false,
+          appliedAt: new Date().toISOString(), action: "restore",
+        });
+        setActiveView("results");
+        fetchHistory();
+        toast({ title: "Restore processed" });
+      }
+    } catch {}
+    finally {
+      setApplying(false);
+    }
+  }, [items, role, level, toast, fetchHistory]);
+
+  // ── IPC payload builders ──────────────────────────────────────────────────
+
+  function buildIpcPayload(item: DebloatItem): any {
+    return {
+      id: item.id, type: item.type,
+      // appx
+      packageName: getPackageName(item.id),
+      // registry
+      regPath: getRegPath(item.id),
+      regName: getRegName(item.id),
+      regValueDisabled: getRegValueDisabled(item.id),
+      // service
+      serviceName: getServiceName(item.id),
+    };
+  }
+
+  function buildRestoreIpcPayload(item: DebloatItem): any {
+    return {
+      id: item.id, type: item.type,
+      restoreSupported: item.canRestore,
+      packageName: getPackageName(item.id),
+      regPath: getRegPath(item.id),
+      regName: getRegName(item.id),
+      regValueDefault: getRegValueDefault(item.id),
+      serviceName: getServiceName(item.id),
+      defaultStartType: getDefaultStartType(item.id),
+    };
+  }
+
+  // These lookup tables mirror the backend registry so the Electron side has
+  // the full command parameters without a second network round-trip.
+  function getPackageName(id: string): string | undefined {
+    const map: Record<string, string> = {
+      teams_consumer: "MicrosoftTeams",
+      feedback_hub:   "Microsoft.WindowsFeedbackHub",
+      people_app:     "Microsoft.People",
+      solitaire:      "Microsoft.MicrosoftSolitaireCollection",
+      tips_app:       "Microsoft.Getstarted",
+      bing_weather:   "Microsoft.BingWeather",
+      maps_app:       "Microsoft.WindowsMaps",
+      cortana:        "Microsoft.549981C3F5F10",
+      xbox_gamebar:   "Microsoft.XboxGamingOverlay",
+      mixed_reality:  "Microsoft.MixedReality.Portal",
+    };
+    return map[id];
+  }
+
+  function getRegPath(id: string): string | undefined {
+    const map: Record<string, string> = {
+      advertising_id:  "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\AdvertisingInfo",
+      activity_history: "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System",
+      start_suggestions: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      lock_screen_ads: "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\ContentDeliveryManager",
+      copilot:         "HKCU:\\Software\\Policies\\Microsoft\\Windows\\WindowsCopilot",
+      widgets:         "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Dsh",
+    };
+    return map[id];
+  }
+
+  function getRegName(id: string): string | undefined {
+    const map: Record<string, string> = {
+      advertising_id:   "Enabled",
+      activity_history: "PublishUserActivities",
+      start_suggestions: "SystemPaneSuggestionsEnabled",
+      lock_screen_ads:  "RotatingLockScreenOverlayEnabled",
+      copilot:          "TurnOffWindowsCopilot",
+      widgets:          "AllowNewsAndInterests",
+    };
+    return map[id];
+  }
+
+  function getRegValueDisabled(id: string): number | string | undefined {
+    const map: Record<string, number | string> = {
+      advertising_id:   0,
+      activity_history: 0,
+      start_suggestions: 0,
+      lock_screen_ads:  0,
+      copilot:          1,
+      widgets:          0,
+    };
+    return map[id];
+  }
+
+  function getRegValueDefault(id: string): number | string | undefined {
+    const map: Record<string, number | string> = {
+      advertising_id:   1,
+      activity_history: 1,
+      start_suggestions: 1,
+      lock_screen_ads:  1,
+      copilot:          0,
+      widgets:          1,
+    };
+    return map[id];
+  }
+
+  function getServiceName(id: string): string | undefined {
+    const map: Record<string, string> = {
+      diagtrack: "DiagTrack",
+      sysmain:   "SysMain",
+    };
+    return map[id];
+  }
+
+  function getDefaultStartType(id: string): string | undefined {
+    const map: Record<string, string> = {
+      diagtrack: "Automatic",
+      sysmain:   "Automatic",
+    };
+    return map[id];
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
   const currentLevel = DEBLOAT_LEVELS.find(l => l.id === level)!;
 
   return (
     <AppLayout>
-      <div className="space-y-6" data-reveal>
+      <div className="space-y-5" data-reveal>
+
+        {/* Header */}
         <PageHeader
           icon={ShieldCheck}
           title="Debloater"
-          subtitle={<>Role-based debloating that removes what you don't need while protecting what you do.<span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span></>}
+          subtitle="Role-based system reduction with real Windows integration. Items are removed via PowerShell — honest results only."
         />
 
+        {/* Live telemetry strip */}
         {liveTel && (
           <motion.div
             className="flex items-center gap-4 px-3 py-2 rounded-lg border border-white/8 bg-white/3 text-[11px] text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
           >
-            <span>{liveTel.processes.total} active processes</span>
+            <span>{liveTel.processes.total} processes</span>
             <span className="w-px h-3 bg-white/15" />
-            <span>RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400 font-mono" : "text-cyan-400 font-mono"}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
+            <span>RAM <span className={cn("font-mono", liveTel.ram.usedPercent > 80 ? "text-red-400" : "text-cyan-400")}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
             <span className="w-px h-3 bg-white/15" />
             <span>CPU <span className="font-mono">{liveTel.cpu.load.toFixed(0)}%</span></span>
+            {isElectron() && (
+              <>
+                <span className="w-px h-3 bg-white/15" />
+                <button
+                  onClick={runScan} disabled={scanning || loading}
+                  className="ml-1 text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                  data-testid="button-scan"
+                >
+                  <RefreshCw className={cn("size-3", scanning && "animate-spin")} />
+                  {scanning ? "Scanning…" : "Scan system"}
+                </button>
+              </>
+            )}
+            {!isElectron() && (
+              <span className="ml-auto text-[9px] text-amber-500/70 flex items-center gap-1">
+                <AlertCircle className="size-3" />Browser preview — changes execute in Electron app
+              </span>
+            )}
             <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
           </motion.div>
         )}
 
+        {/* Role selector */}
         <div className="grid grid-cols-5 gap-3">
           {SYSTEM_ROLES.map((r, i) => {
             const Icon = r.icon;
+            const active = role === r.id;
             return (
-              <motion.div
-                key={r.id}
-                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              <motion.div key={r.id}
+                initial={{ opacity: 0, y: 16, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                transition={{ duration: 0.45, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
+                transition={{ duration: 0.4, delay: 0.06 * i, ease: [0.22, 1, 0.36, 1] }}
               >
-              <Card 
-                className={cn(
-                  "cursor-pointer transition-all hover:border-primary/50 h-full",
-                  role === r.id ? "bg-primary/10 border-primary" : "bg-card/50 border-border/50"
-                )}
-                onClick={() => setRole(r.id)}
-                data-testid={`role-${r.id}`}
-              >
-                <CardContent className="p-4 text-center">
-                  <Icon className={cn("size-8 mx-auto mb-2", role === r.id ? "text-primary" : "text-muted-foreground")} />
-                  <p className="font-medium text-white text-sm">{r.name}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{r.description}</p>
-                </CardContent>
-              </Card>
+                <Card
+                  className={cn(
+                    "cursor-pointer transition-all duration-200 h-full group",
+                    active
+                      ? "bg-primary/12 border-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]"
+                      : "bg-card/40 border-border/40 hover:border-white/20 hover:bg-white/5"
+                  )}
+                  onClick={() => setRole(r.id)}
+                  data-testid={`role-${r.id}`}
+                >
+                  <CardContent className="p-4 text-center">
+                    <div className={cn(
+                      "size-9 rounded-xl mx-auto mb-2.5 flex items-center justify-center transition-colors",
+                      active ? "bg-primary/20" : "bg-white/5 group-hover:bg-white/8"
+                    )}>
+                      <Icon className={cn("size-4.5", active ? "text-primary" : "text-muted-foreground")} />
+                    </div>
+                    <p className={cn("font-semibold text-xs leading-tight", active ? "text-white" : "text-muted-foreground")}>{r.name}</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-snug">{r.description}</p>
+                  </CardContent>
+                </Card>
               </motion.div>
             );
           })}
         </div>
 
+        {/* Mode + action bar */}
         <motion.div
-          className="flex items-center justify-between"
-          initial={{ opacity: 0, y: 16 }}
+          className="flex items-center justify-between gap-4"
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 0.4, delay: 0.3 }}
         >
-          <div className="flex gap-2">
-            {DEBLOAT_LEVELS.map((l) => (
-              <Button
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground mr-1">Intensity:</span>
+            {DEBLOAT_LEVELS.map(l => (
+              <button
                 key={l.id}
-                variant={level === l.id ? "default" : "outline"}
-                size="sm"
                 onClick={() => setLevel(l.id)}
-                className={level === l.id ? l.color : ""}
                 data-testid={`level-${l.id}`}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200",
+                  level === l.id
+                    ? `${l.bg} ${l.accent} ${l.border}`
+                    : "bg-white/3 border-white/10 text-muted-foreground hover:text-white hover:bg-white/6"
+                )}
               >
                 {l.name}
-              </Button>
+              </button>
             ))}
           </div>
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">
-              <span className="font-medium text-white">{stats.count}</span> items selected
-              <span className="mx-2">·</span>
-              <span className="font-medium text-green-400">-{stats.cpu}%</span> CPU
-              <span className="mx-2">·</span>
-              <span className="font-medium text-yellow-400">+{stats.ram}MB</span> RAM
-            </div>
-            <Button 
-              onClick={runDebloat}
-              disabled={debloating || stats.count === 0}
-              className="bg-primary hover:bg-primary/90"
-              data-testid="button-run-debloat"
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setActiveView("history")}
+              className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-white/5 transition-colors"
+              data-testid="button-history"
             >
-              {debloating ? (
-                <>
-                  <RefreshCw className="size-4 mr-2 animate-spin" />
-                  Processing...
-                </>
+              <History className="size-3.5" />History
+            </button>
+            {session && (
+              <button
+                onClick={() => setActiveView(activeView === "results" ? "items" : "results")}
+                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-purple-500/10 transition-colors"
+              >
+                <BarChart3 className="size-3.5" />
+                {activeView === "results" ? "Back to items" : "View results"}
+              </button>
+            )}
+            <Button
+              onClick={applyDebloat}
+              disabled={applying || loading || stats.count === 0}
+              size="sm"
+              className="bg-primary hover:bg-primary/90 gap-2"
+              data-testid="button-apply-debloat"
+            >
+              {applying ? (
+                <><RefreshCw className="size-3.5 animate-spin" />Processing…</>
               ) : (
-                <>
-                  <Play className="size-4 mr-2" />
-                  Apply Debloat
-                </>
+                <><Play className="size-3.5" />Apply ({stats.count})</>
               )}
             </Button>
           </div>
         </motion.div>
 
-        {debloating && (
-          <Card className="bg-primary/10 border-primary/30">
+        {/* Impact summary panel */}
+        <AnimatedSection index={0}>
+          <Card className={cn("border", currentLevel.border, "overflow-hidden")}>
             <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <RefreshCw className="size-5 text-primary animate-spin" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-white mb-2">Debloating in progress...</p>
-                  <Progress value={progress} className="h-2" />
+              <div className="grid grid-cols-12 gap-6">
+                {/* Left: impact numbers */}
+                <div className="col-span-5 space-y-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <TrendingDown className={cn("size-4", currentLevel.accent)} />
+                    <span className={cn("text-xs font-semibold uppercase tracking-wider", currentLevel.accent)}>
+                      {currentLevel.name} — Estimated impact
+                    </span>
+                  </div>
+
+                  <ImpactBar
+                    label="RAM freed (est.)"
+                    value={stats.totalRam}
+                    max={stats.allRam || 1}
+                    color="text-cyan-400"
+                    unit="MB"
+                  />
+                  <ImpactBar
+                    label="Disk freed (est.)"
+                    value={stats.totalDisk}
+                    max={stats.allDisk || 1}
+                    color="text-purple-400"
+                    unit="MB"
+                  />
                 </div>
-                <span className="text-sm text-muted-foreground">{progress}%</span>
+
+                {/* Center: selection composition */}
+                <div className="col-span-4 space-y-3">
+                  <div className="text-xs text-muted-foreground font-medium mb-3">Selection</div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Selected</span>
+                      <span className="font-mono font-semibold text-white">{stats.count} / {visibleItems.length}</span>
+                    </div>
+                    <div className="text-xs text-muted-foreground">Risk distribution</div>
+                    <SafetyRing safe={stats.safeCnt} medium={stats.medCnt} high={stats.highCnt} />
+                  </div>
+                </div>
+
+                {/* Right: flags */}
+                <div className="col-span-3 space-y-2">
+                  <div className="text-xs text-muted-foreground font-medium mb-3">Flags</div>
+                  <div className="space-y-2">
+                    <div className={cn(
+                      "flex items-center gap-2 text-xs rounded-md px-2 py-1.5",
+                      stats.count > 0 && stats.restorableCnt === stats.count
+                        ? "bg-emerald-500/10 text-emerald-400"
+                        : stats.restorableCnt > 0
+                        ? "bg-amber-500/10 text-amber-400"
+                        : "bg-white/5 text-muted-foreground"
+                    )}>
+                      <RotateCcw className="size-3 shrink-0" />
+                      {stats.count === 0
+                        ? "—"
+                        : `${stats.restorableCnt}/${stats.count} restorable`}
+                    </div>
+                    {stats.adminReq && (
+                      <div className="flex items-center gap-2 text-xs bg-amber-500/10 text-amber-400 rounded-md px-2 py-1.5">
+                        <ShieldCheck className="size-3 shrink-0" />Admin required
+                      </div>
+                    )}
+                    {stats.restartReq && (
+                      <div className="flex items-center gap-2 text-xs bg-orange-500/10 text-orange-400 rounded-md px-2 py-1.5">
+                        <RefreshCw className="size-3 shrink-0" />Restart needed
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+
+              {/* Category footprint bar */}
+              {stats.count > 0 && (
+                <div className="mt-4 pt-4 border-t border-white/6 space-y-2">
+                  <div className="text-[10px] text-muted-foreground mb-2">Selected by category</div>
+                  <div className="flex gap-1 h-2 rounded-full overflow-hidden">
+                    {categories.map(cat => {
+                      const catItems = selectedItems.filter(i => i.category === cat);
+                      const pct = stats.count > 0 ? (catItems.length / stats.count) * 100 : 0;
+                      if (pct === 0) return null;
+                      const meta = CATEGORY_META[cat];
+                      const colorMap: Record<string, string> = {
+                        "text-purple-400": "bg-purple-400",
+                        "text-cyan-400":   "bg-cyan-400",
+                        "text-blue-400":   "bg-blue-400",
+                        "text-sky-400":    "bg-sky-400",
+                        "text-orange-400": "bg-orange-400",
+                        "text-pink-400":   "bg-pink-400",
+                      };
+                      return (
+                        <div
+                          key={cat}
+                          className={cn("h-full transition-all duration-500", colorMap[meta.color] ?? "bg-white/30")}
+                          style={{ width: `${pct}%` }}
+                          title={`${meta.label}: ${catItems.length} item${catItems.length !== 1 ? "s" : ""}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {categories.map(cat => {
+                      const cnt = selectedItems.filter(i => i.category === cat).length;
+                      if (cnt === 0) return null;
+                      const meta = CATEGORY_META[cat];
+                      const Icon = meta.icon;
+                      return (
+                        <div key={cat} className={cn("flex items-center gap-1 text-[10px]", meta.color)}>
+                          <Icon className="size-2.5" />{meta.label} ({cnt})
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
-        )}
-
-        <AnimatedSection index={1}>
-        <Card className={cn("border", currentLevel.color.replace("text-", "border-"))}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Info className="size-5" />
-              {currentLevel.name} Mode
-            </CardTitle>
-            <CardDescription>{currentLevel.description}</CardDescription>
-          </CardHeader>
-        </Card>
         </AnimatedSection>
 
-        <AnimatedSection index={2}>
-        <div className="space-y-4">
-          {categories.map((category) => {
-            const categoryItems = visibleItems.filter(i => i.category === category);
-            if (categoryItems.length === 0) return null;
-            
-            const isExpanded = expandedCategories.has(category);
-            const selectedCount = categoryItems.filter(i => i.enabled).length;
+        {/* View: items */}
+        <AnimatePresence mode="wait">
+          {activeView === "items" && (
+            <motion.div
+              key="items"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="space-y-3"
+            >
+              {/* Selection controls */}
+              <div className="flex items-center justify-between">
+                <div className="text-xs text-muted-foreground">
+                  {loading
+                    ? "Loading items…"
+                    : `${visibleItems.length} items available at ${currentLevel.name} level`}
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={selectAll} className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors" data-testid="button-select-all">All</button>
+                  <button onClick={clearAll}  className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors" data-testid="button-clear-all">None</button>
+                </div>
+              </div>
 
-            return (
-              <Card key={category} className="bg-card/50 border-border/50 overflow-hidden">
-                <CardHeader 
-                  className="cursor-pointer hover:bg-muted/20 transition-colors py-4"
-                  onClick={() => toggleCategory(category)}
-                  data-testid={`category-header-${category.replace(/\s+/g, '-').toLowerCase()}`}
-                >
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg text-white">{category}</CardTitle>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground">
-                        {selectedCount}/{categoryItems.length} selected
-                      </span>
-                      {isExpanded ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
-                    </div>
-                  </div>
-                </CardHeader>
-                {isExpanded && (
-                  <CardContent className="pt-0">
-                    <div className="space-y-3">
-                      {categoryItems.map((item) => (
-                        <div 
-                          key={item.id}
-                          className={cn(
-                            "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                            item.enabled 
-                              ? "bg-primary/10 border-primary/30" 
-                              : "bg-muted/20 border-border/50 hover:bg-muted/30"
-                          )}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Switch 
-                              checked={item.enabled}
-                              onCheckedChange={() => toggleItem(item.id)}
-                              data-testid={`switch-${item.id}`}
-                            />
-                            <div>
-                              <p className="font-medium text-white flex items-center gap-2">
-                                {item.name}
-                                <Badge variant="outline" className={cn("text-xs", RISK_COLORS[item.riskLevel])}>
-                                  {item.riskLevel} risk
-                                </Badge>
-                                {item.canRestore && (
-                                  <Badge variant="outline" className="text-xs bg-blue-500/20 text-blue-400">
-                                    <RotateCcw className="size-3 mr-1" />
-                                    Restorable
-                                  </Badge>
-                                )}
-                              </p>
-                              <p className="text-sm text-muted-foreground">{item.description}</p>
-                              {item.dependencies.length > 0 && (
-                                <p className="text-xs text-yellow-400 mt-1">
-                                  <AlertTriangle className="size-3 inline mr-1" />
-                                  Affects: {item.dependencies.join(", ")}
-                                </p>
-                              )}
-                            </div>
+              {loading ? (
+                <Card className="bg-card/40 border-border/40">
+                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                    <RefreshCw className="size-5 animate-spin mx-auto mb-2 text-primary" />
+                    Loading items…
+                  </CardContent>
+                </Card>
+              ) : visibleItems.length === 0 ? (
+                <Card className="bg-card/40 border-border/40">
+                  <CardContent className="p-6 text-center text-sm text-muted-foreground">
+                    No items available for this role + mode combination.
+                  </CardContent>
+                </Card>
+              ) : (
+                categories.map(category => {
+                  const catItems = visibleItems.filter(i => i.category === category);
+                  if (catItems.length === 0) return null;
+                  const meta = CATEGORY_META[category];
+                  const Icon = meta.icon;
+                  const isExpanded = expandedCategories.has(category);
+                  const selCount = catItems.filter(i => selected.has(i.id)).length;
+
+                  return (
+                    <Card key={category} className="bg-card/40 border-border/40 overflow-hidden">
+                      <CardHeader
+                        className="py-3 px-4 cursor-pointer hover:bg-white/3 transition-colors"
+                        onClick={() => toggleCategory(category)}
+                        data-testid={`category-${category}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5">
+                            <Icon className={cn("size-4", meta.color)} />
+                            <span className="font-semibold text-white text-sm">{meta.label}</span>
+                            {selCount > 0 && (
+                              <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] h-4 px-1.5">
+                                {selCount} selected
+                              </Badge>
+                            )}
                           </div>
-                          <div className="flex items-center gap-4 text-sm">
-                            {item.cpuImpact > 0 && (
-                              <div className="text-center">
-                                <p className="font-medium text-green-400">-{item.cpuImpact}%</p>
-                                <p className="text-xs text-muted-foreground">CPU</p>
-                              </div>
-                            )}
-                            {item.ramImpact > 0 && (
-                              <div className="text-center">
-                                <p className="font-medium text-yellow-400">+{item.ramImpact}MB</p>
-                                <p className="text-xs text-muted-foreground">RAM</p>
-                              </div>
-                            )}
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{catItems.length} items</span>
+                            {isExpanded ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
                           </div>
                         </div>
-                      ))}
+                      </CardHeader>
+
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.2 }}
+                            className="overflow-hidden"
+                          >
+                            <CardContent className="pt-0 pb-3 px-3 space-y-1.5">
+                              {catItems.map(item => {
+                                const isSelected = selected.has(item.id);
+                                const scanStatus = itemState[item.id];
+                                const safety = SAFETY_CONFIG[item.safety];
+                                const isProcessing = processingId === item.id;
+
+                                return (
+                                  <motion.div
+                                    key={item.id}
+                                    data-testid={`item-${item.id}`}
+                                    className={cn(
+                                      "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-150",
+                                      isSelected
+                                        ? "bg-primary/8 border-primary/25 hover:border-primary/40"
+                                        : "bg-white/2 border-white/6 hover:bg-white/4 hover:border-white/12",
+                                      isProcessing && "opacity-60 pointer-events-none"
+                                    )}
+                                    onClick={() => toggleItem(item.id)}
+                                    whileHover={prefersReducedMotion ? {} : { scale: 1.002 }}
+                                    whileTap={prefersReducedMotion ? {} : { scale: 0.998 }}
+                                  >
+                                    {/* Checkbox */}
+                                    <div className={cn(
+                                      "mt-0.5 size-4 rounded shrink-0 border flex items-center justify-center transition-all",
+                                      isSelected
+                                        ? "bg-primary border-primary"
+                                        : "bg-transparent border-white/20"
+                                    )}>
+                                      {isSelected && <CheckCircle className="size-3 text-white" />}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="font-semibold text-sm text-white">{item.name}</span>
+
+                                        {/* Type badge */}
+                                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-white/12 text-muted-foreground uppercase tracking-wide">
+                                          {item.type}
+                                        </Badge>
+
+                                        {/* Safety chip */}
+                                        <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5", safety.bg, safety.color)}>
+                                          {safety.label} risk
+                                        </Badge>
+
+                                        {/* Restore badge */}
+                                        {item.canRestore ? (
+                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-blue-500/10 border-blue-500/20 text-blue-400 flex items-center gap-1">
+                                            <RotateCcw className="size-2.5" />Restorable
+                                          </Badge>
+                                        ) : (
+                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-white/5 border-white/10 text-muted-foreground/60 flex items-center gap-1">
+                                            <Minus className="size-2.5" />Not restorable
+                                          </Badge>
+                                        )}
+
+                                        {/* Scan state */}
+                                        {scanStatus === "absent" && (
+                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-emerald-500/10 border-emerald-500/20 text-emerald-400">
+                                            Already removed
+                                          </Badge>
+                                        )}
+                                      </div>
+
+                                      <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.description}</p>
+
+                                      {/* Warnings */}
+                                      {item.requiresAdmin && (
+                                        <p className="text-[10px] text-amber-500/80 mt-1 flex items-center gap-1">
+                                          <ShieldCheck className="size-2.5" />Requires admin
+                                        </p>
+                                      )}
+                                      {item.requiresSignOut && (
+                                        <p className="text-[10px] text-amber-500/80 mt-1 flex items-center gap-1">
+                                          <AlertTriangle className="size-2.5" />Sign-out required to take effect
+                                        </p>
+                                      )}
+                                      {item.requiresRestart && (
+                                        <p className="text-[10px] text-orange-500/80 mt-1 flex items-center gap-1">
+                                          <RefreshCw className="size-2.5" />Restart required
+                                        </p>
+                                      )}
+                                      {!item.canRestore && item.restoreNotes && (
+                                        <p className="text-[10px] text-muted-foreground/60 mt-1 flex items-center gap-1">
+                                          <Info className="size-2.5" />{item.restoreNotes}
+                                        </p>
+                                      )}
+                                      {item.affectedFeatures.length > 0 && (
+                                        <p className="text-[10px] text-muted-foreground/50 mt-1">
+                                          Affects: {item.affectedFeatures.join(", ")}
+                                        </p>
+                                      )}
+                                    </div>
+
+                                    {/* Impact */}
+                                    <div className="flex items-center gap-3 shrink-0 text-right">
+                                      {item.estimatedRamMb > 0 && (
+                                        <div>
+                                          <p className="text-xs font-mono font-semibold text-cyan-400">
+                                            -{item.estimatedRamMb}MB
+                                          </p>
+                                          <p className="text-[9px] text-muted-foreground">RAM est.</p>
+                                        </div>
+                                      )}
+                                      {item.estimatedDiskMb > 0 && (
+                                        <div>
+                                          <p className="text-xs font-mono font-semibold text-purple-400">
+                                            -{item.estimatedDiskMb}MB
+                                          </p>
+                                          <p className="text-[9px] text-muted-foreground">Disk est.</p>
+                                        </div>
+                                      )}
+                                      {isProcessing && (
+                                        <RefreshCw className="size-3.5 text-primary animate-spin" />
+                                      )}
+                                    </div>
+                                  </motion.div>
+                                );
+                              })}
+                            </CardContent>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </Card>
+                  );
+                })
+              )}
+            </motion.div>
+          )}
+
+          {/* View: results */}
+          {activeView === "results" && session && (
+            <motion.div
+              key="results"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
+              <Card className={cn(
+                "border overflow-hidden",
+                session.action === "apply" ? "border-primary/30" : "border-blue-500/30"
+              )}>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      {session.action === "apply" ? (
+                        <><Trash2 className="size-4 text-primary" />Debloat Results</>
+                      ) : (
+                        <><RotateCcw className="size-4 text-blue-400" />Restore Results</>
+                      )}
+                    </CardTitle>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        {session.appliedAt ? new Date(session.appliedAt).toLocaleTimeString() : ""}
+                      </span>
+                      <button
+                        onClick={() => setActiveView("items")}
+                        className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5"
+                      >
+                        ← Back
+                      </button>
                     </div>
-                  </CardContent>
-                )}
+                  </div>
+                  <div className="flex items-center gap-4 text-xs text-muted-foreground mt-1">
+                    <span className="text-emerald-400 font-medium">{session.successCount} succeeded</span>
+                    {session.failCount > 0 && <span className="text-red-400 font-medium">{session.failCount} failed</span>}
+                    {session.requiresRestart && (
+                      <span className="text-orange-400 flex items-center gap-1">
+                        <RefreshCw className="size-3" />Restart required
+                      </span>
+                    )}
+                    {session.requiresSignOut && (
+                      <span className="text-amber-400 flex items-center gap-1">
+                        <AlertTriangle className="size-3" />Sign-out required
+                      </span>
+                    )}
+                    {!isElectron() && (
+                      <span className="text-amber-500/70 flex items-center gap-1">
+                        <AlertCircle className="size-3" />Logged — execute in Electron for real changes
+                      </span>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-1.5">
+                  {session.results.map(result => {
+                    const cfg = STATUS_CONFIG[result.status] ?? STATUS_CONFIG.pending;
+                    const Icon = cfg.icon;
+                    return (
+                      <div
+                        key={result.id}
+                        data-testid={`result-${result.id}`}
+                        className={cn(
+                          "flex items-center justify-between px-3 py-2.5 rounded-lg border text-sm",
+                          result.status === "removed" || result.status === "restored"
+                            ? "bg-emerald-500/6 border-emerald-500/15"
+                            : result.status === "failed" || result.status === "verification-failed"
+                            ? "bg-red-500/6 border-red-500/15"
+                            : result.status === "unsupported"
+                            ? "bg-white/3 border-white/8"
+                            : "bg-white/4 border-white/10"
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Icon className={cn("size-3.5 shrink-0", cfg.color)} />
+                          <span className="text-white text-xs font-medium">{result.name}</span>
+                          {result.storeRequired && (
+                            <span className="text-[10px] text-amber-400">— install from Store</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {result.error && (
+                            <span className="text-[10px] text-red-400/80 max-w-48 truncate" title={result.error}>
+                              {result.error}
+                            </span>
+                          )}
+                          <StatusChip status={result.status} />
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Restore buttons for applicable items */}
+                  {session.action === "apply" && session.results.some(r =>
+                    (r.status === "removed" || r.status === "already-absent") &&
+                    items.find(i => i.id === r.id)?.canRestore
+                  ) && (
+                    <div className="pt-2 flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2 border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+                        onClick={() => restoreItems(
+                          session.results
+                            .filter(r => r.status === "removed" || r.status === "already-absent")
+                            .filter(r => items.find(i => i.id === r.id)?.canRestore)
+                            .map(r => r.id)
+                        )}
+                        disabled={applying}
+                        data-testid="button-restore-all"
+                      >
+                        <RotateCcw className="size-3.5" />
+                        Restore restorable items
+                      </Button>
+                      <span className="text-[10px] text-muted-foreground">
+                        Permanently removed items are not included
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
               </Card>
-            );
-          })}
-        </div>
+            </motion.div>
+          )}
+
+          {/* View: history */}
+          {activeView === "history" && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+            >
+              <Card className="border-border/40">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <History className="size-4 text-muted-foreground" />Debloat History
+                    </CardTitle>
+                    <button
+                      onClick={() => setActiveView("items")}
+                      className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5"
+                    >
+                      ← Back
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-1.5">
+                  {history.length === 0 ? (
+                    <div className="text-sm text-muted-foreground py-6 text-center">
+                      No debloat history yet. Apply some items to see results here.
+                    </div>
+                  ) : (
+                    history.slice(0, 50).map(entry => (
+                      <div
+                        key={entry.id}
+                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/3 border border-white/6 text-xs"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={cn(
+                            "font-medium",
+                            entry.status === "removed" || entry.status === "restored"
+                              ? "text-emerald-400"
+                              : entry.status === "failed"
+                              ? "text-red-400"
+                              : "text-muted-foreground"
+                          )}>{entry.item_name}</span>
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-white/10 text-muted-foreground uppercase">
+                            {entry.action}
+                          </Badge>
+                          {entry.role && (
+                            <span className="text-muted-foreground/60">{entry.role}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <StatusChip status={entry.status as ResultStatus} />
+                          <span className="text-muted-foreground/50">
+                            {new Date(entry.applied_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Mode info strip */}
+        <AnimatedSection index={3}>
+          <div className={cn(
+            "px-4 py-3 rounded-xl border text-xs flex items-start gap-3",
+            currentLevel.bg, currentLevel.border
+          )}>
+            <Info className={cn("size-4 shrink-0 mt-0.5", currentLevel.accent)} />
+            <div>
+              <span className={cn("font-semibold", currentLevel.accent)}>{currentLevel.name} mode</span>
+              <span className="text-muted-foreground ml-2">{currentLevel.description}</span>
+              {level === "extreme" && (
+                <span className="ml-2 text-red-400/80">
+                  — Services are reversible but may require restart. Create a manual restore point before proceeding.
+                </span>
+              )}
+              {!isElectron() && (
+                <span className="ml-2 text-amber-500/70">
+                  You are in the web app. All actions are logged but only execute in the installed Windows application.
+                </span>
+              )}
+            </div>
+          </div>
         </AnimatedSection>
+
       </div>
     </AppLayout>
   );
