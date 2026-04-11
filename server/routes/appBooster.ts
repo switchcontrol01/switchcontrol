@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
-import { pool, db, isNoDbMode } from "../db";
+import { db, isNoDbMode } from "../db";
 import { SUPPORTED_GAMES, buildActionsForGame, getGameBySlug, PROFILES } from "../lib/appBoosterProfiles";
 
 const router = Router();
@@ -155,7 +155,7 @@ async function upsertStateRow(
     await db.execute(
       sql`INSERT INTO app_booster_state
             (game_slug, status, profile_id, actions_result, install_path, applied_at, updated_at)
-          VALUES (${slug}, ${status}, ${profileId}, ${sql.raw(`'${json}'`)}::jsonb, ${installPath}, ${now}, ${now})
+          VALUES (${slug}, ${status}, ${profileId}, cast(${json} as jsonb), ${installPath}, ${now}, ${now})
           ON CONFLICT (game_slug) DO UPDATE SET
             status         = EXCLUDED.status,
             profile_id     = COALESCE(EXCLUDED.profile_id, app_booster_state.profile_id),
@@ -168,7 +168,7 @@ async function upsertStateRow(
     await db.execute(
       sql`INSERT INTO app_booster_state
             (game_slug, status, profile_id, actions_result, install_path, reverted_at, updated_at)
-          VALUES (${slug}, ${status}, ${profileId}, ${sql.raw(`'${json}'`)}::jsonb, ${installPath}, ${now}, ${now})
+          VALUES (${slug}, ${status}, ${profileId}, cast(${json} as jsonb), ${installPath}, ${now}, ${now})
           ON CONFLICT (game_slug) DO UPDATE SET
             status         = EXCLUDED.status,
             actions_result = EXCLUDED.actions_result,
@@ -180,7 +180,7 @@ async function upsertStateRow(
     await db.execute(
       sql`INSERT INTO app_booster_state
             (game_slug, status, profile_id, actions_result, install_path, updated_at)
-          VALUES (${slug}, ${status}, ${profileId}, ${sql.raw(`'${json}'`)}::jsonb, ${installPath}, ${now})
+          VALUES (${slug}, ${status}, ${profileId}, cast(${json} as jsonb), ${installPath}, ${now})
           ON CONFLICT (game_slug) DO UPDATE SET
             status         = EXCLUDED.status,
             profile_id     = COALESCE(EXCLUDED.profile_id, app_booster_state.profile_id),
@@ -192,11 +192,11 @@ async function upsertStateRow(
 }
 
 async function addHistory(slug: string, operation: string, status: string, details: object) {
-  if (isNoDbMode || !pool) return;
-  await pool.query(
-    `INSERT INTO app_booster_history (game_slug, operation, status, details)
-     VALUES ($1, $2, $3, $4::jsonb)`,
-    [slug, operation, status, JSON.stringify(details)]
+  if (isNoDbMode || !db) return;
+  const json = JSON.stringify(details);
+  await db.execute(
+    sql`INSERT INTO app_booster_history (game_slug, operation, status, details)
+        VALUES (${slug}, ${operation}, ${status}, cast(${json} as jsonb))`
   );
 }
 
@@ -208,7 +208,7 @@ router.get("/games", async (_req, res) => {
     const stateMap: Record<string, { status: string; profileId: string | null; detected: boolean; installPath: string | null }> = {};
 
     if (!isNoDbMode && db) {
-      const rows = await db.execute(sql`
+      const { rows } = await db.execute(sql`
         SELECT g.slug, g.detected, g.install_path,
                s.status, s.profile_id
         FROM app_booster_games g
@@ -400,18 +400,17 @@ router.get("/history", async (req, res) => {
   try {
     const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 50);
 
-    if (isNoDbMode || !pool) {
+    if (isNoDbMode || !db) {
       return res.json({ history: [] });
     }
 
-    const { rows } = await pool.query(
-      `SELECT h.id, h.game_slug, h.operation, h.status, h.details, h.created_at,
-              g.name as game_name
-       FROM app_booster_history h
-       LEFT JOIN app_booster_games g ON g.slug = h.game_slug
-       ORDER BY h.created_at DESC
-       LIMIT $1`,
-      [limit]
+    const { rows } = await db.execute(
+      sql`SELECT h.id, h.game_slug, h.operation, h.status, h.details, h.created_at,
+               g.name as game_name
+          FROM app_booster_history h
+          LEFT JOIN app_booster_games g ON g.slug = h.game_slug
+          ORDER BY h.created_at DESC
+          LIMIT ${limit}`
     );
 
     res.json({
