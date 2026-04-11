@@ -38,7 +38,11 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
           <motion.div
             key="premium-modal-backdrop"
             className="fixed inset-0 z-[9000] pointer-events-auto"
-            style={{ background: "rgba(4,3,12,0.72)", backdropFilter: "blur(6px)", WebkitBackdropFilter: "blur(6px)" }}
+            style={{
+              background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(168,85,247,0.10) 50%, rgba(255,255,255,0.05) 100%)",
+              backdropFilter: "blur(3px) saturate(1.4)",
+              WebkitBackdropFilter: "blur(3px) saturate(1.4)",
+            }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -46,12 +50,15 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
             onClick={close}
           />
 
-          {/* Card */}
+          {/* Card — centering wrapper is static so Framer Motion's transform doesn't stomp -translate-x/y-1/2 */}
+          <div
+            key="premium-modal-positioner"
+            className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[9001] pointer-events-auto w-full max-w-[420px] px-4"
+          >
           <motion.div
             key="premium-modal-card"
-            className="fixed left-1/2 top-1/2 z-[9001] pointer-events-auto w-full max-w-[420px] rounded-2xl p-6"
+            className="rounded-2xl p-6 w-full"
             style={{
-              transform: "translate(-50%, -50%)",
               background: "linear-gradient(145deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0.05) 100%)",
               border: "1px solid rgba(255,255,255,0.14)",
               boxShadow: "0 32px 80px rgba(0,0,0,0.65), 0 0 0 0.5px rgba(255,255,255,0.06) inset, 0 1px 0 rgba(255,255,255,0.12) inset",
@@ -159,6 +166,7 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
               No presets. No risky automation. Full transparency.
             </p>
           </motion.div>
+          </div>
         </>
       )}
     </AnimatePresence>,
