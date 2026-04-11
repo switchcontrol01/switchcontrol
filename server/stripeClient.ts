@@ -77,7 +77,6 @@ export function logStripeStartupConfig(): void {
   const hasWebhookSecret = !!process.env.STRIPE_WEBHOOK_SECRET;
   const hasPriceId = !!process.env.STRIPE_PREMIUM_PRICE_ID;
 
-  console.log(`[Stripe] Billing configured — mode=${mode}`);
   console.log(`[Stripe] Config check — publishableKey=${hasPublishableKey} webhookSecret=${hasWebhookSecret} priceId=${hasPriceId}`);
 
   if (!hasPublishableKey) console.warn('[Stripe] STRIPE_PUBLISHABLE_KEY missing — checkout page will fail.');

@@ -8,8 +8,8 @@ const router = Router();
 // ── DB init ──────────────────────────────────────────────────────────────────
 
 async function initTables() {
-  if (isNoDbMode || !pool) return;
-  await pool.query(`
+  if (isNoDbMode || !db) return;
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_games (
       slug        TEXT PRIMARY KEY,
       name        TEXT NOT NULL,
@@ -17,8 +17,9 @@ async function initTables() {
       install_path TEXT,
       detected    BOOLEAN NOT NULL DEFAULT FALSE,
       added_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-
+    )
+  `);
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_state (
       game_slug   TEXT PRIMARY KEY,
       status      TEXT NOT NULL DEFAULT 'idle',
@@ -28,8 +29,9 @@ async function initTables() {
       actions_result JSONB NOT NULL DEFAULT '[]',
       install_path TEXT,
       updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-
+    )
+  `);
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_history (
       id          SERIAL PRIMARY KEY,
       game_slug   TEXT NOT NULL,
@@ -37,7 +39,7 @@ async function initTables() {
       status      TEXT NOT NULL,
       details     JSONB NOT NULL DEFAULT '{}',
       created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
+    )
   `);
 }
 
@@ -85,21 +87,19 @@ async function getState(slug: string): Promise<GameState | null> {
     addedAt: new Date().toISOString(),
   };
 
-  if (isNoDbMode || !pool) return defaultState;
+  if (isNoDbMode || !db) return defaultState;
 
-  const { rows } = await pool.query(
-    `SELECT s.status, s.profile_id, s.applied_at, s.reverted_at, s.actions_result, s.install_path,
-            g.detected, g.added_at, g.install_path as g_install_path
-     FROM app_booster_state s
-     LEFT JOIN app_booster_games g ON g.slug = s.game_slug
-     WHERE s.game_slug = $1`,
-    [slug]
+  const { rows } = await db.execute(
+    sql`SELECT s.status, s.profile_id, s.applied_at, s.reverted_at, s.actions_result, s.install_path,
+               g.detected, g.added_at, g.install_path as g_install_path
+        FROM app_booster_state s
+        LEFT JOIN app_booster_games g ON g.slug = s.game_slug
+        WHERE s.game_slug = ${slug}`
   );
 
   if (rows.length === 0) {
-    const gameRow = await pool.query(
-      `SELECT detected, added_at, install_path FROM app_booster_games WHERE slug = $1`,
-      [slug]
+    const gameRow = await db.execute(
+      sql`SELECT detected, added_at, install_path FROM app_booster_games WHERE slug = ${slug}`
     );
     if (gameRow.rows.length > 0) {
       return {

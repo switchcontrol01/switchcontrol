@@ -1,18 +1,19 @@
 /**
  * Network Tweaks backend — state persistence and execution log.
- * Uses raw SQL (pool.query) — does NOT modify shared/schema.ts.
+ * Uses Drizzle sql`` template literals — does NOT modify shared/schema.ts.
  */
 
 import { Router } from "express";
-import { pool, isNoDbMode } from "../db";
+import { sql } from "drizzle-orm";
+import { db, isNoDbMode } from "../db";
 
 const router = Router();
 
 // ── table init ───────────────────────────────────────────────────────────────
 
 async function initTables(): Promise<void> {
-  if (isNoDbMode || !pool) return;
-  await pool.query(`
+  if (isNoDbMode || !db) return;
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS network_tweak_state (
       tweak_id    TEXT PRIMARY KEY,
       status      TEXT NOT NULL DEFAULT 'idle',
@@ -21,7 +22,7 @@ async function initTables(): Promise<void> {
       updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
-  await pool.query(`
+  await db.execute(sql`
     CREATE TABLE IF NOT EXISTS network_tweak_log (
       id         SERIAL PRIMARY KEY,
       tweak_id   TEXT NOT NULL,
@@ -39,17 +40,17 @@ initTables().catch(err => console.error("[NetworkTweaks] table init error:", err
 // ── GET /api/network-tweaks/state ─────────────────────────────────────────────
 
 router.get("/state", async (_req, res) => {
-  if (isNoDbMode || !pool) return res.json({ ok: true, state: {} });
+  if (isNoDbMode || !db) return res.json({ ok: true, state: {} });
   try {
-    const { rows } = await pool.query(
-      "SELECT tweak_id, status, last_result, applied_at, updated_at FROM network_tweak_state ORDER BY tweak_id"
+    const result = await db.execute(
+      sql`SELECT tweak_id, status, last_result, applied_at, updated_at FROM network_tweak_state ORDER BY tweak_id`
     );
     const stateMap: Record<string, { status: string; lastResult: unknown; appliedAt: string | null }> = {};
-    for (const row of rows) {
-      stateMap[row.tweak_id] = {
-        status: row.status,
+    for (const row of result.rows) {
+      stateMap[row.tweak_id as string] = {
+        status: row.status as string,
         lastResult: row.last_result,
-        appliedAt: row.applied_at,
+        appliedAt: row.applied_at as string | null,
       };
     }
     return res.json({ ok: true, state: stateMap });
@@ -87,28 +88,27 @@ router.post("/:tweakId/report", async (req, res) => {
     status = "idle";
   }
 
-  if (isNoDbMode || !pool) {
+  if (isNoDbMode || !db) {
     return res.json({ ok: true, tweakId, status });
   }
 
   try {
     const resultJson = JSON.stringify({ action, success, verified, message });
+    const appliedAt = success && action === "enable" ? new Date() : null;
 
-    await pool.query(
-      `INSERT INTO network_tweak_state (tweak_id, status, last_result, applied_at, updated_at)
-       VALUES ($1, $2, $3::jsonb, $4, NOW())
-       ON CONFLICT (tweak_id) DO UPDATE
-         SET status      = EXCLUDED.status,
-             last_result = EXCLUDED.last_result,
-             applied_at  = EXCLUDED.applied_at,
-             updated_at  = NOW()`,
-      [tweakId, status, resultJson, success && action === "enable" ? new Date() : null]
+    await db.execute(
+      sql`INSERT INTO network_tweak_state (tweak_id, status, last_result, applied_at, updated_at)
+          VALUES (${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
+          ON CONFLICT (tweak_id) DO UPDATE
+            SET status      = EXCLUDED.status,
+                last_result = EXCLUDED.last_result,
+                applied_at  = EXCLUDED.applied_at,
+                updated_at  = NOW()`
     );
 
-    await pool.query(
-      `INSERT INTO network_tweak_log (tweak_id, action, success, verified, message)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [tweakId, action, success, verified, message ?? null]
+    await db.execute(
+      sql`INSERT INTO network_tweak_log (tweak_id, action, success, verified, message)
+          VALUES (${tweakId}, ${action}, ${success}, ${verified}, ${message ?? null})`
     );
 
     return res.json({ ok: true, tweakId, status });
@@ -122,12 +122,12 @@ router.post("/:tweakId/report", async (req, res) => {
 // ── GET /api/network-tweaks/log ───────────────────────────────────────────────
 
 router.get("/log", async (_req, res) => {
-  if (isNoDbMode || !pool) return res.json({ ok: true, log: [] });
+  if (isNoDbMode || !db) return res.json({ ok: true, log: [] });
   try {
-    const { rows } = await pool.query(
-      "SELECT id, tweak_id, action, success, verified, message, created_at FROM network_tweak_log ORDER BY created_at DESC LIMIT 200"
+    const result = await db.execute(
+      sql`SELECT id, tweak_id, action, success, verified, message, created_at FROM network_tweak_log ORDER BY created_at DESC LIMIT 200`
     );
-    return res.json({ ok: true, log: rows });
+    return res.json({ ok: true, log: result.rows });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     return res.status(500).json({ ok: false, error: msg });
