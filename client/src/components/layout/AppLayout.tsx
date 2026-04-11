@@ -11,6 +11,7 @@ import { Loader2, Moon, Timer, Zap } from "lucide-react";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useFocusStore } from "@/lib/focusStore";
+import { useTourStore } from "@/lib/tour-store";
 import { useAuth } from "@/hooks/use-auth";
 import { isTrialActive, formatTrialCountdown, getTrialTimeRemaining } from "@/lib/trialCountdown";
 
@@ -204,22 +205,31 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // Central reveal system — re-fires on every navigation so all pages get blur-in reveals
   useRevealOnScroll({ locationKey: location });
 
-  const isTourNav = typeof document !== 'undefined' && document.body.classList.contains('tour-navigating');
-  const shouldAnimate = !prefersReducedMotion && !isTourNav;
+  // Reactive subscription to the tour navigation guard. The TourShell sets this
+  // to true immediately before calling navigate(), and we clear it here in
+  // onAnimationComplete — which fires exactly when Framer Motion confirms the
+  // new page's enter animation is done. This is deterministic and frame-perfect:
+  // no timeouts, no DOM class polling.
+  const { isTourNavigating, setTourNavigating } = useTourStore();
+  const shouldAnimate = !prefersReducedMotion && !isTourNavigating;
 
-  // After the page-enter animation finishes, strip the residual `filter` and
-  // `transform` inline styles so this element no longer acts as a CSS
-  // "containing block" for `position:fixed` descendants (modals, drawers, etc.).
-  // Without this, fixed modals open but are positioned relative to this div
-  // instead of the viewport — they appear clipped / invisible.
+  // After the page-enter animation finishes:
+  // 1. Strip residual filter/transform inline styles — without this, fixed
+  //    modals are positioned relative to this div instead of the viewport.
+  // 2. Clear the tour navigation guard if it is still raised. This is the
+  //    authoritative cleanup point — deterministic, no timeouts.
   const pageRef = useRef<HTMLDivElement | null>(null);
   const clearContainingBlock = useCallback(() => {
     const el = pageRef.current;
-    if (!el) return;
-    el.style.filter = '';
-    el.style.transform = '';
-    el.style.willChange = '';
-  }, []);
+    if (el) {
+      el.style.filter = '';
+      el.style.transform = '';
+      el.style.willChange = '';
+    }
+    // Always clear the guard on animation completion. The Zustand setter
+    // is a no-op if already false, so this is safe on every page transition.
+    setTourNavigating(false);
+  }, [setTourNavigating]);
 
   return (
     <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">

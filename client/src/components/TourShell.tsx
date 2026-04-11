@@ -374,7 +374,7 @@ export function TourShell({
   const rafRefs = useRef<number[]>([]);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, navigate] = useLocation();
-  const { setTourHighlight, setTourActive } = useTourStore();
+  const { setTourHighlight, setTourActive, setTourNavigating } = useTourStore();
 
   const applyStep = useCallback((index: number) => {
     const s = steps[index];
@@ -386,20 +386,16 @@ export function TourShell({
       }, TOUR_STEP_TIMING.highlightScrollDelayMs);
     }
     if (s?.route) {
-      // Set the guard BEFORE calling navigate so that AppLayout's next render
-      // (triggered by the wouter location change) sees isTourNav=true and sets
-      // shouldAnimate=false — completely suppressing the blur/scale/opacity page
-      // transition that would otherwise punch through the tour overlay.
-      document.body.classList.add('tour-navigating');
+      // Raise the guard BEFORE navigate() so AppLayout's very first re-render
+      // after the location change already sees isTourNavigating=true (via the
+      // Zustand subscription) and suppresses the page transition.
+      // The guard is cleared deterministically by AppLayout's onAnimationComplete
+      // callback — which fires exactly when Framer Motion confirms the new page's
+      // enter animation is done. No timeout is involved.
+      setTourNavigating(true);
       navigate(s.route);
-      // Remove the guard after the full AppLayout transition window has elapsed.
-      // AppLayout's page transition duration is 0.32s — 420ms covers that plus
-      // a comfortable safety margin so the guard is never removed too early.
-      setTimeout(() => {
-        document.body.classList.remove('tour-navigating');
-      }, 420);
     }
-  }, [steps, setTourHighlight, navigate]);
+  }, [steps, setTourHighlight, navigate, setTourNavigating]);
 
   // Unified reveal gate:
   // - On show: mount both elements at opacity:0, then after triple-rAF (three
@@ -458,9 +454,8 @@ export function TourShell({
     } else {
       setTourActive(false);
       setTourHighlight(null);
-      // Safety: ensure the guard is always cleared when the tour exits,
-      // regardless of whether a timed removal is already pending.
-      document.body.classList.remove('tour-navigating');
+      // Safety: clear any in-flight navigation guard when the tour exits.
+      setTourNavigating(false);
     }
   }, [show]);
 
@@ -491,16 +486,16 @@ export function TourShell({
   const handleSkip = useCallback(() => {
     setTourActive(false);
     setTourHighlight(null);
-    document.body.classList.remove('tour-navigating');
+    setTourNavigating(false);
     (onSkip ?? onComplete)();
-  }, [onSkip, onComplete, setTourActive, setTourHighlight]);
+  }, [onSkip, onComplete, setTourActive, setTourHighlight, setTourNavigating]);
 
   const handleComplete = useCallback(() => {
     setTourActive(false);
     setTourHighlight(null);
-    document.body.classList.remove('tour-navigating');
+    setTourNavigating(false);
     onComplete();
-  }, [onComplete, setTourActive, setTourHighlight]);
+  }, [onComplete, setTourActive, setTourHighlight, setTourNavigating]);
 
   const pal = isPremium ? tourPalette.premium : tourPalette.free;
 
