@@ -114,9 +114,11 @@ export function PremiumOverlayCard({
   if (variant === "page") {
     // Portal to document.body so the fixed overlay escapes CSS mask-image /
     // filter / transform containing blocks on ancestor elements.
+    // left-64 (256px) keeps the sidebar uncovered — only the main content area
+    // gets the blur/overlay treatment.
     return createPortal(
       <div
-        className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm ${className ?? ""}`}
+        className={`fixed top-0 right-0 bottom-0 left-64 z-[9999] flex items-center justify-center backdrop-blur-sm ${className ?? ""}`}
         style={{ background: "rgba(7,9,13,0.55)" }}
         onClick={handleOuterClick}
         data-testid="premium-overlay"
