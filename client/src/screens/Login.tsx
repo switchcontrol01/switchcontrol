@@ -477,7 +477,28 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
 
           <div className="relative space-y-3">
             <AnimatePresence mode="wait">
-              {isLoading ? (
+              {(electronAuthState === 'exchanging' || electronAuthState === 'callback_received') ? (
+                <motion.div
+                  key="exchanging"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.25 }}
+                  className="flex flex-col items-center gap-4 py-4"
+                >
+                  <div className="relative w-12 h-12 mb-1">
+                    <div className="absolute inset-0 rounded-full border-2 border-white/10" />
+                    <motion.div
+                      className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
+                    />
+                    <div className="absolute inset-2 rounded-full border border-primary/20" style={{ boxShadow: "0 0 12px rgba(168,85,247,0.3)" }} />
+                  </div>
+                  <span className="text-sm text-white/70 font-medium">Verifying your account...</span>
+                  <p className="text-[11px] text-white/35">Securely connecting · this may take a moment</p>
+                </motion.div>
+              ) : isLoading ? (
                 <motion.div
                   key="loading"
                   initial={{ opacity: 0, scale: 0.95 }}

@@ -172,13 +172,21 @@ function ElectronAppContent() {
     telemetryManager.start();
   }, [phase]);
 
-  // login_success → welcome: after a brief acknowledgement pause (600ms) let the
-  // login screen blur-exit finish before the welcome animation begins.
+  // login_success → next phase: 600ms lets the login screen blur-exit finish.
+  // First-time users see the welcome animation; returning users go straight to
+  // the dashboard (they already got the welcome once).
   useEffect(() => {
     if (phase !== "login_success") return;
-    const t = setTimeout(() => setPhase("welcome"), 600);
+    const t = setTimeout(() => {
+      if (isFirstLogin) {
+        setPhase("welcome");
+      } else {
+        setPhase("authenticated");
+        setLocation("/dashboard");
+      }
+    }, 600);
     return () => clearTimeout(t);
-  }, [phase]);
+  }, [phase, isFirstLogin]);
 
   useEffect(() => {
     if (phase !== 'authenticated') return;
@@ -474,14 +482,11 @@ function ElectronAppContent() {
           useAuthStore.getState().setElectronAuthState('exchanging');
           useAuthStore.getState().setValidating(true);
 
-          const EXCHANGE_TIMEOUT_MS = 15_000;
-          const exchangedUser = await Promise.race([
-            exchangeToken(authCode),
-            new Promise<null>((resolve) => setTimeout(() => {
-              console.warn('[Auth] exchangeToken timed out after', EXCHANGE_TIMEOUT_MS, 'ms');
-              resolve(null);
-            }, EXCHANGE_TIMEOUT_MS)),
-          ]);
+          // No hard timeout — let the exchange run to completion.
+          // The fetch() has its own browser-level timeout; our 15 s race was
+          // cutting off valid (but slow) OAuth sessions before the server
+          // responded, then treating a transient network delay as a failure.
+          const exchangedUser = await exchangeToken(authCode);
 
           if (exchangedUser) {
             useAuthStore.getState().setToken(authCode);
@@ -495,12 +500,14 @@ function ElectronAppContent() {
             if (!hasBeenWelcomed) {
               setIsFirstLogin(true);
               localStorage.setItem(welcomeKey, 'true');
-              // Use login_success so the login screen softly fades/blurs out
-              // before the welcome animation begins (600ms acknowledgment pause).
+              // First-time: login screen blur-exits, then welcome animation plays.
               setPhase("login_success");
             } else {
-              setPhase("authenticated");
-              setLocation("/dashboard");
+              // Returning user: login screen still blur-exits cleanly via
+              // login_success → (600ms) → authenticated.  No welcome animation,
+              // but the user gets the same polished transition out of the login
+              // screen instead of an abrupt swap.
+              setPhase("login_success");
             }
 
             if (premiumActivated) {
@@ -519,10 +526,12 @@ function ElectronAppContent() {
             }
           } else {
             console.error('[Auth] Exchange failed — setting unauthenticated');
-            useAuthStore.getState().setElectronAuthState('failed');
+            // clear() resets electronAuthState to 'idle' and oauthError to null,
+            // so set them AFTER the clear to avoid overwriting.
             useAuthStore.getState().clear();
-            setPhase("unauthenticated");
+            useAuthStore.getState().setElectronAuthState('failed');
             useAuthStore.getState().setOauthError('Login failed. Please try again.');
+            setPhase("unauthenticated");
           }
           useAuthStore.getState().setValidating(false);
         } else if (!premiumActivated) {
