@@ -76,11 +76,13 @@ export function PremiumOverlayCard({
 
   const cardInner = (
     <motion.div
-      className="text-center space-y-4 p-6 rounded-2xl backdrop-blur-xl max-w-sm mx-4 border shadow-2xl"
+      className="text-center space-y-5 p-8 rounded-2xl max-w-sm w-full mx-4 border"
       style={{
-        background: premiumOverlay.cardBg,
-        borderColor: premiumOverlay.cardBorder,
-        boxShadow: "0 8px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset",
+        background: "linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(220,210,255,0.14) 50%, rgba(255,255,255,0.16) 100%)",
+        borderColor: "rgba(255,255,255,0.28)",
+        backdropFilter: "blur(32px)",
+        WebkitBackdropFilter: "blur(32px)",
+        boxShadow: "0 8px 48px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.12) inset, 0 1px 0 rgba(255,255,255,0.2) inset",
       }}
       initial={{ opacity: 0, scale: 0.95, y: 8 }}
       {...(bounceProps as any)}
@@ -89,23 +91,23 @@ export function PremiumOverlayCard({
     >
       <AnimatedCrown size="lg" className="mx-auto pointer-events-none" />
 
-      <div>
+      <div className="space-y-1.5">
         <h3 className="text-lg font-semibold text-white">{featureName}</h3>
-        <p className="text-xs text-muted-foreground mt-1">
-          {description ?? "Premium feature – unlock to apply"}
+        <p className="text-sm text-white/60">
+          {description ?? "This is a Premium feature. Upgrade to unlock it."}
         </p>
       </div>
 
       <Button
         size="sm"
         onClick={openPricing}
-        className="text-white"
+        className="w-full text-white font-semibold py-2"
         style={{
           background: `linear-gradient(to right, ${premiumColor.main}, ${premiumColor.end})`,
         }}
         data-testid="button-unlock-premium"
       >
-        <Crown className="size-3 mr-1.5" />
+        <Crown className="size-3.5 mr-2" />
         {buttonText ?? `Unlock ${featureName}`}
       </Button>
     </motion.div>

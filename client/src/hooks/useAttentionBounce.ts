@@ -52,10 +52,14 @@ export function useAttentionBounce(): UseAttentionBounceReturn {
   const bounceProps: BounceProps = {
     animate: isAnimating
       ? {
+          opacity: 1,
+          y: 0,
           scale: [1, 1.03, 1],
           boxShadow: [premiumGlow.card, premiumGlow.cardPeak, premiumGlow.card],
         }
       : {
+          opacity: 1,
+          y: 0,
           scale: 1,
           boxShadow: premiumGlow.card,
         },
