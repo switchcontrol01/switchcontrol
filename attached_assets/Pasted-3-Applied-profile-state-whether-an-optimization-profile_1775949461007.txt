@@ -1,0 +1,120 @@
+3. Applied profile state
+
+- whether an optimization profile has been applied for a detected game
+
+Do not let catalog entries pretend to be installed.
+Do not let installed count derive from catalog length.
+Do not let selected state rely on placeholder data.
+
+ISSUE 4: GAME ARTWORK IS LOW QUALITY / PLACEHOLDER
+
+Current issue:
+
+- some major games like Fortnite do not use proper artwork
+- placeholder letter icons make the product look unfinished
+
+REQUIRED FIX
+
+For major supported games, add proper official-style artwork assets.
+
+At minimum fix:
+
+- Fortnite
+- League of Legends
+- Minecraft
+- Microsoft Flight Simulator
+- Valorant
+- Counter-Strike 2
+- Apex Legends
+- Call of Duty
+- Overwatch 2
+- Rainbow Six Siege
+
+Use high-quality square artwork that is visually consistent.
+Do not use single-letter fallback icons for major titles unless absolutely no asset exists.
+
+Also verify the artwork mapping keys match the internal game IDs exactly.
+A common reason logos fail is mismatched IDs or name normalization errors.
+
+ISSUE 5: ADD MINECRAFT
+
+Minecraft must be added to the supported game catalog.
+
+Requirements:
+
+- include it in supported games
+- include artwork
+- include detection support if possible
+- include a profile entry if App Booster supports profiles per title
+
+If automatic detection is hard, at minimum include Minecraft in catalog and manual add flow.
+But automatic detection is preferred.
+
+BACKEND REQUIREMENTS
+
+I want App Booster treated like a real execution system, not a static mock.
+
+Verify and fix:
+
+1. scan route / scan handler
+2. installed game storage model
+3. apply profile route / apply handler
+4. persistence of applied state
+5. reload / refresh path after apply
+6. profile history if the History button exists
+
+If profile apply is currently mock-only, replace it with real execution logic or clearly mark unfinished parts.
+
+FRONTEND REQUIREMENTS
+
+Verify and fix:
+
+1. installed count card
+2. installed list
+3. selected game details pane
+4. applied status badge
+5. Apply Profile button state
+6. post-apply refresh
+7. asset/logo mapping
+
+The page must always reflect backend truth.
+
+DEBUG LOGGING
+
+Temporarily log these exact stages:
+
+SCAN
+
+- scan start
+- raw detected game IDs
+- normalized detected game IDs
+- installed games state after scan
+
+APPLY
+
+- selected game ID
+- profile apply start
+- backend actions executed
+- apply success or failure
+- applied state returned
+- frontend refreshed applied state
+
+ARTWORK
+
+- selected game ID
+- artwork lookup key
+- fallback reason if artwork missing
+
+FINAL OUTPUT
+
+Return:
+
+1. why “Apply Profile” was not updating the left badge
+2. why detected installs were not appearing in the installed list
+3. what file(s) were changed
+4. what the real installed-game source of truth now is
+5. what the real applied-state source of truth now is
+6. whether App Booster is now actually backend-driven
+7. which games had artwork fixed
+8. confirmation that Minecraft was added
+9. proof that scan, installed list, and apply state now stay in sync

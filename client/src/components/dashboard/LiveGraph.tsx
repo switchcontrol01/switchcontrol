@@ -311,17 +311,13 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         ? safeNumber(live.ram?.usagePct, Math.round((ramUsedGb / ramTotalGb) * 100))
         : 0;
 
-      // Electron path: disk from IPC. Active time preferred; fallback to ops-based estimate.
+      // Electron path: disk from IPC.
       const netRxSec = typeof live.network?.rxKBps === "number" ? safeNumber(live.network.rxKBps) : null;
       const netTxSec = typeof live.network?.txKBps === "number" ? safeNumber(live.network.txKBps) : null;
-      const diskElectronAvailable = live.disk?.activeTimePct != null || live.disk?.readOpsPerSec != null;
-      const diskActiveTime = live.disk?.activeTimePct != null
-        ? safeNumber(live.disk.activeTimePct)
-        : (live.disk?.readOpsPerSec != null
-          ? Math.min((safeNumber(live.disk.readOpsPerSec) + safeNumber(live.disk?.writeOpsPerSec, 0)) / 2, 100)
-          : null);
+      const diskActiveTime = live.disk?.activeTimePct != null ? safeNumber(live.disk.activeTimePct) : null;
       const diskReadKBps = live.disk?.readKBps != null ? safeNumber(live.disk.readKBps) : null;
       const diskWriteKBps = live.disk?.writeKBps != null ? safeNumber(live.disk.writeKBps) : null;
+      const diskElectronAvailable = diskActiveTime != null || diskReadKBps != null || diskWriteKBps != null;
 
       const telemetryState: LatestState = {
         cpuLoad, cpuTemp, gpuTemp, gpuLoad,

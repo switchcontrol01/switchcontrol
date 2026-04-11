@@ -94,16 +94,73 @@ let lastCpuLoad = 0;
 let liveTelemetryCache = null;
 let telemetryPollInterval = null;
 
+// Disk I/O delta tracking — mirrors server/lib/telemetry.ts approach.
+// disksIO() returns cumulative rIO (sectors read), wIO (sectors written), ms (ms busy).
+// We compute per-second rates ourselves from consecutive snapshots.
+let lastDiskSnapshot = null; // { rIO, wIO, ms, ts }
+
 async function pollTelemetry() {
   try {
-    const [load, mem, temps, fsData, netStats, diskIO] = await Promise.all([
+    const [load, mem, temps, fsData, netStats, rawDiskIO] = await Promise.all([
       si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
       si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: 0, available: 0 }; }),
       si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] })),
       si.fsSize().catch(() => []),
       si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; }),
-      si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return { rIO_sec: 0, wIO_sec: 0 }; }),
+      si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return null; }),
     ]);
+
+    // ── Disk delta computation ────────────────────────────────────────────────
+    // disksIO() returns cumulative rIO/wIO (sectors, 512 bytes each) and ms (ms busy).
+    // We compute per-second rates from consecutive snapshots, matching server/lib/telemetry.ts.
+    const diskNow = Date.now();
+    let diskIO = { activeTimePct: null, readKBps: null, writeKBps: null };
+
+    if (rawDiskIO) {
+      const d = rawDiskIO;
+      const rIO = typeof d.rIO === 'number' ? d.rIO : null;
+      const wIO = typeof d.wIO === 'number' ? d.wIO : null;
+      const msTotal = typeof d.ms === 'number' ? d.ms : null;
+      // systeminformation may provide its own per-second rates on some platforms
+      const msSec = d.ms_sec != null ? d.ms_sec : (d.tIO_sec != null ? d.tIO_sec : null);
+
+      if (lastDiskSnapshot && rIO != null && wIO != null) {
+        const dt_s = (diskNow - lastDiskSnapshot.ts) / 1000;
+        if (dt_s > 0.1) {
+          const deltaR = Math.max(0, rIO - lastDiskSnapshot.rIO);
+          const deltaW = Math.max(0, wIO - lastDiskSnapshot.wIO);
+          // 1 sector = 512 bytes = 0.5 KB
+          diskIO.readKBps = parseFloat((deltaR / dt_s / 2).toFixed(1));
+          diskIO.writeKBps = parseFloat((deltaW / dt_s / 2).toFixed(1));
+
+          if (msSec != null && msSec >= 0) {
+            diskIO.activeTimePct = parseFloat(Math.min(msSec / 10, 100).toFixed(1));
+          } else if (msTotal != null && lastDiskSnapshot.ms >= 0) {
+            const deltaMs = Math.max(0, msTotal - lastDiskSnapshot.ms);
+            diskIO.activeTimePct = parseFloat(Math.min((deltaMs / (dt_s * 1000)) * 100, 100).toFixed(1));
+          } else {
+            // Fallback: estimate from IOPS — cap at 100%, use 1 IOP ≈ 1% activity as rough heuristic
+            const totalIOps = (d.rIO_sec || 0) + (d.wIO_sec || 0);
+            if (totalIOps > 0) {
+              diskIO.activeTimePct = parseFloat(Math.min(totalIOps / 2, 100).toFixed(1));
+            }
+          }
+        }
+      } else if (rIO == null && (d.rIO_sec != null || d.wIO_sec != null)) {
+        // Platform only gives per-second rates, no cumulative — use them directly
+        const rSec = d.rIO_sec || 0;
+        const wSec = d.wIO_sec || 0;
+        diskIO.readKBps = parseFloat((rSec / 2).toFixed(1));
+        diskIO.writeKBps = parseFloat((wSec / 2).toFixed(1));
+        diskIO.activeTimePct = msSec != null
+          ? parseFloat(Math.min(msSec / 10, 100).toFixed(1))
+          : parseFloat(Math.min((rSec + wSec) / 50, 100).toFixed(1));
+      }
+
+      if (rIO != null && wIO != null) {
+        lastDiskSnapshot = { rIO, wIO, ms: msTotal != null ? msTotal : 0, ts: diskNow };
+      }
+    }
 
     console.log('[telemetry:poll] RAW si outputs:',
       JSON.stringify({
@@ -116,11 +173,12 @@ async function pollTelemetry() {
         fsMounts: (fsData || []).map(d => ({ mount: d.mount, size: d.size, used: d.used, use: d.use })),
         netIfaceCount: (netStats || []).length,
         netFirst: netStats?.[0] ? { iface: netStats[0].iface, rx_sec: netStats[0].rx_sec, tx_sec: netStats[0].tx_sec } : null,
-        diskIO: { rIO_sec: diskIO?.rIO_sec, wIO_sec: diskIO?.wIO_sec },
+        diskIO_computed: diskIO,
+        diskIO_raw: rawDiskIO ? { rIO: rawDiskIO.rIO, wIO: rawDiskIO.wIO, ms: rawDiskIO.ms, rIO_sec: rawDiskIO.rIO_sec, wIO_sec: rawDiskIO.wIO_sec, ms_sec: rawDiskIO.ms_sec } : null,
       })
     );
 
-    liveTelemetryCache = { load, mem, temps, fsData: fsData || [], netStats: netStats || [], diskIO: diskIO || { rIO_sec: 0, wIO_sec: 0 }, timestamp: Date.now() };
+    liveTelemetryCache = { load, mem, temps, fsData: fsData || [], netStats: netStats || [], diskIO, timestamp: Date.now() };
   } catch (e) {
     console.error('[telemetry:poll] unexpected error:', e.message);
   }
@@ -1034,7 +1092,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
         ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
         gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
-        disk:    { selectedMount: null, usagePct: 0, readOpsPerSec: 0, writeOpsPerSec: 0 },
+        disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null },
         network: { rxKBps: 0, txKBps: 0 },
         ssds:    [],
       };
@@ -1131,8 +1189,9 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       selectedDisk = disks.find(d => d.mount === 'C:' || d.mount === '/') || disks[0];
     }
     const diskPercent = selectedDisk ? safeNum(selectedDisk.use, 0) : 0;
-    const diskReadSec = safeNum(diskIO.rIO_sec || 0, 0);
-    const diskWriteSec = safeNum(diskIO.wIO_sec || 0, 0);
+    const diskActiveTimePct = diskIO.activeTimePct != null ? diskIO.activeTimePct : null;
+    const diskReadKBps = diskIO.readKBps != null ? diskIO.readKBps : null;
+    const diskWriteKBps = diskIO.writeKBps != null ? diskIO.writeKBps : null;
 
     // --- Network: always return 0 (not null) when idle ---
     let netRxSec = 0;
@@ -1176,8 +1235,9 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       disk: {
         selectedMount:  selectedDisk?.mount || null,
         usagePct:       diskPercent,
-        readOpsPerSec:  diskReadSec,
-        writeOpsPerSec: diskWriteSec,
+        activeTimePct:  diskActiveTimePct,
+        readKBps:       diskReadKBps,
+        writeKBps:      diskWriteKBps,
       },
       network: {
         rxKBps: netRxKBs,
@@ -1201,8 +1261,9 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       ram_totalGb: result.ram.totalGb,
       disk_mount: result.disk.selectedMount,
       disk_usagePct: result.disk.usagePct,
-      disk_readOps: result.disk.readOpsPerSec,
-      disk_writeOps: result.disk.writeOpsPerSec,
+      disk_activeTimePct: result.disk.activeTimePct,
+      disk_readKBps: result.disk.readKBps,
+      disk_writeKBps: result.disk.writeKBps,
       net_rxKBps: result.network.rxKBps,
       net_txKBps: result.network.txKBps,
       ssds_count: result.ssds.length,
@@ -1217,7 +1278,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
       ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
       gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
-      disk:    { selectedMount: null, usagePct: 0, readOpsPerSec: 0, writeOpsPerSec: 0 },
+      disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null },
       network: { rxKBps: 0, txKBps: 0 },
       ssds:    [],
     };

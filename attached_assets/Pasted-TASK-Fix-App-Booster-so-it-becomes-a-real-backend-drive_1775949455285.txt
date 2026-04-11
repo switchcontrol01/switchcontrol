@@ -1,0 +1,126 @@
+TASK
+
+Fix App Booster so it becomes a real backend-driven feature, not just a styled frontend shell.
+
+PROBLEM
+
+The redesigned App Booster currently looks polished, but the behavior is inconsistent and feels fake.
+
+Observed issues:
+
+1. Clicking “Apply Profile” shows a success state or toast, but the selected game still shows “Not Applied” on the left.
+2. Scan results are not correctly populating the installed games list.
+3. Detected installs and UI counts are out of sync.
+4. Some major games do not have proper official artwork and instead show weak placeholder icons.
+5. Minecraft is missing from the supported catalog.
+
+This makes App Booster feel untrustworthy.
+
+GOAL
+
+Make App Booster fully stateful and backend-backed so that:
+
+- scan results populate correctly
+- installed games actually appear in the installed list
+- applying a profile changes real applied state
+- the UI reflects real backend truth after apply
+- major games use proper artwork
+- Minecraft is added
+
+IMPORTANT
+
+Do not patch this cosmetically.
+Do not just change labels or force the UI to say “Applied”.
+I want real backend-backed state and real refresh after execution.
+
+ISSUE 1: APPLY PROFILE IS NOT REFLECTING REAL STATE
+
+Current behavior:
+
+- user clicks Apply Profile
+- toast appears
+- left badge still says Not Applied
+
+This strongly suggests one of these problems:
+
+- no backend apply route is actually being called
+- backend apply succeeds but applied state is never persisted
+- applied state is persisted but frontend never reloads it
+- UI is driven by stale local state instead of backend truth
+
+REQUIRED FIX
+
+Trace the full apply pipeline:
+
+1. when Apply Profile is clicked
+2. what backend function or route is called
+3. what exact optimization actions actually run
+4. where applied state is saved
+5. how frontend reads applied state back
+6. why selected game still renders “Not Applied”
+
+I want the selected game card and installed list to reflect the real applied state after apply.
+
+If a profile is successfully applied, the badge must switch from:
+
+- Not Applied
+  to:
+- Applied
+  or equivalent real active state
+
+If apply fails, do not show fake success.
+Show a real failure state.
+
+ISSUE 2: DETECTED GAMES ARE NOT POPULATING THE INSTALLED LIST
+
+Observed behavior:
+
+- toast says one or more installed games were detected
+- top metric still shows 0 detected installs
+- installed list does not populate correctly
+- user has to manually pick games
+
+This means the scan result is not updating the real installed-games state used by the UI.
+
+REQUIRED FIX
+
+Trace the scan pipeline:
+
+1. where scan starts
+2. what backend result is returned
+3. where detected installs are stored
+4. what state drives:
+   - Detected Installs count
+   - Installed tab contents
+   - Selected game details pane
+
+I want one single source of truth for installed games.
+
+After scan:
+
+- Detected Installs card must update immediately
+- Installed tab must show the detected installed games
+- selecting one should open its profile in the right pane
+- no mismatch between toast, metric cards, and installed list
+
+ISSUE 3: INSTALLED VS CATALOG STATE IS MIXED UP
+
+The current UI appears to mix:
+
+- supported catalog
+- installed detections
+- selected game state
+
+These need to be separated clearly.
+
+REQUIRED STATE MODEL
+
+Use three clean layers:
+
+1. Supported catalog
+
+- all supported games in the system
+
+2. Installed detections
+
+- only games actually detected on this machine
