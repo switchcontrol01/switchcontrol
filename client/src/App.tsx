@@ -405,10 +405,10 @@ function ElectronAppContent() {
   useEffect(() => {
     if (splashType === "resolving") return;
     const isFirstLaunch = splashType === "first-launch";
-    // First-launch: glow at 7000ms (during exit), done at 8500ms (cinematic is ~8.5s)
+    // First-launch: glow at 6600ms (during exit), done at 8100ms (cinematic is ~8.1s)
     // Normal:       glow at 3800ms, done at 4800ms
-    const glowDelay   = isFirstLaunch ? 7000 : 3800;
-    const splashDelay = isFirstLaunch ? 8500 : 4800;
+    const glowDelay   = isFirstLaunch ? 6600 : 3800;
+    const splashDelay = isFirstLaunch ? 8100 : 4800;
     const glowTimer = setTimeout(() => setShowGlow(true), glowDelay);
     const splashTimer = setTimeout(async () => {
       if (isFirstLaunch && firstLaunchDeviceIdRef.current && isElectron) {

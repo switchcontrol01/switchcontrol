@@ -76,21 +76,22 @@ export default function FirstLaunchSplash({ onComplete, deviceId }: FirstLaunchS
     const ts: ReturnType<typeof setTimeout>[] = [];
     const at = (ms: number, fn: () => void) => { const t = setTimeout(fn, ms); ts.push(t); };
 
-    //  Phase timeline — deliberately slow and cinematic
-    at(200,  () => setPhase("hazes"));        // ambient colour blooms
-    at(700,  () => setPhase("recognition"));  // device scan
-    at(2400, () => setPhase("logo"));         // logo materialises
-    at(3800, () => setPhase("text"));         // wordmark fades in
-    at(4700, () => setPhase("tagline"));      // tagline types out
-    at(7200, () => setPhase("exiting"));      // cinematic exit
-    at(8500, () => onComplete());             // hand off to app
+    // Logo arrives WITH the hazes — never leave the screen empty
+    at(180,  () => setPhase("hazes"));        // colour blooms
+    at(480,  () => setPhase("logo"));         // logo materialises immediately behind hazes
+    at(1500, () => setPhase("recognition"));  // recognition overlays the visible logo
+    at(3100, () => setPhase("text"));         // wordmark fades in while recognition exits
+    at(4000, () => setPhase("tagline"));      // tagline types out
+    at(6800, () => setPhase("exiting"));      // cinematic exit
+    at(8100, () => onComplete());             // hand off to app
 
     return () => ts.forEach(clearTimeout);
   }, [onComplete]);
 
-  const showHazes     = ["hazes","recognition","logo","text","tagline","exiting"].includes(phase);
+  const showHazes     = ["hazes","logo","recognition","text","tagline","exiting"].includes(phase);
+  // Logo is visible from the start and stays through recognition — never absent
+  const showLogo      = ["logo","recognition","text","tagline","exiting"].includes(phase);
   const showRecognize = phase === "recognition";
-  const showLogo      = ["logo","text","tagline","exiting"].includes(phase);
   const showText      = ["text","tagline","exiting"].includes(phase);
   const showTagline   = ["tagline","exiting"].includes(phase);
   const isExiting     = phase === "exiting";
