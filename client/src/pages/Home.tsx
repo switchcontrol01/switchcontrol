@@ -34,6 +34,7 @@ import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
 import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligenceModal";
 import { GpuModal } from "@/components/dashboard/GpuModal";
 import { DiskTelemetryModal } from "@/components/dashboard/DiskTelemetryModal";
+import { PerformanceLab } from "@/components/dashboard/PerformanceLab";
 
 
 interface DiskInfo {
@@ -752,6 +753,11 @@ export default function Home() {
             onTelemetryUpdate={handleTelemetryUpdate}
             selectedDiskMount={selectedDisk?.mount ?? null}
           />
+        </div>
+
+        {/* Performance Lab — intelligence hub */}
+        <div data-reveal data-delay="1">
+          <PerformanceLab onClearRAM={() => setMemCleanerOpen(true)} />
         </div>
 
         {/* System Pipeline — Latency Map */}
