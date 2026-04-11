@@ -34,14 +34,14 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
     <AnimatePresence>
       {open && (
         <>
-          {/* Backdrop */}
+          {/* Backdrop — dark dim + strong blur. No white fill here. */}
           <motion.div
             key="premium-modal-backdrop"
             className="fixed inset-0 z-[9000] pointer-events-auto"
             style={{
-              background: "linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(168,85,247,0.10) 50%, rgba(255,255,255,0.05) 100%)",
-              backdropFilter: "blur(3px) saturate(1.4)",
-              WebkitBackdropFilter: "blur(3px) saturate(1.4)",
+              background: "rgba(0, 0, 0, 0.58)",
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
