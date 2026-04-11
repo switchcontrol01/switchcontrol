@@ -1,0 +1,159 @@
+4. ADD BEFORE / AFTER SYSTEM REACTION TRACKING
+When a tweak is applied, the page should not just flip a toggle.
+It should show system reaction.
+
+Need post-apply tracking where possible:
+- state changed successfully
+- verification passed
+- relevant system condition changed / unchanged
+- improvement signal detected / not detected
+- maybe delayed evaluation if effect needs time
+
+Examples:
+- Background services reduced
+- Startup impact unchanged
+- Memory pressure unchanged
+- Responsiveness signal improved slightly
+
+Do NOT overclaim.
+If there is no measurable effect, say so.
+
+5. ADD GRAPH-BASED TWEAK INTELLIGENCE UI
+This page needs heaps of premium graphs and visual instrumentation.
+
+Add graph UI such as:
+- live system pressure strip graph
+- tweak relevance heat map
+- before vs after comparison mini-graphs
+- category pressure bars
+- active problem intensity indicators
+- tweak opportunity ranking visuals
+- system overhead distribution
+- responsiveness trend line
+- service/background load graph
+- security/performance tradeoff visualization where appropriate
+
+All graph UI must:
+- look expensive
+- feel premium
+- be animated
+- be fluid
+- have custom styling
+- feel integrated into SwitchControl
+- not look stock/template
+
+6. ADD “WHY THIS MATTERS” ENGINE
+For each tweak or priority item, add system-aware explanation.
+
+Need backend-driven explanation such as:
+- why it matters now
+- what subsystem it affects
+- why it may not matter much on this device
+- why it is risky or low-return
+- what problem it targets
+
+This explanation layer is what separates a tool from a real product.
+
+7. ADD SYSTEM-AWARE MODAL UPGRADES
+The tweak detail modal is already decent. Upgrade it to include more intelligent dynamic content.
+
+Add:
+- current relevance for this system
+- current system condition indicators
+- expected subsystem effects
+- verification method
+- if applicable, why this is currently low priority
+- related competing/conflicting tweaks
+- associated graph/visual metrics where useful
+
+The modal should feel like a mini analysis console, not just a description box.
+
+8. ADD CATEGORY-LEVEL INTELLIGENCE
+Each category tab or grouping should feel alive.
+
+Need category-level analysis such as:
+- current category pressure
+- how relevant this category is right now
+- number of high-value opportunities in that category
+- system state linked to that category
+
+Examples:
+- Services category currently high impact
+- Visual tweaks currently low relevance
+- Latency tweaks currently medium relevance
+- Background process category needs attention
+
+9. ADD CONFLICT / REDUNDANCY DETECTION
+Very important.
+
+If certain tweaks:
+- overlap heavily
+- conflict with current system goals
+- have diminishing returns
+- are risky under current user state
+- duplicate functionality already applied elsewhere
+
+show that.
+
+Examples:
+- This tweak overlaps with an already active optimization
+- This tweak may conflict with your current efficiency profile
+- This tweak is low-value because related settings are already applied
+- This tweak should not be prioritized while security features remain active
+
+This makes the page feel intelligent, not blind.
+
+10. ADD A REAL “SYSTEM TWEAK POSTURE” PANEL
+Build a top-level summary of the current tweak posture of the machine.
+
+Examples of dimensions:
+- Performance Bias
+- Latency Bias
+- Efficiency Bias
+- Security Overhead
+- Background Cleanliness
+- Optimization Coverage
+
+This should be visually premium:
+- segmented bars
+- graph summaries
+- radar-like compact visual if tasteful
+- micro-animated state indicators
+
+This becomes one of the signature visuals on the page.
+
+11. MICRO-ANIMATIONS EVERYWHERE
+Everything should have polished micro-motion.
+
+Need:
+- graph line motion
+- bar fill transitions
+- chip state animation
+- card hover/press feedback
+- modal transitions
+- toggle transitions
+- relevance/ranking transitions
+- state verification success/failure animation
+- active indicator pulse
+- tooltip/insight reveal motion
+- live system strip updates
+
+Motion should feel:
+- controlled
+- expensive
+- fluid
+- premium
+- not noisy
+- not gamey
+
+12. BACKEND ARCHITECTURE
+Build or refine backend services for:
+- tweak relevance engine
+- system-state-to-tweak correlation service
+- tweak priority ranking service
+- tweak reaction tracking service
+- category intelligence service
+- conflict/redundancy detection service
+- tweak posture summary service
+- graph data sources for tweak UI
+

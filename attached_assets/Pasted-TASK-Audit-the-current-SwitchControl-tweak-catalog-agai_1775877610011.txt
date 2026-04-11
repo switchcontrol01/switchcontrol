@@ -1,0 +1,149 @@
+TASK
+Audit the current SwitchControl tweak catalog against BOTH:
+1. the VTRL tweak set from the screenshots
+2. the additional high-value tweak candidates listed below
+
+Then add ONLY the tweaks we do NOT already have.
+
+GOAL
+We are using:
+- the screenshot set as one candidate source
+- the additional candidate tweaks below as another source
+
+I want you to:
+1. extract and normalize all tweak names from both source sets
+2. compare them against the current SwitchControl tweak catalog
+3. add ONLY the truly missing tweaks
+4. do NOT create duplicates
+5. do NOT create near-duplicates with slightly different wording
+6. do NOT create backend-equivalent duplicates
+7. build BOTH frontend and backend for every newly added tweak
+8. no simulated actions whatsoever
+
+CRITICAL
+No simulated backend.
+No placeholder toggles.
+No fake apply state.
+No duplicate tweaks.
+No semantic duplicates.
+No “same tweak, different label” nonsense.
+
+If a tweak already exists in SwitchControl, skip it.
+If a tweak already exists under a slightly different but equivalent name, skip it or merge to the existing canonical tweak.
+Do NOT bloat the catalog with duplicate functionality.
+
+IMPORTANT
+You must first audit the CURRENT SwitchControl tweak registry before adding anything.
+Do NOT assume every tweak below is missing.
+Some may already exist.
+I only want the missing ones added.
+
+DEDUP RULES
+Before adding anything:
+- normalize tweak names
+- compare by exact name
+- compare by semantic equivalence
+- compare by backend action equivalence
+- compare by same registry path / same command / same system effect
+
+If two tweaks do the same real thing, they are duplicates.
+Do NOT add both.
+
+Examples:
+- If “Remove Xbox Gamebar” already exists as “Disable Xbox Game Bar”, that is a duplicate
+- If “Disable Superfetch” already maps to SysMain disable logic, do not add “Disable SysMain” separately unless there is a meaningful and real distinction
+- If a tweak is already hidden under a pack/compound tweak with the exact same backend actions, treat it as existing
+
+SOURCE LIST A: VTRL SCREENSHOT CANDIDATE TWEAKS
+Use these tweak names as the first candidate source set:
+
+- Disable Desktop Composition
+- Disable Hibernation
+- Disable Large System Cache
+- Disable Page Combining
+- Disable Paging Executive
+- Disable Prefetch
+- Disable Search Suggestions
+
+- Disable Maintenance
+- Optimize Memory Settings
+- Disable Background Apps
+- Disable Core Isolation
+- Disable Energy Logging
+- Disable Fast Startup
+- Disable Hyper-V
+- Disable Intel TSX
+- Disable Mitigations
+- Disable Superfetch
+
+- Disable Telemetry
+- Disable VBS
+- Optimize Explorer Parsing
+- Optimize Fsutil
+- Remove Xbox Gamebar
+- Tune Priority
+- Max Pending Interrupts
+- Optimize IRQ Priority
+- Optimize Boot Configuration
+- Optimize Visual Effects
+
+- Enable Gaming Mode
+- Optimize Background Tasks
+- Disable Touch Features
+- Disable Cortana
+- Disable Storage Sense
+- Disable Notifications
+- Disable Browser GPU Acceleration
+- Disable Accessibility Features
+- Disable Browser Updates
+- Affinities
+
+- CSRSS
+- Disable HPET
+- Disable Synthetic Timers
+- Disable Coalescing
+- Disable Driver Services
+- Disable System Responsiveness
+- Latency Tolerance
+- Keyboard Tune
+- Mouse Tune
+- Optimize SVC Split Threshold
+
+- Optimize Write Caching
+- Timer Resolution
+- Optimize Mouse
+- Optimize I/O Operations
+- Basic Nvidia Tweaks
+- Disable HDCP
+- Disable Power Gating
+- Disable P-States
+- Disable Nvidia Telemetry
+- Enable Preemption
+
+- Nvidia Profile Inspector
+- AMD GPU Tweaks
+- DirectX Tweaks
+- Disable Energy Savings
+- Disable GPU Checks
+- Disable Multi-Plane Overlay
+- Disable Hardware Acceleration
+- Optimize Intel iGPU
+- Enable FSE
+- Disable Bluetooth
+
+- Disable WiFi
+- Disable Synchronization Services
+- Remove OneDrive
+- Block Windows Updates
+- Disable Compatibility Assistant
+- Disable Homegroup Services
+- Disable Xbox Services
+- Disable Insider Program
+- Disable Fax & Print Services
+- Clean Taskbar and Start Menu
+
+- Enable Compact Explorer
+- Show All Tray Icons
+- Disable Transparency
+- Disable Search Highlights
+- Hide Recent Files

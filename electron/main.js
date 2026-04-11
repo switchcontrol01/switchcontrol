@@ -17,6 +17,7 @@ const path = require('path');
 const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
+const networkTweakExecutor = require('./network-tweak-executor');
 const powerPlanManager = require('./power-plan-manager');
 const backendLauncher = require('./backend-launcher');
 require('./security-helper');
@@ -1552,6 +1553,41 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
     console.error(`[IPC] appBooster:executeAction error (${type}/${mode}):`, e.message);
     return { success: false, error: e.message, verified: false };
   }
+});
+
+// ── Network Tweaks ────────────────────────────────────────────────────────────
+
+ipcMain.handle('networkTweaks:execute', async (event, tweakId, action) => {
+  console.log(`[IPC] networkTweaks:execute id=${tweakId} action=${action}`);
+  try {
+    const result = await networkTweakExecutor.executeNetworkTweak(tweakId, action);
+    console.log(`[IPC] networkTweaks:execute result:`, result.success, result.verified, result.message?.slice(0, 80));
+    return result;
+  } catch (e) {
+    console.error('[IPC] networkTweaks:execute error:', e.message);
+    return { tweakId, action, success: false, verified: false, message: e.message, requiresRestart: false };
+  }
+});
+
+ipcMain.handle('networkTweaks:checkStatus', async (event, tweakId) => {
+  try {
+    return await networkTweakExecutor.checkNetworkTweakStatus(tweakId);
+  } catch (e) {
+    return { tweakId, applied: null, error: e.message };
+  }
+});
+
+ipcMain.handle('networkTweaks:checkAll', async () => {
+  try {
+    return await networkTweakExecutor.checkAllNetworkTweakStatus();
+  } catch (e) {
+    console.error('[IPC] networkTweaks:checkAll error:', e.message);
+    return {};
+  }
+});
+
+ipcMain.handle('networkTweaks:getDisabled', () => {
+  return networkTweakExecutor.getDisabledTweaks();
 });
 
 // Auth: Clear cookies for the backend domain

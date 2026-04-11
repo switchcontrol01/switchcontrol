@@ -1,0 +1,222 @@
+TASK
+Fix and upgrade BOTH the Intro Tour and Premium Tour so they become fully premium, fluid, polished guided experiences with strong micro-animations, correct section focus behavior, and zero broken positioning or out-of-frame bugs.
+
+GOAL
+Make both tours feel like a real premium product walkthrough, not a basic tooltip overlay.
+
+I want:
+- the Premium Tour to actually work and start correctly
+- the Intro Tour to feel polished and intentional
+- certain tour steps to go INTO the actual section/page content instead of only highlighting the sidebar
+- smooth, controlled card transitions between steps
+- vignette / spotlight / blur focus effects
+- better translucent white-glass background treatment for the tour overlays
+- premium motion everywhere
+- no broken positions
+- no off-screen tour cards
+- no steps clipping out of frame
+- no janky transitions
+- no dead states
+
+CRITICAL
+This is BOTH frontend behavior and logic debugging.
+
+The Premium Tour currently has a problem and does not start correctly.
+That must be debugged and fixed first.
+
+IMPORTANT
+These tours are part of the premium product experience.
+They must feel:
+- expensive
+- controlled
+- fluid
+- cinematic
+- polished
+- stable
+- intentional
+
+Do NOT make it look like a generic onboarding library.
+Do NOT just tweak text.
+Do NOT only highlight sidebar items.
+Do NOT leave awkward motion or abrupt jumps.
+Do NOT leave any positioning bugs by the end.
+
+This must ship clean.
+
+IMPLEMENTATION
+
+1. DEBUG WHY PREMIUM TOUR DOES NOT START
+Audit the current tour trigger/start logic.
+
+Check:
+- premium entitlement logic
+- route/page readiness
+- onboarding state store
+- modal/tour open state
+- event timing
+- page mount timing
+- tour step registration
+- refs / DOM targeting
+- async race conditions
+- animation state conflicts
+- z-index / overlay conflicts
+- persisted “already seen” logic
+- premium vs intro gating logic
+
+Find the actual root cause and fix it properly.
+Do NOT patch over it blindly.
+
+Need the Premium Tour to start reliably every time it should.
+
+2. AUDIT BOTH TOUR SYSTEMS END-TO-END
+Audit:
+- Intro Tour
+- Premium Tour
+- step definitions
+- overlay logic
+- target calculation
+- transitions
+- route changes
+- scroll behavior
+- positioning logic
+- section highlighting
+- resize handling
+- out-of-bounds protection
+
+Need a stable shared tour system architecture.
+
+3. DIFFERENTIATE INTRO TOUR VS PREMIUM TOUR
+Make the two tours clearly different in scope and feel.
+
+INTRO TOUR:
+This should guide the user through core foundational sections like:
+- Dashboard
+- Tweaks
+- Security
+- other essential starter sections
+The intro tour can use more sidebar-led navigation, but should still feel premium.
+
+PREMIUM TOUR:
+This should feel deeper and more advanced.
+For certain important steps, it must actually move into and focus on the real content areas, not just sidebar highlights.
+
+Examples for Premium Tour:
+- AI Advisor
+- BIOS Advisor
+- other premium/intelligent feature areas
+
+The Premium Tour should feel like:
+“Here is the real premium depth of the app”
+
+4. MAKE SOME TOUR STEPS GO INTO THE REAL SECTION
+This is important.
+
+For selected steps, the tour should:
+- navigate to the actual page
+- spotlight the actual feature panel
+- move the tour card into a smart anchored position near the content
+- highlight the real section with vignette/spotlight focus
+- not just point at the sidebar
+
+Examples:
+PREMIUM TOUR:
+- AI Advisor
+- BIOS Advisor
+
+INTRO TOUR:
+- Dashboard
+- Tweaks
+- Security
+
+The rest can still use sidebar highlights when appropriate.
+
+5. FLUID STEP CARD TRANSITIONS
+The step-of-7 box / tour card must move and transition fluidly.
+
+Need:
+- smooth card repositioning
+- smart animated entry/exit
+- no abrupt teleports
+- no jarring snapping
+- nice motion curve
+- controlled opacity + blur + y/x movement
+- transitions feel polished and expensive
+
+The card should adapt intelligently based on:
+- target location
+- available screen space
+- section importance
+- current route/page layout
+
+6. POSITIONING ENGINE / NO OUT-OF-FRAME BUGS
+This is mandatory.
+
+Fix all positioning so:
+- no tour card goes off-screen
+- no clipping on edges
+- no hidden action buttons
+- no section highlight mismatch
+- no anchor pointing to wrong place
+- no tooltip showing outside viewport
+- no broken placement on different window sizes
+
+Need a robust positioning system with:
+- viewport collision handling
+- fallback positions
+- scroll awareness
+- reflow/reposition on resize
+- safe margins
+
+7. VIGNETTE / SPOTLIGHT / OVERLAY EFFECTS
+Add more premium focus treatment.
+
+Need:
+- soft vignette around the screen
+- spotlight around highlighted area
+- subtle blur/fade on background
+- elegant light falloff
+- premium cinematic focus
+- controlled intensity, not overdone
+
+This should guide the eye and make the tour feel high-end.
+
+8. WHITE-GLOW GLASS BACKGROUND TREATMENT
+Upgrade the tour card / overlay styling.
+
+Need:
+- more white-glass translucent feel
+- light milky glass depth
+- subtle glow
+- slightly brighter premium translucency
+- still consistent with the SwitchControl aesthetic
+- not too much, but clearly more refined
+
+The current tour styling needs more premium translucent presence.
+
+9. MICRO-ANIMATIONS EVERYWHERE
+Everything in the tours must have micro-animations.
+
+Need micro-motion on:
+- tour open
+- step change
+- next/back button hover/press
+- progress indicators
+- highlighted target pulse
+- spotlight focus
+- card content reveal
+- badges/chips
+- page transition within the tour
+- animated emphasis when moving into a real section
+
+Do NOT overdo it.
+Must feel controlled and premium.
+
+10. GRAPH / UI QUALITY INSIDE TOURS
+Where the tour focuses on advanced sections, make sure the UI being shown feels excellent.
+
+This means:
+- if a tour opens into AI Advisor or BIOS Advisor, the visuals there should look good during the guided moment
+- chart/graph surfaces visible during tour focus should feel premium
+- transitions into these panels should not expose broken or empty-looking layouts
+
+Do not leave ugly static moments during tours.

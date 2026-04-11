@@ -15,6 +15,7 @@ import securityRouter from "./routes/security";
 import networkDiagnosticsRouter from "./routes/networkDiagnostics";
 import adminRouter from "./routes/admin";
 import appBoosterRouter from "./routes/appBooster";
+import networkTweaksRouter from "./routes/networkTweaks";
 import { getSnapshot, getSystemSpecs, startTelemetryPolling } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
 
@@ -32,6 +33,7 @@ export async function registerRoutes(
   app.use("/api/network", networkDiagnosticsRouter);
   app.use("/api/admin", adminRouter);
   app.use("/api/app-booster", appBoosterRouter);
+  app.use("/api/network-tweaks", networkTweaksRouter);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {

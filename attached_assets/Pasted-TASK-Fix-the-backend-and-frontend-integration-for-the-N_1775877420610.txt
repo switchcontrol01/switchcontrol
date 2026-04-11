@@ -1,0 +1,180 @@
+TASK
+Fix the backend and frontend integration for the Network Tweaks live latency monitoring system so it actually works end-to-end.
+
+PROBLEM
+The Network Tweaks page UI is there, but the latency monitoring is not functioning properly right now.
+It shows the live diagnostics section, but the monitoring state is effectively dead / not returning usable live data.
+
+Right now this breaks the value of the page because:
+
+the live latency analyzer is not actually live
+
+the page looks like it has diagnostics, but they are not powered correctly
+
+the backend is either missing, incomplete, or not wired correctly to the frontend
+
+the frontend monitoring state / polling / stream logic is not completing the loop
+
+
+GOAL
+Make the latency monitoring fully functional across backend and frontend.
+
+I want:
+
+real live data flowing
+
+monitoring to start and stop correctly
+
+ping / jitter / packet loss / spike data to update live
+
+the diagnostics card to populate properly
+
+graph data to animate properly from real backend values
+
+stable, maintainable backend logic
+
+
+IMPORTANT
+Do NOT redesign the existing Network Tweaks page layout.
+Do NOT remove current UI sections.
+Do NOT change the visual direction unless needed for functional states.
+Do NOT fake data on the frontend.
+Do NOT hardcode placeholder metrics.
+Do NOT break the current page structure.
+
+This task is specifically to make the existing latency monitoring system actually work.
+
+IMPLEMENTATION
+
+1. AUDIT CURRENT NETWORK MONITORING FLOW
+Fully inspect the current implementation for:
+
+
+
+Network Tweaks page
+
+any hooks/services for live diagnostics
+
+backend routes related to networking / monitoring
+
+any Electron bridge / preload / API wiring
+
+polling or interval logic
+
+graph state handling
+
+start/stop monitor state
+
+
+Determine exactly why the live monitoring is not working.
+
+Possible failure points to audit:
+
+backend route missing
+
+route returning malformed data
+
+frontend expecting different shape than backend sends
+
+monitoring start action not wired
+
+interval cleanup bug
+
+Electron/local backend request failure
+
+CORS / auth / route prefix mismatch
+
+graph state not consuming returned samples
+
+no actual latency probe implementation behind the UI
+
+
+2. BUILD OR FIX BACKEND LATENCY MONITORING
+Implement the backend service needed to power live diagnostics.
+
+
+
+Backend must provide real monitored metrics including:
+
+average ping
+
+minimum ping
+
+maximum ping
+
+jitter
+
+packet loss percentage
+
+spike count / spike frequency
+
+recent sample history for graphing
+
+
+Implement this cleanly and realistically.
+If needed, create or fix a backend route such as:
+
+start monitoring
+
+stop monitoring
+
+current status
+
+live samples
+or another clean approach
+
+
+If a simpler polling-based architecture is better than streaming right now, that is acceptable.
+Reliability matters more than fancy transport.
+
+3. DEFINE A CLEAN DATA SHAPE
+Standardize the payload shape between backend and frontend.
+
+
+
+Need a clear response format for live diagnostics, for example including:
+
+current metrics
+
+recent samples array
+
+monitoring active state
+
+timestamps
+
+spike markers / flags
+
+
+Make sure frontend and backend use the exact same structure.
+
+4. FIX FRONTEND MONITORING FLOW
+On the Network Tweaks page:
+
+
+
+make “start monitoring” actually start monitoring
+
+make the live state visibly update
+
+make graph data populate from backend samples
+
+make “off / idle / loading / active / error” states behave correctly
+
+make stopping monitoring cleanly stop intervals / polling
+
+
+Requirements:
+
+no frozen state
+
+no dead “monitoring is off” state once started
+
+no console spam
+
+no interval leaks
+
+no duplicate polling loops
+
+
+5. MAKE GRAPH DATA ACTUALLY RENDER
+Ensure the live diagnostics graph receives real data and updates smoothly.

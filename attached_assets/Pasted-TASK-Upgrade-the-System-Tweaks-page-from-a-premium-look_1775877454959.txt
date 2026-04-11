@@ -1,0 +1,125 @@
+TASK
+Upgrade the System Tweaks page from a premium-looking tweak list into a truly unique, intelligent, graph-rich optimization experience with FULL FRONTEND and FULL BACKEND.
+
+GOAL
+The current Tweaks page looks strong visually, but conceptually it is still too close to a high-end toggle list.
+Right now it is mostly:
+- tweak cards
+- risk labels
+- descriptions
+- toggles
+- modal details
+
+That is polished, but not truly category-defining.
+
+I want to turn it into something that feels like:
+- a premium performance engineering console
+- a live system-aware optimization surface
+- an intelligent advisor layer on top of the tweak catalog
+- a graph-rich, expensive-feeling product experience
+
+CRITICAL
+Backend is mandatory.
+No simulated behavior.
+No fake metrics.
+No fake ranking.
+No fake “this matters now” logic.
+No static generic bars pretending to be intelligence.
+No placeholder graphs.
+No dead UI.
+
+If a signal is derived or estimated, label it honestly.
+If no measurable value is available, do not invent one.
+
+IMPORTANT
+Keep the current good parts:
+- premium visual style
+- glass cards
+- current tweak catalog
+- risk levels
+- detailed modal structure
+
+Do NOT destroy the page.
+This is an upgrade pass to make it smarter, more alive, more visual, and more unique.
+
+VISUAL DIRECTION
+I want heaps of graph UI.
+The graph UI must look like we paid someone serious to do it.
+
+Need:
+- excellent graph UI
+- premium graph styling
+- fluid animations
+- controlled motion
+- polished micro-animations everywhere
+- elegant, expensive feeling
+- no generic admin dashboard charts
+- no clutter
+- no noisy motion
+
+Everything must feel controlled and premium.
+
+IMPLEMENTATION
+
+1. ADD A LIVE SYSTEM STATE LAYER TO THE TOP OF THE TWEAKS PAGE
+Add a top intelligence section above the tweak list that shows the current live system state relevant to tweak effectiveness.
+
+Need a backend-driven live analysis layer that can show signals like:
+- background service pressure
+- startup/service overhead
+- CPU scheduling pressure
+- memory pressure
+- storage latency pressure
+- network pressure where relevant
+- security feature overhead indicators
+- system responsiveness indicators
+- active contention sources
+
+This should not just be raw usage stats.
+It should be interpreted, optimization-relevant state.
+
+Examples of output style:
+- Background load elevated
+- Memory pressure low
+- Security overhead moderate
+- Disk contention detected
+- Responsiveness stable
+
+This instantly makes the tweak page feel system-aware.
+
+2. REPLACE STATIC “EXPECTED IMPACT” WITH REAL CONTEXTUAL IMPACT
+The expected impact UI needs to stop feeling generic.
+
+For each tweak, derive contextual impact based on the user’s current system state where possible.
+
+Examples:
+- This tweak is likely low impact because your system is not currently limited by memory pressure
+- This tweak is higher value because background service overhead is elevated
+- This tweak may help because startup/service contention is active
+- This tweak is low priority on your current configuration
+
+Need:
+- backend-generated contextual impact scoring
+- per-tweak relevance layer
+- dynamic impact interpretation based on current system conditions
+- honest low/medium/high relevance
+
+This is one of the key features that will make the page unique.
+
+3. ADD A “TOP PRIORITY TWEAKS RIGHT NOW” SECTION
+Add a ranked recommendation strip or panel that highlights the top tweaks that matter most for the current machine right now.
+
+Need:
+- backend ranking logic
+- contextual prioritization
+- explanation of why each tweak is currently high priority
+- not just “recommended” in general
+- recommended for THIS system, NOW
+
+Example style:
+- Top opportunities right now
+- Best next actions
+- Highest current impact
+- Likely low-value tweaks deprioritized
+
+This is a huge differentiation feature.

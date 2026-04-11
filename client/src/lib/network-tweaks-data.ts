@@ -20,6 +20,8 @@ export interface NetworkTweak {
   level: TweakLevel;
   expected: NetworkTweakExpected;
   warning?: string;
+  unavailable?: boolean;
+  unavailableReason?: string;
 }
 
 export const NETWORK_TWEAKS: NetworkTweak[] = [
@@ -28,10 +30,10 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     id: "smb-non-best-effort",
     name: "Enable Non-Best Effort",
     category: "SMB",
-    summary: "Prioritizes time-sensitive traffic policies.",
-    description: "Enables non-best-effort bandwidth behavior so certain traffic classes are not treated as lowest priority.",
+    summary: "Removes QoS bandwidth reservation — gives all bandwidth to applications.",
+    description: "Sets the QoS Packet Scheduler NonBestEffortLimit to 0, removing Windows' default 20% bandwidth reservation for system processes.",
     impact: [
-      "Can reduce jitter for prioritized traffic",
+      "Frees reserved bandwidth for all applications",
       "May not change ping in most home setups"
     ],
     safety: "Safe",
@@ -43,7 +45,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Enable SMBv2 and SMBv3",
     category: "SMB",
     summary: "Uses modern SMB for faster, safer file sharing.",
-    description: "Ensures SMBv2/3 are enabled to avoid legacy SMB1 behavior and improve file transfer performance/security.",
+    description: "Ensures SMBv2/3 are enabled in LanmanServer registry to avoid legacy SMB1 behavior and improve file transfer performance/security.",
     impact: [
       "Better file transfer efficiency on LAN",
       "Improved security vs SMB1"
@@ -64,7 +66,9 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "Enterprise/Hyper-V feature only — no meaningful effect on desktop systems",
   },
   {
     id: "smb-congruent-ops",
@@ -78,14 +82,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Medium", latency: "None", stabilityRisk: "Medium" }
+    expected: { network: "Medium", latency: "None", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "Duplicate of 'Increase Maximum Outstanding Network Requests' — use that instead",
   },
   {
     id: "smb-max-requests",
     name: "Increase Maximum Outstanding Network Requests",
     category: "SMB",
     summary: "Allows more pending SMB requests.",
-    description: "Increases the number of requests SMB can queue before waiting.",
+    description: "Increases MaxCmds in LanmanWorkstation registry to 128 (from 50) — the number of simultaneous SMB requests the client can queue.",
     impact: [
       "Smoother high-throughput transfers",
       "Can increase memory usage slightly"
@@ -99,7 +105,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Increase IRP Stack Size",
     category: "SMB",
     summary: "Improves reliability for heavy network/file workloads.",
-    description: "Increases IRP stack size which can help prevent errors in complex filter-driver chains.",
+    description: "Increases IRPStackSize in LanmanServer registry to 20 — helps prevent errors in complex filter-driver chains.",
     impact: [
       "Can reduce rare network redirector errors",
       "No gaming benefit in most cases"
@@ -113,7 +119,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Increase Maximum Incoming Network Requests",
     category: "SMB",
     summary: "Raises server-side request handling capacity.",
-    description: "Allows the system to accept more incoming SMB requests concurrently.",
+    description: "Increases MaxWorkItems in LanmanServer registry to 512 — allows the system to accept more incoming SMB requests concurrently.",
     impact: [
       "Better hosting/file share performance",
       "More resource use when serving many clients"
@@ -127,7 +133,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Increase Pipe Data Size",
     category: "SMB",
     summary: "Increases named pipe buffer capacity.",
-    description: "Raises buffer size for named pipes to improve throughput for IPC-heavy scenarios.",
+    description: "Raises SizReqBuf in LanmanServer registry to 32000 — increases buffer size for SMB server receive operations including named pipes.",
     impact: [
       "Can improve some LAN/IPC throughput",
       "Minimal effect for gaming"
@@ -141,7 +147,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Increase Request Buffer Size",
     category: "SMB",
     summary: "Improves buffering for network redirector.",
-    description: "Increases request buffer sizes for SMB redirector operations.",
+    description: "Increases SizCharBuf in LanmanWorkstation registry to 8192 — expands client-side request buffer sizes for SMB operations.",
     impact: [
       "More efficient large transfers",
       "Slightly higher memory use"
@@ -162,7 +168,9 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "No documented Windows registry parameter for SMB connection pre-allocation",
   },
 
   // TCP/IP Category
@@ -171,7 +179,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Decrease Wait-Time State",
     category: "TCP/IP",
     summary: "Reduces time sockets linger after close.",
-    description: "Lowers how long connections remain in certain wait states to free ports faster.",
+    description: "Sets TcpTimedWaitDelay to 30s (from 120s) — lowers how long connections remain in TIME_WAIT state to free ports faster.",
     impact: [
       "Helps apps that open/close many connections",
       "Can increase risk of edge-case connection reuse issues"
@@ -192,14 +200,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "None", latency: "Low", stabilityRisk: "Medium" }
+    expected: { network: "None", latency: "Low", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "No stable, documented Windows parameter maps to TCP buffer-list tracking",
   },
   {
     id: "tcp-nagle",
     name: "Disable Nagle's Algorithm",
     category: "TCP/IP",
     summary: "Sends small packets sooner.",
-    description: "Disables Nagle so small TCP packets are not delayed waiting for aggregation.",
+    description: "Sets TcpNoDelay=1 globally and per adapter, plus TcpAckFrequency=1 — disables Nagle so small TCP packets are not delayed waiting for aggregation.",
     impact: [
       "Lower latency for TCP-based real-time apps",
       "Slightly higher packet count"
@@ -220,14 +230,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Low", latency: "Low", stabilityRisk: "Medium" }
+    expected: { network: "Low", latency: "Low", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "No stable, documented Windows parameter maps to non-SACK RTO tuning",
   },
   {
     id: "tcp-task-offload",
     name: "Disable Task Offload",
     category: "TCP/IP",
     summary: "Moves some NIC work back to CPU.",
-    description: "Disables certain offloads that can add latency or cause driver quirks.",
+    description: "Sets DisableTaskOffload=1 in Tcpip\\Parameters — disables certain offloads that can add latency or cause driver quirks.",
     impact: [
       "Can improve consistency on some NIC/drivers",
       "Can increase CPU usage"
@@ -241,7 +253,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable TCP Timestamps",
     category: "TCP/IP",
     summary: "Reduces per-packet overhead.",
-    description: "Disables TCP timestamps which add bytes to packets and can affect some paths.",
+    description: "Runs 'netsh int tcp set global timestamps=disabled' — disables TCP timestamps which add bytes to packets.",
     impact: [
       "Slight overhead reduction",
       "Can reduce compatibility with some measurement features"
@@ -255,7 +267,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable Window Scaling Heuristics",
     category: "TCP/IP",
     summary: "Prevents Windows from auto-limiting scaling.",
-    description: "Disables heuristics that may reduce receive window scaling in some cases.",
+    description: "Runs 'netsh int tcp set heuristics disabled' — disables heuristics that may reduce receive window scaling in some cases.",
     impact: [
       "Can improve throughput on high-latency links",
       "Rarely affects gaming ping"
@@ -276,14 +288,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Experimental",
-    expected: { network: "None", latency: "Low", stabilityRisk: "Medium" }
+    expected: { network: "None", latency: "Low", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "DCA is a hardware feature requiring BIOS/chipset support — not configurable via Windows registry on consumer systems",
   },
   {
     id: "tcp-throttling-index",
     name: "Enable Network Throttling Index",
     category: "TCP/IP",
     summary: "Disables throttling for multimedia/network tasks.",
-    description: "Sets throttling index to prevent Windows from limiting network processing for multimedia workloads.",
+    description: "Sets NetworkThrottlingIndex=0xFFFFFFFF in Multimedia\\SystemProfile — prevents Windows from limiting network processing for multimedia workloads.",
     impact: [
       "Can improve consistency for real-time traffic",
       "Can increase CPU usage slightly"
@@ -297,7 +311,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Enable Path MTU and Black Hole Detection",
     category: "TCP/IP",
     summary: "Improves handling of MTU issues.",
-    description: "Enables PMTU and black hole detection to avoid fragmentation-related stalls.",
+    description: "Sets EnablePMTUDiscovery=1 and EnablePMTUBHDetect=1 in Tcpip\\Parameters — enables PMTU and black hole detection to avoid fragmentation-related stalls.",
     impact: [
       "Can reduce rare connection stalls",
       "Usually no difference on normal networks"
@@ -311,7 +325,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Enable RSS",
     category: "TCP/IP",
     summary: "Spreads network processing across CPU cores.",
-    description: "Enables Receive Side Scaling to improve throughput and reduce single-core bottlenecks.",
+    description: "Runs 'netsh int tcp set global rss=enabled' — enables Receive Side Scaling to improve throughput and reduce single-core bottlenecks.",
     impact: [
       "Better throughput and stability under load",
       "No direct ping reduction"
@@ -325,21 +339,23 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Enable TCP Chimney Offload",
     category: "TCP/IP",
     summary: "Offloads TCP processing to NIC (legacy).",
-    description: "Enables chimney offload where supported, but can be buggy on modern drivers.",
+    description: "Enables chimney offload where supported, but deprecated in Windows 10/11.",
     impact: [
       "Can help throughput on specific NICs",
       "Can cause instability on others"
     ],
     safety: "Risky",
     level: "Experimental",
-    expected: { network: "Low", latency: "None", stabilityRisk: "High" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "High" },
+    unavailable: true,
+    unavailableReason: "TCP Chimney Offload is deprecated and removed in Windows 10/11 — command has no effect",
   },
   {
     id: "tcp-sack",
     name: "Enable TCP Selective Acks (SACK)",
     category: "TCP/IP",
     summary: "Recovers faster from packet loss.",
-    description: "Enables SACK so TCP can retransmit only missing segments.",
+    description: "Sets SackOpts=1 in Tcpip\\Parameters — enables SACK so TCP can retransmit only missing segments (usually already enabled by default).",
     impact: [
       "Better performance on lossy links",
       "No downside for most users"
@@ -353,7 +369,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Enable Weak-Host Transmission",
     category: "TCP/IP",
     summary: "Allows sending from non-primary interfaces.",
-    description: "Enables weak-host model which can break certain VPN routing assumptions.",
+    description: "Runs 'netsh int ip set interface weakhostsend/weakhostreceive=enabled' on all active adapters — enables weak-host model which can break certain VPN routing assumptions.",
     impact: [
       "Can help multi-NIC routing edge cases",
       "Can break VPNs and tunnel routing"
@@ -368,7 +384,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Enable WinHTTP Autotuning",
     category: "TCP/IP",
     summary: "Improves HTTP throughput behavior.",
-    description: "Enables WinHTTP autotuning for better performance in some HTTP scenarios.",
+    description: "Runs 'netsh int tcp set global autotuninglevel=normal' — enables TCP receive window autotuning which improves throughput in high-latency HTTP scenarios.",
     impact: [
       "Better downloads in some environments",
       "No gaming ping benefit"
@@ -389,14 +405,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "None", latency: "Low", stabilityRisk: "Medium" }
+    expected: { network: "None", latency: "Low", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "Increasing RTO is counterproductive for gaming — it increases delay during packet loss, not reduces it",
   },
   {
     id: "tcp-connection-timeout",
     name: "Lower TCP Connection Timeout",
     category: "TCP/IP",
     summary: "Fails faster on dead connections.",
-    description: "Lowers how long TCP waits before declaring a connection attempt dead.",
+    description: "Sets TcpMaxConnectRetransmissions=1 in Tcpip\\Parameters — lowers how long TCP waits before declaring a connection attempt dead.",
     impact: [
       "Faster fallback when servers are unreachable",
       "Can cause issues on high-latency networks"
@@ -410,7 +428,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Optimize Network Congestion Provider",
     category: "TCP/IP",
     summary: "Selects a congestion algorithm.",
-    description: "Adjusts congestion control provider to improve throughput/latency balance.",
+    description: "Runs 'netsh int tcp set supplemental template=Internet congestionprovider=CTCP' — sets Compound TCP as the congestion control provider.",
     impact: [
       "Can change throughput and jitter characteristics",
       "Best choice depends on ISP/path"
@@ -431,7 +449,9 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Risky",
     level: "Experimental",
-    expected: { network: "None", latency: "None", stabilityRisk: "High" }
+    expected: { network: "None", latency: "None", stabilityRisk: "High" },
+    unavailable: true,
+    unavailableReason: "Reducing TTL provides no latency benefit and can break connectivity to CDN nodes or distant servers",
   },
   {
     id: "tcp-connection-limit",
@@ -445,14 +465,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "Half-open connection limit was removed in Windows Vista/7 — no effect on Windows 10/11",
   },
   {
     id: "tcp-port-range",
     name: "Set Dynamic Port Range to Max",
     category: "TCP/IP",
     summary: "Expands ephemeral port range.",
-    description: "Expands available ephemeral ports to reduce port exhaustion.",
+    description: "Runs 'netsh int ip set dynamicportrange protocol=tcp startport=1024 numberofports=64511' — expands available ephemeral ports for both TCP and UDP to reduce port exhaustion.",
     impact: [
       "Improves reliability for connection-heavy workloads",
       "No gaming ping benefit"
@@ -468,7 +490,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable UDP Offloads",
     category: "UDP",
     summary: "Reduces offload-related jitter on some NICs.",
-    description: "Disables UDP offloads that can cause latency spikes on certain drivers.",
+    description: "Runs Disable-NetAdapterChecksumOffload on all active adapters — disables UDP IPv4 checksum offload that can cause latency spikes on certain drivers.",
     impact: [
       "More consistent UDP behavior in some cases",
       "Higher CPU usage possible"
@@ -489,7 +511,9 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Low", latency: "Low", stabilityRisk: "Medium" }
+    expected: { network: "Low", latency: "Low", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "No documented, stable Windows parameter for UDP fast-send path tuning — undocumented internals only",
   },
 
   // Security Category
@@ -498,7 +522,7 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable LLMNR",
     category: "Security",
     summary: "Reduces legacy name resolution.",
-    description: "Disables LLMNR to reduce unwanted local name resolution broadcasts.",
+    description: "Sets EnableMulticast=0 in HKLM\\SOFTWARE\\Policies\\Microsoft\\Windows NT\\DNSClient — disables LLMNR to reduce unwanted local name resolution broadcasts.",
     impact: [
       "Slight reduction in background broadcast traffic",
       "Can break some LAN discovery cases"
@@ -519,14 +543,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "Medium" },
+    unavailable: true,
+    unavailableReason: "MPP is ambiguous — no clear single Windows component maps to this label safely",
   },
   {
     id: "sec-netbios",
     name: "Disable NetBIOS",
     category: "Security",
     summary: "Turns off NetBIOS over TCP/IP.",
-    description: "Disables NetBIOS to reduce legacy broadcasts and potential exposure.",
+    description: "Uses WMI Win32_NetworkAdapterConfiguration.SetTcpipNetbios(2) on all active adapters — disables NetBIOS to reduce legacy broadcasts and potential exposure.",
     impact: [
       "Less broadcast traffic on LAN",
       "May break old SMB name discovery"
@@ -549,14 +575,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Safe",
     level: "Recommended",
-    expected: { network: "Low", latency: "None", stabilityRisk: "Low" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "Low" },
+    unavailable: true,
+    unavailableReason: "OS-level DoH requires Windows 11 build 19628+ and a pre-configured resolver — too version-dependent to implement safely",
   },
   {
     id: "dns-optimize",
     name: "Optimize DNS",
     category: "DNS",
     summary: "Applies safe DNS client optimizations.",
-    description: "Tunes DNS client behavior for faster cache usage and fewer delays.",
+    description: "Sets CacheHashTableBucketSize, CacheHashTableSize, MaxCacheEntryTtlLimit, MaxSOACacheEntryTtlLimit, and NegativeCacheTime in HKLM\\...\\Dnscache\\Parameters — tunes DNS client cache for faster resolution.",
     impact: [
       "Faster name resolution in some cases",
       "No direct ping change once connected"

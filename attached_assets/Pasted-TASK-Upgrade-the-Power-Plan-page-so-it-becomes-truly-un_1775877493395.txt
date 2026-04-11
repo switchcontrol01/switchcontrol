@@ -1,0 +1,183 @@
+TASK
+Upgrade the Power Plan page so it becomes truly unique, intelligent, dynamic, and premium by implementing all of the following with FULL FRONTEND and FULL BACKEND:
+
+INCLUDE:
+1. Live Power Response Graph
+2. “What This Profile Is Doing Right Now”
+3. Real Impact Preview before user clicks
+4. Live Switch Animation
+5. Profile DNA
+6. Conflict Detection
+7. Real Difference vs Current Plan
+
+GOAL
+The current Power Plan page looks clean and premium, but it still feels too static and expected.
+Right now it is mostly:
+- preset cards
+- activate buttons
+- static breakdown tiles
+
+That is not unique enough.
+
+We need to turn it into a real, premium, behavior-driven power orchestration page that feels smart, alive, and dynamic.
+
+I want this page to feel:
+- premium
+- expensive
+- intelligent
+- dynamic
+- fluid
+- animated
+- controlled
+- unique
+- graph-heavy in a good way
+- product-grade
+
+CRITICAL
+Backend is mandatory.
+No simulated behavior.
+No fake previews.
+No fake differences.
+No fake conflict detection.
+No fake “live” graphs.
+No static placeholder metrics pretending to be real.
+
+If a metric must be estimated, make it grounded and label it honestly.
+Do NOT invent fake performance gains.
+
+IMPORTANT
+The page already looks good.
+This is not about destroying the existing look.
+This is about making it actually special.
+
+Keep the current premium SwitchControl design language:
+- matte dark base
+- glass panels
+- purple/pink/cyan accent palette
+- premium glow
+- elegant hierarchy
+- refined composition
+
+But add much more life, intelligence, and behavioral UI.
+
+VISUAL QUALITY REQUIREMENT
+All graph UI must be excellent.
+Graphs must:
+- look expensive
+- feel premium
+- be fluid
+- be animated
+- have strong transitions
+- have micro-animations everywhere appropriate
+- avoid generic stock-chart feeling
+- feel custom-built for SwitchControl
+
+Every section should have polished motion and subtle micro-animation.
+No dead static UI.
+
+IMPLEMENTATION
+
+1. LIVE POWER RESPONSE GRAPH
+Build a live behavior graph that shows how the system is actually behaving under the current active power profile.
+
+Need backend-driven or grounded-estimate tracking for things like:
+- CPU frequency trend
+- CPU boost behavior
+- power/performance tendency
+- core parking tendency
+- responsiveness behavior
+- maybe package activity / active cores / scheduling behavior if available
+- power draw trend if reasonably estimable
+
+This graph must update live or semi-live and must feel like a flagship visual on the page.
+
+This is NOT just a decorative chart.
+It should show real or grounded interpreted system behavior under the active plan.
+
+2. “WHAT THIS PROFILE IS DOING RIGHT NOW”
+For the active profile, add a live interpretation panel.
+
+Instead of generic profile descriptions, show what the current profile is actually doing right now in plain English.
+
+Examples of output style:
+- CPU boosting aggressively
+- Core parking minimized
+- Power saving relaxed
+- Latency priority elevated
+- Balanced idle behavior active
+- Display and sleep timers shortened
+- Efficiency bias active
+
+This must be driven by real profile settings and active backend state, not fake random text.
+
+3. REAL IMPACT PREVIEW BEFORE USER CLICKS
+When hovering or focusing another profile, show a preview of what changing to that profile is expected to do.
+
+Need a comparison preview such as:
+- lower latency
+- higher idle power use
+- lower noise stability margin
+- more aggressive boost behavior
+- stronger battery preservation
+- more core parking
+- lower responsiveness under burst load
+
+This must be derived from the actual profile settings and system logic.
+Do NOT fake flashy claims.
+
+4. LIVE SWITCH ANIMATION
+When the user changes profile, the page must animate the transition in a premium way.
+
+Need:
+- graph transitions
+- card state transitions
+- profile emphasis shift
+- breakdown value transitions
+- subtle animated reconfiguration feel
+- maybe profile energy/color treatment adapting during switch
+
+It should feel like the system is genuinely reconfiguring itself, not just flipping a state.
+
+5. PROFILE DNA
+Each profile should have a visible “DNA” or signature behavior summary.
+
+Examples of dimensions:
+- Latency Focus
+- Efficiency
+- Responsiveness
+- Thermal Restraint
+- Stability
+- Battery Bias
+
+These should be shown in premium visual form:
+- bars
+- segmented meters
+- radar-like chart if done tastefully
+- compact graph modules
+
+Must be custom and expensive-looking.
+No generic chart pack feel.
+
+6. CONFLICT DETECTION
+This is important and unique.
+
+Add logic that checks for conflicts between:
+- selected power profile
+- active system conditions
+- startup load
+- background load
+- thermal or battery context
+- tweak state if relevant
+
+Examples:
+- Competitive power profile but high background load still active
+- Efficiency profile while gaming-oriented tweaks are active
+- Laptop efficiency profile with aggressive startup / service activity
+- Power-saving settings conflicting with latency-focused user goals
+
+Show:
+- conflict severity
+- what is conflicting
+- suggested next section or fix
+
+This must come from real logic, not fake warnings.

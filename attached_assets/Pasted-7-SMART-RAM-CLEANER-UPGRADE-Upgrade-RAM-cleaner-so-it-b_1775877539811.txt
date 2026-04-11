@@ -1,0 +1,172 @@
+7. SMART RAM CLEANER UPGRADE
+Upgrade RAM cleaner so it becomes intelligent.
+
+Need backend logic to distinguish where possible:
+- reclaimable standby memory
+- current active pressure
+- safety/risk of cleanup
+- expected user-visible benefit
+
+Dashboard card should show:
+- reclaimable amount
+- pressure context
+- risk label
+- expected impact estimate
+- live before/after graph if cleanup is executed
+
+Make the interaction feel smart, not placebo.
+
+8. REAL-TIME INPUT LATENCY ESTIMATE
+Build a grounded estimated input latency panel.
+
+Need a derived estimate using signals such as:
+- timer resolution state
+- CPU scheduling pressure
+- interrupt pressure
+- system responsiveness indicators
+- mouse/keyboard-related queue or tuning state if measurable
+- active background contention
+
+If it must be estimated, do it conservatively and honestly.
+
+Need:
+- current estimated value
+- trend direction
+- confidence level
+- explanation of what affects the estimate
+
+Do NOT fake “exact latency.”
+This should be a derived estimate with honest language.
+
+9. GRAPH UI EVERYWHERE
+This dashboard needs a lot of excellent graph UI.
+
+Add or upgrade:
+- main live timeline graph
+- instability score trend graph
+- tweak impact comparison graph
+- RAM reclaim / pressure graph
+- active problem severity graph or bar visualization
+- system DNA visual summary
+- latency estimate trend visualization
+
+Graphs must be:
+- premium
+- fluid
+- animated
+- readable
+- elegant
+- consistent
+- not generic template charts
+
+10. MICRO-ANIMATIONS EVERYWHERE
+Everything should have micro-animations.
+
+Need micro-motion on:
+- stat count transitions
+- graph updates
+- spike markers
+- panel reveals
+- card hover states
+- progress bars
+- severity chips
+- panel loading states
+- transitions between states
+- action confirmations
+- live indicator pulses
+
+Must feel controlled and expensive.
+No noisy or cheap animation.
+
+11. BACKEND ARCHITECTURE
+Create or improve backend services for dashboard intelligence.
+
+Suggested structure:
+- dashboard-metrics-service
+- instability-analysis-service
+- event-correlation-service
+- tweak-impact-service
+- system-dna-service
+- active-problems-service
+- latency-estimation-service
+- ram-analysis-service
+
+Everything must be real and backend-driven.
+
+12. DATA QUALITY / HONESTY
+All outputs must be grounded.
+
+If signal confidence is low:
+- say estimated
+- lower confidence
+- do not overclaim
+
+If no issue is found:
+- say no major issue detected
+- do not force a fake problem
+
+If a tweak showed no measurable gain:
+- say unchanged
+- do not fake success
+
+13. UI / UX QUALITY
+Keep layout clean and premium.
+Do not overcrowd the dashboard.
+Make panels feel intentional and high-value.
+
+Need:
+- strong composition
+- clean panel hierarchy
+- responsive scaling
+- no bugged graph bounds
+- no clipping
+- no overlap
+- no laggy rendering
+- no ugly placeholder states
+
+14. STABILITY / DEBUGGING
+Before finishing, debug:
+- graph performance
+- state sync bugs
+- stale metric bugs
+- inconsistent timestamps
+- event marker placement
+- card overflow
+- loading flicker
+- dead panels
+- incorrect problem labeling
+- wrong cause attribution
+
+This must ship stable.
+
+CHECKLIST
+- instability detector implemented
+- what-caused-that analysis implemented
+- tweak impact tracker implemented
+- spike timeline upgraded
+- system DNA panel implemented
+- active problems panel implemented
+- smart RAM cleaner upgraded
+- real-time input latency estimate implemented
+- lots of premium graph UI added
+- micro-animations added throughout
+- backend services implemented
+- no simulated behavior
+- dashboard remains stable and clean
+
+FINAL OUTPUT
+Return:
+1. files changed
+2. backend services added/fixed
+3. instability model summary
+4. cause-analysis logic summary
+5. tweak impact tracking summary
+6. graph UI upgrades added
+7. system DNA logic summary
+8. active problems logic summary
+9. RAM cleaner intelligence changes
+10. latency estimate logic summary
+11. performance/stability notes
+12. any limitations
+
+Do not add fake insights. If a metric is estimated, label it honestly. If no measurable issue exists, say so. The uniqueness must come from real diagnostics, real feedback loops, and premium UI quality.

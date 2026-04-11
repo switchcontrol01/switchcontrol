@@ -141,6 +141,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     executeAction: (params) => ipcRenderer.invoke('appBooster:executeAction', params),
   },
 
+  // Network Tweaks — real Windows system-level network changes
+  networkTweaks: {
+    execute:     (tweakId, action) => ipcRenderer.invoke('networkTweaks:execute', tweakId, action),
+    checkStatus: (tweakId)        => ipcRenderer.invoke('networkTweaks:checkStatus', tweakId),
+    checkAll:    ()               => ipcRenderer.invoke('networkTweaks:checkAll'),
+    getDisabled: ()               => ipcRenderer.invoke('networkTweaks:getDisabled'),
+  },
+
   // Auto-Updater — renderer reads state, main process owns all logic
   updater: {
     getState:      () => ipcRenderer.invoke('updater:getState'),
