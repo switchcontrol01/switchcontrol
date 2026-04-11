@@ -66,9 +66,31 @@ function Sparkline({ values, color = "hsl(270,65%,65%)", id }: { values: number[
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <path d={areaPath} fill={`url(#sg-${id})`} />
-      <path d={linePath} fill="none" stroke={color} strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={last.x} cy={last.y} r={2.5} fill={color} opacity={0.9} />
+      <motion.path
+        d={areaPath}
+        fill={`url(#sg-${id})`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.3 }}
+      />
+      <motion.path
+        d={linePath}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+      />
+      <motion.circle
+        cx={last.x} cy={last.y} r={2.5} fill={color} opacity={0.9}
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 0.9 }}
+        transition={{ duration: 0.4, delay: 0.7, ease: [0.34, 1.56, 0.64, 1] }}
+        style={{ transformOrigin: `${last.x}px ${last.y}px` }}
+      />
     </svg>
   );
 }

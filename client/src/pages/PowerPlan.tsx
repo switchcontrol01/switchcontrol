@@ -520,15 +520,22 @@ export default function PowerPlan() {
         )}
 
         {/* ── System Intent Mode ───────────────────────────────────────── */}
+        <Reveal delay={0.05}>
         <div className="space-y-3">
-          <div className="flex items-center gap-2">
+          <motion.div
+            className="flex items-center gap-2"
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
             <Rocket className="size-4 text-primary" />
             <span className="text-sm font-medium">System Intent</span>
             <span className="text-[10px] text-muted-foreground">Quick-select your scenario</span>
-          </div>
+          </motion.div>
           <IntentModeSelector value={intentMode} onChange={handleIntentMode} />
           <IntentModeDescription mode={intentMode} />
         </div>
+        </Reveal>
 
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profiles" | "custom")} className="space-y-6">
           <TabsList className="bg-black/40 border border-white/10">
@@ -557,6 +564,8 @@ export default function PowerPlan() {
               <motion.div
                 className="grid gap-4 md:grid-cols-3"
                 variants={staggerContainer}
+                initial="initial"
+                animate="animate"
               >
                 {POWER_PROFILES.map((profile) => {
                   const isActive   = activeProfileId === profile.id;
@@ -564,7 +573,12 @@ export default function PowerPlan() {
                   const Icon = profile.icon;
 
                   return (
-                    <motion.div key={profile.id} variants={staggerItem}>
+                    <motion.div
+                      key={profile.id}
+                      variants={staggerItem}
+                      whileHover={{ scale: 1.025, y: -4, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+                      whileTap={{ scale: 0.975, y: 0 }}
+                    >
                     <GlassCard
                       key={profile.id}
                       className={cn(
@@ -640,16 +654,26 @@ export default function PowerPlan() {
                     </span>
                   )}
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                <motion.div
+                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+                  variants={staggerContainer}
+                  initial="initial"
+                  animate="animate"
+                >
                   {Object.entries(displayBreakdown).map(([key, value]) => (
-                    <div key={key} className="p-3 rounded-lg bg-white/5 border border-white/10">
+                    <motion.div
+                      key={key}
+                      variants={staggerItem}
+                      className="p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.07] hover:border-white/15 transition-colors"
+                      whileHover={{ scale: 1.02, transition: { duration: 0.18 } }}
+                    >
                       <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
                         {BREAKDOWN_LABELS[key] ?? key}
                       </span>
                       <p className="text-sm text-white mt-1">{value}</p>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
 
                 {/* Mismatch warning */}
                 {isCloseMatch && backendState?.profileMatch?.mismatches && Object.keys(backendState.profileMatch.mismatches).length > 0 && (
@@ -742,8 +766,20 @@ export default function PowerPlan() {
 
               <div className="space-y-8">
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-white flex items-center gap-2"><Cpu className="size-4 text-primary" /> CPU Behavior</h3>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <motion.h3
+                    className="text-sm font-medium text-white flex items-center gap-2"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <Cpu className="size-4 text-primary" /> CPU Behavior
+                  </motion.h3>
+                  <motion.div
+                    className="grid gap-3 sm:grid-cols-2"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
                     {([
                       { key: "disableThrottleStates" as const,      name: "Disable Throttle States",       desc: "Prevent CPU low-power states",            tag: "Advanced" as const },
                       { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Hardware performance state control",      tag: "Safe" as const },
@@ -753,7 +789,12 @@ export default function PowerPlan() {
                       { key: "preferPerformanceProcesses" as const,  name: "Prefer Performance Processes",  desc: "Prioritize foreground apps",              tag: "Safe" as const },
                       { key: "optimizePerformanceInterval" as const, name: "Optimize Check Interval",       desc: "Faster performance monitoring",           tag: "Advanced" as const },
                     ] as const).map(item => (
-                      <div key={item.key} className={cn("flex items-center justify-between p-3 rounded-lg border transition-all", localState.customSettings[item.key] ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5")}>
+                      <motion.div
+                        key={item.key}
+                        variants={staggerItem}
+                        whileHover={{ scale: 1.015, transition: { duration: 0.15 } }}
+                        className={cn("flex items-center justify-between p-3 rounded-lg border transition-colors", localState.customSettings[item.key] ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5 hover:bg-white/[0.07]")}
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-white">{item.name}</span>
@@ -763,9 +804,9 @@ export default function PowerPlan() {
                           <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
                         </div>
                         <Switch checked={localState.customSettings[item.key]} onCheckedChange={(v) => updateCustomSetting(item.key, v)} className="data-[state=checked]:bg-primary" />
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 </div>
 
                 <div className="space-y-4">
@@ -789,8 +830,20 @@ export default function PowerPlan() {
                 </div>
 
                 <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-white flex items-center gap-2"><Usb className="size-4 text-primary" /> USB & Sleep</h3>
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <motion.h3
+                    className="text-sm font-medium text-white flex items-center gap-2"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.35, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <Usb className="size-4 text-primary" /> USB & Sleep
+                  </motion.h3>
+                  <motion.div
+                    className="grid gap-3 sm:grid-cols-2"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
                     {([
                       { key: "disableUsbSelectiveSuspend" as const, name: "Disable USB Selective Suspend", desc: "USB devices always powered",    tag: "Safe" as const },
                       { key: "disableUsbPowerManagement" as const,  name: "Disable USB Power Management", desc: "Full USB power at all times",  tag: "Safe" as const },
@@ -798,7 +851,12 @@ export default function PowerPlan() {
                       { key: "disableSleep" as const,               name: "Disable Sleep",                 desc: "Prevent sleep mode",          tag: "Safe" as const },
                       { key: "disableHibernation" as const,         name: "Disable Hibernation",           desc: "Prevent hibernation",         tag: "Safe" as const },
                     ] as const).map(item => (
-                      <div key={item.key} className={cn("flex items-center justify-between p-3 rounded-lg border transition-all", localState.customSettings[item.key] ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5")}>
+                      <motion.div
+                        key={item.key}
+                        variants={staggerItem}
+                        whileHover={{ scale: 1.015, transition: { duration: 0.15 } }}
+                        className={cn("flex items-center justify-between p-3 rounded-lg border transition-colors", localState.customSettings[item.key] ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5 hover:bg-white/[0.07]")}
+                      >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <span className="text-sm text-white">{item.name}</span>
@@ -807,9 +865,9 @@ export default function PowerPlan() {
                           <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
                         </div>
                         <Switch checked={localState.customSettings[item.key]} onCheckedChange={(v) => updateCustomSetting(item.key, v)} className="data-[state=checked]:bg-primary" />
-                      </div>
+                      </motion.div>
                     ))}
-                  </div>
+                  </motion.div>
                 </div>
               </div>
             </GlassCard>

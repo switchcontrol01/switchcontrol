@@ -147,53 +147,57 @@ export default function Settings() {
               <CardDescription>Configure general app behavior.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Enable App Booster</Label>
-                  <p className="text-xs text-muted-foreground">Automatically optimize priority for active games.</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <Separator className="bg-border/50" />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Real-time Metrics</Label>
-                  <p className="text-xs text-muted-foreground">Update dashboard stats every second.</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <Separator className="bg-border/50" />
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Pause when minimized</Label>
-                  <p className="text-xs text-muted-foreground">Stop polling stats when app is in background.</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
+              {[
+                { label: "Enable App Booster", desc: "Automatically optimize priority for active games." },
+                { label: "Real-time Metrics", desc: "Update dashboard stats every second." },
+                { label: "Pause when minimized", desc: "Stop polling stats when app is in background." },
+              ].map((row, i) => (
+                <motion.div
+                  key={row.label}
+                  initial={{ opacity: 0, x: -6 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.3, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                    <div className="space-y-0.5">
+                      <Label>{row.label}</Label>
+                      <p className="text-xs text-muted-foreground">{row.desc}</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                  {i < 2 && <Separator className="bg-border/50 mt-5" />}
+                </motion.div>
+              ))}
               {isElectron && (
                 <>
                   <Separator className="bg-border/50" />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label className="flex items-center gap-2">
-                        Enhanced Sensors
-                        <span className="text-[9px] text-amber-400 uppercase font-medium px-1.5 py-0.5 bg-amber-500/10 rounded">Experimental</span>
-                      </Label>
-                      <p className="text-xs text-muted-foreground">Use LibreHardwareMonitor for motherboard, VRM, and chipset temps.</p>
+                  <motion.div
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.23, ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                      <div className="space-y-0.5">
+                        <Label className="flex items-center gap-2">
+                          Enhanced Sensors
+                          <span className="text-[9px] text-amber-400 uppercase font-medium px-1.5 py-0.5 bg-amber-500/10 rounded">Experimental</span>
+                        </Label>
+                        <p className="text-xs text-muted-foreground">Use LibreHardwareMonitor for motherboard, VRM, and chipset temps.</p>
+                      </div>
+                      <Switch 
+                        checked={enhancedSensorsEnabled} 
+                        onCheckedChange={(checked) => {
+                          setEnhancedSensorsEnabled(checked);
+                          toast({
+                            title: checked ? "Enhanced Sensors Enabled" : "Enhanced Sensors Disabled",
+                            description: checked 
+                              ? "Motherboard temps may now be available if supported." 
+                              : "Using default system sensors.",
+                          });
+                        }}
+                      />
                     </div>
-                    <Switch 
-                      checked={enhancedSensorsEnabled} 
-                      onCheckedChange={(checked) => {
-                        setEnhancedSensorsEnabled(checked);
-                        toast({
-                          title: checked ? "Enhanced Sensors Enabled" : "Enhanced Sensors Disabled",
-                          description: checked 
-                            ? "Motherboard temps may now be available if supported." 
-                            : "Using default system sensors.",
-                        });
-                      }}
-                    />
-                  </div>
+                  </motion.div>
                 </>
               )}
             </CardContent>
@@ -321,34 +325,48 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      resetData();
-                      toast({ title: "Settings Reset", description: "Your preferences have been restored to defaults. You are still logged in." });
-                    }}
-                    className="border-border/50 hover:bg-muted/50 text-white w-fit"
-                    data-testid="button-reset-settings"
-                  >
-                    <RotateCcw className="size-4 mr-2" />
-                    Reset Settings
-                  </Button>
+                <motion.div
+                  className="flex flex-col gap-1.5"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-fit">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        resetData();
+                        toast({ title: "Settings Reset", description: "Your preferences have been restored to defaults. You are still logged in." });
+                      }}
+                      className="border-border/50 hover:bg-muted/50 text-white"
+                      data-testid="button-reset-settings"
+                    >
+                      <RotateCcw className="size-4 mr-2" />
+                      Reset Settings
+                    </Button>
+                  </motion.div>
                   <p className="text-xs text-muted-foreground">Resets UI preferences to defaults. Keeps your login and premium status.</p>
-                </div>
+                </motion.div>
                 <Separator className="bg-border/30" />
-                <div className="flex flex-col gap-1.5">
-                  <Button
-                    variant="outline"
-                    onClick={() => factoryReset()}
-                    className="border-red-500/20 hover:bg-red-500/10 text-red-400 w-fit"
-                    data-testid="button-factory-reset"
-                  >
-                    <Trash2 className="size-4 mr-2" />
-                    Factory Reset
-                  </Button>
+                <motion.div
+                  className="flex flex-col gap-1.5"
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-fit">
+                    <Button
+                      variant="outline"
+                      onClick={() => factoryReset()}
+                      className="border-red-500/20 hover:bg-red-500/10 text-red-400"
+                      data-testid="button-factory-reset"
+                    >
+                      <Trash2 className="size-4 mr-2" />
+                      Factory Reset
+                    </Button>
+                  </motion.div>
                   <p className="text-xs text-muted-foreground">Logs you out and wipes all local data. You will need to sign in again.</p>
-                </div>
+                </motion.div>
                 <Separator className="bg-border/30" />
                 <Button
                   variant="outline"
@@ -419,7 +437,7 @@ export default function Settings() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 sm:grid-cols-2">
-                <button
+                <motion.button
                   onClick={(e) => {
                     e.preventDefault();
                     if (isElectron && window.electronAPI?.openExternal) {
@@ -430,6 +448,9 @@ export default function Settings() {
                   }}
                   data-testid="link-discord"
                   className="text-left"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <GlassCard className="p-4 group cursor-pointer hover:border-[#5865F2]/30 hover:shadow-[0_0_20px_-5px_rgba(88,101,242,0.3)]">
                     <div className="flex items-center gap-3">
@@ -445,8 +466,8 @@ export default function Settings() {
                       </div>
                     </div>
                   </GlassCard>
-                </button>
-                <button
+                </motion.button>
+                <motion.button
                   onClick={(e) => {
                     e.preventDefault();
                     if (isElectron && window.electronAPI?.openExternal) {
@@ -457,6 +478,9 @@ export default function Settings() {
                   }}
                   data-testid="link-tiktok"
                   className="text-left"
+                  whileHover={{ scale: 1.02, y: -2 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
                 >
                   <GlassCard className="p-4 group cursor-pointer hover:border-pink-500/30 hover:shadow-[0_0_20px_-5px_rgba(236,72,153,0.3)]">
                     <div className="flex items-center gap-3">
@@ -472,7 +496,7 @@ export default function Settings() {
                       </div>
                     </div>
                   </GlassCard>
-                </button>
+                </motion.button>
               </div>
             </CardContent>
           </Card>
