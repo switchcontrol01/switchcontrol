@@ -47,6 +47,7 @@ const Pricing = lazy(() => import("@/pages/Pricing"));
 const Download = lazy(() => import("@/pages/Download"));
 const Terms = lazy(() => import("@/pages/Terms"));
 const Privacy = lazy(() => import("@/pages/Privacy"));
+const FAQPage = lazy(() => import("@/pages/FAQ"));
 const Success = lazy(() => import("@/pages/Success"));
 const PremiumSuccess = lazy(() => import("@/pages/PremiumSuccess"));
 const LoginPage = lazy(() => import("@/pages/Login"));
@@ -118,6 +119,7 @@ function WebsiteRoutes() {
         <Route path="/login" component={LoginPage} />
         <Route path="/terms" component={Terms} />
         <Route path="/privacy" component={Privacy} />
+        <Route path="/faq" component={FAQPage} />
         <Route path="/success" component={Success} />
         <Route path="/premium-success" component={PremiumSuccess} />
         <Route path="/admin" component={AdminPage} />

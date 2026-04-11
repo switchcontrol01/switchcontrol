@@ -30,7 +30,7 @@ interface WebsiteShellProps {
 const NAV_LINKS = [
   { label: "Features", href: "/features" },
   { label: "Pricing", href: "/pricing" },
-  { label: "FAQ", href: "#faq" },
+  { label: "FAQ", href: "/faq" },
 ];
 
 function FullHeader() {
@@ -272,9 +272,9 @@ function WebsiteFooter() {
                 </Link>
               </li>
               <li>
-                <a href="#faq" className="text-white/30 hover:text-white/60 transition-colors">
+                <Link href="/faq" className="text-white/30 hover:text-white/60 transition-colors">
                   FAQ
-                </a>
+                </Link>
               </li>
             </ul>
           </div>
