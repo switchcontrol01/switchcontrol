@@ -385,7 +385,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
   if (isUnavailable || error) {
     return (
-      <GlassCard className="p-4">
+      <GlassCard className="p-4" hoverEffect={false}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-medium text-white flex items-center gap-2">
             <Activity className="size-4 text-primary" />
@@ -452,7 +452,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const spikeRefIndex = latestPoint ? data.length - 1 : null;
 
   return (
-    <GlassCard className="p-4">
+    <GlassCard className="p-4" hoverEffect={false}>
       <style>{`@keyframes sc-spike{0%{opacity:1;transform:scale(1.5)}100%{opacity:0;transform:scale(0.8)}}`}</style>
 
       {/* Header */}

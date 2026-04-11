@@ -195,7 +195,8 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
     // Try systeminformation's built-in per-second rates first
     const rSec: number | null = d.rIO_sec ?? null;
     const wSec: number | null = d.wIO_sec ?? null;
-    const msSec: number | null = d.ms_sec ?? null;
+    // ms_sec = ms busy per second (Linux); tIO_sec = total IO time per second (Windows) — same metric
+    const msSec: number | null = d.ms_sec ?? d.tIO_sec ?? null;
 
     if (lastDiskSnapshot && rIO != null && wIO != null) {
       const dt_s = (now - lastDiskSnapshot.ts) / 1000;
