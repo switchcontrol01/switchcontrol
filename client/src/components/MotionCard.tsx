@@ -1,34 +1,22 @@
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { useMotion, microHover, liftHover, glowHover } from "@/lib/motion";
-
-type HoverStyle = "micro" | "lift" | "glow" | "none";
+import { useMotion } from "@/lib/motion";
 
 interface MotionCardProps {
   children: ReactNode;
   className?: string;
-  hoverStyle?: HoverStyle;
   delay?: number;
   onClick?: () => void;
 }
 
-const hoverPresets = {
-  micro: microHover,
-  lift: liftHover,
-  glow: glowHover,
-  none: { rest: {}, hover: {} },
-};
-
 export function MotionCard({
   children,
   className,
-  hoverStyle = "micro",
   delay = 0,
   onClick,
 }: MotionCardProps) {
   const { prefersReducedMotion } = useMotion();
-  const preset = hoverPresets[hoverStyle];
 
   return (
     <motion.div
@@ -40,8 +28,6 @@ export function MotionCard({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
       animate={prefersReducedMotion ? false : { opacity: 1, y: 0 }}
       transition={{ duration: 0.2, delay, ease: [0.22, 1, 0.36, 1] }}
-      variants={prefersReducedMotion ? undefined : preset}
-      whileHover={prefersReducedMotion ? undefined : "hover"}
       onClick={onClick}
     >
       {children}
@@ -79,7 +65,6 @@ export function MotionButton({
         disabled && "opacity-50 cursor-not-allowed",
         className
       )}
-      whileHover={prefersReducedMotion || disabled ? undefined : { scale: 1.02 }}
       transition={{ duration: 0.12 }}
     >
       {children}
