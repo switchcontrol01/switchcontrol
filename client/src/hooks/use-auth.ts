@@ -13,6 +13,7 @@ export function useAuth() {
       lastName: null,
       avatar: user.avatarUrl,
       isPremium: user.isPremium,
+      isAdmin: user.isAdmin,
       hasSeenPremiumUnlock: user.hasSeenPremiumUnlock,
     } : null,
     isLoading: false,
