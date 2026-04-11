@@ -131,6 +131,33 @@ if (typeof window !== 'undefined') {
   }
 }
 
+// ── Global fetch interceptor for packaged Electron ───────────────────────────
+// In packaged mode the page is served via file://, so relative /api/ URLs
+// have no host and fail silently. We patch window.fetch once so ALL callers
+// (hooks, pages, etc.) automatically hit the correct local backend URL.
+if (typeof window !== 'undefined' && isPackagedElectron) {
+  const _originalFetch = window.fetch.bind(window);
+  (window as any).fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    let url = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url;
+    if (url.startsWith('/api/') || url === '/api') {
+      try {
+        const base = await resolveApiBase(); // resolves to http://127.0.0.1:PORT/api
+        const suffix = url.slice('/api'.length); // e.g. "/tweak-intelligence/system-state"
+        url = base + suffix;
+        if (typeof input === 'string') {
+          input = url;
+        } else if (input instanceof Request) {
+          input = new Request(url, input);
+        }
+      } catch {
+        // fall through to original fetch — it will fail with a clear error
+      }
+    }
+    return _originalFetch(input, init);
+  };
+  console.log('[API] Packaged Electron: global fetch interceptor installed for /api/ rewrites');
+}
+
 let _cachedCsrfToken: string | null = null;
 
 function getCsrfToken(): string | null {
