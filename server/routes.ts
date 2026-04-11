@@ -22,6 +22,7 @@ import dashboardIntelligenceRouter from "./routes/dashboardIntelligence";
 import startupAppsRouter from "./routes/startupApps";
 import debloaterRouter from "./routes/debloater";
 import cleanerRouter from "./routes/cleaner";
+import focusModeRouter from "./routes/focusMode";
 import { getSnapshot, getSystemSpecs, startTelemetryPolling } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
 
@@ -46,6 +47,7 @@ export async function registerRoutes(
   app.use("/api/startup", startupAppsRouter);
   app.use("/api/debloat", debloaterRouter);
   app.use("/api/cleaner", cleanerRouter);
+  app.use("/api/focus", focusModeRouter);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {

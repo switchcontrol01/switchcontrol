@@ -5,11 +5,57 @@ import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
 import { UpdateBanner } from "@/components/UpdateBanner";
 import { NetworkStatusChip } from "@/components/NetworkStatusChip";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
-import { Loader2 } from "lucide-react";
+import { Loader2, Moon, Timer } from "lucide-react";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useFocusStore } from "@/lib/focusStore";
+
+function FocusModeBanner() {
+  const { active, profileName, expiresAt } = useFocusStore();
+  const [remaining, setRemaining] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!active || !expiresAt) { setRemaining(null); return; }
+    const tick = () => {
+      const ms = Math.max(0, expiresAt - Date.now());
+      const mins = Math.floor(ms / 60000);
+      const secs = Math.floor((ms % 60000) / 1000);
+      setRemaining(`${mins}:${secs.toString().padStart(2, '0')}`);
+      if (ms === 0) setRemaining(null);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [active, expiresAt]);
+
+  if (!active) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.3 }}
+      className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-white text-xs font-medium shadow-lg"
+    >
+      <div className="flex items-center gap-2">
+        <div className="size-1.5 rounded-full bg-white animate-pulse" />
+        <Moon className="size-3" />
+        <span>Focus Mode Active{profileName ? ` · ${profileName}` : ''}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        {remaining && (
+          <div className="flex items-center gap-1 font-mono">
+            <Timer className="size-3" />{remaining}
+          </div>
+        )}
+        <Link href="/focus" className="underline opacity-75 hover:opacity-100">Manage</Link>
+      </div>
+    </motion.div>
+  );
+}
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== "undefined" && window.location.protocol === "file:";
@@ -115,6 +161,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       />
 
       <BackendStartingBanner />
+      <AnimatePresence><FocusModeBanner /></AnimatePresence>
       
       <Sidebar />
       <div className="pl-64 pt-2 flex items-start gap-2 pr-4">

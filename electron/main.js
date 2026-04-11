@@ -42,6 +42,7 @@ const backendLauncher = require('./backend-launcher');
 require('./security-helper');
 require('./debloat-helper');
 require('./cleaner-helper');
+require('./focus-helper');
 const configStore = require('./config-store');
 const updaterService = require('./updater');
 

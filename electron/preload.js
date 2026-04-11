@@ -173,6 +173,21 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getDisabled: ()               => ipcRenderer.invoke('networkTweaks:getDisabled'),
   },
 
+  // Focus Mode — real system-level actions (power plan, notifications, input lockdown, etc.)
+  focus: {
+    apply:               (params)  => ipcRenderer.invoke('focus:apply', params),
+    revert:              (params)  => ipcRenderer.invoke('focus:revert', params),
+    verify:              ()        => ipcRenderer.invoke('focus:verify'),
+    startTriggerMonitor: (params)  => ipcRenderer.invoke('focus:startTriggerMonitor', params),
+    stopTriggerMonitor:  ()        => ipcRenderer.invoke('focus:stopTriggerMonitor'),
+    checkSchedule:       (params)  => ipcRenderer.invoke('focus:checkSchedule', params),
+    onTriggerFired: (callback) => {
+      const handler = (event, payload) => callback(payload);
+      ipcRenderer.on('focus:triggerFired', handler);
+      return () => ipcRenderer.removeListener('focus:triggerFired', handler);
+    },
+  },
+
   // Auto-Updater — renderer reads state, main process owns all logic
   updater: {
     getState:      () => ipcRenderer.invoke('updater:getState'),

@@ -1,70 +1,69 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Moon, 
-  Gamepad2,
-  Monitor,
-  Camera,
-  Sword,
-  Zap,
-  Bell,
-  BellOff,
-  Wifi,
-  WifiOff,
-  Cpu,
-  Clock,
-  Play,
-  Pause,
-  Settings,
-  Plus,
-  ChevronRight,
-  CheckCircle,
-  XCircle,
-  Timer,
-  Shield,
-  Keyboard,
-  Volume2,
-  VolumeX,
-  Power
+import {
+  Moon, Gamepad2, Monitor, Camera, Sword, Zap, Bell, BellOff, Wifi,
+  Cpu, Timer, Pause, Settings, CheckCircle, XCircle, Shield, Keyboard,
+  Power, AlertCircle, Play, RefreshCw, History, Clock, AlertTriangle,
+  Layers, ChevronDown, ChevronUp, Info, Minus, MemoryStick,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { motion, useMotion } from "@/lib/motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useMotion } from "@/lib/motion";
+import { useFocusStore, type FocusSettings } from "@/lib/focusStore";
 
-type FocusProfile = {
-  id: string;
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type FocusProfileId = "gaming" | "work" | "streaming" | "competitive";
+type Phase = "config" | "active" | "history";
+type ActivationState = "idle" | "activating" | "active" | "deactivating" | "partial" | "failed";
+
+interface FocusProfile {
+  id: FocusProfileId;
   name: string;
   icon: React.ComponentType<{ className?: string }>;
   description: string;
-  color: string;
+  accent: string;
+  border: string;
+  bg: string;
   settings: FocusSettings;
-};
+}
 
-type FocusSettings = {
-  notifications: boolean;
-  overlays: boolean;
-  backgroundApps: boolean;
-  networkPriority: boolean;
-  inputLockdown: boolean;
-  cpuLock: boolean;
-  powerLock: boolean;
-};
-
-type FocusTrigger = {
+interface FocusTrigger {
   id: string;
   name: string;
   description: string;
-  enabled: boolean;
   type: "app" | "device" | "time";
-};
+  scheduleHour?: number;
+  scheduleMinute?: number;
+}
+
+interface ActionResult {
+  ok: boolean;
+  action?: string;
+  error?: string;
+  [key: string]: any;
+}
+
+interface HistoryEntry {
+  id: number;
+  profile_id: string;
+  settings: FocusSettings;
+  status: string;
+  activated_at: string;
+  deactivated_at?: string;
+  duration_seconds?: number;
+  trigger_source: string;
+}
+
+// ── Profiles ───────────────────────────────────────────────────────────────────
 
 const FOCUS_PROFILES: FocusProfile[] = [
   {
@@ -72,438 +71,877 @@ const FOCUS_PROFILES: FocusProfile[] = [
     name: "Gaming Focus",
     icon: Gamepad2,
     description: "Maximum performance, zero distractions",
-    color: "from-primary/20 to-cyan-400/20 border-primary/30",
-    settings: { notifications: false, overlays: false, backgroundApps: false, networkPriority: true, inputLockdown: true, cpuLock: true, powerLock: true }
+    accent: "text-cyan-400",
+    border: "border-cyan-500/40",
+    bg: "bg-cyan-500/8",
+    settings: { notifications: true, overlays: true, backgroundApps: true, networkPriority: true, inputLockdown: true, powerLock: true },
   },
   {
     id: "work",
-    name: "Work / Study Focus",
+    name: "Work / Study",
     icon: Monitor,
-    description: "Minimize distractions, stay productive",
-    color: "from-blue-500/20 to-cyan-500/20 border-blue-500/30",
-    settings: { notifications: false, overlays: true, backgroundApps: true, networkPriority: false, inputLockdown: false, cpuLock: false, powerLock: false }
+    description: "Block distractions, stay productive",
+    accent: "text-blue-400",
+    border: "border-blue-500/40",
+    bg: "bg-blue-500/8",
+    settings: { notifications: true, overlays: false, backgroundApps: false, networkPriority: false, inputLockdown: false, powerLock: false },
   },
   {
     id: "streaming",
-    name: "Streaming Focus",
+    name: "Streaming",
     icon: Camera,
     description: "Stable performance for OBS and gameplay",
-    color: "from-red-500/20 to-orange-500/20 border-red-500/30",
-    settings: { notifications: false, overlays: false, backgroundApps: false, networkPriority: true, inputLockdown: false, cpuLock: true, powerLock: true }
+    accent: "text-red-400",
+    border: "border-red-500/40",
+    bg: "bg-red-500/8",
+    settings: { notifications: true, overlays: true, backgroundApps: true, networkPriority: true, inputLockdown: false, powerLock: true },
   },
   {
     id: "competitive",
-    name: "Competitive Mode",
+    name: "Competitive",
     icon: Sword,
     description: "Every millisecond counts",
-    color: "from-yellow-500/20 to-red-500/20 border-yellow-500/30",
-    settings: { notifications: false, overlays: false, backgroundApps: false, networkPriority: true, inputLockdown: true, cpuLock: true, powerLock: true }
+    accent: "text-yellow-400",
+    border: "border-yellow-500/40",
+    bg: "bg-yellow-500/8",
+    settings: { notifications: true, overlays: true, backgroundApps: true, networkPriority: true, inputLockdown: true, powerLock: true },
   },
 ];
 
-const FOCUS_TRIGGERS: FocusTrigger[] = [
-  { id: "game_launch", name: "Game Launch", description: "Activate when any game starts", enabled: true, type: "app" },
-  { id: "fullscreen", name: "Fullscreen App", description: "Activate when app goes fullscreen", enabled: true, type: "app" },
-  { id: "controller", name: "Controller Connected", description: "Activate when gamepad is plugged in", enabled: false, type: "device" },
-  { id: "headset", name: "Headset Connected", description: "Activate when gaming headset detected", enabled: false, type: "device" },
-  { id: "schedule", name: "Scheduled Time", description: "Activate at specific times", enabled: false, type: "time" },
+// ── Toggle definitions ─────────────────────────────────────────────────────────
+
+const TOGGLE_DEFS: {
+  key: keyof FocusSettings;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  mechanism: string;
+  safe: boolean;
+}[] = [
+  {
+    key: "notifications",
+    label: "Mute Notifications",
+    description: "Registry: ToastEnabled = 0",
+    icon: BellOff,
+    mechanism: "HKCU:\\PushNotifications\\ToastEnabled = 0. Restored on exit.",
+    safe: true,
+  },
+  {
+    key: "overlays",
+    label: "Kill Overlays",
+    description: "Discord, Steam, Xbox Game Bar",
+    icon: Layers,
+    mechanism: "Stop-Process on overlay helpers. They restart next app launch.",
+    safe: true,
+  },
+  {
+    key: "backgroundApps",
+    label: "Suppress Background Apps",
+    description: "Lower priority — not killed",
+    icon: Cpu,
+    mechanism: "PriorityClass = BelowNormal. Restored to Normal on exit.",
+    safe: true,
+  },
+  {
+    key: "networkPriority",
+    label: "Network Priority Flag",
+    description: "Marks network as priority context",
+    icon: Wifi,
+    mechanism: "Combined with power plan ensures system at peak. No registry change.",
+    safe: true,
+  },
+  {
+    key: "powerLock",
+    label: "High Performance Mode",
+    description: "Switch power plan to max",
+    icon: Zap,
+    mechanism: "powercfg /setactive 8c5e7fda… Previous plan restored on exit.",
+    safe: true,
+  },
+  {
+    key: "inputLockdown",
+    label: "Win Key Lockdown",
+    description: "Suppress accidental Win key presses",
+    icon: Keyboard,
+    mechanism: "NoWinKeys = 1. Ctrl+Shift+Esc always works. Restored on exit.",
+    safe: true,
+  },
 ];
 
-const TIME_PRESETS = [
-  { label: "30 min", value: 30 },
-  { label: "1 hour", value: 60 },
-  { label: "2 hours", value: 120 },
-  { label: "Custom", value: 0 },
+const TRIGGER_DEFS: FocusTrigger[] = [
+  { id: "game_launch", name: "Game Launch", description: "Auto-activate when a known game process starts", type: "app" },
+  { id: "fullscreen", name: "Fullscreen App", description: "Auto-activate when app goes fullscreen", type: "app" },
+  { id: "controller", name: "Controller Connected", description: "Auto-activate when gamepad is detected", type: "device" },
+  { id: "headset", name: "Headset Connected", description: "Auto-activate when gaming headset detected", type: "device" },
+  { id: "schedule", name: "Scheduled Time", description: "Auto-activate at a fixed time (9:00 PM default)", type: "time", scheduleHour: 21, scheduleMinute: 0 },
 ];
+
+// ── Electron detection ─────────────────────────────────────────────────────────
+
+declare global {
+  interface Window {
+    electronAPI?: {
+      focus?: {
+        apply: (p: any) => Promise<any>;
+        revert: (p: any) => Promise<any>;
+        verify: () => Promise<any>;
+        startTriggerMonitor: (p: any) => Promise<any>;
+        stopTriggerMonitor: () => Promise<any>;
+        onTriggerFired: (cb: (p: any) => void) => () => void;
+      };
+    };
+  }
+}
+
+const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.focus;
+
+// ── Helper ─────────────────────────────────────────────────────────────────────
+
+function fmtDuration(seconds: number) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+}
+
+function countEnabled(s: FocusSettings) {
+  return Object.values(s).filter(Boolean).length;
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 
 export default function FocusMode() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
-  const [isActive, setIsActive] = useState(false);
-  const [activeProfile, setActiveProfile] = useState<string>("gaming");
-  const [triggers, setTriggers] = useState(FOCUS_TRIGGERS);
-  const [sessionDuration, setSessionDuration] = useState(60);
+  const focusStore = useFocusStore();
+
+  // Config state
+  const [profileId, setProfileId] = useState<FocusProfileId>("gaming");
+  const [settings, setSettings] = useState<FocusSettings>(FOCUS_PROFILES[0].settings);
+  const [durationMinutes, setDurationMinutes] = useState(60);
+  const [triggerEnabled, setTriggerEnabled] = useState<Record<string, boolean>>({
+    game_launch: true, fullscreen: true, controller: false, headset: false, schedule: false,
+  });
+  const [expandedToggles, setExpandedToggles] = useState(false);
+
+  // Runtime state
+  const [phase, setPhase] = useState<Phase>("config");
+  const [activation, setActivation] = useState<ActivationState>("idle");
+  const [electronResults, setElectronResults] = useState<Record<string, ActionResult>>({});
+  const [appliedState, setAppliedState] = useState<Record<string, any>>({});
+  const [verification, setVerification] = useState<any>(null);
+  const [triggerFired, setTriggerFired] = useState<string | null>(null);
+
+  // Timer
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [customSettings, setCustomSettings] = useState<FocusSettings>(FOCUS_PROFILES[0].settings);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const currentProfile = FOCUS_PROFILES.find(p => p.id === activeProfile)!;
+  // History
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
 
-  const toggleFocus = () => {
-    if (isActive) {
-      setIsActive(false);
-      setTimeRemaining(0);
-      toast({ title: "Focus Mode Deactivated", description: "All restrictions lifted" });
-    } else {
-      setIsActive(true);
-      setTimeRemaining(sessionDuration * 60);
-      toast({ title: "Focus Mode Activated", description: `${currentProfile.name} enabled for ${sessionDuration} minutes` });
-    }
+  // Sync profile settings when profile changes
+  const selectProfile = (id: FocusProfileId) => {
+    setProfileId(id);
+    const p = FOCUS_PROFILES.find(p => p.id === id)!;
+    setSettings({ ...p.settings });
   };
 
-  const toggleTrigger = (id: string) => {
-    setTriggers(prev => prev.map(t => 
-      t.id === id ? { ...t, enabled: !t.enabled } : t
-    ));
-  };
+  const currentProfile = FOCUS_PROFILES.find(p => p.id === profileId)!;
 
-  const updateCustomSetting = (key: keyof FocusSettings) => {
-    setCustomSettings(prev => ({ ...prev, [key]: !prev[key] }));
-  };
+  // ── Load state from backend on mount ──────────────────────────────────────────
+
+  useEffect(() => {
+    fetch("/api/focus/state").then(r => r.json()).then(data => {
+      if (data.active && data.state) {
+        focusStore.setActive(true, {
+          profileId: data.state.profileId,
+          profileName: FOCUS_PROFILES.find(p => p.id === data.state.profileId)?.name ?? data.state.profileId,
+          expiresAt: data.state.expiresAt ? new Date(data.state.expiresAt).getTime() : null,
+          settings: data.state.settings,
+          triggerSource: data.state.triggerSource,
+        });
+        setActivation("active");
+        setSettings(data.state.settings);
+        setProfileId(data.state.profileId as FocusProfileId);
+        if (data.state.expiresAt) {
+          const ms = Math.max(0, new Date(data.state.expiresAt).getTime() - Date.now());
+          setTimeRemaining(Math.round(ms / 1000));
+        }
+      }
+    }).catch(() => {});
+
+    fetch("/api/focus/history").then(r => r.json()).then(data => {
+      if (data.ok) setHistory(data.history);
+    }).catch(() => {});
+  }, []);
+
+  // ── Timer countdown ───────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    if (activation !== "active" || timeRemaining <= 0) return;
+    timerRef.current = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          clearInterval(timerRef.current!);
+          // Auto-deactivate
+          handleDeactivate();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [activation]); // eslint-disable-line
 
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const getActiveStats = () => {
-    const settings = customSettings;
-    let paused = 0;
-    let cpuSaved = 0;
-    let ramFreed = 0;
+  // ── Trigger monitor ────────────────────────────────────────────────────────────
 
-    if (!settings.notifications) paused += 3;
-    if (!settings.overlays) { paused += 2; cpuSaved += 3; ramFreed += 80; }
-    if (!settings.backgroundApps) { paused += 5; cpuSaved += 8; ramFreed += 200; }
-    if (settings.networkPriority) cpuSaved += 2;
+  useEffect(() => {
+    if (!isElectron()) return;
 
-    return { paused, cpuSaved, ramFreed };
-  };
+    const anyEnabled = Object.values(triggerEnabled).some(Boolean);
+    if (!anyEnabled) return;
 
-  const stats = getActiveStats();
+    window.electronAPI!.focus!.startTriggerMonitor({ triggers: triggerEnabled });
+    const unsub = window.electronAPI!.focus!.onTriggerFired(({ triggerId, meta }) => {
+      setTriggerFired(triggerId);
+      toast({
+        title: `Trigger: ${TRIGGER_DEFS.find(t => t.id === triggerId)?.name ?? triggerId}`,
+        description: "Focus Mode will activate automatically.",
+      });
+      // Auto-activate on trigger
+      if (activation !== "active") {
+        setTimeout(() => handleActivate("trigger:" + triggerId), 800);
+      }
+    });
+
+    // Schedule trigger polling
+    const scheduleId = setInterval(() => {
+      if (!triggerEnabled.schedule) return;
+      const trigger = TRIGGER_DEFS.find(t => t.id === "schedule");
+      if (!trigger) return;
+      const now = new Date();
+      if (now.getHours() === trigger.scheduleHour && now.getMinutes() === trigger.scheduleMinute) {
+        setTriggerFired("schedule");
+        if (activation !== "active") handleActivate("trigger:schedule");
+      }
+    }, 60000);
+
+    return () => {
+      unsub?.();
+      clearInterval(scheduleId);
+      window.electronAPI?.focus?.stopTriggerMonitor();
+    };
+  }, [triggerEnabled, activation]); // eslint-disable-line
+
+  // ── Activate ──────────────────────────────────────────────────────────────────
+
+  const handleActivate = useCallback(async (source = "manual") => {
+    setActivation("activating");
+    let electronRes: Record<string, ActionResult> = {};
+    let appliedSt: Record<string, any> = {};
+
+    if (isElectron()) {
+      try {
+        const result = await window.electronAPI!.focus!.apply({ settings, previousState: {} });
+        if (result.ok) {
+          electronRes = result.results ?? {};
+          appliedSt = result.applied ?? {};
+        }
+      } catch (e: any) {
+        console.warn("[FocusMode] apply IPC error:", e);
+      }
+    }
+
+    setElectronResults(electronRes);
+    setAppliedState(appliedSt);
+
+    try {
+      const res = await fetch("/api/focus/enable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          profileId,
+          settings,
+          durationMinutes,
+          electronResults: electronRes,
+          appliedState: appliedSt,
+          triggerSource: source,
+        }),
+      });
+      const data = await res.json();
+
+      if (data.ok) {
+        const expiresAt = data.expiresAt ? new Date(data.expiresAt).getTime() : null;
+        setActivation(data.status === "partial" ? "partial" : "active");
+        setTimeRemaining(durationMinutes * 60);
+        setTriggerFired(null);
+
+        focusStore.setActive(true, {
+          profileId,
+          profileName: currentProfile.name,
+          expiresAt,
+          settings,
+          triggerSource: source,
+        });
+
+        toast({
+          title: isElectron()
+            ? data.status === "partial" ? "Focus Mode — partial success" : "Focus Mode activated"
+            : "Focus Mode logged",
+          description: isElectron()
+            ? `${data.successCount}/${data.totalActions} actions applied · ${currentProfile.name}`
+            : `Logged in browser. Run Electron app for real system changes.`,
+        });
+
+        // Verify after 1s
+        setTimeout(async () => {
+          if (isElectron()) {
+            const v = await window.electronAPI!.focus!.verify();
+            setVerification(v);
+          }
+        }, 1000);
+      } else {
+        setActivation("failed");
+        toast({ title: "Failed to activate Focus Mode", description: data.error, variant: "destructive" });
+      }
+    } catch (e: any) {
+      setActivation("failed");
+      toast({ title: "Failed to activate", description: e.message, variant: "destructive" });
+    }
+  }, [settings, profileId, durationMinutes, currentProfile, focusStore, toast]);
+
+  // ── Deactivate ─────────────────────────────────────────────────────────────────
+
+  const handleDeactivate = useCallback(async () => {
+    setActivation("deactivating");
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    let revertResults: Record<string, ActionResult> = {};
+
+    if (isElectron()) {
+      try {
+        const result = await window.electronAPI!.focus!.revert({ settings, previousState: appliedState });
+        if (result.ok) revertResults = result.results ?? {};
+      } catch (e: any) {
+        console.warn("[FocusMode] revert IPC error:", e);
+      }
+    }
+
+    try {
+      await fetch("/api/focus/disable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ electronRevertResults: revertResults }),
+      });
+    } catch {}
+
+    setActivation("idle");
+    setTimeRemaining(0);
+    setVerification(null);
+    setElectronResults({});
+    focusStore.setInactive();
+
+    // Refresh history
+    fetch("/api/focus/history").then(r => r.json()).then(d => d.ok && setHistory(d.history)).catch(() => {});
+
+    toast({ title: "Focus Mode deactivated", description: "All system changes reverted." });
+  }, [settings, appliedState, focusStore, toast]);
+
+  const isActive = activation === "active" || activation === "partial";
+  const isProcessing = activation === "activating" || activation === "deactivating";
+
+  // ── Result summary ─────────────────────────────────────────────────────────────
+
+  const appliedCount = Object.values(electronResults).filter(r => r?.ok).length;
+  const failedCount = Object.values(electronResults).filter(r => !r?.ok).length;
+  const enabledCount = countEnabled(settings);
+
+  // ── Render ─────────────────────────────────────────────────────────────────────
 
   return (
     <AppLayout>
-      <div className="space-y-6" data-reveal>
+      <div className="space-y-5" data-reveal>
+
+        {/* Header */}
         <PageHeader
           icon={Moon}
           title="Focus Mode"
-          subtitle={<>Zero distractions, maximum stability. One toggle, no micromanagement.<span className="text-yellow-500 ml-2 text-sm font-medium">Actions are simulated for this prototype.</span></>}
-          actions={
-            <Button
-              size="lg"
-              onClick={toggleFocus}
-              className={cn(
-                "min-w-40 transition-all",
-                isActive
-                  ? "bg-green-500 hover:bg-green-600 text-white"
-                  : "bg-primary hover:bg-primary/90"
-              )}
-              data-testid="button-toggle-focus"
-            >
-              {isActive ? (
-                <><Pause className="size-5 mr-2" />Deactivate</>
-              ) : (
-                <><Play className="size-5 mr-2" />Activate Focus</>
-              )}
-            </Button>
-          }
+          subtitle="One decisive action. Backend-driven system state changes — all reversible."
         />
 
-        {/* Live resource context hint */}
+        {/* Live telemetry */}
         {liveTel && (
           <motion.div
             className="flex items-center gap-4 px-3 py-2 rounded-lg border border-white/8 bg-white/3 text-[11px] text-muted-foreground"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
           >
-            <span>CPU <span className={liveTel.cpu.load > 75 ? "text-red-400 font-mono" : "text-emerald-400 font-mono"}>{liveTel.cpu.load.toFixed(0)}%</span></span>
+            <span>CPU <span className={cn("font-mono", liveTel.cpu.load > 75 ? "text-red-400" : "text-emerald-400")}>
+              {liveTel.cpu.load.toFixed(0)}%
+            </span></span>
             <span className="w-px h-3 bg-white/15" />
-            <span>RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400 font-mono" : "text-cyan-400 font-mono"}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
+            <span>RAM <span className={cn("font-mono", liveTel.ram.usedPercent > 80 ? "text-red-400" : "text-cyan-400")}>
+              {liveTel.ram.usedPercent.toFixed(0)}%
+            </span></span>
             <span className="w-px h-3 bg-white/15" />
             <span>{liveTel.processes.total} processes</span>
-            {isActive && <span className="ml-auto text-emerald-400 font-medium">Focus active — overhead reduced</span>}
+            {isActive && <span className="ml-2 text-emerald-400 font-medium flex items-center gap-1">
+              <div className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />Focus active
+            </span>}
+            {!isElectron() && (
+              <span className="ml-auto text-amber-500/70 flex items-center gap-1">
+                <AlertCircle className="size-3" />Browser preview — real actions require Electron app
+              </span>
+            )}
           </motion.div>
         )}
 
-        {isActive && (
-          <Card className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 border-green-500/30">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="size-16 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <currentProfile.icon className="size-8 text-green-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                      <CheckCircle className="size-5 text-green-400" />
-                      Focus Mode Active
-                    </h2>
-                    <p className="text-muted-foreground">{currentProfile.name} · {currentProfile.description}</p>
-                  </div>
-                </div>
-                <div className="text-center">
-                  <p className="text-4xl font-bold text-white font-mono">
-                    {formatTime(timeRemaining)}
-                  </p>
-                  <p className="text-sm text-muted-foreground">remaining</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-green-500/20">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-green-400">{stats.paused}</p>
-                  <p className="text-xs text-muted-foreground">Apps Paused</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-blue-400">-{stats.cpuSaved}%</p>
-                  <p className="text-xs text-muted-foreground">CPU Saved</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-yellow-400">+{stats.ramFreed}MB</p>
-                  <p className="text-xs text-muted-foreground">RAM Freed</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        {/* ACTIVE STATE — big status card */}
+        <AnimatePresence>
+          {isActive && (
+            <motion.div
+              key="active-card"
+              initial={{ opacity: 0, scale: 0.97, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.97, y: -10 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Card className={cn(
+                "border-2 overflow-hidden",
+                activation === "partial" ? "border-amber-500/50 bg-amber-500/8" : "border-emerald-500/50 bg-emerald-500/8"
+              )}>
+                <CardContent className="p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      {/* Pulsing ring */}
+                      <div className="relative size-14 shrink-0">
+                        <div className={cn(
+                          "absolute inset-0 rounded-full animate-ping opacity-20",
+                          activation === "partial" ? "bg-amber-400" : "bg-emerald-400"
+                        )} style={{ animationDuration: "2s" }} />
+                        <div className={cn(
+                          "relative size-14 rounded-full flex items-center justify-center",
+                          activation === "partial" ? "bg-amber-500/25" : "bg-emerald-500/25"
+                        )}>
+                          <currentProfile.icon className={cn(
+                            "size-7",
+                            activation === "partial" ? "text-amber-400" : "text-emerald-400"
+                          )} />
+                        </div>
+                      </div>
 
-        <div>
-          <h2 className="text-lg font-semibold text-white mb-4">Focus Profiles</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {FOCUS_PROFILES.map((profile, i) => {
-              const Icon = profile.icon;
-              const isSelected = activeProfile === profile.id;
-              return (
-                <motion.div
-                  key={profile.id}
-                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.45, delay: 0.1 + i * 0.07, ease: [0.22, 1, 0.36, 1] }}
-                >
-                <Card 
-                  className={cn(
-                    "cursor-pointer transition-all hover:scale-[1.02]",
-                    isSelected 
-                      ? `bg-gradient-to-br ${profile.color}` 
-                      : "bg-card/50 border-border/50 hover:border-primary/50"
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <h2 className="text-lg font-bold text-white">
+                            {activation === "partial" ? "Focus Mode — Partial" : "Focus Mode Active"}
+                          </h2>
+                          <Badge className={cn(
+                            "text-[10px] h-4 px-1.5",
+                            activation === "partial"
+                              ? "bg-amber-500/20 border-amber-500/30 text-amber-400"
+                              : "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                          )}>
+                            {isElectron()
+                              ? activation === "partial" ? `${appliedCount}/${enabledCount} applied` : `${appliedCount} applied`
+                              : "Logged only"}
+                          </Badge>
+                        </div>
+                        <p className={cn("text-sm", currentProfile.accent)}>{currentProfile.name} · {currentProfile.description}</p>
+                        {!isElectron() && (
+                          <p className="text-[11px] text-amber-500/70 mt-1 flex items-center gap-1">
+                            <AlertCircle className="size-3" />Actions logged only — real changes require Windows Electron app
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Timer + deactivate */}
+                    <div className="flex flex-col items-end gap-3 shrink-0">
+                      {timeRemaining > 0 && (
+                        <div className="text-right">
+                          <div className="text-3xl font-bold text-white font-mono">{formatTime(timeRemaining)}</div>
+                          <div className="text-[10px] text-muted-foreground">remaining</div>
+                        </div>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleDeactivate}
+                        disabled={isProcessing}
+                        className={cn(
+                          "gap-2 border-white/20",
+                          activation === "partial"
+                            ? "hover:bg-amber-500/15 hover:border-amber-500/30"
+                            : "hover:bg-red-500/15 hover:border-red-500/30 hover:text-red-400"
+                        )}
+                        data-testid="button-deactivate"
+                      >
+                        {isProcessing ? <RefreshCw className="size-3.5 animate-spin" /> : <Pause className="size-3.5" />}
+                        {isProcessing ? "Reverting…" : "Deactivate"}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Action results grid */}
+                  {isElectron() && Object.keys(electronResults).length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-white/8 grid grid-cols-3 gap-2">
+                      {TOGGLE_DEFS.filter(t => settings[t.key]).map(t => {
+                        const r = electronResults[t.key];
+                        const Icon = t.icon;
+                        const ok = r?.ok !== false;
+                        return (
+                          <div key={t.key} className={cn(
+                            "flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs",
+                            ok ? "bg-emerald-500/8 border-emerald-500/15" : "bg-red-500/8 border-red-500/15"
+                          )}>
+                            <Icon className={cn("size-3.5 shrink-0", ok ? "text-emerald-400" : "text-red-400")} />
+                            <span className="text-white truncate">{t.label}</span>
+                            {ok
+                              ? <CheckCircle className="size-3 text-emerald-400 shrink-0 ml-auto" />
+                              : <XCircle className="size-3 text-red-400 shrink-0 ml-auto" />}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
-                  onClick={() => setActiveProfile(profile.id)}
-                  data-testid={`profile-${profile.id}`}
-                >
+
+                  {/* Verification */}
+                  {verification?.verified && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {verification.verified.powerHighPerf !== null && (
+                        <Badge variant="outline" className={cn("text-[9px]",
+                          verification.verified.powerHighPerf
+                            ? "text-emerald-400 border-emerald-500/20"
+                            : "text-amber-400 border-amber-500/20"
+                        )}>
+                          {verification.verified.powerHighPerf ? "⚡ High Perf confirmed" : "⚡ Power plan not verified"}
+                        </Badge>
+                      )}
+                      {verification.verified.notificationsOff !== null && (
+                        <Badge variant="outline" className={cn("text-[9px]",
+                          verification.verified.notificationsOff
+                            ? "text-emerald-400 border-emerald-500/20"
+                            : "text-muted-foreground border-white/10"
+                        )}>
+                          {verification.verified.notificationsOff ? "🔕 Notifs confirmed off" : "🔕 Notifs not verified"}
+                        </Badge>
+                      )}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Main config layout — only shown when inactive */}
+        <AnimatePresence>
+          {!isActive && (
+            <motion.div
+              key="config"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="grid grid-cols-12 gap-4"
+            >
+              {/* Left: Profile selection (4 cols) */}
+              <div className="col-span-4 space-y-3">
+                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Profile</div>
+                {FOCUS_PROFILES.map(profile => {
+                  const Icon = profile.icon;
+                  const isSelected = profileId === profile.id;
+                  return (
+                    <motion.div
+                      key={profile.id}
+                      whileHover={prefersReducedMotion ? {} : { x: 2 }}
+                      whileTap={prefersReducedMotion ? {} : { scale: 0.99 }}
+                    >
+                      <button
+                        className={cn(
+                          "w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-150",
+                          isSelected
+                            ? cn("border-2", profile.border, profile.bg)
+                            : "border-border/40 bg-card/40 hover:border-white/15 hover:bg-white/4"
+                        )}
+                        onClick={() => selectProfile(profile.id)}
+                        data-testid={`profile-${profile.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={cn(
+                            "size-9 rounded-lg flex items-center justify-center shrink-0",
+                            isSelected ? profile.bg : "bg-white/6"
+                          )}>
+                            <Icon className={cn("size-4.5", isSelected ? profile.accent : "text-muted-foreground")} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={cn("font-semibold text-sm", isSelected ? "text-white" : "text-muted-foreground")}>
+                                {profile.name}
+                              </span>
+                              {isSelected && (
+                                <div className={cn("size-1.5 rounded-full shrink-0", profile.accent.replace("text-", "bg-"))} />
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">{profile.description}</p>
+                          </div>
+                          <div className={cn("text-[10px] font-mono", isSelected ? profile.accent : "text-muted-foreground/50")}>
+                            {countEnabled(profile.settings)}/{TOGGLE_DEFS.length}
+                          </div>
+                        </div>
+                      </button>
+                    </motion.div>
+                  );
+                })}
+              </div>
+
+              {/* Right: Settings + Controls (8 cols) */}
+              <div className="col-span-8 space-y-3">
+
+                {/* Timer */}
+                <Card className="border-border/40 bg-card/40">
                   <CardContent className="p-4">
-                    <Icon className={cn("size-8 mb-3", isSelected ? "text-white" : "text-muted-foreground")} />
-                    <h3 className="font-semibold text-white">{profile.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{profile.description}</p>
-                    {isSelected && (
-                      <Badge className="mt-3 bg-white/20 text-white">Selected</Badge>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <Timer className="size-4 text-muted-foreground" />Session Duration
+                      </div>
+                      <div className="flex gap-1.5">
+                        {[30, 60, 120].map(m => (
+                          <button
+                            key={m}
+                            onClick={() => setDurationMinutes(m)}
+                            data-testid={`duration-${m}`}
+                            className={cn(
+                              "px-2.5 py-1 rounded text-xs border transition-all",
+                              durationMinutes === m
+                                ? "bg-primary/15 text-primary border-primary/30"
+                                : "bg-white/4 border-white/10 text-muted-foreground hover:text-white hover:bg-white/8"
+                            )}
+                          >
+                            {m >= 60 ? `${m / 60}h` : `${m}m`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Slider
+                        value={[durationMinutes]}
+                        onValueChange={([v]) => setDurationMinutes(v)}
+                        min={15} max={240} step={15}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-[10px] text-muted-foreground">
+                        <span>15m</span>
+                        <span className="text-white font-medium">
+                          {Math.floor(durationMinutes / 60) > 0 ? `${Math.floor(durationMinutes / 60)}h ` : ""}
+                          {durationMinutes % 60 > 0 ? `${durationMinutes % 60}m` : ""}
+                        </span>
+                        <span>4h</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Toggle list */}
+                <Card className="border-border/40 bg-card/40">
+                  <CardContent className="p-4">
+                    <button
+                      className="flex items-center justify-between w-full mb-3"
+                      onClick={() => setExpandedToggles(v => !v)}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                        <Settings className="size-4 text-muted-foreground" />
+                        Actions ({enabledCount}/{TOGGLE_DEFS.length} enabled)
+                      </div>
+                      {expandedToggles ? <ChevronUp className="size-4 text-muted-foreground" /> : <ChevronDown className="size-4 text-muted-foreground" />}
+                    </button>
+
+                    <div className="space-y-1.5">
+                      {TOGGLE_DEFS.map(t => {
+                        const Icon = t.icon;
+                        const enabled = settings[t.key];
+                        return (
+                          <div
+                            key={t.key}
+                            data-testid={`toggle-${t.key}`}
+                            className={cn(
+                              "flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all",
+                              enabled
+                                ? "bg-primary/8 border-primary/20"
+                                : "bg-white/2 border-white/6"
+                            )}
+                          >
+                            <Icon className={cn("size-4 shrink-0", enabled ? "text-primary" : "text-muted-foreground")} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs font-medium text-white">{t.label}</div>
+                              {expandedToggles && (
+                                <p className="text-[10px] text-muted-foreground mt-0.5">{t.description}</p>
+                              )}
+                              {expandedToggles && (
+                                <p className="text-[9px] text-muted-foreground/40 mt-0.5">{t.mechanism}</p>
+                              )}
+                            </div>
+                            <Switch
+                              checked={enabled}
+                              onCheckedChange={() => setSettings(prev => ({ ...prev, [t.key]: !prev[t.key] }))}
+                              data-testid={`switch-${t.key}`}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Triggers */}
+                <Card className="border-border/40 bg-card/40">
+                  <CardContent className="p-4">
+                    <div className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                      <Zap className="size-4 text-muted-foreground" />Auto Triggers
+                      {!isElectron() && <Badge variant="outline" className="text-[9px] text-amber-400 border-amber-500/20">Electron only</Badge>}
+                    </div>
+                    <div className="space-y-1.5">
+                      {TRIGGER_DEFS.map(trigger => (
+                        <div
+                          key={trigger.id}
+                          data-testid={`trigger-${trigger.id}`}
+                          className="flex items-center justify-between px-3 py-2 rounded-lg hover:bg-white/3 transition-colors"
+                        >
+                          <div>
+                            <p className="text-xs font-medium text-white">{trigger.name}</p>
+                            <p className="text-[10px] text-muted-foreground">{trigger.description}</p>
+                          </div>
+                          <Switch
+                            checked={triggerEnabled[trigger.id] ?? false}
+                            onCheckedChange={() => setTriggerEnabled(prev => ({
+                              ...prev, [trigger.id]: !prev[trigger.id]
+                            }))}
+                            disabled={!isElectron()}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    {triggerFired && (
+                      <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary flex items-center gap-2">
+                        <Zap className="size-3" />
+                        Last trigger: {TRIGGER_DEFS.find(t => t.id === triggerFired)?.name ?? triggerFired}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
-                </motion.div>
-              );
-            })}
-          </div>
-        </div>
 
-        <AnimatedSection index={2}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Timer className="size-5" />
-                Session Duration
-              </CardTitle>
-              <CardDescription>How long should Focus Mode stay active?</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex gap-2 mb-4">
-                {TIME_PRESETS.map((preset) => (
+                {/* Big activate button */}
+                <div className="flex gap-3">
                   <Button
-                    key={preset.label}
-                    variant={sessionDuration === preset.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => preset.value > 0 && setSessionDuration(preset.value)}
-                    data-testid={`button-duration-${preset.value}`}
+                    size="lg"
+                    onClick={() => handleActivate("manual")}
+                    disabled={isProcessing || enabledCount === 0}
+                    className={cn(
+                      "flex-1 h-12 text-base font-semibold gap-2.5 transition-all duration-200",
+                      isProcessing ? "opacity-60" : "shadow-lg shadow-primary/20 hover:shadow-primary/30"
+                    )}
+                    data-testid="button-activate"
                   >
-                    {preset.label}
+                    {isProcessing ? (
+                      <><RefreshCw className="size-5 animate-spin" />Activating…</>
+                    ) : (
+                      <><Play className="size-5" />Activate Focus Mode</>
+                    )}
                   </Button>
-                ))}
-              </div>
-              <div className="space-y-2">
-                <Slider
-                  value={[sessionDuration]}
-                  onValueChange={([v]) => setSessionDuration(v)}
-                  min={15}
-                  max={240}
-                  step={15}
-                  className="w-full"
-                />
-                <p className="text-sm text-muted-foreground text-center">
-                  {Math.floor(sessionDuration / 60)}h {sessionDuration % 60}m
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card/50 border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Zap className="size-5" />
-                Auto Triggers
-              </CardTitle>
-              <CardDescription>Automatically activate Focus Mode</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {triggers.map((trigger) => (
-                  <div 
-                    key={trigger.id}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/20"
+                  <button
+                    onClick={() => setPhase("history")}
+                    className="px-4 rounded-xl border border-white/10 bg-white/3 hover:bg-white/6 text-muted-foreground hover:text-white transition-colors"
+                    data-testid="button-history"
                   >
-                    <div>
-                      <p className="font-medium text-white text-sm">{trigger.name}</p>
-                      <p className="text-xs text-muted-foreground">{trigger.description}</p>
+                    <History className="size-4" />
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* History view */}
+        <AnimatePresence>
+          {phase === "history" && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+            >
+              <Card className="border-border/40">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <History className="size-4 text-muted-foreground" />Session History
+                    </CardTitle>
+                    <button onClick={() => setPhase("config")} className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5">← Back</button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0 space-y-1.5">
+                  {history.length === 0 ? (
+                    <p className="text-sm text-muted-foreground py-6 text-center">No sessions yet.</p>
+                  ) : history.map(entry => (
+                    <div key={entry.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/3 border border-white/6 text-xs">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5",
+                          entry.status === "active" || entry.status === "reverted"
+                            ? "text-emerald-400 border-emerald-500/20"
+                            : "text-amber-400 border-amber-500/20"
+                        )}>
+                          {FOCUS_PROFILES.find(p => p.id === entry.profile_id)?.name ?? entry.profile_id}
+                        </Badge>
+                        <span className="text-muted-foreground capitalize">{entry.status}</span>
+                        {entry.trigger_source !== "manual" && (
+                          <span className="text-muted-foreground/60">via {entry.trigger_source.replace("trigger:", "")}</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {entry.duration_seconds && (
+                          <span className="font-mono text-muted-foreground">{fmtDuration(entry.duration_seconds)}</span>
+                        )}
+                        <span className="text-muted-foreground/50">{new Date(entry.activated_at).toLocaleDateString()}</span>
+                      </div>
                     </div>
-                    <Switch 
-                      checked={trigger.enabled}
-                      onCheckedChange={() => toggleTrigger(trigger.id)}
-                      data-testid={`trigger-${trigger.id}`}
-                    />
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  ))}
+                </CardContent>
+              </Card>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        <Card className="bg-card/50 border-border/50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="size-5" />
-              Focus Settings
-            </CardTitle>
-            <CardDescription>Customize what Focus Mode controls</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-colors",
-                !customSettings.notifications ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-border/50"
-              )}>
-                <div className="flex items-center gap-3">
-                  {customSettings.notifications ? <Bell className="size-5 text-muted-foreground" /> : <BellOff className="size-5 text-green-400" />}
-                  <div>
-                    <p className="font-medium text-white">Notifications</p>
-                    <p className="text-xs text-muted-foreground">Block all alerts</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={!customSettings.notifications}
-                  onCheckedChange={() => updateCustomSetting("notifications")}
-                  data-testid="setting-notifications"
-                />
-              </div>
-
-              <div className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-colors",
-                !customSettings.overlays ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-border/50"
-              )}>
-                <div className="flex items-center gap-3">
-                  <Monitor className="size-5" />
-                  <div>
-                    <p className="font-medium text-white">Overlays</p>
-                    <p className="text-xs text-muted-foreground">Discord, Steam, etc.</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={!customSettings.overlays}
-                  onCheckedChange={() => updateCustomSetting("overlays")}
-                  data-testid="setting-overlays"
-                />
-              </div>
-
-              <div className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-colors",
-                !customSettings.backgroundApps ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-border/50"
-              )}>
-                <div className="flex items-center gap-3">
-                  <Cpu className="size-5" />
-                  <div>
-                    <p className="font-medium text-white">Background Apps</p>
-                    <p className="text-xs text-muted-foreground">Pause non-essential</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={!customSettings.backgroundApps}
-                  onCheckedChange={() => updateCustomSetting("backgroundApps")}
-                  data-testid="setting-background"
-                />
-              </div>
-
-              <div className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-colors",
-                customSettings.networkPriority ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-border/50"
-              )}>
-                <div className="flex items-center gap-3">
-                  <Wifi className="size-5" />
-                  <div>
-                    <p className="font-medium text-white">Network Priority</p>
-                    <p className="text-xs text-muted-foreground">Prioritize game traffic</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={customSettings.networkPriority}
-                  onCheckedChange={() => updateCustomSetting("networkPriority")}
-                  data-testid="setting-network"
-                />
-              </div>
-
-              <div className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-colors",
-                customSettings.inputLockdown ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-border/50"
-              )}>
-                <div className="flex items-center gap-3">
-                  <Keyboard className="size-5" />
-                  <div>
-                    <p className="font-medium text-white">Input Lockdown</p>
-                    <p className="text-xs text-muted-foreground">Block Win key, Alt-Tab</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={customSettings.inputLockdown}
-                  onCheckedChange={() => updateCustomSetting("inputLockdown")}
-                  data-testid="setting-input"
-                />
-              </div>
-
-              <div className={cn(
-                "flex items-center justify-between p-4 rounded-lg border transition-colors",
-                customSettings.powerLock ? "bg-green-500/10 border-green-500/30" : "bg-muted/20 border-border/50"
-              )}>
-                <div className="flex items-center gap-3">
-                  <Power className="size-5" />
-                  <div>
-                    <p className="font-medium text-white">Power Lock</p>
-                    <p className="text-xs text-muted-foreground">Lock to performance</p>
-                  </div>
-                </div>
-                <Switch 
-                  checked={customSettings.powerLock}
-                  onCheckedChange={() => updateCustomSetting("powerLock")}
-                  data-testid="setting-power"
-                />
+        {/* Safety strip */}
+        <AnimatedSection index={4}>
+          <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/3 text-xs">
+            <Shield className="size-4 text-emerald-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <span className="font-semibold text-white">Safety guarantees</span>
+              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
+                <span>No critical system processes killed</span>
+                <span className="text-white/25">·</span>
+                <span>All registry changes fully reverted</span>
+                <span className="text-white/25">·</span>
+                <span>Power plan restored on exit</span>
+                <span className="text-white/25">·</span>
+                <span>
+                  <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[10px] font-mono">Ctrl+Shift+Esc</kbd>
+                  {" "}always works even with input lockdown
+                </span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-yellow-500/10 border-yellow-500/30">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <Shield className="size-5 text-yellow-400" />
-              <div>
-                <p className="font-medium text-white">Emergency Exit</p>
-                <p className="text-sm text-muted-foreground">
-                  Press <kbd className="px-2 py-1 bg-muted rounded text-xs mx-1">Ctrl + Shift + Esc</kbd> 
-                  to immediately exit Focus Mode at any time.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
         </AnimatedSection>
+
       </div>
     </AppLayout>
   );
