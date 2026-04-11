@@ -1,0 +1,165 @@
+TASK
+
+Redesign the sign-out transition so it feels fluid, premium, and cinematic instead of instantly hard-cutting to the login screen.
+
+PROBLEM
+
+When clicking the sign out button, the app immediately cuts to the login screen.
+
+Current behavior feels abrupt and cheap:
+
+* no transition
+* no smooth state change
+* no visual continuity
+* app just instantly disappears into login
+
+This breaks the premium feel of the app.
+
+GOAL
+
+Make sign-out transition smooth and intentional.
+
+Desired result:
+
+* click sign out
+* app softly blurs/dims/fades
+* transition flows nicely into the login screen
+* login screen fades/blurs in smoothly
+* whole process feels premium and polished
+
+TARGET TIMING
+
+Total transition should feel smooth and controlled:
+
+* target around 2.0 to 3.0 seconds total
+* around 1.2 to 1.5 seconds for app fade/blur out
+* smooth handoff into login screen
+* final login settle animation should feel clean, not abrupt
+
+IMPORTANT
+
+Do NOT fake this by simply delaying sign-out with a timeout.
+Do NOT leave the app interactive while fading out.
+Do NOT hard-cut auth state before the visual transition is ready.
+
+Fix the transition architecture properly.
+
+IMPLEMENTATION
+
+1. ADD CONTROLLED SIGN-OUT TRANSITION STATE
+
+Create a transition state such as:
+
+* isSigningOut
+* signOutTransitionStage
+
+Suggested stages:
+
+* idle
+* signout_requested
+* app_fading_out
+* auth_switch
+* login_fading_in
+* complete
+
+2. PREVENT IMMEDIATE HARD UNMOUNT
+
+Right now sign-out likely invalidates auth immediately and causes the full app tree to switch at once.
+
+Instead:
+
+* start visual sign-out transition first
+* temporarily lock interactions
+* fade/blur app shell out
+* switch auth/login view at the right point
+* then animate login screen in
+
+3. APP EXIT ANIMATION
+
+Animate the signed-in app UI out as one coordinated scene:
+
+* soften brightness slightly
+* apply subtle blur
+* fade content smoothly
+* reduce motion/contrast slightly
+* maintain visual stability, no snapping
+
+This should affect:
+
+* sidebar
+* main content
+* top-level app shell
+
+The app should feel like it is gracefully closing its active session.
+
+4. LOGIN SCREEN ENTRY
+
+Bring the login screen in smoothly:
+
+* fade in
+* slight blur-to-sharp settle
+* gentle scale/position settle if appropriate
+* no sudden pop
+
+The login panel should feel like it belongs to the same visual world as the app, not a separate hard cut.
+
+5. NO WHITE FLASH / NO BLACK FLASH / NO EMPTY FRAME
+
+Ensure there is:
+
+* no intermediate blank frame
+* no raw background flash
+* no hard auth repaint visible
+* no jump between shells
+
+6. BUTTON FEEDBACK
+
+When clicking sign out:
+
+* button should acknowledge click immediately
+* show non-interactive transition state
+* prevent double click or repeated sign-out triggers
+
+7. KEEP IT SMOOTH IN ELECTRON
+
+Use transform/opacity/filter-based transitions where possible.
+Avoid layout-shifting animation.
+Avoid remount flicker.
+
+8. TEST BOTH STATES
+
+Test:
+
+* sign out from dashboard
+* sign out from other pages
+* sign out while modal/tour is not active
+* sign out while app has loaded telemetry
+* confirm no glitches in packaged Electron app
+
+DESIGN DIRECTION
+
+The transition should feel:
+
+* premium
+* fluid
+* polished
+* cinematic
+* controlled
+
+Not:
+
+* slow
+* flashy
+* overdone
+* fake
+
+FINAL OUTPUT REQUIRED
+
+Return:
+
+* files changed
+* transition state logic used
+* exact sign-out animation flow
+* timing breakdown
+* confirmation there is no instant hard cut anymore
+* confirmation it was tested in the packaged app

@@ -234,9 +234,9 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
 
   return (
     <>
-      <motion.div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm pointer-events-auto" onClick={onClose} variants={modalBackdrop} initial="initial" animate="animate" exit="exit" />
+      <motion.div className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[6px] pointer-events-auto" onClick={onClose} variants={modalBackdrop} initial="initial" animate="animate" exit="exit" />
       <motion.div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md pointer-events-auto" variants={modalContent} initial="initial" animate="animate" exit="exit">
-        <div className="relative bg-black/90 border border-white/10 rounded-lg p-6 shadow-2xl backdrop-blur-xl">
+        <div className="relative bg-gradient-to-br from-white/[0.18] via-white/[0.12] to-white/[0.08] backdrop-blur-2xl border border-white/[0.22] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.10),inset_0_1px_0_rgba(255,255,255,0.22)]">
           <motion.button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
             className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity cursor-pointer"
             data-testid="button-close-info-modal"

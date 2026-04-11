@@ -355,7 +355,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
       {tweak && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm pointer-events-auto"
+            className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[6px] pointer-events-auto"
             onClick={onClose}
             data-testid="modal-backdrop"
             variants={modalBackdrop}
@@ -373,7 +373,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
             animate="animate"
             exit="exit"
           >
-            <div className="relative bg-gradient-to-br from-white/[0.08] via-white/[0.05] to-white/[0.03] backdrop-blur-2xl border border-white/[0.10] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.6),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.10)] max-h-[80vh] overflow-y-auto">
+            <div className="relative bg-gradient-to-br from-white/[0.18] via-white/[0.12] to-white/[0.08] backdrop-blur-2xl border border-white/[0.22] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.10),inset_0_1px_0_rgba(255,255,255,0.22)] max-h-[80vh] overflow-y-auto">
               <motion.button
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
