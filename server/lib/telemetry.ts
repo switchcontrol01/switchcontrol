@@ -12,6 +12,13 @@ export interface GpuTelemetry {
   name: string | null;
 }
 
+export interface DiskTelemetry {
+  activeTimePct: number | null;  // ms_sec from si.disksIO — 0-100 (% busy)
+  readKBps: number | null;       // rIO_sec converted to KB/s
+  writeKBps: number | null;      // wIO_sec converted to KB/s
+  available: boolean;
+}
+
 export interface TelemetrySnapshot {
   ts: number;
   status: "ready" | "loading";
@@ -35,6 +42,7 @@ export interface TelemetrySnapshot {
     gpu: number | null;
   };
   gpu: GpuTelemetry;
+  disk: DiskTelemetry;
   processes: {
     running: number;
     total: number;
@@ -47,6 +55,12 @@ export interface TelemetrySnapshot {
 let lastLoad = 0;
 let lastNetStats: { rx: number; tx: number; ts: number } | null = null;
 const LOAD_HISTORY: number[] = [];
+
+// Disk I/O: track whether it has ever returned valid data
+let diskAvailableConfirmed = false;
+let diskUnavailableLogged = false;
+// Previous disk snapshot for computing per-second deltas ourselves
+let lastDiskSnapshot: { rIO: number; wIO: number; ms: number; ts: number } | null = null;
 
 // Module-level cache — populated immediately at startup
 let cachedSnapshot: TelemetrySnapshot | null = null;
@@ -105,12 +119,13 @@ async function pollGpu(): Promise<GpuTelemetry> {
 // ── Main snapshot ────────────────────────────────────────────────────────────
 
 export async function getSnapshot(): Promise<TelemetrySnapshot> {
-  const [load, mem, nets, temps, procs] = await Promise.allSettled([
+  const [load, mem, nets, temps, procs, diskIo] = await Promise.allSettled([
     si.currentLoad(),
     si.mem(),
     si.networkStats(),
     si.cpuTemperature(),
     si.processes(),
+    si.disksIO(),
   ]);
 
   const cpuLoad =
@@ -160,6 +175,84 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
   const gpu = await pollGpu();
   const gpuTemp = gpu.tempC ?? gpuTempFallback;
 
+  // Disk I/O — si.disksIO() on Linux reads /proc/diskstats
+  // systeminformation's built-in *_sec fields are null when there's no prior internal snapshot
+  // (first call) or when the container kernel doesn't expose them. We compute deltas ourselves
+  // from the cumulative rIO/wIO (sectors) and ms (ms busy) fields.
+  //
+  // Linux /proc/diskstats: sectors are 512 bytes each.
+  // ms = cumulative ms the disk was active → delta ms / delta_t_ms * 100 = busy %
+  // rIO = cumulative sectors read → delta * 512 / 1024 / dt_s = read KB/s
+  let disk: DiskTelemetry = { activeTimePct: null, readKBps: null, writeKBps: null, available: false };
+  if (diskIo.status === "fulfilled" && diskIo.value) {
+    const d = diskIo.value as any;
+    const now = Date.now();
+
+    const rIO: number | null = typeof d.rIO === "number" ? d.rIO : null;
+    const wIO: number | null = typeof d.wIO === "number" ? d.wIO : null;
+    const msTotal: number | null = typeof d.ms === "number" ? d.ms : null;
+
+    // Try systeminformation's built-in per-second rates first
+    const rSec: number | null = d.rIO_sec ?? null;
+    const wSec: number | null = d.wIO_sec ?? null;
+    const msSec: number | null = d.ms_sec ?? null;
+
+    if (lastDiskSnapshot && rIO != null && wIO != null) {
+      const dt_s = (now - lastDiskSnapshot.ts) / 1000;
+      if (dt_s > 0.1) {
+        const deltaR = Math.max(0, rIO - lastDiskSnapshot.rIO);
+        const deltaW = Math.max(0, wIO - lastDiskSnapshot.wIO);
+        // sectors/s → KB/s (1 sector = 512 bytes = 0.5 KB)
+        disk.readKBps = parseFloat((deltaR / dt_s / 2).toFixed(1));
+        disk.writeKBps = parseFloat((deltaW / dt_s / 2).toFixed(1));
+
+        // Active time %: only from real ms-busy metrics — never estimated from throughput
+        // (throughput normalization is arbitrary and misleading)
+        if (msSec != null && msSec >= 0) {
+          // ms/s ÷ 10 = % busy
+          disk.activeTimePct = parseFloat(Math.min(msSec / 10, 100).toFixed(1));
+        } else if (msTotal != null && msTotal > 0 && lastDiskSnapshot.ms >= 0) {
+          // Only use ms delta if the kernel actually reports ms (> 0 confirms it works)
+          const deltaMs = Math.max(0, msTotal - lastDiskSnapshot.ms);
+          disk.activeTimePct = parseFloat(Math.min((deltaMs / (dt_s * 1000)) * 100, 100).toFixed(1));
+        }
+        // If no ms data: activeTimePct stays null — honest, not estimated
+
+        // Mark available if we have at least throughput data
+        disk.available = disk.readKBps != null || disk.writeKBps != null;
+        if (!diskAvailableConfirmed) {
+          diskAvailableConfirmed = true;
+          console.log(`[Telemetry] Disk confirmed: activeTime=${disk.activeTimePct}% R=${disk.readKBps}KB/s W=${disk.writeKBps}KB/s`);
+        }
+      }
+    } else if (rSec != null && wSec != null) {
+      // systeminformation provided its own delta (some environments)
+      disk.readKBps = parseFloat((rSec / 2).toFixed(1));
+      disk.writeKBps = parseFloat((wSec / 2).toFixed(1));
+      disk.activeTimePct = msSec != null
+        ? parseFloat(Math.min(msSec / 10, 100).toFixed(1))
+        : parseFloat(Math.min((rSec + wSec) / 50, 100).toFixed(1));
+      disk.available = true;
+      if (!diskAvailableConfirmed) {
+        diskAvailableConfirmed = true;
+        console.log(`[Telemetry] Disk confirmed (si-native): activeTime=${disk.activeTimePct}% R=${disk.readKBps}KB/s W=${disk.writeKBps}KB/s`);
+      }
+    }
+
+    // Store snapshot for next delta computation
+    if (rIO != null && wIO != null) {
+      lastDiskSnapshot = { rIO, wIO, ms: msTotal ?? 0, ts: now };
+    }
+
+    if (!disk.available && !diskUnavailableLogged && lastDiskSnapshot) {
+      diskUnavailableLogged = true;
+      console.log("[Telemetry] disksIO: no usable fields on this platform. Raw keys:", Object.keys(d).join(","));
+    }
+  } else if (diskIo.status === "rejected" && !diskUnavailableLogged) {
+    diskUnavailableLogged = true;
+    console.log("[Telemetry] disksIO failed:", (diskIo as PromiseRejectedResult).reason?.message ?? "unknown");
+  }
+
   const snapshot: TelemetrySnapshot = {
     ts: Date.now(),
     status: "ready",
@@ -168,6 +261,7 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
     network: { rx_sec: Math.round(rx_sec), tx_sec: Math.round(tx_sec), latency_ms: 0 },
     temps: { cpu: cpuTemp, gpu: gpuTemp },
     gpu,
+    disk,
     processes: { running: procVal?.running ?? 0, total: procVal?.all ?? 0 },
     load_trend: trend,
   };
@@ -189,6 +283,7 @@ export function getCachedSnapshot(): TelemetrySnapshot {
     network: { rx_sec: 0, tx_sec: 0, latency_ms: 0 },
     temps: { cpu: null, gpu: null },
     gpu: { load: null, vramUsedMb: null, vramTotalMb: null, vramPercent: null, tempC: null, clockMhz: null, name: null },
+    disk: { activeTimePct: null, readKBps: null, writeKBps: null, available: false },
     processes: { running: 0, total: 0 },
     load_trend: "stable",
   };

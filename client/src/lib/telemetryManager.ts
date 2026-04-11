@@ -98,6 +98,11 @@ function connect() {
             const ramVal = data.ram.usedPercent;
             const gpuVal = data.gpu?.load ?? null;
             const vramVal = data.gpu?.vramPercent ?? null;
+            // Disk — only use if server confirmed it is available
+            const diskActiveTime = (data.disk?.available && data.disk?.activeTimePct != null)
+              ? data.disk.activeTimePct : null;
+            const diskReadKBps = data.disk?.readKBps ?? null;
+            const diskWriteKBps = data.disk?.writeKBps ?? null;
 
             const cpuSpike = detectSpike(h.cpu, cpuVal);
             const ramSpike = detectSpike(h.ram, ramVal);
@@ -122,7 +127,10 @@ function connect() {
               gpuVal,
               vramVal,
               data.network.rx_sec / 1024,
-              data.network.tx_sec / 1024
+              data.network.tx_sec / 1024,
+              diskActiveTime,
+              diskReadKBps,
+              diskWriteKBps
             );
           } catch {}
         };
@@ -176,7 +184,11 @@ export const telemetryManager = {
     // Clear history
     st._appendHistory; // keep reference but reset via store
     useTelemetryStore.setState({
-      history: { cpu: [], ram: [], gpu: [], vram: [], rxKbps: [], txKbps: [] },
+      history: {
+        cpu: [], ram: [], gpu: [], vram: [],
+        rxKbps: [], txKbps: [],
+        diskActiveTime: [], diskReadKBps: [], diskWriteKBps: [],
+      },
       telemetry: null,
     });
 

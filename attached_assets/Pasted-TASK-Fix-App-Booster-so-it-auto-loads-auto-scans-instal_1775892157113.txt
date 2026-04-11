@@ -1,0 +1,161 @@
+TASK
+
+Fix App Booster so it auto-loads, auto-scans installed games, hydrates the game library correctly, and stops failing with the generic "Failed to load game library" state.
+
+PROBLEM
+
+App Booster is still not working.
+
+Current broken behavior:
+
+- supported games = 0
+- detected installs = 0
+- profiles active = 0
+- game library says no games found
+- large error card says "Failed to load game library"
+- the page does not auto-load actual game data
+
+This means the App Booster scan/data pipeline is still broken.
+
+GOAL
+
+Make App Booster work as a real automatic feature.
+
+Expected behavior:
+
+- App Booster auto-runs a scan on page load
+- installed games are detected from common launchers and paths
+- the game library populates automatically
+- supported games count is real
+- detected installs count is real
+- users can select a detected game immediately
+- manual add remains fallback only, not primary behavior
+
+IMPORTANT
+
+Do not fake results.
+Do not hardcode dummy games.
+Do not leave generic empty-state failure without a real reason.
+Find and fix the real failure path.
+
+ROOT CAUSE AREAS TO AUDIT
+
+1. RENDERER TO IPC FLOW
+   Audit the full App Booster flow:
+
+- page mount
+- scan trigger
+- IPC call from renderer
+- preload bridge exposure
+- Electron/main handler
+- returned scan result
+- store hydration
+- UI render
+
+Check whether the scan call is even being made.
+
+2. PRELOAD / ELECTRON BRIDGE
+   Verify the App Booster scan API is exposed properly through preload and exists in packaged Electron build, not just dev.
+
+Examples:
+
+- window.api.appBooster.scanGames
+- window.electron.scanInstalledGames
+  or equivalent
+
+Confirm:
+
+- function exists
+- function resolves
+- function errors are not swallowed
+
+3. AUTO SCAN ON PAGE LOAD
+   On App Booster route entry:
+
+- automatically start a scan once
+- show a real loading state
+- then hydrate results
+
+Do not require manual user action for first scan.
+
+4. SCAN SOURCES
+   Implement / verify launcher and install detection for at least:
+
+- Steam
+- Epic Games
+- Riot if supported
+- Battle.net if supported
+- common standalone install paths
+- Windows Start Menu / uninstall registry only if helpful and safe
+
+For Steam specifically, verify:
+
+- Steam install location
+- steamapps library folders
+- appmanifest parsing
+- game name extraction
+
+5. STORE HYDRATION
+   If scan returns data, ensure it is actually written into state/store and rendered.
+
+Audit:
+
+- setState/store update
+- mapping to cards/list
+- selected game state
+- supported games count
+- detected installs count
+
+6. ERROR HANDLING
+   Replace generic "Failed to load game library" with exact diagnostic reason.
+
+Examples:
+
+- scan API unavailable
+- preload bridge missing
+- Steam not found
+- no supported launchers found
+- parser error
+- permission/path error
+- returned empty result
+
+Show a clean user-facing reason and log the technical detail separately.
+
+7. UI STATES
+   App Booster must support these states cleanly:
+
+- idle
+- scanning
+- results found
+- no supported games found
+- scan partially succeeded
+- failed with reason
+
+Do not keep everything at zero with no explanation.
+
+8. FALLBACK BEHAVIOR
+   If auto-scan finds nothing:
+
+- show "No supported games found on this PC" if true
+- keep manual add as fallback
+- do not show fake failure if scan actually completed successfully but found nothing
+
+9. LOGGING
+   Add logs for the full pipeline:
+
+- [AppBooster] page mounted
+- [AppBooster] auto scan started
+- [AppBooster] preload API exists=true/false
+- [AppBooster] scan returned X installs
+- [AppBooster] supported games count=X
+- [AppBooster] hydrate success
+- [AppBooster] failure reason=...
+
+10. PACKAGED BUILD VALIDATION
+    Test in the actual Electron packaged app, not only dev mode.
+
+A lot of these bugs happen because:
+
+- preload path differs
+- filesystem access differs
+- dev-only assumptions break in production

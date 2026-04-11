@@ -21,7 +21,9 @@ interface DataPoint {
   gpuTemp: number | null;
   gpuMemPct: number | null;
   ram: number;
-  disk: number;
+  diskActiveTime: number | null;  // disk busy % — null when unavailable
+  diskReadKBps: number | null;
+  diskWriteKBps: number | null;
   netRx: number | null;
   netTx: number | null;
 }
@@ -41,10 +43,21 @@ interface LatestState {
   ramTotalGb: number;
   ramPercent: number;
   showRam: boolean;
-  diskPercent: number | null;
+  diskActiveTime: number | null;
+  diskReadKBps: number | null;
+  diskWriteKBps: number | null;
+  diskAvailable: boolean;
   netRxSec: number | null;
   netTxSec: number | null;
   coreCount: number;
+}
+
+interface MetricToggles {
+  cpu: boolean;
+  ram: boolean;
+  disk: boolean;
+  gpu: boolean;
+  net: boolean;
 }
 
 const C = {
@@ -149,6 +162,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const [latest, setLatest] = useState<LatestState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
+  const [toggles, setToggles] = useState<MetricToggles>({ cpu: true, ram: true, disk: true, gpu: true, net: false });
+
+  function toggle(key: keyof MetricToggles) {
+    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+  }
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
@@ -187,7 +205,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         gpuTemp: null,
         gpuMemPct: wsHistory.vram[i] ?? null,
         ram: wsHistory.ram[i] ?? 0,
-        disk: 0,
+        diskActiveTime: wsHistory.diskActiveTime[i] ?? null,
+        diskReadKBps: wsHistory.diskReadKBps[i] ?? null,
+        diskWriteKBps: wsHistory.diskWriteKBps[i] ?? null,
         netRx: wsHistory.rxKbps[i] ?? null,
         netTx: wsHistory.txKbps[i] ?? null,
       };
@@ -217,6 +237,12 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     const gpuMemTotal = snap.gpu?.vramTotalMb ?? null;
     const gpuClockMhz = snap.gpu?.clockMhz ?? null;
 
+    // Disk — only use real server values; null = unavailable (no fake flat line)
+    const diskAvailable = snap.disk?.available ?? false;
+    const diskActiveTime = diskAvailable ? (snap.disk?.activeTimePct ?? null) : null;
+    const diskReadKBps = diskAvailable ? (snap.disk?.readKBps ?? null) : null;
+    const diskWriteKBps = diskAvailable ? (snap.disk?.writeKBps ?? null) : null;
+
     const telemetryState: LatestState = {
       cpuLoad, cpuTemp,
       gpuTemp, gpuLoad,
@@ -225,7 +251,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       showGpu: gpuLoad != null || gpuTemp != null,
       ramUsedGb, ramTotalGb, ramPercent,
       showRam: ramTotalGb > 0,
-      diskPercent: 0,
+      diskActiveTime, diskReadKBps, diskWriteKBps, diskAvailable,
       netRxSec, netTxSec,
       coreCount: snap.cpu?.cores ?? 0,
     };
@@ -247,7 +273,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       const pt: DataPoint = {
         time: timeStr, cpuLoad, cpuTemp,
         gpuLoad, gpuTemp, gpuMemPct,
-        ram: ramPercent, disk: 0, netRx: netRxSec, netTx: netTxSec,
+        ram: ramPercent,
+        diskActiveTime, diskReadKBps, diskWriteKBps,
+        netRx: netRxSec, netTx: netTxSec,
       };
       const updated = [...prev, pt];
       return updated.length > 60 ? updated.slice(-60) : updated;
@@ -281,11 +309,17 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         ? safeNumber(live.ram?.usagePct, Math.round((ramUsedGb / ramTotalGb) * 100))
         : 0;
 
-      const diskPercent = live.disk?.usagePct != null ? safeNumber(live.disk.usagePct) : 0;
-      const diskIoRaw = safeNumber(live.disk?.readOpsPerSec, 0) + safeNumber(live.disk?.writeOpsPerSec, 0);
-      const diskIoDisplay = Math.min(diskIoRaw / 2, 100);
+      // Electron path: disk from IPC. Active time preferred; fallback to ops-based estimate.
       const netRxSec = typeof live.network?.rxKBps === "number" ? safeNumber(live.network.rxKBps) : null;
       const netTxSec = typeof live.network?.txKBps === "number" ? safeNumber(live.network.txKBps) : null;
+      const diskElectronAvailable = live.disk?.activeTimePct != null || live.disk?.readOpsPerSec != null;
+      const diskActiveTime = live.disk?.activeTimePct != null
+        ? safeNumber(live.disk.activeTimePct)
+        : (live.disk?.readOpsPerSec != null
+          ? Math.min((safeNumber(live.disk.readOpsPerSec) + safeNumber(live.disk?.writeOpsPerSec, 0)) / 2, 100)
+          : null);
+      const diskReadKBps = live.disk?.readKBps != null ? safeNumber(live.disk.readKBps) : null;
+      const diskWriteKBps = live.disk?.writeKBps != null ? safeNumber(live.disk.writeKBps) : null;
 
       const telemetryState: LatestState = {
         cpuLoad, cpuTemp, gpuTemp, gpuLoad,
@@ -293,7 +327,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         showGpu: live.gpu?.available ?? (gpuTemp != null || gpuLoad != null),
         ramUsedGb, ramTotalGb, ramPercent,
         showRam: hasRam,
-        diskPercent,
+        diskActiveTime, diskReadKBps, diskWriteKBps,
+        diskAvailable: diskElectronAvailable,
         netRxSec, netTxSec,
         coreCount: safeNumber(live.cpu?.coreCount, 0),
       };
@@ -316,7 +351,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         const pt: DataPoint = {
           time: timeStr, cpuLoad, cpuTemp,
           gpuLoad, gpuTemp, gpuMemPct,
-          ram: ramPercent, disk: diskIoDisplay, netRx: netRxSec, netTx: netTxSec,
+          ram: ramPercent,
+          diskActiveTime, diskReadKBps, diskWriteKBps,
+          netRx: netRxSec, netTx: netTxSec,
         };
         const updated = [...prev, pt];
         return updated.length > 60 ? updated.slice(-60) : updated;
@@ -365,22 +402,40 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const latestPoint = data[data.length - 1];
   const chartHeight = expanded ? 320 : 192;
 
-  // Metric availability
+  // Metric availability — only true when at least one real non-null value exists
+  // For disk: server sets available=true only after confirmed real data from disksIO
   const hasCpuTemp = data.some(d => d.cpuTemp != null);
   const hasGpuLoad = data.some(d => d.gpuLoad != null);
   const hasGpuTemp = data.some(d => d.gpuTemp != null);
   const hasGpuMem = data.some(d => d.gpuMemPct != null);
   const hasRamData = data.some(d => d.ram != null);
-  const hasDiskData = data.some(d => d.disk != null && d.disk > 0);
+  const hasDiskData = data.some(d => d.diskActiveTime != null);
+  const hasDiskRW = data.some(d => d.diskReadKBps != null || d.diskWriteKBps != null);
   const hasNetRx = data.some(d => d.netRx != null);
   const hasNetTx = data.some(d => d.netTx != null);
+
+  // Log which metrics are active (once after first data arrives)
+  if (data.length === 1) {
+    const first = data[0];
+    console.log("[LiveGraph] Metric availability —",
+      `CPU:yes RAM:${hasRamData ? "yes" : "no"}`,
+      `GPU:${hasGpuLoad ? "yes" : "no (no utilizationGpu on this platform)"}`,
+      `Disk:${hasDiskData ? "yes (activeTime)" : "no — server did not confirm disk.available"}`,
+      `Net:${hasNetRx || hasNetTx ? "yes" : "no"}`
+    );
+  }
 
   const netPeak = Math.max(...data.map(d => Math.max(d.netRx ?? 0, d.netTx ?? 0)), 10);
   const netDomainMax = Math.ceil(netPeak * 1.3 / 10) * 10;
 
-  const collapsedCount = [true, hasRamData, hasGpuLoad].filter(Boolean).length;
+  const activeMetrics = [
+    true,
+    hasRamData,
+    hasDiskData && toggles.disk,
+    hasGpuLoad && toggles.gpu,
+  ].filter(Boolean).length;
   const expandedCount = [
-    true, hasCpuTemp, hasRamData, hasDiskData, hasGpuLoad, hasGpuTemp, hasGpuMem, hasNetRx, hasNetTx,
+    true, hasCpuTemp, hasRamData, hasDiskData, hasDiskRW, hasGpuLoad, hasGpuTemp, hasGpuMem, hasNetRx, hasNetTx,
   ].filter(Boolean).length;
 
   const yTickStyle = { fill: "#6b7280", fontSize: 10 };
@@ -441,12 +496,21 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 unit={latest.showRam ? "GB" : ""}
                 spiking={spikes.ram}
               />
-              <MetricBadge
-                color={C.disk}
-                label="Disk"
-                value={latest.diskPercent != null ? safeFixed(latest.diskPercent, 0) : "--"}
-                unit={latest.diskPercent != null ? "%" : ""}
-              />
+              {latest.diskAvailable && (
+                <MetricBadge
+                  color={C.disk}
+                  label="Disk"
+                  value={
+                    latest.diskActiveTime != null
+                      ? safeFixed(latest.diskActiveTime, 0)
+                      : latest.diskWriteKBps != null
+                        ? `W:${safeFixed(latest.diskWriteKBps, 0)}`
+                        : "--"
+                  }
+                  unit={latest.diskActiveTime != null ? "%" : (latest.diskWriteKBps != null ? " KB/s" : "")}
+                  dimmed={!toggles.disk}
+                />
+              )}
               {expanded && (
                 <MetricBadge
                   color={C.netRx}
@@ -456,8 +520,14 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   dimmed
                 />
               )}
+              {expanded && latest.diskAvailable && latest.diskReadKBps != null && (
+                <MetricBadge color="#f59e0b" label="R" value={safeFixed(latest.diskReadKBps, 0)} unit=" KB/s" dimmed={!toggles.disk} />
+              )}
+              {expanded && latest.diskAvailable && latest.diskWriteKBps != null && (
+                <MetricBadge color="#d97706" label="W" value={safeFixed(latest.diskWriteKBps, 0)} unit=" KB/s" dimmed={!toggles.disk} />
+              )}
               {expanded && latest.gpuMemPct != null && (
-                <MetricBadge color={C.gpuMemPct} label="VRAM" value={safeFixed(latest.gpuMemPct, 0)} unit="%" />
+                <MetricBadge color={C.gpuMemPct} label="VRAM" value={safeFixed(latest.gpuMemPct, 0)} unit="%" dimmed={!toggles.gpu} />
               )}
               {expanded && latest.gpuPower != null && (
                 <span className="text-muted-foreground/70 whitespace-nowrap">⚡ {safeFixed(latest.gpuPower, 0)}W</span>
@@ -476,6 +546,39 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           </Button>
         </div>
       </div>
+
+      {/* Metric toggles */}
+      {!isLoading && (
+        <div className="flex items-center gap-1 mb-3 flex-wrap">
+          {(
+            [
+              { key: "cpu" as const, label: "CPU", color: C.cpuLoad, show: true },
+              { key: "ram" as const, label: "RAM", color: C.ram, show: hasRamData },
+              { key: "disk" as const, label: "Disk", color: C.disk, show: hasDiskData || hasDiskRW },
+              { key: "gpu" as const, label: "GPU", color: C.gpuLoad, show: hasGpuLoad },
+              { key: "net" as const, label: "Net", color: C.netRx, show: hasNetRx || hasNetTx },
+            ] as const
+          ).filter(m => m.show).map(m => (
+            <button
+              key={m.key}
+              data-testid={`toggle-metric-${m.key}`}
+              onClick={() => toggle(m.key)}
+              className={cn(
+                "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-all duration-150",
+                toggles[m.key]
+                  ? "border-white/20 bg-white/[0.07] text-white/90"
+                  : "border-white/[0.07] bg-transparent text-white/30 line-through"
+              )}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full shrink-0"
+                style={{ backgroundColor: toggles[m.key] ? m.color : "rgba(255,255,255,0.2)" }}
+              />
+              {m.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Chart or loading placeholder */}
       <div className={cn("transition-all duration-300", expanded ? "h-80" : "h-48")}>
@@ -550,25 +653,30 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
 
               {/* ── COLLAPSED + EXPANDED: Core lines ── */}
-              {hasDiskData && (
+              {/* Disk active time — dotted amber line, only when server confirmed real data */}
+              {hasDiskData && toggles.disk && (
                 <Line
-                  yAxisId="pct" type="monotone" dataKey="disk"
-                  name="Disk I/O" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
+                  yAxisId="pct" type="monotone" dataKey="diskActiveTime"
+                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
+                  dot={false} activeDot={{ r: 3 }} strokeDasharray="5 2" connectNulls
+                />
+              )}
+              {hasRamData && toggles.ram && (
+                <Line
+                  yAxisId="pct" type="monotone" dataKey="ram"
+                  name="RAM (%)" stroke={C.ram} strokeWidth={2}
                   dot={false} activeDot={{ r: 3 }}
                 />
               )}
-              <Line
-                yAxisId="pct" type="monotone" dataKey="ram"
-                name="RAM (%)" stroke={C.ram} strokeWidth={2}
-                dot={false} activeDot={{ r: 3 }}
-              />
-              <Line
-                yAxisId="pct" type="monotone" dataKey="cpuLoad"
-                name="CPU (%)" stroke={C.cpuLoad} strokeWidth={2}
-                dot={false} activeDot={{ r: 3 }}
-              />
-              {/* GPU shown always when available (collapsed + expanded) */}
-              {hasGpuLoad && (
+              {toggles.cpu && (
+                <Line
+                  yAxisId="pct" type="monotone" dataKey="cpuLoad"
+                  name="CPU (%)" stroke={C.cpuLoad} strokeWidth={2}
+                  dot={false} activeDot={{ r: 3 }}
+                />
+              )}
+              {/* GPU — only when platform provides utilizationGpu */}
+              {hasGpuLoad && toggles.gpu && (
                 <Line
                   yAxisId="pct" type="monotone" dataKey="gpuLoad"
                   name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2}
@@ -576,36 +684,53 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 />
               )}
 
-              {/* ── EXPANDED ONLY: Extra lines ── */}
-              {expanded && hasCpuTemp && (
+              {/* ── EXPANDED ONLY: Temperature lines ── */}
+              {expanded && hasCpuTemp && toggles.cpu && (
                 <Line
                   yAxisId="pct" type="monotone" dataKey="cpuTemp"
                   name="CPU Temp (°C)" stroke={C.cpuTemp} strokeWidth={1.5}
                   dot={false} activeDot={{ r: 3 }} strokeDasharray="4 2" connectNulls
                 />
               )}
-              {expanded && hasGpuTemp && (
+              {expanded && hasGpuTemp && toggles.gpu && (
                 <Line
                   yAxisId="pct" type="monotone" dataKey="gpuTemp"
                   name="GPU Temp (°C)" stroke={C.gpuTemp} strokeWidth={1.5}
                   dot={false} activeDot={{ r: 3 }} strokeDasharray="4 2" connectNulls
                 />
               )}
-              {expanded && hasGpuMem && (
+              {/* VRAM */}
+              {expanded && hasGpuMem && toggles.gpu && (
                 <Line
                   yAxisId="pct" type="monotone" dataKey="gpuMemPct"
                   name="VRAM (%)" stroke={C.gpuMemPct} strokeWidth={1.5}
                   dot={false} activeDot={{ r: 2 }} strokeDasharray="6 3" connectNulls
                 />
               )}
-              {expanded && (
+              {/* Disk read/write separate lines in expanded mode */}
+              {expanded && hasDiskRW && toggles.disk && (
+                <Line
+                  yAxisId="net" type="monotone" dataKey="diskReadKBps"
+                  name="Disk R KB/s" stroke="#f59e0b" strokeWidth={1.5}
+                  dot={false} activeDot={{ r: 2 }} strokeDasharray="3 2" connectNulls
+                />
+              )}
+              {expanded && hasDiskRW && toggles.disk && (
+                <Line
+                  yAxisId="net" type="monotone" dataKey="diskWriteKBps"
+                  name="Disk W KB/s" stroke="#d97706" strokeWidth={1.5}
+                  dot={false} activeDot={{ r: 2 }} strokeDasharray="3 2" connectNulls
+                />
+              )}
+              {/* Network */}
+              {(expanded || toggles.net) && hasNetRx && toggles.net && (
                 <Line
                   yAxisId="net" type="monotone" dataKey="netRx"
                   name="Net ↓ KB/s" stroke={C.netRx} strokeWidth={1.5}
                   dot={false} activeDot={{ r: 2 }} strokeDasharray="4 2" connectNulls
                 />
               )}
-              {expanded && (
+              {(expanded || toggles.net) && hasNetTx && toggles.net && (
                 <Line
                   yAxisId="net" type="monotone" dataKey="netTx"
                   name="Net ↑ KB/s" stroke={C.netTx} strokeWidth={1.5}
@@ -658,11 +783,15 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           {isLoading
             ? "Waiting for telemetry data…"
             : expanded
-              ? `${expandedCount} metrics · Net axis: KB/s`
-              : `${collapsedCount} metrics · CPU, RAM${hasGpuLoad ? ", GPU" : ""}`
+              ? `${expandedCount} metrics · right axis: KB/s${hasDiskRW ? " · disk R/W" : ""}${hasGpuLoad ? " · GPU" : ""}${!hasDiskData && !hasDiskRW ? " · disk unavailable" : ""}`
+              : [
+                  "CPU", "RAM",
+                  hasDiskData ? "Disk %" : (hasDiskRW ? "Disk (expand for R/W)" : null),
+                  hasGpuLoad ? "GPU" : null,
+                ].filter(Boolean).join(", ")
           }
-          {selectedDiskMount ? ` · Disk: ${selectedDiskMount}` : ""}
-          {!expanded && !isLoading ? " · Expand for temps & network" : ""}
+          {selectedDiskMount ? ` · ${selectedDiskMount}` : ""}
+          {!expanded && !isLoading ? " · expand for temps" : ""}
         </span>
       </div>
     </GlassCard>

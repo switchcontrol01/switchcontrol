@@ -14,6 +14,13 @@ export interface GpuTelemetry {
   name: string | null;
 }
 
+export interface DiskTelemetry {
+  activeTimePct: number | null;
+  readKBps: number | null;
+  writeKBps: number | null;
+  available: boolean;
+}
+
 export interface LiveTelemetry {
   ts: number;
   status: "ready" | "loading";
@@ -22,6 +29,7 @@ export interface LiveTelemetry {
   network: { rx_sec: number; tx_sec: number; latency_ms: number };
   temps: { cpu: number | null; gpu: number | null };
   gpu: GpuTelemetry;
+  disk: DiskTelemetry;
   processes: { running: number; total: number };
   load_trend: "rising" | "falling" | "stable";
 }
@@ -33,6 +41,9 @@ export interface TelemetryHistory {
   vram: (number | null)[];
   rxKbps: number[];
   txKbps: number[];
+  diskActiveTime: (number | null)[];
+  diskReadKBps: (number | null)[];
+  diskWriteKBps: (number | null)[];
 }
 
 export interface SpikeState {
