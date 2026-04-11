@@ -10,6 +10,7 @@ import rateLimit from "express-rate-limit";
 import crypto from "crypto";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
+import { storage } from "./storage";
 import { createServer } from "http";
 import { getStripeClient, isStripeConfigured, logStripeStartupConfig } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
@@ -115,6 +116,33 @@ const httpServer = createServer(app);
 declare module "http" {
   interface IncomingMessage {
     rawBody: unknown;
+  }
+}
+
+async function ensureAdminUsers() {
+  const adminEmails = (process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+
+  if (adminEmails.length === 0) return;
+
+  for (const email of adminEmails) {
+    try {
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        console.log(`[Admin] No user found for ${email} — skipping`);
+        continue;
+      }
+      if (!user.isAdmin) {
+        await storage.setUserAdmin(user.id, true);
+        console.log(`[Admin] Granted admin to ${email} (${user.id})`);
+      } else {
+        console.log(`[Admin] ${email} already has admin access`);
+      }
+    } catch (err: any) {
+      console.error(`[Admin] Failed to ensure admin for ${email}:`, err.message);
+    }
   }
 }
 
@@ -235,6 +263,7 @@ app.use((req, res, next) => {
 (async () => {
   runJwtSelfTest();
   await initStripe();
+  await ensureAdminUsers();
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -51,6 +51,7 @@ export interface IStorage {
   addAIScan(scan: InsertAIScan): Promise<AIScan>;
 
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   getUserByStripeCustomerId(customerId: string): Promise<User | undefined>;
   updateUserStripeInfo(userId: string, data: { stripeCustomerId?: string; isPremium?: boolean }): Promise<User>;
   setUserPremium(userId: string, isPremium: boolean): Promise<User>;
@@ -158,6 +159,10 @@ class MockStorage implements IStorage {
   }
 
   async getUser(id: string): Promise<User | undefined> {
+    return undefined;
+  }
+
+  async getUserByEmail(_email: string): Promise<User | undefined> {
     return undefined;
   }
 
@@ -313,6 +318,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db!.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db!.select().from(users).where(ilike(users.email, email));
     return user;
   }
 

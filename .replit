@@ -64,6 +64,7 @@ integrations = ["javascript_database:1.0.0", "javascript_log_in_with_replit:2.0.
 
 [userenv.shared]
 STRIPE_PRICE_ID = "price_1SmrjQBzGFRke47sVkKhPcaD"
+ADMIN_EMAILS = "switchcontrol67@gmail.com"
 
 [userenv.production]
 GOOGLE_REDIRECT_URI = "https://switchcontrol.org/api/auth/google/callback"
