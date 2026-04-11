@@ -1,0 +1,233 @@
+TASK
+Redesign, complete, and fully implement the System Cleaner page with FULL FRONTEND AND FULL BACKEND so it becomes a real, trustworthy, premium cleaning system with working scans, real cleanup actions, real reclaim estimates, and premium fluid graph-driven UI.
+
+GOAL
+Turn System Cleaner into a real impact-based cleaning engine, not just a beautiful simulated page.
+
+This task must deliver:
+- real backend scan logic
+- real backend clean/apply logic
+- real result verification
+- real reclaimable categories
+- honest impact estimates
+- premium frontend redesign/polish
+- animated graphs and fluid telemetry-style UI
+- accurate state handling
+- fully working scan → select → clean → verify flow
+
+CRITICAL
+Backend is mandatory.
+Do NOT come back with mostly frontend polish.
+Do NOT leave categories simulated.
+Do NOT use fake reclaim sizes, fake CPU/RAM/boot improvements, or fake “cleaned” states.
+Do NOT mark items safe/high impact without logic behind them.
+Do NOT keep placeholder data unless it is explicitly and visibly marked as unavailable.
+
+If something cannot yet be cleaned safely:
+- mark it unsupported or unavailable
+- do NOT fake it
+
+IMPORTANT
+Do NOT redesign this into a generic cleaner app.
+Keep the SwitchControl premium identity:
+- matte dark base
+- glass surfaces
+- purple/pink primary accents
+- cyan secondary accent
+- premium chips/badges
+- smooth fluid graphs and elegant motion
+- controlled, expensive-feeling UI
+
+PROBLEM
+Right now System Cleaner looks strong visually, but it still risks being a simulated prototype instead of a real performance-oriented cleaner.
+
+Likely current issues:
+- simulated reclaim values
+- fake or hardcoded impact stats
+- categories not backed by real scan results
+- clean button not fully wired to backend
+- per-item toggles may not map to real cleanup actions
+- no proper verification after cleaning
+- no scan engine with grounded item/category results
+- UI not yet supported by real diagnostic/telemetry visuals
+
+We need to fix both:
+1. backend functionality
+2. frontend polish and data visualization
+
+IMPLEMENTATION
+
+1. FULL CLEANER BACKEND AUDIT
+Audit the current System Cleaner implementation.
+
+Check:
+- frontend page state
+- scan/start/clean actions
+- backend routes
+- Electron bridge / IPC / local execution
+- category definitions
+- reclaim value calculations
+- impact estimates
+- select-all / safe-mode / advanced-mode logic
+- item toggles
+- cleanup execution
+- verification / post-clean rescans
+- any simulated placeholder data
+
+Identify:
+- what is real
+- what is simulated
+- what is partially wired
+- what needs full backend implementation
+
+2. CREATE / FIX REAL CLEANER ENGINE
+Implement a dedicated backend cleaner engine.
+
+Suggested structure:
+- cleaner-engine.ts
+- cleaner-category-registry.ts
+- cleaner-scan-service.ts
+- cleaner-execution-service.ts
+- cleaner-verification-service.ts
+
+The engine must support:
+- scan categories
+- return findings
+- estimate reclaimable size
+- estimate impact ranges honestly
+- clean selected items/categories
+- verify post-clean results
+- return structured status
+
+3. REAL CLEANER CATEGORY DEFINITIONS
+Each cleaner category shown in the UI must map to real scan + clean logic.
+
+Examples based on current UI:
+- Performance Waste
+  - orphaned background services
+  - dead startup entries
+- Latency Killers
+  - overlay leftovers
+  - anti-cheat temp files
+  - network cache bloat
+- Storage Noise
+  - temp files
+  - shader caches
+  - installer remnants
+- Privacy Residue
+  - telemetry cache
+  - crash dumps
+  - diagnostic remnants
+
+For each item, define:
+- id
+- category
+- scan method
+- cleanup method
+- safety level
+- expected reclaim source
+- whether it needs admin
+- whether it needs restart
+- verification method
+
+4. REAL SCAN LOGIC
+Implement actual scan logic per item/category.
+
+Need real detection for things like:
+- temp/cache directories
+- startup entries pointing to missing executables
+- leftover overlay cache folders
+- stale anti-cheat temp/log/cache folders
+- DNS/network cache-related cleanable data where safe
+- Windows temp / user temp / app temp
+- shader caches where safe
+- crash dumps / diagnostic artifacts
+- installer remnants where safely identifiable
+
+The scan engine must return:
+- found/not found
+- reclaimable size
+- affected item count
+- optional impact estimate basis
+- safe/advanced classification
+
+Do NOT invent sizes.
+
+5. REAL CLEAN ACTIONS
+Implement real cleanup actions for selected items.
+
+Need:
+- safe deletion / cleanup logic
+- admin-aware paths where required
+- cleanup rollback awareness where relevant
+- accurate per-item result reporting
+
+For each cleaned item:
+- success / failure
+- bytes removed
+- item count removed
+- restart required if applicable
+- verification result
+
+6. VERIFICATION
+After cleaning:
+- rescan the affected items/categories
+- confirm whether they were actually removed
+- update UI only with verified results
+
+If verification fails:
+- do not mark fully cleaned
+
+Need real result states:
+- cleaned
+- partially cleaned
+- nothing to clean
+- failed
+- requires restart
+- verification failed
+
+7. SAFE MODE / ADVANCED MODE
+Make Safe Mode and Advanced Mode real.
+
+Need:
+- Safe Mode only includes low-risk items
+- Advanced Mode includes higher-risk or more aggressive cleanup targets
+
+Do NOT just visually switch labels.
+This must affect actual scan and clean availability.
+
+8. SELECT-ALL / ITEM SELECTION LOGIC
+Fix or implement:
+- select all safe
+- select individual items
+- per-category selection counts
+- current selected reclaim estimate
+- selected impact estimate
+
+This must be derived from real scan results.
+
+9. REAL IMPACT MODEL
+The current page shows:
+- reclaimable GB
+- CPU impact
+- RAM reclaim
+- boot time changes
+
+These must not be fake.
+
+Implement grounded, honest estimation logic.
+
+Approach:
+- use rule-based conservative estimates
+- only show impact metrics where there is a credible basis
+- if uncertain, tone it down or mark estimated
+
+Examples:
+- reclaimable size from real file sizes
+- RAM reclaim based on cleaned transient/background artifacts only where reasonable
+- boot time improvement only from dead startup items/services where justifiable
+- CPU impact based on orphaned services/background load where grounded
+
+Do NOT overclaim.
+Conservative and credible beats flashy nonsense.
+

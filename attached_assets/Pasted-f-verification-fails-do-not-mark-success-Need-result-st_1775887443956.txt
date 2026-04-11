@@ -1,0 +1,134 @@
+f verification fails:
+- do not mark success
+
+Need result states like:
+- removed
+- restored
+- already absent
+- already present
+- partially applied
+- failed
+- unsupported
+- verification failed
+
+7. PROFILE PRESETS + MODES MUST BE REAL
+The top role cards and intensity modes must affect real backend selection logic.
+
+Profiles such as:
+- Gaming PC
+- Streaming / Recording
+- Workstation
+- Laptop / Battery
+- Minimal
+
+must map to real item selection presets.
+
+Modes such as:
+- Safe
+- Balanced
+- Aggressive
+- Extreme
+
+must affect what items are included/excluded.
+
+Do NOT leave these as visual-only filters.
+
+8. FRONTEND STATE MUST BE BACKEND-DRIVEN
+Fix the frontend so:
+- selected items come from real profile/mode logic
+- apply/remove results come from backend
+- restore availability comes from backend metadata
+- status chips reflect real state
+- item presence/absence is not faked
+
+No pretend “debloated” state.
+
+9. FRONTEND REDESIGN / STRUCTURE UPGRADE
+Improve the Debloat page layout and visual composition.
+
+Current page has decent bones but needs stronger hierarchy and more premium structure.
+
+Improve:
+- role/profile selector cards
+- mode selector styling
+- main impact summary band
+- category grouping
+- item card depth / spacing / readability
+- selection summary area
+- action area (apply / restore / rescan)
+- result presentation after apply
+
+Make it feel like a premium role-based system optimization page, not a long list of uninstall toggles.
+
+10. GRAPH UI LAYER
+Yes, add graph UI here, but impact-based, not live telemetry-based.
+
+Add premium graph visuals such as:
+- selected impact stacked bar
+- category footprint reduction chart
+- before vs after system footprint card
+- restore coverage / safety breakdown
+- selection composition ring or segmented bar
+
+Examples of what to visualize:
+- selected items by category
+- low/medium/high risk composition
+- estimated RAM / CPU / clutter reduction
+- restorable vs non-restorable selections
+- before vs after app footprint
+
+Important:
+These graphs must be clean, premium, and useful.
+Do NOT clutter the page.
+Do NOT make them feel like stock dashboards.
+
+11. IMPACT ESTIMATION LOGIC
+If you display CPU/RAM/system benefit numbers, they must be grounded.
+
+Use conservative, rules-based estimates:
+- app background tendency
+- startup/task presence
+- service footprint where relevant
+- known consumer app overhead
+- feature/policy effects where grounded
+
+If an estimate is uncertain:
+- make it conservative
+- or label it clearly as estimated
+
+Do NOT overclaim huge gains.
+
+12. CATEGORY CARDS / ITEM LIST IMPROVEMENTS
+Upgrade item rows/cards with:
+- stronger selected state
+- cleaner safety/restorable chips
+- clearer description hierarchy
+- better spacing
+- premium hover/selection motion
+- clearer category summary strip
+- smoother expand/collapse behavior
+
+13. APPLY / RESTORE RESULT EXPERIENCE
+After applying or restoring:
+- show clear result summary
+- show per-item status where needed
+- show what changed
+- show any restart/sign-out requirement
+- show any partial failures honestly
+
+Optional:
+- before vs after impact card
+- restored coverage summary
+
+14. HISTORY / LOGGING
+Add useful logging/history for debloat operations.
+
+Need:
+- timestamp
+- profile used
+- mode used
+- items selected
+- items removed/restored
+- verification results
+- failures
+- restart required notes

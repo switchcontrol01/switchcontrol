@@ -135,6 +135,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
   },
 
+  // Startup Manager — real Windows startup control
+  // setEnabled uses the StartupApproved registry key (same method as Task Manager)
+  // setDelay creates/removes a Task Scheduler delayed task
+  startup: {
+    setEnabled:   (params) => ipcRenderer.invoke('startup:setEnabled', params),
+    setDelay:     (params) => ipcRenderer.invoke('startup:setDelay', params),
+    verifyState:  (params) => ipcRenderer.invoke('startup:verifyState', params),
+  },
+
   // App Booster — per-game optimization actions
   appBooster: {
     scanGames:     (games)  => ipcRenderer.invoke('appBooster:scanGames', games),

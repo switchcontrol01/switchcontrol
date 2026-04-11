@@ -19,6 +19,7 @@ import networkTweaksRouter from "./routes/networkTweaks";
 import tweakIntelligenceRouter from "./routes/tweakIntelligence";
 import powerIntelligenceRouter from "./routes/powerIntelligence";
 import dashboardIntelligenceRouter from "./routes/dashboardIntelligence";
+import startupAppsRouter from "./routes/startupApps";
 import { getSnapshot, getSystemSpecs, startTelemetryPolling } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
 
@@ -40,6 +41,7 @@ export async function registerRoutes(
   app.use("/api/tweak-intelligence", tweakIntelligenceRouter);
   app.use("/api/power-intelligence", powerIntelligenceRouter);
   app.use("/api/dashboard-intelligence", dashboardIntelligenceRouter);
+  app.use("/api/startup", startupAppsRouter);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {

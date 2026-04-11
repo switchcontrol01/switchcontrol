@@ -202,4 +202,128 @@ ipcMain.handle('security:getTopProcesses', async () => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// IPC: startup:setEnabled
+// Enables or disables a startup item using the Windows StartupApproved registry key.
+// This is the same mechanism used by Task Manager — does not delete the run entry.
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('startup:setEnabled', async (event, { name, registryKey, enabled }) => {
+  if (process.platform !== 'win32') {
+    return { ok: false, reason: 'not-windows' };
+  }
+
+  try {
+    // Determine the StartupApproved subkey from the run key location
+    let approvedKey;
+    if (registryKey && registryKey.includes('HKLM')) {
+      approvedKey = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+    } else {
+      approvedKey = 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+    }
+
+    // 02 00... = enabled, 03 00... = disabled (Task Manager convention)
+    const byteValue = enabled
+      ? '[byte[]](2,0,0,0,0,0,0,0,0,0,0,0)'
+      : '[byte[]](3,0,0,0,0,0,0,0,0,0,0,0)';
+
+    const cmd = `
+      $key = '${approvedKey}'
+      If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
+      Set-ItemProperty -Path $key -Name '${name}' -Value ${byteValue} -Type Binary -Force
+      Write-Output 'ok'
+    `;
+
+    const result = await runPowerShell(cmd, 8000);
+    const success = result.trim().includes('ok');
+    console.log(`[Startup] setEnabled name=${name} enabled=${enabled} → ${success ? 'ok' : 'fail'}`);
+    return { ok: success, name, enabled };
+  } catch (err) {
+    console.warn(`[Startup] setEnabled ERROR: ${err?.message}`);
+    return { ok: false, error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: startup:setDelay
+// Sets or removes a Task Scheduler delayed-launch task for a startup item.
+// Creates a task named "SC-Delay-{name}" that runs the executable after the
+// specified delay from logon. Setting delay=null removes the task.
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('startup:setDelay', async (event, { name, executable, delayIso, registryKey }) => {
+  if (process.platform !== 'win32') {
+    return { ok: false, reason: 'not-windows' };
+  }
+
+  const taskName = `SC-Delay-${name.replace(/[^a-zA-Z0-9]/g, '-')}`;
+
+  try {
+    if (!delayIso || !executable) {
+      // Remove the task if it exists
+      const removeCmd = `
+        If (Get-ScheduledTask -TaskName '${taskName}' -ErrorAction SilentlyContinue) {
+          Unregister-ScheduledTask -TaskName '${taskName}' -Confirm:$false
+          Write-Output 'removed'
+        } Else {
+          Write-Output 'notfound'
+        }
+      `;
+      const r = await runPowerShell(removeCmd, 8000);
+      console.log(`[Startup] removeDelay task=${taskName} → ${r.trim()}`);
+      return { ok: true, taskName, action: 'removed' };
+    }
+
+    // Create/update delayed task
+    const escapedExe = executable.replace(/'/g, "''");
+    const createCmd = `
+      $action  = New-ScheduledTaskAction -Execute '${escapedExe}'
+      $trigger = New-ScheduledTaskTrigger -AtLogOn
+      $trigger.Delay = '${delayIso}'
+      $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 1) -StartWhenAvailable
+      Register-ScheduledTask -TaskName '${taskName}' -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -Force | Out-Null
+      Write-Output 'created'
+    `;
+    const r = await runPowerShell(createCmd, 10000);
+    const success = r.trim().includes('created');
+    console.log(`[Startup] setDelay task=${taskName} delay=${delayIso} → ${success ? 'ok' : 'fail'}`);
+    return { ok: success, taskName, action: 'created' };
+  } catch (err) {
+    console.warn(`[Startup] setDelay ERROR: ${err?.message}`);
+    return { ok: false, error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: startup:verifyState
+// Reads the StartupApproved registry value to confirm enabled/disabled state.
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
+  if (process.platform !== 'win32') {
+    return { ok: false, reason: 'not-windows' };
+  }
+
+  try {
+    const approvedKey = registryKey && registryKey.includes('HKLM')
+      ? 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run'
+      : 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+
+    const cmd = `
+      Try {
+        $val = (Get-ItemProperty -Path '${approvedKey}' -Name '${name}' -ErrorAction Stop).'${name}'
+        If ($val -and $val[0] -eq 3) { Write-Output 'disabled' }
+        Else { Write-Output 'enabled' }
+      } Catch {
+        Write-Output 'unknown'
+      }
+    `;
+    const result = await runPowerShell(cmd, 6000);
+    const state = result.trim();
+    return { ok: true, name, state };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+});
+
 console.log('[Security] IPC handlers registered');

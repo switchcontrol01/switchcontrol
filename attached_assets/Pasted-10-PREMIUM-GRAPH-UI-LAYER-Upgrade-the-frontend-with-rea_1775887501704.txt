@@ -1,0 +1,113 @@
+10. PREMIUM GRAPH / UI LAYER
+Upgrade the frontend with real graph-driven UI tied to scan/clean results.
+
+Need excellent, fluid, premium graphs such as:
+- reclaimable storage breakdown graph
+- category impact bar chart
+- before/after summary graph after cleaning
+- animated stat counters
+- category contribution visualizations
+- smooth value transitions
+- fluid graph motion
+- polished empty/loading/live/result states
+
+Graph style requirements:
+- premium glass panels
+- subtle grid lines
+- smooth animated transitions
+- no clutter
+- no default generic chart look
+- one clean visual language consistent with SwitchControl
+
+Do NOT use ugly stock dashboard visuals.
+
+11. CLEAN FLOW UI
+Make the page feel like a real scan/clean workflow.
+
+Need:
+- Scan / Rescan state
+- loading state while scanning
+- real populated category findings
+- selected-item summary
+- clean progress state
+- post-clean result summary
+- before/after comparison visuals
+
+12. CATEGORY CARD IMPROVEMENTS
+Upgrade category cards so they feel more intelligent and data-driven.
+
+Need:
+- clearer expandable sections
+- stronger selected state
+- better metric chips
+- safer hierarchy for safe vs advanced items
+- premium hover/expand motion
+- result states after cleaning
+
+13. HISTORY / LOGGING
+Add useful logging/history for cleaner actions.
+
+Need:
+- scan timestamp
+- items found
+- items cleaned
+- bytes removed
+- category results
+- errors
+- verification result
+
+Useful for debugging and future UX.
+
+14. PERFORMANCE / SAFETY
+The cleaner must be safe and responsive.
+
+Need:
+- no dangerous deletes without clear logic
+- avoid deleting active critical files
+- avoid cleaning unsupported anti-cheat/system files recklessly
+- use clear exclusions where needed
+- keep scanning fast and incremental where possible
+- cleanup should not freeze UI
+
+15. FRONTEND STATE MUST BE BACKEND-DRIVEN
+Frontend must not invent states.
+
+Need:
+- findings come from backend scan
+- estimates come from backend
+- clean results come from backend
+- graphs reflect backend data
+- no fake “7.9 GB reclaimable” placeholders unless truly scanned
+
+16. EMPTY / LIMITED STATES
+If a category is not fully supported yet:
+- show it honestly
+- mark limited availability
+- do not fake results
+
+CHECKLIST
+- cleaner backend audit completed
+- real scan engine implemented/fixed
+- real clean engine implemented/fixed
+- real verification implemented
+- safe/advanced mode is functional
+- selection logic is functional
+- category stats are real
+- clean button is real
+- graphs are premium and backend-driven
+- UI states are honest
+- no fake reclaim/impact values remain
+
+FINAL OUTPUT
+Return:
+1. root causes found
+2. files changed
+3. backend architecture added/fixed
+4. real scan categories implemented
+5. real clean actions implemented
+6. verification logic summary
+7. safe vs advanced mode logic
+8. impact estimation logic summary
+9. graph/UI upgrades added
+10. unsupported or deferred parts
+11. performance/safety notes
