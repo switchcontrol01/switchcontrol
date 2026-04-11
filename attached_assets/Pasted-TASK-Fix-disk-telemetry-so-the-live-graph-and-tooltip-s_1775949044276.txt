@@ -1,0 +1,181 @@
+TASK
+
+Fix disk telemetry so the live graph and tooltip show real disk activity instead of staying at 0%.
+
+PROBLEM
+
+Disk telemetry is currently broken.
+
+Observed behavior:
+
+- CPU updates
+- RAM updates
+- GPU updates
+- Disk stays flat at 0% in the graph and tooltip
+
+This makes the telemetry look fake or incomplete.
+
+GOAL
+
+Make disk telemetry behave like a real live metric:
+
+- update continuously
+- appear in the graph
+- show non-zero activity when the system is doing disk work
+- remain stable and correctly normalized for UI display
+
+IMPORTANT TECHNICAL NOTE
+
+Disk telemetry is not like CPU usage.
+Most system APIs return disk read/write throughput, not a ready-made percentage.
+
+So if the UI expects a disk percent, you must:
+
+1. fetch real disk throughput
+2. normalize it into a display percentage
+3. send both raw and normalized values if useful
+
+WHAT TO DEBUG
+
+1. TELEMETRY SOURCE
+
+Find where live telemetry is gathered for:
+
+- CPU
+- RAM
+- GPU
+- Disk
+
+Check whether disk is actually being fetched at all.
+
+If using "systeminformation", inspect whether disk is coming from:
+
+- "fsStats()"
+- or any other disk-related source
+
+I suspect disk is either:
+
+- not being fetched
+- fetched from the wrong source
+- or fetched but never mapped into the telemetry payload
+
+2. PROPERTY MAPPING
+
+If using "fsStats()", verify which values are being read.
+
+Raw disk throughput usually comes from values like:
+
+- read/sec
+- write/sec
+- rx_sec
+- wx_sec
+
+Check whether the code is incorrectly expecting a field like:
+
+- "usage"
+- "percent"
+- "load"
+
+If so, that is likely why disk remains 0.
+
+3. NORMALIZATION
+
+The UI graph appears to expect a percent-like metric.
+
+Implement a consistent disk activity metric such as:
+
+- total disk throughput = read + write
+- normalize that into a 0–100 visual scale for the chart
+
+Example approach:
+
+- "diskBytesPerSec = rx_sec + wx_sec"
+- map to visual percent with a capped normalization function
+- ensure it does not instantly spike to 100 from tiny activity
+
+The goal is not perfect scientific accuracy.
+The goal is believable, responsive, and consistent live disk telemetry.
+
+4. PAYLOAD
+
+Make sure the telemetry payload sent to the frontend includes disk values in a format the graph can actually render.
+
+I want one of these two designs:
+
+OPTION A
+
+- "diskPercent"
+- "diskReadMBps"
+- "diskWriteMBps"
+
+OPTION B
+
+- "disk.activityPercent"
+- "disk.readMBps"
+- "disk.writeMBps"
+
+Whichever matches the existing telemetry architecture better.
+
+5. FRONTEND GRAPH + TOOLTIP
+
+Verify that:
+
+- the graph reads the correct disk field
+- the tooltip reads the correct disk field
+- there is no fallback forcing disk to 0
+- formatting is correct
+
+If raw throughput is used for tooltip display, even better.
+For example:
+
+- Disk: 12.4 MB/s
+
+If percent is used in the graph, that is fine.
+
+6. REAL-WORLD VERIFICATION
+
+Test while generating real disk activity:
+
+- copy a file
+- open a large app
+- run an installer
+- move a folder
+
+Confirm disk telemetry increases visibly during this activity.
+
+IMPORTANT
+
+Do NOT fake disk by randomizing numbers.
+
+Use real system disk throughput.
+Only normalize for display.
+
+Also do NOT leave disk hard-clamped to 0 when values are missing.
+If data is missing, log the actual failure reason.
+
+DEBUG LOGGING
+
+Temporarily log:
+
+- raw disk stats returned by the system call
+- normalized disk value
+- final telemetry payload sent to frontend
+
+I want to know exactly where the pipeline breaks:
+
+- source fetch
+- mapping
+- normalization
+- payload
+- frontend render
+
+FINAL OUTPUT
+
+Return:
+
+1. where disk telemetry was broken
+2. whether the issue was source fetch, wrong property mapping, normalization, or frontend binding
+3. what file(s) were changed
+4. what raw disk source is now used
+5. what normalized display metric is now used
+6. proof that disk telemetry now updates under real disk activity

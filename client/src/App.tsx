@@ -840,11 +840,17 @@ function ElectronAppContent() {
         <GuidedTour 
           show={activeFlow === "premiumTour"} 
           onComplete={async () => {
-            console.log('[AppFlow] Premium tour complete — optimistic store update then persist');
+            console.log('[AppFlow] Premium tour complete — persisting before clearing flow');
             const store = useAuthStore.getState();
+            // Optimistic: update store immediately so any concurrent entitlement
+            // refresh that fires before the server responds cannot overwrite us.
             if (store.user) store.setUser({ ...store.user, hasSeenPremiumTour: true });
-            setActiveFlow("none");
+            // Persist to server FIRST — the flow eval must not re-run until the
+            // server flag is saved, otherwise a concurrent /api/me refresh can
+            // return hasSeenPremiumTour=false and re-trigger the tour.
             await postTourSeen();
+            // Clear the flow only after the server acknowledged the save.
+            setActiveFlow("none");
           }} 
         />
       )}
