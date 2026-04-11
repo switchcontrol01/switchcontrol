@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from '@/lib/motionTokens';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
@@ -467,7 +468,7 @@ export function TourShell({
 
   const pal = isPremium ? tourPalette.premium : tourPalette.free;
 
-  return (
+  return createPortal(
     <>
       {/* ══ Layer 1: Dark backdrop — mounts at full opacity immediately ════════
            NO initial fade so the dashboard is covered before anything else runs.
@@ -735,6 +736,7 @@ export function TourShell({
           </motion.div>
         )}
       </AnimatePresence>
-    </>
+    </>,
+    document.body
   );
 }
