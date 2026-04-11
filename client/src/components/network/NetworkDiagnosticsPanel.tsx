@@ -3,8 +3,8 @@ import { motion, AnimatePresence } from "@/lib/motion";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import {
-  Activity, AlertTriangle, CheckCircle2, Globe, HelpCircle,
-  Monitor, Play, RefreshCw, Square, TrendingDown, TrendingUp, Wifi, WifiOff, Zap,
+  Activity, AlertCircle, AlertTriangle, CheckCircle2, Globe, HelpCircle,
+  Loader2, Monitor, Play, RefreshCw, Square, TrendingDown, TrendingUp, Wifi, WifiOff, Zap,
 } from "lucide-react";
 import type { DiagnosticsState, PingSample, SpikeEvent } from "@/hooks/useNetworkDiagnostics";
 
@@ -388,9 +388,15 @@ const PCI_CONFIG = {
 
 export function NetworkDiagnosticsHero(props: DiagnosticsState) {
   const {
-    isMonitoring, history, current, spikes, spikesPerMin, health,
-    startMonitoring, stopMonitoring,
+    isMonitoring, monitorPhase, monitorError,
+    history, current, spikes, spikesPerMin, health,
+    startMonitoring, stopMonitoring, retryMonitoring,
   } = props;
+
+  const isLive     = monitorPhase === "live";
+  const isStarting = monitorPhase === "starting";
+  const isError    = monitorPhase === "error";
+  const isOff      = monitorPhase === "off";
 
   return (
     <motion.div
@@ -402,54 +408,161 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
       {/* Header row */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
+          {/* Status dot */}
           <div className={cn(
             "size-2 rounded-full transition-colors duration-500",
-            isMonitoring ? "bg-emerald-400 animate-pulse" : "bg-white/20",
+            isLive     ? "bg-emerald-400 animate-pulse" :
+            isStarting ? "bg-blue-400 animate-pulse"   :
+            isError    ? "bg-red-400"                   :
+                         "bg-white/20",
           )} />
+
           <h2 className="text-sm font-semibold text-white tracking-tight">Live Network Diagnostics</h2>
-          {isMonitoring && (
-            <motion.span
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/8 text-emerald-400"
-            >
-              LIVE
-            </motion.span>
-          )}
+
+          <AnimatePresence mode="wait">
+            {isLive && (
+              <motion.span
+                key="live"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-emerald-500/20 bg-emerald-500/[0.08] text-emerald-400"
+              >
+                LIVE
+              </motion.span>
+            )}
+            {isStarting && (
+              <motion.span
+                key="starting"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+                className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border border-blue-500/20 bg-blue-500/[0.08] text-blue-400"
+              >
+                <Loader2 className="size-2.5 animate-spin" />
+                Starting…
+              </motion.span>
+            )}
+            {isError && (
+              <motion.span
+                key="error"
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
+                transition={{ duration: 0.2 }}
+                className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-red-500/20 bg-red-500/[0.08] text-red-400"
+              >
+                Error
+              </motion.span>
+            )}
+          </AnimatePresence>
         </div>
-        <Button
-          size="sm"
-          variant={isMonitoring ? "outline" : "default"}
-          onClick={isMonitoring ? stopMonitoring : startMonitoring}
-          className={cn(
-            "text-xs gap-1.5",
-            isMonitoring
-              ? "border-white/10 hover:bg-white/5 text-muted-foreground"
-              : "bg-primary hover:bg-primary/90",
+
+        <div className="flex items-center gap-2">
+          {isError && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={retryMonitoring}
+              className="text-xs gap-1.5 border-white/10 hover:bg-white/5 text-muted-foreground"
+              data-testid="button-retry-monitoring"
+            >
+              <RefreshCw className="size-3" /> Retry
+            </Button>
           )}
-          data-testid="button-toggle-monitoring"
-        >
-          {isMonitoring ? <><Square className="size-3" /> Stop</> : <><Play className="size-3" /> Start Monitoring</>}
-        </Button>
+          <Button
+            size="sm"
+            variant={isMonitoring ? "outline" : "default"}
+            onClick={isMonitoring ? stopMonitoring : startMonitoring}
+            className={cn(
+              "text-xs gap-1.5",
+              isMonitoring
+                ? "border-white/10 hover:bg-white/5 text-muted-foreground"
+                : "bg-primary hover:bg-primary/90",
+            )}
+            data-testid="button-toggle-monitoring"
+          >
+            {isMonitoring
+              ? <><Square className="size-3" /> Stop</>
+              : <><Play className="size-3" /> Start Monitoring</>}
+          </Button>
+        </div>
       </div>
 
       {/* Graph card */}
-      <GlassCard className="p-4 space-y-3" blur="sm">
-        {!isMonitoring && history.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
-            <div className="size-10 rounded-full border border-white/10 bg-white/[0.03] flex items-center justify-center">
-              <Activity className="size-5 text-muted-foreground/40" />
-            </div>
-            <div className="space-y-1">
-              <p className="text-sm text-white/60">Latency monitoring is off</p>
-              <p className="text-xs text-muted-foreground/50">
-                Start monitoring to see live ping, jitter, and spike data
-              </p>
-            </div>
-          </div>
-        ) : (
-          <LiveGraph history={history} spikes={spikes} />
-        )}
+      <GlassCard className="p-4" blur="sm">
+        <AnimatePresence mode="wait">
+          {/* OFF — user stopped it */}
+          {isOff && history.length === 0 ? (
+            <motion.div
+              key="off"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center h-40 gap-3 text-center"
+            >
+              <div className="size-10 rounded-full border border-white/10 bg-white/[0.03] flex items-center justify-center">
+                <Activity className="size-5 text-muted-foreground/40" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-white/60">Latency monitoring is off</p>
+                <p className="text-xs text-muted-foreground/50">
+                  Start monitoring to see live ping, jitter, and spike data
+                </p>
+              </div>
+            </motion.div>
+          ) : isStarting && history.length === 0 ? (
+            /* STARTING — waiting for first sample */
+            <motion.div
+              key="starting"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center h-40 gap-3 text-center"
+            >
+              <div className="relative size-10 flex items-center justify-center">
+                <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+                <Activity className="size-4 text-primary/60" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-white/70">Probing network…</p>
+                <p className="text-xs text-muted-foreground/50">
+                  Measuring TCP round-trip to Cloudflare, Google, and OpenDNS
+                </p>
+              </div>
+            </motion.div>
+          ) : isError && history.length === 0 ? (
+            /* ERROR — monitoring failed with no data */
+            <motion.div
+              key="error"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center justify-center h-40 gap-3 text-center"
+            >
+              <div className="size-10 rounded-full border border-red-500/20 bg-red-500/5 flex items-center justify-center">
+                <AlertCircle className="size-5 text-red-400" />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-white/70">Probe failed</p>
+                <p className="text-xs text-muted-foreground/50 max-w-xs">
+                  {monitorError ?? "Could not reach network probe endpoint"}
+                </p>
+              </div>
+            </motion.div>
+          ) : (
+            /* LIVE or has historical data — show graph */
+            <motion.div
+              key="graph"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            >
+              <LiveGraph history={history} spikes={spikes} />
+              {/* Error banner overlaid when we have data but current probe failed */}
+              {isError && history.length > 0 && monitorError && (
+                <div className="mt-2 flex items-center gap-2 text-[11px] text-red-400/80">
+                  <AlertCircle className="size-3 shrink-0" />
+                  <span>Probe error: {monitorError} — retrying…</span>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </GlassCard>
 
       {/* Metrics row */}
@@ -469,12 +582,12 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
 
             {/* Metric grid */}
             <div className="flex-1 grid grid-cols-3 gap-2">
-              <StatCard label="Avg Ping" value={current.avg} unit="ms" accent />
-              <StatCard label="Jitter" value={current.jitter} unit="ms" warn={current.jitter > 15} />
-              <StatCard label="Spikes/min" value={spikesPerMin} warn={spikesPerMin > 2} />
-              <StatCard label="Min" value={current.min} unit="ms" />
-              <StatCard label="Max" value={current.max} unit="ms" />
-              <StatCard label="Packet Loss" value={`${current.loss}%`} warn={current.loss > 1} />
+              <StatCard label="Avg Ping"    value={current.avg}          unit="ms" accent />
+              <StatCard label="Jitter"      value={current.jitter}       unit="ms" warn={current.jitter > 15} />
+              <StatCard label="Spikes/min"  value={spikesPerMin}                   warn={spikesPerMin > 2} />
+              <StatCard label="Min"         value={current.min}          unit="ms" />
+              <StatCard label="Max"         value={current.max}          unit="ms" />
+              <StatCard label="Packet Loss" value={`${current.loss}%`}            warn={current.loss > 1} />
             </div>
           </motion.div>
         )}
@@ -487,8 +600,8 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
         )}
       </AnimatePresence>
 
-      {/* What the scores mean */}
-      {isMonitoring && (
+      {/* Metric legend — only when live */}
+      {isLive && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -496,9 +609,9 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
           className="grid grid-cols-2 sm:grid-cols-4 gap-2"
         >
           {[
-            { label: "Jitter", desc: "Variance in round-trip time. High jitter feels worse than steady high ping in fast-paced games." },
-            { label: "Packet Loss", desc: "Dropped packets require retransmission. Even 1% loss is perceptible in real-time games." },
-            { label: "Spike Freq", desc: "Intermittent large jumps. Spike frequency can feel worse than average ping elevation." },
+            { label: "Jitter",       desc: "Variance in round-trip time. High jitter feels worse than steady high ping in fast-paced games." },
+            { label: "Packet Loss",  desc: "Dropped packets require retransmission. Even 1% loss is perceptible in real-time games." },
+            { label: "Spike Freq",   desc: "Intermittent large jumps. Spike frequency can feel worse than average ping elevation." },
             { label: "Health Score", desc: "Composite score from latency consistency, jitter, loss, and spike frequency. Not a guarantee of performance." },
           ].map(({ label, desc }) => (
             <div key={label} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 space-y-1">
