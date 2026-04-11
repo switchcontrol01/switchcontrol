@@ -129,14 +129,13 @@ async function getState(slug: string): Promise<GameState | null> {
 }
 
 async function upsertGameRow(slug: string, name: string, executable: string, detected: boolean, installPath: string | null) {
-  if (isNoDbMode || !pool) return;
-  await pool.query(
-    `INSERT INTO app_booster_games (slug, name, executable, detected, install_path)
-     VALUES ($1, $2, $3, $4, $5)
-     ON CONFLICT (slug) DO UPDATE SET
-       detected = EXCLUDED.detected,
-       install_path = COALESCE(EXCLUDED.install_path, app_booster_games.install_path)`,
-    [slug, name, executable, detected, installPath]
+  if (isNoDbMode || !db) return;
+  await db.execute(
+    sql`INSERT INTO app_booster_games (slug, name, executable, detected, install_path)
+        VALUES (${slug}, ${name}, ${executable}, ${detected}, ${installPath})
+        ON CONFLICT (slug) DO UPDATE SET
+          detected = EXCLUDED.detected,
+          install_path = COALESCE(EXCLUDED.install_path, app_booster_games.install_path)`
   );
 }
 
@@ -148,49 +147,46 @@ async function upsertStateRow(
   installPath: string | null,
   operation: "apply" | "revert" | "none" = "none"
 ) {
-  if (isNoDbMode || !pool) return;
+  if (isNoDbMode || !db) return;
   const now = new Date();
   const json = JSON.stringify(actionsResult);
 
   if (operation === "apply") {
-    await pool.query(
-      `INSERT INTO app_booster_state
-         (game_slug, status, profile_id, actions_result, install_path, applied_at, updated_at)
-       VALUES ($1, $2, $3, $4::jsonb, $5, $6, $6)
-       ON CONFLICT (game_slug) DO UPDATE SET
-         status       = EXCLUDED.status,
-         profile_id   = COALESCE(EXCLUDED.profile_id, app_booster_state.profile_id),
-         actions_result = EXCLUDED.actions_result,
-         install_path = COALESCE(EXCLUDED.install_path, app_booster_state.install_path),
-         applied_at   = EXCLUDED.applied_at,
-         updated_at   = EXCLUDED.updated_at`,
-      [slug, status, profileId, json, installPath, now]
+    await db.execute(
+      sql`INSERT INTO app_booster_state
+            (game_slug, status, profile_id, actions_result, install_path, applied_at, updated_at)
+          VALUES (${slug}, ${status}, ${profileId}, ${sql.raw(`'${json}'`)}::jsonb, ${installPath}, ${now}, ${now})
+          ON CONFLICT (game_slug) DO UPDATE SET
+            status         = EXCLUDED.status,
+            profile_id     = COALESCE(EXCLUDED.profile_id, app_booster_state.profile_id),
+            actions_result = EXCLUDED.actions_result,
+            install_path   = COALESCE(EXCLUDED.install_path, app_booster_state.install_path),
+            applied_at     = EXCLUDED.applied_at,
+            updated_at     = EXCLUDED.updated_at`
     );
   } else if (operation === "revert") {
-    await pool.query(
-      `INSERT INTO app_booster_state
-         (game_slug, status, profile_id, actions_result, install_path, reverted_at, updated_at)
-       VALUES ($1, $2, $3, $4::jsonb, $5, $6, $6)
-       ON CONFLICT (game_slug) DO UPDATE SET
-         status         = EXCLUDED.status,
-         actions_result = EXCLUDED.actions_result,
-         install_path   = COALESCE(EXCLUDED.install_path, app_booster_state.install_path),
-         reverted_at    = EXCLUDED.reverted_at,
-         updated_at     = EXCLUDED.updated_at`,
-      [slug, status, profileId, json, installPath, now]
+    await db.execute(
+      sql`INSERT INTO app_booster_state
+            (game_slug, status, profile_id, actions_result, install_path, reverted_at, updated_at)
+          VALUES (${slug}, ${status}, ${profileId}, ${sql.raw(`'${json}'`)}::jsonb, ${installPath}, ${now}, ${now})
+          ON CONFLICT (game_slug) DO UPDATE SET
+            status         = EXCLUDED.status,
+            actions_result = EXCLUDED.actions_result,
+            install_path   = COALESCE(EXCLUDED.install_path, app_booster_state.install_path),
+            reverted_at    = EXCLUDED.reverted_at,
+            updated_at     = EXCLUDED.updated_at`
     );
   } else {
-    await pool.query(
-      `INSERT INTO app_booster_state
-         (game_slug, status, profile_id, actions_result, install_path, updated_at)
-       VALUES ($1, $2, $3, $4::jsonb, $5, $6)
-       ON CONFLICT (game_slug) DO UPDATE SET
-         status         = EXCLUDED.status,
-         profile_id     = COALESCE(EXCLUDED.profile_id, app_booster_state.profile_id),
-         actions_result = EXCLUDED.actions_result,
-         install_path   = COALESCE(EXCLUDED.install_path, app_booster_state.install_path),
-         updated_at     = EXCLUDED.updated_at`,
-      [slug, status, profileId, json, installPath, now]
+    await db.execute(
+      sql`INSERT INTO app_booster_state
+            (game_slug, status, profile_id, actions_result, install_path, updated_at)
+          VALUES (${slug}, ${status}, ${profileId}, ${sql.raw(`'${json}'`)}::jsonb, ${installPath}, ${now})
+          ON CONFLICT (game_slug) DO UPDATE SET
+            status         = EXCLUDED.status,
+            profile_id     = COALESCE(EXCLUDED.profile_id, app_booster_state.profile_id),
+            actions_result = EXCLUDED.actions_result,
+            install_path   = COALESCE(EXCLUDED.install_path, app_booster_state.install_path),
+            updated_at     = EXCLUDED.updated_at`
     );
   }
 }
@@ -211,8 +207,8 @@ router.get("/games", async (_req, res) => {
   try {
     const stateMap: Record<string, { status: string; profileId: string | null; detected: boolean; installPath: string | null }> = {};
 
-    if (!isNoDbMode && pool) {
-      const { rows } = await pool.query(`
+    if (!isNoDbMode && db) {
+      const rows = await db.execute(sql`
         SELECT g.slug, g.detected, g.install_path,
                s.status, s.profile_id
         FROM app_booster_games g
