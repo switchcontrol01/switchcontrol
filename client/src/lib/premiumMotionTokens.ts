@@ -14,20 +14,20 @@
 
 // ── PremiumUpgradeAnimation phase timeline ────────────────────────────────────
 export const UPGRADE_TIMING = {
-  /** Phase 1 — Detection begins: background dims, status text, ambient glow */
+  /** Phase 1 — Detection begins: background dims, scan line, ambient glow */
   detectingMs:    0,
-  /** Phase 2 — Activation: rings expand, particles, logo scales */
-  activatingMs:   600,
-  /** Phase 3 — Completion: glow pulse, main text reveals */
-  completingMs:   1600,
-  /** Hold — everything visible, subtle breathing */
-  holdingMs:      3300,
+  /** Phase 2 — Activation: energy arc charges, rings, logo erupts */
+  activatingMs:   900,
+  /** Phase 3 — Completion: flash, light rays fan out, text stagger reveals */
+  completingMs:   2300,
+  /** Hold — everything breathing, drifting orbs, gradient shift */
+  holdingMs:      4200,
   /** Scene begins exiting */
-  exitingMs:      4100,
+  exitingMs:      6000,
   /** Animation fully done, onComplete fires */
-  doneMs:         4800,
+  doneMs:         7200,
   /** Reduced-motion fast path */
-  reducedDoneMs:  2000,
+  reducedDoneMs:  2200,
 } as const;
 
 // ── PremiumUnlockAnimation timing ─────────────────────────────────────────────
