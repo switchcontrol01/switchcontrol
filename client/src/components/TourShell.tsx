@@ -385,7 +385,20 @@ export function TourShell({
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, TOUR_STEP_TIMING.highlightScrollDelayMs);
     }
-    if (s?.route) navigate(s.route);
+    if (s?.route) {
+      // Set the guard BEFORE calling navigate so that AppLayout's next render
+      // (triggered by the wouter location change) sees isTourNav=true and sets
+      // shouldAnimate=false — completely suppressing the blur/scale/opacity page
+      // transition that would otherwise punch through the tour overlay.
+      document.body.classList.add('tour-navigating');
+      navigate(s.route);
+      // Remove the guard after the full AppLayout transition window has elapsed.
+      // AppLayout's page transition duration is 0.32s — 420ms covers that plus
+      // a comfortable safety margin so the guard is never removed too early.
+      setTimeout(() => {
+        document.body.classList.remove('tour-navigating');
+      }, 420);
+    }
   }, [steps, setTourHighlight, navigate]);
 
   // Unified reveal gate:
@@ -445,6 +458,9 @@ export function TourShell({
     } else {
       setTourActive(false);
       setTourHighlight(null);
+      // Safety: ensure the guard is always cleared when the tour exits,
+      // regardless of whether a timed removal is already pending.
+      document.body.classList.remove('tour-navigating');
     }
   }, [show]);
 
@@ -475,12 +491,14 @@ export function TourShell({
   const handleSkip = useCallback(() => {
     setTourActive(false);
     setTourHighlight(null);
+    document.body.classList.remove('tour-navigating');
     (onSkip ?? onComplete)();
   }, [onSkip, onComplete, setTourActive, setTourHighlight]);
 
   const handleComplete = useCallback(() => {
     setTourActive(false);
     setTourHighlight(null);
+    document.body.classList.remove('tour-navigating');
     onComplete();
   }, [onComplete, setTourActive, setTourHighlight]);
 
