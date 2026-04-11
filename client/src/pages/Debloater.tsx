@@ -764,7 +764,15 @@ export default function Debloater() {
 
         {/* Impact summary panel */}
         <AnimatedSection index={0}>
-          <Card className={cn("border", currentLevel.border, "overflow-hidden")}>
+          <Card
+            className={cn("border overflow-hidden", currentLevel.border)}
+            style={{
+              background: "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(220,220,255,0.06) 50%, rgba(255,255,255,0.09) 100%)",
+              backdropFilter: "blur(24px)",
+              WebkitBackdropFilter: "blur(24px)",
+              boxShadow: "0 4px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.07) inset",
+            }}
+          >
             <CardContent className="p-4">
               <div className="grid grid-cols-12 gap-6">
                 {/* Left: impact numbers */}
