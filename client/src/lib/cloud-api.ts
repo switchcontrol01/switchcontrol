@@ -20,17 +20,7 @@ export interface CloudRequestOptions {
   signal?: AbortSignal;
 }
 
-export async function cloudApiPost<T = any>(
-  path: string,
-  body?: unknown,
-  options?: CloudRequestOptions
-): Promise<T> {
-  if (typeof navigator !== "undefined" && !navigator.onLine) {
-    console.warn(`[CloudAPI] Blocked (offline) | POST ${path}`);
-    throw new ApiError(0, "You are offline. Please check your connection.");
-  }
-
-  const url = `${CLOUD_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+async function buildHeaders(): Promise<Record<string, string>> {
   const jwt = useAuthStore.getState().jwt;
 
   const headers: Record<string, string> = {
@@ -64,38 +54,86 @@ export async function cloudApiPost<T = any>(
     }
   } catch {}
 
-  console.log(
-    `[CloudAPI] ${new Date().toISOString()} | POST ${path} | auth=${!!jwt} | base=${CLOUD_BASE}`
-  );
+  return headers;
+}
 
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers,
-      body: body !== undefined ? JSON.stringify(body) : undefined,
-      credentials: isPackagedElectron ? "omit" : "include",
-      signal: options?.signal,
-    });
-  } catch (err) {
-    if (err instanceof DOMException && err.name === "AbortError") throw err;
-    const normalized = getCloudUserFacingError(err);
-    console.error(`[CloudAPI] ${normalized.kind} | POST ${path}`, err);
-    throw new ApiError(0, normalized.userMessage);
+async function doFetch(
+  url: string,
+  headers: Record<string, string>,
+  body: unknown,
+  signal?: AbortSignal
+): Promise<Response> {
+  return fetch(url, {
+    method: "POST",
+    headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    credentials: isPackagedElectron ? "omit" : "include",
+    signal,
+  });
+}
+
+const RETRY_DELAY_MS = 1500;
+
+export async function cloudApiPost<T = any>(
+  path: string,
+  body?: unknown,
+  options?: CloudRequestOptions
+): Promise<T> {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    console.warn(`[CloudAPI] Blocked (offline) | POST ${path}`);
+    throw new ApiError(0, "You are offline. Please check your connection.");
   }
 
-  if (!res.ok) {
-    let rawMsg = `Request failed (${res.status})`;
+  const url = `${CLOUD_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+
+  const attempt = async (attemptNum: number): Promise<T> => {
+    const headers = await buildHeaders();
+    const jwt = useAuthStore.getState().jwt;
+
+    console.log(
+      `[CloudAPI] ${new Date().toISOString()} | POST ${path} | auth=${!!jwt} | base=${CLOUD_BASE}${attemptNum > 1 ? ` | retry=${attemptNum - 1}` : ""}`
+    );
+
+    let res: Response;
     try {
-      const data = await res.json();
-      if (data.error) rawMsg = data.error;
-      else if (data.message) rawMsg = data.message;
-    } catch {}
-    const normalized = getCloudUserFacingError(new Error(rawMsg), res.status);
-    console.error(`[CloudAPI] HTTP ${res.status} | POST ${path} | ${normalized.userMessage}`);
-    throw new ApiError(res.status, normalized.userMessage);
-  }
+      res = await doFetch(url, headers, body, options?.signal);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") throw err;
+      const normalized = getCloudUserFacingError(err);
+      console.error(`[CloudAPI] ${normalized.kind} | POST ${path}`, err);
 
-  console.log(`[CloudAPI] OK | POST ${path} | status=${res.status}`);
-  return res.json();
+      if (attemptNum === 1 && normalized.retryable) {
+        console.warn(`[CloudAPI] Network error on attempt 1, retrying in ${RETRY_DELAY_MS}ms...`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        return attempt(2);
+      }
+
+      throw new ApiError(0, normalized.userMessage);
+    }
+
+    if (!res.ok) {
+      let rawMsg = `Request failed (${res.status})`;
+      try {
+        const data = await res.json();
+        if (data.error) rawMsg = data.error;
+        else if (data.message) rawMsg = data.message;
+      } catch {}
+
+      const normalized = getCloudUserFacingError(new Error(rawMsg), res.status);
+      console.error(`[CloudAPI] HTTP ${res.status} | POST ${path} | ${normalized.userMessage}`);
+
+      if (attemptNum === 1 && res.status >= 500) {
+        console.warn(`[CloudAPI] Server error (${res.status}) on attempt 1, retrying in ${RETRY_DELAY_MS}ms...`);
+        await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        return attempt(2);
+      }
+
+      throw new ApiError(res.status, normalized.userMessage);
+    }
+
+    console.log(`[CloudAPI] OK | POST ${path} | status=${res.status}`);
+    return res.json();
+  };
+
+  return attempt(1);
 }
