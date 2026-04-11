@@ -140,6 +140,9 @@ function ElectronAppContent() {
   const [entitlementsVerified, setEntitlementsVerified] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const [showPatchNotes, setShowPatchNotes] = useState(false);
+  // Becomes true 850ms after entering "authenticated" phase so tour flows don't
+  // fire while the dashboard's own 750ms fade-in animation is still running.
+  const [isPhaseStable, setIsPhaseStable] = useState(false);
   // "resolving" = checking device first-launch status; "normal" | "first-launch" = determined
   const [splashType, setSplashType] = useState<"resolving" | "normal" | "first-launch">("resolving");
   const firstLaunchDeviceIdRef = React.useRef<string | null>(null);
@@ -196,11 +199,27 @@ function ElectronAppContent() {
       });
   }, [phase, user?.loggedIn, entitlementsAttempted]);
 
+  // Phase-stabilization gate: let the dashboard's 750ms fade-in finish before
+  // any tour overlay is allowed to mount. Resets whenever phase leaves "authenticated".
+  useEffect(() => {
+    if (phase !== "authenticated") {
+      setIsPhaseStable(false);
+      return;
+    }
+    console.log('[TourTransition] phase entered authenticated — waiting for dashboard to stabilize');
+    const t = setTimeout(() => {
+      setIsPhaseStable(true);
+      console.log('[TourTransition] dashboard stable — tours unblocked');
+    }, 850);
+    return () => clearTimeout(t);
+  }, [phase]);
+
   useEffect(() => {
     if (isResetting) return;
     if (suppressFlowsRef.current) return;
     if (!user?.loggedIn) return;
     if (phase !== "authenticated") return;
+    if (!isPhaseStable) return;
     if (activeFlow !== "none") return;
 
     const userId = user.id;
@@ -271,7 +290,7 @@ function ElectronAppContent() {
     }
 
     console.log('[AppFlow] No flow conditions met — staying idle');
-  }, [user?.loggedIn, user?.isPremium, user?.plan, user?.trialEndsAt, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, user?.hasSeenTrialActivation, user?.hasSeenTrialTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting]);
+  }, [user?.loggedIn, user?.isPremium, user?.plan, user?.trialEndsAt, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, user?.hasSeenTrialActivation, user?.hasSeenTrialTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting, isPhaseStable]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;

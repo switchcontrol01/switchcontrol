@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type ReactNode } from 'react';
+import { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from '@/lib/motionTokens';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
@@ -364,10 +364,11 @@ export function TourShell({
   const [stepIndex, setStepIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [completing, setCompleting] = useState(false);
-  // Defer rendering by one paint cycle so the app's own page fade-in has
-  // time to settle before the tour overlay appears — prevents the dark-flash
-  // glitch where the tour backdrop fires while the app is still mid-transition.
-  const [visible, setVisible] = useState(false);
+  // Two-phase mount: backdrop appears immediately (covers dashboard),
+  // card appears after a double-rAF so the backdrop is already painted.
+  const [backdropReady, setBackdropReady] = useState(false);
+  const [cardReady, setCardReady] = useState(false);
+  const transitionStartRef = useRef<number>(0);
   const [, navigate] = useLocation();
   const { setTourHighlight, setTourActive } = useTourStore();
 
@@ -383,19 +384,36 @@ export function TourShell({
     if (s?.route) navigate(s.route);
   }, [steps, setTourHighlight, navigate]);
 
-  // Gated visibility — defer one rAF tick after show=true so the underlying
-  // page transition completes before the overlay paints.
+  // Two-phase mount effect:
+  // 1. Immediately cover dashboard with full-opacity backdrop (no fade-in).
+  // 2. After double-rAF (two paint frames), animate the tour card in.
+  // On dismiss: card fades out first, backdrop follows after card exit completes.
   useEffect(() => {
     if (!show) {
-      setVisible(false);
-      return;
+      console.log('[TourTransition] tour dismissed — clearing card');
+      setCardReady(false);
+      // Keep backdrop up while card exit animation plays (~420ms), then remove
+      const t = setTimeout(() => {
+        setBackdropReady(false);
+        console.log('[TourTransition] backdrop unmounted');
+      }, 480);
+      return () => clearTimeout(t);
     }
-    // requestAnimationFrame ensures the browser has flushed the current frame
-    // (the app's fade-in) before we commit the overlay to the DOM.
-    const raf = requestAnimationFrame(() => {
-      setVisible(true);
+    // Phase 1: backdrop covers dashboard immediately on this tick
+    console.log('[TourTransition] shell stable');
+    setBackdropReady(true);
+    console.log('[TourTransition] backdrop mounted');
+    // Phase 2: double-rAF ensures backdrop is painted before card animates in
+    let raf1: number, raf2: number;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        setCardReady(true);
+        console.log('[TourTransition] card mounted');
+        transitionStartRef.current = performance.now();
+        console.log('[TourTransition] transition start');
+      });
     });
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
   }, [show]);
 
   useEffect(() => {
@@ -449,89 +467,91 @@ export function TourShell({
 
   const pal = isPremium ? tourPalette.premium : tourPalette.free;
 
-  if (!visible) return null;
-
   return (
-    <AnimatePresence>
-      <motion.div
-        key="tour-root"
-        className="fixed inset-0 z-[200] pointer-events-none"
-        data-testid={testId}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0, transition: { duration: 0.5 } }}
-        transition={{ duration: 0.35 }}
-      >
-        {/* ── Dark overlay — only over the CONTENT area (right of sidebar) ── */}
-        <div
-          className="absolute inset-y-0 right-0 pointer-events-auto"
-          style={{ left: 256 }}
-        >
-          <div className="absolute inset-0" style={{ background: 'rgba(4,3,12,0.82)' }} />
-          <div
-            className="absolute inset-0 opacity-[0.025]"
-            style={{
-              backgroundImage: 'radial-gradient(circle, rgba(200,180,255,0.8) 1px, transparent 1px)',
-              backgroundSize: '36px 36px',
-            }}
-          />
-          <TourBackdrop isPremium={isPremium} />
-        </div>
-
-        {/* ── Soft vignette on left edge of content area ── */}
-        <div
-          className="absolute inset-y-0 pointer-events-none"
-          style={{
-            left: 256, width: 80,
-            background: `linear-gradient(90deg, ${pal.primary}0.12) 0%, transparent 100%)`,
-            filter: 'blur(4px)',
-          }}
-        />
-
-        {/* ── Cinematic completion overlay (fullscreen, over sidebar too) ── */}
-        <AnimatePresence>
-          {completing && (
-            <motion.div
-              key="completing"
-              className="absolute inset-0 z-20 pointer-events-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4 }}
-            >
-              <CompletionMoment onDone={handleComplete} isPremium={isPremium} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* ── Step card — centered in content area ── */}
-        {!completing && (
-          <div
-            className="absolute inset-y-0 right-0 flex items-center justify-center pointer-events-auto"
-            style={{ left: 256 }}
+    <>
+      {/* ══ Layer 1: Dark backdrop — mounts at full opacity immediately ════════
+           NO initial fade so the dashboard is covered before anything else runs.
+           AnimatePresence handles the EXIT fade-out when show becomes false.    */}
+      <AnimatePresence>
+        {backdropReady && (
+          <motion.div
+            key="tour-backdrop"
+            className="fixed inset-0 z-[200] pointer-events-none"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.45, ease: [0.4, 0, 0.8, 1] } }}
           >
-            <AnimatePresence mode="wait" custom={direction}>
-              <motion.div
-                key={stepIndex}
-                custom={direction}
-                variants={{
-                  enter: (dir: number) => ({ opacity: 0, x: dir * 70, scale: 0.96, y: 10 }),
-                  center: { opacity: 1, x: 0, scale: 1, y: 0 },
-                  exit: (dir: number) => ({ opacity: 0, x: dir * -70, scale: 0.96, y: -10 }),
-                }}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
-                className="relative w-[460px] max-w-[calc(100vw-300px)] rounded-2xl overflow-hidden"
+            {/* Dark overlay — only over the CONTENT area (right of sidebar) */}
+            <div
+              className="absolute inset-y-0 right-0 pointer-events-auto"
+              style={{ left: 256 }}
+            >
+              <div className="absolute inset-0" style={{ background: 'rgba(4,3,12,0.82)' }} />
+              <div
+                className="absolute inset-0 opacity-[0.025]"
                 style={{
-                  background: pal.cardBg,
-                  backdropFilter: 'blur(52px) saturate(180%)',
-                  WebkitBackdropFilter: 'blur(52px) saturate(180%)',
-                  border: `1px solid ${pal.border}`,
-                  boxShadow: `0 32px 80px rgba(0,0,0,0.75), ${pal.cardGlow}, inset 0 1px 0 rgba(255,255,255,0.04)`,
+                  backgroundImage: 'radial-gradient(circle, rgba(200,180,255,0.8) 1px, transparent 1px)',
+                  backgroundSize: '36px 36px',
                 }}
-                data-testid={`${testId}-card`}
-              >
+              />
+              <TourBackdrop isPremium={isPremium} />
+            </div>
+            {/* Soft vignette on left edge of content area */}
+            <div
+              className="absolute inset-y-0 pointer-events-none"
+              style={{
+                left: 256, width: 80,
+                background: `linear-gradient(90deg, ${pal.primary}0.12) 0%, transparent 100%)`,
+                filter: 'blur(4px)',
+              }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ══ Layer 2: Tour card — fades in only after backdrop is painted ════════
+           Mounts after double-rAF, so the dark overlay is already on screen.   */}
+      <AnimatePresence>
+        {cardReady && !completing && (
+          <motion.div
+            key="tour-card-layer"
+            className="fixed inset-0 z-[201] pointer-events-none"
+            data-testid={testId}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.42, ease: [0.4, 0, 0.8, 1] } }}
+            transition={{ duration: 0.35 }}
+            onAnimationStart={() => console.log('[TourTransition] card animate start')}
+            onAnimationComplete={() => console.log('[TourTransition] transition complete')}
+          >
+            {/* Step card — centered in content area */}
+            <div
+              className="absolute inset-y-0 right-0 flex items-center justify-center pointer-events-auto"
+              style={{ left: 256 }}
+            >
+              <AnimatePresence mode="wait" custom={direction}>
+                <motion.div
+                  key={stepIndex}
+                  custom={direction}
+                  variants={{
+                    enter: (dir: number) => ({ opacity: 0, x: dir * 70, scale: 0.96, y: 10 }),
+                    center: { opacity: 1, x: 0, scale: 1, y: 0 },
+                    exit: (dir: number) => ({ opacity: 0, x: dir * -70, scale: 0.96, y: -10 }),
+                  }}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+                  className="relative w-[460px] max-w-[calc(100vw-300px)] rounded-2xl overflow-hidden"
+                  style={{
+                    background: pal.cardBg,
+                    backdropFilter: 'blur(52px) saturate(180%)',
+                    WebkitBackdropFilter: 'blur(52px) saturate(180%)',
+                    border: `1px solid ${pal.border}`,
+                    boxShadow: `0 32px 80px rgba(0,0,0,0.75), ${pal.cardGlow}, inset 0 1px 0 rgba(255,255,255,0.04)`,
+                  }}
+                  data-testid={`${testId}-card`}
+                >
                 {/* Top accent bar */}
                 <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: pal.topBar }} />
 
@@ -695,9 +715,26 @@ export function TourShell({
                 </div>
               </motion.div>
             </AnimatePresence>
-          </div>
+            </div>
+          </motion.div>
         )}
-      </motion.div>
-    </AnimatePresence>
+      </AnimatePresence>
+
+      {/* ══ Layer 3: Completion screen — fullscreen ════════════════════════════
+           Sits above both backdrop and card layers (z-[210]).               */}
+      <AnimatePresence>
+        {completing && (
+          <motion.div
+            key="completing-fullscreen"
+            className="fixed inset-0 z-[210] pointer-events-auto"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4 }}
+          >
+            <CompletionMoment onDone={handleComplete} isPremium={isPremium} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
