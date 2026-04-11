@@ -1,0 +1,101 @@
+TASK
+
+Fix premium feature gating so that clicking locked features (e.g. AI Advisor) correctly shows an upgrade modal instead of leaving the screen fully blurred with no UI.
+
+PROBLEM
+
+When clicking a premium feature on a free account:
+
+- the background blurs correctly
+- but the upgrade modal does NOT appear
+- the app becomes visually stuck in a blurred state
+- user has no interaction or explanation
+
+This is broken UX and must be fixed.
+
+GOAL
+
+Ensure all premium-locked features:
+
+- blur the background
+- show a visible, centered upgrade modal
+- allow user to close or upgrade
+- never leave the screen in a blank blurred state
+
+REFERENCE
+
+Power Plan and BIOS Advisor gating already work correctly.
+
+Reuse that exact logic and behavior.
+
+DO NOT create a new gating system.
+
+ROOT CAUSE AREAS TO CHECK
+
+1. Modal render condition
+   Ensure modal is actually mounted when:
+
+- user is not premium
+- premium feature is clicked
+
+2. Z-index layering
+   Ensure modal is above blur layer:
+
+- modal z-index must be higher than backdrop
+- no stacking context issues
+
+3. State timing
+   Ensure:
+
+- blur and modal are triggered together
+- not sequential with delay or failure
+
+4. Unmount bug
+   Check if modal is:
+
+- rendering then immediately unmounting
+- being reset by route/state changes
+
+5. Feature inconsistency
+   Compare AI Advisor vs Power Plan gating logic.
+   They must use the same pattern.
+
+REQUIRED FIX
+
+- Standardize a single PremiumGate component/system
+- All locked features must call the same logic
+- Modal must always render if blur is active
+
+FAILSAFE RULE
+
+If blur is active:
+
+- modal MUST be visible
+- otherwise automatically remove blur
+
+No state where blur exists without modal.
+
+UI REQUIREMENTS
+
+Modal must include:
+
+- title: "Premium Feature"
+- short description
+- upgrade button
+- close button
+- click outside to close
+
+TESTING
+
+- click AI Advisor on free account → modal appears
+- click Power Plan → still works
+- click BIOS Advisor → still works
+- no full blur without modal
+- no freeze state
+
+FINAL OUTPUT REQUIRED
+
+- root cause
+- files changed
+- confirmation all premium features use unified gating
+- confirmation no blank blur state exists anymore

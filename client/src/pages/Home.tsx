@@ -671,7 +671,6 @@ export default function Home() {
               viewport={{ once: true, margin: "0px 0px -60px 0px" }}
               transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
               whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title="Memory"
@@ -694,7 +693,6 @@ export default function Home() {
               viewport={{ once: true, margin: "0px 0px -60px 0px" }}
               transition={{ duration: 0.5, delay: 0.07, ease: [0.22, 1, 0.36, 1] }}
               whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title="CPU"
@@ -713,7 +711,6 @@ export default function Home() {
               viewport={{ once: true, margin: "0px 0px -60px 0px" }}
               transition={{ duration: 0.5, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
               whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title="GPU"
@@ -731,7 +728,6 @@ export default function Home() {
               viewport={{ once: true, margin: "0px 0px -60px 0px" }}
               transition={{ duration: 0.5, delay: 0.21, ease: [0.22, 1, 0.36, 1] }}
               whileHover={{ y: -2 }}
-              whileTap={{ scale: 0.98 }}
             >
               <StatCard
                 title={
@@ -809,7 +805,6 @@ export default function Home() {
             viewport={{ once: true, margin: "0px 0px -80px 0px" }}
             transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
             whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.99 }}
           >
             <GlassCard className="overflow-hidden relative group h-full">
             <div className="absolute -right-16 -top-16 h-40 w-40 bg-emerald-500/8 blur-3xl rounded-full pointer-events-none group-hover:bg-emerald-500/15 transition-colors duration-500" />
@@ -868,7 +863,6 @@ export default function Home() {
             viewport={{ once: true, margin: "0px 0px -80px 0px" }}
             transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
             whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.99 }}
             data-tour="ai-advisor"
           >
             <AIAdvisorSummaryCard isPremium={isPremium} />
@@ -881,7 +875,6 @@ export default function Home() {
             viewport={{ once: true, margin: "0px 0px -80px 0px" }}
             transition={{ duration: 0.55, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
             whileHover={{ y: -2 }}
-            whileTap={{ scale: 0.99 }}
           >
             <BiosScoreSummaryCard isPremium={isPremium} />
           </motion.div>

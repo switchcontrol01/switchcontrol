@@ -80,7 +80,6 @@ export function MotionButton({
         className
       )}
       whileHover={prefersReducedMotion || disabled ? undefined : { scale: 1.02 }}
-      whileTap={prefersReducedMotion || disabled ? undefined : { scale: 0.98 }}
       transition={{ duration: 0.12 }}
     >
       {children}
