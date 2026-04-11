@@ -908,6 +908,37 @@ export function setupGoogleAuth(app: Express): void {
     }
   });
 
+  app.post("/api/premium/reset-tour-flags", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let userId: string | null = null;
+      let authMode = 'none';
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const payload = verifyJwt(authHeader.substring(7));
+        if (payload?.sub) {
+          userId = payload.sub;
+          authMode = 'jwt';
+        }
+      } else if (req.isAuthenticated() && req.user) {
+        userId = req.user.id;
+        authMode = 'cookie';
+      }
+
+      if (!userId) {
+        return res.status(401).json({ error: "Authentication required" });
+      }
+
+      await storage.resetUserFlags(userId, { premiumTour: true, premiumUnlock: true });
+      console.log(`[FactoryReset] tour flags reset user=${userId} authMode=${authMode}`);
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error('[FactoryReset] reset-tour-flags error:', err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   app.get("/api/debug/user-flags", async (req, res) => {
     try {
       const authHeader = req.headers.authorization;

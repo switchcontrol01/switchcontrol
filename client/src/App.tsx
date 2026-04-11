@@ -11,7 +11,7 @@ import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
 import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags } from "@/lib/auth-store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
 import { DeviceLockModal } from "@/components/DeviceLockModal";
@@ -525,6 +525,7 @@ function ElectronAppContent() {
     console.log('[AppFlow] Factory reset — kill switch activated');
     setIsResetting(true);
     setActiveFlow("none");
+    await postResetTourFlags();
     await performFullLogout('factory_reset');
     localStorage.clear();
     sessionStorage.clear();

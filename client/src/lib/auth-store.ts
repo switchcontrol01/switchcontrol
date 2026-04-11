@@ -367,6 +367,40 @@ export async function postUnlockSeen(): Promise<boolean> {
   }
 }
 
+export async function postResetTourFlags(): Promise<boolean> {
+  try {
+    const jwt = getStoredJwt();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) {
+      headers['Authorization'] = `Bearer ${jwt}`;
+    }
+
+    console.log('[FactoryReset] posting reset-tour-flags...');
+    const response = await fetch(`${AUTH_DOMAIN}/api/premium/reset-tour-flags`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.warn(`[FactoryReset] reset-tour-flags failed status=${response.status} (non-fatal)`);
+      return false;
+    }
+
+    console.log('[FactoryReset] reset-tour-flags success');
+
+    const store = useAuthStore.getState();
+    if (store.user) {
+      store.setUser({ ...store.user, hasSeenPremiumTour: false, hasSeenPremiumUnlock: false });
+    }
+
+    return true;
+  } catch (err) {
+    console.warn('[FactoryReset] reset-tour-flags error (non-fatal):', err);
+    return false;
+  }
+}
+
 export async function postTourSeen(): Promise<boolean> {
   try {
     const jwt = getStoredJwt();
