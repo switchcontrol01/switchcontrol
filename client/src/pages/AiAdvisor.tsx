@@ -17,7 +17,7 @@ import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
   AlertTriangle, Loader2, Zap, Send, RotateCcw,
   Bot, User, MonitorCog, Activity, Eye,
-  Paperclip, X, CheckCircle2, TrendingUp,
+  Paperclip, X, CheckCircle2, TrendingUp, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
@@ -33,6 +33,19 @@ import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface DiagnosticFinding {
+  problem: string;
+  cause: string;
+  impact: string;
+  fix: string;
+  confidence: "high" | "medium" | "low";
+  tweakId?: string;
+}
+
+type ChatStructured =
+  | { type: "diagnostic"; findings: DiagnosticFinding[] }
+  | { type: "answer"; summary: string; detail?: string };
+
 interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
@@ -41,6 +54,14 @@ interface ChatMessage {
   isStreaming?: boolean;
   isThinking?: boolean;
   imageDataUrl?: string;
+  structured?: ChatStructured;
+}
+
+function structuredToText(s: ChatStructured): string {
+  if (s.type === "answer") return s.detail ? `${s.summary} ${s.detail}` : s.summary;
+  return s.findings
+    .map((f, i) => `Issue ${i + 1}: ${f.problem} Cause: ${f.cause} Fix: ${f.fix}`)
+    .join(" | ");
 }
 
 interface SystemContext {
@@ -245,6 +266,160 @@ function ThinkingStatus({ slow }: { slow?: boolean }) {
         )}
       </AnimatePresence>
     </span>
+  );
+}
+
+// ── Diagnostic Card (staged reveal) ──────────────────────────────────────────
+
+function DiagnosticCard({ findings }: { findings: DiagnosticFinding[] }) {
+  const [findingIdx, setFindingIdx] = useState(0);
+  const [stage, setStage] = useState(0);
+
+  const finding = findings[Math.min(findingIdx, findings.length - 1)];
+  const total = findings.length;
+
+  const goToFinding = (i: number) => { setFindingIdx(i); setStage(0); };
+
+  const confColors: Record<"high" | "medium" | "low", string> = {
+    high: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
+    medium: "bg-amber-500/15 text-amber-400 border-amber-500/20",
+    low: "bg-white/[0.06] text-white/40 border-white/10",
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {total > 1 && (
+        <div className="flex items-center gap-1.5 mb-0.5">
+          {findings.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => goToFinding(i)}
+              data-testid={`button-finding-dot-${i}`}
+              className={cn(
+                "h-[3px] rounded-full transition-all duration-300",
+                i === findingIdx ? "w-6 bg-primary/60" : "w-2 bg-white/20 hover:bg-white/35"
+              )}
+            />
+          ))}
+          <span className="text-[10px] text-white/25 ml-0.5">{findingIdx + 1}/{total}</span>
+        </div>
+      )}
+
+      <div>
+        <div className="flex items-center gap-2 mb-1.5">
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-white/25">DIAGNOSIS</span>
+          <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border", confColors[finding.confidence])}>
+            {finding.confidence} confidence
+          </span>
+        </div>
+        <p className="text-[13px] text-white font-medium leading-snug" data-testid="text-diagnosis-problem">
+          {finding.problem}
+        </p>
+      </div>
+
+      <AnimatePresence mode="wait">
+        {stage >= 1 && (
+          <motion.div
+            key={`s1-${findingIdx}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="space-y-2"
+          >
+            <div className="pl-3 border-l border-white/[0.07]">
+              <p className="text-[9px] text-white/30 uppercase tracking-wider mb-0.5">ROOT CAUSE</p>
+              <p className="text-[12px] text-white/65 leading-snug">{finding.cause}</p>
+            </div>
+            <div className="pl-3 border-l border-white/[0.07]">
+              <p className="text-[9px] text-white/30 uppercase tracking-wider mb-0.5">GAMING IMPACT</p>
+              <p className="text-[12px] text-white/65 leading-snug">{finding.impact}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {stage >= 2 && (
+          <motion.div
+            key={`s2-${findingIdx}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="p-2.5 rounded-xl bg-primary/[0.07] border border-primary/15">
+              <p className="text-[9px] text-primary/50 uppercase tracking-wider mb-1">RECOMMENDED ACTION</p>
+              <p className="text-[12px] text-white/80 leading-snug">{finding.fix}</p>
+              {finding.tweakId && (
+                <button
+                  className="mt-2 flex items-center gap-1.5 text-[11px] text-primary/70 hover:text-primary transition-colors"
+                  data-testid={`button-apply-tweak-${finding.tweakId}`}
+                >
+                  <Zap className="w-3 h-3" />
+                  Apply in SwitchControl
+                </button>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="flex items-center gap-3 pt-0.5">
+        {stage < 2 && (
+          <button
+            onClick={() => setStage(s => s + 1)}
+            data-testid="button-reveal-next-stage"
+            className="flex items-center gap-1 text-[11px] text-primary/60 hover:text-primary transition-colors"
+          >
+            {stage === 0 ? "Why is this happening?" : "How do I fix this?"}
+            <ChevronRight className="w-3 h-3" />
+          </button>
+        )}
+        {stage === 2 && findingIdx < total - 1 && (
+          <button
+            onClick={() => goToFinding(findingIdx + 1)}
+            data-testid="button-next-finding"
+            className="flex items-center gap-1 text-[11px] text-white/35 hover:text-white/55 transition-colors"
+          >
+            Next issue <ChevronRight className="w-3 h-3" />
+          </button>
+        )}
+        {stage === 2 && findingIdx === total - 1 && (
+          <span className="text-[10px] text-white/20">Diagnosis complete</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Answer Card (auto-reveal detail) ─────────────────────────────────────────
+
+function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
+  const [detailVisible, setDetailVisible] = useState(false);
+
+  useEffect(() => {
+    if (!detail) return;
+    const t = setTimeout(() => setDetailVisible(true), 380);
+    return () => clearTimeout(t);
+  }, [detail]);
+
+  return (
+    <div className="space-y-1.5">
+      <p className="text-[13px] text-white/90 leading-snug">{summary}</p>
+      <AnimatePresence>
+        {detail && detailVisible && (
+          <motion.p
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="text-[12px] text-white/55 leading-snug"
+          >
+            {detail}
+          </motion.p>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -472,12 +647,16 @@ function ChatBubble({ msg, isSlow, reducedMotion }: { msg: ChatMessage; isSlow: 
         {msg.role === "assistant" ? (
           msg.isThinking
             ? <ThinkingStatus slow={isSlow} />
-            : <>
-                <SafeMarkdown text={msg.content} />
-                {msg.isStreaming && (
-                  <span className="inline-block w-px h-[14px] bg-primary/60 ml-0.5 align-middle animate-[blink_0.75s_step-end_infinite]" />
-                )}
-              </>
+            : msg.structured
+              ? msg.structured.type === "diagnostic"
+                ? <DiagnosticCard findings={msg.structured.findings} />
+                : <AnswerCard summary={msg.structured.summary} detail={(msg.structured as { type: "answer"; summary: string; detail?: string }).detail} />
+              : <>
+                  <SafeMarkdown text={msg.content} />
+                  {msg.isStreaming && (
+                    <span className="inline-block w-px h-[14px] bg-primary/60 ml-0.5 align-middle animate-[blink_0.75s_step-end_infinite]" />
+                  )}
+                </>
         ) : (
           <SafeMarkdown text={msg.content} />
         )}
@@ -538,7 +717,11 @@ export default function AiAdvisor() {
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
     storedMessages
       .filter(m => m.content.length > 0)
-      .map(m => ({ ...m, timestamp: new Date(m.timestamp) }))
+      .map(m => ({
+        ...m,
+        timestamp: new Date(m.timestamp),
+        structured: m.structured as ChatStructured | undefined,
+      }))
   );
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -573,6 +756,7 @@ export default function AiAdvisor() {
         content: m.content,
         timestamp: m.timestamp instanceof Date ? m.timestamp.toISOString() : String(m.timestamp),
         ...(m.imageDataUrl ? { imageDataUrl: m.imageDataUrl } : {}),
+        ...(m.structured ? { structured: m.structured } : {}),
       }));
     syncToStore(toStore);
   }, [messages, syncToStore]);
@@ -706,22 +890,32 @@ export default function AiAdvisor() {
     const hasSpecs = specParts.length > 0;
     const totalKnown = enabledTweaks.length + disabledTweaks.length;
 
-    let welcome: string;
+    let welcomeStructured: ChatStructured;
     if (hasSpecs) {
       const specLine = specParts.join(" · ");
       const coveragePct = totalKnown > 0 ? Math.round((enabledTweaks.length / totalKnown) * 100) : 0;
-      const optimizationNote =
-        enabledTweaks.length === 0
-          ? `**${disabledTweaks.length}+ optimizations** are ready to activate — your system has significant untapped performance.`
-          : disabledTweaks.length > 5
-            ? `**${enabledTweaks.length} optimizations active** (${coveragePct}% coverage) — ${disabledTweaks.length} more improvements are available.`
-            : `**${enabledTweaks.length} optimizations active** — your system is well tuned. I can help fine-tune further.`;
-      welcome = `**System analysis complete.**\n\nDetected: **${specLine}**\n\n${optimizationNote}\n\nUse the quick actions on the left for targeted advice, or ask me anything.`;
+      const summary = `System detected: ${specLine}.`;
+      const detail = enabledTweaks.length === 0
+        ? `${disabledTweaks.length}+ optimizations are available — use a quick action on the left to begin diagnosis.`
+        : disabledTweaks.length > 5
+          ? `${enabledTweaks.length} tweaks active (${coveragePct}% coverage) — ${disabledTweaks.length} further improvements are available.`
+          : `${enabledTweaks.length} tweaks active — system is well-configured. Ask a question or use a quick action for targeted diagnosis.`;
+      welcomeStructured = { type: "answer", summary, detail };
     } else {
-      welcome = `**Ready to optimize.**\n\nI'm your system-aware AI advisor. I can help with FPS, input latency, network stability, BIOS settings, and more.\n\nYour hardware specs will appear once you're running on Windows. You can also upload screenshots for me to analyze.\n\nWhat would you like to work on?`;
+      welcomeStructured = {
+        type: "answer",
+        summary: "Ready to diagnose — ask about FPS, input latency, network, or BIOS settings.",
+        detail: "Hardware specs appear automatically when running on Windows. You can also upload a screenshot for analysis.",
+      };
     }
 
-    setMessages([{ id: "welcome", role: "assistant", content: welcome, timestamp: new Date() }]);
+    setMessages([{
+      id: "welcome",
+      role: "assistant",
+      content: structuredToText(welcomeStructured),
+      structured: welcomeStructured,
+      timestamp: new Date(),
+    }]);
   }, [context]);
 
   useEffect(() => {
@@ -828,7 +1022,11 @@ export default function AiAdvisor() {
 
     const chatHistory = messagesRef.current
       .filter(m => m.id !== "welcome" && m.role !== "system" && !m.isThinking)
-      .map(m => ({ role: m.role, content: m.content }));
+      .map(m => ({
+        role: m.role,
+        content: m.structured ? structuredToText(m.structured) : m.content,
+        ...(m.structured ? { structured: m.structured } : {}),
+      }));
     chatHistory.push({ role: "user", content: messageContent });
 
     try {
@@ -871,9 +1069,23 @@ export default function AiAdvisor() {
 
       if (!thinkingAdded) setMessages(prev => [...prev, placeholderMsg]);
 
-      revealContent(assistantId, data.content || "", () => {
+      if (data.structured) {
+        // Structured response: reveal immediately (card handles its own staged reveal)
+        flushSync(() => {
+          setMessages(prev => prev.map(m =>
+            m.id === assistantId
+              ? { ...m, content: structuredToText(data.structured), structured: data.structured, isThinking: false, isStreaming: false }
+              : m
+          ));
+        });
+        setTimeout(forceScrollBottom, 30);
         inputRef.current?.focus();
-      });
+      } else {
+        // Legacy fallback: sentence-by-sentence reveal
+        revealContent(assistantId, data.content || "", () => {
+          inputRef.current?.focus();
+        });
+      }
 
     } catch (err: unknown) {
       clearTimeout(thinkingTimer);
@@ -923,18 +1135,28 @@ export default function AiAdvisor() {
     const totalKnown = enabledCount + disabledCount;
     const coveragePct = totalKnown > 0 ? Math.round((enabledCount / totalKnown) * 100) : 0;
 
-    let welcome: string;
+    let resetStructured: ChatStructured;
     if (hasSpecs) {
-      const specLine = specParts.join(" · ");
-      const optimizationNote = enabledCount === 0
-        ? `**${disabledCount}+ optimizations** are ready to activate.`
-        : `**${enabledCount} optimizations active** (${coveragePct}% coverage).`;
-      welcome = `**System analysis complete.**\n\nDetected: **${specLine}**\n\n${optimizationNote}\n\nUse the quick actions on the left, or ask me anything.`;
+      const specLine = [ctx?.system.cpu, ctx?.system.gpu, ctx?.system.ram].filter(Boolean).join(" · ");
+      const detail = enabledCount === 0
+        ? `${disabledCount}+ optimizations are ready — use a quick action to begin diagnosis.`
+        : `${enabledCount} tweaks active (${coveragePct}% coverage) — ${disabledCount} more improvements available.`;
+      resetStructured = { type: "answer", summary: `System detected: ${specLine}.`, detail };
     } else {
-      welcome = `**Ready to optimize.**\n\nI'm your system-aware AI advisor. Ask about FPS, latency, network, BIOS, or upload a screenshot to analyze.`;
+      resetStructured = {
+        type: "answer",
+        summary: "Ready to diagnose — ask about FPS, latency, network, or BIOS.",
+        detail: "Upload a screenshot for visual analysis, or use the quick actions on the left.",
+      };
     }
 
-    setMessages([{ id: "welcome", role: "assistant", content: welcome, timestamp: new Date() }]);
+    setMessages([{
+      id: "welcome",
+      role: "assistant",
+      content: structuredToText(resetStructured),
+      structured: resetStructured,
+      timestamp: new Date(),
+    }]);
   };
 
   const handleQuickAction = useCallback((prompt: string) => {
@@ -994,7 +1216,7 @@ export default function AiAdvisor() {
                 <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">Beta</Badge>
                 <PremiumHeaderBadge isLocked={!isPremium} />
               </h1>
-              <p className="text-[11px] text-muted-foreground">System-aware optimization copilot</p>
+              <p className="text-[11px] text-muted-foreground">Precision system diagnosis engine</p>
             </div>
           </div>
           {messages.length > 2 && (

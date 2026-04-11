@@ -169,6 +169,23 @@ export interface AiAdviceResponse {
 }
 
 // ---------------------------------------------------------------------------
+// Chat structured response types (enforced at backend — NOT freeform text)
+// ---------------------------------------------------------------------------
+
+export interface DiagnosticFinding {
+  problem: string;
+  cause: string;
+  impact: string;
+  fix: string;
+  confidence: "high" | "medium" | "low";
+  tweakId?: string;
+}
+
+export type ChatStructuredResponse =
+  | { type: "diagnostic"; findings: DiagnosticFinding[] }
+  | { type: "answer"; summary: string; detail?: string };
+
+// ---------------------------------------------------------------------------
 // Prompts
 // ---------------------------------------------------------------------------
 
@@ -193,39 +210,40 @@ RULES:
 7. Rank all actions by expected performance impact (highest impact first).
 8. Output ONLY valid JSON matching this exact schema (no markdown, no code fences):
 {
-  "summary": "2-3 sentence summary referencing hardware, goal, and current optimization state",
+  "summary": "1-2 sentences max — state the user's current optimization status concisely",
   "userState": "new|partial|over_tweaked|goal_focused|advanced",
   "readinessScore": 0-100,
   "topFindings": [
-    { "title": "short title", "evidence": "what data led to this finding", "severity": "low|med|high" }
+    { "title": "short title, max 60 chars", "evidence": "one sentence max, max 100 chars", "severity": "low|med|high" }
   ],
   "actions": [
     {
-      "title": "specific action name",
-      "why": "why this helps their specific setup",
-      "currentIssue": "what is currently wrong or missing on their system",
-      "steps": ["step 1", "step 2"],
+      "title": "specific action name, max 60 chars",
+      "why": "one sentence max, max 100 chars",
+      "currentIssue": "one sentence max, max 100 chars",
+      "steps": ["step 1 — max 100 chars", "step 2 — max 100 chars"],
       "risk": "low|med|high",
       "reversible": true,
-      "expectedGain": "e.g. lower latency spikes, +5% FPS",
+      "expectedGain": "short label only, max 50 chars, e.g. lower latency, +5% FPS",
       "confidence": "low|med|high",
       "autoApplyPossible": true,
       "tweakId": "matching_tweak_id_if_applicable"
     }
   ],
-  "warnings": ["any cautions specific to their hardware or tweak conflicts"],
-  "followUps": ["suggested next investigations"]
+  "warnings": ["one sentence per warning, max 100 chars"],
+  "followUps": ["one sentence per followUp, max 80 chars"]
 }
-9. Provide 3-6 findings and 3-8 actions, ordered by impact (highest first).
+9. Provide EXACTLY 1-3 findings and 1-3 actions (no more). Surface only the highest-impact issues. Quality over quantity.
 10. For actions that correspond to SwitchControl tweaks, set autoApplyPossible=true and include the tweakId.
 11. For BIOS changes, dangerous registry edits, or motherboard-specific tweaks, set autoApplyPossible=false.
-12. Steps must be concrete Windows instructions (Settings paths, registry keys, or PowerShell commands).
+12. Steps must be concrete Windows instructions. Maximum 2 steps per action.
 13. Risk assessment must be honest — if something could cause instability, say "high".
 14. readinessScore: 0 = completely unoptimized, 100 = fully optimized for their goal.
-15. If telemetry shows thermal issues (CPU >85°C or GPU >90°C), prioritize thermal advice.
+15. If telemetry shows thermal issues (CPU >85°C or GPU >90°C), prioritize thermal advice first.
 16. Tailor advice to the game specified — different games need different optimizations.
 17. Do NOT recommend tweaks that are already enabled unless they should be disabled.
-18. Never recommend specific overclock values, voltage adjustments, or frequency numbers — these are hardware-specific and dangerous to guess.`;
+18. Never recommend specific overclock values, voltage adjustments, or frequency numbers.
+19. Every string field must be a SINGLE sentence. No bullet lists inside fields. No paragraphs.`;
 
 function buildUserPrompt(data: AdviceRequest): string {
   const t = data.telemetry;
@@ -312,22 +330,107 @@ ${bottleneckHints.length > 0
 Analyze this system configuration and current tweak state. Provide state-aware optimization advice as JSON.`;
 }
 
-const chatSystemPrompt = `You are SwitchControl AI Advisor — an expert Windows gaming PC optimization assistant embedded in a desktop performance suite.
+const CHAT_SYSTEM_PROMPT = `You are SwitchControl AI Advisor — a Windows gaming PC diagnosis engine.
 
-You help users optimize their PC for gaming by providing specific, actionable advice based on their hardware and current SwitchControl configuration.
+You are NOT a chatbot. You do NOT write paragraphs. You do NOT explain at length. You diagnose, and you state findings precisely.
 
-CONTEXT: You have access to the user's system specs, enabled/disabled tweaks, and live telemetry when available. Use this information to give personalized advice.
+You MUST return a JSON object matching EXACTLY one of these two schemas. No other format is accepted. No markdown. No code fences. No preamble.
 
-RULES:
-1. Be concise but thorough. Use short paragraphs, not walls of text.
-2. Reference the user's ACTUAL hardware by name when relevant.
-3. Every recommendation must be specific to their setup. No generic advice.
-4. If asked about a game, give game-specific optimization tips.
-5. If the user asks about a tweak, explain what it does and whether it's safe for their hardware.
-6. Format responses with markdown: use **bold** for emphasis, \`code\` for registry keys/commands, and bullet lists for steps.
-7. Never recommend specific overclock values or voltages.
-8. Be direct and confident. You're an expert.
-9. Keep responses under 300 words unless the user asks for detailed explanations.`;
+SCHEMA A — Diagnostic (use for: FPS, latency, stutters, bottlenecks, tweaks, BIOS, network, system performance):
+{
+  "type": "diagnostic",
+  "findings": [
+    {
+      "problem": "<single sentence, max 95 chars — what is currently wrong>",
+      "cause": "<single sentence, max 95 chars — root cause>",
+      "impact": "<single sentence, max 95 chars — how this affects gaming>",
+      "fix": "<single sentence, max 95 chars — specific corrective action>",
+      "confidence": "high" | "medium" | "low",
+      "tweakId": "<omit if not applicable — SwitchControl tweak ID if fix maps to one>"
+    }
+  ]
+}
+Return 1 to 3 findings. Highest-impact finding first. Never more than 3.
+
+SCHEMA B — Answer (use for: definitions, explanations, general knowledge, "what is X" questions):
+{
+  "type": "answer",
+  "summary": "<one sentence, max 140 chars>",
+  "detail": "<optional, max 2 sentences, max 240 chars total>"
+}
+
+STRICT RULES:
+1. Every string field is one sentence only. No embedded newlines. No bullet points inside fields.
+2. Be assertive: say "CPU scheduling is causing frame drops" not "CPU scheduling may be affecting your frames."
+3. Use actual hardware model names from the user's system — not "your CPU" but the real model.
+4. Confidence is factual: if you have clear evidence say "high", if inferred say "medium", if uncertain say "low."
+5. Do not explain your reasoning inside field text. State the finding, not how you found it.
+6. Do not hedge with "you may want to" or "it might be worth" — be direct.
+7. Return ONLY the JSON object. Nothing before it. Nothing after it.`;
+
+// ---------------------------------------------------------------------------
+// Chat response validation + field truncation
+// ---------------------------------------------------------------------------
+
+function truncateChatField(s: unknown, max: number): string {
+  if (!s || typeof s !== "string") return "";
+  const clean = s.trim().replace(/[\n\r]+/g, " ").replace(/\s{2,}/g, " ");
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max);
+  const lastSentence = Math.max(cut.lastIndexOf("."), cut.lastIndexOf("!"), cut.lastIndexOf("?"));
+  return lastSentence > max * 0.55 ? cut.slice(0, lastSentence + 1) : cut.trimEnd() + "…";
+}
+
+function validateChatResponse(raw: unknown): ChatStructuredResponse | null {
+  if (!raw || typeof raw !== "object") return null;
+  const obj = raw as Record<string, unknown>;
+
+  if (obj.type === "diagnostic") {
+    if (!Array.isArray(obj.findings) || obj.findings.length === 0) return null;
+    const conf = ["high", "medium", "low"] as const;
+    const findings: DiagnosticFinding[] = (obj.findings as unknown[])
+      .slice(0, 3)
+      .map((f: unknown) => {
+        if (!f || typeof f !== "object") return null;
+        const fi = f as Record<string, unknown>;
+        const problem = truncateChatField(fi.problem, 95);
+        const cause = truncateChatField(fi.cause, 95);
+        const impact = truncateChatField(fi.impact, 95);
+        const fix = truncateChatField(fi.fix, 95);
+        if (!problem || !cause || !impact || !fix) return null;
+        const confidence = conf.includes(fi.confidence as typeof conf[number])
+          ? (fi.confidence as "high" | "medium" | "low")
+          : "medium";
+        const result: DiagnosticFinding = { problem, cause, impact, fix, confidence };
+        if (typeof fi.tweakId === "string" && fi.tweakId.trim()) {
+          result.tweakId = fi.tweakId.trim();
+        }
+        return result;
+      })
+      .filter((f): f is DiagnosticFinding => f !== null);
+    if (findings.length === 0) return null;
+    return { type: "diagnostic", findings };
+  }
+
+  if (obj.type === "answer") {
+    const summary = truncateChatField(obj.summary, 140);
+    if (!summary) return null;
+    const detail = obj.detail ? truncateChatField(obj.detail, 240) : undefined;
+    return { type: "answer", summary, ...(detail ? { detail } : {}) };
+  }
+
+  return null;
+}
+
+// Serialize a structured chat response back to plain text for history context
+function structuredToHistoryText(s: ChatStructuredResponse): string {
+  if (s.type === "answer") {
+    return s.detail ? `${s.summary} ${s.detail}` : s.summary;
+  }
+  return s.findings
+    .map((f, i) => `Finding ${i + 1}: ${f.problem} Cause: ${f.cause} Impact: ${f.impact} Fix: ${f.fix}`)
+    .join(" | ");
+}
 
 function buildChatContext(context: any): string {
   const parts: string[] = [];
@@ -437,17 +540,19 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
   try {
     const contextInfo = buildChatContext(context);
+
+    // Images get a special instruction appended — still expect structured JSON
     const imageNote = hasImage
-      ? "\n\nThe user has attached a screenshot or image for you to analyze. Examine it carefully and provide specific, actionable insights based on what you see."
+      ? "\n\nThe user has attached a screenshot or image. Analyze what you see in the image and return your findings in the standard JSON schema."
       : "";
-    const systemMessage = `${chatSystemPrompt}${imageNote}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
+    const systemMessage = `${CHAT_SYSTEM_PROMPT}${imageNote}\n\nUSER'S CURRENT SYSTEM STATE:\n${contextInfo}`;
 
     // For image requests, always use a vision-capable model
     const visionModel = hasImage ? "gpt-4o-mini" : model;
 
     const sliced = messages.slice(-10);
 
-    // Build OpenAI messages — attach image to the last user message if provided
+    // Build OpenAI messages — serialize any structured assistant messages back to text for context
     type OaiMsg =
       | { role: "system"; content: string }
       | { role: "user"; content: string | Array<{ type: "text"; text: string } | { type: "image_url"; image_url: { url: string; detail: "auto" } }> }
@@ -458,7 +563,14 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       ...sliced.map((m: any, i: number): OaiMsg => {
         const isLast = i === sliced.length - 1;
         const isUser = m.role === "user";
-        const textContent = String(m.content).slice(0, 2000);
+
+        // If the message has a structured field (from previous AI responses), serialize it
+        let textContent: string;
+        if (!isUser && m.structured) {
+          textContent = structuredToHistoryText(m.structured).slice(0, 2000);
+        } else {
+          textContent = String(m.content || "").slice(0, 2000);
+        }
 
         if (isLast && isUser && hasImage) {
           return {
@@ -480,18 +592,48 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
     const completion = await openai.chat.completions.create({
       model: visionModel,
-      max_tokens: hasImage ? 1200 : 800,
-      temperature: 0.5,
+      max_tokens: hasImage ? 600 : 500,
+      temperature: 0.3,
       messages: openaiMessages as any,
+      // Images don't support json_object format — parse manually
+      ...(hasImage ? {} : { response_format: { type: "json_object" } }),
     });
 
-    const content = completion.choices[0]?.message?.content;
-    if (!content) {
+    const rawContent = completion.choices[0]?.message?.content;
+    if (!rawContent) {
       return res.status(502).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    console.log(`[AI:chat] OK | user=${cloudUser?.id} | response=${content.length} chars`);
-    return res.json({ role: "assistant", content });
+    // Parse and validate the structured response
+    let parsed: unknown;
+    try {
+      // Strip code fences if model added them despite instructions
+      const cleaned = rawContent.trim().replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
+      parsed = JSON.parse(cleaned);
+    } catch {
+      console.warn(`[AI:chat] JSON parse failed | user=${cloudUser?.id} | raw=${rawContent.slice(0, 200)}`);
+      // Graceful fallback: wrap the raw text as an answer-type response
+      const fallback: ChatStructuredResponse = {
+        type: "answer",
+        summary: rawContent.trim().slice(0, 140),
+      };
+      return res.json({ role: "assistant", structured: fallback });
+    }
+
+    const structured = validateChatResponse(parsed);
+    if (!structured) {
+      console.warn(`[AI:chat] Validation failed | user=${cloudUser?.id} | type=${(parsed as any)?.type}`);
+      // Fallback: try to extract something useful
+      const fallback: ChatStructuredResponse = {
+        type: "answer",
+        summary: "Diagnosis unavailable — please try a more specific question.",
+      };
+      return res.json({ role: "assistant", structured: fallback });
+    }
+
+    console.log(`[AI:chat] OK | user=${cloudUser?.id} | type=${structured.type} | findings=${structured.type === "diagnostic" ? structured.findings.length : 0}`);
+    return res.json({ role: "assistant", structured });
+
   } catch (error: any) {
     const status = error?.status;
     console.error(`[AI:chat] ERROR | user=${cloudUser?.id} | status=${status} | ${error?.message || "unknown"}`);
@@ -548,7 +690,7 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
   }
 
   try {
-    const maxTokens = parseInt(process.env.AI_MAX_TOKENS || "1800", 10);
+    const maxTokens = parseInt(process.env.AI_MAX_TOKENS || "1100", 10);
 
     console.log(`[AI:advice] Calling OpenAI | user=${cloudUser?.id} | goal=${parsed.data.goal} | game=${parsed.data.game}`);
 

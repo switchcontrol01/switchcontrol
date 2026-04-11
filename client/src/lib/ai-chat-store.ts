@@ -6,6 +6,7 @@ export interface PersistedChatMessage {
   content: string;
   timestamp: string;
   imageDataUrl?: string;
+  structured?: unknown;
 }
 
 interface AiChatStore {
