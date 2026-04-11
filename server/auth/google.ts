@@ -9,6 +9,7 @@ import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
 import { storage } from "../storage";
 import { signJwt, verifyJwt } from "../lib/jwt";
+import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
 
 declare global {
   namespace Express {
@@ -729,7 +730,10 @@ export function setupGoogleAuth(app: Express): void {
         try {
           const dbUser = await storage.getUser(payload.sub);
           if (dbUser) {
-            console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id} isPremium=${dbUser.isPremium} hasSeenPremiumUnlock=${dbUser.hasSeenPremiumUnlock}`);
+            const effectivePlan = resolveEffectivePlan(dbUser);
+            const activePremium = isPlanActive(effectivePlan);
+            console.log(`[AUTH] /api/me authMode=jwt loggedIn=true user=${dbUser.id} effectivePlan=${effectivePlan} isPremium=${activePremium}`);
+            storage.updateUserActivity(dbUser.id, { lastLoginAt: new Date() }).catch(() => {});
             res.setHeader('X-Auth-Mode', 'jwt');
             return res.json({
               loggedIn: true,
@@ -739,7 +743,10 @@ export function setupGoogleAuth(app: Express): void {
               firstName: dbUser.firstName,
               lastName: dbUser.lastName,
               avatar: dbUser.profileImageUrl,
-              isPremium: dbUser.isPremium || false,
+              isPremium: activePremium,
+              plan: effectivePlan,
+              trialEndsAt: dbUser.trialEndsAt ?? null,
+              isAdmin: dbUser.isAdmin || false,
               hasSeenPremiumUnlock: dbUser.hasSeenPremiumUnlock || false,
               hasSeenPremiumTour: dbUser.hasSeenPremiumTour || false,
               authMode: 'jwt',
@@ -759,8 +766,12 @@ export function setupGoogleAuth(app: Express): void {
 
     if (hasCookie) {
       const dbUser = await storage.getUser(req.user!.id);
-      console.log(`[AUTH] using cookie — user=${req.user!.id} isPremium=${dbUser?.isPremium}`);
-      console.log(`[AUTH] /api/me authMode=cookie loggedIn=true user=${req.user!.id} hasSeenPremiumUnlock=${dbUser?.hasSeenPremiumUnlock}`);
+      const effectivePlan = dbUser ? resolveEffectivePlan(dbUser) : "free";
+      const activePremium = dbUser ? isPlanActive(effectivePlan) : false;
+      console.log(`[AUTH] using cookie — user=${req.user!.id} effectivePlan=${effectivePlan} isPremium=${activePremium}`);
+      if (dbUser) {
+        storage.updateUserActivity(dbUser.id, { lastLoginAt: new Date() }).catch(() => {});
+      }
       res.setHeader('X-Auth-Mode', 'cookie');
       return res.json({
         loggedIn: true,
@@ -770,7 +781,10 @@ export function setupGoogleAuth(app: Express): void {
         firstName: req.user!.firstName,
         lastName: req.user!.lastName,
         avatar: req.user!.profileImageUrl,
-        isPremium: dbUser?.isPremium || false,
+        isPremium: activePremium,
+        plan: effectivePlan,
+        trialEndsAt: dbUser?.trialEndsAt ?? null,
+        isAdmin: dbUser?.isAdmin || false,
         hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
         hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
         authMode: 'cookie',
@@ -785,6 +799,8 @@ export function setupGoogleAuth(app: Express): void {
   app.get("/api/auth/me", async (req, res) => {
     if (req.isAuthenticated() && req.user) {
       const dbUser = await storage.getUser(req.user.id);
+      const effectivePlan = dbUser ? resolveEffectivePlan(dbUser) : "free";
+      const activePremium = dbUser ? isPlanActive(effectivePlan) : false;
       return res.json({
         loggedIn: true,
         id: req.user.id,
@@ -793,12 +809,15 @@ export function setupGoogleAuth(app: Express): void {
         firstName: req.user.firstName,
         lastName: req.user.lastName,
         avatar: req.user.profileImageUrl,
-        isPremium: dbUser?.isPremium || false,
+        isPremium: activePremium,
+        plan: effectivePlan,
+        trialEndsAt: dbUser?.trialEndsAt ?? null,
+        isAdmin: dbUser?.isAdmin || false,
         hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
         hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
       });
     }
-    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false });
+    return res.json({ loggedIn: false, isPremium: false, plan: "free", isAdmin: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false });
   });
 
   app.post("/api/premium/unlock-seen", async (req, res) => {
@@ -976,6 +995,7 @@ export function setupGoogleAuth(app: Express): void {
       }
 
       let user: Express.User;
+      let dbUserForExchange: any = null;
       if (isNoDbMode || !db) {
         user = {
           id: userId,
@@ -996,14 +1016,15 @@ export function setupGoogleAuth(app: Express): void {
           return res.status(401).json({ success: false, error: 'User not found' });
         }
 
-        const dbUser = userRows[0];
+        dbUserForExchange = userRows[0];
+        const effectivePlanExchange = resolveEffectivePlan(dbUserForExchange);
         user = {
-          id: dbUser.id,
-          email: dbUser.email,
-          firstName: dbUser.firstName,
-          lastName: dbUser.lastName,
-          profileImageUrl: dbUser.profileImageUrl,
-          isPremium: dbUser.isPremium,
+          id: dbUserForExchange.id,
+          email: dbUserForExchange.email,
+          firstName: dbUserForExchange.firstName,
+          lastName: dbUserForExchange.lastName,
+          profileImageUrl: dbUserForExchange.profileImageUrl,
+          isPremium: isPlanActive(effectivePlanExchange),
         };
       }
 
@@ -1019,6 +1040,9 @@ export function setupGoogleAuth(app: Express): void {
         const jwtToken = signJwt(user.id);
         console.log(`[JWT] issued for user: ${user.id}`);
 
+        const effectivePlanFinal = dbUserForExchange ? resolveEffectivePlan(dbUserForExchange) : "free";
+        storage.updateUserActivity(user.id, { lastLoginAt: new Date() }).catch(() => {});
+
         return res.json({
           success: true,
           jwt: jwtToken,
@@ -1030,6 +1054,11 @@ export function setupGoogleAuth(app: Express): void {
             lastName: user.lastName,
             avatar: user.profileImageUrl,
             isPremium: user.isPremium,
+            plan: effectivePlanFinal,
+            trialEndsAt: dbUserForExchange?.trialEndsAt ?? null,
+            isAdmin: dbUserForExchange?.isAdmin || false,
+            hasSeenPremiumUnlock: dbUserForExchange?.hasSeenPremiumUnlock || false,
+            hasSeenPremiumTour: dbUserForExchange?.hasSeenPremiumTour || false,
           }
         });
       });

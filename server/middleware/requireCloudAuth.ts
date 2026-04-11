@@ -1,11 +1,12 @@
 import { RequestHandler } from "express";
 import { verifyJwt } from "../lib/jwt";
 import { storage } from "../storage";
+import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
 
 declare global {
   namespace Express {
     interface Request {
-      cloudUser?: { id: string; isPremium: boolean; email: string | null };
+      cloudUser?: { id: string; isPremium: boolean; email: string | null; isAdmin: boolean };
     }
   }
 }
@@ -25,8 +26,14 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
       if (!user) {
         return res.status(401).json({ error: "User account not found. Please log in again." });
       }
-      req.cloudUser = { id: user.id, isPremium: !!user.isPremium, email: user.email ?? null };
-      console.log(`[CloudAuth] JWT OK | user=${user.id} premium=${user.isPremium}`);
+      const effectivePlan = resolveEffectivePlan(user);
+      req.cloudUser = {
+        id: user.id,
+        isPremium: isPlanActive(effectivePlan),
+        email: user.email ?? null,
+        isAdmin: user.isAdmin ?? false,
+      };
+      console.log(`[CloudAuth] JWT OK | user=${user.id} effectivePlan=${effectivePlan} isPremium=${req.cloudUser.isPremium}`);
       return next();
     } catch (e) {
       console.error("[CloudAuth] DB error during JWT auth:", e);
@@ -39,7 +46,13 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
     try {
       const user = await storage.getUser(sessionUser.id);
       if (user) {
-        req.cloudUser = { id: user.id, isPremium: !!user.isPremium, email: user.email ?? null };
+        const effectivePlan = resolveEffectivePlan(user);
+        req.cloudUser = {
+          id: user.id,
+          isPremium: isPlanActive(effectivePlan),
+          email: user.email ?? null,
+          isAdmin: user.isAdmin ?? false,
+        };
         return next();
       }
     } catch {}

@@ -22,6 +22,21 @@ Key data models include `userSettings` (preferences, tier), `appliedTweaks` (ena
 ### Application Structure
 The application is structured into `client/src` (frontend components, hooks, utilities, pages), `server/` (Express entry, routes, database), and `shared/` (Drizzle schema, auth models).
 
+### Admin System
+- **Schema** (`shared/models/auth.ts`): `users` table extended with `plan` (free/trial/premium), `trialStartedAt`, `trialEndsAt`, `trialDurationHours`, `isAdmin`, `lastLoginAt`, `lastAppActiveAt`; new `adminLogs` table for audit trail.
+- **Plan Resolution** (`server/lib/planUtils.ts`): `resolveEffectivePlan` is the single source of truth — Stripe premium overrides everything; admin-set `plan='premium'/'trial'` applies if active; else free.
+- **Admin Routes** (`server/routes/admin.ts`): All at `/api/admin/*`, protected by `requireAdmin` middleware (JWT + session).
+  - `GET /users` — paginated user list with search/plan filter
+  - `GET /users/:id` — single user detail
+  - `PATCH /users/:id/plan` — set plan + trial duration
+  - `PATCH /users/:id/admin-status` — toggle admin (self-demotion blocked)
+  - `GET /logs` — audit log (filterable by userId)
+  - `GET /me` — quick auth self-check
+  - `POST /bootstrap` — one-time self-service admin grant (first user only, or with `ADMIN_SETUP_KEY` env var)
+- **Admin Panel** (`client/src/pages/Admin.tsx`): Full CRUD UI at `/admin` route — user table with search/filter/plan badges, trial countdowns, SetPlan dialog, UserDetailPanel with audit logs, admin toggle.
+- **Activity Tracking**: `POST /api/activity/ping` for Electron app heartbeat (`lastAppActiveAt`); `lastLoginAt` updated on every auth.
+- **AuthUser type** (`client/src/lib/auth-store.ts`): Extended with `plan`, `trialEndsAt`, `isAdmin` fields synced from `/api/me`.
+
 ### Network Diagnostics System (Premium)
 - **Backend** (`server/routes/networkDiagnostics.ts`) mounted at `/api/network/*`:
   - `GET /ping-sample` — 3 TCP probes to Cloudflare/Google/OpenDNS, returns avg/min/max/jitter/loss

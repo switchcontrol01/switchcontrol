@@ -42,6 +42,7 @@ const Privacy = lazy(() => import("@/pages/Privacy"));
 const Success = lazy(() => import("@/pages/Success"));
 const PremiumSuccess = lazy(() => import("@/pages/PremiumSuccess"));
 const LoginPage = lazy(() => import("@/pages/Login"));
+const AdminPage = lazy(() => import("@/pages/Admin"));
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
@@ -108,6 +109,7 @@ function WebsiteRoutes() {
         <Route path="/privacy" component={Privacy} />
         <Route path="/success" component={Success} />
         <Route path="/premium-success" component={PremiumSuccess} />
+        <Route path="/admin" component={AdminPage} />
         <Route>
           <Landing />
         </Route>
@@ -683,8 +685,10 @@ function WebsiteContent() {
               email: data.email,
               username: data.name || data.firstName,
               avatarUrl: data.avatar,
-              plan: data.isPremium ? 'premium' : 'free',
+              plan: data.plan || (data.isPremium ? 'premium' : 'free'),
               isPremium: data.isPremium,
+              trialEndsAt: data.trialEndsAt || null,
+              isAdmin: data.isAdmin || false,
               hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
               hasSeenPremiumTour: !!data.hasSeenPremiumTour,
               loggedIn: true,

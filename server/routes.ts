@@ -13,6 +13,7 @@ import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
 import securityRouter from "./routes/security";
 import networkDiagnosticsRouter from "./routes/networkDiagnostics";
+import adminRouter from "./routes/admin";
 import { getSnapshot, getSystemSpecs } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
 
@@ -28,6 +29,7 @@ export async function registerRoutes(
   app.use("/api/bios", requireJwt, requireCloudPremium, biosRouter);
   app.use("/api/security", securityRouter);
   app.use("/api/network", networkDiagnosticsRouter);
+  app.use("/api/admin", adminRouter);
 
   // Cloud connectivity probe — used by packaged Electron to verify JWT auth without an OpenAI call
   app.post("/api/ai/cloud-probe", requireJwt, requireCloudPremium, (req, res) => {
@@ -528,6 +530,17 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Session retrieval error:", error);
       res.status(500).json({ error: error.message || "Failed to retrieve session" });
+    }
+  });
+
+  // Activity ping — called by Electron app to track lastAppActiveAt
+  app.post("/api/activity/ping", requireJwt, async (req, res) => {
+    try {
+      const cloudUser = req.cloudUser!;
+      await storage.updateUserActivity(cloudUser.id, { lastAppActiveAt: new Date() });
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: "Activity update failed." });
     }
   });
 

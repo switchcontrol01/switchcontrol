@@ -17,6 +17,8 @@ export interface AuthUser {
   avatarUrl: string | null;
   plan: string;
   isPremium: boolean;
+  trialEndsAt: string | null;
+  isAdmin: boolean;
   hasSeenPremiumUnlock: boolean;
   hasSeenPremiumTour: boolean;
   loggedIn: boolean;
@@ -174,8 +176,10 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       email: data.user.email || null,
       username: data.user.name || data.user.firstName || null,
       avatarUrl: data.user.avatar || null,
-      plan: data.user.isPremium ? 'premium' : 'free',
+      plan: data.user.plan || (data.user.isPremium ? 'premium' : 'free'),
       isPremium: data.user.isPremium || false,
+      trialEndsAt: data.user.trialEndsAt || null,
+      isAdmin: data.user.isAdmin || false,
       hasSeenPremiumUnlock: !!data.user.hasSeenPremiumUnlock,
       hasSeenPremiumTour: !!data.user.hasSeenPremiumTour,
       loggedIn: true,
@@ -222,8 +226,10 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
       email: data.email || null,
       username: data.name || data.firstName || null,
       avatarUrl: data.avatar || null,
-      plan: data.isPremium ? 'premium' : 'free',
+      plan: data.plan || (data.isPremium ? 'premium' : 'free'),
       isPremium: data.isPremium || false,
+      trialEndsAt: data.trialEndsAt || null,
+      isAdmin: data.isAdmin || false,
       hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
       hasSeenPremiumTour: !!data.hasSeenPremiumTour,
       loggedIn: true,
@@ -268,8 +274,10 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
       email: data.email || null,
       username: data.name || data.firstName || null,
       avatarUrl: data.avatar || null,
-      plan: data.isPremium ? 'premium' : 'free',
+      plan: data.plan || (data.isPremium ? 'premium' : 'free'),
       isPremium: data.isPremium || false,
+      trialEndsAt: data.trialEndsAt || null,
+      isAdmin: data.isAdmin || false,
       hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
       hasSeenPremiumTour: !!data.hasSeenPremiumTour,
       loggedIn: true,

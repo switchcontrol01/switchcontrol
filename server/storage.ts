@@ -4,6 +4,7 @@ import {
   historyEntries, 
   aiScans,
   users,
+  adminLogs,
   type UserSettings, 
   type InsertUserSettings,
   type AppliedTweak,
@@ -12,10 +13,26 @@ import {
   type InsertHistoryEntry,
   type AIScan,
   type InsertAIScan,
-  type User
+  type User,
+  type AdminLog,
+  type InsertAdminLog,
 } from "@shared/schema";
 import { db, isNoDbMode } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, ilike, or, count, sql as drizzleSql } from "drizzle-orm";
+
+export interface ListUsersOpts {
+  limit?: number;
+  offset?: number;
+  search?: string;
+  plan?: string;
+}
+
+export interface SetPlanOpts {
+  plan: "free" | "trial" | "premium" | null;
+  trialDurationHours?: number;
+  reason?: string;
+  grantedByAdminId?: string;
+}
 
 export interface IStorage {
   getOrCreateSettings(): Promise<UserSettings>;
@@ -38,6 +55,15 @@ export interface IStorage {
   setUserPremium(userId: string, isPremium: boolean): Promise<User>;
   markPremiumUnlockSeen(userId: string): Promise<User>;
   markPremiumTourSeen(userId: string): Promise<User>;
+  updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date }): Promise<void>;
+
+  // Admin
+  listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
+  countAdmins(): Promise<number>;
+  setUserPlan(userId: string, opts: SetPlanOpts): Promise<User>;
+  setUserAdmin(userId: string, isAdmin: boolean): Promise<User>;
+  addAdminLog(log: Omit<InsertAdminLog, "id" | "createdAt">): Promise<AdminLog>;
+  getAdminLogs(opts: { targetUserId?: string; limit?: number; offset?: number }): Promise<AdminLog[]>;
 }
 
 class MockStorage implements IStorage {
@@ -146,6 +172,34 @@ class MockStorage implements IStorage {
   async markPremiumTourSeen(userId: string): Promise<User> {
     throw new Error("Database not available in NO-DB mode");
   }
+
+  async updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date }): Promise<void> {
+    // no-op in mock mode
+  }
+
+  async listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }> {
+    return { users: [], total: 0 };
+  }
+
+  async countAdmins(): Promise<number> {
+    return 0;
+  }
+
+  async setUserPlan(userId: string, opts: SetPlanOpts): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async setUserAdmin(userId: string, isAdmin: boolean): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async addAdminLog(log: Omit<InsertAdminLog, "id" | "createdAt">): Promise<AdminLog> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async getAdminLogs(opts: { targetUserId?: string; limit?: number; offset?: number }): Promise<AdminLog[]> {
+    return [];
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -249,9 +303,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async setUserPremium(userId: string, isPremium: boolean): Promise<User> {
+    const planValue = isPremium ? "premium" : "free";
     const [updated] = await db!
       .update(users)
-      .set({ isPremium, updatedAt: new Date() })
+      .set({ isPremium, plan: planValue, updatedAt: new Date() })
       .where(eq(users.id, userId))
       .returning();
     return updated;
@@ -273,6 +328,138 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  async updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date }): Promise<void> {
+    await db!
+      .update(users)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }> {
+    const limit = opts.limit ?? 50;
+    const offset = opts.offset ?? 0;
+
+    const conditions: any[] = [];
+
+    if (opts.search) {
+      const term = `%${opts.search}%`;
+      conditions.push(
+        or(
+          ilike(users.email, term),
+          ilike(users.firstName, term),
+          ilike(users.lastName, term)
+        )
+      );
+    }
+
+    if (opts.plan === "premium") {
+      conditions.push(
+        or(eq(users.plan, "premium"), eq(users.isPremium, true))
+      );
+    } else if (opts.plan === "trial") {
+      conditions.push(eq(users.plan, "trial"));
+    } else if (opts.plan === "free") {
+      conditions.push(
+        and(
+          or(eq(users.plan, "free"), drizzleSql`${users.plan} IS NULL`),
+          eq(users.isPremium, false)
+        )
+      );
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    const [{ value: total }] = await db!
+      .select({ value: count() })
+      .from(users)
+      .where(whereClause);
+
+    const rows = await db!
+      .select()
+      .from(users)
+      .where(whereClause)
+      .orderBy(desc(users.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return { users: rows, total: Number(total) };
+  }
+
+  async setUserPlan(userId: string, opts: SetPlanOpts): Promise<User> {
+    const now = new Date();
+    let updateData: Partial<User> = { updatedAt: now };
+
+    if (opts.plan === "premium") {
+      updateData.plan = "premium";
+      updateData.isPremium = true;
+      updateData.trialEndsAt = null;
+      updateData.trialStartedAt = null;
+    } else if (opts.plan === "trial") {
+      const hours = opts.trialDurationHours ?? 72;
+      const trialEndsAt = new Date(now.getTime() + hours * 60 * 60 * 1000);
+      updateData.plan = "trial";
+      updateData.trialStartedAt = now;
+      updateData.trialEndsAt = trialEndsAt;
+      updateData.trialDurationHours = hours;
+      updateData.trialGrantedByAdminId = opts.grantedByAdminId ?? null;
+      updateData.trialReason = opts.reason ?? null;
+      updateData.hasUsedTrial = true;
+    } else if (opts.plan === "free" || opts.plan === null) {
+      updateData.plan = "free";
+      updateData.isPremium = false;
+      updateData.trialEndsAt = null;
+      updateData.trialStartedAt = null;
+      updateData.trialGrantedByAdminId = null;
+      updateData.trialReason = null;
+    }
+
+    const [updated] = await db!
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async countAdmins(): Promise<number> {
+    const [{ value }] = await db!
+      .select({ value: count() })
+      .from(users)
+      .where(eq(users.isAdmin, true));
+    return Number(value);
+  }
+
+  async setUserAdmin(userId: string, isAdmin: boolean): Promise<User> {
+    const [updated] = await db!
+      .update(users)
+      .set({ isAdmin, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async addAdminLog(log: Omit<InsertAdminLog, "id" | "createdAt">): Promise<AdminLog> {
+    const [created] = await db!
+      .insert(adminLogs)
+      .values(log)
+      .returning();
+    return created;
+  }
+
+  async getAdminLogs(opts: { targetUserId?: string; limit?: number; offset?: number }): Promise<AdminLog[]> {
+    const limit = opts.limit ?? 50;
+    const offset = opts.offset ?? 0;
+    const where = opts.targetUserId ? eq(adminLogs.targetUserId, opts.targetUserId) : undefined;
+
+    return db!
+      .select()
+      .from(adminLogs)
+      .where(where)
+      .orderBy(desc(adminLogs.createdAt))
+      .limit(limit)
+      .offset(offset);
   }
 }
 
