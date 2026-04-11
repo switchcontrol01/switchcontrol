@@ -14,26 +14,18 @@
 
 // ── PremiumUpgradeAnimation phase timeline ────────────────────────────────────
 export const UPGRADE_TIMING = {
-  /** Initial background darken */
-  darkenMs:       0,
-  /** Lock icon appears */
-  lockAppearMs:   500,
-  /** Glow ring + pulse begin */
-  glowBuildMs:    1500,
-  /** Shake buildup intensifies */
-  shakeBuildupMs: 2800,
-  /** Lock snaps open */
-  unlockSnapMs:   3500,
-  /** Shockwave burst */
-  shockwaveMs:    3800,
-  /** Logo fades in */
-  logoRevealMs:   4300,
-  /** Text + feature list reveals */
-  textRevealMs:   4900,
+  /** Phase 1 — Detection begins: background dims, status text, ambient glow */
+  detectingMs:    0,
+  /** Phase 2 — Activation: rings expand, particles, logo scales */
+  activatingMs:   600,
+  /** Phase 3 — Completion: glow pulse, main text reveals */
+  completingMs:   1600,
+  /** Hold — everything visible, subtle breathing */
+  holdingMs:      3300,
   /** Scene begins exiting */
-  exitingMs:      6200,
+  exitingMs:      4100,
   /** Animation fully done, onComplete fires */
-  doneMs:         6800,
+  doneMs:         4800,
   /** Reduced-motion fast path */
   reducedDoneMs:  2000,
 } as const;

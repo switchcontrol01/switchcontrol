@@ -1,0 +1,87 @@
+13. BULK ACTIONS
+Improve bulk control options.
+
+Need real actions like:
+- Apply profile
+- Delay all non-essential
+- Restore defaults
+- Protect core apps
+- Disable selected safe items
+
+These must all be real backend operations.
+
+14. CATEGORY GROUPING
+Keep grouped startup categories, but improve them visually and functionally.
+
+Examples:
+- Drivers & Hardware
+- Communication
+- Cloud & Sync
+- Launchers
+- Updaters
+- Unknown
+
+Need:
+- real grouping logic from backend metadata
+- clean expandable sections
+- better category summary
+- better per-category action hints
+
+15. HISTORY / LOGGING
+Add useful logging/history.
+
+Need:
+- startup item changed
+- old state
+- new state
+- delay assigned
+- profile applied
+- timestamp
+- verification result
+- failures
+
+16. EMPTY / LIMITED STATES
+Handle:
+- no startup apps found
+- delay unsupported for certain item
+- protected system item
+- unmanaged startup source
+- verification failure
+- unknown publisher/source
+
+Be honest, not simulated.
+
+17. PERFORMANCE / SAFETY
+Need:
+- do not break critical startup/system entries
+- protect important items by default
+- do not disable core hardware/security startup components recklessly
+- delay logic must be stable and reversible
+- UI remains smooth and responsive
+
+CHECKLIST
+- startup backend audit completed
+- real startup scan/discovery implemented/fixed
+- real enable/disable/delay logic implemented
+- profiles are backend-driven
+- timeline kept and significantly improved
+- repetitive tick-style interaction reduced/replaced
+- graph/timeline UI upgraded
+- verification implemented
+- bulk actions implemented
+- frontend redesign improved
+- no fake startup states remain
+
+FINAL OUTPUT
+Return:
+1. root causes found
+2. files changed
+3. backend architecture added/fixed
+4. startup discovery sources used
+5. enable/disable/delay implementation summary
+6. profile system summary
+7. timeline/graph UI upgrades
+8. interaction redesign summary
+9. verification logic summary
+10. unsupported/deferred parts
+11. safety/performance notes

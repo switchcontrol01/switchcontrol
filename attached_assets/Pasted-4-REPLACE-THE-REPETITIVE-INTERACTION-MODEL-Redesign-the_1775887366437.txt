@@ -1,0 +1,157 @@
+4. REPLACE THE REPETITIVE INTERACTION MODEL
+Redesign the page so the primary interaction is NOT just lots of repetitive tick/toggle controls.
+
+New interaction model should prioritize:
+- startup strategy profiles
+- per-item delay presets
+- action chips
+- grouped controls
+- timeline-first orchestration
+- better bulk actions
+
+The user should feel like they are arranging startup flow, not manually toggling a spreadsheet.
+
+5. KEEP AND UPGRADE TIMELINE FEATURE
+The timeline is one of the strongest and most unique ideas on the page.
+Keep it and improve it heavily.
+
+The timeline should become a premium visual orchestration layer that shows:
+- startup sequence
+- immediate launch apps
+- delayed launch apps
+- protected/core apps
+- estimated boot impact distribution
+- category groupings
+- maybe staged launch bands
+
+Need:
+- fluid animated timeline
+- clean horizontal sequence visualization
+- app chips / blocks placed in launch order
+- smooth transitions when delay state changes
+- better readability and hierarchy
+- premium glass/timeline treatment
+
+This should feel like a true signature feature.
+
+6. REAL DELAY / ENABLE / DISABLE LOGIC
+Implement real backend logic for:
+- enable startup item
+- disable startup item
+- assign delay state / startup phase
+- restore default behavior
+
+If true delayed startup orchestration requires a wrapper/task mechanism, implement it properly and cleanly.
+Do not fake “delay” as a visual-only dropdown.
+
+If delays are handled through a scheduled task / wrapper / orchestrator, make that real.
+
+7. STARTUP PROFILES
+Make startup profiles real and more central to the UX.
+
+Examples:
+- Gaming Startup
+- Minimal Boot
+- Creator Boot
+- Laptop / Battery
+- Default Windows
+
+These profiles must be backend-driven and map to actual startup strategies:
+- which apps stay immediate
+- which apps are delayed
+- which apps are disabled
+- which apps are protected
+
+Do NOT leave profiles as visual-only tabs.
+
+8. FRONTEND REDESIGN
+Redesign the page to feel more premium and less repetitive.
+
+Better structure:
+- top summary metrics
+- hero timeline section
+- startup strategy/profile selector
+- grouped startup sections
+- cleaner per-item controls
+- better action summary area
+
+Improve:
+- spacing
+- hierarchy
+- row/card composition
+- selected state treatment
+- category grouping
+- reduced clutter
+
+9. BETTER PER-ITEM CONTROL DESIGN
+Do NOT use too many repetitive tick/enable row controls.
+
+Use a cleaner control model such as:
+- current state chip
+- delay preset dropdown / segmented action
+- protect / immediate / delayed / disabled status
+- richer row actions
+- stronger per-item hierarchy
+
+The rows should feel like startup policy cards, not checkbox rows.
+
+10. GRAPH / VISUAL UI EVERYWHERE
+Yes, add graph UI here too, but startup-specific.
+
+Use meaningful premium visuals like:
+- startup timeline graph
+- boot phase distribution chart
+- enabled vs delayed vs disabled breakdown
+- startup impact stacked bars
+- before vs after boot strategy summary
+- category footprint chart
+
+These graphs must be:
+- fluid
+- animated
+- premium
+- clean
+- consistent with the page
+- not generic dashboards
+
+11. BOOT IMPACT ESTIMATION LOGIC
+If showing:
+- boot delay
+- RAM impact
+- enabled/disabled counts
+- phase impact
+
+they must come from grounded logic.
+
+Use conservative estimates based on:
+- startup type
+- app category
+- known memory profile if available
+- presence in startup sequence
+- immediate vs delayed launch placement
+
+If uncertain:
+- label estimates clearly
+- keep them conservative
+
+Do NOT make up flashy numbers.
+
+12. BACKEND VERIFICATION
+After changing startup state:
+- verify the item’s actual startup state
+- verify delay assignment if supported
+- confirm disabled items are really disabled
+- confirm enabled items are restored correctly
+
+If verification fails:
+- do not mark success
+
+Need statuses like:
+- enabled
+- disabled
+- delayed
+- immediate
+- protected
+- failed
+- verification failed
+- unsupported
