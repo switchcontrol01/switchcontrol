@@ -259,17 +259,13 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   return (
     <>
       <div className={isLocked ? "relative" : undefined}>
-      <motion.div
-        whileHover={{ scale: prefersReducedMotion ? 1.005 : 1.01, y: prefersReducedMotion ? -1 : -2 }}
-        transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
-      >
         <GlassCard
           blur="sm"
           className={cn(
             "group flex flex-col transition-all duration-500",
             isEnabled && !isUnsupported
               ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.15)]"
-              : "hover:bg-white/5",
+              : "hover:border-white/[0.13] hover:bg-white/[0.05]",
             isUnsupported && "opacity-60 cursor-not-allowed",
             failureInfo && "border-red-500/20"
           )}
@@ -371,8 +367,6 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
           {/* TrustLayer — expandable impact breakdown */}
           <TrustLayer tweak={tweak} isOpen={trustOpen} />
         </GlassCard>
-      </motion.div>
-
       </div>
 
       {/* Detail modal — portalled to body so CSS transforms on ancestors don't break fixed positioning */}

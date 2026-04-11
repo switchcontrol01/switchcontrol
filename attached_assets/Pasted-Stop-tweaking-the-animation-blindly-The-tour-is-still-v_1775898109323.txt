@@ -1,0 +1,99 @@
+Stop tweaking the animation blindly.
+
+The tour is still visibly bugged. The problem is NOT just easing or motion polish.
+
+The screenshot clearly shows a broken intermediate frame where the app is half-rendered into the tour state instead of transitioning cleanly.
+
+At this point I do NOT want another cosmetic animation adjustment.
+
+I want a root-cause diagnostic and hard fix.
+
+NEW TASK
+
+Find the exact component / render stage causing the bad intermediate frame during transition into the tour.
+
+This must be treated as a render pipeline / mount order / layout stability issue until proven otherwise.
+
+WHAT IS STILL WRONG
+
+When the app transitions into the tour:
+
+- the dashboard frame is visibly exposed in a broken state
+- the blur/overlay/tour card do not appear as one coordinated transition
+- the UI looks like it snaps or glitches into place
+- the user can see the app becoming the tour instead of seeing a clean finished transition
+
+This is still broken.
+
+DO NOT
+
+- do not just change easing
+- do not slow the animation
+- do not add more blur
+- do not add another fake loading overlay unless absolutely necessary
+- do not tell me it is fixed unless the bad intermediate frame is actually gone
+
+REQUIRED APPROACH
+
+1. Instrument the transition with logs and isolate the exact order of events:
+
+- app shell stable
+- dashboard painted
+- overlay mounted
+- blur applied
+- tour card mounted
+- card animation started
+- any rerender/remount/layout shift detected
+
+2. Determine whether the bad frame is caused by:
+
+- dashboard painting before overlay
+- overlay mounting too late
+- card mounting before final layout is ready
+- route/layout remount
+- background content repaint
+- AnimatePresence initial frame
+- Suspense/lazy mount
+- unstable dimensions during first paint
+
+3. Temporarily disable all decorative animation and test the transition in minimal form:
+
+- static overlay
+- static blur
+- static card
+  If the glitch still exists, it is a render/mount issue.
+  If it disappears, reintroduce layers one by one until the exact offender is found.
+
+4. If needed, pre-mount the overlay/card hidden and only reveal once layout is stable.
+   Do not allow the user to see the setup frame.
+
+5. Prevent the dashboard from visibly repainting underneath the tour transition.
+   Background state should already be stable before reveal.
+
+6. If the issue is caused by remounting, fix the remount.
+   Do not animate across an unstable tree.
+
+MANDATORY DEBUG OUTPUT
+
+Return the exact root cause in plain language:
+
+- which component caused the first bad frame
+- whether it was mount timing, rerender, layout shift, or transition config
+- which file was responsible
+- what exact change removed the glitch
+
+MANDATORY TEST
+
+Test in the packaged Electron app, not just dev.
+I want confirmation that the bad frame is gone on actual cold app start into the tour.
+
+FINAL OUTPUT REQUIRED
+
+Return:
+
+- exact root cause
+- files changed
+- precise fix applied
+- whether they had to pre-mount, delay reveal, or stabilize layout first
+- confirmation that the bugged intermediate frame is fully gone
+
