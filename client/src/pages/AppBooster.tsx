@@ -549,6 +549,15 @@ export default function AppBooster() {
       const refreshed = await loadGames();
       writeCache(refreshed);
 
+      const detectedAfterScan = refreshed.filter((g) => g.detected);
+      console.log("[AppBooster] handleScan — detected after reload:", detectedAfterScan.length);
+
+      if (detectedAfterScan.length > 0) {
+        // Switch to Installed tab and pre-select first detected game
+        setShowCatalog(false);
+        setSelectedSlug((prev) => prev ?? detectedAfterScan[0].slug);
+      }
+
       toast({
         title: detected > 0
           ? `Found ${detected} installed game${detected !== 1 ? "s" : ""}`
@@ -567,7 +576,7 @@ export default function AppBooster() {
     } finally {
       setIsScanning(false);
     }
-  }, [games, toast, loadGames, isElectron]);
+  }, [games, toast, loadGames, isElectron, setShowCatalog, setSelectedSlug]);
 
   // ── manual add ────────────────────────────────────────────────────────────
 
@@ -614,6 +623,7 @@ export default function AppBooster() {
       const refreshed = await loadGames();
       writeCache(refreshed);
       setShowManualAdd(false);
+      setShowCatalog(false);    // switch to Installed tab
       setSelectedSlug(manualSlug);
       const game = games.find((g) => g.slug === manualSlug);
       toast({ title: `${game?.name ?? "Game"} added`, description: "Optimization profile is ready to apply." });
@@ -654,22 +664,39 @@ export default function AppBooster() {
 
       const succeeded = actionResults.filter((r) => r.status === "success").length;
       const failed    = actionResults.filter((r) => r.status === "failed").length;
+      const finalStatus = status as GameStatus;
+
+      console.log(`[AppBooster] APPLY result — game=${selectedSlug} status=${finalStatus} succeeded=${succeeded} failed=${failed}`);
+
+      // Optimistic local state update — do NOT wait for server re-fetch to update badge
+      setGames((prev) => prev.map((g) =>
+        g.slug === selectedSlug ? { ...g, status: finalStatus } : g
+      ));
+      setGameDetail((prev) =>
+        prev ? {
+          ...prev,
+          status: finalStatus,
+          actionsResult: actionResults,
+          appliedAt: new Date().toISOString(),
+        } : prev
+      );
 
       toast({
-        title: status === "applied" ? "Profile applied"
-          : status === "staged"    ? "Profile staged"
-          : status === "partial"   ? `Partial — ${succeeded} ok, ${failed} failed`
+        title: finalStatus === "applied" ? "Profile applied"
+          : finalStatus === "staged"    ? "Profile staged"
+          : finalStatus === "partial"   ? `Partial — ${succeeded} ok, ${failed} failed`
           : "Apply failed",
-        description: status === "staged"
+        description: finalStatus === "staged"
           ? "Settings saved. Launch SwitchControl on Windows to execute."
-          : status === "applied"  ? "All optimizations applied and verified."
-          : status === "partial"  ? "Some actions failed — see action list for details."
+          : finalStatus === "applied"  ? "All optimizations applied and verified."
+          : finalStatus === "partial"  ? "Some actions failed — see action list for details."
           : "No actions succeeded. Check admin permissions.",
-        variant: status === "failed" ? "destructive" : "default",
+        variant: finalStatus === "failed" ? "destructive" : "default",
       });
 
-      await loadDetail(selectedSlug);
-      await loadGames();
+      // Confirm with server (background refresh — don't block UI)
+      loadDetail(selectedSlug).catch(() => {});
+      loadGames().catch(() => {});
     } catch (e: any) {
       toast({ title: "Apply failed", description: e.message, variant: "destructive" });
       await loadDetail(selectedSlug);
@@ -710,17 +737,34 @@ export default function AppBooster() {
         { operation: "revert", actionResults, installPath, isElectron }
       );
 
+      const revertStatus = status as GameStatus;
+      console.log(`[AppBooster] REVERT result — game=${selectedSlug} status=${revertStatus}`);
+
+      // Optimistic local state update
+      setGames((prev) => prev.map((g) =>
+        g.slug === selectedSlug ? { ...g, status: revertStatus } : g
+      ));
+      setGameDetail((prev) =>
+        prev ? {
+          ...prev,
+          status: revertStatus,
+          actionsResult: actionResults,
+          revertedAt: new Date().toISOString(),
+        } : prev
+      );
+
       toast({
-        title: status === "reverted" ? "Profile reverted"
-          : status === "staged"     ? "Revert staged"
-          : status === "partial"    ? "Partially reverted"
+        title: revertStatus === "reverted" ? "Profile reverted"
+          : revertStatus === "staged"     ? "Revert staged"
+          : revertStatus === "partial"    ? "Partially reverted"
           : "Revert failed",
-        description: status === "staged" ? "Revert saved. Launch SwitchControl on Windows to execute." : undefined,
-        variant: status === "failed" ? "destructive" : "default",
+        description: revertStatus === "staged" ? "Revert saved. Launch SwitchControl on Windows to execute." : undefined,
+        variant: revertStatus === "failed" ? "destructive" : "default",
       });
 
-      await loadDetail(selectedSlug);
-      await loadGames();
+      // Confirm with server (background)
+      loadDetail(selectedSlug).catch(() => {});
+      loadGames().catch(() => {});
     } catch (e: any) {
       toast({ title: "Revert failed", description: e.message, variant: "destructive" });
       await loadDetail(selectedSlug);

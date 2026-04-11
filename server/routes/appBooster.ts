@@ -11,6 +11,36 @@ import { runAllDetectors } from "../lib/gameDetection/index";
 
 const router = Router();
 
+// ── In-memory state cache (fallback when DB is unavailable) ───────────────────
+// This ensures Apply/Revert state persists within the server process lifetime
+// even if PostgreSQL is unavailable.
+
+interface MemGameRow {
+  slug: string;
+  name: string;
+  executable: string;
+  detected: boolean;
+  installPath: string | null;
+  launcher: string | null;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  confidence: string | null;
+  addedAt: string;
+}
+
+interface MemStateRow {
+  status: string;
+  profileId: string | null;
+  actionsResult: ActionResult[];
+  installPath: string | null;
+  appliedAt: string | null;
+  revertedAt: string | null;
+  updatedAt: string;
+}
+
+const memGames  = new Map<string, MemGameRow>();
+const memStates = new Map<string, MemStateRow>();
+
 // ── DB init ───────────────────────────────────────────────────────────────────
 
 async function initTables() {
@@ -91,59 +121,67 @@ async function getState(slug: string): Promise<GameState | null> {
   const game = getGameBySlug(slug);
   if (!game) return null;
 
+  const memGame  = memGames.get(slug);
+  const memState = memStates.get(slug);
+
   const defaultState: GameState = {
     slug: game.slug,
     name: game.name,
     executable: game.executable,
-    installPath: null,
-    detected: false,
-    status: "idle",
-    profileId: null,
-    appliedAt: null,
-    revertedAt: null,
-    actionsResult: [],
-    addedAt: new Date().toISOString(),
+    installPath: memGame?.installPath ?? null,
+    detected: memGame?.detected ?? false,
+    status: (memState?.status as GameState["status"]) ?? "idle",
+    profileId: memState?.profileId ?? null,
+    appliedAt: memState?.appliedAt ?? null,
+    revertedAt: memState?.revertedAt ?? null,
+    actionsResult: memState?.actionsResult ?? [],
+    addedAt: memGame?.addedAt ?? new Date().toISOString(),
   };
 
   if (isNoDbMode || !db) return defaultState;
 
-  const { rows } = await db.execute(
-    sql`SELECT s.status, s.profile_id, s.applied_at, s.reverted_at, s.actions_result, s.install_path,
-               g.detected, g.added_at, g.install_path as g_install_path
-        FROM app_booster_state s
-        LEFT JOIN app_booster_games g ON g.slug = s.game_slug
-        WHERE s.game_slug = ${slug}`
-  );
-
-  if (rows.length === 0) {
-    const gameRow = await db.execute(
-      sql`SELECT detected, added_at, install_path FROM app_booster_games WHERE slug = ${slug}`
+  try {
+    const { rows } = await db.execute(
+      sql`SELECT s.status, s.profile_id, s.applied_at, s.reverted_at, s.actions_result, s.install_path,
+                 g.detected, g.added_at, g.install_path as g_install_path
+          FROM app_booster_state s
+          LEFT JOIN app_booster_games g ON g.slug = s.game_slug
+          WHERE s.game_slug = ${slug}`
     );
-    if (gameRow.rows.length > 0) {
-      return {
-        ...defaultState,
-        detected: gameRow.rows[0].detected as boolean,
-        installPath: (gameRow.rows[0].install_path as string | null) ?? null,
-        addedAt: gameRow.rows[0].added_at as string,
-      };
+
+    if (rows.length === 0) {
+      const gameRow = await db.execute(
+        sql`SELECT detected, added_at, install_path FROM app_booster_games WHERE slug = ${slug}`
+      );
+      if (gameRow.rows.length > 0) {
+        return {
+          ...defaultState,
+          detected: (gameRow.rows[0].detected as boolean) || defaultState.detected,
+          installPath: (gameRow.rows[0].install_path as string | null) ?? defaultState.installPath,
+          addedAt: (gameRow.rows[0].added_at as string) ?? defaultState.addedAt,
+        };
+      }
+      return defaultState;
     }
+
+    const r = rows[0];
+    return {
+      slug: game.slug,
+      name: game.name,
+      executable: game.executable,
+      installPath: (r.install_path as string | null) ?? (r.g_install_path as string | null) ?? defaultState.installPath,
+      detected: ((r.detected as boolean) ?? false) || defaultState.detected,
+      status: (r.status as GameState["status"]) ?? defaultState.status,
+      profileId: (r.profile_id as string | null) ?? defaultState.profileId,
+      appliedAt: (r.applied_at as string | null) ?? defaultState.appliedAt,
+      revertedAt: (r.reverted_at as string | null) ?? defaultState.revertedAt,
+      actionsResult: (r.actions_result as ActionResult[]) ?? defaultState.actionsResult,
+      addedAt: (r.added_at as string) ?? defaultState.addedAt,
+    };
+  } catch (dbErr: any) {
+    console.error(`[AppBooster] getState DB error for ${slug}:`, dbErr.message);
     return defaultState;
   }
-
-  const r = rows[0];
-  return {
-    slug: game.slug,
-    name: game.name,
-    executable: game.executable,
-    installPath: (r.install_path as string | null) ?? (r.g_install_path as string | null) ?? null,
-    detected: (r.detected as boolean) ?? false,
-    status: (r.status as GameState["status"]) ?? "idle",
-    profileId: (r.profile_id as string | null) ?? null,
-    appliedAt: (r.applied_at as string | null) ?? null,
-    revertedAt: (r.reverted_at as string | null) ?? null,
-    actionsResult: (r.actions_result as ActionResult[]) ?? [],
-    addedAt: (r.added_at as string) ?? new Date().toISOString(),
-  };
 }
 
 async function upsertGameRow(
@@ -154,6 +192,21 @@ async function upsertGameRow(
   installPath: string | null,
   extra: { launcher?: string; logoUrl?: string | null; coverUrl?: string | null; confidence?: string } = {}
 ) {
+  // Always update in-memory cache first (merge with existing)
+  const existing = memGames.get(slug);
+  memGames.set(slug, {
+    slug,
+    name,
+    executable,
+    detected: detected || (existing?.detected ?? false),
+    installPath: installPath ?? existing?.installPath ?? null,
+    launcher: extra.launcher ?? existing?.launcher ?? null,
+    logoUrl: extra.logoUrl ?? existing?.logoUrl ?? null,
+    coverUrl: extra.coverUrl ?? existing?.coverUrl ?? null,
+    confidence: extra.confidence ?? existing?.confidence ?? null,
+    addedAt: existing?.addedAt ?? new Date().toISOString(),
+  });
+
   if (isNoDbMode || !db) return;
   await db.execute(
     sql`INSERT INTO app_booster_games (slug, name, executable, detected, install_path, launcher, logo_url, cover_url, confidence)
@@ -177,8 +230,21 @@ async function upsertStateRow(
   installPath: string | null,
   operation: "apply" | "revert" | "none" = "none"
 ) {
-  if (isNoDbMode || !db) return;
   const now = new Date();
+  // Always write to in-memory cache
+  const existing = memStates.get(slug);
+  memStates.set(slug, {
+    status,
+    profileId: profileId ?? existing?.profileId ?? null,
+    actionsResult,
+    installPath: installPath ?? existing?.installPath ?? null,
+    appliedAt:   operation === "apply"  ? now.toISOString() : existing?.appliedAt ?? null,
+    revertedAt:  operation === "revert" ? now.toISOString() : existing?.revertedAt ?? null,
+    updatedAt:   now.toISOString(),
+  });
+  console.log(`[AppBooster] memStates.set(${slug}, status=${status}, op=${operation})`);
+
+  if (isNoDbMode || !db) return;
   const json = JSON.stringify(actionsResult);
 
   if (operation === "apply") {
@@ -247,6 +313,20 @@ router.get("/games", async (_req, res) => {
     }
   > = {};
 
+  // Seed stateMap from in-memory cache first (always available)
+  for (const [slug, memGame] of memGames.entries()) {
+    const memState = memStates.get(slug);
+    stateMap[slug] = {
+      status: memState?.status ?? "idle",
+      profileId: memState?.profileId ?? null,
+      detected: memGame.detected,
+      installPath: memState?.installPath ?? memGame.installPath ?? null,
+      launcher: memGame.launcher ?? null,
+      logoUrl: memGame.logoUrl ?? null,
+      coverUrl: memGame.coverUrl ?? null,
+    };
+  }
+
   if (!isNoDbMode && db) {
     try {
       const { rows } = await db.execute(sql`
@@ -256,14 +336,16 @@ router.get("/games", async (_req, res) => {
         LEFT JOIN app_booster_state s ON s.game_slug = g.slug
       `);
       for (const r of rows) {
+        const existing = stateMap[r.slug as string];
         stateMap[r.slug as string] = {
-          status: (r.status as string) ?? "idle",
-          profileId: (r.profile_id as string | null) ?? null,
-          detected: (r.detected as boolean) ?? false,
-          installPath: (r.install_path as string | null) ?? null,
-          launcher: (r.launcher as string | null) ?? null,
-          logoUrl: (r.logo_url as string | null) ?? null,
-          coverUrl: (r.cover_url as string | null) ?? null,
+          // DB wins over memory for persistent fields, but OR detected flags
+          status: (r.status as string) ?? existing?.status ?? "idle",
+          profileId: (r.profile_id as string | null) ?? existing?.profileId ?? null,
+          detected: ((r.detected as boolean) ?? false) || (existing?.detected ?? false),
+          installPath: (r.install_path as string | null) ?? existing?.installPath ?? null,
+          launcher: (r.launcher as string | null) ?? existing?.launcher ?? null,
+          logoUrl: (r.logo_url as string | null) ?? existing?.logoUrl ?? null,
+          coverUrl: (r.cover_url as string | null) ?? existing?.coverUrl ?? null,
         };
       }
     } catch (dbErr: any) {

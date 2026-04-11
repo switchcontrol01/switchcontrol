@@ -27,8 +27,8 @@ export const CATALOG: CatalogEntry[] = [
       "D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
       "E:\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
     ],
-    logoUrl: "https://cdn2.unrealengine.com/en-17br-egs-748x748-748x748-d5b21a8f3c1a.jpg",
-    coverUrl: "https://cdn2.unrealengine.com/en-17br-egs-748x748-748x748-d5b21a8f3c1a.jpg",
+    logoUrl: "https://cdn2.unrealengine.com/Fortnite%2FFNCH5S3%2FStoreArt%2FFN_S31_EGS_StoreHeader_1200x1600_-1200x1600-2e33f7e2f45e7acdd3bc75ebab45aa58.jpg",
+    coverUrl: "https://cdn2.unrealengine.com/Fortnite%2FFNCH5S3%2FStoreArt%2FFN_S31_EGS_StoreHeader_1200x1600_-1200x1600-2e33f7e2f45e7acdd3bc75ebab45aa58.jpg",
     aliases: ["fortnite battle royale", "fn"],
   },
 
@@ -324,6 +324,29 @@ export const CATALOG: CatalogEntry[] = [
     logoUrl: STEAM(252950),
     coverUrl: STEAM(252950),
     aliases: ["rocket league", "rl"],
+  },
+
+  // ── Sandbox / Survival ───────────────────────────────────────────────────
+
+  {
+    slug: "minecraft",
+    name: "Minecraft",
+    publisher: "Mojang / Microsoft",
+    genre: "open-world",
+    profileId: "open-world-performance",
+    executable: "Minecraft.Windows.exe",
+    xboxPackageName: "Microsoft.MinecraftUWP",
+    knownPaths: [
+      "C:\\Program Files\\WindowsApps\\Microsoft.MinecraftUWP_8wekyb3d8bbwe",
+      "C:\\Program Files (x86)\\Minecraft Launcher",
+      "C:\\Program Files\\Minecraft Launcher",
+      "%LOCALAPPDATA%\\Packages\\Microsoft.MinecraftUWP_8wekyb3d8bbwe\\LocalState\\games\\com.mojang",
+      "C:\\Users\\%USERNAME%\\AppData\\Roaming\\.minecraft",
+      "D:\\Minecraft",
+    ],
+    logoUrl: "https://store-images.s-microsoft.com/image/apps.2536.13510798887401688.6e9b9e8b-7d7b-47c7-a6cd-9e1b84edbb47.e1e4c42c-1a3e-4b32-af4e-7451f29e1de5",
+    coverUrl: "https://store-images.s-microsoft.com/image/apps.2536.13510798887401688.6e9b9e8b-7d7b-47c7-a6cd-9e1b84edbb47.e1e4c42c-1a3e-4b32-af4e-7451f29e1de5",
+    aliases: ["minecraft", "mc", "minecraft java", "minecraft bedrock", "minecraft windows 10"],
   },
 ];
 
