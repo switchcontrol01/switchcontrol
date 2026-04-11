@@ -321,22 +321,49 @@ export default function AppBooster() {
   const [loadingGames,  setLoadingGames]  = useState(true);
   const [showHistory,   setShowHistory]   = useState(false);
   const [expandActions, setExpandActions] = useState(true);
+  const hasAutoScanned = useRef(false);
 
   // ── data loading ──────────────────────────────────────────────────────────
 
-  const loadGames = useCallback(async () => {
+  const loadGames = useCallback(async (): Promise<GameSummary[]> => {
     try {
       const data = await apiGet<{ games: GameSummary[] }>("/api/app-booster/games");
       setGames(data.games);
       setSelectedSlug((prev) => prev ?? (data.games[0]?.slug ?? null));
+      return data.games;
     } catch {
       toast({ title: "Failed to load game library", variant: "destructive" });
+      return [];
     } finally {
       setLoadingGames(false);
     }
   }, [toast]);
 
-  useEffect(() => { loadGames(); }, []);
+  // auto-scan once on first open in Electron if no games have been detected yet
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const loaded = await loadGames();
+      if (cancelled || !isElectron || hasAutoScanned.current) return;
+      const noneDetected = loaded.every((g) => !g.detected);
+      if (noneDetected && loaded.length > 0) {
+        hasAutoScanned.current = true;
+        setIsScanning(true);
+        try {
+          const results = await (window as any).electronAPI.appBooster.scanGames(
+            loaded.map((g) => ({ slug: g.slug, executable: g.executable, knownPaths: g.knownPaths ?? [] }))
+          );
+          await apiPost("/api/app-booster/games/scan", { results });
+          await loadGames();
+        } catch {
+          // silent — user can click Scan for Games manually
+        } finally {
+          setIsScanning(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const loadDetail = useCallback(async (slug: string) => {
     try {
