@@ -1,9 +1,20 @@
+/**
+ * premium-lock-overlay.tsx
+ *
+ * Inline lock overlays for individual features / toggle rows.
+ * All glow animation delegated to PremiumOverlayCard / CrownGlowOrb.
+ */
+
 import { cn } from "@/lib/utils";
 import { Crown, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { motion } from "@/lib/motion";
+import { PremiumOverlayCard, CrownGlowOrb } from "@/components/ui/PremiumOverlayCard";
+import { useAttentionBounce } from "@/hooks/useAttentionBounce";
+import { premiumColor, premiumRgba } from "@/lib/themeTokens";
 import { openPricing } from "@/lib/pricing";
+
+// ── Full lock overlay (blurs + covers a section) ─────────────────────────────
 
 interface PremiumLockOverlayProps {
   featureName: string;
@@ -22,67 +33,33 @@ export function PremiumLockOverlay({
   children,
   isLocked,
 }: PremiumLockOverlayProps) {
-  const [isAnimating, setIsAnimating] = useState(false);
+  const { bounceProps, trigger } = useAttentionBounce();
 
   if (!isLocked) {
     return <>{children}</>;
   }
-
-  const triggerAttentionAnimation = () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 300);
-  };
 
   return (
     <div className={cn("relative", className)}>
       <div className="opacity-60 blur-[2px] pointer-events-none select-none">
         {children}
       </div>
-      
-      <div 
+
+      <div
         className="absolute inset-0 flex items-center justify-center z-10"
-        onClick={triggerAttentionAnimation}
+        onClick={trigger}
       >
-        <motion.div 
-          className="text-center space-y-3 p-6 rounded-2xl bg-gradient-to-br from-[hsl(270,60%,20%,0.85)] via-[hsl(270,50%,15%,0.9)] to-[hsl(280,60%,15%,0.85)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] max-w-sm mx-4"
-          animate={isAnimating ? {
-            scale: [1, 1.03, 1],
-            boxShadow: [
-              "0 0 40px rgba(168,85,247,0.15)",
-              "0 0 60px rgba(168,85,247,0.35)",
-              "0 0 40px rgba(168,85,247,0.15)"
-            ]
-          } : {
-            scale: 1,
-            boxShadow: "0 0 40px rgba(168,85,247,0.15)"
+        <motion.div
+          className="text-center space-y-3 p-6 rounded-2xl backdrop-blur-md border max-w-sm mx-4"
+          style={{
+            background: `linear-gradient(135deg, hsl(270,60%,20%,0.85), hsl(270,50%,15%,0.9), hsl(280,60%,15%,0.85))`,
+            borderColor: `hsl(270,60%,55%,0.25)`,
           }}
-          transition={{ duration: 0.3, ease: "easeOut" }}
-          onClick={(e) => e.stopPropagation()}
+          {...(bounceProps as any)}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
         >
-          <motion.div
-            className="mx-auto w-14 h-14 rounded-full bg-[rgba(168,85,247,0.15)] flex items-center justify-center"
-            animate={{
-              boxShadow: [
-                "0 0 24px rgba(168,85,247,0.25)",
-                "0 0 24px rgba(168,85,247,0.45)",
-                "0 0 24px rgba(168,85,247,0.25)",
-              ],
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-          >
-            <motion.div
-              animate={{ opacity: [0.8, 1, 0.8] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Crown className="size-7 text-[hsl(270,60%,65%)]" />
-            </motion.div>
-          </motion.div>
-          
+          <CrownGlowOrb />
+
           <div>
             <h3 className="text-lg font-semibold text-white">{featureName}</h3>
             {showInlineText && (
@@ -94,11 +71,14 @@ export function PremiumLockOverlay({
               <p className="text-xs text-muted-foreground mt-2">{description}</p>
             )}
           </div>
-          
+
           <Button
             size="sm"
             onClick={openPricing}
-            className="bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] hover:from-[hsl(270,60%,50%)] hover:to-[hsl(280,70%,60%)] text-white"
+            className="text-white"
+            style={{
+              background: `linear-gradient(to right, ${premiumColor.main}, ${premiumColor.end})`,
+            }}
           >
             <Crown className="size-3 mr-1.5" />
             Unlock {featureName}
@@ -108,6 +88,8 @@ export function PremiumLockOverlay({
     </div>
   );
 }
+
+// ── Toggle-row lock (small inline lock icon on a row) ─────────────────────────
 
 interface PremiumToggleLockProps {
   isLocked: boolean;
@@ -121,7 +103,7 @@ export function PremiumToggleLock({ isLocked, onLockedClick, children }: Premium
   }
 
   return (
-    <div 
+    <div
       className="relative cursor-pointer opacity-50"
       onClick={onLockedClick}
     >
@@ -129,11 +111,13 @@ export function PremiumToggleLock({ isLocked, onLockedClick, children }: Premium
         {children}
       </div>
       <div className="absolute right-0 top-1/2 -translate-y-1/2 mr-2">
-        <Lock className="size-4 text-[hsl(270,60%,65%)]" />
+        <Lock className="size-4" style={{ color: premiumColor.light }} />
       </div>
     </div>
   );
 }
+
+// ── Page header "Premium" badge ───────────────────────────────────────────────
 
 interface PremiumPageHeaderProps {
   title: string;
@@ -150,27 +134,27 @@ export function PremiumPageHeader({ title, description, isLocked }: PremiumPageH
         </h1>
         {isLocked && (
           <motion.div
-            className="flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-[rgba(124,58,237,0.2)] to-[rgba(168,85,247,0.15)] border border-[rgba(168,85,247,0.3)]"
+            className="flex items-center gap-2 px-3 py-1 rounded-full border"
+            style={{
+              background: `linear-gradient(to right, ${premiumRgba.badge1}, ${premiumRgba.badge2})`,
+              borderColor: premiumRgba.border,
+            }}
             animate={{
               boxShadow: [
-                "0 0 12px rgba(168,85,247,0.2)",
-                "0 0 20px rgba(168,85,247,0.35)",
-                "0 0 12px rgba(168,85,247,0.2)",
+                `0 0 12px ${premiumRgba.glow20}`,
+                `0 0 20px ${premiumRgba.glow35}`,
+                `0 0 12px ${premiumRgba.glow20}`,
               ],
             }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
             <motion.div
               animate={{ opacity: [0.8, 1, 0.8] }}
               transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             >
-              <Crown className="size-4 text-[hsl(270,60%,65%)]" />
+              <Crown className="size-4" style={{ color: premiumColor.light }} />
             </motion.div>
-            <span className="text-xs font-medium text-[hsl(270,60%,75%)]">Premium</span>
+            <span className="text-xs font-medium" style={{ color: premiumColor.lighter }}>Premium</span>
           </motion.div>
         )}
       </div>

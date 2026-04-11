@@ -106,6 +106,29 @@ Uses `gpt-4o-mini` by default (configurable via `AI_MODEL` env var). Hardened ra
 
 **Client** (`client/src/pages/AiAdvisor.tsx`): Chat-based interface with auto-detected system specs (from store telemetry), quick action buttons (Optimize FPS, Reduce Latency, Fix Stuttering, Network Ping), markdown-rendered responses, spec chips header showing detected hardware, and new-chat reset.
 
+### Shared Architecture Systems
+
+#### Token Files (single source of truth)
+- **`client/src/lib/themeTokens.ts`** — All brand/premium color literals (`premiumColor`, `premiumRgba`, `premiumGlow`, `premiumOverlay`, `premiumGradient`, `successColor`). No `hsl(270…)` or `rgba(168,85,247,…)` values should be hardcoded in component files.
+- **`client/src/lib/motionTokens.ts`** — Barrel re-export of all animation tokens, presets, variants, and hooks from `motion.tsx`. Import animation primitives from here instead of directly from `@/lib/motion` or `framer-motion`.
+- **`client/src/lib/motion.tsx`** — Backing implementation for motion tokens: `timing`, `easing`, `springs`, Framer-Motion variant presets, `Reveal` component, `MotionProvider`, `useMotion` hook. Never import `framer-motion` directly in component files — always go through `motion.tsx` or `motionTokens.ts`.
+
+#### Overlay System
+- **`client/src/lib/overlaySystem.ts`** — Barrel export for all premium overlay components; import from here for clean single-line imports.
+- **`client/src/components/ui/PremiumOverlayCard.tsx`** — Shared animated premium upgrade card used by all overlay variants. Contains `PremiumOverlayCard` (supports `variant="page"|"card"`) and `CrownGlowOrb` (the pulsing crown icon, defined once here). No other file should define the crown glow animation.
+- **`client/src/components/ui/premium-page-overlay.tsx`** — `PremiumPageOverlay` (full-viewport gate), `PremiumCardOverlay` (inline card gate), `PremiumHeaderBadge`. All use `PremiumOverlayCard` internally.
+- **`client/src/components/ui/premium-lock-overlay.tsx`** — `PremiumLockOverlay` (blur + cover), `PremiumToggleLock` (row lock icon), `PremiumPageHeader` (title with premium badge). Uses `PremiumOverlayCard` and `CrownGlowOrb`.
+
+#### Shared Hooks
+- **`client/src/hooks/useAttentionBounce.ts`** — Extracted from 4× duplicated `isAnimating`/`triggerAttentionAnimation`/`setTimeout(300)` pattern. Returns `{ isAnimating, trigger, bounceProps }` — spread `bounceProps` onto a `<motion.div>` for the attention scale+glow pulse.
+
+#### Graph Primitives
+- **`LandingPerformanceCharts.tsx`** — Internal `DualAreaChart` primitive extracted from 3× repeated `<ResponsiveContainer><AreaChart>` blocks. Accepts `id`, `stockColor`, `optimizedColor`, `yDomain`, `stockRef`, `optimizedRef`, `unit`. The three chart functions (`FpsChart`, `InputChart`, `JitterChart`) are now one-liner wrappers.
+
+#### Dashboard Hardware Cards — Loading State
+- **`StatCard`** accepts `loading?: boolean` prop — shows CSS keyframe shimmer skeleton for value/subtext/progress when true.
+- **`Home.tsx`** tracks `specStatus: "loading"|"ready"|"unavailable"` — starts as `"loading"`, resolves on fetch outcome. Cards pass `loading={specStatus === "loading"}` so "Unavailable" text never flashes during startup.
+
 ### Local Rule Engine (Dashboard AI)
 A fully local, deterministic rule engine evaluates system and application signals against a bundled ruleset (`bundled.ruleset.json`). It provides recommendations (critical, recommended, informational) and can trigger app-tweak fixes. The advisor is read-only and does not modify core application state.
 

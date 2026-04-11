@@ -247,101 +247,83 @@ function ChartCard({
 }
 
 /* ═══════════════════════════════════════════
+   Shared area-chart primitive (DualAreaChart)
+   Eliminates 3× repeated <ResponsiveContainer>/<AreaChart> blocks.
+═══════════════════════════════════════════ */
+interface DualAreaChartConfig {
+  /** Unique prefix used for linearGradient IDs — must be unique per chart on page */
+  id: string;
+  data: { t: number; stock: number; optimized: number }[];
+  streaming: boolean;
+  stockColor: string;
+  optimizedColor: string;
+  yDomain: [number, number];
+  stockRef: number;
+  optimizedRef: number;
+  /** Appended after value in tooltip, e.g. " FPS" or "ms" */
+  unit: string;
+}
+
+function DualAreaChart({
+  id, data, streaming,
+  stockColor, optimizedColor,
+  yDomain, stockRef, optimizedRef,
+  unit,
+}: DualAreaChartConfig) {
+  const gradSId = `g${id}S`;
+  const gradOId = `g${id}O`;
+  return (
+    <ResponsiveContainer width="100%" height={148}>
+      <AreaChart data={data} margin={{ top: 6, right: 4, left: -26, bottom: 0 }}>
+        <defs>
+          <linearGradient id={gradSId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor={stockColor}     stopOpacity={0.25} />
+            <stop offset="95%" stopColor={stockColor}     stopOpacity={0.02} />
+          </linearGradient>
+          <linearGradient id={gradOId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%"  stopColor={optimizedColor} stopOpacity={0.30} />
+            <stop offset="95%" stopColor={optimizedColor} stopOpacity={0.03} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="2 5" stroke="rgba(255,255,255,0.04)" vertical={false} />
+        <XAxis dataKey="t" hide />
+        <YAxis tick={TICK} axisLine={false} tickLine={false} domain={yDomain} tickCount={4} />
+        <Tooltip
+          contentStyle={TT}
+          labelFormatter={() => ""}
+          formatter={(v: number, n: string) => [`${v}${unit}`, n === "stock" ? "Stock Windows" : "SwitchControl"]}
+        />
+        <ReferenceLine y={stockRef}     stroke={stockColor}     strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
+        <ReferenceLine y={optimizedRef} stroke={optimizedColor} strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
+        {/* Glow layer */}
+        <Area type="basis" dataKey="optimized" stroke={optimizedColor} strokeWidth={7}   strokeOpacity={0.10} fill="none"             dot={false} isAnimationActive={false} />
+        {/* Main layers */}
+        <Area type="basis" dataKey="stock"     stroke={stockColor}     strokeWidth={1.5} fill={`url(#${gradSId})`} dot={false} isAnimationActive={!streaming} animationDuration={1300} animationEasing="ease-out" />
+        <Area type="basis" dataKey="optimized" stroke={optimizedColor} strokeWidth={2}   fill={`url(#${gradOId})`} dot={false} isAnimationActive={!streaming} animationDuration={1500} animationEasing="ease-out" />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* ═══════════════════════════════════════════
    Individual charts — mount-gated
 ═══════════════════════════════════════════ */
 function FpsChart({ active }: { active: boolean }) {
   const initial = useMemo(genFpsData, []);
   const { data, streaming } = useStreamData(initial, nextFps, active, 1700);
-  return (
-    <ResponsiveContainer width="100%" height={148}>
-      <AreaChart data={data} margin={{ top: 6, right: 4, left: -26, bottom: 0 }}>
-        <defs>
-          <linearGradient id="gFpsS" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#f87171" stopOpacity={0.25} />
-            <stop offset="95%" stopColor="#f87171" stopOpacity={0.02} />
-          </linearGradient>
-          <linearGradient id="gFpsO" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#34d399" stopOpacity={0.30} />
-            <stop offset="95%" stopColor="#34d399" stopOpacity={0.03} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="2 5" stroke="rgba(255,255,255,0.04)" vertical={false} />
-        <XAxis dataKey="t" hide />
-        <YAxis tick={TICK} axisLine={false} tickLine={false} domain={[50, 165]} tickCount={4} />
-        <Tooltip contentStyle={TT} labelFormatter={() => ""}
-          formatter={(v: number, n: string) => [`${v} FPS`, n === "stock" ? "Stock Windows" : "SwitchControl"]} />
-        <ReferenceLine y={98}  stroke="#f87171" strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
-        <ReferenceLine y={142} stroke="#34d399" strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
-        {/* Glow layer */}
-        <Area type="basis" dataKey="optimized" stroke="#34d399" strokeWidth={7} strokeOpacity={0.10} fill="none" dot={false} isAnimationActive={false} />
-        {/* Main layers */}
-        <Area type="basis" dataKey="stock"     stroke="#f87171" strokeWidth={1.5} fill="url(#gFpsS)" dot={false} isAnimationActive={!streaming} animationDuration={1300} animationEasing="ease-out" />
-        <Area type="basis" dataKey="optimized" stroke="#34d399" strokeWidth={2}   fill="url(#gFpsO)" dot={false} isAnimationActive={!streaming} animationDuration={1500} animationEasing="ease-out" />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
+  return <DualAreaChart id="Fps" data={data} streaming={streaming} stockColor="#f87171" optimizedColor="#34d399" yDomain={[50, 165]} stockRef={98}  optimizedRef={142} unit=" FPS" />;
 }
 
 function InputChart({ active }: { active: boolean }) {
   const initial = useMemo(genInputData, []);
   const { data, streaming } = useStreamData(initial, nextInput, active, 1700);
-  return (
-    <ResponsiveContainer width="100%" height={148}>
-      <AreaChart data={data} margin={{ top: 6, right: 4, left: -26, bottom: 0 }}>
-        <defs>
-          <linearGradient id="gInpS" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#fb923c" stopOpacity={0.25} />
-            <stop offset="95%" stopColor="#fb923c" stopOpacity={0.02} />
-          </linearGradient>
-          <linearGradient id="gInpO" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#818cf8" stopOpacity={0.30} />
-            <stop offset="95%" stopColor="#818cf8" stopOpacity={0.03} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="2 5" stroke="rgba(255,255,255,0.04)" vertical={false} />
-        <XAxis dataKey="t" hide />
-        <YAxis tick={TICK} axisLine={false} tickLine={false} domain={[10, 48]} tickCount={4} />
-        <Tooltip contentStyle={TT} labelFormatter={() => ""}
-          formatter={(v: number, n: string) => [`${v}ms`, n === "stock" ? "Stock Windows" : "SwitchControl"]} />
-        <ReferenceLine y={24} stroke="#fb923c" strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
-        <ReferenceLine y={16} stroke="#818cf8" strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
-        <Area type="basis" dataKey="optimized" stroke="#818cf8" strokeWidth={7} strokeOpacity={0.10} fill="none" dot={false} isAnimationActive={false} />
-        <Area type="basis" dataKey="stock"     stroke="#fb923c" strokeWidth={1.5} fill="url(#gInpS)" dot={false} isAnimationActive={!streaming} animationDuration={1300} animationEasing="ease-out" />
-        <Area type="basis" dataKey="optimized" stroke="#818cf8" strokeWidth={2}   fill="url(#gInpO)" dot={false} isAnimationActive={!streaming} animationDuration={1500} animationEasing="ease-out" />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
+  return <DualAreaChart id="Inp" data={data} streaming={streaming} stockColor="#fb923c" optimizedColor="#818cf8" yDomain={[10, 48]}  stockRef={24}  optimizedRef={16}  unit="ms" />;
 }
 
 function JitterChart({ active }: { active: boolean }) {
   const initial = useMemo(genJitterData, []);
   const { data, streaming } = useStreamData(initial, nextJitter, active, 1700);
-  return (
-    <ResponsiveContainer width="100%" height={148}>
-      <AreaChart data={data} margin={{ top: 6, right: 4, left: -26, bottom: 0 }}>
-        <defs>
-          <linearGradient id="gLatS" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#f472b6" stopOpacity={0.25} />
-            <stop offset="95%" stopColor="#f472b6" stopOpacity={0.02} />
-          </linearGradient>
-          <linearGradient id="gLatO" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%"  stopColor="#22d3ee" stopOpacity={0.30} />
-            <stop offset="95%" stopColor="#22d3ee" stopOpacity={0.03} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="2 5" stroke="rgba(255,255,255,0.04)" vertical={false} />
-        <XAxis dataKey="t" hide />
-        <YAxis tick={TICK} axisLine={false} tickLine={false} domain={[25, 90]} tickCount={4} />
-        <Tooltip contentStyle={TT} labelFormatter={() => ""}
-          formatter={(v: number, n: string) => [`${v}ms`, n === "stock" ? "Stock Windows" : "SwitchControl"]} />
-        <ReferenceLine y={48} stroke="#f472b6" strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
-        <ReferenceLine y={41} stroke="#22d3ee" strokeDasharray="4 3" strokeWidth={1} strokeOpacity={0.3} />
-        <Area type="basis" dataKey="optimized" stroke="#22d3ee" strokeWidth={7} strokeOpacity={0.10} fill="none" dot={false} isAnimationActive={false} />
-        <Area type="basis" dataKey="stock"     stroke="#f472b6" strokeWidth={1.5} fill="url(#gLatS)" dot={false} isAnimationActive={!streaming} animationDuration={1300} animationEasing="ease-out" />
-        <Area type="basis" dataKey="optimized" stroke="#22d3ee" strokeWidth={2}   fill="url(#gLatO)" dot={false} isAnimationActive={!streaming} animationDuration={1500} animationEasing="ease-out" />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
+  return <DualAreaChart id="Lat" data={data} streaming={streaming} stockColor="#f472b6" optimizedColor="#22d3ee" yDomain={[25, 90]}  stockRef={48}  optimizedRef={41}  unit="ms" />;
 }
 
 /* ═══════════════════════════════════════════

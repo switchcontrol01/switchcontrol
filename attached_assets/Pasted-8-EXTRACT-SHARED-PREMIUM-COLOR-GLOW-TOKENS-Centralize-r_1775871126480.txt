@@ -1,0 +1,160 @@
+8. EXTRACT SHARED PREMIUM COLOR / GLOW TOKENS
+Centralize repeated premium theme values such as:
+- purple/cyan premium palette
+- amber/gold premium palette
+- glow intensities
+- border/glass treatments
+- highlight gradients
+
+Need:
+- consistent premium identity
+- fewer ad hoc hardcoded repeated strings
+- easier maintenance
+
+9. HARDEN PREMIUM UNLOCK TRIGGER LOGIC
+The PremiumUnlockAnimation currently infers unlock state based on previous premium state and hydration timing.
+
+Audit and harden this.
+
+Need:
+- avoid false triggers on auth hydration
+- avoid missing legitimate premium unlock moments
+- avoid duplicate unlock animations
+- use clearer transition logic
+- keep the same premium unlock experience
+
+Do NOT remove the animation.
+Make the trigger logic safer.
+
+10. HARDEN PREMIUM GRACE STATE BEHAVIOR
+Audit PremiumGraceStore carefully.
+
+Need:
+- ensure server truth always wins when backend is reachable
+- ensure stale cached premium does not survive incorrectly
+- keep offline grace behavior where intended
+- reduce risk of stale premium state persisting too long after real invalidation
+- preserve the intended grace window concept
+
+Do NOT remove grace mode if it is intentional.
+Just harden it.
+
+11. HARDEN TOUR STEP NAVIGATION / HIGHLIGHT SYNC
+The current applyStep logic uses route changes, highlight changes, delayed querySelector, and scrollIntoView.
+
+Make this more robust.
+
+Need:
+- cleaner sync between step change and sidebar highlight
+- less fragile timing
+- fewer chances of route/render race conditions
+- smoother target visibility behavior
+- same overall tour UX
+
+Do NOT remove sidebar highlight behavior.
+
+12. CLEAN UP PREMIUM SUCCESS FLOW STRUCTURE
+PremiumSuccess currently has strong visuals but too much responsibility in one file.
+
+Refactor internally into cleaner structures/components without changing the experience.
+
+Possible extraction:
+- loading view
+- success confirmed view
+- error view
+- check animation
+- confetti burst
+- launch CTA block
+
+Requirements:
+- same premium quality
+- same overall flow
+- improved maintainability
+- easier debugging
+- no reduction in polish
+
+13. IMPROVE LOCK / UNLOCK CONSISTENCY
+There are multiple lock/unlock metaphors and overlays.
+
+Unify them more cleanly.
+
+Need:
+- one coherent lock-state visual language
+- one coherent unlock-state visual language
+- overlays feel related, not disconnected
+- preserve all premium lock features
+- preserve all premium unlock features
+- improve consistency in lock emphasis, glow, and action hierarchy
+
+14. ADD PERFORMANCE DISCIPLINE WITHOUT KILLING POLISH
+The current system uses many perpetual animations, glow effects, particles, and blur layers.
+
+Optimize this carefully.
+
+NeedTASK
+Harden and refine the tour, premium UI, premium state flows, graph primitives, and animation system without removing any features or reducing the premium feel.
+
+GOAL
+SwitchControl already looks premium. The problem is not visuals.  
+The problem is structural looseness, duplicated motion logic, fragile timing, and inconsistent premium behavior.
+
+This task is NOT about redesigning or simplifying.  
+This is about making everything:
+- more consistent
+- more reusable
+- more stable
+- more intentional
+- more performant
+
+IMPORTANT
+Do NOT:
+- remove features
+- simplify visuals
+- flatten motion
+- replace premium animations with generic ones
+- reduce visual ambition
+
+Keep everything. Improve everything.
+
+---
+
+CORE OBJECTIVES
+
+1. STRUCTURAL HARDENING
+Break down oversized components without changing behavior:
+- TourShell
+- PremiumSuccess
+- PremiumUpgradeAnimation
+- PremiumUnlockAnimation
+
+Create smaller internal components where needed:
+- overlay layers
+- content shells
+- navigation blocks
+- animation phases
+
+Same output. Cleaner internals.
+
+---
+
+2. CENTRALIZE MOTION SYSTEM
+Right now motion is scattered and duplicated.
+
+Create:
+- motionTokens.ts
+- premiumMotionTokens.ts
+- tourMotionTokens.ts
+
+Centralize:
+- durations
+- delays
+- easing curves
+- glow strengths
+- repeat patterns
+- transition types
+
+All animations must reference these tokens.
+
+No more inline duplication.
+
+---

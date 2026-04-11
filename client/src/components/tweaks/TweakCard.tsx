@@ -16,6 +16,9 @@ import { isTweakPremium } from "@/lib/premium-config";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumBadge } from "@/components/ui/animated-crown";
 import { openPricing } from "@/lib/pricing";
+import { useAttentionBounce } from "@/hooks/useAttentionBounce";
+import { CrownGlowOrb } from "@/components/ui/PremiumOverlayCard";
+import { premiumColor } from "@/lib/themeTokens";
 import {
   useTweakExecutor,
   isRealTweak,
@@ -118,18 +121,13 @@ const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
 
 // ── Premium overlay ───────────────────────────────────────────────────────────
 function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const [isAnimating, setIsAnimating] = useState(false);
-  const triggerAnim = () => {
-    if (isAnimating) return;
-    setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 300);
-  };
+  const { bounceProps, trigger } = useAttentionBounce();
   if (!isOpen) return null;
   return (
     <>
       <motion.div
         className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm pointer-events-auto"
-        onClick={triggerAnim}
+        onClick={trigger}
         variants={modalBackdrop} initial="initial" animate="animate" exit="exit"
       />
       <motion.div
@@ -137,26 +135,27 @@ function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose:
         variants={modalContent} initial="initial" animate="animate" exit="exit"
       >
         <motion.div
-          className="relative w-full max-w-sm bg-gradient-to-br from-[hsl(270,60%,20%,0.9)] via-[hsl(270,50%,15%,0.95)] to-[hsl(280,60%,15%,0.9)] backdrop-blur-md border border-[hsl(270,60%,55%,0.25)] rounded-2xl p-6 shadow-[0_0_40px_rgba(168,85,247,0.2)] pointer-events-auto"
-          onClick={(e) => e.stopPropagation()}
-          animate={isAnimating ? { scale: [1, 1.03, 1] } : { scale: 1 }}
-          transition={{ duration: 0.3 }}
+          className="relative w-full max-w-sm backdrop-blur-md rounded-2xl p-6 pointer-events-auto border"
+          style={{
+            background: "linear-gradient(135deg, hsl(270,60%,20%,0.9), hsl(270,50%,15%,0.95), hsl(280,60%,15%,0.9))",
+            borderColor: "hsl(270,60%,55%,0.25)",
+          }}
+          onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          {...(bounceProps as any)}
         >
           <div className="text-center space-y-4">
-            <motion.div
-              className="size-14 rounded-full bg-[hsl(270,60%,55%,0.2)] flex items-center justify-center mx-auto"
-              animate={{ boxShadow: ["0 0 24px rgba(168,85,247,0.25)", "0 0 36px rgba(168,85,247,0.45)", "0 0 24px rgba(168,85,247,0.25)"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <Crown className="size-7 text-[hsl(270,60%,70%)]" />
-            </motion.div>
+            <CrownGlowOrb />
             <div>
               <h3 className="text-lg font-semibold text-white">Premium Feature</h3>
               <p className="text-sm text-muted-foreground mt-2">
                 This tweak is part of SwitchControl Premium. Advanced system tuning for latency, consistency, and performance.
               </p>
             </div>
-            <Button onClick={openPricing} className="w-full bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] text-white">
+            <Button
+              onClick={openPricing}
+              className="w-full text-white"
+              style={{ background: `linear-gradient(to right, ${premiumColor.main}, ${premiumColor.end})` }}
+            >
               <Crown className="size-4 mr-2" /> Upgrade to Premium
             </Button>
           </div>
