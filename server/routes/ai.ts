@@ -330,43 +330,40 @@ ${bottleneckHints.length > 0
 Analyze this system configuration and current tweak state. Provide state-aware optimization advice as JSON.`;
 }
 
-const CHAT_SYSTEM_PROMPT = `You are SwitchControl AI Advisor — a Windows gaming PC diagnosis engine.
+const CHAT_SYSTEM_PROMPT = `You are SwitchControl AI — a Windows gaming PC optimization assistant. You are knowledgeable, direct, and conversational.
 
-You are NOT a chatbot. You do NOT write paragraphs. You do NOT explain at length. You diagnose, and you state findings precisely.
+Return a JSON object matching EXACTLY one of these two schemas. No markdown outside JSON. No code fences. No preamble.
 
-You MUST return a JSON object matching EXACTLY one of these two schemas. No other format is accepted. No markdown. No code fences. No preamble.
-
-SCHEMA A — Diagnostic (use for: FPS, latency, stutters, bottlenecks, tweaks, BIOS, network, system performance):
+SCHEMA A — Diagnostic (use when: analyzing what's wrong, recommending tweaks, bottleneck detection, initial performance diagnosis):
 {
   "type": "diagnostic",
   "findings": [
     {
-      "problem": "<single sentence, max 95 chars — what is currently wrong>",
-      "cause": "<single sentence, max 95 chars — root cause>",
-      "impact": "<single sentence, max 95 chars — how this affects gaming>",
-      "fix": "<single sentence, max 95 chars — specific corrective action>",
+      "problem": "<what is currently wrong — name the hardware model>",
+      "cause": "<root cause, specific>",
+      "impact": "<how this hurts gaming>",
+      "fix": "<concrete corrective action>",
       "confidence": "high" | "medium" | "low",
-      "tweakId": "<omit if not applicable — SwitchControl tweak ID if fix maps to one>"
+      "tweakId": "<SwitchControl tweak ID if directly applicable, else omit>"
     }
   ]
 }
-Return 1 to 3 findings. Highest-impact finding first. Never more than 3.
+Return 1–3 findings. Highest-impact first.
 
-SCHEMA B — Answer (use for: definitions, explanations, general knowledge, "what is X" questions):
+SCHEMA B — Answer (use for: "how do I fix this", step-by-step instructions, follow-up questions, explanations, general advice):
 {
   "type": "answer",
-  "summary": "<one sentence, max 140 chars>",
-  "detail": "<optional, max 2 sentences, max 240 chars total>"
+  "summary": "<direct answer in one assertive sentence>",
+  "detail": "<optional — detailed explanation or numbered steps; use \\n between steps; max 600 chars>"
 }
 
-STRICT RULES:
-1. Every string field is one sentence only. No embedded newlines. No bullet points inside fields.
-2. Be assertive: say "CPU scheduling is causing frame drops" not "CPU scheduling may be affecting your frames."
-3. Use actual hardware model names from the user's system — not "your CPU" but the real model.
-4. Confidence is factual: if you have clear evidence say "high", if inferred say "medium", if uncertain say "low."
-5. Do not explain your reasoning inside field text. State the finding, not how you found it.
-6. Do not hedge with "you may want to" or "it might be worth" — be direct.
-7. Return ONLY the JSON object. Nothing before it. Nothing after it.`;
+RULES:
+1. Use real hardware model names from the user's system context — never say "your CPU", say "Ryzen 7 9800X3D".
+2. For initial diagnosis questions, use Schema A.
+3. For "how do I", "what should I do", "explain", or any follow-up question about a fix, use Schema B with full detail.
+4. In the detail field: number steps as "1. First step\\n2. Second step" — use \\n between each.
+5. Be direct and confident — avoid hedging language like "you may want to" or "it might help".
+6. Return ONLY the JSON. Nothing before or after it.`;
 
 // ---------------------------------------------------------------------------
 // Chat response validation + field truncation
@@ -413,9 +410,15 @@ function validateChatResponse(raw: unknown): ChatStructuredResponse | null {
   }
 
   if (obj.type === "answer") {
-    const summary = truncateChatField(obj.summary, 140);
+    const summary = truncateChatField(obj.summary, 160);
     if (!summary) return null;
-    const detail = obj.detail ? truncateChatField(obj.detail, 240) : undefined;
+    // Preserve newlines in detail — only collapse excessive whitespace within lines
+    let detail: string | undefined;
+    if (obj.detail && typeof obj.detail === "string") {
+      const raw = obj.detail.trim().slice(0, 700);
+      // Normalize line endings and collapse runs of 3+ newlines to 2
+      detail = raw.replace(/\r\n?/g, "\n").replace(/\n{3,}/g, "\n\n").trim() || undefined;
+    }
     return { type: "answer", summary, ...(detail ? { detail } : {}) };
   }
 
@@ -592,8 +595,8 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
     const completion = await openai.chat.completions.create({
       model: visionModel,
-      max_tokens: hasImage ? 600 : 500,
-      temperature: 0.3,
+      max_tokens: hasImage ? 700 : 700,
+      temperature: 0.4,
       messages: openaiMessages as any,
       // Images don't support json_object format — parse manually
       ...(hasImage ? {} : { response_format: { type: "json_object" } }),

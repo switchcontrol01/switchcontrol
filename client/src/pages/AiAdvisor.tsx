@@ -400,23 +400,33 @@ function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
 
   useEffect(() => {
     if (!detail) return;
-    const t = setTimeout(() => setDetailVisible(true), 380);
+    const t = setTimeout(() => setDetailVisible(true), 280);
     return () => clearTimeout(t);
   }, [detail]);
 
   return (
-    <div className="space-y-1.5">
-      <p className="text-[13px] text-white/90 leading-snug">{summary}</p>
+    <div className="space-y-2">
+      <p className="text-[13px] text-white/90 leading-relaxed font-medium">
+        <SafeMarkdown text={summary} />
+      </p>
       <AnimatePresence>
         {detail && detailVisible && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
-            className="text-[12px] text-white/55 leading-snug"
+            className="text-[12.5px] text-white/70 leading-relaxed space-y-1"
           >
-            {detail}
-          </motion.p>
+            {detail.split("\n").map((line, i) => {
+              const trimmed = line.trim();
+              if (!trimmed) return null;
+              return (
+                <p key={i} className={trimmed.match(/^\d+\./) ? "pl-0" : ""}>
+                  <SafeMarkdown text={trimmed} />
+                </p>
+              );
+            })}
+          </motion.div>
         )}
       </AnimatePresence>
     </div>
