@@ -182,6 +182,11 @@ declare global {
         getInfo: () => Promise<TweakInfo[]>;
       };
 
+      appBooster: {
+        scanGames: (games: Array<{ slug: string; executable: string; knownPaths: string[] }>) => Promise<Array<{ slug: string; detected: boolean; installPath: string | null }>>;
+        executeAction: (params: { type: string; mode: 'apply' | 'revert' | 'check'; executable: string; installPath: string | null; gameName: string }) => Promise<{ success: boolean; verified: boolean; message?: string; error?: string }>;
+      };
+
       updater: {
         getState: () => Promise<UpdaterState>;
         check: () => Promise<boolean>;

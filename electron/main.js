@@ -1468,6 +1468,92 @@ ipcMain.handle('powerPlans:listSchemes', async () => {
   }
 });
 
+// ── App Booster: per-game system actions ──────────────────────────────────────
+
+ipcMain.handle('appBooster:scanGames', async (event, games) => {
+  console.log('[IPC] appBooster:scanGames:', games?.length, 'games');
+  const fs = require('fs');
+  const results = [];
+  for (const g of (games || [])) {
+    let detected = false;
+    let installPath = null;
+    for (const p of (g.knownPaths || [])) {
+      const exeFile = require('path').join(p, g.executable);
+      if (fs.existsSync(exeFile)) {
+        detected = true;
+        installPath = p;
+        break;
+      }
+    }
+    results.push({ slug: g.slug, detected, installPath });
+  }
+  console.log('[IPC] appBooster:scanGames result:', results.filter(r => r.detected).length, 'detected');
+  return results;
+});
+
+ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executable, installPath, gameName }) => {
+  console.log(`[IPC] appBooster:executeAction type=${type} mode=${mode} exe=${executable}`);
+  const exePath = installPath ? require('path').join(installPath, executable) : executable;
+
+  const scripts = {
+    'cpu-priority': {
+      apply: `New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Name "CpuPriorityClass" -Value 6 -Type DWord -Force; Write-Output "ok"`,
+      revert: `Remove-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Recurse -Force -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Name "CpuPriorityClass" -EA SilentlyContinue).CpuPriorityClass; if ($v -eq 6) { "true" } else { "false" }`,
+    },
+    'fso-disable': {
+      apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${exePath}" -Value "~ DISABLEDXMAXIMIZEDWINDOWEDMODE" -Type String -Force; Write-Output "ok"`,
+      revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${exePath}" -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${exePath}" -EA SilentlyContinue)."${exePath}"; if ($v -eq "~ DISABLEDXMAXIMIZEDWINDOWEDMODE") { "true" } else { "false" }`,
+    },
+    'gpu-preference': {
+      apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${exePath}" -Value "GpuPreference=2;" -Type String -Force; Write-Output "ok"`,
+      revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${exePath}" -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${exePath}" -EA SilentlyContinue)."${exePath}"; if ($v -like "*GpuPreference=2*") { "true" } else { "false" }`,
+    },
+    'network-qos': {
+      apply:  `$pn = "${gameName} SC-Boost"; if (!(Get-NetQosPolicy -Name $pn -EA SilentlyContinue)) { New-NetQosPolicy -Name $pn -AppPathNameMatchCondition "${exePath}" -IPProtocolMatchCondition Both -DSCPAction 46 -NetworkProfile All -Confirm:$false -EA SilentlyContinue }; Write-Output "ok"`,
+      revert: `Remove-NetQosPolicy -Name "${gameName} SC-Boost" -Confirm:$false -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `if (Get-NetQosPolicy -Name "${gameName} SC-Boost" -EA SilentlyContinue) { "true" } else { "false" }`,
+    },
+  };
+
+  const scriptSet = scripts[type];
+  if (!scriptSet || !scriptSet[mode]) {
+    return { success: false, error: `Unknown action type "${type}" or mode "${mode}"`, verified: false };
+  }
+
+  try {
+    const output = await new Promise((resolve, reject) => {
+      execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', scriptSet[mode]], { timeout: 15000 }, (error, stdout, stderr) => {
+        if (error) reject(new Error(stderr || error.message));
+        else resolve(stdout.trim());
+      });
+    });
+
+    let verified = false;
+    if (mode !== 'check' && scriptSet.check) {
+      try {
+        const checkOut = await new Promise((resolve, reject) => {
+          execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', scriptSet.check], { timeout: 10000 }, (error, stdout, stderr) => {
+            if (error) reject(new Error(stderr || error.message));
+            else resolve(stdout.trim());
+          });
+        });
+        verified = String(checkOut).toLowerCase().includes('true');
+        if (mode === 'revert') verified = !verified;
+      } catch (_) { verified = false; }
+    } else if (mode === 'check') {
+      return { success: true, verified: String(output).toLowerCase().includes('true'), message: output };
+    }
+
+    return { success: true, verified, message: String(output) };
+  } catch (e) {
+    console.error(`[IPC] appBooster:executeAction error (${type}/${mode}):`, e.message);
+    return { success: false, error: e.message, verified: false };
+  }
+});
+
 // Auth: Clear cookies for the backend domain
 ipcMain.handle('auth:clearCookies', async () => {
   console.log('[Auth] auth:clearCookies IPC called');

@@ -135,6 +135,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
   },
 
+  // App Booster — per-game optimization actions
+  appBooster: {
+    scanGames:     (games)  => ipcRenderer.invoke('appBooster:scanGames', games),
+    executeAction: (params) => ipcRenderer.invoke('appBooster:executeAction', params),
+  },
+
   // Auto-Updater — renderer reads state, main process owns all logic
   updater: {
     getState:      () => ipcRenderer.invoke('updater:getState'),
