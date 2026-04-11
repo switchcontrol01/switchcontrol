@@ -23,6 +23,7 @@ import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 
 import Splash from "@/screens/Splash";
+import FirstLaunchSplash from "@/screens/FirstLaunchSplash";
 import CameraGlow from "@/screens/CameraGlow";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
@@ -139,6 +140,9 @@ function ElectronAppContent() {
   const [entitlementsVerified, setEntitlementsVerified] = useState(false);
   const [showPendingActivation, setShowPendingActivation] = useState(false);
   const [showPatchNotes, setShowPatchNotes] = useState(false);
+  // "resolving" = checking device first-launch status; "normal" | "first-launch" = determined
+  const [splashType, setSplashType] = useState<"resolving" | "normal" | "first-launch">("resolving");
+  const firstLaunchDeviceIdRef = React.useRef<string | null>(null);
   const patchNotesCheckedRef = React.useRef(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const trialUnlockFiredRef = React.useRef(false);
@@ -360,16 +364,49 @@ function ElectronAppContent() {
       .catch(() => {});
   }, [phase, activeFlow]);
 
+  // ── Resolve first-launch type immediately on mount ────────────────────────
   useEffect(() => {
-    // Fire bloom ~1000ms before splash exits so it peaks during the dissolve.
-    const glowTimer   = setTimeout(() => setShowGlow(true),    3800);
-    // Splash lasts 4800ms total.
-    const splashTimer = setTimeout(() => setSplashDone(true),  4800);
+    if (!isElectron) { setSplashType("normal"); return; }
+    const api = (window as any).electronAPI;
+    (async () => {
+      try {
+        const deviceId: string = await api.getDeviceId();
+        firstLaunchDeviceIdRef.current = deviceId;
+        const completed: boolean = await api.firstLaunch.isCompleted(deviceId);
+        setSplashType(completed ? "normal" : "first-launch");
+      } catch (e) {
+        console.warn("[FirstLaunch] resolution failed, defaulting to normal splash:", e);
+        setSplashType("normal");
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Splash timers — start only once splashType is known ──────────────────
+  useEffect(() => {
+    if (splashType === "resolving") return;
+    const isFirstLaunch = splashType === "first-launch";
+    // First-launch: glow at 4200ms, done at 5200ms (cinematic is ~5s total)
+    // Normal:       glow at 3800ms, done at 4800ms
+    const glowDelay   = isFirstLaunch ? 4200 : 3800;
+    const splashDelay = isFirstLaunch ? 5200 : 4800;
+    const glowTimer = setTimeout(() => setShowGlow(true), glowDelay);
+    const splashTimer = setTimeout(async () => {
+      if (isFirstLaunch && firstLaunchDeviceIdRef.current && isElectron) {
+        try {
+          await (window as any).electronAPI.firstLaunch.markCompleted(firstLaunchDeviceIdRef.current);
+          console.log("[FirstLaunch] Marked completed for device:", firstLaunchDeviceIdRef.current);
+        } catch (e) {
+          console.warn("[FirstLaunch] markCompleted failed:", e);
+        }
+      }
+      setSplashDone(true);
+    }, splashDelay);
     return () => {
       clearTimeout(glowTimer);
       clearTimeout(splashTimer);
     };
-  }, []);
+  }, [splashType]);
 
   useEffect(() => {
     if (!isElectron) return;
@@ -594,7 +631,7 @@ function ElectronAppContent() {
       <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
       <AnimatePresence mode="sync">
-        {phase === "splash" && (
+        {phase === "splash" && splashType !== "resolving" && (
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
@@ -603,7 +640,14 @@ function ElectronAppContent() {
             className="h-full"
             style={{ position: "absolute", inset: 0 }}
           >
-            <Splash onComplete={() => {}} />
+            {splashType === "first-launch" ? (
+              <FirstLaunchSplash
+                onComplete={() => {}}
+                deviceId={firstLaunchDeviceIdRef.current}
+              />
+            ) : (
+              <Splash onComplete={() => {}} />
+            )}
           </motion.div>
         )}
 

@@ -115,6 +115,46 @@ function TikTokIcon({ className }: { className?: string }) {
 
 const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 
+function FirstLaunchResetRow() {
+  const [status, setStatus] = useState<"idle" | "resetting" | "done" | "error">("idle");
+
+  const handleReset = async () => {
+    setStatus("resetting");
+    try {
+      const api = (window as any).electronAPI;
+      const deviceId: string = await api.getDeviceId();
+      const ok: boolean = await api.firstLaunch.resetDevice(deviceId);
+      setStatus(ok ? "done" : "error");
+      setTimeout(() => setStatus("idle"), 2500);
+    } catch {
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 2500);
+    }
+  };
+
+  return (
+    <div
+      className="flex items-center justify-between bg-orange-500/5 border border-orange-500/10 p-3 rounded-md"
+      data-testid="row-first-launch-reset"
+    >
+      <div className="space-y-0.5">
+        <span className="text-sm font-medium text-orange-300/70">First-Launch Animation</span>
+        <p className="text-xs text-orange-500/40">Reset so cinematic plays again on next launch</p>
+      </div>
+      <Button
+        variant="outline"
+        size="sm"
+        data-testid="button-reset-first-launch"
+        className="border-orange-500/15 text-orange-400/70 hover:text-orange-300 hover:bg-orange-500/10"
+        disabled={status === "resetting"}
+        onClick={handleReset}
+      >
+        {status === "resetting" ? "Resetting…" : status === "done" ? "Done!" : status === "error" ? "Failed" : "Reset"}
+      </Button>
+    </div>
+  );
+}
+
 export default function Settings() {
   const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled } = useStore();
   const { toast } = useToast();
@@ -401,7 +441,7 @@ export default function Settings() {
                 </CardTitle>
                 <CardDescription>Internal admin tools. Visible to admins only.</CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <div className="flex items-center justify-between bg-orange-500/5 border border-orange-500/15 p-3 rounded-md">
                   <div className="space-y-0.5">
                     <span className="text-sm font-medium text-orange-300">User Management</span>
@@ -423,6 +463,9 @@ export default function Settings() {
                     Open Admin
                   </Button>
                 </div>
+                {isElectron && (
+                  <FirstLaunchResetRow />
+                )}
               </CardContent>
             </Card>
             </AnimatedSection>

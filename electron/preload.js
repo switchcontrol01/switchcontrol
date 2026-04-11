@@ -11,6 +11,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
   getDeviceId: () => ipcRenderer.invoke('app:getDeviceId'),
   isAdmin: () => ipcRenderer.invoke('app:isAdmin'),
+
+  // First-launch tracking — keyed to device identity
+  firstLaunch: {
+    isCompleted:   (deviceId) => ipcRenderer.invoke('firstLaunch:isCompleted', deviceId),
+    markCompleted: (deviceId) => ipcRenderer.invoke('firstLaunch:markCompleted', deviceId),
+    resetDevice:   (deviceId) => ipcRenderer.invoke('firstLaunch:resetDevice', deviceId),
+  },
   quitApp: () => ipcRenderer.invoke('app:quit'),
 
   // Backend info (for packaged mode API routing)
