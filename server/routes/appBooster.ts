@@ -1,34 +1,48 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
 import { db, isNoDbMode } from "../db";
-import { SUPPORTED_GAMES, buildActionsForGame, getGameBySlug, PROFILES } from "../lib/appBoosterProfiles";
+import {
+  SUPPORTED_GAMES,
+  buildActionsForGame,
+  getGameBySlug,
+  PROFILES,
+} from "../lib/appBoosterProfiles";
+import { runAllDetectors } from "../lib/gameDetection/index";
 
 const router = Router();
 
-// ── DB init ──────────────────────────────────────────────────────────────────
+// ── DB init ───────────────────────────────────────────────────────────────────
 
 async function initTables() {
   if (isNoDbMode || !db) return;
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_games (
-      slug        TEXT PRIMARY KEY,
-      name        TEXT NOT NULL,
-      executable  TEXT NOT NULL,
-      install_path TEXT,
-      detected    BOOLEAN NOT NULL DEFAULT FALSE,
-      added_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      slug          TEXT PRIMARY KEY,
+      name          TEXT NOT NULL,
+      executable    TEXT NOT NULL,
+      install_path  TEXT,
+      detected      BOOLEAN NOT NULL DEFAULT FALSE,
+      launcher      TEXT,
+      logo_url      TEXT,
+      cover_url     TEXT,
+      confidence    TEXT,
+      added_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await db.execute(sql`ALTER TABLE app_booster_games ADD COLUMN IF NOT EXISTS launcher TEXT`);
+  await db.execute(sql`ALTER TABLE app_booster_games ADD COLUMN IF NOT EXISTS logo_url TEXT`);
+  await db.execute(sql`ALTER TABLE app_booster_games ADD COLUMN IF NOT EXISTS cover_url TEXT`);
+  await db.execute(sql`ALTER TABLE app_booster_games ADD COLUMN IF NOT EXISTS confidence TEXT`);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_state (
-      game_slug   TEXT PRIMARY KEY,
-      status      TEXT NOT NULL DEFAULT 'idle',
-      profile_id  TEXT,
-      applied_at  TIMESTAMPTZ,
-      reverted_at TIMESTAMPTZ,
+      game_slug      TEXT PRIMARY KEY,
+      status         TEXT NOT NULL DEFAULT 'idle',
+      profile_id     TEXT,
+      applied_at     TIMESTAMPTZ,
+      reverted_at    TIMESTAMPTZ,
       actions_result JSONB NOT NULL DEFAULT '[]',
-      install_path TEXT,
-      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      install_path   TEXT,
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
   await db.execute(sql`
@@ -43,9 +57,11 @@ async function initTables() {
   `);
 }
 
-initTables().catch((e) => console.error("[AppBooster] table init failed:", e.message));
+initTables().catch((e) =>
+  console.error("[AppBooster] table init failed:", e.message)
+);
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface GameState {
   slug: string;
@@ -68,6 +84,8 @@ interface ActionResult {
   message: string;
   verified: boolean;
 }
+
+// ── DB helpers ────────────────────────────────────────────────────────────────
 
 async function getState(slug: string): Promise<GameState | null> {
   const game = getGameBySlug(slug);
@@ -104,9 +122,9 @@ async function getState(slug: string): Promise<GameState | null> {
     if (gameRow.rows.length > 0) {
       return {
         ...defaultState,
-        detected: gameRow.rows[0].detected,
-        installPath: gameRow.rows[0].install_path ?? null,
-        addedAt: gameRow.rows[0].added_at,
+        detected: gameRow.rows[0].detected as boolean,
+        installPath: (gameRow.rows[0].install_path as string | null) ?? null,
+        addedAt: gameRow.rows[0].added_at as string,
       };
     }
     return defaultState;
@@ -117,25 +135,37 @@ async function getState(slug: string): Promise<GameState | null> {
     slug: game.slug,
     name: game.name,
     executable: game.executable,
-    installPath: r.install_path ?? r.g_install_path ?? null,
-    detected: r.detected ?? false,
-    status: r.status ?? "idle",
-    profileId: r.profile_id ?? null,
-    appliedAt: r.applied_at ?? null,
-    revertedAt: r.reverted_at ?? null,
-    actionsResult: r.actions_result ?? [],
-    addedAt: r.added_at ?? new Date().toISOString(),
+    installPath: (r.install_path as string | null) ?? (r.g_install_path as string | null) ?? null,
+    detected: (r.detected as boolean) ?? false,
+    status: (r.status as GameState["status"]) ?? "idle",
+    profileId: (r.profile_id as string | null) ?? null,
+    appliedAt: (r.applied_at as string | null) ?? null,
+    revertedAt: (r.reverted_at as string | null) ?? null,
+    actionsResult: (r.actions_result as ActionResult[]) ?? [],
+    addedAt: (r.added_at as string) ?? new Date().toISOString(),
   };
 }
 
-async function upsertGameRow(slug: string, name: string, executable: string, detected: boolean, installPath: string | null) {
+async function upsertGameRow(
+  slug: string,
+  name: string,
+  executable: string,
+  detected: boolean,
+  installPath: string | null,
+  extra: { launcher?: string; logoUrl?: string | null; coverUrl?: string | null; confidence?: string } = {}
+) {
   if (isNoDbMode || !db) return;
   await db.execute(
-    sql`INSERT INTO app_booster_games (slug, name, executable, detected, install_path)
-        VALUES (${slug}, ${name}, ${executable}, ${detected}, ${installPath})
+    sql`INSERT INTO app_booster_games (slug, name, executable, detected, install_path, launcher, logo_url, cover_url, confidence)
+        VALUES (${slug}, ${name}, ${executable}, ${detected}, ${installPath},
+                ${extra.launcher ?? null}, ${extra.logoUrl ?? null}, ${extra.coverUrl ?? null}, ${extra.confidence ?? null})
         ON CONFLICT (slug) DO UPDATE SET
-          detected = EXCLUDED.detected,
-          install_path = COALESCE(EXCLUDED.install_path, app_booster_games.install_path)`
+          detected     = CASE WHEN EXCLUDED.detected THEN EXCLUDED.detected ELSE app_booster_games.detected END,
+          install_path = COALESCE(EXCLUDED.install_path, app_booster_games.install_path),
+          launcher     = COALESCE(EXCLUDED.launcher, app_booster_games.launcher),
+          logo_url     = COALESCE(EXCLUDED.logo_url, app_booster_games.logo_url),
+          cover_url    = COALESCE(EXCLUDED.cover_url, app_booster_games.cover_url),
+          confidence   = COALESCE(EXCLUDED.confidence, app_booster_games.confidence)`
   );
 }
 
@@ -200,30 +230,44 @@ async function addHistory(slug: string, operation: string, status: string, detai
   );
 }
 
-// ── routes ────────────────────────────────────────────────────────────────────
+// ── Routes ────────────────────────────────────────────────────────────────────
 
-// GET /api/app-booster/games — list all supported games with current state
+// GET /api/app-booster/games — full catalog with per-game install state
 router.get("/games", async (_req, res) => {
-  const stateMap: Record<string, { status: string; profileId: string | null; detected: boolean; installPath: string | null }> = {};
+  const stateMap: Record<
+    string,
+    {
+      status: string;
+      profileId: string | null;
+      detected: boolean;
+      installPath: string | null;
+      launcher: string | null;
+      logoUrl: string | null;
+      coverUrl: string | null;
+    }
+  > = {};
 
   if (!isNoDbMode && db) {
     try {
       const { rows } = await db.execute(sql`
-        SELECT g.slug, g.detected, g.install_path,
+        SELECT g.slug, g.detected, g.install_path, g.launcher, g.logo_url, g.cover_url,
                s.status, s.profile_id
         FROM app_booster_games g
         LEFT JOIN app_booster_state s ON s.game_slug = g.slug
       `);
       for (const r of rows) {
-        stateMap[r.slug] = {
-          status: r.status ?? "idle",
-          profileId: r.profile_id ?? null,
-          detected: r.detected ?? false,
-          installPath: r.install_path ?? null,
+        stateMap[r.slug as string] = {
+          status: (r.status as string) ?? "idle",
+          profileId: (r.profile_id as string | null) ?? null,
+          detected: (r.detected as boolean) ?? false,
+          installPath: (r.install_path as string | null) ?? null,
+          launcher: (r.launcher as string | null) ?? null,
+          logoUrl: (r.logo_url as string | null) ?? null,
+          coverUrl: (r.cover_url as string | null) ?? null,
         };
       }
     } catch (dbErr: any) {
-      console.error("[AppBooster] DB state query failed, serving static game list:", dbErr.message);
+      console.error("[AppBooster] DB state query failed:", dbErr.message);
     }
   }
 
@@ -241,11 +285,18 @@ router.get("/games", async (_req, res) => {
         status: s?.status ?? "idle",
         detected: s?.detected ?? false,
         installPath: s?.installPath ?? null,
+        launcher: s?.launcher ?? null,
+        logoUrl: s?.logoUrl ?? g.logoUrl ?? null,
+        coverUrl: s?.coverUrl ?? g.coverUrl ?? null,
         actionCount: buildActionsForGame(g, null).length,
         knownPaths: g.knownPaths,
       };
     });
 
+    const installedCount = result.filter((g) => g.detected).length;
+    console.log(
+      `[AppBooster] GET /games — catalog: ${result.length}, installed: ${installedCount}`
+    );
     res.json({ games: result });
   } catch (e: any) {
     console.error("[AppBooster] GET /games mapping error:", e.message);
@@ -254,20 +305,41 @@ router.get("/games", async (_req, res) => {
 });
 
 // POST /api/app-booster/games/scan — receive scan results from Electron client
+// Accepts both legacy format and new enriched v2 format
 router.post("/games/scan", async (req, res) => {
   try {
     const { results } = req.body as {
-      results: Array<{ slug: string; detected: boolean; installPath: string | null }>;
+      results: Array<{
+        slug: string;
+        detected: boolean;
+        installPath: string | null;
+        // v2 enriched fields (optional)
+        launcher?: string;
+        logoUrl?: string | null;
+        coverUrl?: string | null;
+        confidence?: string;
+        source?: string;
+      }>;
     };
 
     if (!Array.isArray(results)) {
       return res.status(400).json({ error: "results array required" });
     }
 
+    console.log(
+      `[AppBooster] POST /games/scan — ${results.length} result(s), ` +
+        `${results.filter((r) => r.detected).length} detected`
+    );
+
     for (const r of results) {
       const game = getGameBySlug(r.slug);
       if (!game) continue;
-      await upsertGameRow(game.slug, game.name, game.executable, r.detected, r.installPath);
+      await upsertGameRow(game.slug, game.name, game.executable, r.detected, r.installPath, {
+        launcher: r.launcher,
+        logoUrl: r.logoUrl,
+        coverUrl: r.coverUrl,
+        confidence: r.confidence,
+      });
     }
 
     await addHistory("system", "scan", "success", {
@@ -280,6 +352,101 @@ router.post("/games/scan", async (req, res) => {
   } catch (e: any) {
     console.error("[AppBooster] POST /games/scan error:", e.message);
     res.status(500).json({ error: "Scan record failed" });
+  }
+});
+
+// POST /api/app-booster/detect — run the server-side multi-launcher detection pipeline
+// Works on Windows; on Linux returns an empty scan with a clear explanation.
+router.post("/detect", async (_req, res) => {
+  console.log("[AppBooster] POST /detect — starting server-side detection pipeline");
+  try {
+    const report = await runAllDetectors();
+
+    // Persist detected games to DB
+    for (const game of report.normalized) {
+      const catalog = getGameBySlug(game.normalizedName) ?? getGameBySlug(game.id.replace(/^(steam|epic|xbox)_/, ""));
+      if (!catalog) continue;
+
+      await upsertGameRow(
+        catalog.slug,
+        catalog.name,
+        catalog.executable,
+        true,
+        game.installPath,
+        {
+          launcher: game.launcher,
+          logoUrl: game.logoUrl ?? catalog.logoUrl ?? null,
+          coverUrl: game.coverUrl ?? catalog.coverUrl ?? null,
+          confidence: game.confidence,
+        }
+      );
+    }
+
+    await addHistory("system", "detect", "success", {
+      platform: process.platform,
+      totalInstalled: report.totalInstalled,
+      steamCount: report.results.find((r) => r.launcher === "steam")?.games.length ?? 0,
+      epicCount:  report.results.find((r) => r.launcher === "epic")?.games.length ?? 0,
+      xboxCount:  report.results.find((r) => r.launcher === "xbox")?.games.length ?? 0,
+    });
+
+    res.json({
+      ok: true,
+      platformSupported: report.platformSupported,
+      scannedAt: report.scannedAt,
+      totalInstalled: report.totalInstalled,
+      perLauncher: report.results.map((r) => ({
+        launcher: r.launcher,
+        count: r.games.length,
+        error: r.error,
+        durationMs: r.scanDurationMs,
+      })),
+      games: report.normalized,
+    });
+  } catch (e: any) {
+    console.error("[AppBooster] POST /detect error:", e.message);
+    res.status(500).json({ error: "Detection pipeline failed", detail: e.message });
+  }
+});
+
+// GET /api/app-booster/installed — only installed (detected) games, enriched
+router.get("/installed", async (_req, res) => {
+  try {
+    if (isNoDbMode || !db) return res.json({ games: [], total: 0 });
+
+    const { rows } = await db.execute(sql`
+      SELECT g.slug, g.name, g.detected, g.install_path, g.launcher, g.logo_url, g.cover_url, g.confidence,
+             s.status, s.profile_id, s.applied_at, s.updated_at
+      FROM app_booster_games g
+      LEFT JOIN app_booster_state s ON s.game_slug = g.slug
+      WHERE g.detected = TRUE
+      ORDER BY s.updated_at DESC NULLS LAST
+    `);
+
+    const games = rows.map((r) => {
+      const meta = getGameBySlug(r.slug as string);
+      return {
+        slug: r.slug,
+        name: r.name ?? meta?.name,
+        launcher: r.launcher ?? "unknown",
+        installPath: r.install_path,
+        logoUrl: r.logo_url ?? meta?.logoUrl ?? null,
+        coverUrl: r.cover_url ?? meta?.coverUrl ?? null,
+        confidence: r.confidence ?? "probable",
+        status: r.status ?? "idle",
+        profileId: r.profile_id,
+        appliedAt: r.applied_at,
+        profileName: meta ? (PROFILES[meta.profileId]?.name ?? null) : null,
+        genre: meta?.genre ?? null,
+        publisher: meta?.publisher ?? null,
+      };
+    });
+
+    console.log(`[AppBooster] GET /installed — ${games.length} installed game(s)`);
+    res.json({ games, total: games.length });
+  } catch (e: any) {
+    console.error("[AppBooster] GET /installed error:", e.message);
+    res.status(500).json({ error: "Failed to load installed games" });
   }
 });
 
@@ -301,7 +468,7 @@ router.get("/games/:slug/status", async (req, res) => {
   }
 });
 
-// POST /api/app-booster/games/:slug/apply — get profile + record apply intent
+// POST /api/app-booster/games/:slug/apply
 router.post("/games/:slug/apply", async (req, res) => {
   try {
     const { slug } = req.params;
@@ -314,21 +481,14 @@ router.post("/games/:slug/apply", async (req, res) => {
     const actions = buildActionsForGame(game, installPath);
     const profile = PROFILES[game.profileId];
 
-    res.json({
-      ok: true,
-      slug,
-      profileId: game.profileId,
-      profile,
-      actions,
-      installPath,
-    });
+    res.json({ ok: true, slug, profileId: game.profileId, profile, actions, installPath });
   } catch (e: any) {
     console.error("[AppBooster] POST /apply error:", e.message);
     res.status(500).json({ error: "Failed to prepare profile" });
   }
 });
 
-// POST /api/app-booster/games/:slug/revert — get revert actions
+// POST /api/app-booster/games/:slug/revert
 router.post("/games/:slug/revert", async (req, res) => {
   try {
     const { slug } = req.params;
@@ -346,7 +506,7 @@ router.post("/games/:slug/revert", async (req, res) => {
   }
 });
 
-// POST /api/app-booster/games/:slug/report-result — frontend reports IPC execution outcome
+// POST /api/app-booster/games/:slug/report-result
 router.post("/games/:slug/report-result", async (req, res) => {
   try {
     const { slug } = req.params;
@@ -370,7 +530,7 @@ router.post("/games/:slug/report-result", async (req, res) => {
     }
 
     const succeeded = actionResults.filter((a) => a.status === "success").length;
-    const failed = actionResults.filter((a) => a.status === "failed").length;
+    const failed    = actionResults.filter((a) => a.status === "failed").length;
 
     let status: string;
     if (!isElectron) {
@@ -385,12 +545,7 @@ router.post("/games/:slug/report-result", async (req, res) => {
 
     await upsertGameRow(game.slug, game.name, game.executable, !!installPath, installPath);
     await upsertStateRow(slug, status, game.profileId, actionResults, installPath, operation);
-    await addHistory(slug, operation, status, {
-      actionResults,
-      succeeded,
-      failed,
-      isElectron,
-    });
+    await addHistory(slug, operation, status, { actionResults, succeeded, failed, isElectron });
 
     res.json({ ok: true, status, succeeded, failed });
   } catch (e: any) {
@@ -399,14 +554,12 @@ router.post("/games/:slug/report-result", async (req, res) => {
   }
 });
 
-// GET /api/app-booster/history — operation history
+// GET /api/app-booster/history
 router.get("/history", async (req, res) => {
   try {
     const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 50);
 
-    if (isNoDbMode || !db) {
-      return res.json({ history: [] });
-    }
+    if (isNoDbMode || !db) return res.json({ history: [] });
 
     const { rows } = await db.execute(
       sql`SELECT h.id, h.game_slug, h.operation, h.status, h.details, h.created_at,

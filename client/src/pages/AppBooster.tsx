@@ -58,6 +58,9 @@ interface GameSummary {
   installPath: string | null;
   actionCount: number;
   knownPaths: string[];
+  logoUrl: string | null;
+  coverUrl: string | null;
+  launcher: string | null;
 }
 
 interface GameDetail extends GameSummary {
@@ -154,6 +157,68 @@ function nameAbbr(name: string): string {
   return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2);
 }
 
+const LAUNCHER_LABELS: Record<string, string> = {
+  steam: "Steam",
+  epic: "Epic",
+  xbox: "Xbox",
+  battlenet: "Battle.net",
+  riot: "Riot",
+  ea: "EA",
+  ubisoft: "Ubisoft",
+};
+
+const LAUNCHER_COLORS: Record<string, string> = {
+  steam:    "bg-[#1b2838]/60 text-[#66c0f4] border-[#66c0f4]/25",
+  epic:     "bg-[#0078f2]/10 text-[#0078f2] border-[#0078f2]/25",
+  xbox:     "bg-[#107c10]/15 text-[#52b043] border-[#52b043]/25",
+  battlenet:"bg-[#0074e0]/10 text-[#4a9eff] border-[#4a9eff]/25",
+  riot:     "bg-[#d13639]/10 text-[#ff4655] border-[#ff4655]/25",
+  ea:       "bg-[#f7941d]/10 text-[#f7941d] border-[#f7941d]/25",
+  ubisoft:  "bg-[#0b7db4]/10 text-[#0b9fd8] border-[#0b9fd8]/25",
+};
+
+function LauncherBadge({ launcher }: { launcher: string | null }) {
+  if (!launcher || launcher === "unknown") return null;
+  const label = LAUNCHER_LABELS[launcher] ?? launcher;
+  const color = LAUNCHER_COLORS[launcher] ?? "bg-zinc-500/15 text-zinc-400 border-zinc-500/20";
+  return (
+    <span className={cn("text-[9px] font-semibold px-1.5 py-0.5 rounded-md border uppercase tracking-wide", color)}>
+      {label}
+    </span>
+  );
+}
+
+function GameLogo({
+  logoUrl, name, genre, size = "sm",
+}: { logoUrl: string | null; name: string; genre: string; size?: "sm" | "lg" }) {
+  const [failed, setFailed] = useState(false);
+  const dim = size === "lg" ? "w-14 h-14 rounded-2xl" : "w-8 h-8 rounded-lg";
+
+  if (!failed && logoUrl) {
+    return (
+      <div className={cn("shrink-0 overflow-hidden shadow-md", dim)}>
+        <img
+          src={logoUrl}
+          alt={name}
+          className="w-full h-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className={cn(
+      "shrink-0 flex items-center justify-center text-white font-bold shadow-md bg-gradient-to-br",
+      dim,
+      genreGradient(genre),
+      size === "lg" ? "text-lg" : "text-[11px]"
+    )}>
+      {nameAbbr(name)}
+    </div>
+  );
+}
+
 // ── execution helpers ─────────────────────────────────────────────────────────
 
 async function executeActionForReal(
@@ -233,12 +298,13 @@ function GameListItem({
       transition={{ duration: 0.15 }}
     >
       <div className="flex items-center gap-3">
-        <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-white text-[11px] font-bold shrink-0 bg-gradient-to-br shadow-md", genreGradient(game.genre))}>
-          {nameAbbr(game.name)}
-        </div>
+        <GameLogo logoUrl={game.logoUrl ?? null} name={game.name} genre={game.genre} size="sm" />
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm truncate leading-none">{game.name}</p>
-          <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{game.publisher}</p>
+          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+            {game.launcher && <LauncherBadge launcher={game.launcher} />}
+            {!game.launcher && <p className="text-[11px] text-muted-foreground truncate">{game.publisher}</p>}
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1.5 shrink-0">
           {game.detected && <div className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_4px_1px_rgba(74,222,128,0.5)]" title="Detected" />}
@@ -344,6 +410,7 @@ export default function AppBooster() {
   const [expandActions, setExpandActions] = useState(true);
   const [loadError,     setLoadError]     = useState<string | null>(null);
   const [showManualAdd, setShowManualAdd] = useState(false);
+  const [showCatalog,   setShowCatalog]   = useState(false);
   const [manualSlug,    setManualSlug]    = useState<string>("");
   const [manualExePath, setManualExePath] = useState<string>("");
   const [manualInstDir, setManualInstDir] = useState<string>("");
@@ -451,26 +518,48 @@ export default function AppBooster() {
     console.log("[AppBooster] handleScan — start, isElectron:", isElectron,
       "bridge:", !!(window as any).electronAPI?.appBooster?.scanGames);
     try {
-      let results: Array<{ slug: string; detected: boolean; installPath: string | null }> = [];
+      let detected = 0;
+
       if (isElectron && (window as any).electronAPI?.appBooster?.scanGames) {
-        results = await (window as any).electronAPI.appBooster.scanGames(
-          games.map((g) => ({ slug: g.slug, executable: g.executable, knownPaths: g.knownPaths ?? [] }))
-        );
+        // Electron path: client-side detection via file system bridge
+        const results: Array<{ slug: string; detected: boolean; installPath: string | null }> =
+          await (window as any).electronAPI.appBooster.scanGames(
+            games.map((g) => ({ slug: g.slug, executable: g.executable, knownPaths: g.knownPaths ?? [] }))
+          );
+        detected = results.filter((r) => r.detected).length;
+        console.log("[AppBooster] handleScan — Electron results:", results.length, "detected:", detected);
+        await apiPost("/app-booster/games/scan", { results });
       } else {
-        results = games.map((g) => ({ slug: g.slug, detected: false, installPath: null }));
+        // Web/server path: run the multi-launcher detection pipeline server-side.
+        // On Windows Express server this finds Steam/Epic/Xbox games.
+        // On Linux/Replit it returns an empty result (platformSupported: false).
+        console.log("[AppBooster] handleScan — calling server-side /detect");
+        const report = await apiPost<{
+          ok: boolean;
+          platformSupported: boolean;
+          totalInstalled: number;
+          perLauncher: Array<{ launcher: string; count: number; error: string | null }>;
+        }>("/app-booster/detect", {});
+        detected = report.totalInstalled;
+        console.log("[AppBooster] handleScan — server detect:",
+          "platform:", report.platformSupported,
+          "installed:", report.totalInstalled);
       }
-      const detected = results.filter((r) => r.detected).length;
-      console.log("[AppBooster] handleScan — results:", results.length, "detected:", detected);
-      await apiPost("/app-booster/games/scan", { results });
+
       const refreshed = await loadGames();
       writeCache(refreshed);
+
       toast({
-        title: detected > 0 ? `Found ${detected} game${detected !== 1 ? "s" : ""}` : "No games detected",
+        title: detected > 0
+          ? `Found ${detected} installed game${detected !== 1 ? "s" : ""}`
+          : "No games detected",
         description: isElectron
           ? detected > 0
-            ? "Games detected from your install directories."
-            : "No supported games found in known install paths."
-          : "Game detection requires the SwitchControl Windows desktop app.",
+            ? "Games detected via Steam, Epic, and Xbox launcher data."
+            : "No supported games found. Check launcher installations."
+          : detected > 0
+            ? "Detected via server-side launcher scan."
+            : "Game detection requires the SwitchControl Windows desktop app on your PC.",
       });
     } catch (e: any) {
       console.error("[AppBooster] handleScan — error:", e?.message);
@@ -788,17 +877,46 @@ export default function AppBooster() {
 
             {/* ── Game Library Sidebar ──────────────────────────────────── */}
             <GlassCard className="flex flex-col p-0 overflow-hidden">
-              <div className="px-4 pt-4 pb-3 border-b border-white/5">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-                  <Gamepad2 className="w-3.5 h-3.5" />
-                  Installed Games
-                  {detectedCount > 0 && (
-                    <span className="ml-auto text-[10px] font-mono text-green-400/70 normal-case tracking-normal">
-                      {detectedCount} detected
+              {/* Header with tab toggle */}
+              <div className="px-3 pt-3 pb-2.5 border-b border-white/5">
+                <div className="flex items-center gap-1 p-0.5 rounded-lg bg-white/5">
+                  <button
+                    onClick={() => setShowCatalog(false)}
+                    className={cn(
+                      "flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5",
+                      !showCatalog
+                        ? "bg-white/10 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-white/70"
+                    )}
+                    data-testid="tab-installed-games"
+                  >
+                    <CheckCircle className="w-3 h-3" />
+                    Installed
+                    {detectedCount > 0 && (
+                      <span className="text-[9px] font-mono bg-green-500/20 text-green-400 px-1.5 py-0.5 rounded-full">
+                        {detectedCount}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setShowCatalog(true)}
+                    className={cn(
+                      "flex-1 text-[11px] font-semibold py-1.5 rounded-md transition-all flex items-center justify-center gap-1.5",
+                      showCatalog
+                        ? "bg-white/10 text-white shadow-sm"
+                        : "text-muted-foreground hover:text-white/70"
+                    )}
+                    data-testid="tab-catalog-games"
+                  >
+                    <Gamepad2 className="w-3 h-3" />
+                    Catalog
+                    <span className="text-[9px] font-mono bg-white/10 text-white/40 px-1.5 py-0.5 rounded-full">
+                      {games.length}
                     </span>
-                  )}
-                </p>
+                  </button>
+                </div>
               </div>
+
               <div className="flex-1 overflow-y-auto max-h-[560px] px-2 py-2">
                 {loadingGames ? (
                   <div className="flex flex-col items-center justify-center py-14 gap-2">
@@ -810,33 +928,62 @@ export default function AppBooster() {
                     <AlertTriangle className="w-6 h-6 text-yellow-400/60 mb-1" />
                     <p className="text-sm font-medium text-muted-foreground">Could not load library</p>
                     <p className="text-[11px] text-muted-foreground/60 leading-relaxed">{loadError}</p>
-                    <button
-                      onClick={() => loadGames()}
-                      className="text-[11px] text-primary hover:underline mt-1"
-                    >
-                      Retry
-                    </button>
+                    <button onClick={() => loadGames()} className="text-[11px] text-primary hover:underline mt-1">Retry</button>
                   </div>
+                ) : showCatalog ? (
+                  /* ── Catalog tab — ALL supported games ─────────────────── */
+                  (() => {
+                    const catalogFiltered = games.filter((g) =>
+                      g.name.toLowerCase().includes(searchQuery.toLowerCase())
+                    );
+                    return catalogFiltered.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        <p className="text-sm">No games match "{searchQuery}"</p>
+                      </div>
+                    ) : (
+                      <motion.div className="space-y-0.5" variants={staggerContainer} initial="initial" animate="animate">
+                        {catalogFiltered.map((game) => (
+                          <motion.div key={game.slug} variants={staggerItem}>
+                            <GameListItem
+                              game={game}
+                              selected={selectedSlug === game.slug}
+                              onClick={() => setSelectedSlug(game.slug)}
+                            />
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    );
+                  })()
                 ) : detectedCount === 0 && !isScanning ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-center px-4 gap-3">
+                  /* ── Installed tab empty state ─────────────────────────── */
+                  <div className="flex flex-col items-center justify-center py-10 text-center px-4 gap-3">
                     <Gamepad2 className="w-8 h-8 opacity-20" />
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">No installed games detected</p>
+                      <p className="text-sm font-medium text-muted-foreground">No installs detected yet</p>
                       <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">
-                        Run a scan to detect supported games installed on this PC.
+                        Scan to detect Steam, Epic, and Xbox games installed on this PC.
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-1 bg-white/5 border-white/10 hover:bg-white/10 text-xs"
-                      onClick={handleScan}
-                      disabled={isScanning}
-                      data-testid="button-scan-empty-state"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
-                      Scan Now
-                    </Button>
+                    <div className="flex flex-col gap-2 w-full">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="bg-white/5 border-white/10 hover:bg-white/10 text-xs"
+                        onClick={handleScan}
+                        disabled={isScanning}
+                        data-testid="button-scan-empty-state"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                        Scan Now
+                      </Button>
+                      <button
+                        onClick={() => setShowCatalog(true)}
+                        className="text-[11px] text-primary/70 hover:text-primary transition-colors"
+                      >
+                        Browse all {games.length} supported games →
+                      </button>
+                    </div>
                   </div>
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
@@ -905,15 +1052,18 @@ export default function AppBooster() {
                     <GlassCard className="p-5">
                       <div className="flex items-start justify-between gap-4 flex-wrap">
                         <div className="flex items-center gap-4">
-                          <div className={cn(
-                            "w-14 h-14 rounded-2xl flex items-center justify-center text-white text-lg font-bold shrink-0 bg-gradient-to-br shadow-xl",
-                            genreGradient(gameDetail.genre)
-                          )}>
-                            {nameAbbr(gameDetail.name)}
-                          </div>
+                          <GameLogo
+                            logoUrl={gameDetail.logoUrl ?? null}
+                            name={gameDetail.name}
+                            genre={gameDetail.genre}
+                            size="lg"
+                          />
                           <div>
                             <h2 className="text-xl font-bold leading-tight">{gameDetail.name}</h2>
-                            <p className="text-sm text-muted-foreground mt-0.5">{gameDetail.publisher}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <p className="text-sm text-muted-foreground">{gameDetail.publisher}</p>
+                              {gameDetail.launcher && <LauncherBadge launcher={gameDetail.launcher} />}
+                            </div>
                             <div className="flex items-center gap-2 mt-2 flex-wrap">
                               <span className={cn("text-[11px] font-semibold px-2.5 py-1 rounded-full border flex items-center gap-1.5", STATUS_COLORS[currentStatus])}>
                                 {statusIcon(currentStatus)}
