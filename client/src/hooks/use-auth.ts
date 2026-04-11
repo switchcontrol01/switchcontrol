@@ -1,7 +1,7 @@
 import { useAppAuth } from "@/App";
 
 export function useAuth() {
-  const { user, isPremium, logout } = useAppAuth();
+  const { user, isPremium, logout, isSigningOut } = useAppAuth();
 
   return {
     user: user ? {
@@ -21,6 +21,7 @@ export function useAuth() {
     isLoading: false,
     isAuthenticated: !!user,
     isPremium,
+    isSigningOut,
     logout,
     refetch: async () => {},
   };

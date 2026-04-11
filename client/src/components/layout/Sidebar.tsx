@@ -13,6 +13,7 @@ import {
   Cpu,
   Crown,
   LogOut,
+  Loader2,
   Activity,
   Brain,
   Clock,
@@ -350,7 +351,7 @@ function NavItemRow({
 
 export function Sidebar() {
   const [location, setLocation] = useLocation();
-  const { user, isPremium, logout } = useAuth();
+  const { user, isPremium, logout, isSigningOut } = useAuth();
   const trialOn = isTrialActive(user?.plan ?? "free", user?.trialEndsAt ?? null);
   const [trialLabel, setTrialLabel] = useState(() => formatTrialCountdown(user?.trialEndsAt ?? null));
   useEffect(() => {
@@ -530,20 +531,27 @@ export function Sidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <motion.button
-                  onClick={logout}
-                  className="size-7 rounded-lg flex items-center justify-center text-muted-foreground/40"
-                  whileHover={{
+                  onClick={isSigningOut ? undefined : logout}
+                  disabled={isSigningOut}
+                  className={cn(
+                    "size-7 rounded-lg flex items-center justify-center transition-colors",
+                    isSigningOut ? "text-red-400/40 cursor-default" : "text-muted-foreground/40",
+                  )}
+                  whileHover={isSigningOut ? {} : {
                     color: "#f87171",
                     backgroundColor: "rgba(239,68,68,0.12)",
                     transition: { duration: 0.15 },
                   }}
-                  whileTap={{ scale: 0.9 }}
+                  whileTap={isSigningOut ? {} : { scale: 0.9 }}
+                  data-testid="button-sign-out"
                 >
-                  <LogOut className="size-3.5" />
+                  {isSigningOut
+                    ? <Loader2 className="size-3.5 animate-spin" />
+                    : <LogOut className="size-3.5" />}
                 </motion.button>
               </TooltipTrigger>
               <TooltipContent side="top" className="text-xs">
-                Sign out
+                {isSigningOut ? "Signing out…" : "Sign out"}
               </TooltipContent>
             </Tooltip>
           </motion.div>

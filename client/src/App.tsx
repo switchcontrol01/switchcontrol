@@ -59,6 +59,7 @@ interface AppAuthContextValue {
   user: AuthUser | null;
   isPremium: boolean;
   entitlementsVerified: boolean;
+  isSigningOut: boolean;
   logout: () => void;
   factoryReset: () => Promise<void>;
   safeRefreshEntitlements: () => Promise<{ user: AuthUser | null }>;
@@ -68,6 +69,7 @@ const AppAuthContext = createContext<AppAuthContextValue>({
   user: null,
   isPremium: false,
   entitlementsVerified: false,
+  isSigningOut: false,
   logout: () => {},
   factoryReset: async () => {},
   safeRefreshEntitlements: async () => ({ user: null }),
@@ -134,6 +136,7 @@ function ElectronAppContent() {
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [activeFlow, setActiveFlow] = useState<AppFlow>("none");
   const [isResetting, setIsResetting] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const [entitlementsAttempted, setEntitlementsAttempted] = useState(false);
   const [entitlementsOk, setEntitlementsOk] = useState(false);
   const [entitlementsVerified, setEntitlementsVerified] = useState(false);
@@ -585,10 +588,25 @@ function ElectronAppContent() {
   }, [splashDone]);
 
   const handleLogout = async () => {
-    console.log('[Auth] logout called because user_clicked_signout triggeredBy=handleLogout');
-    await performFullLogout('user_clicked_signout');
+    if (isSigningOut) return; // prevent double-trigger
+    console.log('[Auth] logout called — starting cinematic sign-out transition');
+
+    // 1. Immediately lock interactions and start the visual fade-out
+    setIsSigningOut(true);
+
+    // 2. Kick off backend logout concurrently so network time is "free"
+    const logoutPromise = performFullLogout('user_clicked_signout');
+
+    // 3. Let the app container's exit animation play (1.3s)
+    await new Promise<void>((resolve) => setTimeout(resolve, 1300));
+
+    // 4. Ensure the network call is done before switching phase
+    await logoutPromise;
+
+    // 5. Switch phase — login screen will animate in
     setPhase("unauthenticated");
     setLocation("/");
+    // (isSigningOut stays true; we're leaving the phase so it doesn't matter)
   };
 
   const handleSafeRefreshEntitlements = useCallback(async () => {
@@ -627,6 +645,7 @@ function ElectronAppContent() {
     user: user,
     isPremium: entitlementsVerified && (user?.isPremium ?? false),
     entitlementsVerified,
+    isSigningOut,
     logout: handleLogout,
     factoryReset: handleFactoryReset,
     safeRefreshEntitlements: handleSafeRefreshEntitlements,
@@ -655,10 +674,10 @@ function ElectronAppContent() {
         {phase === "unauthenticated" && (
           <motion.div
             key="login"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, filter: "blur(12px)", scale: 1.012 }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.75, ease: [0.25, 0.1, 0, 1] }}
+            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <LoginScreen />
@@ -689,9 +708,13 @@ function ElectronAppContent() {
           <motion.div
             key="app"
             initial={{ opacity: 0, scale: 0.995, filter: "blur(4px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+            animate={
+              isSigningOut
+                ? { opacity: 0, scale: 0.975, filter: "blur(24px)", transition: { duration: 1.1, ease: [0.4, 0, 0.6, 1] } }
+                : { opacity: 1, scale: 1,     filter: "blur(0px)",  transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] } }
+            }
             className="h-full"
+            style={{ pointerEvents: isSigningOut ? "none" : undefined }}
           >
             <Router hook={useHashLocation}>
               <ElectronAppRoutes />
