@@ -1,0 +1,84 @@
+TASK
+
+Fix the tour transition glitch that happens when the app starts and enters the onboarding/tour state.
+
+PROBLEM
+
+When SwitchControl transitions into the tour after app startup, there is a visible glitch for around 0.5 seconds.
+
+It looks like the frame animates bugged into the tour state instead of transitioning smoothly.
+The user can see the UI partially shifting/snapping into place before the tour settles.
+
+This is not acceptable.
+
+GOAL
+
+Make the transition from app startup into the tour fully fluid, stable, and cinematic.
+
+The tour must:
+
+- enter smoothly
+- not snap into place
+- not show intermediate broken frames
+- not reveal buggy overlay/layout states
+- feel like one deliberate transition
+
+IMPORTANT
+
+Do NOT just slow the animation down.
+Do NOT hide it with more blur.
+Do NOT add another fake loading layer unless truly needed.
+
+Fix the actual transition pipeline and mount timing.
+
+ROOT CAUSE AREAS TO AUDIT
+
+1. FIRST PAINT VS TOUR MOUNT
+   Check whether the app paints the normal dashboard first and then mounts the tour overlay after that.
+   If so, this is causing a visible intermediate state.
+
+2. OVERLAY / BACKDROP TIMING
+   Audit blur layer, dark overlay, and modal/card mount timing.
+   Check whether backdrop and tour card are entering at different times or from broken initial values.
+
+3. FRAMER MOTION / ANIMATION INITIAL STATE
+   Audit all motion components involved in:
+
+- startup transition
+- onboarding entry
+- tour modal/card
+- background blur
+- page shell
+
+Check for bad "initial", "animate", and "exit" values causing the card or overlay to animate from the wrong visual state.
+
+4. LAYOUT SHIFT
+   Check whether:
+
+- parent container size changes
+- content width/height changes
+- sidebar/dashboard content reflows
+- font/layout measurement changes after paint
+
+The tour card must not be entering while layout is still shifting.
+
+5. APP CONTENT RE-RENDER
+   Check whether entering the tour triggers a dashboard rerender or remount that causes visible movement underneath.
+
+6. SYNCHRONIZATION
+   The app background, overlay, and tour card must transition as one coordinated sequence.
+   Not separate uncoordinated animations.
+
+REQUIRED FIX
+
+Implement a stable staged transition:
+
+1. ensure underlying app shell is visually stable before tour begins
+2. freeze or stabilize background state
+3. mount backdrop in correct initial state
+4. mount tour card already aligned to final layout logic
+5. animate only transform/opacity, not broken layout properties
+6. prevent any intermediate visible frame between startup and tour
+
+PREFERRED APPROACH
+

@@ -142,6 +142,8 @@ function ElectronAppContent() {
   const patchNotesCheckedRef = React.useRef(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const trialUnlockFiredRef = React.useRef(false);
+  const trialTourFiredThisSessionRef = React.useRef(false);
+  const premiumTourFiredThisSessionRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
   const { token, jwt, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
@@ -239,8 +241,9 @@ function ElectronAppContent() {
       return;
     }
 
-    if (trialOngoing && user.hasSeenTrialTour === false) {
+    if (trialOngoing && user.hasSeenTrialTour === false && !trialTourFiredThisSessionRef.current) {
       console.log('[AppFlow] PRIORITY 3: Trial tour');
+      trialTourFiredThisSessionRef.current = true;
       setActiveFlow("trialTour");
       return;
     }
@@ -256,8 +259,9 @@ function ElectronAppContent() {
       return;
     }
 
-    if (user.isPremium === true && user.hasSeenPremiumTour === false) {
+    if (user.isPremium === true && user.hasSeenPremiumTour === false && !premiumTourFiredThisSessionRef.current) {
       console.log('[AppFlow] PRIORITY 5: Premium guided tour');
+      premiumTourFiredThisSessionRef.current = true;
       setActiveFlow("premiumTour");
       return;
     }
@@ -716,9 +720,11 @@ function ElectronAppContent() {
         <GuidedTour 
           show={activeFlow === "premiumTour"} 
           onComplete={async () => {
-            console.log('[AppFlow] Premium tour complete — posting tour-seen');
-            await postTourSeen();
+            console.log('[AppFlow] Premium tour complete — optimistic store update then persist');
+            const store = useAuthStore.getState();
+            if (store.user) store.setUser({ ...store.user, hasSeenPremiumTour: true });
             setActiveFlow("none");
+            await postTourSeen();
           }} 
         />
       )}
