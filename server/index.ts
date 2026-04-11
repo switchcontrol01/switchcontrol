@@ -153,11 +153,18 @@ async function initStripe() {
     return;
   }
   try {
-    const stripe = getStripeClient();
+    const { getUncachableStripeClient: freshStripe } = await import('./stripeClient');
+    const stripe = await freshStripe();
     const account = await stripe.accounts.retrieve();
-    console.log(`Stripe initialized: ${account.id || 'connected'}`);
+    console.log(`[Stripe] Connected: ${account.id || 'connected'}`);
   } catch (error: any) {
-    console.error('Failed to initialize Stripe:', error.message);
+    const code = (error as any)?.code;
+    const type = (error as any)?.type;
+    if (type === 'StripeAuthenticationError' || code === 'api_key_expired' || code === 'invalid_api_key') {
+      console.error(`[Stripe] ⚠️  API key is INVALID or EXPIRED (type=${type} code=${code}). Regenerate STRIPE_SECRET_KEY in the Stripe dashboard — checkout will fail until this is fixed.`);
+    } else {
+      console.error('[Stripe] Startup check failed:', error.message);
+    }
   }
 }
 

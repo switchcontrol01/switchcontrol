@@ -422,6 +422,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "already_premium" });
       }
 
+      // Verify the secret key is present before making any API call
+      if (!process.env.STRIPE_SECRET_KEY) {
+        console.error("[Stripe] STRIPE_SECRET_KEY is not set — cannot create checkout session");
+        return res.status(500).json({ error: "Payment system not configured. Contact support." });
+      }
+
       const stripe = await getUncachableStripeClient();
       const isProduction = process.env.NODE_ENV === "production";
       const productionDomain = "https://switchcontrol.org";
@@ -472,8 +478,25 @@ export async function registerRoutes(
 
       res.json({ url: session.url });
     } catch (error: any) {
-      console.error("[Stripe] Checkout session creation error:", error.message);
-      res.status(500).json({ error: "Failed to create checkout session. Please try again." });
+      // Surface the actual Stripe error code and type for diagnosis
+      const stripeCode = error?.code;
+      const stripeType = error?.type;
+      const stripeStatus = error?.statusCode;
+      console.error(
+        `[Stripe] Checkout session creation failed — type=${stripeType} code=${stripeCode} status=${stripeStatus} message=${error.message}`
+      );
+
+      // Map known Stripe error codes to actionable user messages
+      let userMessage = "Failed to create checkout session. Please try again.";
+      if (stripeCode === 'api_key_expired' || stripeCode === 'invalid_api_key' || stripeType === 'StripeAuthenticationError') {
+        userMessage = "Payment system key is invalid or expired. Please contact support.";
+        console.error("[Stripe] ⚠️  CRITICAL: API key is invalid or expired — regenerate STRIPE_SECRET_KEY in the Stripe dashboard.");
+      } else if (stripeCode === 'resource_missing') {
+        userMessage = "The selected price plan could not be found. Please contact support.";
+        console.error(`[Stripe] ⚠️  Price ID not found: ${process.env.STRIPE_PREMIUM_PRICE_ID} — verify it exists in the Stripe dashboard and matches the key mode (test vs live).`);
+      }
+
+      res.status(500).json({ error: userMessage, _stripe_code: stripeCode, _stripe_type: stripeType });
     }
   });
 
