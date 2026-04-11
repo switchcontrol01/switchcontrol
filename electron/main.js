@@ -1497,56 +1497,139 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   console.log('[AppBooster] scanGames start —', games?.length, 'games');
   const fs   = require('fs');
   const path = require('path');
+  const os   = require('os');
 
-  // ── Build dynamic Steam library roots from libraryfolders.vdf ────────────
+  // ── 1. Build dynamic Steam library roots from libraryfolders.vdf ──────────
   const steamCommonPaths = [];
   const steamRootCandidates = [
     'C:\\Program Files (x86)\\Steam',
     'C:\\Program Files\\Steam',
-    'D:\\Steam',
-    'D:\\SteamLibrary',
-    'D:\\Games\\Steam',
-    'E:\\Steam',
-    'E:\\SteamLibrary',
-    'E:\\Games\\Steam',
+    'D:\\Steam', 'D:\\SteamLibrary', 'D:\\Games\\Steam',
+    'E:\\Steam', 'E:\\SteamLibrary', 'E:\\Games\\Steam',
+    'F:\\Steam', 'F:\\SteamLibrary',
   ];
-
   for (const steamRoot of steamRootCandidates) {
     const vdfPath = path.join(steamRoot, 'steamapps', 'libraryfolders.vdf');
     if (fs.existsSync(vdfPath)) {
       try {
         const vdf = fs.readFileSync(vdfPath, 'utf8');
-        const pathMatches = [...vdf.matchAll(/"path"\s+"([^"]+)"/g)];
-        for (const m of pathMatches) {
+        for (const m of [...vdf.matchAll(/"path"\s+"([^"]+)"/g)]) {
           const lib = m[1].replace(/\\\\/g, '\\');
           const common = path.join(lib, 'steamapps', 'common');
           if (!steamCommonPaths.includes(common)) steamCommonPaths.push(common);
         }
-      } catch (vdfErr) {
-        console.log('[AppBooster] vdf parse error at', vdfPath, vdfErr.message);
-      }
-      const defaultCommon = path.join(steamRoot, 'steamapps', 'common');
-      if (!steamCommonPaths.includes(defaultCommon)) steamCommonPaths.push(defaultCommon);
+      } catch (e) { console.log('[AppBooster] vdf parse error', vdfPath, e.message); }
+      const def = path.join(steamRoot, 'steamapps', 'common');
+      if (!steamCommonPaths.includes(def)) steamCommonPaths.push(def);
     }
   }
   console.log('[AppBooster] Steam library paths found:', steamCommonPaths.length);
+
+  // ── 2. Epic Games Launcher manifests → map exe basename → install dir ──────
+  // Manifests live in %ProgramData%\Epic\EpicGamesLauncher\Data\Manifests\*.item
+  const epicInstalls = {}; // exeBasename.toLowerCase() → installLocation
+  const epicManifestDirs = [
+    path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'Epic', 'EpicGamesLauncher', 'Data', 'Manifests'),
+  ];
+  for (const manifestDir of epicManifestDirs) {
+    if (!fs.existsSync(manifestDir)) continue;
+    let items;
+    try { items = fs.readdirSync(manifestDir).filter(f => f.endsWith('.item')); } catch { continue; }
+    for (const itemFile of items) {
+      try {
+        const raw = fs.readFileSync(path.join(manifestDir, itemFile), 'utf8');
+        const manifest = JSON.parse(raw);
+        const installLoc  = manifest.InstallLocation;
+        const launchExe   = manifest.LaunchExecutable; // e.g. "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+        if (installLoc && launchExe) {
+          const exeBasename = path.basename(launchExe).toLowerCase();
+          const exeDir      = path.join(installLoc, path.dirname(launchExe));
+          epicInstalls[exeBasename] = exeDir;
+          console.log(`[AppBooster] Epic manifest: ${exeBasename} → ${exeDir}`);
+        }
+      } catch { /* skip malformed manifest */ }
+    }
+  }
+
+  // ── 3. Xbox / Game Pass install roots ─────────────────────────────────────
+  const xboxRoots = [];
+  const drives = ['C', 'D', 'E', 'F', 'G'];
+  for (const d of drives) {
+    const p = `${d}:\\XboxGames`;
+    if (fs.existsSync(p)) xboxRoots.push(p);
+  }
+  // Also check user-configured Xbox install dirs from registry (best-effort)
+  try {
+    const { execSync } = require('child_process');
+    const out = execSync(
+      'reg query "HKLM\\SOFTWARE\\Microsoft\\GamingServices" /v "GamingRootPath" /reg:64 2>nul',
+      { timeout: 3000, encoding: 'utf8' }
+    );
+    const m = out.match(/GamingRootPath\s+REG_SZ\s+(.+)/i);
+    if (m) {
+      const p = m[1].trim();
+      if (p && !xboxRoots.includes(p)) xboxRoots.push(p);
+    }
+  } catch { /* registry key may not exist */ }
+  console.log('[AppBooster] Xbox roots found:', xboxRoots.length, xboxRoots);
+
+  // ── helper: find exe inside a root directory (up to 3 levels deep) ─────────
+  function findExeIn(rootDir, exeName, maxDepth = 3) {
+    if (maxDepth < 0 || !fs.existsSync(rootDir)) return null;
+    let entries;
+    try { entries = fs.readdirSync(rootDir, { withFileTypes: true }); } catch { return null; }
+    for (const entry of entries) {
+      const fullPath = path.join(rootDir, entry.name);
+      if (!entry.isDirectory()) {
+        if (entry.name.toLowerCase() === exeName.toLowerCase()) return rootDir;
+      } else {
+        const found = findExeIn(fullPath, exeName, maxDepth - 1);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
 
   // ── Per-game detection ────────────────────────────────────────────────────
   const results = [];
   for (const g of (games || [])) {
     let detected = false;
     let installPath = null;
+    const exeLower = g.executable.toLowerCase();
 
-    // 1. Check hardcoded knownPaths first (fast + precise)
-    for (const p of (g.knownPaths || [])) {
+    // Step A: Epic manifest lookup (exact exe match)
+    if (!detected && epicInstalls[exeLower]) {
+      const p = epicInstalls[exeLower];
       if (fs.existsSync(path.join(p, g.executable))) {
-        detected = true;
-        installPath = p;
-        break;
+        detected = true; installPath = p;
+        console.log(`[AppBooster]   ${g.slug}: found via Epic manifest → ${p}`);
       }
     }
 
-    // 2. Scan Steam common dirs for the executable (one level deep)
+    // Step B: hardcoded knownPaths
+    if (!detected) {
+      for (const p of (g.knownPaths || [])) {
+        if (fs.existsSync(path.join(p, g.executable))) {
+          detected = true; installPath = p; break;
+        }
+      }
+    }
+
+    // Step C: Xbox roots (recursive, 3 levels)
+    if (!detected) {
+      for (const xboxRoot of xboxRoots) {
+        if (detected) break;
+        let xboxDirs;
+        try { xboxDirs = fs.readdirSync(xboxRoot); } catch { continue; }
+        for (const dir of xboxDirs) {
+          if (detected) break;
+          const found = findExeIn(path.join(xboxRoot, dir), g.executable, 3);
+          if (found) { detected = true; installPath = found; }
+        }
+      }
+    }
+
+    // Step D: Steam common dirs (one level + one deeper)
     if (!detected) {
       for (const commonDir of steamCommonPaths) {
         if (detected) break;
@@ -1556,11 +1639,9 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
         for (const dir of gameDirs) {
           if (detected) break;
           const gameDir = path.join(commonDir, dir);
-          // Direct exe in game root
           if (fs.existsSync(path.join(gameDir, g.executable))) {
             detected = true; installPath = gameDir; break;
           }
-          // One level deeper (bin, Game, Win64, etc.)
           let subDirs;
           try { subDirs = fs.readdirSync(gameDir); } catch { continue; }
           for (const sub of subDirs) {
@@ -1580,6 +1661,29 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   const detectedCount = results.filter(r => r.detected).length;
   console.log(`[AppBooster] scanGames done — ${detectedCount}/${games?.length} detected`);
   return results;
+});
+
+ipcMain.handle('appBooster:browseExecutable', async (event, { slug, gameName }) => {
+  const { dialog } = require('electron');
+  const path = require('path');
+  const fs   = require('fs');
+  try {
+    const result = await dialog.showOpenDialog({
+      title: `Locate ${gameName || 'game'} executable`,
+      buttonLabel: 'Select',
+      filters: [{ name: 'Executables', extensions: ['exe'] }],
+      properties: ['openFile'],
+    });
+    if (result.canceled || !result.filePaths.length) return { canceled: true };
+    const exePath    = result.filePaths[0];
+    const installDir = path.dirname(exePath);
+    const exeName    = path.basename(exePath);
+    console.log(`[AppBooster] browseExecutable: slug=${slug} exe=${exeName} dir=${installDir}`);
+    return { canceled: false, exePath, installDir, exeName };
+  } catch (e) {
+    console.error('[AppBooster] browseExecutable error:', e.message);
+    return { canceled: true, error: e.message };
+  }
 });
 
 ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executable, installPath, gameName }) => {

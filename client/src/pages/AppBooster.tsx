@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -10,7 +11,7 @@ import {
   Search, RefreshCw, CheckCircle, XCircle, ChevronRight,
   AlertTriangle, Clock, Gauge, Shield, History, Loader2,
   Info, CircleDot, RotateCcw, Play, ChevronDown, ChevronUp,
-  Zap, Target, Activity,
+  Zap, Target, Activity, FolderOpen, Plus, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -342,6 +343,12 @@ export default function AppBooster() {
   const [showHistory,   setShowHistory]   = useState(false);
   const [expandActions, setExpandActions] = useState(true);
   const [loadError,     setLoadError]     = useState<string | null>(null);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [manualSlug,    setManualSlug]    = useState<string>("");
+  const [manualExePath, setManualExePath] = useState<string>("");
+  const [manualInstDir, setManualInstDir] = useState<string>("");
+  const [isBrowsing,    setIsBrowsing]    = useState(false);
+  const [isAdding,      setIsAdding]      = useState(false);
   const hasAutoScanned = useRef(false);
 
   // ── data loading ──────────────────────────────────────────────────────────
@@ -472,6 +479,61 @@ export default function AppBooster() {
       setIsScanning(false);
     }
   }, [games, toast, loadGames, isElectron]);
+
+  // ── manual add ────────────────────────────────────────────────────────────
+
+  const openManualAdd = useCallback(() => {
+    setManualSlug(games.find((g) => !g.detected)?.slug ?? games[0]?.slug ?? "");
+    setManualExePath("");
+    setManualInstDir("");
+    setShowManualAdd(true);
+  }, [games]);
+
+  const handleBrowseForGame = useCallback(async () => {
+    if (!isElectron || !(window as any).electronAPI?.appBooster?.browseExecutable) {
+      toast({ title: "Not available", description: "Browse requires the desktop app.", variant: "destructive" });
+      return;
+    }
+    setIsBrowsing(true);
+    try {
+      const game = games.find((g) => g.slug === manualSlug);
+      const res = await (window as any).electronAPI.appBooster.browseExecutable({
+        slug: manualSlug,
+        gameName: game?.name ?? manualSlug,
+      });
+      if (!res.canceled) {
+        setManualExePath(res.exePath);
+        setManualInstDir(res.installDir);
+      }
+    } catch (e: any) {
+      toast({ title: "Browse failed", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsBrowsing(false);
+    }
+  }, [isElectron, manualSlug, games, toast]);
+
+  const handleManualAdd = useCallback(async () => {
+    if (!manualSlug || !manualInstDir) return;
+    setIsAdding(true);
+    try {
+      const results = games.map((g) =>
+        g.slug === manualSlug
+          ? { slug: g.slug, detected: true, installPath: manualInstDir }
+          : { slug: g.slug, detected: g.detected, installPath: g.installPath }
+      );
+      await apiPost("/app-booster/games/scan", { results });
+      const refreshed = await loadGames();
+      writeCache(refreshed);
+      setShowManualAdd(false);
+      setSelectedSlug(manualSlug);
+      const game = games.find((g) => g.slug === manualSlug);
+      toast({ title: `${game?.name ?? "Game"} added`, description: "Optimization profile is ready to apply." });
+    } catch (e: any) {
+      toast({ title: "Failed to add game", description: e?.message, variant: "destructive" });
+    } finally {
+      setIsAdding(false);
+    }
+  }, [manualSlug, manualInstDir, games, loadGames, toast]);
 
   // ── apply profile ─────────────────────────────────────────────────────────
 
@@ -795,6 +857,18 @@ export default function AppBooster() {
                   </motion.div>
                 )}
               </div>
+
+              {/* Manual add footer */}
+              <div className="px-3 pb-3 pt-2 border-t border-white/5 flex items-center justify-center">
+                <button
+                  onClick={openManualAdd}
+                  className="text-[11px] text-muted-foreground/50 hover:text-primary/70 transition-colors flex items-center gap-1.5"
+                  data-testid="button-open-manual-add"
+                >
+                  <Plus className="w-3 h-3" />
+                  Can't find your game? Add manually
+                </button>
+              </div>
             </GlassCard>
 
             {/* ── Game Detail Panel ─────────────────────────────────────── */}
@@ -1106,6 +1180,147 @@ export default function AppBooster() {
           </Reveal>
         )}
       </motion.div>
+
+      {/* ── Manual Add Modal ──────────────────────────────────────────────── */}
+      {showManualAdd && createPortal(
+        <AnimatePresence>
+          <motion.div
+            key="manual-add-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[9000] flex items-center justify-center"
+            style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(6px)" }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowManualAdd(false); }}
+          >
+            <motion.div
+              key="manual-add-card"
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="relative w-full max-w-md mx-4 rounded-2xl border border-white/[0.14] shadow-2xl"
+              style={{
+                background: "linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0.07) 100%)",
+                backdropFilter: "blur(28px)",
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.08]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center">
+                    <Plus className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-white/90">Add Game Manually</p>
+                    <p className="text-[11px] text-muted-foreground/70">Point to your game's executable file</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowManualAdd(false)}
+                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white/80 hover:bg-white/10 transition-all"
+                  data-testid="button-close-manual-add"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="px-5 py-5 space-y-4">
+                {/* Game picker */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">Select Game</label>
+                  <select
+                    value={manualSlug}
+                    onChange={(e) => { setManualSlug(e.target.value); setManualExePath(""); setManualInstDir(""); }}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 text-sm text-white px-3 py-2.5 focus:outline-none focus:border-primary/40 focus:bg-white/8 transition-all appearance-none cursor-pointer"
+                    data-testid="select-manual-game"
+                  >
+                    {games.map((g) => (
+                      <option key={g.slug} value={g.slug} style={{ background: "#1a1a2e" }}>
+                        {g.name}{g.detected ? " ✓" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Executable path */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Game Executable
+                    {(() => { const g = games.find(x => x.slug === manualSlug); return g ? <span className="text-white/30 ml-1">({g.executable})</span> : null; })()}
+                  </label>
+                  <div className="flex gap-2">
+                    <div className="flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 flex items-center min-w-0">
+                      {manualExePath ? (
+                        <span className="text-xs text-white/70 truncate font-mono">{manualExePath}</span>
+                      ) : (
+                        <span className="text-xs text-white/30">No file selected</span>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="bg-white/5 border-white/10 hover:bg-white/10 shrink-0"
+                      onClick={handleBrowseForGame}
+                      disabled={isBrowsing}
+                      data-testid="button-browse-executable"
+                    >
+                      {isBrowsing ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <FolderOpen className="w-3.5 h-3.5" />
+                      )}
+                      <span className="ml-1.5">Browse…</span>
+                    </Button>
+                  </div>
+                  {!isElectron && (
+                    <p className="text-[11px] text-yellow-400/60 flex items-center gap-1">
+                      <AlertTriangle className="w-3 h-3" />
+                      File browsing requires the Windows desktop app
+                    </p>
+                  )}
+                </div>
+
+                {/* Detected path preview */}
+                {manualInstDir && (
+                  <div className="rounded-xl border border-green-500/15 bg-green-500/5 px-3 py-2.5 flex items-start gap-2">
+                    <CheckCircle className="w-3.5 h-3.5 text-green-400 shrink-0 mt-0.5" />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-green-300">Install directory found</p>
+                      <p className="text-[10px] text-green-400/60 font-mono truncate mt-0.5">{manualInstDir}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="px-5 pb-5 flex gap-2.5 justify-end">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowManualAdd(false)}
+                  className="bg-white/5 border-white/10 hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleManualAdd}
+                  disabled={!manualInstDir || isAdding}
+                  className="bg-primary hover:bg-primary/90 text-white"
+                  data-testid="button-confirm-manual-add"
+                >
+                  {isAdding ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : <Plus className="w-3.5 h-3.5 mr-1.5" />}
+                  Add Game
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
     </AppLayout>
   );
 }

@@ -153,6 +153,22 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     genre: "open-world",
     profileId: "single-player-quality",
   },
+  {
+    slug: "msfs2024",
+    name: "Microsoft Flight Simulator 2024",
+    publisher: "Microsoft / Asobo",
+    executable: "FlightSimulator2024.exe",
+    knownPaths: [
+      "C:\\XboxGames\\Microsoft Flight Simulator 2024\\Content",
+      "D:\\XboxGames\\Microsoft Flight Simulator 2024\\Content",
+      "E:\\XboxGames\\Microsoft Flight Simulator 2024\\Content",
+      "C:\\Games\\Microsoft Flight Simulator 2024\\Content",
+      "D:\\Games\\Microsoft Flight Simulator 2024\\Content",
+      "C:\\Program Files\\WindowsApps\\Microsoft.Limitless_Content",
+    ],
+    genre: "simulation",
+    profileId: "single-player-quality",
+  },
 ];
 
 function buildCpuPriorityPs(exe: string, mode: "apply" | "revert" | "check"): string {

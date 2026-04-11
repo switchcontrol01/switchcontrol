@@ -162,8 +162,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // App Booster — per-game optimization actions
   appBooster: {
-    scanGames:     (games)  => ipcRenderer.invoke('appBooster:scanGames', games),
-    executeAction: (params) => ipcRenderer.invoke('appBooster:executeAction', params),
+    scanGames:       (games)   => ipcRenderer.invoke('appBooster:scanGames', games),
+    executeAction:   (params)  => ipcRenderer.invoke('appBooster:executeAction', params),
+    browseExecutable:(params)  => ipcRenderer.invoke('appBooster:browseExecutable', params),
   },
 
   // Network Tweaks — real Windows system-level network changes
