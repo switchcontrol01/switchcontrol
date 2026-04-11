@@ -1,0 +1,158 @@
+TASK
+
+Fix the onboarding/tour first-frame mount bug permanently.
+
+PROBLEM
+
+The tour still bugs out of frame before appearing correctly.
+
+The screenshots clearly show this sequence:
+
+1. the darkened/blurred overlay becomes visible
+2. the tour card is NOT yet correctly on screen
+3. then the tour card appears in frame afterward
+
+This means the first visible tour frame is broken.
+
+This is NOT just an animation polish issue.
+This is a render order / mount timing / layout preparation bug.
+
+GOAL
+
+Make the tour appear correctly on the FIRST visible frame.
+
+Expected behavior:
+
+* when the tour transition begins, the backdrop and card should appear as one coordinated scene
+* the user must never see the card missing, off-frame, or snapping into place afterward
+* no broken intermediate frame
+* no delayed card appearance after the overlay is already visible
+
+IMPORTANT
+
+Do NOT just tweak easing again.
+Do NOT just slow down the animation.
+Do NOT just add more blur.
+Do NOT claim fixed unless the bad first visible frame is gone.
+
+This needs a hard root-cause fix.
+
+WHAT THE SCREENSHOTS PROVE
+
+The screenshots prove:
+
+* backdrop/overlay is revealed too early
+* tour card is either mounting late or positioned late
+* the card is not ready on the first visible frame
+* user can see the UI enter a broken transition state
+
+That exact issue must be eliminated.
+
+REQUIRED TECHNICAL APPROACH
+
+1. PRE-MOUNT THE TOUR CARD
+   The tour card/layer must be mounted and layout-ready before it is revealed to the user.
+
+Do not reveal the backdrop first and then mount the card later.
+
+2. FINAL LAYOUT BEFORE REVEAL
+   The tour card must already know its final:
+
+* size
+* position
+* transform baseline
+* container alignment
+
+before the overlay is shown.
+
+Do not allow first-paint layout correction to be visible.
+
+3. COORDINATED REVEAL
+   Backdrop + blur + tour card must be revealed together as one scene.
+   No frame where:
+
+* blur is visible
+* but card is absent or off-frame
+
+4. NO OFF-SCREEN OR WRONG INITIAL TRANSFORM
+   Audit Framer Motion / transition config for:
+
+* initial x/y
+* scale
+* opacity
+* origin
+* AnimatePresence mount timing
+
+Make sure the card is not starting from an incorrect off-frame state.
+
+5. FREEZE BACKGROUND FIRST
+   The app shell/dashboard must be visually stable before the tour reveal begins.
+   No underlying rerender/remount should still be happening when the tour starts.
+
+6. MINIMAL REPRO DEBUG
+   Temporarily strip the tour transition down to:
+
+* static backdrop
+* static card
+* no fancy motion
+
+Test whether the first-frame bug still exists.
+
+Then reintroduce:
+
+* blur
+* fade
+* scale
+* micro-motion
+
+one layer at a time until the exact offender is identified.
+
+Do not keep guessing.
+
+7. INSTRUMENTATION
+   Add logs for the exact order:
+
+* [Tour] background stable
+* [Tour] card mounted
+* [Tour] card layout ready
+* [Tour] backdrop reveal start
+* [Tour] card reveal start
+* [Tour] first visible frame emitted
+* [Tour] layout shift detected true/false
+
+8. IF NEEDED, USE A READY GATE
+   Do not reveal the tour until:
+
+* card mounted
+* dimensions known
+* layout ready
+* any needed assets available
+
+Only then start the visual transition.
+
+MANDATORY TESTS
+
+Test in the packaged Electron app:
+
+* cold app launch into tour
+* login success into tour
+* free-trial tour
+* premium tour
+* repeated launches
+
+And confirm:
+
+* no first-frame broken state
+* no off-frame card
+* no snap after overlay appears
+
+FINAL OUTPUT REQUIRED
+
+Return:
+
+* exact root cause
+* whether the issue was mount timing, layout shift, bad initial transform, or delayed reveal
+* files changed
+* what was pre-mounted or gated
+* confirmation the first visible frame is now correct
+* confirmation this was tested in the packaged app

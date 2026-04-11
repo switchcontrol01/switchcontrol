@@ -53,7 +53,7 @@ const AdminPage = lazy(() => import("@/pages/Admin"));
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
-type AppPhase = "splash" | "unauthenticated" | "welcome" | "authenticated";
+type AppPhase = "splash" | "unauthenticated" | "login_success" | "welcome" | "authenticated";
 
 interface AppAuthContextValue {
   user: AuthUser | null;
@@ -168,6 +168,14 @@ function ElectronAppContent() {
   useEffect(() => {
     if (phase !== 'authenticated') return;
     telemetryManager.start();
+  }, [phase]);
+
+  // login_success → welcome: after a brief acknowledgement pause (600ms) let the
+  // login screen blur-exit finish before the welcome animation begins.
+  useEffect(() => {
+    if (phase !== "login_success") return;
+    const t = setTimeout(() => setPhase("welcome"), 600);
+    return () => clearTimeout(t);
   }, [phase]);
 
   useEffect(() => {
@@ -485,7 +493,9 @@ function ElectronAppContent() {
             if (!hasBeenWelcomed) {
               setIsFirstLogin(true);
               localStorage.setItem(welcomeKey, 'true');
-              setPhase("welcome");
+              // Use login_success so the login screen softly fades/blurs out
+              // before the welcome animation begins (600ms acknowledgment pause).
+              setPhase("login_success");
             } else {
               setPhase("authenticated");
               setLocation("/dashboard");
@@ -671,26 +681,26 @@ function ElectronAppContent() {
           </motion.div>
         )}
 
-        {phase === "unauthenticated" && (
+        {(phase === "unauthenticated" || phase === "login_success") && (
           <motion.div
             key="login"
-            initial={{ opacity: 0, filter: "blur(12px)", scale: 1.012 }}
+            initial={{ opacity: 0, filter: "blur(14px)", scale: 1.014 }}
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, filter: "blur(32px)", scale: 0.958 }}
+            transition={{ duration: 0.95, ease: [0.4, 0, 0.15, 1] }}
             className="h-full"
           >
-            <LoginScreen />
+            <LoginScreen succeeded={phase === "login_success"} />
           </motion.div>
         )}
 
         {phase === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, filter: "blur(12px)", scale: 1.012 }}
+            initial={{ opacity: 0, filter: "blur(22px)", scale: 1.018 }}
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-            exit={{ opacity: 0, filter: "blur(6px)" }}
-            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+            exit={{ opacity: 0, filter: "blur(8px)" }}
+            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <WelcomeAnimation 

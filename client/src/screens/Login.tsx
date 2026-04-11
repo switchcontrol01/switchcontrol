@@ -63,7 +63,7 @@ function FloatingParticle({ delay, duration, startX, startY, size = 1, hue, dx, 
   );
 }
 
-export default function Login() {
+export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number; dx: number; dy: number }>>([]);
@@ -588,6 +588,53 @@ export default function Login() {
           />
         ))}
       </motion.div>
+
+      {/* Success overlay — expands from center when login succeeds, before the
+          parent motion.div blurs/fades the whole screen away. Keeps the scene
+          feeling alive instead of instantly freezing on success. */}
+      <AnimatePresence>
+        {succeeded && (
+          <motion.div
+            key="login-success-overlay"
+            className="absolute inset-0 pointer-events-none"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+          >
+            {/* Expanding radial bloom from center */}
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                background: "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(168,85,247,0.38) 0%, rgba(139,92,246,0.18) 35%, rgba(59,130,246,0.08) 60%, transparent 80%)",
+              }}
+              initial={{ scale: 0.6, opacity: 0 }}
+              animate={{ scale: 1.35, opacity: 1 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            />
+            {/* Bright inner core pulse */}
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                background: "radial-gradient(ellipse 30% 22% at 50% 50%, rgba(216,180,254,0.28) 0%, rgba(192,132,252,0.12) 50%, transparent 75%)",
+              }}
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: [0, 1, 0.6], scale: [0.5, 1.1, 1.4] }}
+              transition={{ duration: 0.75, ease: "easeOut" }}
+            />
+            {/* Soft white vignette that deepens the blur feel */}
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 30%, rgba(10,10,15,0.55) 100%)",
+              }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, ease: "easeIn" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
