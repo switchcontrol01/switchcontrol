@@ -23,7 +23,14 @@ try {
 } catch (e) {
   console.error('[BOOT] network-tweak-executor not found, using stub:', e.message);
   networkTweakExecutor = {
-    executeNetworkTweak: async () => ({ success: false, status: 'skipped', error: 'Network tweaks not available. Please reinstall SwitchControl.' }),
+    executeNetworkTweak: async (tweakId, action) => ({
+      tweakId,
+      action,
+      success: false,
+      verified: false,
+      requiresRestart: false,
+      message: 'Please reinstall SwitchControl to apply network tweaks.',
+    }),
     checkNetworkTweakStatus: async () => ({ applied: false }),
     checkAllNetworkTweakStatus: async () => ({}),
     getDisabledTweaks: () => [],
