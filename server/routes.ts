@@ -531,18 +531,29 @@ export async function registerRoutes(
         return res.status(403).json({ ok: false, error: "user_mismatch" });
       }
 
-      // Look up current premium status from DB — set exclusively by the webhook.
+      // Look up current premium status from DB.
       const dbUser = await storage.getUser(checkoutUserId);
       if (!dbUser) {
         return res.status(404).json({ ok: false, error: "user_not_found" });
       }
 
-      const isPremium = dbUser.isPremium;
-      console.log(`[Stripe] /confirm — session ${session_id} paid, userId=${checkoutUserId} isPremium=${isPremium} (webhook is source of truth)`);
+      // If the webhook has already fired and set isPremium, we're done.
+      if (dbUser.isPremium) {
+        console.log(`[Stripe] /confirm — session ${session_id} already premium userId=${checkoutUserId} (webhook fired first)`);
+        return res.json({ ok: true, isPremium: true, waitingForWebhook: false, userId: checkoutUserId });
+      }
 
-      // Return current premium status. If isPremium is false, the webhook has not yet fired.
-      // The client should poll /api/user/premium-status until isPremium becomes true.
-      res.json({ ok: true, isPremium, waitingForWebhook: !isPremium, userId: checkoutUserId });
+      // Webhook has not fired yet (or was never delivered). Since we have already
+      // verified payment_status==='paid' via the Stripe API (not user input) AND
+      // confirmed the session belongs to this user, it is safe to write premium
+      // directly here as a webhook fallback. The webhook handler uses idempotency
+      // protection so a late-arriving webhook will be a no-op.
+      console.log(`[Stripe] /confirm — session ${session_id} paid but webhook not yet received for userId=${checkoutUserId}. Writing premium directly as fallback.`);
+
+      await storage.setUserPlan(checkoutUserId, 'premium');
+      console.log(`[Stripe] /confirm — premium activated (fallback) for userId=${checkoutUserId}`);
+
+      res.json({ ok: true, isPremium: true, waitingForWebhook: false, userId: checkoutUserId });
     } catch (error: any) {
       console.error("[Stripe] /confirm error:", error.message);
       res.status(500).json({ ok: false, error: "Failed to check payment status." });
