@@ -41,12 +41,49 @@ import { SectionGlow } from "@/components/website/WebsiteBackground";
 import { TelemetryLineOverlay } from "@/components/website/TelemetryLineOverlay";
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
+  const rafRef = useRef<number | null>(null);
+  const outerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = outerRef.current;
+    if (!el) return;
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    const update = () => {
+      const y = window.scrollY;
+      const fadeStart = 60;
+      const fadeEnd = 520;
+      const progress = Math.min(1, Math.max(0, (y - fadeStart) / (fadeEnd - fadeStart)));
+      const opacity = 1 - progress * 0.72;
+      const blur = prefersReduced ? 0 : progress * 10;
+      const translateY = prefersReduced ? 0 : progress * -24;
+      el.style.opacity = String(opacity);
+      el.style.filter = blur > 0.5 ? `blur(${blur.toFixed(1)}px)` : "";
+      el.style.transform = `translateY(${translateY.toFixed(1)}px)`;
+      rafRef.current = null;
+    };
+
+    const handleScroll = () => {
+      if (rafRef.current !== null) return;
+      rafRef.current = requestAnimationFrame(update);
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
   return (
     <div
+      ref={outerRef}
       style={{
         transformStyle: "preserve-3d",
         perspective: "1200px",
         perspectiveOrigin: "50% 100%",
+        willChange: "opacity, filter, transform",
+        transition: "opacity 0.08s linear, filter 0.08s linear",
       }}
     >
       <div
@@ -448,14 +485,14 @@ function HeroAppMockup() {
       <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[85%] h-16 rounded-full pointer-events-none"
         style={{ background: "radial-gradient(ellipse at center, hsl(190 90% 50% / 0.55), transparent 70%)", filter: "blur(60px)" }} />
 
-      <MockupSideParticles />
-
       {/* Window — faked glass (gradient top-edge + white glow, no backdrop-filter) */}
       <div className="relative rounded-2xl overflow-hidden"
         style={{
           background: "linear-gradient(145deg, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.13) 35%, rgba(255,255,255,0.08) 65%, rgba(10,7,28,0.78) 100%)",
           boxShadow: "0 32px 80px -12px rgba(0,0,0,0.55), inset 0 0 0 1px rgba(255,255,255,0.22), 0 0 80px -10px rgba(255,255,255,0.22), inset 0 1px 0 rgba(255,255,255,0.35)"
         }}>
+        {/* Particles inside overflow-hidden so hazes clip to rounded corners */}
+        <MockupSideParticles />
         <div className="absolute inset-0 pointer-events-none z-10 overflow-hidden rounded-2xl">
           <div className="mockup-reflection-sweep" />
           <div className="mockup-reflection-sweep-secondary" />
