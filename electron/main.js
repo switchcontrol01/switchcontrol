@@ -99,6 +99,11 @@ let telemetryPollInterval = null;
 // We compute per-second rates ourselves from consecutive snapshots.
 let lastDiskSnapshot = null; // { rIO, wIO, ms, ts }
 
+// GPU telemetry polled in background alongside CPU/disk.
+// Windows Performance Counters are the primary source for live GPU usage %.
+// { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
+let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
+
 async function pollTelemetry() {
   try {
     const [load, mem, temps, fsData, netStats, rawDiskIO] = await Promise.all([
@@ -162,17 +167,52 @@ async function pollTelemetry() {
       }
     }
 
-    console.log('[telemetry:poll] RAW si outputs:',
+    // ── GPU polling (runs in parallel with disk, does not block cache update) ──
+    // Primary: Windows Performance Counters — works for AMD, NVIDIA, Intel.
+    // Fallback: LHM → si.graphics() (for temp/VRAM when perf counter provides load).
+    const [gpuCounterResult, lhmResult, gpuStaticResult] = await Promise.allSettled([
+      getGpuPerfCounterLoad(),
+      getLhmTelemetry(),
+      getGpuStatic(),
+    ]);
+
+    const gpuCounterLoad = gpuCounterResult.status === 'fulfilled' ? gpuCounterResult.value : null;
+    const lhm = lhmResult.status === 'fulfilled' ? lhmResult.value : null;
+    const gpuStatic = gpuStaticResult.status === 'fulfilled' ? gpuStaticResult.value : null;
+
+    // Build GPU cache: perf counter for load, LHM for temp/power, si.graphics() for VRAM
+    const newGpu = { ...gpuPollCache };
+
+    if (gpuCounterLoad != null) {
+      newGpu.load = gpuCounterLoad;
+      newGpu.source = 'perf-counter';
+    } else if (lhm?.gpuLoad != null) {
+      newGpu.load = lhm.gpuLoad;
+      newGpu.source = 'lhm';
+    }
+    // Temperature and power — always prefer LHM
+    if (lhm?.gpuTemp != null && lhm.gpuTemp > 0) newGpu.temp = lhm.gpuTemp;
+    if (lhm?.gpuPower != null && lhm.gpuPower > 0) newGpu.power = lhm.gpuPower;
+    // VRAM from si.graphics() (static, changes slowly)
+    if (gpuStatic?.memUsedMb != null) newGpu.memUsedMb = gpuStatic.memUsedMb;
+    if (gpuStatic?.memTotalMb != null) newGpu.memTotalMb = gpuStatic.memTotalMb;
+
+    gpuPollCache = newGpu;
+
+    console.log('[telemetry:poll] GPU:', JSON.stringify({
+      load: gpuPollCache.load, source: gpuPollCache.source,
+      temp: gpuPollCache.temp, power: gpuPollCache.power,
+      memUsedMb: gpuPollCache.memUsedMb, memTotalMb: gpuPollCache.memTotalMb,
+      counterRaw: gpuCounterLoad, lhmLoad: lhm?.gpuLoad ?? null,
+    }));
+    console.log('[telemetry:poll] CPU/RAM/Disk:',
       JSON.stringify({
         currentLoad: load.currentLoad,
         cpuCount: (load.cpus || []).length,
         memTotal: mem.total,
         memAvailable: mem.available,
         cpuTemp: temps.main,
-        fsCount: (fsData || []).length,
-        fsMounts: (fsData || []).map(d => ({ mount: d.mount, size: d.size, used: d.used, use: d.use })),
         netIfaceCount: (netStats || []).length,
-        netFirst: netStats?.[0] ? { iface: netStats[0].iface, rx_sec: netStats[0].rx_sec, tx_sec: netStats[0].tx_sec } : null,
         diskIO_computed: diskIO,
         diskIO_raw: rawDiskIO ? { rIO: rawDiskIO.rIO, wIO: rawDiskIO.wIO, ms: rawDiskIO.ms, rIO_sec: rawDiskIO.rIO_sec, wIO_sec: rawDiskIO.wIO_sec, ms_sec: rawDiskIO.ms_sec } : null,
       })
@@ -628,6 +668,88 @@ function parseLhmData(data) {
   
   traverse(data);
   return result;
+}
+
+// ─── Windows GPU Performance Counter ─────────────────────────────────────────
+// Reads "\GPU Engine(*)\Utilization Percentage" counters via PowerShell.
+// Groups by engine type, takes the peak value per type, sums across types,
+// clamped to 0-100. This mirrors how Task Manager computes total GPU usage.
+// Works on AMD, NVIDIA, and Intel GPUs without any extra software.
+// Only runs on win32 — returns null immediately on other platforms.
+let gpuPerfCounterFailCount = 0;
+const GPU_PERF_COUNTER_MAX_FAILS = 5; // stop trying after 5 consecutive failures
+
+async function getGpuPerfCounterLoad() {
+  if (process.platform !== 'win32') return null;
+  if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS) return null;
+
+  // PowerShell script:
+  //  1. Query all GPU Engine utilization counter instances
+  //  2. Group by engine type (the part after '_engtype_' in the instance name)
+  //  3. Take the SUM for each engine type across all adapter instances
+  //  4. Sum across all engine types and clamp to 100
+  //  (This matches Task Manager: 3D + VideoDecode + VideoEncode + Compute, etc.)
+  const ps = `
+try {
+  $s = (Get-Counter '\\GPU Engine(*)\\Utilization Percentage' -ErrorAction Stop).CounterSamples
+  # Group by engine type (after _engtype_)
+  $byType = $s | Group-Object { if ($_.InstanceName -match '_engtype_(.+)$') { $Matches[1] } else { 'other' } }
+  $total = 0
+  foreach ($g in $byType) {
+    # Sum across adapter instances of the same engine type
+    $total += ($g.Group | Measure-Object -Property CookedValue -Sum).Sum
+  }
+  [Math]::Min([Math]::Round($total, 2), 100)
+} catch {
+  -1
+}`.trim();
+
+  return new Promise((resolve) => {
+    execFile('powershell', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-ExecutionPolicy', 'Bypass', '-Command', ps,
+    ], { windowsHide: true, timeout: 4000 }, (err, stdout, stderr) => {
+      if (err) {
+        gpuPerfCounterFailCount++;
+        console.warn(`[GPU:perf] PowerShell error (fail ${gpuPerfCounterFailCount}):`, err.message);
+        return resolve(null);
+      }
+      const val = parseFloat(stdout.trim());
+      if (!Number.isFinite(val) || val < 0) {
+        gpuPerfCounterFailCount++;
+        console.warn(`[GPU:perf] unexpected output (fail ${gpuPerfCounterFailCount}): "${stdout.trim()}"`);
+        return resolve(null);
+      }
+      gpuPerfCounterFailCount = 0; // reset on success
+      resolve(parseFloat(val.toFixed(1)));
+    });
+  });
+}
+
+// ─── GPU static info (name, VRAM) — cached, refreshed every 60s ──────────────
+let gpuStaticCache = null;
+let gpuStaticTs = 0;
+const GPU_STATIC_TTL = 60000;
+
+async function getGpuStatic() {
+  const now = Date.now();
+  if (gpuStaticCache && now - gpuStaticTs < GPU_STATIC_TTL) return gpuStaticCache;
+  try {
+    const gr = await si.graphics().catch(() => null);
+    const ctrl = gr?.controllers?.[0];
+    if (ctrl) {
+      gpuStaticCache = {
+        memUsedMb:  ctrl.memoryUsed  != null && ctrl.memoryUsed  > 0 ? safeNum(ctrl.memoryUsed)  : null,
+        memTotalMb: ctrl.vram        != null && ctrl.vram        > 0 ? safeNum(ctrl.vram)         : null,
+      };
+    } else {
+      gpuStaticCache = { memUsedMb: null, memTotalMb: null };
+    }
+    gpuStaticTs = now;
+  } catch {
+    gpuStaticCache = gpuStaticCache || { memUsedMb: null, memTotalMb: null };
+  }
+  return gpuStaticCache;
 }
 
 // Persistent Device ID — generated once, stored forever in userData
@@ -1100,7 +1222,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
 
     const { load, mem, temps, fsData, netStats, diskIO } = liveTelemetryCache;
 
-    console.log('[telemetry:getLive] reading from cache (age=' + (Date.now() - liveTelemetryCache.timestamp) + 'ms) | cpu=' + load.currentLoad + '% ram=' + mem.total + ' netIfaces=' + netStats.length + ' diskIO.rIO_sec=' + diskIO.rIO_sec);
+    console.log('[telemetry:getLive] cache age=' + (Date.now() - liveTelemetryCache.timestamp) + 'ms | cpu=' + load.currentLoad + '% gpu=' + gpuPollCache.load + '%(src=' + gpuPollCache.source + ') disk=' + diskIO.activeTimePct + '%');
 
     const cpuLoad = safeNum(load.currentLoad || 0);
     const cpuTemp = safeNum(temps.main || 0);
@@ -1113,71 +1235,14 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     const ramUsedGb = parseFloat((ramUsed / (1024 * 1024 * 1024)).toFixed(1));
     const ramPercent = ramTotal > 0 ? Math.round((ramUsed / ramTotal) * 100) : 0;
 
-    // --- GPU telemetry: LHM first (AMD + NVIDIA), then si.graphics(), then nvidia-smi ---
-    let gpuTemp = null;
-    let gpuLoad = null;
-    let gpuMemUsed = null;
-    let gpuMemTotal = null;
-    let gpuPower = null;
-    let gpuClockMhz = null;
-
-    // 1. Try LibreHardwareMonitor — works for AMD and NVIDIA
-    try {
-      const lhm = await getLhmTelemetry();
-      if (lhm) {
-        if (lhm.gpuTemp != null && lhm.gpuTemp > 0) gpuTemp = lhm.gpuTemp;
-        if (lhm.gpuLoad != null && lhm.gpuLoad >= 0) gpuLoad = lhm.gpuLoad;
-        if (lhm.gpuPower != null && lhm.gpuPower > 0) gpuPower = lhm.gpuPower;
-      }
-    } catch {}
-
-    // 2. Try si.graphics() for load/temp if LHM didn't provide them
-    if (gpuTemp === null || gpuLoad === null) {
-      try {
-        const gr = await si.graphics().catch(() => null);
-        const ctrl = gr?.controllers?.[0];
-        if (ctrl) {
-          if (gpuTemp === null && ctrl.temperatureGpu != null && ctrl.temperatureGpu > 0) {
-            gpuTemp = safeNum(ctrl.temperatureGpu);
-          }
-          if (gpuLoad === null && ctrl.utilizationGpu != null && ctrl.utilizationGpu >= 0) {
-            gpuLoad = safeNum(ctrl.utilizationGpu);
-          }
-          if (gpuMemUsed === null && ctrl.memoryUsed != null && ctrl.memoryUsed > 0) {
-            gpuMemUsed = safeNum(ctrl.memoryUsed);
-          }
-          if (gpuMemTotal === null && ctrl.vram != null && ctrl.vram > 0) {
-            gpuMemTotal = safeNum(ctrl.vram);
-          }
-        }
-      } catch {}
-    }
-
-    // 3. nvidia-smi for NVIDIA only if LHM and si didn't give us data
-    if (cachedSpecs?.gpu?.isNvidia && (gpuTemp === null || gpuLoad === null)) {
-      try {
-        const nvidiaData = await new Promise((resolve) => {
-          exec(
-            'nvidia-smi --query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total,power.draw,clocks.current.graphics --format=csv,noheader,nounits',
-            { windowsHide: true, timeout: 3000 },
-            (err, stdout) => {
-              if (err || !stdout) return resolve(null);
-              const parts = stdout.trim().split(',').map(s => s.trim());
-              if (parts.length >= 6) return resolve(parts);
-              resolve(null);
-            }
-          );
-        });
-        if (nvidiaData) {
-          if (gpuTemp === null) gpuTemp = safeNum(parseFloat(nvidiaData[0]), null);
-          if (gpuLoad === null) gpuLoad = safeNum(parseFloat(nvidiaData[1]), null);
-          if (gpuMemUsed === null) gpuMemUsed = safeNum(parseFloat(nvidiaData[2]), null);
-          if (gpuMemTotal === null) gpuMemTotal = safeNum(parseFloat(nvidiaData[3]), null);
-          if (gpuPower === null) gpuPower = safeNum(parseFloat(nvidiaData[4]), null);
-          if (gpuClockMhz === null) gpuClockMhz = safeNum(parseFloat(nvidiaData[5]), null);
-        }
-      } catch {}
-    }
+    // --- GPU telemetry: read from background-polled gpuPollCache (fast, non-blocking) ---
+    // gpuPollCache is updated every 2s by pollTelemetry() using Windows Perf Counters + LHM.
+    const gpuLoad     = gpuPollCache.load;
+    const gpuTemp     = gpuPollCache.temp;
+    const gpuMemUsed  = gpuPollCache.memUsedMb;
+    const gpuMemTotal = gpuPollCache.memTotalMb;
+    const gpuPower    = gpuPollCache.power;
+    const gpuClockMhz = gpuPollCache.clockMhz;
 
     // --- Disk: resolve selected disk, fall back to C: then first ---
     const disks = fsData || [];
@@ -1269,6 +1334,8 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       ssds_count: result.ssds.length,
       gpu_available: result.gpu.available,
       gpu_usagePct: result.gpu.usagePct,
+      gpu_tempC: result.gpu.tempC,
+      gpu_source: gpuPollCache.source,
     }));
     return result;
   } catch (e) {

@@ -1,0 +1,138 @@
+TASK
+
+Fix AI Advisor and Tweaks system so that:
+
+1. AI Advisor reads REAL system state
+2. Tweaks persist after being applied
+3. UI always reflects actual system state
+4. No contradictions between AI output and real settings
+
+PROBLEM
+
+Current behavior shows:
+
+- AI Advisor gives incorrect and contradictory information about enabled tweaks
+- Applying a tweak does not persist after navigation
+- Returning to the page resets toggle state
+- AI Advisor is not connected to real tweak state
+
+This breaks user trust and makes the system feel fake.
+
+GOAL
+
+Create a single source of truth for system state and ensure:
+
+- Tweaks are actually applied and persisted
+- UI reflects real system state on load
+- AI Advisor uses real state, not assumptions
+
+---
+
+ISSUE 1: TWEAKS DO NOT PERSIST
+
+Current behavior:
+
+- User enables a tweak
+- Navigates away
+- Returns and tweak is disabled again
+
+REQUIRED FIX
+
+Trace the full tweak pipeline:
+
+1. what happens when a toggle is clicked
+2. what backend function is called
+3. whether system-level change is actually executed
+4. where state is stored (memory, file, registry, etc)
+5. what happens on page reload
+
+Fix requirements:
+
+- When a tweak is applied, it must:
+  - execute real system command (if applicable)
+  - persist state (file, local DB, or system check)
+- On page load, UI must read from real system state
+- UI must NOT rely on previous React/local state
+
+If persistence is not implemented yet:
+
+- add a persistence layer immediately
+
+---
+
+ISSUE 2: AI ADVISOR IS NOT USING REAL DATA
+
+Current behavior:
+
+- AI gives generic advice
+- contradicts actual system state
+- not aware of enabled tweaks
+
+REQUIRED FIX
+
+AI Advisor must be fed real system data.
+
+Before generating response, gather:
+
+- enabled tweaks (from backend or system check)
+- hardware info (CPU, GPU, RAM)
+- active profiles
+- network settings state
+
+Then pass structured data into AI prompt.
+
+Example:
+
+{
+enabledTweaks: [...],
+disabledTweaks: [...],
+cpu: "...",
+gpu: "...",
+ram: "...",
+networkSettings: {...}
+}
+
+AI must answer ONLY based on this data.
+
+Do NOT allow generic fallback answers.
+
+If data is missing:
+
+- explicitly say data unavailable
+- do NOT hallucinate
+
+---
+
+ISSUE 3: UI STATE IS NOT LINKED TO SYSTEM STATE
+
+Current problem:
+
+- toggles show incorrect values
+- AI disagrees with UI
+- navigation resets state
+
+REQUIRED FIX
+
+Create a single source of truth:
+
+Option A (preferred):
+
+- backend state = source of truth
+- frontend fetches state on load
+
+Option B:
+
+- system check = source of truth (read registry / OS settings)
+
+Flow must be:
+
+1. load page
+2. fetch real state
+3. render toggles based on real state
+
+NOT:
+
+- render defaults
+- then try to sync later
+
+---
