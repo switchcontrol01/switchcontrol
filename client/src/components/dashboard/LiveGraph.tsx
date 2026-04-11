@@ -237,11 +237,13 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     const gpuMemTotal = snap.gpu?.vramTotalMb ?? null;
     const gpuClockMhz = snap.gpu?.clockMhz ?? null;
 
-    // Disk — only use real server values; null = unavailable (no fake flat line)
+    // Disk — always read raw values; never suppress on available flag alone.
+    // 0.0 is a valid idle value and must not be treated as missing.
+    // diskAvailable is tracked for the telemetry state but does NOT gate the values.
     const diskAvailable = snap.disk?.available ?? false;
-    const diskActiveTime = diskAvailable ? (snap.disk?.activeTimePct ?? null) : null;
-    const diskReadKBps = diskAvailable ? (snap.disk?.readKBps ?? null) : null;
-    const diskWriteKBps = diskAvailable ? (snap.disk?.writeKBps ?? null) : null;
+    const diskActiveTime = snap.disk?.activeTimePct ?? null;
+    const diskReadKBps = snap.disk?.readKBps ?? null;
+    const diskWriteKBps = snap.disk?.writeKBps ?? null;
 
     const telemetryState: LatestState = {
       cpuLoad, cpuTemp,
@@ -496,7 +498,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 unit={latest.showRam ? "GB" : ""}
                 spiking={spikes.ram}
               />
-              {latest.diskAvailable && (
+              {(hasDiskData || hasDiskRW) && (
                 <MetricBadge
                   color={C.disk}
                   label="Disk"
@@ -520,10 +522,10 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   dimmed
                 />
               )}
-              {expanded && latest.diskAvailable && latest.diskReadKBps != null && (
+              {expanded && hasDiskRW && latest.diskReadKBps != null && (
                 <MetricBadge color="#f59e0b" label="R" value={safeFixed(latest.diskReadKBps, 0)} unit=" KB/s" dimmed={!toggles.disk} />
               )}
-              {expanded && latest.diskAvailable && latest.diskWriteKBps != null && (
+              {expanded && hasDiskRW && latest.diskWriteKBps != null && (
                 <MetricBadge color="#d97706" label="W" value={safeFixed(latest.diskWriteKBps, 0)} unit=" KB/s" dimmed={!toggles.disk} />
               )}
               {expanded && latest.gpuMemPct != null && (
