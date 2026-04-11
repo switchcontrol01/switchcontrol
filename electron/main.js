@@ -1494,23 +1494,91 @@ ipcMain.handle('powerPlans:listSchemes', async () => {
 // ── App Booster: per-game system actions ──────────────────────────────────────
 
 ipcMain.handle('appBooster:scanGames', async (event, games) => {
-  console.log('[IPC] appBooster:scanGames:', games?.length, 'games');
-  const fs = require('fs');
+  console.log('[AppBooster] scanGames start —', games?.length, 'games');
+  const fs   = require('fs');
+  const path = require('path');
+
+  // ── Build dynamic Steam library roots from libraryfolders.vdf ────────────
+  const steamCommonPaths = [];
+  const steamRootCandidates = [
+    'C:\\Program Files (x86)\\Steam',
+    'C:\\Program Files\\Steam',
+    'D:\\Steam',
+    'D:\\SteamLibrary',
+    'D:\\Games\\Steam',
+    'E:\\Steam',
+    'E:\\SteamLibrary',
+    'E:\\Games\\Steam',
+  ];
+
+  for (const steamRoot of steamRootCandidates) {
+    const vdfPath = path.join(steamRoot, 'steamapps', 'libraryfolders.vdf');
+    if (fs.existsSync(vdfPath)) {
+      try {
+        const vdf = fs.readFileSync(vdfPath, 'utf8');
+        const pathMatches = [...vdf.matchAll(/"path"\s+"([^"]+)"/g)];
+        for (const m of pathMatches) {
+          const lib = m[1].replace(/\\\\/g, '\\');
+          const common = path.join(lib, 'steamapps', 'common');
+          if (!steamCommonPaths.includes(common)) steamCommonPaths.push(common);
+        }
+      } catch (vdfErr) {
+        console.log('[AppBooster] vdf parse error at', vdfPath, vdfErr.message);
+      }
+      const defaultCommon = path.join(steamRoot, 'steamapps', 'common');
+      if (!steamCommonPaths.includes(defaultCommon)) steamCommonPaths.push(defaultCommon);
+    }
+  }
+  console.log('[AppBooster] Steam library paths found:', steamCommonPaths.length);
+
+  // ── Per-game detection ────────────────────────────────────────────────────
   const results = [];
   for (const g of (games || [])) {
     let detected = false;
     let installPath = null;
+
+    // 1. Check hardcoded knownPaths first (fast + precise)
     for (const p of (g.knownPaths || [])) {
-      const exeFile = require('path').join(p, g.executable);
-      if (fs.existsSync(exeFile)) {
+      if (fs.existsSync(path.join(p, g.executable))) {
         detected = true;
         installPath = p;
         break;
       }
     }
+
+    // 2. Scan Steam common dirs for the executable (one level deep)
+    if (!detected) {
+      for (const commonDir of steamCommonPaths) {
+        if (detected) break;
+        if (!fs.existsSync(commonDir)) continue;
+        let gameDirs;
+        try { gameDirs = fs.readdirSync(commonDir); } catch { continue; }
+        for (const dir of gameDirs) {
+          if (detected) break;
+          const gameDir = path.join(commonDir, dir);
+          // Direct exe in game root
+          if (fs.existsSync(path.join(gameDir, g.executable))) {
+            detected = true; installPath = gameDir; break;
+          }
+          // One level deeper (bin, Game, Win64, etc.)
+          let subDirs;
+          try { subDirs = fs.readdirSync(gameDir); } catch { continue; }
+          for (const sub of subDirs) {
+            const subDir = path.join(gameDir, sub);
+            if (fs.existsSync(path.join(subDir, g.executable))) {
+              detected = true; installPath = subDir; break;
+            }
+          }
+        }
+      }
+    }
+
+    console.log(`[AppBooster]   ${g.slug}: detected=${detected}${installPath ? ` path=${installPath}` : ''}`);
     results.push({ slug: g.slug, detected, installPath });
   }
-  console.log('[IPC] appBooster:scanGames result:', results.filter(r => r.detected).length, 'detected');
+
+  const detectedCount = results.filter(r => r.detected).length;
+  console.log(`[AppBooster] scanGames done — ${detectedCount}/${games?.length} detected`);
   return results;
 });
 

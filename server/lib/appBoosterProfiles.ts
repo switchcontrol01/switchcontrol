@@ -41,6 +41,9 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Program Files\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
       "C:\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
+      "D:\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
+      "D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
+      "E:\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
     ],
     genre: "battle-royale",
     profileId: "competitive-high",
@@ -53,6 +56,8 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Riot Games\\VALORANT\\live\\ShooterGame\\Binaries\\Win64",
       "C:\\Program Files\\Riot Games\\VALORANT\\live\\ShooterGame\\Binaries\\Win64",
+      "D:\\Riot Games\\VALORANT\\live\\ShooterGame\\Binaries\\Win64",
+      "D:\\Games\\Riot Games\\VALORANT\\live\\ShooterGame\\Binaries\\Win64",
     ],
     genre: "competitive",
     profileId: "competitive-high",
@@ -65,6 +70,9 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\game\\bin\\win64",
       "D:\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\game\\bin\\win64",
+      "D:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\game\\bin\\win64",
+      "E:\\Steam\\steamapps\\common\\Counter-Strike Global Offensive\\game\\bin\\win64",
+      "E:\\SteamLibrary\\steamapps\\common\\Counter-Strike Global Offensive\\game\\bin\\win64",
     ],
     genre: "competitive",
     profileId: "competitive-high",
@@ -77,6 +85,10 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Apex Legends",
       "C:\\Program Files\\EA Games\\Apex Legends",
+      "D:\\Steam\\steamapps\\common\\Apex Legends",
+      "D:\\SteamLibrary\\steamapps\\common\\Apex Legends",
+      "D:\\EA Games\\Apex Legends",
+      "E:\\Steam\\steamapps\\common\\Apex Legends",
     ],
     genre: "battle-royale",
     profileId: "competitive-high",
@@ -89,6 +101,9 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Program Files (x86)\\Call of Duty",
       "C:\\Program Files\\Battle.net\\Call of Duty",
+      "D:\\Call of Duty",
+      "D:\\Games\\Call of Duty",
+      "E:\\Call of Duty",
     ],
     genre: "battle-royale",
     profileId: "competitive-high",
@@ -101,6 +116,8 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Program Files (x86)\\Overwatch",
       "C:\\Program Files\\Overwatch",
+      "D:\\Overwatch",
+      "D:\\Games\\Overwatch",
     ],
     genre: "competitive",
     profileId: "competitive-high",
@@ -113,6 +130,10 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Cyberpunk 2077\\bin\\x64",
       "C:\\GOG Games\\Cyberpunk 2077\\bin\\x64",
+      "D:\\Steam\\steamapps\\common\\Cyberpunk 2077\\bin\\x64",
+      "D:\\SteamLibrary\\steamapps\\common\\Cyberpunk 2077\\bin\\x64",
+      "D:\\GOG Games\\Cyberpunk 2077\\bin\\x64",
+      "E:\\Steam\\steamapps\\common\\Cyberpunk 2077\\bin\\x64",
     ],
     genre: "open-world",
     profileId: "single-player-quality",
@@ -125,6 +146,9 @@ export const SUPPORTED_GAMES: GameMeta[] = [
     knownPaths: [
       "C:\\Program Files (x86)\\Steam\\steamapps\\common\\ELDEN RING\\Game",
       "D:\\Steam\\steamapps\\common\\ELDEN RING\\Game",
+      "D:\\SteamLibrary\\steamapps\\common\\ELDEN RING\\Game",
+      "E:\\Steam\\steamapps\\common\\ELDEN RING\\Game",
+      "E:\\SteamLibrary\\steamapps\\common\\ELDEN RING\\Game",
     ],
     genre: "open-world",
     profileId: "single-player-quality",

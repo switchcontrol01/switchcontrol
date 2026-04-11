@@ -204,10 +204,10 @@ async function addHistory(slug: string, operation: string, status: string, detai
 
 // GET /api/app-booster/games — list all supported games with current state
 router.get("/games", async (_req, res) => {
-  try {
-    const stateMap: Record<string, { status: string; profileId: string | null; detected: boolean; installPath: string | null }> = {};
+  const stateMap: Record<string, { status: string; profileId: string | null; detected: boolean; installPath: string | null }> = {};
 
-    if (!isNoDbMode && db) {
+  if (!isNoDbMode && db) {
+    try {
       const { rows } = await db.execute(sql`
         SELECT g.slug, g.detected, g.install_path,
                s.status, s.profile_id
@@ -222,8 +222,12 @@ router.get("/games", async (_req, res) => {
           installPath: r.install_path ?? null,
         };
       }
+    } catch (dbErr: any) {
+      console.error("[AppBooster] DB state query failed, serving static game list:", dbErr.message);
     }
+  }
 
+  try {
     const result = SUPPORTED_GAMES.map((g) => {
       const s = stateMap[g.slug];
       return {
@@ -244,8 +248,8 @@ router.get("/games", async (_req, res) => {
 
     res.json({ games: result });
   } catch (e: any) {
-    console.error("[AppBooster] GET /games error:", e.message);
-    res.status(500).json({ error: "Failed to load game library" });
+    console.error("[AppBooster] GET /games mapping error:", e.message);
+    res.status(500).json({ error: "Failed to build game list" });
   }
 });
 

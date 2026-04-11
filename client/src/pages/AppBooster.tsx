@@ -304,62 +304,105 @@ function ActionRow({ action, result }: { action: ProfileAction; result?: ActionR
 
 // ── main component ────────────────────────────────────────────────────────────
 
+const CACHE_KEY = "sc_appbooster_cache_v2";
+
+function readCache(): GameSummary[] | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch { return null; }
+}
+
+function writeCache(games: GameSummary[]) {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(games)); } catch {}
+}
+
 export default function AppBooster() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
   const isElectron = useRef(getIsElectron()).current;
 
-  const [games,         setGames]         = useState<GameSummary[]>([]);
-  const [selectedSlug,  setSelectedSlug]  = useState<string | null>(null);
+  const cachedGames = useRef(readCache()).current;
+
+  const [games,         setGames]         = useState<GameSummary[]>(cachedGames ?? []);
+  const [selectedSlug,  setSelectedSlug]  = useState<string | null>(cachedGames?.[0]?.slug ?? null);
   const [gameDetail,    setGameDetail]    = useState<GameDetail | null>(null);
   const [history,       setHistory]       = useState<HistoryEntry[]>([]);
   const [searchQuery,   setSearchQuery]   = useState("");
   const [isScanning,    setIsScanning]    = useState(false);
   const [isApplying,    setIsApplying]    = useState(false);
   const [isReverting,   setIsReverting]   = useState(false);
-  const [loadingGames,  setLoadingGames]  = useState(true);
+  const [loadingGames,  setLoadingGames]  = useState(!cachedGames);
   const [showHistory,   setShowHistory]   = useState(false);
   const [expandActions, setExpandActions] = useState(true);
+  const [loadError,     setLoadError]     = useState<string | null>(null);
   const hasAutoScanned = useRef(false);
 
   // ── data loading ──────────────────────────────────────────────────────────
 
   const loadGames = useCallback(async (): Promise<GameSummary[]> => {
+    console.log("[AppBooster] loadGames — start");
     try {
       const data = await apiGet<{ games: GameSummary[] }>("/api/app-booster/games");
       setGames(data.games);
+      setLoadError(null);
       setSelectedSlug((prev) => prev ?? (data.games[0]?.slug ?? null));
+      console.log("[AppBooster] loadGames — success, games:", data.games.length);
       return data.games;
-    } catch {
-      toast({ title: "Failed to load game library", variant: "destructive" });
+    } catch (err: any) {
+      const reason: string = err?.message ?? "Network error";
+      console.error("[AppBooster] loadGames — failed:", reason);
+      setLoadError(reason);
+      // Serve from cache if available so the library still shows
+      const cached = readCache();
+      if (cached) {
+        setGames(cached);
+        setSelectedSlug((prev) => prev ?? (cached[0]?.slug ?? null));
+        return cached;
+      }
       return [];
     } finally {
       setLoadingGames(false);
     }
-  }, [toast]);
+  }, []);
 
   // auto-scan once on first open in Electron if no games have been detected yet
   useEffect(() => {
     let cancelled = false;
+    console.log("[AppBooster] mounted — isElectron:", isElectron);
     (async () => {
       const loaded = await loadGames();
-      if (cancelled || !isElectron || hasAutoScanned.current) return;
+      if (cancelled || hasAutoScanned.current) return;
+
       const noneDetected = loaded.every((g) => !g.detected);
-      if (noneDetected && loaded.length > 0) {
+      const bridgeAvail  = isElectron && !!(window as any).electronAPI?.appBooster?.scanGames;
+      console.log("[AppBooster] auto-scan check — noneDetected:", noneDetected, "bridgeAvail:", bridgeAvail, "games:", loaded.length);
+
+      if (noneDetected && loaded.length > 0 && bridgeAvail) {
         hasAutoScanned.current = true;
         setIsScanning(true);
+        console.log("[AppBooster] auto-scan — starting");
         try {
           const results = await (window as any).electronAPI.appBooster.scanGames(
             loaded.map((g) => ({ slug: g.slug, executable: g.executable, knownPaths: g.knownPaths ?? [] }))
           );
+          const detectedCount = results.filter((r: any) => r.detected).length;
+          console.log("[AppBooster] auto-scan — results:", results.length, "detected:", detectedCount);
           await apiPost("/api/app-booster/games/scan", { results });
-          await loadGames();
-        } catch {
-          // silent — user can click Scan for Games manually
+          const refreshed = await loadGames();
+          writeCache(refreshed);
+          console.log("[AppBooster] auto-scan — cache updated");
+        } catch (e: any) {
+          console.error("[AppBooster] auto-scan — error:", e?.message);
         } finally {
           setIsScanning(false);
         }
+      } else if (loaded.length > 0) {
+        // Cache fresh API data (no scan needed)
+        writeCache(loaded);
       }
     })();
     return () => { cancelled = true; };
@@ -392,26 +435,33 @@ export default function AppBooster() {
 
   const handleScan = useCallback(async () => {
     setIsScanning(true);
+    console.log("[AppBooster] handleScan — start, isElectron:", isElectron,
+      "bridge:", !!(window as any).electronAPI?.appBooster?.scanGames);
     try {
       let results: Array<{ slug: string; detected: boolean; installPath: string | null }> = [];
-      if (isElectron) {
+      if (isElectron && (window as any).electronAPI?.appBooster?.scanGames) {
         results = await (window as any).electronAPI.appBooster.scanGames(
           games.map((g) => ({ slug: g.slug, executable: g.executable, knownPaths: g.knownPaths ?? [] }))
         );
       } else {
         results = games.map((g) => ({ slug: g.slug, detected: false, installPath: null }));
       }
-      await apiPost("/api/app-booster/games/scan", { results });
-      await loadGames();
       const detected = results.filter((r) => r.detected).length;
+      console.log("[AppBooster] handleScan — results:", results.length, "detected:", detected);
+      await apiPost("/api/app-booster/games/scan", { results });
+      const refreshed = await loadGames();
+      writeCache(refreshed);
       toast({
         title: detected > 0 ? `Found ${detected} game${detected !== 1 ? "s" : ""}` : "No games detected",
         description: isElectron
-          ? detected > 0 ? "Games detected from your install directories." : "No supported games found in known install paths."
+          ? detected > 0
+            ? "Games detected from your install directories."
+            : "No supported games found in known install paths."
           : "Game detection requires the SwitchControl Windows desktop app.",
       });
-    } catch {
-      toast({ title: "Scan failed", variant: "destructive" });
+    } catch (e: any) {
+      console.error("[AppBooster] handleScan — error:", e?.message);
+      toast({ title: "Scan failed", description: e?.message, variant: "destructive" });
     } finally {
       setIsScanning(false);
     }
@@ -630,6 +680,37 @@ export default function AppBooster() {
           </div>
         </Reveal>
 
+        {/* Inline diagnostic banner — only when API failed but cache is serving */}
+        {loadError && games.length > 0 && (
+          <Reveal delay={0.1}>
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-yellow-500/15 bg-yellow-500/5">
+              <AlertTriangle className="w-3.5 h-3.5 text-yellow-400/70 shrink-0" />
+              <p className="text-xs text-yellow-300/70 flex-1">
+                Showing cached data — live sync unavailable.{" "}
+                <span className="text-yellow-400/50 font-mono text-[10px]">{loadError}</span>
+              </p>
+              <button
+                onClick={() => loadGames()}
+                className="text-[11px] text-yellow-400/70 hover:text-yellow-300 transition-colors shrink-0"
+              >
+                Retry
+              </button>
+            </div>
+          </Reveal>
+        )}
+
+        {/* Scanning progress banner */}
+        {isScanning && (
+          <Reveal delay={0}>
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-primary/15 bg-primary/5">
+              <Loader2 className="w-3.5 h-3.5 text-primary/70 animate-spin shrink-0" />
+              <p className="text-xs text-primary/70">
+                Scanning install directories for supported games…
+              </p>
+            </div>
+          </Reveal>
+        )}
+
         {/* Main layout */}
         <Reveal delay={0.12}>
           <div className="grid grid-cols-1 lg:grid-cols-[264px_1fr] gap-5">
@@ -644,13 +725,26 @@ export default function AppBooster() {
               </div>
               <div className="flex-1 overflow-y-auto max-h-[560px] px-2 py-2">
                 {loadingGames ? (
-                  <div className="flex items-center justify-center py-14">
+                  <div className="flex flex-col items-center justify-center py-14 gap-2">
                     <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground">Loading game library…</p>
+                  </div>
+                ) : loadError && games.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center px-3 gap-2">
+                    <AlertTriangle className="w-6 h-6 text-yellow-400/60 mb-1" />
+                    <p className="text-sm font-medium text-muted-foreground">Could not load library</p>
+                    <p className="text-[11px] text-muted-foreground/60 leading-relaxed">{loadError}</p>
+                    <button
+                      onClick={() => loadGames()}
+                      className="text-[11px] text-primary hover:underline mt-1"
+                    >
+                      Retry
+                    </button>
                   </div>
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
                     <Gamepad2 className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">No games found</p>
+                    <p className="text-sm">{searchQuery ? "No matching games" : "No games found"}</p>
                   </div>
                 ) : (
                   <motion.div className="space-y-0.5" variants={staggerContainer} initial="initial" animate="animate">
