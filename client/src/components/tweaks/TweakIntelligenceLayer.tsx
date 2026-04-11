@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, type FC } from "react";
+import { useState, useEffect, useRef, useMemo, type FC, type ReactNode } from "react";
 import {
   Brain, ChevronUp, ChevronDown, RefreshCw, AlertCircle,
   TrendingUp, TrendingDown, Minus, Cpu, HardDrive, Activity,
@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { GlassCard } from "@/components/ui/glass-card";
-import { motion, AnimatePresence } from "@/lib/motion";
+import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { useTweakIntelligence, type PressureLevel, type SystemSignal, type TweakRanking, type PostureDimension } from "@/hooks/useTweakIntelligence";
 
@@ -383,6 +383,23 @@ function SkeletonPulse({ className }: { className?: string }) {
   return <div className={cn("rounded animate-pulse bg-white/5", className)} />;
 }
 
+// ── Reveal wrapper — staggered blur+slide entrance ────────────────────────────
+
+function RevealPanel({ children, delay = 0, className }: { children: ReactNode; delay?: number; className?: string }) {
+  const { prefersReducedMotion } = useMotion();
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+      whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      viewport={{ once: true, margin: "-30px" }}
+      transition={{ duration: prefersReducedMotion ? 0.1 : 0.52, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function TweakIntelligenceLayer() {
@@ -415,7 +432,13 @@ export function TweakIntelligenceLayer() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        className="flex items-center justify-between"
+        initial={{ opacity: 0, y: 10, filter: "blur(6px)" }}
+        whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      >
         <div className="flex items-center gap-2.5">
           <Brain className="size-4 text-primary" />
           <span className="text-sm font-semibold text-white">Performance Intelligence</span>
@@ -446,19 +469,19 @@ export function TweakIntelligenceLayer() {
             {collapsed ? <ChevronDown className="size-4" /> : <ChevronUp className="size-4" />}
           </button>
         </div>
-      </div>
+      </motion.div>
 
-      <AnimatePresence initial={false}>
+      <AnimatePresence>
         {!collapsed && (
           <motion.div
             key="intel-body"
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="space-y-4">
+            <div className="space-y-4 pt-0.5">
               {/* Error state */}
               {intel.error && !intel.loading && (
                 <div className="flex items-center gap-2 text-xs text-red-400/80 bg-red-500/10 border border-red-500/15 rounded-xl px-3 py-2">
@@ -471,7 +494,8 @@ export function TweakIntelligenceLayer() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
                 {/* Panel 1: System Posture radar */}
-                <GlassCard blur="sm" className="p-4 space-y-3" hoverEffect={false}>
+                <RevealPanel delay={0.08} className="h-full">
+                <GlassCard blur="sm" className="p-4 space-y-3 h-full" hoverEffect={false}>
                   <div className="flex items-center gap-1.5">
                     <Target className="size-3.5 text-primary/60" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
@@ -517,9 +541,11 @@ export function TweakIntelligenceLayer() {
                     </>
                   )}
                 </GlassCard>
+                </RevealPanel>
 
                 {/* Panel 2: Live System Signals */}
-                <GlassCard blur="sm" className="p-4 space-y-3" hoverEffect={false}>
+                <RevealPanel delay={0.16} className="h-full">
+                <GlassCard blur="sm" className="p-4 space-y-3 h-full" hoverEffect={false}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <Activity className="size-3.5 text-primary/60" />
@@ -579,9 +605,11 @@ export function TweakIntelligenceLayer() {
                     />
                   </div>
                 </GlassCard>
+                </RevealPanel>
 
                 {/* Panel 3: Category pressure */}
-                <GlassCard blur="sm" className="p-4 space-y-3" hoverEffect={false}>
+                <RevealPanel delay={0.24} className="h-full">
+                <GlassCard blur="sm" className="p-4 space-y-3 h-full" hoverEffect={false}>
                   <div className="flex items-center gap-1.5">
                     <Sparkles className="size-3.5 text-primary/60" />
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
@@ -615,9 +643,11 @@ export function TweakIntelligenceLayer() {
                     </div>
                   )}
                 </GlassCard>
+                </RevealPanel>
               </div>
 
               {/* ── Row 2: Top Priority Tweaks ─────────────────────────────── */}
+              <RevealPanel delay={0.32}>
               <GlassCard blur="sm" className="p-4 space-y-3" hoverEffect={false}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
@@ -664,6 +694,7 @@ export function TweakIntelligenceLayer() {
                   </div>
                 )}
               </GlassCard>
+              </RevealPanel>
             </div>
           </motion.div>
         )}
