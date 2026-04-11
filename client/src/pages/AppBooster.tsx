@@ -328,7 +328,10 @@ export default function AppBooster() {
   const cachedGames = useRef(readCache()).current;
 
   const [games,         setGames]         = useState<GameSummary[]>(cachedGames ?? []);
-  const [selectedSlug,  setSelectedSlug]  = useState<string | null>(cachedGames?.[0]?.slug ?? null);
+  const [selectedSlug,  setSelectedSlug]  = useState<string | null>(
+    // Pre-select first *detected* game from cache, not just the first in catalog
+    cachedGames?.find((g) => g.detected)?.slug ?? null
+  );
   const [gameDetail,    setGameDetail]    = useState<GameDetail | null>(null);
   const [history,       setHistory]       = useState<HistoryEntry[]>([]);
   const [searchQuery,   setSearchQuery]   = useState("");
@@ -349,8 +352,10 @@ export default function AppBooster() {
       const data = await apiGet<{ games: GameSummary[] }>("/app-booster/games");
       setGames(data.games);
       setLoadError(null);
-      setSelectedSlug((prev) => prev ?? (data.games[0]?.slug ?? null));
-      console.log("[AppBooster] loadGames — success, games:", data.games.length);
+      const firstDetected = data.games.find((g) => g.detected)?.slug ?? null;
+      setSelectedSlug((prev) => prev ?? firstDetected);
+      console.log("[AppBooster] loadGames — success, catalog:", data.games.length,
+        "detected:", data.games.filter((g) => g.detected).length);
       return data.games;
     } catch (err: any) {
       const reason: string = err?.message ?? "Network error";
@@ -360,7 +365,8 @@ export default function AppBooster() {
       const cached = readCache();
       if (cached) {
         setGames(cached);
-        setSelectedSlug((prev) => prev ?? (cached[0]?.slug ?? null));
+        const firstDetected = cached.find((g) => g.detected)?.slug ?? null;
+        setSelectedSlug((prev) => prev ?? firstDetected);
         return cached;
       }
       return [];
@@ -574,9 +580,12 @@ export default function AppBooster() {
 
   // ── derived state ─────────────────────────────────────────────────────────
 
-  const filtered       = games.filter((g) => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
+  // Only show actually-detected installed games in the library.
+  // The full catalog (games.length) is kept for the "Supported Games" stat tile.
+  const detectedGames  = games.filter((g) => g.detected);
+  const filtered       = detectedGames.filter((g) => g.name.toLowerCase().includes(searchQuery.toLowerCase()));
   const appliedCount   = games.filter((g) => ["applied", "staged", "partial"].includes(g.status)).length;
-  const detectedCount  = games.filter((g) => g.detected).length;
+  const detectedCount  = detectedGames.length;
   const currentStatus  = (gameDetail?.status ?? "idle") as GameStatus;
   const canApply       = !["applying", "reverting"].includes(currentStatus);
   const canRevert      = ["applied", "staged", "partial", "failed"].includes(currentStatus) && !isReverting && !isApplying;
@@ -720,7 +729,12 @@ export default function AppBooster() {
               <div className="px-4 pt-4 pb-3 border-b border-white/5">
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
                   <Gamepad2 className="w-3.5 h-3.5" />
-                  Game Library
+                  Installed Games
+                  {detectedCount > 0 && (
+                    <span className="ml-auto text-[10px] font-mono text-green-400/70 normal-case tracking-normal">
+                      {detectedCount} detected
+                    </span>
+                  )}
                 </p>
               </div>
               <div className="flex-1 overflow-y-auto max-h-[560px] px-2 py-2">
@@ -741,10 +755,31 @@ export default function AppBooster() {
                       Retry
                     </button>
                   </div>
+                ) : detectedCount === 0 && !isScanning ? (
+                  <div className="flex flex-col items-center justify-center py-12 text-center px-4 gap-3">
+                    <Gamepad2 className="w-8 h-8 opacity-20" />
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">No installed games detected</p>
+                      <p className="text-[11px] text-muted-foreground/60 mt-1 leading-relaxed">
+                        Run a scan to detect supported games installed on this PC.
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-1 bg-white/5 border-white/10 hover:bg-white/10 text-xs"
+                      onClick={handleScan}
+                      disabled={isScanning}
+                      data-testid="button-scan-empty-state"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 mr-1.5" />
+                      Scan Now
+                    </Button>
+                  </div>
                 ) : filtered.length === 0 ? (
                   <div className="text-center py-12 text-muted-foreground">
-                    <Gamepad2 className="w-8 h-8 mx-auto mb-2 opacity-20" />
-                    <p className="text-sm">{searchQuery ? "No matching games" : "No games found"}</p>
+                    <Search className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                    <p className="text-sm">No installed games match "{searchQuery}"</p>
                   </div>
                 ) : (
                   <motion.div className="space-y-0.5" variants={staggerContainer} initial="initial" animate="animate">
