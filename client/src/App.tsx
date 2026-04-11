@@ -618,6 +618,10 @@ function ElectronAppContent() {
     if (isSigningOut) return; // prevent double-trigger
     console.log('[Auth] logout called — starting cinematic sign-out transition');
 
+    // 0. Immediately dismiss any active flow (tour, unlock animation, etc.)
+    //    so the overlay doesn't persist into the sign-out transition.
+    setActiveFlow("none");
+
     // 1. Immediately lock interactions and start the visual fade-out
     setIsSigningOut(true);
 
