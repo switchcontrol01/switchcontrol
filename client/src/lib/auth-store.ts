@@ -275,7 +275,7 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
 
     const authMode = response.headers.get('X-Auth-Mode');
     const data = await response.json();
-    console.log(`[PremiumFlow] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} hasSeenPremiumUnlock=${data.hasSeenPremiumUnlock}`);
+    console.log(`[PremiumFlow] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} plan=${data.plan} trialEndsAt=${data.trialEndsAt} hasSeenTrialActivation=${data.hasSeenTrialActivation} hasSeenTrialTour=${data.hasSeenTrialTour} hasSeenPremiumUnlock=${data.hasSeenPremiumUnlock}`);
 
     if (data.loggedIn === false) {
       return { user: null };
@@ -298,7 +298,7 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
     };
 
     store.setUser(newUser);
-    console.log(`[PremiumFlow] refreshEntitlements end isPremium=${newUser.isPremium} hasSeenPremiumUnlock=${newUser.hasSeenPremiumUnlock} hasSeenPremiumTour=${newUser.hasSeenPremiumTour} authMode=${authMode}`);
+    console.log(`[PremiumFlow] refreshEntitlements end isPremium=${newUser.isPremium} plan=${newUser.plan} trialEndsAt=${newUser.trialEndsAt} hasSeenTrialActivation=${newUser.hasSeenTrialActivation} hasSeenTrialTour=${newUser.hasSeenTrialTour} hasSeenPremiumUnlock=${newUser.hasSeenPremiumUnlock} hasSeenPremiumTour=${newUser.hasSeenPremiumTour} authMode=${authMode}`);
 
     return { user: newUser };
   } catch (err) {

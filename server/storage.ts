@@ -466,6 +466,11 @@ export class DatabaseStorage implements IStorage {
       const hours = opts.trialDurationHours ?? 72;
       const trialEndsAt = new Date(now.getTime() + hours * 60 * 60 * 1000);
       updateData.plan = "trial";
+      // Always clear the isPremium boolean when granting a trial so that
+      // resolveEffectivePlan never returns "premium" for a trial user.
+      // A stale isPremium=true (e.g. from a previous Stripe grant) would
+      // shadow the "trial" plan and cause the trial flow to never trigger.
+      updateData.isPremium = false;
       updateData.trialStartedAt = now;
       updateData.trialEndsAt = trialEndsAt;
       updateData.trialDurationHours = hours;

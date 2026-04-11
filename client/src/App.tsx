@@ -199,7 +199,7 @@ function ElectronAppContent() {
     console.log('[PremiumTruth] entitlement fetch start — cached isPremium:', user?.isPremium);
     refreshEntitlements()
       .then((result) => {
-        console.log('[AppFlow] Entitlements hydrated — isPremium:', result.user?.isPremium, 'hasSeenPremiumUnlock:', result.user?.hasSeenPremiumUnlock);
+        console.log('[AppFlow] Entitlements hydrated — isPremium:', result.user?.isPremium, 'plan:', result.user?.plan, 'trialEndsAt:', result.user?.trialEndsAt, 'hasSeenTrialActivation:', result.user?.hasSeenTrialActivation, 'hasSeenTrialTour:', result.user?.hasSeenTrialTour, 'hasSeenPremiumUnlock:', result.user?.hasSeenPremiumUnlock);
         console.log('[PremiumTruth] entitlement fetch result — isPremium:', result.user?.isPremium ?? 'null (no user)');
         if (result.user) {
           setEntitlementsOk(true);
@@ -272,32 +272,34 @@ function ElectronAppContent() {
 
     const trialOngoing = isTrialActive(user.plan, user.trialEndsAt);
 
-    const localTrialUnlockKey  = `sc_trial_unlock_seen_${userId}`;
-    const localTrialTourKey    = `sc_trial_tour_seen_${userId}`;
-    const localTrialUnlockSeen = localStorage.getItem(localTrialUnlockKey) === '1';
-    const localTrialTourSeen   = localStorage.getItem(localTrialTourKey)   === '1';
-
+    // PRIORITY 2: Trial activation animation
+    // Guards: server-side hasSeenTrialActivation (cross-session) +
+    //         trialUnlockFiredRef (same-session dedup).
+    // The localStorage key is NOT used here — it was set at flow entry which
+    // caused a permanent block when the animation was interrupted before the
+    // server flag could be persisted.
     if (
       trialOngoing &&
       user.hasSeenTrialActivation === false &&
-      !localTrialUnlockSeen &&
       !trialUnlockFiredRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 2: Trial activation animation — triggering');
-      localStorage.setItem(localTrialUnlockKey, '1');
+      console.log('[AppFlow] PRIORITY 2: Trial activation animation — triggering',
+        { plan: user.plan, trialEndsAt: user.trialEndsAt, hasSeenTrialActivation: user.hasSeenTrialActivation });
       trialUnlockFiredRef.current = true;
       setActiveFlow("trialUnlock");
       return;
     }
 
+    // PRIORITY 3: Trial guided tour
+    // Guards: server-side hasSeenTrialTour (cross-session) +
+    //         trialTourFiredThisSessionRef (same-session dedup).
     if (
       trialOngoing &&
       user.hasSeenTrialTour === false &&
-      !localTrialTourSeen &&
       !trialTourFiredThisSessionRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 3: Trial tour');
-      localStorage.setItem(localTrialTourKey, '1');
+      console.log('[AppFlow] PRIORITY 3: Trial tour — triggering',
+        { plan: user.plan, trialEndsAt: user.trialEndsAt, hasSeenTrialTour: user.hasSeenTrialTour });
       trialTourFiredThisSessionRef.current = true;
       setActiveFlow("trialTour");
       return;
