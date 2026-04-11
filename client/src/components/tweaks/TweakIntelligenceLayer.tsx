@@ -99,27 +99,54 @@ function Sparkline({ values, color = "hsl(270,65%,65%)", id }: { values: number[
 
 function PostureRadar({ dimensions }: { dimensions: PostureDimension[] }) {
   const N = dimensions.length;
-  if (N === 0) return null;
 
-  const CX = 80; const CY = 80; const R = 58;
-  const angle = (i: number) => (2 * Math.PI / N) * i - Math.PI / 2;
-
-  const vertexAt = (i: number, pct: number): Pt => ({
-    x: CX + R * (pct / 100) * Math.cos(angle(i)),
-    y: CY + R * (pct / 100) * Math.sin(angle(i)),
+  const CX = 80, CY = 80, R = 58;
+  const angleFor  = (i: number) => (2 * Math.PI / N) * i - Math.PI / 2;
+  const vertexAt  = (i: number, pct: number): Pt => ({
+    x: CX + R * (pct / 100) * Math.cos(angleFor(i)),
+    y: CY + R * (pct / 100) * Math.sin(angleFor(i)),
   });
-
-  const polygonStr = (pct: number) =>
+  const ringStr   = (pct: number) =>
     dimensions.map((_, i) => { const v = vertexAt(i, pct); return `${v.x.toFixed(2)},${v.y.toFixed(2)}`; }).join(" ");
 
+  // ── animated progress (0→1) drives polygon expansion ───────────────────────
+  const [progress, setProgress] = useState(0);
+
+  // Re-animate whenever dimension values actually change
+  const dimKey = dimensions.map((d) => d.score).join(",");
+  useEffect(() => {
+    if (N === 0) return;
+    setProgress(0);
+    const DELAY    = 320;  // ms before growth starts
+    const DURATION = 1100; // ms for full expansion
+    const t0 = performance.now() + DELAY;
+    let raf: number;
+
+    const tick = (now: number) => {
+      const elapsed = now - t0;
+      if (elapsed < 0) { raf = requestAnimationFrame(tick); return; }
+      const t    = Math.min(elapsed / DURATION, 1);
+      const ease = 1 - Math.pow(1 - t, 3); // cubic-ease-out
+      setProgress(ease);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dimKey, N]);
+
+  if (N === 0) return null;
+
+  // Derive all positions from animated progress
   const dataStr = dimensions.map((d, i) => {
-    const v = vertexAt(i, Math.max(4, d.score));
+    const v = vertexAt(i, Math.max(4, d.score) * progress);
     return `${v.x.toFixed(2)},${v.y.toFixed(2)}`;
   }).join(" ");
 
   const labelAt = (i: number): Pt => ({
-    x: CX + (R + 18) * Math.cos(angle(i)),
-    y: CY + (R + 18) * Math.sin(angle(i)),
+    x: CX + (R + 18) * Math.cos(angleFor(i)),
+    y: CY + (R + 18) * Math.sin(angleFor(i)),
   });
 
   return (
@@ -128,7 +155,7 @@ function PostureRadar({ dimensions }: { dimensions: PostureDimension[] }) {
       className="w-full max-w-[160px] mx-auto"
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Axis lines */}
       {dimensions.map((_, i) => {
@@ -138,24 +165,21 @@ function PostureRadar({ dimensions }: { dimensions: PostureDimension[] }) {
 
       {/* Track rings */}
       {[33, 66, 100].map((pct) => (
-        <polygon key={pct} points={polygonStr(pct)} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={pct === 100 ? 1.5 : 1} />
+        <polygon key={pct} points={ringStr(pct)} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth={pct === 100 ? 1.5 : 1} />
       ))}
 
-      {/* Filled data polygon */}
-      <motion.polygon
+      {/* Filled data polygon — grows outward from centre */}
+      <polygon
         points={dataStr}
         fill="hsl(270,65%,60%,0.15)"
         stroke="hsl(270,65%,65%)"
         strokeWidth={1.5}
         strokeLinejoin="round"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.9, delay: 0.2 }}
       />
 
-      {/* Vertex dots */}
+      {/* Vertex dots — follow the same progress */}
       {dimensions.map((d, i) => {
-        const v = vertexAt(i, Math.max(4, d.score));
+        const v = vertexAt(i, Math.max(4, d.score) * progress);
         return (
           <circle key={i} cx={v.x} cy={v.y} r={2.5}
             fill={d.color || "hsl(270,65%,70%)"}
