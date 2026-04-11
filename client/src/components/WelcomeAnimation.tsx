@@ -50,9 +50,12 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
   ), []);
 
   return (
-    <div
+    <motion.div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden select-none"
       style={{ background: "linear-gradient(160deg, #06060e 0%, #0c0c1d 40%, #0a0a18 70%, #06060e 100%)" }}
+      initial={{ opacity: 0, filter: "blur(10px)" }}
+      animate={{ opacity: 1, filter: "blur(0px)" }}
+      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
     >
 
       {/* ── Scan-line overlay ──────────────────────────────────────────── */}
@@ -380,6 +383,6 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
         <Zap className="w-12 h-12 text-violet-400" style={{ filter: "drop-shadow(0 0 20px rgba(139,92,246,1))" }} />
       </motion.div>
 
-    </div>
+    </motion.div>
   );
 }

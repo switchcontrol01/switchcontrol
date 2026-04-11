@@ -713,10 +713,10 @@ function ElectronAppContent() {
         {phase === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.7, ease: [0.25, 0.1, 0, 1] }}
+            initial={{ opacity: 0, filter: "blur(12px)", scale: 1.012 }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
+            exit={{ opacity: 0, filter: "blur(6px)" }}
+            transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
             className="h-full"
           >
             <WelcomeAnimation 
