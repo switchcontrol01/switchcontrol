@@ -101,6 +101,19 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="h-full w-full bg-background text-foreground font-sans selection:bg-primary/20 selection:text-primary-foreground relative overflow-hidden">
       <AppBackground />
+
+      {/* Top-left brand glow — milky white atmospheric haze anchored to the logo/sidebar region */}
+      <div
+        className="pointer-events-none fixed top-0 left-0 z-[1]"
+        style={{
+          width: "820px",
+          height: "640px",
+          background: "radial-gradient(ellipse at 0% 0%, rgba(255,255,255,0.055) 0%, rgba(230,220,255,0.028) 32%, rgba(200,185,255,0.010) 58%, transparent 75%)",
+          transform: "translate(-8%, -10%)",
+        }}
+        aria-hidden="true"
+      />
+
       <BackendStartingBanner />
       
       <Sidebar />
