@@ -15,6 +15,7 @@ import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen } from "@/lib/auth-store";
 import { isTrialActive } from "@/lib/trialCountdown";
+import { telemetryManager } from "@/lib/telemetryManager";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
 import { DeviceLockModal } from "@/components/DeviceLockModal";
@@ -151,6 +152,14 @@ function ElectronAppContent() {
     isChecking: isDeviceLockChecking,
     retry: retryDeviceLock,
   } = usePremiumDeviceLock(isElectron, isPremiumVerified, user?.loggedIn ?? false);
+
+  // Start the telemetry WebSocket as soon as the user is authenticated.
+  // This warms up the connection before the Dashboard even mounts, so history
+  // is already accumulating when they first visit (and never resets on tab switches).
+  useEffect(() => {
+    if (phase !== 'authenticated') return;
+    telemetryManager.start();
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== 'authenticated') return;

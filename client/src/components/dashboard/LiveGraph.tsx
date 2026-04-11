@@ -161,6 +161,42 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const isElectron = !!(window as any).electronAPI?.telemetry?.getLive;
   const { telemetry: wsTelemetry, spikes: wsSpikes, status: wsStatus, history: wsHistory } = useLiveTelemetry();
 
+  // ── Seed graph history from persistent store on (re)mount ──────────────────
+  // This ensures the graph isn't blank when returning to Dashboard after
+  // navigating to another route — the store's accumulated history is used
+  // to replay the last N data points instantly.
+  const seedDoneRef = useRef(false);
+  useEffect(() => {
+    if (isElectron) return;
+    if (seedDoneRef.current) return;
+    if (wsHistory.cpu.length === 0) return;
+
+    seedDoneRef.current = true;
+    const len = wsHistory.cpu.length;
+    const now = Date.now();
+
+    const seeded: DataPoint[] = wsHistory.cpu.map((cpuLoad, i) => {
+      const msAgo = (len - 1 - i) * 1000;
+      const t = new Date(now - msAgo);
+      const timeStr = `${t.getMinutes()}:${t.getSeconds().toString().padStart(2, "0")}`;
+      return {
+        time: timeStr,
+        cpuLoad: cpuLoad ?? 0,
+        cpuTemp: null,
+        gpuLoad: wsHistory.gpu[i] ?? null,
+        gpuTemp: null,
+        gpuMemPct: wsHistory.vram[i] ?? null,
+        ram: wsHistory.ram[i] ?? 0,
+        disk: 0,
+        netRx: wsHistory.rxKbps[i] ?? null,
+        netTx: wsHistory.txKbps[i] ?? null,
+      };
+    });
+
+    console.log('[ActivityMonitor] seeding graph from', seeded.length, 'cached history points');
+    setData(seeded);
+  }, [wsHistory, isElectron]);
+
   // Feed WebSocket data into graph when not running in Electron
   useEffect(() => {
     if (isElectron) return;

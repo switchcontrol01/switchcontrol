@@ -304,7 +304,25 @@ function useLiveStatus(): string {
 
 export default function Home() {
   const { stats, account, setStats } = useStore();
-  const { telemetry: liveTel } = useLiveTelemetry();
+  const { telemetry: liveTel, status: telStatus, history: telHistory } = useLiveTelemetry();
+
+  // ── Mount/remount lifecycle logging ─────────────────────────────────────────
+  const mountCountRef = useRef(0);
+  useEffect(() => {
+    mountCountRef.current += 1;
+    if (mountCountRef.current === 1) {
+      console.log('[Dashboard] mounted');
+    } else {
+      console.log('[Dashboard] remounted (visit #' + mountCountRef.current + ')');
+    }
+    const hasCached = telHistory.cpu.length > 0;
+    if (hasCached) {
+      console.log('[ActivityMonitor] reused cached state — history points:', telHistory.cpu.length, 'status:', telStatus);
+    } else {
+      console.log('[ActivityMonitor] mounted — no cached history yet, status:', telStatus);
+    }
+  });
+  // ── End lifecycle logging ────────────────────────────────────────────────────
   const { addEvent, setLastAction } = useDashboardActivityStore();
   const { lastRunAt: advisorLastRunAt } = useAdvisorStore();
   const { lastScanTime: biosLastScanTime } = useBiosAdvisorStore();
