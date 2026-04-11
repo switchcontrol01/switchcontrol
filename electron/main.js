@@ -17,7 +17,19 @@ const path = require('path');
 const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
-const networkTweakExecutor = require('./network-tweak-executor');
+let networkTweakExecutor;
+try {
+  networkTweakExecutor = require('./network-tweak-executor');
+} catch (e) {
+  console.error('[BOOT] network-tweak-executor not found, using stub:', e.message);
+  networkTweakExecutor = {
+    executeNetworkTweak: async () => ({ success: false, status: 'skipped', error: 'Network tweaks not available. Please reinstall SwitchControl.' }),
+    checkNetworkTweakStatus: async () => ({ applied: false }),
+    checkAllNetworkTweakStatus: async () => ({}),
+    getDisabledTweaks: () => [],
+    TWEAK_REGISTRY: {},
+  };
+}
 const powerPlanManager = require('./power-plan-manager');
 const backendLauncher = require('./backend-launcher');
 require('./security-helper');
