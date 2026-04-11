@@ -294,6 +294,7 @@ function useLiveStatus(): string {
 export default function Home() {
   const { stats, account, setStats } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
+  const [specStatus, setSpecStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
   const [selectedDiskIndex, setSelectedDiskIndex] = useState(0);
@@ -338,6 +339,7 @@ export default function Home() {
       api.system.getSpecs().then((specs: SystemSpecs | null | undefined) => {
         if (!specs) {
           console.warn('[SwitchControl] getSystemSpecs returned null/undefined');
+          setSpecStatus("unavailable");
           return;
         }
         if (api?.telemetry?.getGpu) {
@@ -372,13 +374,15 @@ export default function Home() {
           osArch: specs.system?.arch || 'Unavailable',
           hostname: specs.system?.hostname || 'Unavailable',
         });
+        setSpecStatus("ready");
       }).catch((err: unknown) => {
         console.error('[SwitchControl] Failed to get system specs:', err);
+        setSpecStatus("unavailable");
       });
     } else if (api?.system?.getInfo) {
       setGpuDetailAvailable(false);
       api.system.getInfo().then((info: { totalMemory?: number; freeMemory?: number; cpus?: number } | null) => {
-        if (!info) return;
+        if (!info) { setSpecStatus("unavailable"); return; }
         const totalMem = info.totalMemory || 0;
         const freeMem = info.freeMemory || 0;
         const totalGB = totalMem / 1024 / 1024 / 1024;
@@ -389,7 +393,8 @@ export default function Home() {
           cpuCores: info.cpus || 0,
           cpuThreads: (info.cpus || 0) * 2,
         });
-      }).catch(() => {});
+        setSpecStatus("ready");
+      }).catch(() => { setSpecStatus("unavailable"); });
     } else {
       setGpuDetailAvailable(false);
       // Web fallback: fetch specs from server API
@@ -415,8 +420,9 @@ export default function Home() {
             osArch: specs.system?.arch || "",
             hostname: specs.system?.hostname || "",
           });
+          setSpecStatus("ready");
         })
-        .catch(() => {});
+        .catch(() => { setSpecStatus("unavailable"); });
     }
   }, []);
 
@@ -603,6 +609,7 @@ export default function Home() {
                 actionLabel="Clear RAM"
                 onAction={() => setMemCleanerOpen(true)}
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
+                loading={specStatus === "loading"}
               />
             </motion.div>
             
@@ -619,6 +626,7 @@ export default function Home() {
                 onIconClick={() => setCpuModalOpen(true)}
                 subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
                 className="border-purple-500/20 shadow-[0_0_20px_-10px_hsl(270_100%_50%/0.1)]"
+                loading={specStatus === "loading"}
               />
             </motion.div>
             
@@ -634,6 +642,7 @@ export default function Home() {
                 icon={Activity}
                 subtext={`${stats.vramGb} GB VRAM`}
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
+                loading={specStatus === "loading"}
               />
             </motion.div>
             
@@ -672,6 +681,7 @@ export default function Home() {
                 progress={diskPercent}
                 subtext={selectedDisk?.name || stats.diskName}
                 className="border-amber-500/20 shadow-[0_0_20px_-10px_hsl(40_100%_50%/0.1)]"
+                loading={specStatus === "loading"}
               />
             </motion.div>
           </motion.div>

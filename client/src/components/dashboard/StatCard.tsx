@@ -17,6 +17,7 @@ interface StatCardProps {
   onIconClick?: () => void;
   subtext?: string;
   className?: string;
+  loading?: boolean;
 }
 
 export function StatCard({
@@ -31,9 +32,28 @@ export function StatCard({
   onIconClick,
   subtext,
   className,
+  loading = false,
 }: StatCardProps) {
   return (
     <GlassCard className={cn("relative overflow-hidden group", className)}>
+      <style>{`
+        @keyframes sc-shimmer {
+          0%   { background-position: -200% center; }
+          100% { background-position:  200% center; }
+        }
+        .sc-shimmer {
+          background: linear-gradient(
+            90deg,
+            rgba(255,255,255,0.04) 25%,
+            rgba(255,255,255,0.10) 50%,
+            rgba(255,255,255,0.04) 75%
+          );
+          background-size: 200% auto;
+          border-radius: 5px;
+          animation: sc-shimmer 1.6s linear infinite;
+        }
+      `}</style>
+
       <div className="p-6">
         <div className="flex flex-row items-center justify-between space-y-0 pb-2">
           <div className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
@@ -54,25 +74,35 @@ export function StatCard({
             <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
           )}
         </div>
+
         <div>
           <div className="flex items-end justify-between">
-            <div className="space-y-1 relative z-10">
-              <div className="text-2xl font-bold font-data tracking-tight text-white drop-shadow-sm">
-                {value}
-                {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
-                {total && <span className="text-sm font-normal text-muted-foreground ml-1">/ {total} {unit}</span>}
-              </div>
-              {subtext && (
-                <p className="text-xs text-muted-foreground font-medium truncate max-w-[140px]">
-                  {subtext}
-                </p>
+            <div className="space-y-1 relative z-10 w-full">
+              {loading ? (
+                <>
+                  <div className="sc-shimmer h-7 w-36 mt-0.5" />
+                  <div className="sc-shimmer h-3 w-24 mt-1.5" />
+                </>
+              ) : (
+                <>
+                  <div className="text-2xl font-bold font-data tracking-tight text-white drop-shadow-sm">
+                    {value}
+                    {unit && <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span>}
+                    {total && <span className="text-sm font-normal text-muted-foreground ml-1">/ {total} {unit}</span>}
+                  </div>
+                  {subtext && (
+                    <p className="text-xs text-muted-foreground font-medium truncate max-w-[140px]">
+                      {subtext}
+                    </p>
+                  )}
+                </>
               )}
             </div>
-            
-            {actionLabel && onAction && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+
+            {!loading && actionLabel && onAction && (
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={onAction}
                 className="h-7 text-xs bg-white/5 border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all duration-300 relative z-10"
               >
@@ -80,19 +110,25 @@ export function StatCard({
               </Button>
             )}
           </div>
-          
+
           {progress !== undefined && (
             <div className="mt-4 space-y-1.5 relative z-10">
-              <Progress value={progress} className="h-1.5" />
-              <div className="flex justify-between text-[10px] uppercase font-medium text-muted-foreground tracking-wider">
-                <span>Usage</span>
-                <span className={cn(progress > 90 ? "text-red-400" : "text-emerald-400")}>{Math.round(progress)}%</span>
-              </div>
+              {loading ? (
+                <div className="sc-shimmer h-1.5 w-full rounded-full" />
+              ) : (
+                <>
+                  <Progress value={progress} className="h-1.5" />
+                  <div className="flex justify-between text-[10px] uppercase font-medium text-muted-foreground tracking-wider">
+                    <span>Usage</span>
+                    <span className={cn(progress > 90 ? "text-red-400" : "text-emerald-400")}>{Math.round(progress)}%</span>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>
       </div>
-      
+
       <div className="absolute -right-12 -top-12 h-32 w-32 bg-primary/10 blur-3xl rounded-full pointer-events-none group-hover:bg-primary/20 transition-colors duration-500" />
     </GlassCard>
   );
