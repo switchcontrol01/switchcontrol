@@ -88,6 +88,28 @@ export const successColor = {
   glow:  "rgba(52,211,153,0.8)",
 } as const;
 
+// ── Amber / tour premium palette ──────────────────────────────────────────────
+/** Amber/gold palette used by the premium (isPremium=true) tour theme */
+export const tourColor = {
+  /** Primary amber CTA / text */
+  main:   '#fbbf24',
+  /** Darker amber for button gradient end */
+  end:    '#f59e0b',
+  /** Softer light amber for headings */
+  light:  '#fde68a',
+  /** Medium warm amber for glow layers */
+  mid:    '#fcd34d',
+} as const;
+
+export const tourGlow = {
+  /** Card ambient glow (amber, resting) */
+  card:    '0 0 80px rgba(251,191,36,0.08)',
+  /** Button shadow */
+  btn:     '0 4px 22px rgba(245,158,11,0.35)',
+  /** Ambient halo */
+  ambient: '0 0 40px rgba(251,191,36,0.15)',
+} as const;
+
 // ── Semantic aliases ──────────────────────────────────────────────────────────
 export const brand = {
   premium: premiumColor,
@@ -95,4 +117,6 @@ export const brand = {
   rgba:    premiumRgba,
   overlay: premiumOverlay,
   success: successColor,
+  tour:    tourColor,
+  tourGlow,
 } as const;

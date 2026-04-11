@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, type ReactNode } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/lib/motionTokens';
 import { useLocation } from 'wouter';
 import { ChevronRight, ChevronLeft, X } from 'lucide-react';
 import { useTourStore } from '@/lib/tour-store';
+import { TOUR_COMPLETION_TIMING, TOUR_STEP_TIMING, tourPalette } from '@/lib/tourMotionTokens';
 import logoImg from '@/assets/logo.webp';
 
 export interface TourStep {
@@ -34,18 +35,15 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('hold'), 2200);
-    const t2 = setTimeout(() => setPhase('exit'), 4800);
-    const t3 = setTimeout(onDone, 6200);
+    const t1 = setTimeout(() => setPhase('hold'), TOUR_COMPLETION_TIMING.holdMs);
+    const t2 = setTimeout(() => setPhase('exit'), TOUR_COMPLETION_TIMING.exitMs);
+    const t3 = setTimeout(onDone, TOUR_COMPLETION_TIMING.doneMs);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onDone]);
 
   const isExiting = phase === 'exit';
-  const c1 = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
-  const c2 = isPremium ? 'rgba(245,158,11,' : 'rgba(168,85,247,';
-  const c3 = isPremium ? 'rgba(252,211,77,' : 'rgba(192,132,252,';
-  const accentHex = isPremium ? '#fbbf24' : '#a855f7';
-  const accentHex2 = isPremium ? '#f59e0b' : '#7c3aed';
+  const cp = isPremium ? tourPalette.premium : tourPalette.free;
+  const { c1, c2, c3, accentHex, accentHex2 } = cp;
 
   return (
     <motion.div
@@ -204,7 +202,7 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
 
 // ── Subtle static backdrop — single color, no circus ─────────────────────────
 function TourBackdrop({ isPremium }: { isPremium?: boolean }) {
-  const glow = isPremium ? 'rgba(251,191,36,' : 'rgba(139,92,246,';
+  const pal = isPremium ? tourPalette.premium : tourPalette.free;
   return (
     <div
       className="absolute pointer-events-none"
@@ -212,7 +210,7 @@ function TourBackdrop({ isPremium }: { isPremium?: boolean }) {
         top: '50%', left: '55%',
         transform: 'translate(-50%, -50%)',
         width: '60vw', height: '60vw',
-        background: `radial-gradient(ellipse, ${glow}0.09) 0%, transparent 68%)`,
+        background: `radial-gradient(ellipse, ${pal.primary}0.09) 0%, transparent 68%)`,
         filter: 'blur(70px)',
       }}
     />
@@ -239,11 +237,10 @@ export function TourShell({
     const s = steps[index];
     if (s?.sidebarHighlight) {
       setTourHighlight(s.sidebarHighlight);
-      // Auto-scroll sidebar item into view after next render
       setTimeout(() => {
         const el = document.querySelector(`[data-tour="${s.sidebarHighlight}"]`);
         if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 200);
+      }, TOUR_STEP_TIMING.highlightScrollDelayMs);
     }
     if (s?.route) navigate(s.route);
   }, [steps, setTourHighlight, navigate]);
@@ -297,35 +294,7 @@ export function TourShell({
     onComplete();
   }, [onComplete, setTourActive, setTourHighlight]);
 
-  const pal = isPremium
-    ? {
-        primary: 'rgba(251,191,36,',
-        text: '#fbbf24',
-        border: 'rgba(251,191,36,0.35)',
-        iconBg: 'linear-gradient(135deg, rgba(251,191,36,0.2), rgba(245,158,11,0.1))',
-        iconBorder: 'rgba(251,191,36,0.3)',
-        btnBg: 'linear-gradient(135deg, rgba(217,119,6,0.75), rgba(251,191,36,0.55))',
-        btnBorder: 'rgba(251,191,36,0.45)',
-        btnShadow: '0 4px 22px rgba(245,158,11,0.35)',
-        topBar: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.6), rgba(245,158,11,0.4), transparent)',
-        cardGlow: '0 0 80px rgba(251,191,36,0.08)',
-        titleGrad: 'linear-gradient(90deg, #fde68a, #fbbf24, #f59e0b)',
-        cardBg: 'linear-gradient(145deg, rgba(20,15,5,0.92) 0%, rgba(18,13,4,0.96) 100%)',
-      }
-    : {
-        primary: 'rgba(139,92,246,',
-        text: '#c084fc',
-        border: 'rgba(168,85,247,0.22)',
-        iconBg: 'linear-gradient(135deg, rgba(139,92,246,0.2), rgba(168,85,247,0.1))',
-        iconBorder: 'rgba(168,85,247,0.3)',
-        btnBg: 'linear-gradient(135deg, rgba(109,40,217,0.9), rgba(168,85,247,0.7))',
-        btnBorder: 'rgba(168,85,247,0.45)',
-        btnShadow: '0 4px 22px rgba(139,92,246,0.38)',
-        topBar: 'linear-gradient(90deg, transparent, rgba(168,85,247,0.7), rgba(236,72,153,0.4), transparent)',
-        cardGlow: '0 0 80px rgba(139,92,246,0.1)',
-        titleGrad: 'linear-gradient(90deg, #e9d5ff, #c084fc, #a855f7)',
-        cardBg: 'linear-gradient(145deg, rgba(14,10,28,0.92) 0%, rgba(10,8,24,0.96) 100%)',
-      };
+  const pal = isPremium ? tourPalette.premium : tourPalette.free;
 
 
   if (!show) return null;
@@ -462,9 +431,9 @@ export function TourShell({
                         <span
                           className="text-[9px] font-semibold uppercase tracking-[0.15em] px-1.5 py-0.5 rounded-md w-fit"
                           style={{
-                            background: 'rgba(251,191,36,0.12)',
-                            border: '1px solid rgba(251,191,36,0.2)',
-                            color: 'rgba(251,191,36,0.8)',
+                            background: `${pal.primary}0.12)`,
+                            border: `1px solid ${pal.primary}0.2)`,
+                            color: `${pal.primary}0.8)`,
                           }}
                         >
                           Premium
@@ -529,12 +498,8 @@ export function TourShell({
                           <div
                             className="w-full h-full rounded-full"
                             style={{
-                              background: i <= stepIndex
-                                ? (isPremium ? 'linear-gradient(90deg, #fbbf24, #f59e0b)' : 'linear-gradient(90deg, #a855f7, #ec4899)')
-                                : 'rgba(255,255,255,0.2)',
-                              boxShadow: i === stepIndex
-                                ? (isPremium ? '0 0 8px rgba(251,191,36,0.7)' : '0 0 8px rgba(168,85,247,0.7)')
-                                : 'none',
+                              background: i <= stepIndex ? pal.pillActive : 'rgba(255,255,255,0.2)',
+                              boxShadow:  i === stepIndex ? pal.pillGlow   : 'none',
                             }}
                           />
                         </motion.div>

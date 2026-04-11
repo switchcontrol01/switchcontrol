@@ -1,25 +1,14 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { ExternalLink, Download, Check } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { WebsiteBackground } from "@/components/website/WebsiteBackground";
+import { useMotion } from "@/lib/motionTokens";
+import { SUCCESS_TIMING } from "@/lib/premiumMotionTokens";
 
 
 type PageState = "loading" | "success" | "error";
 type AnimPhase = "idle" | "stroke" | "check" | "glow" | "confetti" | "text" | "buttons" | "ready";
-
-function usePrefersReducedMotion() {
-  const [reduced, setReduced] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(prefers-reduced-motion: reduce)").matches : false
-  );
-  useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const handler = (e: MediaQueryListEvent) => setReduced(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
-  return reduced;
-}
 
 function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
   const [phase, setPhase] = useState<AnimPhase>("idle");
@@ -31,14 +20,12 @@ function useAnimSequence(trigger: boolean, reducedMotion: boolean) {
       return;
     }
     setPhase("stroke");
-    const t1 = setTimeout(() => setPhase("check"), 1200);
-    const t2 = setTimeout(() => {
-      setPhase("glow");
-    }, 1700);
-    const t3 = setTimeout(() => setPhase("confetti"), 2000);
-    const t4 = setTimeout(() => setPhase("text"), 2400);
-    const t5 = setTimeout(() => setPhase("buttons"), 2900);
-    const t6 = setTimeout(() => setPhase("ready"), 3300);
+    const t1 = setTimeout(() => setPhase("check"),    SUCCESS_TIMING.checkMs);
+    const t2 = setTimeout(() => setPhase("glow"),     SUCCESS_TIMING.glowMs);
+    const t3 = setTimeout(() => setPhase("confetti"), SUCCESS_TIMING.confettiMs);
+    const t4 = setTimeout(() => setPhase("text"),     SUCCESS_TIMING.textMs);
+    const t5 = setTimeout(() => setPhase("buttons"),  SUCCESS_TIMING.buttonsMs);
+    const t6 = setTimeout(() => setPhase("ready"),    SUCCESS_TIMING.readyMs);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(t5); clearTimeout(t6); };
   }, [trigger, reducedMotion]);
 
@@ -211,7 +198,7 @@ export default function PremiumSuccess() {
   const [status, setStatus] = useState<PageState>("loading");
   const [error, setError] = useState<string | null>(null);
   const queryClient = useQueryClient();
-  const reducedMotion = usePrefersReducedMotion();
+  const { prefersReducedMotion: reducedMotion } = useMotion();
   const animPhase = useAnimSequence(status === "success", reducedMotion);
 
   const phaseIndex = PHASE_ORDER.indexOf(animPhase);
@@ -230,7 +217,7 @@ export default function PremiumSuccess() {
     }
 
     const startTime = Date.now();
-    const MIN_LOADING_MS = 1200;
+    const MIN_LOADING_MS = SUCCESS_TIMING.minLoadingMs;
 
     fetch(`/api/stripe/session?session_id=${sessionId}`, {
       credentials: "include",

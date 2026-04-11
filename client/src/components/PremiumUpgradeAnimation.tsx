@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from '@/lib/motionTokens';
+import { UPGRADE_TIMING, PREMIUM_EASE } from '@/lib/premiumMotionTokens';
 import logoImg from '@/assets/logo.webp';
 
 
@@ -21,7 +22,6 @@ type Phase =
   | 'exiting'
   | 'done';
 
-const EASE_LUXURY = [0.22, 1, 0.36, 1] as const;
 
 export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnimationProps) {
   const [phase, setPhase] = useState<Phase>('idle');
@@ -85,7 +85,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
         setPhase('done');
         console.log('[PremiumAnimation] Reduced-motion complete');
         onCompleteRef.current();
-      }, 2000);
+      }, UPGRADE_TIMING.reducedDoneMs);
       timersRef.current = [t];
       return () => clearTimeout(t);
     }
@@ -97,43 +97,43 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
 
     t.push(setTimeout(() => {
       setPhase('lock-appear');
-    }, 500));
+    }, UPGRADE_TIMING.lockAppearMs));
 
     t.push(setTimeout(() => {
       setPhase('glow-build');
-    }, 1500));
+    }, UPGRADE_TIMING.glowBuildMs));
 
     t.push(setTimeout(() => {
       setPhase('shake-buildup');
-    }, 2800));
+    }, UPGRADE_TIMING.shakeBuildupMs));
 
     t.push(setTimeout(() => {
       setPhase('unlock-snap');
       setLockUnlocked(true);
       risingRef.current?.stop();
-    }, 3500));
+    }, UPGRADE_TIMING.unlockSnapMs));
 
     t.push(setTimeout(() => {
       setPhase('shockwave');
-    }, 3800));
+    }, UPGRADE_TIMING.shockwaveMs));
 
     t.push(setTimeout(() => {
       setPhase('logo-reveal');
-    }, 4300));
+    }, UPGRADE_TIMING.logoRevealMs));
 
     t.push(setTimeout(() => {
       setPhase('text-reveal');
-    }, 4900));
+    }, UPGRADE_TIMING.textRevealMs));
 
     t.push(setTimeout(() => {
       setPhase('exiting');
-    }, 6200));
+    }, UPGRADE_TIMING.exitingMs));
 
     t.push(setTimeout(() => {
       setPhase('done');
       console.log('[PremiumAnimation] Full sequence complete');
       onCompleteRef.current();
-    }, 6800));
+    }, UPGRADE_TIMING.doneMs));
 
     return () => {
       t.forEach(clearTimeout);
@@ -213,7 +213,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     transition={{
                       opacity: { duration: showShakeBuildup ? 0.8 : 1.5, repeat: Infinity, ease: 'easeInOut' },
                       rotate: { duration: showShakeBuildup ? 2 : 4, repeat: Infinity, ease: 'linear' },
-                      scale: { duration: 0.6, ease: [...EASE_LUXURY] },
+                      scale: { duration: 0.6, ease: [...PREMIUM_EASE] },
                     }}
                   >
                     <svg viewBox="0 0 240 240" className="w-full h-full">
@@ -352,7 +352,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                         transition={{
                           duration: p.dur,
                           delay: p.delay,
-                          ease: [...EASE_LUXURY],
+                          ease: [...PREMIUM_EASE],
                         }}
                       />
                     ))}
@@ -401,10 +401,10 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                     transition={{
                       opacity: { duration: 0.5 },
                       scale: lockUnlocked
-                        ? { duration: 0.15, ease: [...EASE_LUXURY] }
+                        ? { duration: 0.15, ease: [...PREMIUM_EASE] }
                         : showShakeBuildup
                           ? { duration: 0.8, repeat: Infinity, ease: 'easeInOut' }
-                          : { duration: 0.6, ease: [...EASE_LUXURY] },
+                          : { duration: 0.6, ease: [...PREMIUM_EASE] },
                     }}
                   >
                     <motion.div
@@ -582,7 +582,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                   exit={{ opacity: 0, y: -6 }}
                   transition={phase === 'shake-buildup'
                     ? { opacity: { duration: 0.6, repeat: Infinity, ease: 'easeInOut' }, y: { duration: 0.4 } }
-                    : { duration: 0.4, ease: [...EASE_LUXURY] }
+                    : { duration: 0.4, ease: [...PREMIUM_EASE] }
                   }
                 >
                   {phase === 'shake-buildup' ? 'Unlocking…' : 'Activating Premium'}
@@ -597,7 +597,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: PremiumUpgradeAnim
                   initial={{ opacity: 0, y: 24, scale: 0.9 }}
                   animate={{ opacity: phase === 'exiting' ? 0.4 : 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.6, ease: [...EASE_LUXURY] }}
+                  transition={{ duration: 0.6, ease: [...PREMIUM_EASE] }}
                 >
                   <motion.p
                     className="text-xs font-medium tracking-[0.2em] uppercase mb-2"

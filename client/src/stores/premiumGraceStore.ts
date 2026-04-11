@@ -18,6 +18,12 @@ export interface PremiumGraceSnapshot {
 }
 
 interface PremiumGraceStore extends PremiumGraceSnapshot {
+  /**
+   * True once setVerified() has been called at least once this session.
+   * In-memory only — not persisted. When true, getStatus() trusts the
+   * live snapshot unconditionally rather than falling back to grace cache.
+   */
+  sessionVerified: boolean;
   setVerified: (isPremium: boolean, plan: string | null, userId: string | null) => void;
   clear: () => void;
   getStatus: (isBackendReachable: boolean) => PremiumVerificationStatus;
@@ -31,6 +37,7 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
       plan: null,
       userId: null,
       lastVerifiedAt: null,
+      sessionVerified: false,
 
       setVerified(isPremium, plan, userId) {
         const prev = get();
@@ -41,22 +48,29 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
           plan,
           userId,
           lastVerifiedAt: isPremium ? now : prev.lastVerifiedAt,
+          sessionVerified: true,
         });
       },
 
       clear() {
-        set({ isPremium: false, plan: null, userId: null, lastVerifiedAt: null });
+        set({ isPremium: false, plan: null, userId: null, lastVerifiedAt: null, sessionVerified: false });
       },
 
       getStatus(isBackendReachable) {
-        const { isPremium, lastVerifiedAt } = get();
+        const { isPremium, lastVerifiedAt, sessionVerified } = get();
+
+        // A fresh verification this session always wins — no grace-cache drift.
+        if (sessionVerified) {
+          if (isPremium) return 'active';
+          return 'free';
+        }
 
         if (isBackendReachable) {
           if (isPremium) return 'active';
           return 'free';
         }
 
-        // Backend not reachable — check grace cache
+        // Backend not reachable and no in-session verification — check grace cache.
         if (!isPremium || !lastVerifiedAt) return 'free';
         const age = Date.now() - lastVerifiedAt;
         if (age <= GRACE_WINDOW_MS) {
@@ -80,6 +94,7 @@ export const usePremiumGraceStore = create<PremiumGraceStore>()(
         plan: s.plan,
         userId: s.userId,
         lastVerifiedAt: s.lastVerifiedAt,
+        // sessionVerified intentionally excluded — reset on every page load
       }),
     }
   )

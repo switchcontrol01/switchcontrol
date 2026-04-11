@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "@/lib/motionTokens";
 import { Crown, Check } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { postUnlockSeen } from "@/lib/auth-store";
+import { UNLOCK_TIMING } from "@/lib/premiumMotionTokens";
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
@@ -33,7 +34,7 @@ export function PremiumUnlockAnimation() {
         const timer = setTimeout(() => {
           setShowAnimation(false);
           markSeen();
-        }, 3500);
+        }, UNLOCK_TIMING.displayMs);
         return () => clearTimeout(timer);
       }
       return;
@@ -45,7 +46,7 @@ export function PremiumUnlockAnimation() {
       const timer = setTimeout(() => {
         setShowAnimation(false);
         markSeen();
-      }, 3500);
+      }, UNLOCK_TIMING.displayMs);
       previousPremiumRef.current = isPremium;
       return () => clearTimeout(timer);
     }
