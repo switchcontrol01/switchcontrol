@@ -14,7 +14,7 @@ import biosRouter from "./routes/bios";
 import securityRouter from "./routes/security";
 import networkDiagnosticsRouter from "./routes/networkDiagnostics";
 import adminRouter from "./routes/admin";
-import { getSnapshot, getSystemSpecs } from "./lib/telemetry";
+import { getSnapshot, getSystemSpecs, startTelemetryPolling } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
 
 export async function registerRoutes(
@@ -314,10 +314,12 @@ export async function registerRoutes(
       const snap = await getSnapshot();
       res.json({
         ts: snap.ts,
+        status: snap.status,
         cpu: snap.cpu,
         ram: snap.ram,
         network: snap.network,
         temps: snap.temps,
+        gpu: snap.gpu,
         processes: snap.processes,
         load_trend: snap.load_trend,
       });
@@ -346,6 +348,8 @@ export async function registerRoutes(
     }
   });
 
+  // Start background telemetry polling immediately so cache is warm before first client
+  startTelemetryPolling(1000);
   setupWebSocketServer(httpServer);
 
   app.post("/api/clear-ram", csrfProtection, async (req, res) => {

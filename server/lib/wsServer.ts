@@ -1,6 +1,6 @@
 import { Server as HttpServer } from "http";
 import { WebSocketServer, WebSocket } from "ws";
-import { getSnapshot } from "./telemetry";
+import { getCachedSnapshot, getSnapshot } from "./telemetry";
 
 let wss: WebSocketServer | null = null;
 let broadcastInterval: NodeJS.Timeout | null = null;
@@ -11,7 +11,13 @@ export function setupWebSocketServer(httpServer: HttpServer) {
   wss.on("connection", (ws: WebSocket) => {
     ws.on("error", () => {});
 
-    // send one snapshot immediately on connect
+    // Send cached snapshot immediately (no await, instant response)
+    const cached = getCachedSnapshot();
+    if (ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "telemetry", data: cached }));
+    }
+
+    // Also send a fresh snapshot shortly after connect (covers the loading → ready transition)
     getSnapshot()
       .then((snap) => {
         if (ws.readyState === WebSocket.OPEN) {
@@ -21,19 +27,19 @@ export function setupWebSocketServer(httpServer: HttpServer) {
       .catch(() => {});
   });
 
-  // Broadcast to all clients every 1.5 seconds
-  broadcastInterval = setInterval(async () => {
+  // Broadcast cached snapshot to all clients every 1 second
+  // (background polling in telemetry.ts refreshes the cache independently)
+  broadcastInterval = setInterval(() => {
     if (!wss || wss.clients.size === 0) return;
-    try {
-      const snap = await getSnapshot();
-      const msg = JSON.stringify({ type: "telemetry", data: snap });
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(msg);
-        }
-      });
-    } catch {}
-  }, 1500);
+    const snap = getCachedSnapshot();
+    if (snap.status === "loading") return; // skip until we have real data
+    const msg = JSON.stringify({ type: "telemetry", data: snap });
+    wss.clients.forEach((client) => {
+      if (client.readyState === WebSocket.OPEN) {
+        client.send(msg);
+      }
+    });
+  }, 1000);
 
   console.log("[WS] Live telemetry WebSocket server ready at /ws/telemetry");
 }

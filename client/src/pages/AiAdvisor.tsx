@@ -56,7 +56,7 @@ interface SystemContext {
   };
   enabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
   disabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
-  telemetry: Record<string, number | null>;
+  telemetry: Record<string, number | string | null>;
 }
 
 interface AttachedImage {
@@ -676,10 +676,17 @@ export default function AiAdvisor() {
       disabledTweaks,
       telemetry: {
         cpuTempC: liveTel?.temps?.cpu ?? null,
-        gpuTempC: liveTel?.temps?.gpu ?? null,
-        ramUsedGB: liveTel?.ram.usedGB ?? (typeof stats.usedRamGb === "number" ? stats.usedRamGb : null),
-        cpuLoadPct: liveTel?.cpu.load ?? null,
-        gpuLoadPct: null,
+        gpuTempC: liveTel?.temps?.gpu ?? liveTel?.gpu?.tempC ?? null,
+        ramUsedGB: liveTel?.ram?.usedGB ?? (typeof stats.usedRamGb === "number" ? stats.usedRamGb : null),
+        ramTotalGB: liveTel?.ram?.totalGB ?? (typeof stats.totalRamGb === "number" ? stats.totalRamGb : null),
+        cpuLoadPct: liveTel?.cpu?.load ?? null,
+        gpuLoadPct: liveTel?.gpu?.load ?? null,
+        vramUsedMb: liveTel?.gpu?.vramUsedMb ?? null,
+        vramTotalMb: liveTel?.gpu?.vramTotalMb ?? null,
+        vramPercent: liveTel?.gpu?.vramPercent ?? null,
+        networkRxKbps: liveTel?.network?.rx_sec != null ? liveTel.network.rx_sec / 1024 : null,
+        networkTxKbps: liveTel?.network?.tx_sec != null ? liveTel.network.tx_sec / 1024 : null,
+        loadTrend: liveTel?.load_trend ?? null,
         avgFps: null,
         pingMs: null,
       },

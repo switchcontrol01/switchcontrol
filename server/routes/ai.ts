@@ -99,8 +99,15 @@ const telemetrySchema = z.object({
   cpuTempC: z.number().nullable().default(null),
   gpuTempC: z.number().nullable().default(null),
   ramUsedGB: z.number().nullable().default(null),
+  ramTotalGB: z.number().nullable().default(null),
   cpuLoadPct: z.number().nullable().default(null),
   gpuLoadPct: z.number().nullable().default(null),
+  vramUsedMb: z.number().nullable().default(null),
+  vramTotalMb: z.number().nullable().default(null),
+  vramPercent: z.number().nullable().default(null),
+  networkRxKbps: z.number().nullable().default(null),
+  networkTxKbps: z.number().nullable().default(null),
+  loadTrend: z.enum(["rising", "falling", "stable"]).nullable().default(null),
   avgFps: z.number().nullable().default(null),
   pingMs: z.number().nullable().default(null),
 });
@@ -222,15 +229,41 @@ RULES:
 
 function buildUserPrompt(data: AdviceRequest): string {
   const t = data.telemetry;
-  const telemetryLines = [
-    t.cpuTempC !== null ? `CPU Temp: ${t.cpuTempC}°C` : null,
-    t.gpuTempC !== null ? `GPU Temp: ${t.gpuTempC}°C` : null,
-    t.ramUsedGB !== null ? `RAM Used: ${t.ramUsedGB} GB` : null,
-    t.cpuLoadPct !== null ? `CPU Load: ${t.cpuLoadPct}%` : null,
-    t.gpuLoadPct !== null ? `GPU Load: ${t.gpuLoadPct}%` : null,
-    t.avgFps !== null ? `Avg FPS: ${t.avgFps}` : null,
-    t.pingMs !== null ? `Ping: ${t.pingMs} ms` : null,
-  ].filter(Boolean);
+
+  // Build a rich telemetry block with all available data
+  const telemetryLines: string[] = [];
+  if (t.cpuLoadPct !== null) {
+    const trendTag = t.loadTrend ? ` [${t.loadTrend}]` : "";
+    telemetryLines.push(`CPU Load: ${t.cpuLoadPct}%${trendTag}`);
+  }
+  if (t.cpuTempC !== null) telemetryLines.push(`CPU Temp: ${t.cpuTempC}°C${t.cpuTempC > 85 ? " ⚠️ HIGH" : t.cpuTempC > 75 ? " warm" : ""}`);
+  if (t.gpuLoadPct !== null) telemetryLines.push(`GPU Load: ${t.gpuLoadPct}%`);
+  if (t.gpuTempC !== null) telemetryLines.push(`GPU Temp: ${t.gpuTempC}°C${t.gpuTempC > 90 ? " ⚠️ HIGH" : t.gpuTempC > 80 ? " warm" : ""}`);
+  if (t.vramUsedMb !== null && t.vramTotalMb !== null) {
+    const pct = t.vramPercent != null ? ` (${t.vramPercent}%)` : "";
+    telemetryLines.push(`VRAM: ${(t.vramUsedMb / 1024).toFixed(1)} / ${(t.vramTotalMb / 1024).toFixed(1)} GB${pct}${t.vramPercent != null && t.vramPercent > 90 ? " ⚠️ NEAR LIMIT" : ""}`);
+  }
+  if (t.ramUsedGB !== null) {
+    const ramTotal = t.ramTotalGB != null ? ` / ${t.ramTotalGB} GB` : "";
+    telemetryLines.push(`RAM Used: ${t.ramUsedGB} GB${ramTotal}`);
+  }
+  if (t.networkRxKbps !== null || t.networkTxKbps !== null) {
+    const rx = t.networkRxKbps != null ? `↓${(t.networkRxKbps / 1024).toFixed(1)} MB/s` : "";
+    const tx = t.networkTxKbps != null ? `↑${(t.networkTxKbps / 1024).toFixed(1)} MB/s` : "";
+    telemetryLines.push(`Network: ${[rx, tx].filter(Boolean).join(" ")}`);
+  }
+  if (t.avgFps !== null) telemetryLines.push(`Avg FPS: ${t.avgFps}`);
+  if (t.pingMs !== null) telemetryLines.push(`Ping: ${t.pingMs} ms`);
+
+  // Derived bottleneck hints from telemetry
+  const bottleneckHints: string[] = [];
+  if (t.cpuLoadPct != null && t.gpuLoadPct != null) {
+    if (t.cpuLoadPct > 85 && t.gpuLoadPct < 60) bottleneckHints.push("CPU-bound: CPU saturated while GPU underutilized — classic CPU bottleneck");
+    if (t.gpuLoadPct > 95 && t.cpuLoadPct < 60) bottleneckHints.push("GPU-bound: GPU at capacity — upgrades or settings reduction needed");
+  }
+  if (t.vramPercent != null && t.vramPercent > 90) bottleneckHints.push("VRAM pressure: near limit, possible texture thrashing and frame pacing issues");
+  if (t.cpuTempC != null && t.cpuTempC > 85) bottleneckHints.push("CPU thermal throttling likely — cooling or power plan change recommended");
+  if (t.gpuTempC != null && t.gpuTempC > 90) bottleneckHints.push("GPU thermal throttling risk — check airflow and GPU fan curve");
 
   const enabledList = data.enabledTweaks.length > 0
     ? data.enabledTweaks.map(t => `- [ENABLED] ${t.title} (${t.category}, risk: ${t.risk}, id: ${t.id})`).join("\n")
@@ -269,8 +302,13 @@ ${enabledList}
 KEY DISABLED TWEAKS:
 ${disabledList}
 
-${telemetryLines.length > 0 ? `LIVE TELEMETRY:\n${telemetryLines.map(l => `- ${l}`).join("\n")}` : "NO TELEMETRY DATA AVAILABLE"}
+${telemetryLines.length > 0
+  ? `LIVE TELEMETRY (real-time snapshot):\n${telemetryLines.map(l => `- ${l}`).join("\n")}`
+  : "NO TELEMETRY DATA AVAILABLE"}
 
+${bottleneckHints.length > 0
+  ? `DETECTED BOTTLENECKS / ANOMALIES:\n${bottleneckHints.map(h => `- ${h}`).join("\n")}\n`
+  : ""}
 Analyze this system configuration and current tweak state. Provide state-aware optimization advice as JSON.`;
 }
 
@@ -306,12 +344,36 @@ function buildChatContext(context: any): string {
   }
   if (context?.telemetry) {
     const t = context.telemetry;
-    const lines = [
-      t.cpuTempC != null ? `CPU: ${t.cpuTempC}°C` : null,
-      t.gpuTempC != null ? `GPU: ${t.gpuTempC}°C` : null,
-      t.ramUsedGB != null ? `RAM: ${t.ramUsedGB}GB used` : null,
-    ].filter(Boolean);
-    if (lines.length) parts.push(`Telemetry: ${lines.join(", ")}`);
+    const telParts: string[] = [];
+    if (t.cpuLoadPct != null) {
+      const trend = t.loadTrend ? ` [${t.loadTrend}]` : "";
+      telParts.push(`CPU ${t.cpuLoadPct}%${trend}`);
+    }
+    if (t.cpuTempC != null) telParts.push(`CPU ${t.cpuTempC}°C${t.cpuTempC > 85 ? " ⚠️" : ""}`);
+    if (t.gpuLoadPct != null) telParts.push(`GPU ${t.gpuLoadPct}%`);
+    if (t.gpuTempC != null) telParts.push(`GPU ${t.gpuTempC}°C${t.gpuTempC > 90 ? " ⚠️" : ""}`);
+    if (t.vramUsedMb != null && t.vramTotalMb != null) {
+      const pct = t.vramPercent != null ? ` (${t.vramPercent}%)` : "";
+      telParts.push(`VRAM ${(t.vramUsedMb / 1024).toFixed(1)}/${(t.vramTotalMb / 1024).toFixed(1)}GB${pct}${t.vramPercent != null && t.vramPercent > 90 ? " ⚠️" : ""}`);
+    }
+    if (t.ramUsedGB != null) {
+      const total = t.ramTotalGB != null ? `/${t.ramTotalGB}GB` : "";
+      telParts.push(`RAM ${t.ramUsedGB}${total}GB`);
+    }
+    if (t.networkRxKbps != null || t.networkTxKbps != null) {
+      const rx = t.networkRxKbps != null ? `↓${(t.networkRxKbps / 1024).toFixed(1)}MB/s` : "";
+      const tx = t.networkTxKbps != null ? `↑${(t.networkTxKbps / 1024).toFixed(1)}MB/s` : "";
+      telParts.push(`Net ${[rx, tx].filter(Boolean).join(" ")}`);
+    }
+    if (telParts.length) parts.push(`Live telemetry: ${telParts.join(", ")}`);
+
+    // Bottleneck detection for chat context
+    if (t.cpuLoadPct != null && t.gpuLoadPct != null && t.cpuLoadPct > 85 && t.gpuLoadPct < 60) {
+      parts.push("Active bottleneck: CPU-saturated, GPU underutilized");
+    }
+    if (t.vramPercent != null && t.vramPercent > 90) {
+      parts.push("VRAM near limit — frame instability likely");
+    }
   }
   return parts.length ? parts.join("\n") : "No system information available.";
 }
@@ -444,7 +506,9 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
 aiRouter.post("/advice", async (req: Request, res: Response) => {
   const requestStart = Date.now();
-  const cloudUser = (req as any).cloudUser as { id: string; isPremium: boolean } | undefined;
+  const cloudUser = (req as any).cloudUser as {
+    id: string; isPremium: boolean; plan?: string; trialEndsAt?: Date | null;
+  } | undefined;
   const model = process.env.AI_MODEL || "gpt-4o-mini";
 
   console.log(`[AI:advice] ${new Date().toISOString()} | user=${cloudUser?.id ?? "none"} premium=${cloudUser?.isPremium ?? false} | model=${model}`);

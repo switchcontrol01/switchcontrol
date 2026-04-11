@@ -1,7 +1,20 @@
 import si from "systeminformation";
 
+// ── Types ────────────────────────────────────────────────────────────────────
+
+export interface GpuTelemetry {
+  load: number | null;
+  vramUsedMb: number | null;
+  vramTotalMb: number | null;
+  vramPercent: number | null;
+  tempC: number | null;
+  clockMhz: number | null;
+  name: string | null;
+}
+
 export interface TelemetrySnapshot {
   ts: number;
+  status: "ready" | "loading";
   cpu: {
     load: number;
     speed: number;
@@ -21,6 +34,7 @@ export interface TelemetrySnapshot {
     cpu: number | null;
     gpu: number | null;
   };
+  gpu: GpuTelemetry;
   processes: {
     running: number;
     total: number;
@@ -28,9 +42,67 @@ export interface TelemetrySnapshot {
   load_trend: "rising" | "falling" | "stable";
 }
 
+// ── Module-level state ───────────────────────────────────────────────────────
+
 let lastLoad = 0;
 let lastNetStats: { rx: number; tx: number; ts: number } | null = null;
 const LOAD_HISTORY: number[] = [];
+
+// Module-level cache — populated immediately at startup
+let cachedSnapshot: TelemetrySnapshot | null = null;
+let pollingTimer: NodeJS.Timeout | null = null;
+
+// GPU cache polled less frequently (every 3s) since graphics() is expensive
+let cachedGpu: GpuTelemetry = {
+  load: null, vramUsedMb: null, vramTotalMb: null,
+  vramPercent: null, tempC: null, clockMhz: null, name: null,
+};
+let lastGpuPollTs = 0;
+const GPU_POLL_INTERVAL_MS = 3000;
+
+// ── GPU polling ──────────────────────────────────────────────────────────────
+
+async function pollGpu(): Promise<GpuTelemetry> {
+  const now = Date.now();
+  if (now - lastGpuPollTs < GPU_POLL_INTERVAL_MS) return cachedGpu;
+
+  try {
+    const gfx = await si.graphics();
+    const ctrl = gfx.controllers.find(c => c.vram && c.vram > 0) ?? gfx.controllers[0];
+    if (!ctrl) {
+      lastGpuPollTs = now;
+      return cachedGpu;
+    }
+
+    const vramTotal = (ctrl as any).vramDynamic
+      ? ((ctrl as any).memoryTotal ?? ctrl.vram ?? 0)
+      : (ctrl.vram ?? 0);
+    const vramUsed: number | null = (ctrl as any).memoryUsed ?? null;
+    const vramPct: number | null =
+      vramUsed != null && vramTotal > 0
+        ? parseFloat(((vramUsed / vramTotal) * 100).toFixed(1))
+        : null;
+
+    const result: GpuTelemetry = {
+      load: (ctrl as any).utilizationGpu != null ? (ctrl as any).utilizationGpu : null,
+      vramUsedMb: vramUsed,
+      vramTotalMb: vramTotal > 0 ? vramTotal : null,
+      vramPercent: vramPct,
+      tempC: (ctrl as any).temperatureGpu ?? null,
+      clockMhz: (ctrl as any).clockCore ?? null,
+      name: ctrl.model ?? null,
+    };
+
+    cachedGpu = result;
+    lastGpuPollTs = now;
+    return result;
+  } catch {
+    lastGpuPollTs = now;
+    return cachedGpu;
+  }
+}
+
+// ── Main snapshot ────────────────────────────────────────────────────────────
 
 export async function getSnapshot(): Promise<TelemetrySnapshot> {
   const [load, mem, nets, temps, procs] = await Promise.allSettled([
@@ -78,23 +150,73 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
     lastNetStats = { rx: iface.rx_bytes, tx: iface.tx_bytes, ts: now };
   }
 
-  const tempVal =
-    temps.status === "fulfilled" ? temps.value : null;
+  const tempVal = temps.status === "fulfilled" ? temps.value : null;
   const cpuTemp = tempVal?.main && tempVal.main > 0 ? tempVal.main : null;
-  const gpuTemp = tempVal?.gpu && (tempVal.gpu as any) > 0 ? (tempVal.gpu as any) : null;
+  const gpuTempFallback = (tempVal as any)?.gpu && (tempVal as any).gpu > 0 ? (tempVal as any).gpu : null;
 
   const procVal = procs.status === "fulfilled" ? procs.value : null;
 
-  return {
+  // GPU — use cached value (refreshes on its own interval)
+  const gpu = await pollGpu();
+  const gpuTemp = gpu.tempC ?? gpuTempFallback;
+
+  const snapshot: TelemetrySnapshot = {
     ts: Date.now(),
+    status: "ready",
     cpu: { load: parseFloat(cpuLoad.toFixed(1)), speed: parseFloat(cpuSpeed.toFixed(2)), cores: 0 },
     ram: { totalGB: parseFloat(totalGB.toFixed(2)), usedGB: parseFloat(usedGB.toFixed(2)), usedPercent: parseFloat(usedPercent.toFixed(1)) },
     network: { rx_sec: Math.round(rx_sec), tx_sec: Math.round(tx_sec), latency_ms: 0 },
     temps: { cpu: cpuTemp, gpu: gpuTemp },
+    gpu,
     processes: { running: procVal?.running ?? 0, total: procVal?.all ?? 0 },
     load_trend: trend,
   };
+
+  cachedSnapshot = snapshot;
+  return snapshot;
 }
+
+// ── Cache access ─────────────────────────────────────────────────────────────
+
+export function getCachedSnapshot(): TelemetrySnapshot {
+  if (cachedSnapshot) return cachedSnapshot;
+  // Return a loading placeholder until first poll completes
+  return {
+    ts: Date.now(),
+    status: "loading",
+    cpu: { load: 0, speed: 0, cores: 0 },
+    ram: { totalGB: 0, usedGB: 0, usedPercent: 0 },
+    network: { rx_sec: 0, tx_sec: 0, latency_ms: 0 },
+    temps: { cpu: null, gpu: null },
+    gpu: { load: null, vramUsedMb: null, vramTotalMb: null, vramPercent: null, tempC: null, clockMhz: null, name: null },
+    processes: { running: 0, total: 0 },
+    load_trend: "stable",
+  };
+}
+
+// ── Background polling — starts at server boot ───────────────────────────────
+
+export function startTelemetryPolling(intervalMs = 1000): void {
+  if (pollingTimer) return; // already running
+
+  // Fire immediately so cache is warm before first client connects
+  getSnapshot().catch(() => {});
+
+  pollingTimer = setInterval(() => {
+    getSnapshot().catch(() => {});
+  }, intervalMs);
+
+  console.log(`[Telemetry] Background polling started (${intervalMs}ms interval)`);
+}
+
+export function stopTelemetryPolling(): void {
+  if (pollingTimer) {
+    clearInterval(pollingTimer);
+    pollingTimer = null;
+  }
+}
+
+// ── System specs (unchanged) ─────────────────────────────────────────────────
 
 export async function getSystemSpecs() {
   const [cpu, mem, os, gpu, disk] = await Promise.allSettled([
