@@ -51,23 +51,33 @@ export function useEntitlementRefresh(options: UseEntitlementRefreshOptions = {}
   useEffect(() => {
     if (!refreshOnFocus || !user?.loggedIn) return;
 
+    // Track blur time to skip brief focus-loss from file pickers / child dialogs
+    const lastBlurTime = { ts: 0 };
+    const DIALOG_THRESHOLD_MS = 3000;
+
+    const handleBlur = () => { lastBlurTime.ts = Date.now(); };
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        console.log('[Entitlement] App focused, checking entitlements...');
+        // visibilitychange = real tab/window hide, always refresh
         doRefresh();
       }
     };
 
     const handleFocus = () => {
-      console.log('[Entitlement] Window focused, checking entitlements...');
+      // Skip if focus returned in under 3 s — likely a file picker or child dialog
+      const awayMs = Date.now() - lastBlurTime.ts;
+      if (awayMs < DIALOG_THRESHOLD_MS && lastBlurTime.ts > 0) return;
       doRefresh();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
     };
   }, [refreshOnFocus, user?.loggedIn, doRefresh]);

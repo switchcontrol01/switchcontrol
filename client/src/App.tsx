@@ -345,30 +345,55 @@ function ElectronAppContent() {
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;
 
+  // Track when window last lost focus — used to skip brief focus-loss from dialogs/file pickers
+  const lastBlurTimeRef = React.useRef<number>(0);
+  const lastEntitlementRefreshRef = React.useRef<number>(0);
+  // Minimum ms the window must be out of focus before we treat it as a real app-switch
+  const FOCUS_AWAY_THRESHOLD_MS = 3000;
+  // Minimum ms between entitlement refreshes to avoid hammering the server
+  const ENTITLEMENT_REFRESH_COOLDOWN_MS = 30_000;
+
   useEffect(() => {
     if (!user?.loggedIn || phase !== 'authenticated') return;
 
+    const handleBlur = () => {
+      lastBlurTimeRef.current = Date.now();
+    };
+
     const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible' && activeFlowRef.current === "none") {
+        const now = Date.now();
+        const sinceLastRefresh = now - lastEntitlementRefreshRef.current;
+        if (sinceLastRefresh < ENTITLEMENT_REFRESH_COOLDOWN_MS) return;
         console.log('[App] App visible, refreshing entitlements...');
+        lastEntitlementRefreshRef.current = now;
         await refreshEntitlements();
       }
     };
 
     const handleFocus = async () => {
-      if (activeFlowRef.current === "none") {
-        console.log('[App] Window focused, refreshing entitlements...');
-        await refreshEntitlements();
-      } else {
+      if (activeFlowRef.current !== "none") {
         console.log('[App] Window focused but flow active, skipping refresh');
+        return;
       }
+      const awayMs = Date.now() - lastBlurTimeRef.current;
+      // Skip if focus returned quickly — indicates a child dialog (file picker, etc.), not an app-switch
+      if (awayMs < FOCUS_AWAY_THRESHOLD_MS && lastBlurTimeRef.current > 0) return;
+      const now = Date.now();
+      const sinceLastRefresh = now - lastEntitlementRefreshRef.current;
+      if (sinceLastRefresh < ENTITLEMENT_REFRESH_COOLDOWN_MS) return;
+      console.log('[App] Window focused, refreshing entitlements...');
+      lastEntitlementRefreshRef.current = now;
+      await refreshEntitlements();
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleBlur);
     window.addEventListener('focus', handleFocus);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
     };
   }, [user?.loggedIn, phase]);
@@ -388,19 +413,19 @@ function ElectronAppContent() {
         console.log('[App] Focus reset skipped — auth in progress:', authState);
         return;
       }
+      // Only run the reset if the window was out of focus long enough to indicate a real app-switch
+      // (not a brief dialog like a file picker that returns focus in < 3 seconds)
+      const awayMs = Date.now() - lastBlurTimeRef.current;
+      if (awayMs < FOCUS_AWAY_THRESHOLD_MS && lastBlurTimeRef.current > 0) {
+        console.log(`[App] Focus reset skipped — brief focus-loss (${awayMs}ms), likely child dialog`);
+        return;
+      }
       console.log('[App] Resetting UI state on focus');
       
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
-      
+      // Clear stuck overlay elements — do NOT blur activeElement to avoid visual jump
       document.querySelectorAll('[data-overlay]').forEach(el => {
         (el as HTMLElement).style.pointerEvents = '';
         (el as HTMLElement).style.opacity = '';
-      });
-      
-      document.querySelectorAll('.ring-2, .ring-primary, [class*="focus:ring"]').forEach(el => {
-        (el as HTMLElement).blur();
       });
     };
     
