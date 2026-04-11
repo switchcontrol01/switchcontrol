@@ -45,7 +45,22 @@ const HISTORY_LEN = 60;
 const UNAVAILABLE_TIMEOUT_MS = 8000;
 const SPIKE_THRESHOLD = 15; // % jump in one tick = spike
 
-function buildWsUrl(): string {
+async function buildWsUrl(): Promise<string> {
+  // In packaged Electron the page loads via file://, so window.location.host is empty.
+  // We must get the local backend port from the Electron bridge instead.
+  const electronAPI = (window as any).electronAPI;
+  if (electronAPI?.isElectron && window.location.protocol === "file:") {
+    try {
+      let port: number | null = null;
+      const deadline = Date.now() + 30000;
+      while (Date.now() < deadline) {
+        port = await electronAPI.getBackendPort?.();
+        if (typeof port === "number" && port > 0) break;
+        await new Promise(r => setTimeout(r, 200));
+      }
+      if (port) return `ws://127.0.0.1:${port}/ws/telemetry`;
+    } catch {}
+  }
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.host;
   return `${proto}//${host}/ws/telemetry`;
@@ -97,8 +112,10 @@ export function useLiveTelemetry() {
       if (mountedRef.current && status !== "ready") setStatus("unavailable");
     }, UNAVAILABLE_TIMEOUT_MS);
 
+    buildWsUrl().then((wsUrl) => {
+    if (!mountedRef.current) return;
     try {
-      const ws = new WebSocket(buildWsUrl());
+      const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
@@ -168,6 +185,7 @@ export function useLiveTelemetry() {
     } catch {
       setStatus("unavailable");
     }
+    }).catch(() => { setStatus("unavailable"); });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
