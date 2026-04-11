@@ -88,6 +88,16 @@ function FullHeader() {
               <div className="w-20 h-9 bg-white/5 rounded-lg animate-pulse" />
             ) : user ? (
               <>
+                {(user as any).isAdmin && (
+                  <Link href="/admin">
+                    <button
+                      className="text-sm font-semibold text-orange-400 hover:text-orange-300 transition-colors px-3 py-2 border border-orange-500/30 rounded-lg hover:border-orange-400/50 hover:bg-orange-500/10"
+                      data-testid="link-admin-panel"
+                    >
+                      Admin
+                    </button>
+                  </Link>
+                )}
                 <Link href="/download">
                   <GlowButton variant="primary" data-testid="button-header-download">
                     <Download className="size-4" />
@@ -154,6 +164,13 @@ function FullHeader() {
             <div className="pt-3 border-t border-white/[0.06] space-y-2">
               {user ? (
                 <>
+                  {(user as any).isAdmin && (
+                    <Link href="/admin" onClick={() => setMobileMenuOpen(false)}>
+                      <button className="w-full text-sm font-semibold text-orange-400 hover:text-orange-300 py-2 border border-orange-500/30 rounded-lg hover:bg-orange-500/10">
+                        Admin Panel
+                      </button>
+                    </Link>
+                  )}
                   <Link href="/download">
                     <GlowButton variant="cyan" className="w-full">
                       <Download className="size-4" />
