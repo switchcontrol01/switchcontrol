@@ -23,7 +23,6 @@ import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 
 import Splash from "@/screens/Splash";
-import FirstLaunchSplash from "@/screens/FirstLaunchSplash";
 import CameraGlow from "@/screens/CameraGlow";
 import LoginScreen from "@/screens/Login";
 import { WelcomeAnimation } from "@/components/WelcomeAnimation";
@@ -143,9 +142,6 @@ function ElectronAppContent() {
   // Becomes true 850ms after entering "authenticated" phase so tour flows don't
   // fire while the dashboard's own 750ms fade-in animation is still running.
   const [isPhaseStable, setIsPhaseStable] = useState(false);
-  // "resolving" = checking device first-launch status; "normal" | "first-launch" = determined
-  const [splashType, setSplashType] = useState<"resolving" | "normal" | "first-launch">("resolving");
-  const firstLaunchDeviceIdRef = React.useRef<string | null>(null);
   const patchNotesCheckedRef = React.useRef(false);
   const unlockFiredThisSessionRef = React.useRef(false);
   const trialUnlockFiredRef = React.useRef(false);
@@ -410,49 +406,15 @@ function ElectronAppContent() {
       .catch(() => {});
   }, [phase, activeFlow]);
 
-  // ── Resolve first-launch type immediately on mount ────────────────────────
+  // ── Splash timers — start immediately on mount ───────────────────────────
   useEffect(() => {
-    if (!isElectron) { setSplashType("normal"); return; }
-    const api = (window as any).electronAPI;
-    (async () => {
-      try {
-        const deviceId: string = await api.getDeviceId();
-        firstLaunchDeviceIdRef.current = deviceId;
-        const completed: boolean = await api.firstLaunch.isCompleted(deviceId);
-        setSplashType(completed ? "normal" : "first-launch");
-      } catch (e) {
-        console.warn("[FirstLaunch] resolution failed, defaulting to normal splash:", e);
-        setSplashType("normal");
-      }
-    })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Splash timers — start only once splashType is known ──────────────────
-  useEffect(() => {
-    if (splashType === "resolving") return;
-    const isFirstLaunch = splashType === "first-launch";
-    // First-launch: glow at 6600ms (during exit), done at 8100ms (cinematic is ~8.1s)
-    // Normal:       glow at 3800ms, done at 4800ms
-    const glowDelay   = isFirstLaunch ? 6600 : 3800;
-    const splashDelay = isFirstLaunch ? 8100 : 4800;
-    const glowTimer = setTimeout(() => setShowGlow(true), glowDelay);
-    const splashTimer = setTimeout(async () => {
-      if (isFirstLaunch && firstLaunchDeviceIdRef.current && isElectron) {
-        try {
-          await (window as any).electronAPI.firstLaunch.markCompleted(firstLaunchDeviceIdRef.current);
-          console.log("[FirstLaunch] Marked completed for device:", firstLaunchDeviceIdRef.current);
-        } catch (e) {
-          console.warn("[FirstLaunch] markCompleted failed:", e);
-        }
-      }
-      setSplashDone(true);
-    }, splashDelay);
+    const glowTimer   = setTimeout(() => setShowGlow(true), 3800);
+    const splashTimer = setTimeout(() => setSplashDone(true), 4800);
     return () => {
       clearTimeout(glowTimer);
       clearTimeout(splashTimer);
     };
-  }, [splashType]);
+  }, []);
 
   useEffect(() => {
     if (!isElectron) return;
@@ -677,7 +639,7 @@ function ElectronAppContent() {
       <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
       <AnimatePresence mode="sync">
-        {phase === "splash" && splashType !== "resolving" && (
+        {phase === "splash" && (
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
@@ -686,14 +648,7 @@ function ElectronAppContent() {
             className="h-full"
             style={{ position: "absolute", inset: 0 }}
           >
-            {splashType === "first-launch" ? (
-              <FirstLaunchSplash
-                onComplete={() => {}}
-                deviceId={firstLaunchDeviceIdRef.current}
-              />
-            ) : (
-              <Splash onComplete={() => {}} />
-            )}
+            <Splash onComplete={() => {}} />
           </motion.div>
         )}
 
