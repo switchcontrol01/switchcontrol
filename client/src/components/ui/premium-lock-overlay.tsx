@@ -47,7 +47,11 @@ export function PremiumLockOverlay({
 
       <div
         className="absolute inset-0 flex items-center justify-center z-10"
-        style={{ backdropFilter: "blur(6px)", background: "rgba(7,9,13,0.45)" }}
+        style={{
+          background: "linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(168,85,247,0.09) 50%, rgba(255,255,255,0.04) 100%)",
+          backdropFilter: "blur(3px) saturate(1.4)",
+          WebkitBackdropFilter: "blur(3px) saturate(1.4)",
+        }}
         onClick={trigger}
       >
         <motion.div
