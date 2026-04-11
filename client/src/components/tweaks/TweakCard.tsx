@@ -15,10 +15,7 @@ import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from 
 import { isTweakPremium } from "@/lib/premium-config";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumBadge } from "@/components/ui/animated-crown";
-import { openPricing } from "@/lib/pricing";
-import { useAttentionBounce } from "@/hooks/useAttentionBounce";
-import { CrownGlowOrb } from "@/components/ui/PremiumOverlayCard";
-import { premiumColor } from "@/lib/themeTokens";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 import {
   useTweakExecutor,
   isRealTweak,
@@ -119,52 +116,6 @@ const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
   );
 };
 
-// ── Premium overlay ───────────────────────────────────────────────────────────
-function PremiumOverlayForTweak({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
-  const { bounceProps, trigger } = useAttentionBounce();
-  if (!isOpen) return null;
-  return (
-    <>
-      <motion.div
-        className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm pointer-events-auto"
-        onClick={trigger}
-        variants={modalBackdrop} initial="initial" animate="animate" exit="exit"
-      />
-      <motion.div
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
-        variants={modalContent} initial="initial" animate="animate" exit="exit"
-      >
-        <motion.div
-          className="relative w-full max-w-sm backdrop-blur-md rounded-2xl p-6 pointer-events-auto border"
-          style={{
-            background: "linear-gradient(135deg, hsl(270,60%,20%,0.9), hsl(270,50%,15%,0.95), hsl(280,60%,15%,0.9))",
-            borderColor: "hsl(270,60%,55%,0.25)",
-          }}
-          onClick={(e: React.MouseEvent) => e.stopPropagation()}
-          {...(bounceProps as any)}
-        >
-          <div className="text-center space-y-4">
-            <CrownGlowOrb />
-            <div>
-              <h3 className="text-lg font-semibold text-white">Premium Feature</h3>
-              <p className="text-sm text-muted-foreground mt-2">
-                This tweak is part of SwitchControl Premium. Advanced system tuning for latency, consistency, and performance.
-              </p>
-            </div>
-            <Button
-              onClick={openPricing}
-              className="w-full text-white"
-              style={{ background: `linear-gradient(to right, ${premiumColor.main}, ${premiumColor.end})` }}
-            >
-              <Crown className="size-4 mr-2" /> Upgrade to Premium
-            </Button>
-          </div>
-        </motion.div>
-      </motion.div>
-    </>
-  );
-}
-
 // ── Inline failure banner ─────────────────────────────────────────────────────
 function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () => void }) {
   const [expanded, setExpanded] = useState(false);
@@ -222,11 +173,11 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
 export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   const [open, setOpen]               = useState(false);
   const [trustOpen, setTrustOpen]     = useState(false);
-  const [showPremiumModal, setShowPremiumModal] = useState(false);
   const [failureInfo, setFailureInfo] = useState<FailureInfo | null>(null);
   const failureTimer                  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { prefersReducedMotion }      = useMotion();
   const { isPremium }                 = useAuth();
+  const { openUpgradeModal }          = useUpgradeModal();
   const { executeTweak, executing }   = useTweakExecutor();
 
   const isPremiumTweak = isTweakPremium(tweak.id);
@@ -258,7 +209,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   }, []);
 
   const handleToggle = useCallback(async () => {
-    if (isLocked)      { setShowPremiumModal(true); return; }
+    if (isLocked)      { openUpgradeModal('Premium Tweak'); return; }
     if (isUnsupported) return;
 
     // Clear any previous failure immediately
@@ -375,7 +326,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               {isLocked ? (
                 <Button
                   variant="ghost" size="sm"
-                  onClick={() => setShowPremiumModal(true)}
+                  onClick={() => openUpgradeModal('Premium Tweak')}
                   className="h-8 px-3 text-[10px] text-[hsl(270,60%,70%)] border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] hover:bg-[hsl(270,60%,55%,0.2)]"
                   data-testid={`button-unlock-${tweak.id}`}
                 >
@@ -589,13 +540,6 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
       </AnimatePresence>
       , document.body)}
 
-      {createPortal(
-      <AnimatePresence>
-        {showPremiumModal && (
-          <PremiumOverlayForTweak isOpen={showPremiumModal} onClose={() => setShowPremiumModal(false)} />
-        )}
-      </AnimatePresence>
-      , document.body)}
     </>
   );
 }

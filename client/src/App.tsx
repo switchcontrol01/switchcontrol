@@ -17,6 +17,7 @@ import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlemen
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
+import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
 import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
@@ -585,6 +586,7 @@ function ElectronAppContent() {
 
   return (
     <AppAuthContext.Provider value={authContextValue}>
+      <UpgradeModalProvider>
       <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
       <AnimatePresence mode="sync">
@@ -747,6 +749,7 @@ function ElectronAppContent() {
           isRetrying={isDeviceLockChecking}
         />
       )}
+      </UpgradeModalProvider>
     </AppAuthContext.Provider>
   );
 }

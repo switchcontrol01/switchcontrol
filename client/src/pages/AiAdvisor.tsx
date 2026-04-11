@@ -30,6 +30,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -719,6 +720,7 @@ function SuggestedPrompts({ onSelect, disabled }: { onSelect: (p: string) => voi
 export default function AiAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
+  const { openUpgradeModal } = useUpgradeModal();
   const { isOnline } = useNetworkStatus();
   const { stats, tweaks } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
@@ -977,7 +979,8 @@ export default function AiAdvisor() {
   const sendMessage = useCallback(async (content: string, imgData?: AttachedImage | null) => {
     const trimmed = content.trim();
     const messageContent = trimmed || (imgData ? "Please analyze this image." : "");
-    if (!messageContent || loading || isStreaming || !isPremium) return;
+    if (!isPremium) { openUpgradeModal('AI Advisor'); return; }
+    if (!messageContent || loading || isStreaming) return;
 
     if (!isOnline) {
       setMessages(prev => [...prev, {
@@ -1120,7 +1123,7 @@ export default function AiAdvisor() {
       setLoading(false);
       inputRef.current?.focus();
     }
-  }, [loading, isStreaming, isPremium, isOnline, forceScrollBottom, revealContent]);
+  }, [loading, isStreaming, isPremium, isOnline, openUpgradeModal, forceScrollBottom, revealContent]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
