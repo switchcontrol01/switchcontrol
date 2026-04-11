@@ -66,6 +66,7 @@ function structuredToText(s: ChatStructured): string {
 }
 
 interface SystemContext {
+  isPremium?: boolean;
   system: {
     cpu: string;
     gpu: string;
@@ -810,31 +811,25 @@ export default function AiAdvisor() {
     isRevealingRef.current = true;
     setIsStreaming(true);
 
-    const sentenceRe = /[^.!?\n]*[.!?\n]+/g;
-    const chunks: string[] = [];
-    let lastEnd = 0, m: RegExpExecArray | null;
-    while ((m = sentenceRe.exec(fullContent)) !== null) {
-      chunks.push(m[0]);
-      lastEnd = m.index + m[0].length;
-    }
-    if (lastEnd < fullContent.length) chunks.push(fullContent.slice(lastEnd));
-    if (chunks.length === 0) chunks.push(fullContent);
-
-    let chunkIdx = 0, revealed = "";
+    // Character-by-character typewriter — 3 chars per tick at 12ms feels like real AI streaming
+    const CHARS_PER_TICK = 3;
+    const TICK_MS = 12;
+    let charIdx = 0;
 
     const tick = () => {
       if (revealCancelledRef.current) return;
-      revealed += chunks[chunkIdx++];
-      const done = chunkIdx >= chunks.length;
-      flushSync(() => {
-        setMessages(prev => prev.map(msg => msg.id === msgId
-          ? { ...msg, content: done ? fullContent : revealed, isStreaming: !done, isThinking: false }
-          : msg));
-      });
+      charIdx = Math.min(charIdx + CHARS_PER_TICK, fullContent.length);
+      const revealed = fullContent.slice(0, charIdx);
+      const done = charIdx >= fullContent.length;
+
+      setMessages(prev => prev.map(msg => msg.id === msgId
+        ? { ...msg, content: revealed, isStreaming: !done, isThinking: false }
+        : msg));
+
       smartScroll();
+
       if (!done) {
-        const delay = chunkIdx === 1 ? 120 : Math.floor(Math.random() * 70) + 150;
-        revealTimerRef.current = setTimeout(tick, delay);
+        revealTimerRef.current = setTimeout(tick, TICK_MS);
       } else {
         isRevealingRef.current = false;
         revealTimerRef.current = null;
@@ -843,7 +838,8 @@ export default function AiAdvisor() {
         onDone();
       }
     };
-    revealTimerRef.current = setTimeout(tick, 80);
+
+    revealTimerRef.current = setTimeout(tick, 60);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
   // Build system context from store
@@ -854,10 +850,10 @@ export default function AiAdvisor() {
       .map(t => ({ id: t.id, title: t.title, category: t.category, risk: t.risk }));
     const disabledTweaks = allTweaks
       .filter(t => !tweaks[t.id])
-      .slice(0, 15)
       .map(t => ({ id: t.id, title: t.title, category: t.category, risk: t.risk }));
 
     const ctx: SystemContext = {
+      isPremium,
       system: {
         cpu: stats.cpuName || "",
         gpu: stats.gpuName || "",
@@ -901,31 +897,26 @@ export default function AiAdvisor() {
     const specParts = [cpu, gpu, ram].filter(Boolean);
     const hasSpecs = specParts.length > 0;
     const totalKnown = enabledTweaks.length + disabledTweaks.length;
+    const coveragePct = totalKnown > 0 ? Math.round((enabledTweaks.length / totalKnown) * 100) : 0;
 
-    let welcomeStructured: ChatStructured;
+    let welcomeText: string;
     if (hasSpecs) {
       const specLine = specParts.join(" · ");
-      const coveragePct = totalKnown > 0 ? Math.round((enabledTweaks.length / totalKnown) * 100) : 0;
-      const summary = `System detected: ${specLine}.`;
-      const detail = enabledTweaks.length === 0
-        ? `${disabledTweaks.length}+ optimizations are available — use a quick action on the left to begin diagnosis.`
-        : disabledTweaks.length > 5
-          ? `${enabledTweaks.length} tweaks active (${coveragePct}% coverage) — ${disabledTweaks.length} further improvements are available.`
-          : `${enabledTweaks.length} tweaks active — system is well-configured. Ask a question or use a quick action for targeted diagnosis.`;
-      welcomeStructured = { type: "answer", summary, detail };
+      if (enabledTweaks.length === 0) {
+        welcomeText = `System detected: **${specLine}**\n\nNo tweaks are active yet — ${disabledTweaks.length} optimizations are available. Use a quick action on the left to start, or ask me anything about your setup.`;
+      } else if (disabledTweaks.length > 5) {
+        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active (${coveragePct}% coverage). Still ${disabledTweaks.length} improvements available. Ask me what to prioritize next.`;
+      } else {
+        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active — your system is well-configured. Ask me anything about performance, latency, or specific games.`;
+      }
     } else {
-      welcomeStructured = {
-        type: "answer",
-        summary: "Ready to diagnose — ask about FPS, input latency, network, or BIOS settings.",
-        detail: "Hardware specs appear automatically when running on Windows. You can also upload a screenshot for analysis.",
-      };
+      welcomeText = `Ready to help with your PC. Ask me about FPS, input latency, network ping, or BIOS settings.\n\nHardware specs appear automatically when running on Windows. You can also upload a screenshot for visual analysis.`;
     }
 
     setMessages([{
       id: "welcome",
       role: "assistant",
-      content: structuredToText(welcomeStructured),
-      structured: welcomeStructured,
+      content: welcomeText,
       timestamp: new Date(),
     }]);
   }, [context]);
@@ -1082,23 +1073,13 @@ export default function AiAdvisor() {
 
       if (!thinkingAdded) setMessages(prev => [...prev, placeholderMsg]);
 
-      if (data.structured) {
-        // Structured response: reveal immediately (card handles its own staged reveal)
-        flushSync(() => {
-          setMessages(prev => prev.map(m =>
-            m.id === assistantId
-              ? { ...m, content: structuredToText(data.structured), structured: data.structured, isThinking: false, isStreaming: false }
-              : m
-          ));
-        });
-        setTimeout(forceScrollBottom, 30);
+      // Always typewriter-reveal the response (structured responses also converted to text)
+      const textToReveal: string = data.content
+        || (data.structured ? structuredToText(data.structured) : "");
+
+      revealContent(assistantId, textToReveal, () => {
         inputRef.current?.focus();
-      } else {
-        // Legacy fallback: sentence-by-sentence reveal
-        revealContent(assistantId, data.content || "", () => {
-          inputRef.current?.focus();
-        });
-      }
+      });
 
     } catch (err: unknown) {
       clearTimeout(thinkingTimer);
@@ -1148,26 +1129,20 @@ export default function AiAdvisor() {
     const totalKnown = enabledCount + disabledCount;
     const coveragePct = totalKnown > 0 ? Math.round((enabledCount / totalKnown) * 100) : 0;
 
-    let resetStructured: ChatStructured;
+    let resetText: string;
     if (hasSpecs) {
       const specLine = [ctx?.system.cpu, ctx?.system.gpu, ctx?.system.ram].filter(Boolean).join(" · ");
-      const detail = enabledCount === 0
-        ? `${disabledCount}+ optimizations are ready — use a quick action to begin diagnosis.`
-        : `${enabledCount} tweaks active (${coveragePct}% coverage) — ${disabledCount} more improvements available.`;
-      resetStructured = { type: "answer", summary: `System detected: ${specLine}.`, detail };
+      resetText = enabledCount === 0
+        ? `System detected: **${specLine}**\n\n${disabledCount}+ optimizations are ready — use a quick action to begin diagnosis.`
+        : `System detected: **${specLine}**\n\n${enabledCount} tweaks active (${coveragePct}% coverage) — ${disabledCount} more improvements available. Ask me what to prioritize.`;
     } else {
-      resetStructured = {
-        type: "answer",
-        summary: "Ready to diagnose — ask about FPS, latency, network, or BIOS.",
-        detail: "Upload a screenshot for visual analysis, or use the quick actions on the left.",
-      };
+      resetText = `Ready to diagnose — ask about FPS, latency, network, or BIOS.\n\nUpload a screenshot for visual analysis, or use the quick actions on the left.`;
     }
 
     setMessages([{
       id: "welcome",
       role: "assistant",
-      content: structuredToText(resetStructured),
-      structured: resetStructured,
+      content: resetText,
       timestamp: new Date(),
     }]);
   };

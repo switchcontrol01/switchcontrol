@@ -330,40 +330,36 @@ ${bottleneckHints.length > 0
 Analyze this system configuration and current tweak state. Provide state-aware optimization advice as JSON.`;
 }
 
-const CHAT_SYSTEM_PROMPT = `You are SwitchControl AI — a Windows gaming PC optimization assistant. You are knowledgeable, direct, and conversational.
+const CHAT_SYSTEM_PROMPT = `You are SwitchControl AI — an expert Windows gaming PC optimization advisor built directly into the SwitchControl app.
 
-Return a JSON object matching EXACTLY one of these two schemas. No markdown outside JSON. No code fences. No preamble.
+You have complete real-time visibility into the user's system:
+- Their exact hardware (CPU model, GPU model, RAM, storage)
+- Every SwitchControl tweak they have enabled or disabled
+- Live telemetry: CPU/GPU load, temperatures, VRAM usage, network throughput
+- Their subscription tier (Premium or Free)
+- The full conversation history — you remember everything discussed
 
-SCHEMA A — Diagnostic (use when: analyzing what's wrong, recommending tweaks, bottleneck detection, initial performance diagnosis):
-{
-  "type": "diagnostic",
-  "findings": [
-    {
-      "problem": "<what is currently wrong — name the hardware model>",
-      "cause": "<root cause, specific>",
-      "impact": "<how this hurts gaming>",
-      "fix": "<concrete corrective action>",
-      "confidence": "high" | "medium" | "low",
-      "tweakId": "<SwitchControl tweak ID if directly applicable, else omit>"
-    }
-  ]
-}
-Return 1–3 findings. Highest-impact first.
+HOW TO RESPOND:
+- Be direct, specific, and genuinely informative. This is the whole point.
+- Always use the actual hardware model names from context — never "your CPU", say the model like "Ryzen 7 9800X3D" or "RTX 4090".
+- Reference their active tweaks by name when relevant. If they have Timer Resolution enabled, you know. If they don't have HPET disabled yet, mention it.
+- Give real explanations — WHY something works, not just what to click. A user who understands sticks around.
+- If their telemetry shows something notable (CPU temp above 85°C, VRAM nearly full, CPU-bound while GPU is idle), surface it and explain what it means.
+- When recommending a SwitchControl setting, mention the section it's in (e.g. "Tweaks → Performance" or "Network").
+- Bold important technical terms using **markdown**: **Timer Resolution**, **HPET**, **MSI mode**, **Interrupt Affinity**, etc.
+- Write in short paragraphs (2–4 sentences). One idea per paragraph.
+- Be conversational but expert — like a knowledgeable friend who builds and tunes PCs professionally.
 
-SCHEMA B — Answer (use for: "how do I fix this", step-by-step instructions, follow-up questions, explanations, general advice):
-{
-  "type": "answer",
-  "summary": "<direct answer in one assertive sentence>",
-  "detail": "<optional — detailed explanation or numbered steps; use \\n between steps; max 600 chars>"
-}
+WHAT NOT TO DO:
+- Never open with "Great question!", "Of course!", "Certainly!" or similar filler
+- Never close with "Let me know if you have more questions" or "Feel free to ask"
+- Never be vague when you have their exact system data — being specific is your job
+- Never repeat the question back before answering
+- Don't pad responses with caveats and disclaimers — be direct
 
-RULES:
-1. Use real hardware model names from the user's system context — never say "your CPU", say "Ryzen 7 9800X3D".
-2. For initial diagnosis questions, use Schema A.
-3. For "how do I", "what should I do", "explain", or any follow-up question about a fix, use Schema B with full detail.
-4. In the detail field: number steps as "1. First step\\n2. Second step" — use \\n between each.
-5. Be direct and confident — avoid hedging language like "you may want to" or "it might help".
-6. Return ONLY the JSON. Nothing before or after it.`;
+RESPONSE FORMAT:
+Plain text with markdown bold for key terms. Short paragraphs. No headers. No bullet lists unless listing 4+ items. Enough detail to actually help, no more.`;
+
 
 // ---------------------------------------------------------------------------
 // Chat response validation + field truncation
@@ -437,51 +433,70 @@ function structuredToHistoryText(s: ChatStructuredResponse): string {
 
 function buildChatContext(context: any): string {
   const parts: string[] = [];
+
+  // Subscription tier
+  const isPremium = context?.isPremium === true;
+  parts.push(`Subscription: ${isPremium ? "Premium (full feature access)" : "Free tier (limited features)"}`);
+
   if (context?.system) {
     const s = context.system;
     const specs = [s.cpu, s.gpu, s.ram, s.storage, s.os].filter(Boolean).join(" | ");
-    if (specs) parts.push(`System: ${specs}`);
+    if (specs) parts.push(`Hardware: ${specs}`);
+    if (s.motherboard && s.motherboard !== "Unknown" && s.motherboard !== "") {
+      parts.push(`Motherboard: ${s.motherboard}`);
+    }
   }
+
   if (context?.enabledTweaks?.length > 0) {
-    parts.push(`Enabled tweaks (${context.enabledTweaks.length}): ${context.enabledTweaks.slice(0, 10).map((t: any) => t.title).join(", ")}`);
+    const all = (context.enabledTweaks as any[]).map((t: any) => t.title);
+    parts.push(`Active tweaks (${all.length}): ${all.join(", ")}`);
+  } else {
+    parts.push("Active tweaks: none enabled yet");
   }
+
   if (context?.disabledTweaks?.length > 0) {
-    parts.push(`Available but disabled (${context.disabledTweaks.length}): ${context.disabledTweaks.slice(0, 8).map((t: any) => t.title).join(", ")}`);
+    const avail = (context.disabledTweaks as any[]).map((t: any) => t.title);
+    parts.push(`Available tweaks not yet enabled (${avail.length}): ${avail.join(", ")}`);
   }
+
   if (context?.telemetry) {
     const t = context.telemetry;
     const telParts: string[] = [];
     if (t.cpuLoadPct != null) {
       const trend = t.loadTrend ? ` [${t.loadTrend}]` : "";
-      telParts.push(`CPU ${t.cpuLoadPct}%${trend}`);
+      telParts.push(`CPU load ${t.cpuLoadPct}%${trend}`);
     }
-    if (t.cpuTempC != null) telParts.push(`CPU ${t.cpuTempC}°C${t.cpuTempC > 85 ? " ⚠️" : ""}`);
-    if (t.gpuLoadPct != null) telParts.push(`GPU ${t.gpuLoadPct}%`);
-    if (t.gpuTempC != null) telParts.push(`GPU ${t.gpuTempC}°C${t.gpuTempC > 90 ? " ⚠️" : ""}`);
+    if (t.cpuTempC != null) telParts.push(`CPU temp ${t.cpuTempC}°C${t.cpuTempC > 85 ? " ⚠️ HIGH" : ""}`);
+    if (t.gpuLoadPct != null) telParts.push(`GPU load ${t.gpuLoadPct}%`);
+    if (t.gpuTempC != null) telParts.push(`GPU temp ${t.gpuTempC}°C${t.gpuTempC > 90 ? " ⚠️ HIGH" : ""}`);
     if (t.vramUsedMb != null && t.vramTotalMb != null) {
       const pct = t.vramPercent != null ? ` (${t.vramPercent}%)` : "";
-      telParts.push(`VRAM ${(t.vramUsedMb / 1024).toFixed(1)}/${(t.vramTotalMb / 1024).toFixed(1)}GB${pct}${t.vramPercent != null && t.vramPercent > 90 ? " ⚠️" : ""}`);
+      telParts.push(`VRAM ${(t.vramUsedMb / 1024).toFixed(1)}/${(t.vramTotalMb / 1024).toFixed(1)} GB${pct}${t.vramPercent != null && t.vramPercent > 90 ? " ⚠️ NEAR LIMIT" : ""}`);
     }
     if (t.ramUsedGB != null) {
-      const total = t.ramTotalGB != null ? `/${t.ramTotalGB}GB` : "";
-      telParts.push(`RAM ${t.ramUsedGB}${total}GB`);
+      const total = t.ramTotalGB != null ? `/${t.ramTotalGB} GB` : "";
+      telParts.push(`RAM ${t.ramUsedGB}${total} GB used`);
     }
     if (t.networkRxKbps != null || t.networkTxKbps != null) {
-      const rx = t.networkRxKbps != null ? `↓${(t.networkRxKbps / 1024).toFixed(1)}MB/s` : "";
-      const tx = t.networkTxKbps != null ? `↑${(t.networkTxKbps / 1024).toFixed(1)}MB/s` : "";
-      telParts.push(`Net ${[rx, tx].filter(Boolean).join(" ")}`);
+      const rx = t.networkRxKbps != null ? `↓${(t.networkRxKbps / 1024).toFixed(2)} MB/s` : "";
+      const tx = t.networkTxKbps != null ? `↑${(t.networkTxKbps / 1024).toFixed(2)} MB/s` : "";
+      telParts.push(`Network ${[rx, tx].filter(Boolean).join(" ")}`);
     }
     if (telParts.length) parts.push(`Live telemetry: ${telParts.join(", ")}`);
 
-    // Bottleneck detection for chat context
+    // Highlight active bottlenecks
     if (t.cpuLoadPct != null && t.gpuLoadPct != null && t.cpuLoadPct > 85 && t.gpuLoadPct < 60) {
-      parts.push("Active bottleneck: CPU-saturated, GPU underutilized");
+      parts.push("⚠️ Active CPU bottleneck detected — CPU saturated while GPU is underutilized");
     }
     if (t.vramPercent != null && t.vramPercent > 90) {
-      parts.push("VRAM near limit — frame instability likely");
+      parts.push("⚠️ VRAM near capacity — frame instability and stuttering likely");
+    }
+    if (t.cpuTempC != null && t.cpuTempC > 90) {
+      parts.push("⚠️ CPU thermal throttling risk — temperatures above safe operating range");
     }
   }
-  return parts.length ? parts.join("\n") : "No system information available.";
+
+  return parts.join("\n");
 }
 
 // ---------------------------------------------------------------------------
@@ -595,47 +610,18 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
 
     const completion = await openai.chat.completions.create({
       model: visionModel,
-      max_tokens: hasImage ? 700 : 700,
-      temperature: 0.4,
+      max_tokens: hasImage ? 900 : 1200,
+      temperature: 0.5,
       messages: openaiMessages as any,
-      // Images don't support json_object format — parse manually
-      ...(hasImage ? {} : { response_format: { type: "json_object" } }),
     });
 
-    const rawContent = completion.choices[0]?.message?.content;
+    const rawContent = completion.choices[0]?.message?.content?.trim();
     if (!rawContent) {
       return res.status(502).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    // Parse and validate the structured response
-    let parsed: unknown;
-    try {
-      // Strip code fences if model added them despite instructions
-      const cleaned = rawContent.trim().replace(/^```json?\s*/i, "").replace(/\s*```$/i, "");
-      parsed = JSON.parse(cleaned);
-    } catch {
-      console.warn(`[AI:chat] JSON parse failed | user=${cloudUser?.id} | raw=${rawContent.slice(0, 200)}`);
-      // Graceful fallback: wrap the raw text as an answer-type response
-      const fallback: ChatStructuredResponse = {
-        type: "answer",
-        summary: rawContent.trim().slice(0, 140),
-      };
-      return res.json({ role: "assistant", structured: fallback });
-    }
-
-    const structured = validateChatResponse(parsed);
-    if (!structured) {
-      console.warn(`[AI:chat] Validation failed | user=${cloudUser?.id} | type=${(parsed as any)?.type}`);
-      // Fallback: try to extract something useful
-      const fallback: ChatStructuredResponse = {
-        type: "answer",
-        summary: "Diagnosis unavailable — please try a more specific question.",
-      };
-      return res.json({ role: "assistant", structured: fallback });
-    }
-
-    console.log(`[AI:chat] OK | user=${cloudUser?.id} | type=${structured.type} | findings=${structured.type === "diagnostic" ? structured.findings.length : 0}`);
-    return res.json({ role: "assistant", structured });
+    console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${rawContent.length}`);
+    return res.json({ role: "assistant", content: rawContent });
 
   } catch (error: any) {
     const status = error?.status;
