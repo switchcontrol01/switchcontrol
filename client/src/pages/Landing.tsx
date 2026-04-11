@@ -5,7 +5,6 @@ import {
   Shield,
   Clock,
   Gauge,
-  ChevronDown,
   ArrowRight,
   Crown,
   Cpu,
@@ -27,7 +26,6 @@ import { SocialProofCharts } from "@/components/SocialProofCharts";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
-import { UIExploration } from "@/components/UIExploration";
 import { useAuth } from "@/components/ProtectedRoute";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useMomentumScroll } from "@/hooks/useMomentumScroll";
@@ -138,38 +136,6 @@ const STATS = [
   { label: "Input Delay Improvement", value: "-8ms", change: "input" },
   { label: "FPS Stability", value: "+15%", change: "fps" },
   { label: "1% Low FPS Gain", value: "+22%", change: "lows" },
-];
-
-const FAQ_ITEMS = [
-  {
-    question: "What makes SwitchControl different from other optimizers?",
-    answer:
-      "Unlike most 'one-click' optimizers that apply blanket changes, SwitchControl gives you granular control over each tweak with clear explanations of what it does and its potential impact. Every change is reversible, and we focus on proven, safe optimizations rather than risky registry hacks.",
-  },
-  {
-    question: "Is it safe to use? Will it break my games?",
-    answer:
-      "Yes, it's designed with safety first. Each tweak is categorized by risk level (Safe, Moderate, Experimental), and you can see exactly what each one does before applying. Nothing touches critical system files, and everything can be reverted with one click.",
-  },
-  {
-    question: "Does it work with Fortnite, Valorant, and other anti-cheat games?",
-    answer:
-      "Absolutely. SwitchControl only modifies Windows settings and registry values that are allowed by all major anti-cheat systems including Easy Anti-Cheat, Vanguard, and FACEIT. It doesn't inject into games or modify game files.",
-  },
-  {
-    question: "Do I need to be tech-savvy to use it?",
-    answer:
-      "Not at all. The app is designed for gamers of all skill levels. Each tweak has a clear description, and we recommend starting with 'Recommended' tweaks which are safe for everyone.",
-  },
-  {
-    question: "What's your refund policy?",
-    answer: "All sales are final unless required by law.",
-  },
-  {
-    question: "Do I need to keep the app running while gaming?",
-    answer:
-      "No. Most tweaks are applied to Windows settings and persist after reboot. The app only needs to run when you want to make changes or monitor your system.",
-  },
 ];
 
 function CountingNumber({
@@ -621,46 +587,6 @@ function HeroAppMockup() {
   );
 }
 
-function FAQItem({ question, answer, index }: { question: string; answer: string; index: number }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const { prefersReducedMotion } = useMotion();
-
-  return (
-    <motion.div
-      className="border-b border-white/[0.05] last:border-b-0 rounded-lg hover:bg-white/[0.03] hover:-translate-y-0.5 transition-all duration-200 px-2"
-      initial={{ opacity: 0, y: prefersReducedMotion ? 10 : 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      transition={{ duration: prefersReducedMotion ? 0.2 : 0.4, delay: index * 0.04 }}
-      viewport={{ once: true, amount: 0.2 }}
-    >
-      <button
-        className="w-full py-6 flex items-center justify-between text-left group"
-        onClick={() => setIsOpen(!isOpen)}
-        data-testid={`faq-${question.slice(0, 20).toLowerCase().replace(/\s/g, "-")}`}
-      >
-        <span className="font-medium text-white/80 group-hover:text-white transition-colors pr-4 text-[15px]">{question}</span>
-        <motion.div
-          animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
-        >
-          <ChevronDown className="size-4 text-white/25 shrink-0" />
-        </motion.div>
-      </button>
-      <motion.div
-        initial={false}
-        animate={{
-          height: isOpen ? "auto" : 0,
-          opacity: isOpen ? 1 : 0,
-        }}
-        transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
-        className="overflow-hidden"
-      >
-        <div className="pb-6 text-white/40 text-sm leading-relaxed">{answer}</div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
 function AnimatedLockIcon({ className }: { className?: string }) {
   const [locked, setLocked] = useState(false);
   const [shake, setShake] = useState(false);
@@ -1081,9 +1007,6 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* ──── UI Exploration ──── */}
-        <UIExploration />
-
         {/* ──── What is SwitchControl ──── */}
         <WhatIsSwitchControl />
 
@@ -1239,24 +1162,6 @@ export default function Landing() {
                 </div>
               ))}
             </motion.div>
-          </div>
-        </section>
-
-        <SectionDivider />
-
-        {/* ──── FAQ ──── */}
-        <section id="faq" className="py-24 md:py-32 relative" data-reveal>
-          <SectionGlow color="mixed" intensity="strong" />
-          <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 50% 40%, hsl(270 50% 45% / 0.04) 0%, transparent 70%)" }} />
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-            <SectionHeader title="Frequently Asked" titleAccent="Questions" />
-
-            <GlassPanel variant="elevated" className="p-6 md:p-8 relative overflow-hidden">
-              <div className="absolute inset-0 pointer-events-none opacity-[0.015]" style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")` }} />
-              {FAQ_ITEMS.map((item, i) => (
-                <FAQItem key={item.question} question={item.question} answer={item.answer} index={i} />
-              ))}
-            </GlassPanel>
           </div>
         </section>
 
