@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { TweaksList } from "@/components/tweaks/TweaksList";
+import { TweakIntelligenceLayer } from "@/components/tweaks/TweakIntelligenceLayer";
 import { Zap, ShieldAlert, X } from "lucide-react";
 import { isElectronWithTweaks } from "@/hooks/use-tweak-executor";
 import { motion, AnimatePresence } from "framer-motion";
@@ -77,6 +78,14 @@ export default function Tweaks() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <TweakIntelligenceLayer />
+        </motion.div>
 
         <div data-tour="advanced-premium-tweaks">
           <TweaksList />
