@@ -215,11 +215,17 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
     // Clear any previous failure immediately
     setFailureInfo(null);
 
+    const action = isEnabled ? 'revert' : 'apply';
+    console.log(`[Tweaks:TOGGLE_START] id="${tweak.id}" action=${action} isReal=${isReal}`);
+
     if (isReal) {
+      console.log(`[Tweaks:BACKEND_ACTION] id="${tweak.id}" calling executeTweak action=${action}`);
       const outcome = await executeTweak(tweak.id, isEnabled);
       if (outcome.success) {
+        console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action}`);
         onToggle();
       } else if (outcome.failureType) {
+        console.warn(`[Tweaks:RESULT] id="${tweak.id}" success=false failureType=${outcome.failureType} msg="${outcome.userMessage}"`);
         showFailure({
           type:    outcome.failureType,
           message: outcome.userMessage ?? 'Tweak could not be applied.',
@@ -227,6 +233,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
         });
       }
     } else {
+      console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action} (browser-mode, state-only)`);
       onToggle();
     }
   }, [isLocked, isUnsupported, isReal, executeTweak, tweak.id, isEnabled, onToggle, showFailure]);

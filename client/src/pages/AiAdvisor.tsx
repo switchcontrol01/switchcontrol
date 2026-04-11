@@ -842,7 +842,7 @@ export default function AiAdvisor() {
     revealTimerRef.current = setTimeout(tick, 60);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
-  // Build system context from store
+  // Build system context from store — runs whenever tweaks, stats, or telemetry changes
   useEffect(() => {
     const allTweaks = TWEAKS_DATA;
     const enabledTweaks = allTweaks
@@ -851,6 +851,11 @@ export default function AiAdvisor() {
     const disabledTweaks = allTweaks
       .filter(t => !tweaks[t.id])
       .map(t => ({ id: t.id, title: t.title, category: t.category, risk: t.risk }));
+
+    console.log(`[AI:CONTEXT] source=zustand-store enabled=${enabledTweaks.length} disabled=${disabledTweaks.length}`);
+    if (enabledTweaks.length > 0) {
+      console.log(`[AI:CONTEXT] enabled_tweaks=${enabledTweaks.map(t => t.id).join(", ")}`);
+    }
 
     const ctx: SystemContext = {
       isPremium,
@@ -885,7 +890,7 @@ export default function AiAdvisor() {
     };
     setContext(ctx);
     contextRef.current = ctx;
-  }, [stats, tweaks, liveTel]);
+  }, [stats, tweaks, liveTel, isPremium]);
 
   // Auto-analysis welcome message
   useEffect(() => {
@@ -1034,9 +1039,17 @@ export default function AiAdvisor() {
     chatHistory.push({ role: "user", content: messageContent });
 
     try {
+      const ctx = contextRef.current;
+      console.log(`[AI:INPUT] sending_message="${messageContent.slice(0, 80)}"${messageContent.length > 80 ? "…" : ""}`);
+      console.log(`[AI:INPUT] enabled_tweaks=${ctx?.enabledTweaks?.length ?? 0} disabled_tweaks=${ctx?.disabledTweaks?.length ?? 0}`);
+      if (ctx?.enabledTweaks?.length) {
+        console.log(`[AI:INPUT] enabled_tweak_ids=${ctx.enabledTweaks.map((t: any) => t.id).join(", ")}`);
+      }
+      console.log(`[AI:INPUT] hardware cpu="${ctx?.system?.cpu || "none"}" gpu="${ctx?.system?.gpu || "none"}" ram="${ctx?.system?.ram || "none"}"`);
+
       const requestBody: Record<string, unknown> = {
         messages: chatHistory,
-        context: contextRef.current,
+        context: ctx,
       };
       if (imgData?.base64 && imgData.base64.length > 10) {
         requestBody.imageData = imgData.base64;
@@ -1074,8 +1087,9 @@ export default function AiAdvisor() {
       if (!thinkingAdded) setMessages(prev => [...prev, placeholderMsg]);
 
       // Always typewriter-reveal the response (structured responses also converted to text)
-      const textToReveal: string = data.content
-        || (data.structured ? structuredToText(data.structured) : "");
+      const rawResponse = data.content || (data.structured ? structuredToText(data.structured) : "");
+      console.log(`[AI:OUTPUT] chars=${rawResponse.length} preview="${rawResponse.slice(0, 120).replace(/\n/g, " ")}${rawResponse.length > 120 ? "…" : ""}"`);
+      const textToReveal: string = rawResponse;
 
       revealContent(assistantId, textToReveal, () => {
         inputRef.current?.focus();

@@ -49,11 +49,11 @@ interface AppState {
 }
 
 const DEFAULT_ACCOUNT_STATS: AccountStats = {
-  tweaksApplied: 12,
-  servicesDisabled: 8,
-  cleanersRun: 4,
-  startupAppsDisabled: 6,
-  lastScan: new Date().toISOString(),
+  tweaksApplied: 0,
+  servicesDisabled: 0,
+  cleanersRun: 0,
+  startupAppsDisabled: 0,
+  lastScan: null,
 };
 
 export const useStore = create<AppState>()(
@@ -73,15 +73,21 @@ export const useStore = create<AppState>()(
 
       toggleTweak: (id) => {
         const { tweaks } = get();
-        const isEnabled = !tweaks[id];
+        const wasEnabled = !!tweaks[id];
+        const isEnabled = !wasEnabled;
         const tweak = TWEAKS_DATA.find(t => t.id === id);
         
+        console.log(`[Tweaks:TOGGLE] id="${id}" title="${tweak?.title ?? id}" ${wasEnabled ? 'ON→OFF' : 'OFF→ON'}`);
+
         set((state) => ({
           tweaks: {
             ...state.tweaks,
             [id]: isEnabled,
           }
         }));
+
+        const enabledNow = Object.values({ ...tweaks, [id]: isEnabled }).filter(Boolean).length;
+        console.log(`[Tweaks:STATE] enabled_count=${enabledNow} | tweak="${id}" applied=${isEnabled}`);
 
         get().updateCounter('tweaksApplied', isEnabled ? 1 : -1);
         const resultText = isElectronWithTweaks() && isRealTweak(id)
@@ -95,6 +101,7 @@ export const useStore = create<AppState>()(
       },
 
       setTweak: (id, enabled) => {
+        console.log(`[Tweaks:SET] id="${id}" enabled=${enabled} (from system sync)`);
         set((state) => ({
           tweaks: {
             ...state.tweaks,
@@ -228,6 +235,20 @@ export const useStore = create<AppState>()(
         latestAIScan: state.latestAIScan,
         enhancedSensorsEnabled: state.enhancedSensorsEnabled,
       }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        // Recompute tweaksApplied from actual persisted tweaks — never trust a stale counter
+        const actualCount = Object.values(state.tweaks).filter(Boolean).length;
+        console.log(`[Store:REHYDRATE] total_stored=${Object.keys(state.tweaks).length} enabled=${actualCount} source=localStorage`);
+        state.account = {
+          ...state.account,
+          stats: {
+            ...DEFAULT_ACCOUNT_STATS,
+            tweaksApplied: actualCount,
+            lastScan: actualCount > 0 ? new Date().toISOString() : null,
+          },
+        };
+      },
       version: 1,
     }
   )

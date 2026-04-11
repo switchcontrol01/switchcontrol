@@ -559,6 +559,14 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
   try {
     const contextInfo = buildChatContext(context);
 
+    // Log what tweak state the AI is receiving
+    const enabledTweakIds = (context?.enabledTweaks ?? []).map((t: any) => t?.id).filter(Boolean);
+    const disabledTweakCount = (context?.disabledTweaks ?? []).length;
+    console.log(`[AI:chat:context] user=${cloudUser?.id} enabled_tweaks=${enabledTweakIds.length} disabled_tweaks=${disabledTweakCount} hw_cpu="${context?.system?.cpu || "none"}" hw_gpu="${context?.system?.gpu || "none"}"`);
+    if (enabledTweakIds.length > 0) {
+      console.log(`[AI:chat:context] enabled_tweak_ids=${enabledTweakIds.join(", ")}`);
+    }
+
     // Images get a special instruction appended — still expect structured JSON
     const imageNote = hasImage
       ? "\n\nThe user has attached a screenshot or image. Analyze what you see in the image and return your findings in the standard JSON schema."
@@ -620,7 +628,8 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
       return res.status(502).json({ error: "AI returned an empty response. Please try again." });
     }
 
-    console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${rawContent.length}`);
+    const previewOutput = rawContent.slice(0, 150).replace(/\n/g, " ");
+    console.log(`[AI:chat] OK | user=${cloudUser?.id} | chars=${rawContent.length} | preview="${previewOutput}${rawContent.length > 150 ? "…" : ""}"`);
     return res.json({ role: "assistant", content: rawContent });
 
   } catch (error: any) {

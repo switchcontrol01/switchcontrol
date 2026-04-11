@@ -1,0 +1,139 @@
+5. BIOS Advisor upgrade
+
+Use the system profile to make BIOS Advisor know:
+
+- motherboard model
+- BIOS vendor/version/date
+- RAM per-stick layout and speed
+- platform security / firmware states
+- inferred EXPO/XMP state
+- any BIOS recommendation confidence level
+
+Every BIOS recommendation must be tagged:
+
+- Confirmed
+- Likely
+- Unknown
+
+No fake confidence.
+
+6. AI Advisor upgrade
+
+AI Advisor must receive the same full profile so it can answer grounded questions like:
+
+- what motherboard do I have
+- what BIOS version am I on
+- is virtualization enabled
+- is Secure Boot on
+- is EXPO likely enabled
+- what NIC am I using
+- am I on Ethernet or Wi-Fi
+- what are my top CPU-heavy processes
+- what drives are installed
+- what GPU and VRAM do I have
+
+If the app does not know, AI Advisor must say Unknown instead of hallucinating.
+
+7. Dashboard upgrade
+
+Add real system profile panels to Dashboard.
+
+Required dashboard sections:
+
+- Motherboard / BIOS card
+- RAM layout summary
+- Storage layout summary
+- Network status card
+- Active connection type card showing Ethernet vs Wi-Fi
+- Top process offenders card
+- GPU controller + VRAM + display chain card
+
+These must be backed by real profile data, not hardcoded placeholders.
+
+8. Additional section upgrades
+
+Where it makes sense, surface relevant system intelligence in other sections:
+
+- BIOS Advisor: full firmware profile panel
+- AI Advisor: system context chip or expandable system snapshot
+- Network Tweaks: active NIC, gateway, link speed, Wi-Fi vs Ethernet
+- Cleaner / Debloat / Startup: process and service context where useful
+- App Booster: running process awareness if tied to detected games
+- Settings: advanced system information tab if needed
+
+9. UI expectations
+
+Add clean, premium-looking panels and cards, but only for real data.
+
+Examples:
+
+- "Motherboard: Gigabyte X870E AORUS PRO ICE"
+- "BIOS: American Megatrends F7, 2025-02-14"
+- "RAM: 2 x 16GB DDR5 @ 6000 MT/s"
+- "Primary NIC: Realtek 2.5GbE, 2500 Mbps, Ethernet"
+- "Top CPU process: msfs2024.exe 18.4%"
+- "Display chain: Samsung G6 2560x1440 @ 500Hz"
+
+If a metric is unavailable, show "Unknown" or hide that row.
+
+10. Unique ideas to add
+
+Also include a few standout panels that make the app feel elite:
+
+- System Identity card
+  
+  - one premium summary block with motherboard, BIOS, CPU, GPU, RAM, storage, NIC
+
+- Performance Risk card
+  
+  - flags things like VBS on, Wi-Fi active, low RAM speed, outdated BIOS, high background process load
+
+- Game Readiness card
+  
+  - combines hardware + process + network + platform state into one readiness status
+
+- AI Context Snapshot
+  
+  - lets the user see exactly what the AI currently knows about their machine
+
+- Firmware Confidence panel
+  
+  - clearly separates confirmed firmware facts vs inferred BIOS assumptions
+
+11. AMD / NVIDIA / Intel compatibility
+
+The system must work for AMD, NVIDIA, and Intel systems.
+
+Do not build GPU logic that only works properly for NVIDIA.
+
+If a GPU field is not reliable across vendors, mark it unknown or remove it from that panel.
+
+12. Hard rule against fake UI
+
+If a panel has no real backend data source, remove it.
+Do not keep cosmetic cards that imply real system awareness without actual backend truth.
+
+CHECKLIST
+
+- Build one shared SystemIntelligenceProfile
+- Collect motherboard, BIOS, CPU, GPU, RAM, storage, network, process, and platform data
+- Use systeminformation where reliable
+- Add Windows platform-state collectors
+- Feed same profile into BIOS Advisor and AI Advisor
+- Add dashboard cards based on the shared profile
+- Add other-section visibility where relevant
+- Add confidence labels for inferred BIOS states
+- Ensure AMD, NVIDIA, and Intel compatibility
+- Remove any unreliable or fake feature
+- Return exact files changed and sample payload
+
+FINAL OUTPUT
+
+Return:
+
+1. exact files changed
+2. the final SystemIntelligenceProfile shape
+3. which fields are direct vs inferred vs unknown
+4. which new dashboard/section panels were added
+5. confirmation that AI Advisor and BIOS Advisor both use the same shared profile
+6. confirmation that unreliable fields are hidden or marked Unknown instead of guessed

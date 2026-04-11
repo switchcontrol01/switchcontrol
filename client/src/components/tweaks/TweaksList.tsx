@@ -31,6 +31,15 @@ export function TweaksList() {
   const [syncing, setSyncing]     = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
 
+  // Log state on load so we can verify what's stored
+  useEffect(() => {
+    const enabledIds = Object.entries(tweaks).filter(([, v]) => v).map(([k]) => k);
+    console.log(`[Tweaks:LOAD] source=zustand-persist enabled=${enabledIds.length} total_known=${Object.keys(tweaks).length}`);
+    if (enabledIds.length > 0) {
+      console.log(`[Tweaks:LOAD] enabled_ids=${enabledIds.join(", ")}`);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // On load: verify all real tweak states against the system
   useEffect(() => {
     if (!isElectron) return;
