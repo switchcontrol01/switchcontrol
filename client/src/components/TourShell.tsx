@@ -30,6 +30,36 @@ interface TourShellProps {
   isPremium?: boolean;
 }
 
+// ── Scene geometry — deterministic, computed once at module level ─────────────
+
+// 28 particles across 3 size tiers, varied opacity + directional drift
+const PARTICLES = Array.from({ length: 28 }, (_, i) => {
+  const col = i % 7;
+  const row = Math.floor(i / 7);
+  return {
+    id: i,
+    // Stagger positions so no two overlap
+    x: 6 + col * 13 + (row % 2) * 6.5,
+    y: 8 + row * 22 + (col % 3) * 6,
+    size: ([1, 1.6, 2.4] as const)[i % 3],
+    opacity: ([0.16, 0.26, 0.38, 0.20] as const)[i % 4],
+    // Slight x-drift for depth, upward y-drift
+    driftX: ([-16, -8, 0, 8, 16, -11, 11] as const)[col],
+    driftY: -(6 + (i % 5) * 5),
+    duration: 5 + (i % 7) * 1.2,
+    delay: (i * 0.33) % 5.2,
+  };
+});
+
+// 5 diagonal light streaks — no two share the same angle/width pair
+const STREAKS = [
+  { left: '6%',  top: '10%', width: 340, angle: 27,  opacity: 0.07,  dur: 7,    delay: 0    },
+  { left: '40%', top: '-4%', width: 500, angle: 19,  opacity: 0.05,  dur: 10,   delay: 1.6  },
+  { left: '20%', top: '58%', width: 260, angle: 38,  opacity: 0.058, dur: 8.5,  delay: 0.9  },
+  { left: '68%', top: '16%', width: 210, angle: 14,  opacity: 0.042, dur: 11.5, delay: 2.4  },
+  { left: '52%', top: '72%', width: 170, angle: 31,  opacity: 0.034, dur: 6.5,  delay: 3.1  },
+];
+
 // ── "You're All Set" completion screen ───────────────────────────────────────
 function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium?: boolean }) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
@@ -48,7 +78,7 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
   return (
     <motion.div
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
-      style={{ background: 'rgba(4,3,14,0.97)' }}
+      style={{ background: 'rgb(4,3,14)' }}
       initial={{ opacity: 0, filter: 'blur(20px)', scale: 0.97 }}
       animate={isExiting
         ? { opacity: 0, filter: 'blur(28px)', scale: 1.06 }
@@ -58,74 +88,168 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
         ? { duration: 1.4, ease: [0.4, 0, 0.8, 1] }
         : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Outer ambient halo — slow breathe */}
-      <motion.div
-        className="absolute pointer-events-none"
+      {/* ── Layer 1: Deep base gradient — upper-left purple bloom + lower-right blue-indigo */}
+      <div
+        className="absolute inset-0 pointer-events-none"
         style={{
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '80vw', height: '80vw',
-          background: `radial-gradient(ellipse, ${c1}0.16) 0%, ${c1}0.06) 42%, transparent 68%)`,
-          filter: 'blur(70px)',
+          background: `
+            radial-gradient(ellipse 80% 70% at 18% 22%, rgba(88,28,220,0.22) 0%, transparent 65%),
+            radial-gradient(ellipse 65% 55% at 82% 78%, rgba(30,20,120,0.18) 0%, transparent 60%),
+            radial-gradient(ellipse 100% 80% at 50% 50%, rgba(15,8,40,0.9) 0%, rgb(4,3,14) 70%)
+          `,
         }}
-        animate={{ opacity: [0.5, 1, 0.5], scale: [0.95, 1.05, 0.95] }}
-        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      {/* Mid-ring glow — faster breathe */}
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '50vw', height: '50vw',
-          background: `radial-gradient(ellipse, ${c2}0.28) 0%, ${c2}0.10) 38%, transparent 62%)`,
-          filter: 'blur(40px)',
-        }}
-        animate={{ opacity: [0.4, 0.9, 0.4], scale: [0.97, 1.04, 0.97] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
-      />
-      {/* Core orb — tight and bright */}
-      <motion.div
-        className="absolute pointer-events-none"
-        style={{
-          top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
-          width: '22vw', height: '22vw',
-          background: `radial-gradient(ellipse, ${c3}0.45) 0%, ${c3}0.18) 50%, transparent 78%)`,
-          filter: 'blur(20px)',
-        }}
-        animate={{ opacity: [0.55, 1, 0.55], scale: [0.94, 1.06, 0.94] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', delay: 0.2 }}
       />
 
-      {/* Center content */}
+      {/* ── Layer 2: Secondary color accents — magenta shoulder + deep teal */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `
+            radial-gradient(ellipse 55% 45% at 72% 15%, ${c1}0.10) 0%, transparent 60%),
+            radial-gradient(ellipse 50% 40% at 28% 85%, ${c2}0.08) 0%, transparent 58%)
+          `,
+        }}
+        animate={{ opacity: [0.7, 1, 0.7] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* ── Layer 3: Diagonal sun / light streaks ─────────────────────────────── */}
+      {STREAKS.map((s, i) => (
+        <motion.div
+          key={i}
+          className="absolute pointer-events-none"
+          style={{
+            left: s.left,
+            top: s.top,
+            width: s.width,
+            height: 2,
+            transformOrigin: 'left center',
+            transform: `rotate(${s.angle}deg)`,
+            background: `linear-gradient(90deg, transparent 0%, ${c1}${(s.opacity * 1.4).toFixed(2)}) 20%, ${c2}${s.opacity.toFixed(2)}) 55%, transparent 100%)`,
+            filter: 'blur(1.5px)',
+          }}
+          initial={{ opacity: 0, scaleX: 0 }}
+          animate={{
+            opacity: [0, s.opacity * 14, s.opacity * 10, s.opacity * 14, 0],
+            scaleX: [0, 1, 1, 1, 0.6],
+          }}
+          transition={{
+            duration: s.dur,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: s.delay,
+            times: [0, 0.15, 0.5, 0.85, 1],
+          }}
+        />
+      ))}
+
+      {/* ── Layer 4: Outer ambient halo — slow breathe, wider */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '92vw', height: '85vw',
+          background: `radial-gradient(ellipse, ${c1}0.20) 0%, ${c1}0.08) 40%, transparent 68%)`,
+          filter: 'blur(80px)',
+        }}
+        animate={{ opacity: [0.55, 1, 0.55], scale: [0.94, 1.06, 0.94] }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      {/* ── Layer 5: Mid-ring glow — richer colour, tighter pulse */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '56vw', height: '52vw',
+          background: `radial-gradient(ellipse, ${c2}0.32) 0%, ${c2}0.12) 36%, transparent 62%)`,
+          filter: 'blur(44px)',
+        }}
+        animate={{ opacity: [0.45, 1, 0.45], scale: [0.96, 1.05, 0.96] }}
+        transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut', delay: 0.6 }}
+      />
+
+      {/* ── Layer 6: Core orb — tight, bright */}
+      <motion.div
+        className="absolute pointer-events-none"
+        style={{
+          top: '50%', left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '26vw', height: '24vw',
+          background: `radial-gradient(ellipse, ${c3}0.50) 0%, ${c3}0.20) 48%, transparent 76%)`,
+          filter: 'blur(22px)',
+        }}
+        animate={{ opacity: [0.6, 1, 0.6], scale: [0.93, 1.07, 0.93] }}
+        transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: 0.25 }}
+      />
+
+      {/* ── Layer 7: Particles ────────────────────────────────────────────────── */}
+      {PARTICLES.map((p) => (
+        <motion.div
+          key={p.id}
+          className="absolute pointer-events-none rounded-full"
+          style={{
+            left: `${p.x}%`,
+            top: `${p.y}%`,
+            width: p.size,
+            height: p.size,
+            background: p.id % 3 === 0 ? c1 + '1)' : p.id % 3 === 1 ? c2 + '1)' : 'rgba(255,255,255,1)',
+          }}
+          animate={{
+            opacity: [0, p.opacity, p.opacity * 0.6, p.opacity, 0],
+            x: [0, p.driftX * 0.4, p.driftX, p.driftX * 0.7, p.driftX * 1.2],
+            y: [0, p.driftY * 0.3, p.driftY, p.driftY * 1.4, p.driftY * 1.8],
+          }}
+          transition={{
+            duration: p.duration,
+            repeat: Infinity,
+            ease: 'easeInOut',
+            delay: p.delay,
+            times: [0, 0.2, 0.5, 0.75, 1],
+          }}
+        />
+      ))}
+
+      {/* ── Layer 8: Cinematic vignette — darkens edges, focuses center */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: 'radial-gradient(ellipse 70% 65% at 50% 50%, transparent 40%, rgba(3,2,12,0.55) 80%, rgba(2,1,10,0.85) 100%)',
+        }}
+      />
+
+      {/* ── Center content (layout unchanged) ───────────────────────────────── */}
       <motion.div
         className="relative flex flex-col items-center gap-6 text-center z-10"
         initial={{ opacity: 0, y: 22 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
       >
-        {/* Logo — bigger, with layered glow */}
+        {/* Logo — with layered glow, subtle scale-breathe */}
         <div className="relative flex items-center justify-center mb-2">
+          {/* Outer halo ring around logo */}
           <motion.div
             className="absolute rounded-full pointer-events-none"
             style={{
-              width: 200, height: 200,
-              background: `radial-gradient(ellipse, ${c1}0.35) 0%, ${c2}0.14) 45%, transparent 72%)`,
-              filter: 'blur(22px)',
+              width: 220, height: 220,
+              background: `radial-gradient(ellipse, ${c1}0.40) 0%, ${c2}0.16) 42%, transparent 70%)`,
+              filter: 'blur(28px)',
             }}
-            animate={{ opacity: [0.5, 1, 0.5], scale: [0.92, 1.08, 0.92] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+            animate={{ opacity: [0.45, 1, 0.45], scale: [0.90, 1.10, 0.90] }}
+            transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
           />
+          {/* Inner corona */}
           <motion.div
             className="absolute rounded-full pointer-events-none"
             style={{
-              width: 110, height: 110,
-              background: `radial-gradient(ellipse, ${c3}0.55) 0%, transparent 70%)`,
-              filter: 'blur(10px)',
+              width: 120, height: 120,
+              background: `radial-gradient(ellipse, ${c3}0.60) 0%, transparent 68%)`,
+              filter: 'blur(12px)',
             }}
-            animate={{ opacity: [0.4, 0.85, 0.4] }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', delay: 0.3 }}
+            animate={{ opacity: [0.4, 0.9, 0.4] }}
+            transition={{ duration: 2.1, repeat: Infinity, ease: 'easeInOut', delay: 0.35 }}
           />
           <motion.img
             src={logoImg}
@@ -134,16 +258,17 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
             draggable={false}
             animate={{
               filter: [
-                `drop-shadow(0 0 10px ${accentHex}66)`,
-                `drop-shadow(0 0 24px ${accentHex}99)`,
-                `drop-shadow(0 0 10px ${accentHex}66)`,
+                `drop-shadow(0 0 10px ${accentHex}55) drop-shadow(0 2px 20px ${accentHex}33)`,
+                `drop-shadow(0 0 26px ${accentHex}99) drop-shadow(0 4px 36px ${accentHex}55)`,
+                `drop-shadow(0 0 10px ${accentHex}55) drop-shadow(0 2px 20px ${accentHex}33)`,
               ],
+              scale: [1, 1.025, 1],
             }}
-            transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
           />
         </div>
 
-        {/* "You're all set." — word-by-word blur-in */}
+        {/* "You're all set." — word-by-word blur-in (unchanged) */}
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-1">
           {["You're", 'all', 'set.'].map((word, i) => (
             <motion.span
@@ -179,20 +304,29 @@ function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium
             : 'SwitchControl is configured and ready to boost your system.'}
         </motion.p>
 
-        {/* Glowing accent line */}
+        {/* Glowing accent line — wider bloom, secondary halo */}
         <motion.div
           className="relative"
           style={{ height: 2, borderRadius: 2, overflow: 'visible' }}
           initial={{ width: 0, opacity: 0 }}
-          animate={{ width: 200, opacity: 1 }}
-          transition={{ delay: 1.7, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
+          animate={{ width: 220, opacity: 1 }}
+          transition={{ delay: 1.7, duration: 1.0, ease: [0.22, 1, 0.36, 1] }}
         >
           <div
             style={{
               position: 'absolute', inset: 0, borderRadius: 2,
               background: `linear-gradient(90deg, transparent, ${accentHex}, ${accentHex2}, ${accentHex}, transparent)`,
-              boxShadow: `0 0 10px 2px ${accentHex}88, 0 0 24px 4px ${accentHex}44`,
+              boxShadow: `0 0 12px 3px ${accentHex}99, 0 0 32px 6px ${accentHex}44, 0 0 60px 10px ${accentHex}1a`,
             }}
+          />
+          {/* Slow pulse on the line glow */}
+          <motion.div
+            style={{
+              position: 'absolute', inset: 0, borderRadius: 2,
+              background: `linear-gradient(90deg, transparent, ${accentHex2}55, ${accentHex}66, ${accentHex2}55, transparent)`,
+            }}
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
           />
         </motion.div>
       </motion.div>
