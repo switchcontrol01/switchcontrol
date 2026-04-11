@@ -17,13 +17,32 @@ export function useRevealOnScroll({
   locationKey,
 }: Options = {}) {
   useEffect(() => {
-    // Reset any previously-revealed elements so the new page starts hidden
+    // If reduced motion is preferred, immediately reveal all elements
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Reset previously-revealed elements
     document.querySelectorAll<HTMLElement>("[data-reveal]").forEach((el) => {
       el.classList.remove("is-visible");
     });
 
-    // Small delay: let the incoming page finish mounting/painting before observing
+    if (prefersReduced) {
+      // Immediately show all — no animation needed
+      document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
+        el.classList.add("is-visible");
+      });
+      return;
+    }
+
     let io: IntersectionObserver | null = null;
+
+    // Emergency fallback: force all visible after 600ms in case observer fails
+    const emergencyTimer = setTimeout(() => {
+      document.querySelectorAll<HTMLElement>(selector).forEach((el) => {
+        el.classList.add("is-visible");
+      });
+    }, 600);
+
+    // Small delay: let the incoming page finish mounting/painting before observing
     const timerId = setTimeout(() => {
       const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
       if (!els.length) return;
@@ -47,6 +66,7 @@ export function useRevealOnScroll({
 
     return () => {
       clearTimeout(timerId);
+      clearTimeout(emergencyTimer);
       io?.disconnect();
     };
   // locationKey is intentionally the only dependency that drives re-runs on nav

@@ -310,8 +310,12 @@ export function Reveal({
     return () => observer.disconnect();
   }, []);
 
-  const reducedDuration = prefersReducedMotion ? Math.min(duration, 0.3) : duration;
-  const reducedDistance = prefersReducedMotion ? Math.min(distance, 12) : distance;
+  // When reduced motion is preferred, never hide content — show immediately
+  if (prefersReducedMotion) {
+    return <div ref={ref} className={cn(className)}>{children}</div>;
+  }
+
+  const reducedDistance = distance;
 
   const getTransform = () => {
     if (isVisible) return 'translate(0, 0)';
@@ -331,8 +335,8 @@ export function Reveal({
       style={{
         opacity: isVisible ? 1 : 0,
         transform: getTransform(),
-        filter: isVisible ? 'blur(0px)' : `blur(${prefersReducedMotion ? 4 : 14}px)`,
-        transition: `opacity ${reducedDuration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform ${reducedDuration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter ${reducedDuration}s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
+        filter: isVisible ? 'blur(0px)' : 'blur(14px)',
+        transition: `opacity ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
         willChange: 'opacity, transform, filter',
       }}
     >

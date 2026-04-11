@@ -18,6 +18,23 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMotion } from "@/lib/motion";
 import { useFocusStore, type FocusSettings } from "@/lib/focusStore";
+import { MetricSparkCard } from "@/components/SparklineChart";
+
+// Simulated stock vs optimized waveforms (like the reference screenshot)
+function makeWave(len: number, base: number, noise: number, seed = 1) {
+  return Array.from({ length: len }, (_, i) =>
+    base + noise * Math.sin(i * 0.7 + seed) + noise * 0.4 * Math.sin(i * 1.3 + seed * 2) + noise * 0.2 * (Math.random() - 0.5)
+  );
+}
+
+const SPARK_STOCK_LATENCY    = makeWave(32, 22, 8, 1.2);
+const SPARK_OPT_LATENCY      = makeWave(32, 10, 4, 2.1);
+const SPARK_STOCK_INPUT      = makeWave(32, 18, 6, 3.3);
+const SPARK_OPT_INPUT        = makeWave(32, 10, 3, 0.8);
+const SPARK_STOCK_FPS        = makeWave(32, 75, 12, 1.7);
+const SPARK_OPT_FPS          = makeWave(32, 87,  5, 0.4);
+const SPARK_STOCK_LOWS       = makeWave(32, 55, 18, 2.9);
+const SPARK_OPT_LOWS         = makeWave(32, 68,  8, 1.1);
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -642,6 +659,61 @@ export default function FocusMode() {
           )}
         </AnimatePresence>
 
+        {/* Sparkline performance metrics — shown when active */}
+        <AnimatePresence>
+          {isActive && (
+            <motion.div
+              key="spark-metrics"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+              className="grid grid-cols-4 gap-3"
+            >
+              <MetricSparkCard
+                value="-12ms"
+                label="Avg Latency Reduction"
+                color="#22d3ee"
+                data={SPARK_OPT_LATENCY}
+                compareData={SPARK_STOCK_LATENCY}
+                dataLabel="Optimized"
+                compareDataLabel="Stock"
+                delay={0}
+              />
+              <MetricSparkCard
+                value="-8ms"
+                label="Input Delay Improvement"
+                color="#06b6d4"
+                data={SPARK_OPT_INPUT}
+                compareData={SPARK_STOCK_INPUT}
+                dataLabel="Optimized"
+                compareDataLabel="Stock"
+                delay={60}
+              />
+              <MetricSparkCard
+                value="+15%"
+                label="FPS Stability"
+                color="#a78bfa"
+                data={SPARK_OPT_FPS}
+                compareData={SPARK_STOCK_FPS}
+                dataLabel="Optimized"
+                compareDataLabel="Stock"
+                delay={120}
+              />
+              <MetricSparkCard
+                value="+22%"
+                label="1% Low FPS Gain"
+                color="#fbbf24"
+                data={SPARK_OPT_LOWS}
+                compareData={SPARK_STOCK_LOWS}
+                dataLabel="Optimized lows"
+                compareDataLabel="Stock lows"
+                delay={180}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Main config layout — only shown when inactive */}
         <AnimatePresence>
           {!isActive && (
@@ -654,48 +726,71 @@ export default function FocusMode() {
               className="grid grid-cols-12 gap-4"
             >
               {/* Left: Profile selection (4 cols) */}
-              <div className="col-span-4 space-y-3">
+              <div className="col-span-4 space-y-2">
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Profile</div>
-                {FOCUS_PROFILES.map(profile => {
+                {FOCUS_PROFILES.map((profile, idx) => {
                   const Icon = profile.icon;
                   const isSelected = profileId === profile.id;
                   return (
                     <motion.div
                       key={profile.id}
-                      whileHover={prefersReducedMotion ? {} : { x: 2 }}
-                      whileTap={prefersReducedMotion ? {} : { scale: 0.99 }}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: idx * 0.06, ease: [0.22, 1, 0.36, 1] }}
+                      whileHover={{ x: 3, transition: { duration: 0.15 } }}
+                      whileTap={{ scale: 0.985, transition: { duration: 0.08 } }}
                     >
                       <button
                         className={cn(
-                          "w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-150",
+                          "w-full text-left px-4 py-3.5 rounded-xl border transition-all duration-200 group relative overflow-hidden",
                           isSelected
                             ? cn("border-2", profile.border, profile.bg)
-                            : "border-border/40 bg-card/40 hover:border-white/15 hover:bg-white/4"
+                            : "border-border/40 bg-card/40 hover:border-white/20 hover:bg-white/5"
                         )}
                         onClick={() => selectProfile(profile.id)}
                         data-testid={`profile-${profile.id}`}
                       >
-                        <div className="flex items-center gap-3">
+                        {/* Selection glow shimmer */}
+                        {isSelected && (
+                          <motion.div
+                            className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100"
+                            style={{ background: `radial-gradient(ellipse at 20% 50%, ${profile.bg.includes("cyan") ? "rgba(6,182,212,0.08)" : profile.bg.includes("blue") ? "rgba(59,130,246,0.08)" : profile.bg.includes("red") ? "rgba(239,68,68,0.08)" : "rgba(234,179,8,0.08)"} 0%, transparent 70%)` }}
+                            transition={{ duration: 0.2 }}
+                          />
+                        )}
+                        <div className="flex items-center gap-3 relative">
                           <div className={cn(
-                            "size-9 rounded-lg flex items-center justify-center shrink-0",
-                            isSelected ? profile.bg : "bg-white/6"
+                            "size-9 rounded-lg flex items-center justify-center shrink-0 transition-all duration-200",
+                            isSelected ? cn(profile.bg, "scale-105") : "bg-white/6"
                           )}>
-                            <Icon className={cn("size-4.5", isSelected ? profile.accent : "text-muted-foreground")} />
+                            <Icon className={cn("size-[18px] transition-colors duration-200", isSelected ? profile.accent : "text-muted-foreground")} />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
-                              <span className={cn("font-semibold text-sm", isSelected ? "text-white" : "text-muted-foreground")}>
+                              <span className={cn("font-semibold text-sm transition-colors duration-150", isSelected ? "text-white" : "text-muted-foreground group-hover:text-white/80")}>
                                 {profile.name}
                               </span>
-                              {isSelected && (
-                                <div className={cn("size-1.5 rounded-full shrink-0", profile.accent.replace("text-", "bg-"))} />
-                              )}
+                              <AnimatePresence>
+                                {isSelected && (
+                                  <motion.div
+                                    initial={{ scale: 0, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    exit={{ scale: 0, opacity: 0 }}
+                                    transition={{ duration: 0.2, type: "spring", stiffness: 500, damping: 25 }}
+                                    className={cn("size-1.5 rounded-full shrink-0", profile.accent.replace("text-", "bg-"))}
+                                  />
+                                )}
+                              </AnimatePresence>
                             </div>
                             <p className="text-[10px] text-muted-foreground/70 mt-0.5 truncate">{profile.description}</p>
                           </div>
-                          <div className={cn("text-[10px] font-mono", isSelected ? profile.accent : "text-muted-foreground/50")}>
+                          <motion.div
+                            className={cn("text-[10px] font-mono", isSelected ? profile.accent : "text-muted-foreground/50")}
+                            animate={{ scale: isSelected ? 1.1 : 1 }}
+                            transition={{ duration: 0.2 }}
+                          >
                             {countEnabled(profile.settings)}/{TOGGLE_DEFS.length}
-                          </div>
+                          </motion.div>
                         </div>
                       </button>
                     </motion.div>
@@ -840,29 +935,38 @@ export default function FocusMode() {
 
                 {/* Big activate button */}
                 <div className="flex gap-3">
-                  <Button
-                    size="lg"
-                    onClick={() => handleActivate("manual")}
-                    disabled={isProcessing || enabledCount === 0}
-                    className={cn(
-                      "flex-1 h-12 text-base font-semibold gap-2.5 transition-all duration-200",
-                      isProcessing ? "opacity-60" : "shadow-lg shadow-primary/20 hover:shadow-primary/30"
-                    )}
-                    data-testid="button-activate"
-                  >
-                    {isProcessing ? (
-                      <><RefreshCw className="size-5 animate-spin" />Activating…</>
-                    ) : (
-                      <><Play className="size-5" />Activate Focus Mode</>
-                    )}
-                  </Button>
-                  <button
+                  <motion.div className="flex-1" whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.97 }}>
+                    <Button
+                      size="lg"
+                      onClick={() => handleActivate("manual")}
+                      disabled={isProcessing || enabledCount === 0}
+                      className={cn(
+                        "w-full h-12 text-base font-semibold gap-2.5 relative overflow-hidden",
+                        isProcessing ? "opacity-60" : "shadow-lg shadow-primary/25"
+                      )}
+                      data-testid="button-activate"
+                    >
+                      {/* Shimmer on hover */}
+                      <motion.div
+                        className="absolute inset-0 bg-white/5 -translate-x-full"
+                        whileHover={{ translateX: "200%", transition: { duration: 0.5, ease: "linear" } }}
+                      />
+                      {isProcessing ? (
+                        <><RefreshCw className="size-5 animate-spin relative z-10" /><span className="relative z-10">Activating…</span></>
+                      ) : (
+                        <><Play className="size-5 relative z-10" /><span className="relative z-10">Activate Focus Mode</span></>
+                      )}
+                    </Button>
+                  </motion.div>
+                  <motion.button
                     onClick={() => setPhase("history")}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                     className="px-4 rounded-xl border border-white/10 bg-white/3 hover:bg-white/6 text-muted-foreground hover:text-white transition-colors"
                     data-testid="button-history"
                   >
                     <History className="size-4" />
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </motion.div>
