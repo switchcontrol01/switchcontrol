@@ -2,9 +2,13 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { StatCard } from "@/components/dashboard/StatCard";
 import { LiveGraph } from "@/components/dashboard/LiveGraph";
 import { StorageCards } from "@/components/dashboard/StorageCards";
+import { SystemStateBar } from "@/components/dashboard/SystemStateBar";
+import { DashboardInsights } from "@/components/dashboard/DashboardInsights";
 import { DashboardHeaderParticles, type DashboardTimeOfDay } from "@/components/DashboardHeaderParticles";
 import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
+import { useDashboardActivityStore } from "@/stores/dashboardActivityStore";
+import { getAdvisorInsightText, getBiosStatusText } from "@/lib/systemStateEngine";
 import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi } from "lucide-react";
 import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
 import { PredictiveWarnings } from "@/components/intelligence/PredictiveWarnings";
@@ -87,6 +91,7 @@ function getScoreBg(score: number): string {
 function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
   const { runState, report } = useAdvisorStore();
   const hasReport = report && (runState === "ready" || runState === "degraded");
+  const insight = getAdvisorInsightText(runState, report ? { score: report.score, topFailed: report.topFailed } : null);
 
   const cardContent = (
     <GlassCard className={cn(
@@ -107,7 +112,7 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
           AI Advisor
           {!isPremium && <PremiumBadge className="ml-1" />}
         </h3>
-        <p className="text-[10px] text-muted-foreground mt-1">AI-powered optimization analysis</p>
+        <p className="text-[10px] text-muted-foreground mt-1">{insight.secondary}</p>
       </div>
       <div className="px-6 pb-6 space-y-4">
         {hasReport ? (
@@ -120,15 +125,20 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
                 {report.score >= 95 ? "Fully Optimized" : report.score >= 85 ? "Good Configuration" : report.score >= 60 ? "Needs Improvement" : "Issues Found"}
               </p>
             </div>
+            {insight.primary && (
+              <p className="text-[10px] text-white/60 leading-snug px-0.5" data-testid="text-advisor-insight">
+                {insight.primary}
+              </p>
+            )}
             <div className="flex items-center gap-1.5 text-[9px] text-muted-foreground">
               <span>{report.findings.filter(f => f.status === "pass").length}/{report.findings.length} rules passed</span>
               <span className="text-border">|</span>
-              <span>{report.topFailed.length} issues</span>
+              <span>{report.topFailed.length} issue{report.topFailed.length !== 1 ? "s" : ""}</span>
             </div>
           </div>
         ) : (
           <div className="py-4 text-center">
-            <p className="text-xs text-muted-foreground px-4">Get AI-powered advice tailored to your specific hardware.</p>
+            <p className="text-xs text-muted-foreground px-4" data-testid="text-advisor-no-scan">{insight.primary}</p>
           </div>
         )}
         <Button size="sm" className="w-full bg-primary/20 hover:bg-primary/30 text-primary border border-primary/20" data-testid="button-open-ai-advisor" asChild>
@@ -183,14 +193,14 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
           BIOS Score
           {!isPremium && <PremiumBadge className="ml-1" />}
         </h3>
-        <p className="text-[10px] text-muted-foreground mt-1">Firmware readiness estimate</p>
+        <p className="text-[10px] text-muted-foreground mt-1">{getBiosStatusText(hasScanned, optimizationLevel, scores?.competitiveReadiness ?? null)}</p>
       </div>
       <div className="px-6 pb-6 space-y-4">
         {(!hasScanned || !scores) ? (
           <div className="p-4 rounded-lg border border-dashed border-white/10 bg-white/[0.02] text-center space-y-2">
             <Target className="size-6 text-muted-foreground/40 mx-auto" />
-            <p className="text-xs text-muted-foreground" data-testid="text-bios-not-analyzed">Not analyzed yet</p>
-            <p className="text-[10px] text-muted-foreground/60">Run a scan in BIOS Advisor to see your firmware readiness score.</p>
+            <p className="text-xs text-muted-foreground" data-testid="text-bios-not-analyzed">BIOS configuration not yet analyzed</p>
+            <p className="text-[10px] text-muted-foreground/60">Scan detects XMP profiles, power limits, and scheduling settings.</p>
           </div>
         ) : (
           <>
@@ -294,6 +304,9 @@ function useLiveStatus(): string {
 export default function Home() {
   const { stats, account, setStats } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
+  const { addEvent, setLastAction } = useDashboardActivityStore();
+  const { lastRunAt: advisorLastRunAt } = useAdvisorStore();
+  const { lastScanTime: biosLastScanTime } = useBiosAdvisorStore();
   const [specStatus, setSpecStatus] = useState<"loading" | "ready" | "unavailable">("loading");
   const [ssdData, setSsdData] = useState<TelemetryData['ssds']>([]);
   const [allDisks, setAllDisks] = useState<DiskInfo[]>([]);
@@ -321,7 +334,48 @@ export default function Home() {
   useRevealOnScroll();
   const liveStatus = useLiveStatus();
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
-  
+
+  // ── Event tracking ──────────────────────────────────────────────────────────
+  const prevTweaksRef = useRef(account.stats.tweaksApplied);
+  const prevMemCleanerRef = useRef(false);
+
+  useEffect(() => {
+    if (!advisorLastRunAt) return;
+    addEvent({ type: "ai_scan_completed", label: "AI Advisor scan completed", ts: new Date(advisorLastRunAt).getTime() });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [advisorLastRunAt]);
+
+  useEffect(() => {
+    if (!biosLastScanTime) return;
+    addEvent({ type: "bios_scan_completed", label: "BIOS scan completed", ts: new Date(biosLastScanTime).getTime() });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [biosLastScanTime]);
+
+  useEffect(() => {
+    if (prevMemCleanerRef.current && !memCleanerOpen) {
+      addEvent({ type: "memory_cleaned", label: "Memory cleaner completed", ts: Date.now() });
+      setLastAction({ action: "Memory cleaner", result: "RAM cleared — system headroom restored", ts: Date.now(), positive: true });
+    }
+    prevMemCleanerRef.current = memCleanerOpen;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [memCleanerOpen]);
+
+  useEffect(() => {
+    const curr = account.stats.tweaksApplied;
+    const prev = prevTweaksRef.current;
+    if (curr > prev) {
+      const d = curr - prev;
+      addEvent({ type: "tweak_applied", label: `${d} tweak${d !== 1 ? "s" : ""} applied`, ts: Date.now() });
+      setLastAction({ action: `${d} tweak${d !== 1 ? "s" : ""} applied`, result: "Optimization applied — changes are active", ts: Date.now(), positive: true });
+    } else if (curr < prev) {
+      const d = prev - curr;
+      addEvent({ type: "tweak_reverted", label: `${d} tweak${d !== 1 ? "s" : ""} reverted`, ts: Date.now() });
+    }
+    prevTweaksRef.current = curr;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account.stats.tweaksApplied]);
+  // ── End event tracking ──────────────────────────────────────────────────────
+
   const getUserDisplayName = (): string => {
     if (user?.firstName) return user.firstName;
     if (user?.name) return user.name.split(' ')[0];
@@ -579,6 +633,11 @@ export default function Home() {
         {/* Predictive warnings strip — only renders when there are real warnings */}
         <PredictiveWarnings telemetry={liveTel} />
 
+        {/* System State Bar — real-time derived anchor */}
+        <div data-reveal>
+          <SystemStateBar />
+        </div>
+
         {/* Activity Monitor Grid */}
         <div className="space-y-4" data-reveal>
           <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
@@ -799,6 +858,11 @@ export default function Home() {
             <BiosScoreSummaryCard isPremium={isPremium} />
           </motion.div>
         </motion.div>
+
+        {/* Dashboard Insights — scroll-depth section with real system intelligence */}
+        <div data-reveal data-delay="3">
+          <DashboardInsights />
+        </div>
       </div>
 
       <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />

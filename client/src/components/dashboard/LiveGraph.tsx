@@ -9,6 +9,7 @@ import { safeFixed, safeNumber } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { computeGraphStability } from "@/lib/systemStateEngine";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -158,7 +159,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
   // ── Web fallback: WebSocket-driven via hook ──────────────────────────────
   const isElectron = !!(window as any).electronAPI?.telemetry?.getLive;
-  const { telemetry: wsTelemetry, spikes: wsSpikes, status: wsStatus } = useLiveTelemetry();
+  const { telemetry: wsTelemetry, spikes: wsSpikes, status: wsStatus, history: wsHistory } = useLiveTelemetry();
 
   // Feed WebSocket data into graph when not running in Electron
   useEffect(() => {
@@ -580,8 +581,42 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         )}
       </div>
 
+      {/* Stability zone label */}
+      {!isLoading && (() => {
+        const cpuHist = isElectron
+          ? data.map(d => d.cpuLoad)
+          : wsHistory.cpu;
+        if (cpuHist.length < 5) return null;
+        const stability = computeGraphStability(cpuHist);
+        return (
+          <div className="flex items-center gap-1.5 mt-2 mb-0.5">
+            <span
+              className={cn(
+                "inline-block w-1.5 h-1.5 rounded-full shrink-0",
+                stability.zone === "stable"
+                  ? "bg-emerald-500"
+                  : stability.zone === "minor"
+                  ? "bg-amber-400"
+                  : "bg-red-500"
+              )}
+              style={{
+                boxShadow:
+                  stability.zone === "stable"
+                    ? "0 0 5px rgba(52,211,153,0.7)"
+                    : stability.zone === "minor"
+                    ? "0 0 5px rgba(251,191,36,0.7)"
+                    : "0 0 5px rgba(239,68,68,0.7)",
+              }}
+            />
+            <span className={cn("text-[10px] font-medium", stability.color)}>
+              {stability.label}
+            </span>
+          </div>
+        );
+      })()}
+
       {/* Footer */}
-      <div className="flex items-center gap-1.5 mt-2 text-[10px] text-muted-foreground/60">
+      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground/60">
         <Info className="size-3 shrink-0" />
         <span>
           {isLoading

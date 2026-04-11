@@ -1,0 +1,71 @@
+10. OPTIONAL CONTROLLED TEXT REVEAL
+If using any typewriter or progressive text effect:
+- keep it fast
+- keep it controlled
+- do not slow the user down
+- do not reveal giant walls of text character by character
+
+It should enhance clarity, not become a gimmick.
+
+11. APPLY / ACTION INTEGRATION
+When the AI suggests a fix, it should connect cleanly to the relevant action flow.
+
+Need:
+- if a fix maps to a real tweak or section, link it cleanly
+- keep the suggested action concise
+- no giant explanation blocks before the action
+
+12. FALLBACK / ERROR HANDLING
+If the AI response fails or the model is uncertain:
+- show a clean fallback state
+- do not show broken structured output
+- do not show malformed JSON
+- do not show raw model dump
+
+If confidence is low, say so honestly.
+
+13. KEEP IT TRUSTWORTHY
+This is very important.
+
+The AI must not overclaim.
+It must not pretend certainty where there is none.
+It must not sound like it knows everything.
+
+If confidence is medium or low:
+- reflect that cleanly
+- keep the guidance honest
+
+14. QUALITY STANDARD
+By the end of this task, the AI Advisor should feel like:
+- a system diagnosis engine
+- not a generic chatbot
+- not a paragraph dump
+- not a messy blob of advice
+
+CHECKLIST
+- current AI Advisor flow audited
+- strict backend schema enforced
+- backend validation added
+- long freeform output prevented
+- diagnostic tone improved
+- staged reveal UI implemented
+- one-issue-at-a-time flow added
+- hard length limits enforced
+- AI card presentation improved
+- premium micro-animations added
+- fallback handling improved
+- dashboard not redesigned
+
+FINAL OUTPUT
+Return:
+1. root causes found
+2. files changed
+3. backend schema/validation changes
+4. AI tone/control changes
+5. staged reveal flow summary
+6. one-issue-at-a-time flow summary
+7. frontend rendering/animation changes
+8. fallback/error handling summary
+9. any limitations
+
+The goal is not to make the AI talk more nicely. The goal is to stop the AI from blurting information out and make it feel like a controlled premium diagnosis system. Backend control is mandatory. Do not just visually hide a long response.

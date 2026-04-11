@@ -1,0 +1,128 @@
+14. ADD A “LAST ACTION RESULT” SURFACE
+After an action is taken, show what happened in a clean compact way.
+
+Examples:
+- Last change improved stability slightly
+- Cleaner reclaimed 320 MB
+- Tweak applied and verified
+- No measurable impact detected yet
+
+This helps create a feedback loop and gives the user a reason to trust the app.
+
+15. ADD A LIVE INTERFERENCE METER
+Add a simple but premium visual meter showing current system interference.
+
+Examples:
+- Low interference
+- Moderate interference
+- High interference
+
+This can be a compact horizontal meter or premium visual strip.
+It should feel system-aware and not fake.
+This is one of the best ways to make the dashboard feel alive without clutter.
+
+16. MAKE SCROLL DEPTH FEEL INTENTIONAL
+The dashboard currently does not have enough to scroll into.
+
+With the new sections:
+- Since Last Session
+- Recent Events
+- Active Analysis
+- Why Your FPS Feels Off
+- Current Bottleneck
+- Last Action Result
+- Live Interference Meter
+
+make sure the page now has meaningful depth below the fold without becoming cluttered.
+
+The user should feel rewarded for scrolling.
+
+17. KEEP EVERYTHING SHARP AND PREMIUM
+All new surfaces should match the SwitchControl premium visual language:
+- glass
+- glow
+- premium spacing
+- fluid controlled animations
+- strong hierarchy
+- clean typography
+- no generic dashboard clutter
+
+18. BACKEND / STATE REQUIREMENTS
+Where relevant, wire backend/state support for:
+- session-to-session comparison
+- recent events feed
+- current bottleneck calculation
+- current system state
+- last action result
+- interference estimation
+- confidence labels where diagnosis is inferred
+
+Do not fake these.
+If some items are estimated or limited, expose that honestly.
+
+19. PERFORMANCE / STABILITY
+Do not overload the dashboard.
+
+Need:
+- smooth performance
+- no layout bugs
+- no overflowing content
+- no event spam
+- no stuttery animations
+- clean updates
+- no UI dead zones
+- no broken empty states
+
+20. FINAL QUALITY STANDARD
+By the end of this task, the dashboard should feel:
+- alive
+- helpful
+- intelligent
+- reactive
+- premium
+- worth opening repeatedly
+
+It should stop feeling like a static UI showcase and start feeling like a live system command surface.
+
+CHECKLIST
+- existing dashboard structure preserved
+- graph upgraded to show meaning
+- micro reaction after actions added
+- system state anchor added
+- generic text removed
+- AI Advisor made useful directly on dashboard
+- subtle always-on motion added
+- Since Last Session section added
+- Recent Events section added
+- Active Analysis section added
+- Why Your FPS Feels Off surface added
+- Current Bottleneck surface added
+- confidence layer added
+- Last Action Result surface added
+- Live Interference Meter added
+- dashboard has meaningful scroll depth
+- backend/state support added where required
+- no fake system intelligence
+- no clutter
+- no dashboard redesign
+
+FINAL OUTPUT
+Return:
+1. files changed
+2. dashboard areas upgraded
+3. graph meaning improvements
+4. AI Advisor dashboard behavior changes
+5. generic text removed/replaced
+6. system state logic summary
+7. Since Last Session logic summary
+8. Recent Events logic summary
+9. Active Analysis summary
+10. Why Your FPS Feels Off summary
+11. Current Bottleneck summary
+12. confidence/interference/last action result summary
+13. backend/state changes
+14. animation/micro-motion summary
+15. performance/stability notes
+16. any limitations
+
+

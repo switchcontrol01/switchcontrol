@@ -1,0 +1,111 @@
+8. FRONTEND STATE MUST BE BACKEND-DRIVEN
+Frontend cannot invent state.
+
+Fix App Booster so:
+- selected game state comes from real data
+- optimized/not optimized comes from backend
+- applying/reverting/loading states are accurate
+- action buttons wait for backend
+- status chips and profile badges reflect real backend truth
+
+No hardcoded or fake “optimized” visuals.
+
+9. PAGE REDESIGN
+Now redesign the page visually, but keep the backend as the priority.
+
+Need stronger layout:
+- left game library
+- stronger selected-game hero/control area
+- grouped profile actions
+- clearer action/results area
+- stronger state presentation
+
+The redesign should support the real backend flow, not just look better.
+
+10. GROUP APP BOOSTER CONTROLS
+Organize App Booster actions into strong categories, such as:
+- CPU
+- GPU
+- Memory
+- Network
+- Visual / Overlays / System Behavior
+
+These groups should map cleanly to real backend actions and profile definitions.
+
+11. APPLY / REVERT ACTION AREA
+Create a clear action area for:
+- Apply Profile
+- Revert Profile
+- current status
+- last applied result
+- restart/game relaunch notice
+
+This area must be backend-driven.
+
+12. HISTORY / LOGGING
+Add logging/history for App Booster operations.
+
+Need logs for:
+- selected game
+- profile action
+- applied/reverted actions
+- result
+- verification state
+- timestamp
+- error if failed
+
+This should help debugging and future trust features.
+
+13. EMPTY / ERROR / LIMITED STATES
+Handle real-world limitations honestly:
+- no games found
+- game not installed
+- profile unavailable
+- backend action unsupported
+- permission failure
+- verification failure
+
+Need polished but honest states.
+No fake success.
+
+14. KEEP IT REAL
+If some current App Booster features cannot truly be implemented right now:
+- mark them unsupported
+- degrade gracefully
+- do not leave fake interaction paths
+
+15. QUALITY STANDARD
+By the end of this task, App Booster must behave like a real system utility:
+- scan/select game
+- view real profile
+- apply real profile
+- verify result
+- show honest status
+- revert where possible
+- log results
+- no placebo behavior
+
+CHECKLIST
+- full App Booster backend audit completed
+- real backend system implemented/fixed
+- real game/profile logic exists
+- real apply flow exists
+- real revert flow exists
+- verification layer exists
+- frontend state is backend-driven
+- layout redesigned cleanly
+- selected-game UX improved
+- no fake optimized states remain
+- logs/history improved
+
+FINAL OUTPUT
+Return:
+1. root causes found
+2. files changed
+3. backend architecture added/fixed
+4. profile system summary
+5. game library/backend state summary
+6. apply/revert/verification flow summary
+7. frontend redesign summary
+8. unsupported or deferred parts
+9. performance/stability notes
