@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { z } from "zod";
 import { setupGoogleAuth, requirePremium } from "./auth/google";
 import { setupDiscordAuth } from "./auth/discord";
-import { getUncachableStripeClient, getStripePublishableKey, isTestMode } from "./stripeClient";
+import { getUncachableStripeClient, getStripePublishableKey } from "./stripeClient";
 import { isPremiumTweakById } from "../shared/tweak-tiers";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
@@ -400,6 +400,7 @@ export async function registerRoutes(
       }
 
       if (dbUser.isPremium) {
+        console.log(`[Stripe] Checkout blocked — user ${dbUser.id} is already premium`);
         return res.status(400).json({ error: "already_premium" });
       }
 
@@ -409,22 +410,35 @@ export async function registerRoutes(
       const domains = process.env.REPLIT_DOMAINS?.split(',') || [];
       const devDomain = domains.find(d => d.endsWith('.replit.app')) || domains[0];
       const baseUrl = isProduction ? productionDomain : `https://${devDomain}`;
-      const testMode = isTestMode();
-      
-      const priceId = process.env.STRIPE_PRICE_ID;
-      
+
+      const priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
+
       if (!priceId) {
-        console.error("STRIPE_PRICE_ID not configured");
-        return res.status(500).json({ error: "Stripe not configured properly" });
+        console.error("[Stripe] STRIPE_PREMIUM_PRICE_ID not configured — cannot create checkout session");
+        return res.status(500).json({ error: "Billing not configured. Contact support." });
+      }
+
+      // Always resolve a Stripe customer ID so the webhook can fall back to it if needed.
+      let customerId = dbUser.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: dbUser.email || undefined,
+          metadata: { userId: dbUser.id },
+        });
+        customerId = customer.id;
+        await storage.updateUserStripeInfo(dbUser.id, { stripeCustomerId: customerId });
+        console.log(`[Stripe] Created Stripe customer ${customerId} for user ${dbUser.id}`);
       }
 
       const sessionConfig: any = {
+        customer: customerId,
         payment_method_types: ['card'],
         line_items: [{
           price: priceId,
           quantity: 1,
         }],
         mode: 'payment',
+        allow_promotion_codes: true,
         success_url: `${baseUrl}/success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/pricing`,
         client_reference_id: dbUser.id,
@@ -434,32 +448,23 @@ export async function registerRoutes(
         },
       };
 
-      if (!testMode) {
-        let customerId = dbUser.stripeCustomerId;
-        if (!customerId) {
-          const customer = await stripe.customers.create({
-            email: dbUser.email || undefined,
-            metadata: { userId: dbUser.id },
-          });
-          customerId = customer.id;
-          await storage.updateUserStripeInfo(dbUser.id, { stripeCustomerId: customerId });
-        }
-        sessionConfig.customer = customerId;
-      }
-
+      console.log(`[Stripe] Creating checkout session — userId=${dbUser.id} customerId=${customerId} priceId=${priceId} baseUrl=${baseUrl}`);
       const session = await stripe.checkout.sessions.create(sessionConfig);
+      console.log(`[Stripe] Checkout session created: ${session.id} for userId=${dbUser.id}`);
 
       res.json({ url: session.url });
     } catch (error: any) {
-      console.error("Checkout session error:", error);
-      res.status(500).json({ error: error.message || "Failed to create checkout session" });
+      console.error("[Stripe] Checkout session creation error:", error.message);
+      res.status(500).json({ error: "Failed to create checkout session. Please try again." });
     }
   });
 
+  // Read-only payment status check — used by the success page to show the correct state.
+  // This route NEVER grants premium. Premium is exclusively granted by the Stripe webhook.
   app.post("/api/stripe/confirm", async (req, res) => {
     try {
       const { session_id } = req.body;
-      if (!session_id) {
+      if (!session_id || typeof session_id !== 'string') {
         return res.status(400).json({ ok: false, error: "session_id required" });
       }
 
@@ -467,35 +472,39 @@ export async function registerRoutes(
       const session = await stripe.checkout.sessions.retrieve(session_id);
 
       if (session.payment_status !== 'paid') {
+        console.log(`[Stripe] /confirm — session ${session_id} not paid yet (status=${session.payment_status})`);
         return res.status(400).json({ ok: false, error: "not_paid" });
       }
 
+      // Verify the session belongs to the logged-in user.
       const checkoutUserId = session.client_reference_id || session.metadata?.userId;
       const loggedInUser = (req as any).user;
-      
+
       if (!checkoutUserId) {
+        console.error(`[Stripe] /confirm — session ${session_id} has no user mapping`);
         return res.status(400).json({ ok: false, error: "missing_user_mapping" });
       }
 
       if (loggedInUser?.id && loggedInUser.id !== checkoutUserId) {
-        console.error(`[STRIPE] User mismatch: logged in as ${loggedInUser.id}, checkout was for ${checkoutUserId}`);
+        console.error(`[Stripe] /confirm — user mismatch: logged in as ${loggedInUser.id}, session was for ${checkoutUserId}`);
         return res.status(403).json({ ok: false, error: "user_mismatch" });
       }
 
+      // Look up current premium status from DB — set exclusively by the webhook.
       const dbUser = await storage.getUser(checkoutUserId);
       if (!dbUser) {
         return res.status(404).json({ ok: false, error: "user_not_found" });
       }
 
-      if (!dbUser.isPremium) {
-        await storage.setUserPremium(checkoutUserId, true);
-        console.log(`[STRIPE] Premium activated for user ${checkoutUserId}`);
-      }
+      const isPremium = dbUser.isPremium;
+      console.log(`[Stripe] /confirm — session ${session_id} paid, userId=${checkoutUserId} isPremium=${isPremium} (webhook is source of truth)`);
 
-      res.json({ ok: true, userId: checkoutUserId, authenticated: !!loggedInUser?.id });
+      // Return current premium status. If isPremium is false, the webhook has not yet fired.
+      // The client should poll /api/user/premium-status until isPremium becomes true.
+      res.json({ ok: true, isPremium, waitingForWebhook: !isPremium, userId: checkoutUserId });
     } catch (error: any) {
-      console.error("Confirm error:", error);
-      res.status(500).json({ ok: false, error: error.message || "Failed to confirm payment" });
+      console.error("[Stripe] /confirm error:", error.message);
+      res.status(500).json({ ok: false, error: "Failed to check payment status." });
     }
   });
 

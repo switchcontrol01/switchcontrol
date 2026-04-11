@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { WebsiteBackground } from "@/components/website/WebsiteBackground";
 
 
-type ConfirmState = "loading" | "success" | "error";
+type ConfirmState = "loading" | "activating" | "success" | "error";
 type AnimPhase = "idle" | "stroke" | "check" | "glow" | "text" | "buttons" | "ready";
 
 function usePrefersReducedMotion() {
@@ -185,6 +185,11 @@ export default function Success() {
   const showText = phaseIndex >= 4;
   const showButtons = phaseIndex >= 5;
 
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pollCountRef = useRef(0);
+  const POLL_INTERVAL_MS = 1500;
+  const POLL_MAX_ATTEMPTS = 20; // 30 seconds total
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const sessionId = params.get("session_id");
@@ -195,8 +200,46 @@ export default function Success() {
       return;
     }
 
-    const confirmPayment = async () => {
+    const stopPolling = () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+
+    const checkPremiumStatus = async (): Promise<boolean> => {
+      const res = await fetch("/api/user/premium-status", { credentials: "include" });
+      const data = await res.json();
+      return data.isPremium === true;
+    };
+
+    const startPolling = () => {
+      pollCountRef.current = 0;
+      pollRef.current = setInterval(async () => {
+        pollCountRef.current += 1;
+        try {
+          const isPremium = await checkPremiumStatus();
+          if (isPremium) {
+            stopPolling();
+            await refetch();
+            setState("success");
+            return;
+          }
+        } catch {
+          // network blip — keep polling
+        }
+        if (pollCountRef.current >= POLL_MAX_ATTEMPTS) {
+          stopPolling();
+          setState("error");
+          setError("Your payment was received, but premium activation is taking longer than expected. Please refresh the page in a few minutes or contact support.");
+        }
+      }, POLL_INTERVAL_MS);
+    };
+
+    const verifyAndWait = async () => {
       try {
+        // Step 1: Verify payment is confirmed and get current premium status.
+        // /api/stripe/confirm is READ-ONLY — it never writes premium.
         const response = await fetch("/api/stripe/confirm", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -206,25 +249,41 @@ export default function Success() {
 
         const data = await response.json();
 
-        if (data.ok) {
-          await refetch();
-          await new Promise((resolve) => setTimeout(resolve, 300));
+        if (!data.ok) {
+          if (data.error === "user_mismatch") {
+            setState("error");
+            setError("Session mismatch. Please log in with the account you used for checkout.");
+          } else if (data.error === "not_paid") {
+            setState("error");
+            setError("Payment not completed. If you were charged, please contact support.");
+          } else {
+            setState("error");
+            setError(data.error || "Failed to verify payment.");
+          }
+          return;
+        }
+
+        // Step 2: If webhook already fired before we landed here, go straight to success.
+        if (data.isPremium) {
           await refetch();
           setState("success");
-        } else if (data.error === "user_mismatch") {
-          setState("error");
-          setError("Session mismatch. Please log in with the account you used for checkout.");
-        } else {
-          setState("error");
-          setError(data.error || "Failed to confirm payment");
+          return;
         }
+
+        // Step 3: Payment is confirmed but webhook hasn't fired yet — wait for it.
+        setState("activating");
+        startPolling();
       } catch (err: any) {
         setState("error");
-        setError(err.message || "Network error");
+        setError(err.message || "Network error. Please check your connection.");
       }
     };
 
-    confirmPayment();
+    verifyAndWait();
+
+    return () => {
+      stopPolling();
+    };
   }, [refetch]);
 
   const handleOpenApp = useCallback(() => {
@@ -288,6 +347,38 @@ export default function Success() {
               style={{ letterSpacing: "0.2em", animation: "loadingPulse 2s ease-in-out infinite" }}
             >
               Verifying payment
+            </p>
+          </div>
+        )}
+
+        {state === "activating" && (
+          <div className="text-center">
+            <div className="relative w-16 h-16 mx-auto mb-8">
+              <svg viewBox="0 0 64 64" className="w-16 h-16">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="rgba(168,132,255,0.15)" strokeWidth="1.5" />
+                <circle
+                  cx="32"
+                  cy="32"
+                  r="28"
+                  fill="none"
+                  stroke="rgba(168,132,255,0.7)"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeDasharray="40 136"
+                  transform="rotate(-90 32 32)"
+                  className="animate-spin"
+                  style={{ animationDuration: "1.8s" }}
+                />
+              </svg>
+            </div>
+            <p
+              className="text-sm text-white/60 tracking-widest uppercase mb-2"
+              style={{ letterSpacing: "0.2em", animation: "loadingPulse 2s ease-in-out infinite" }}
+            >
+              Payment confirmed
+            </p>
+            <p className="text-xs text-white/25 tracking-wider" style={{ letterSpacing: "0.1em" }}>
+              Activating your premium account…
             </p>
           </div>
         )}

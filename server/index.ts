@@ -11,7 +11,7 @@ import crypto from "crypto";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
-import { getStripeClient, isStripeConfigured } from "./stripeClient";
+import { getStripeClient, isStripeConfigured, logStripeStartupConfig } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
 import { csrfTokenMiddleware } from "./middleware/csrf";
 import { runJwtSelfTest } from "./lib/jwt";
@@ -118,6 +118,7 @@ declare module "http" {
 }
 
 async function initStripe() {
+  logStripeStartupConfig();
   if (!isStripeConfigured) {
     return;
   }
