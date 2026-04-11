@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { sql } from "drizzle-orm";
-import { db, isNoDbMode } from "../db";
+import { pool, db, isNoDbMode } from "../db";
 import { SUPPORTED_GAMES, buildActionsForGame, getGameBySlug, PROFILES } from "../lib/appBoosterProfiles";
 
 const router = Router();

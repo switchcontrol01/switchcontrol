@@ -1,6 +1,6 @@
 /**
  * Network Tweaks backend — state persistence and execution log.
- * Uses Drizzle sql`` template literals — does NOT modify shared/schema.ts.
+ * Uses Drizzle's sql template literals — does NOT modify shared/schema.ts.
  */
 
 import { Router } from "express";
@@ -42,9 +42,11 @@ initTables().catch(err => console.error("[NetworkTweaks] table init error:", err
 router.get("/state", async (_req, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, state: {} });
   try {
-    const result = await db.execute(
-      sql`SELECT tweak_id, status, last_result, applied_at, updated_at FROM network_tweak_state ORDER BY tweak_id`
-    );
+    const result = await db.execute(sql`
+      SELECT tweak_id, status, last_result, applied_at, updated_at
+      FROM network_tweak_state
+      ORDER BY tweak_id
+    `);
     const stateMap: Record<string, { status: string; lastResult: unknown; appliedAt: string | null }> = {};
     for (const row of result.rows) {
       stateMap[row.tweak_id as string] = {
@@ -96,20 +98,20 @@ router.post("/:tweakId/report", async (req, res) => {
     const resultJson = JSON.stringify({ action, success, verified, message });
     const appliedAt = success && action === "enable" ? new Date() : null;
 
-    await db.execute(
-      sql`INSERT INTO network_tweak_state (tweak_id, status, last_result, applied_at, updated_at)
-          VALUES (${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
-          ON CONFLICT (tweak_id) DO UPDATE
-            SET status      = EXCLUDED.status,
-                last_result = EXCLUDED.last_result,
-                applied_at  = EXCLUDED.applied_at,
-                updated_at  = NOW()`
-    );
+    await db.execute(sql`
+      INSERT INTO network_tweak_state (tweak_id, status, last_result, applied_at, updated_at)
+      VALUES (${tweakId}, ${status}, ${resultJson}::jsonb, ${appliedAt}, NOW())
+      ON CONFLICT (tweak_id) DO UPDATE
+        SET status      = EXCLUDED.status,
+            last_result = EXCLUDED.last_result,
+            applied_at  = EXCLUDED.applied_at,
+            updated_at  = NOW()
+    `);
 
-    await db.execute(
-      sql`INSERT INTO network_tweak_log (tweak_id, action, success, verified, message)
-          VALUES (${tweakId}, ${action}, ${success}, ${verified}, ${message ?? null})`
-    );
+    await db.execute(sql`
+      INSERT INTO network_tweak_log (tweak_id, action, success, verified, message)
+      VALUES (${tweakId}, ${action}, ${success}, ${verified}, ${message ?? null})
+    `);
 
     return res.json({ ok: true, tweakId, status });
   } catch (err: unknown) {
@@ -124,9 +126,12 @@ router.post("/:tweakId/report", async (req, res) => {
 router.get("/log", async (_req, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, log: [] });
   try {
-    const result = await db.execute(
-      sql`SELECT id, tweak_id, action, success, verified, message, created_at FROM network_tweak_log ORDER BY created_at DESC LIMIT 200`
-    );
+    const result = await db.execute(sql`
+      SELECT id, tweak_id, action, success, verified, message, created_at
+      FROM network_tweak_log
+      ORDER BY created_at DESC
+      LIMIT 200
+    `);
     return res.json({ ok: true, log: result.rows });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
