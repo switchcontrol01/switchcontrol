@@ -13,6 +13,7 @@ import { Tweak, RiskLevel, TweakLevel, TweakExpected, ImpactLevel } from "@/lib/
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
 import { isTweakPremium } from "@/lib/premium-config";
+import { premiumColor } from "@/lib/themeTokens";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumBadge } from "@/components/ui/animated-crown";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
@@ -258,6 +259,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
 
   return (
     <>
+      <div className={isLocked ? "relative" : undefined}>
       <motion.div
         whileHover={{ scale: prefersReducedMotion ? 1.005 : 1.01, y: prefersReducedMotion ? -1 : -2 }}
         transition={{ duration: prefersReducedMotion ? 0.1 : 0.2 }}
@@ -371,6 +373,44 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
           <TrustLayer tweak={tweak} isOpen={trustOpen} />
         </GlassCard>
       </motion.div>
+
+      {/* Glass gate overlay — shown on every locked premium tweak */}
+      {isLocked && (
+        <div
+          className="absolute inset-0 rounded-xl overflow-hidden flex items-center justify-center cursor-pointer"
+          style={{ backdropFilter: "blur(6px)", background: "rgba(7,9,13,0.55)" }}
+          onClick={() => openUpgradeModal("Premium Tweak")}
+          data-testid={`gate-premium-${tweak.id}`}
+        >
+          <motion.div
+            className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border"
+            style={{
+              background: "linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(210,195,255,0.08) 50%, rgba(255,255,255,0.10) 100%)",
+              borderColor: "rgba(255,255,255,0.18)",
+              boxShadow: "0 4px 20px rgba(0,0,0,0.30), 0 0 0 1px rgba(255,255,255,0.04) inset",
+              backdropFilter: "blur(16px)",
+            }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            onClick={(e: React.MouseEvent) => e.stopPropagation()}
+          >
+            <Crown className="size-3.5 flex-shrink-0" style={{ color: premiumColor.light }} />
+            <span className="text-xs font-medium text-white/90 max-w-[200px] truncate">{tweak.title}</span>
+            <span className="text-[10px] text-white/35 hidden sm:inline">· Premium</span>
+            <Button
+              size="sm"
+              className="h-6 px-2.5 text-[10px] ml-0.5 text-white border-0 flex-shrink-0"
+              style={{ background: `linear-gradient(to right, ${premiumColor.main}, ${premiumColor.end})` }}
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); openUpgradeModal("Premium Tweak"); }}
+              data-testid={`button-unlock-${tweak.id}`}
+            >
+              Unlock
+            </Button>
+          </motion.div>
+        </div>
+      )}
+      </div>
 
       {/* Detail modal — portalled to body so CSS transforms on ancestors don't break fixed positioning */}
       {createPortal(

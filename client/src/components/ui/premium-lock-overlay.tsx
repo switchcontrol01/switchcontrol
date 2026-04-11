@@ -47,13 +47,15 @@ export function PremiumLockOverlay({
 
       <div
         className="absolute inset-0 flex items-center justify-center z-10"
+        style={{ backdropFilter: "blur(6px)", background: "rgba(7,9,13,0.45)" }}
         onClick={trigger}
       >
         <motion.div
-          className="text-center space-y-3 p-6 rounded-2xl backdrop-blur-md border max-w-sm mx-4"
+          className="text-center space-y-3 p-6 rounded-2xl backdrop-blur-xl border max-w-sm mx-4 shadow-2xl"
           style={{
-            background: `linear-gradient(135deg, hsl(270,60%,20%,0.85), hsl(270,50%,15%,0.9), hsl(280,60%,15%,0.85))`,
-            borderColor: `hsl(270,60%,55%,0.25)`,
+            background: `linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(210,195,255,0.08) 50%, rgba(255,255,255,0.10) 100%)`,
+            borderColor: `rgba(255,255,255,0.18)`,
+            boxShadow: "0 8px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset",
           }}
           {...(bounceProps as any)}
           onClick={(e: React.MouseEvent) => e.stopPropagation()}

@@ -48,10 +48,10 @@ export const premiumRgba = {
 
 // ── Overlay card background ────────────────────────────────────────────────────
 export const premiumOverlay = {
-  /** gradient-br background for premium card dialogs */
-  cardBg:   `linear-gradient(135deg, hsl(270,60%,20%,0.90), hsl(270,50%,15%,0.95), hsl(280,60%,15%,0.90))`,
-  /** border for premium card dialogs */
-  cardBorder: "hsl(270,60%,55%,0.25)",
+  /** Glass-morphism white card with a very subtle purple tint */
+  cardBg:     `linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(210,195,255,0.08) 50%, rgba(255,255,255,0.10) 100%)`,
+  /** Crisp white border with faint lavender tint */
+  cardBorder: `rgba(255,255,255,0.18)`,
 } as const;
 
 // ── Glow shadow presets ────────────────────────────────────────────────────────

@@ -75,10 +75,11 @@ export function PremiumOverlayCard({
 
   const cardInner = (
     <motion.div
-      className="text-center space-y-4 p-6 rounded-2xl backdrop-blur-md max-w-sm mx-4 border"
+      className="text-center space-y-4 p-6 rounded-2xl backdrop-blur-xl max-w-sm mx-4 border shadow-2xl"
       style={{
         background: premiumOverlay.cardBg,
         borderColor: premiumOverlay.cardBorder,
+        boxShadow: "0 8px 40px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.06) inset",
       }}
       initial={{ opacity: 0, scale: 0.95, y: 8 }}
       {...(bounceProps as any)}
@@ -112,7 +113,8 @@ export function PremiumOverlayCard({
   if (variant === "page") {
     return (
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-[1px] ${className ?? ""}`}
+        className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm ${className ?? ""}`}
+        style={{ background: "rgba(7,9,13,0.55)" }}
         onClick={handleOuterClick}
         data-testid="premium-overlay"
       >
