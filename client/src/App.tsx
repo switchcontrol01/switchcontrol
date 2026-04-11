@@ -702,9 +702,8 @@ function ElectronAppContent() {
           <motion.div
             key="login"
             initial={{ opacity: 0, filter: "blur(14px)", scale: 1.014 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-            exit={{ opacity: 0, filter: "blur(32px)", scale: 0.958 }}
-            transition={{ duration: 0.95, ease: [0.4, 0, 0.15, 1] }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 0.95, ease: [0.4, 0, 0.15, 1] } }}
+            exit={{ opacity: 0, filter: "blur(40px)", scale: 0.94, transition: { duration: 1.2, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
           >
             <LoginScreen succeeded={phase === "login_success"} />
@@ -714,10 +713,9 @@ function ElectronAppContent() {
         {phase === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, filter: "blur(22px)", scale: 1.018 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1 }}
-            exit={{ opacity: 0, filter: "blur(8px)" }}
-            transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, filter: "blur(28px)", scale: 1.022 }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 1.2, delay: 0.3, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, filter: "blur(8px)", transition: { duration: 0.55 } }}
             className="h-full"
           >
             <WelcomeAnimation 
