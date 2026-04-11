@@ -1,0 +1,96 @@
+TASK
+
+Redesign the "System Upgraded" animation to feel cinematic, premium, and fluid.
+
+The current animation is too fast, flat, and lacks depth. It feels rushed and does not match the quality of the premium tours or graph animations.
+
+PROBLEM
+
+Current issues:
+
+- animation is too short and abrupt
+- elements appear at the same time
+- no anticipation or buildup
+- no layered depth
+- no smooth easing
+- no premium feel
+- looks like a basic popup instead of a major upgrade event
+
+GOAL
+
+Create a high-end cinematic upgrade sequence that:
+
+- builds anticipation
+- feels smooth and fluid
+- has layered motion and depth
+- visually communicates power and unlock
+- matches the premium quality of the rest of the app
+
+TARGET DURATION
+
+Total animation duration: 2.5s to 3.5s
+
+ANIMATION STRUCTURE
+
+PHASE 1: DETECTION (0ms → 600ms)
+
+- dim and slightly blur background
+- introduce subtle radial gradient pulse from center
+- show small text: "Applying upgrade..."
+- very soft glow begins behind logo position
+
+PHASE 2: ACTIVATION (600ms → 1600ms)
+
+- animate circular rings expanding outward (smooth, not instant)
+- add light particles or streak motion radiating outward
+- scale logo slightly (1 → 1.08 → settle back)
+- introduce subtle energy pulse effect
+- background gradient shifts slowly
+
+PHASE 3: COMPLETION (1600ms → 3000ms)
+
+- strong glow pulse
+- reveal main text: "System Upgraded" with slight upward motion + fade
+- delay subtext by ~200ms:
+  "Premium features unlocked"
+- optional: small UI highlights (icons, graph flicker, etc.)
+
+MOTION REQUIREMENTS
+
+- use smooth easing functions (easeOutExpo, easeInOutCubic)
+- no linear animations
+- stagger all elements (nothing appears at the same time)
+- ensure motion is fluid, not abrupt
+
+VISUAL REQUIREMENTS
+
+- maintain existing brand colors (purple / neon glow)
+- add depth using:
+  - blur layers
+  - glow layers
+  - background gradient movement
+- avoid clutter, keep it clean but premium
+
+PERFORMANCE
+
+- ensure animation runs smoothly in Electron
+- avoid heavy particle systems that cause frame drops
+- use CSS transforms / opacity where possible
+
+CODE SUGGESTION (optional)
+
+Use framer-motion for sequencing:
+
+- AnimatePresence for entry/exit
+- motion.div for staged transitions
+- staggerChildren for timing
+- use variants for each phase
+
+FINAL OUTPUT
+
+Return:
+
+- description of new animation flow
+- components modified
+- timing breakdown
+- confirmation it runs smoothly without frame drops
