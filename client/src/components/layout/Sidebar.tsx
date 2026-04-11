@@ -498,14 +498,7 @@ export function Sidebar() {
             {/* User info */}
             <div className="flex flex-col flex-1 min-w-0 gap-0.5">
               <span className="text-sm font-medium text-white truncate">{userName}</span>
-              {isPremium ? (
-                <div className="premium-badge">
-                  <span className="crown-animated">
-                    <Crown className="size-2.5" style={{ color: "hsl(48 95% 70%)" }} />
-                  </span>
-                  <span className="premium-badge-text">Premium</span>
-                </div>
-              ) : trialOn ? (
+              {trialOn ? (
                 <motion.div
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-full w-fit"
                   style={{
@@ -520,6 +513,13 @@ export function Sidebar() {
                     {trialLabel}
                   </span>
                 </motion.div>
+              ) : isPremium ? (
+                <div className="premium-badge">
+                  <span className="crown-animated">
+                    <Crown className="size-2.5" style={{ color: "hsl(48 95% 70%)" }} />
+                  </span>
+                  <span className="premium-badge-text">Premium</span>
+                </div>
               ) : (
                 <div className="free-badge">
                   <span className="free-badge-text">Free</span>

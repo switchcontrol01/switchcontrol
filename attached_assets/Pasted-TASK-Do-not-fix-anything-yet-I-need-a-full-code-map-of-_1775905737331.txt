@@ -1,0 +1,131 @@
+TASK
+
+Do not fix anything yet.
+
+I need a full code map of the onboarding / guided tour system that is currently breaking layout, darkening the app, and causing positioning/frame issues.
+
+Your job is to locate every file, component, style source, and state path involved in the tour system.
+
+I only want identification and tracing. No code changes yet.
+
+GOAL
+
+Tell me exactly where the tour code lives and which files control:
+
+- the tour steps
+- the overlay/backdrop
+- the spotlight/highlight
+- the tooltip/card/popup
+- the mounting location
+- the state that opens/closes it
+- any styles or layout logic that affect the rest of the app while the tour is active
+
+RETURN THIS IN A CLEAN STRUCTURED FORMAT
+
+1. TOUR ENTRY POINT
+
+- main file path
+- component name
+- where the tour is initialized
+- where it is rendered in the app tree
+
+2. TOUR LIBRARY
+
+- exact library/package name being used
+- any wrappers around it
+- any custom hooks related to it
+
+3. STEP CONFIG
+
+- file path(s) where the steps are defined
+- where targets/selectors are assigned
+- where step content is written
+- where next/back/close logic is handled
+
+4. OPEN/CLOSE STATE
+
+- file path(s) that control whether the tour is active
+- state variable names
+- any context/store involved
+- any persisted flags like localStorage, user profile flags, onboarding complete flags
+
+5. OVERLAY / BACKDROP
+
+- exact file path and component controlling the dark screen overlay
+- all related class names
+- all related styles
+- whether the overlay comes from the library or custom code
+
+6. TOOLTIP / MODAL / CARD
+
+- exact file path and component for the visible tour popup/card
+- classes/styles applied to it
+- any glass / blur / background styles affecting it
+
+7. SPOTLIGHT / HIGHLIGHT
+
+- where the spotlight around the selected element is configured
+- padding/radius config
+- mask/cutout settings
+- whether this is library default or custom
+
+8. GLOBAL SIDE EFFECTS
+   Tell me every place where the tour changes any global or layout-affecting behavior, including:
+
+- body overflow
+- html overflow
+- scroll lock
+- position changes
+- transforms
+- z-index layers
+- pointer-events
+- fixed/inset overlays
+- app shell class changes
+
+9. PORTAL / MOUNT LOCATION
+
+- does the tour render inside the normal app layout or via portal
+- if portal is used, where
+- if not portal, which parent containers it sits inside
+
+10. RELEVANT PARENT CONTAINERS
+    List the exact parent components/wrappers above the tour that may affect positioning, including any wrappers using:
+
+- transform
+- filter
+- backdrop-filter
+- perspective
+- overflow hidden
+- motion.div
+- sticky/fixed layouts
+
+11. FILE LIST
+    At the end, give me one simple list of every relevant file path for the tour system.
+
+IMPORTANT
+
+Do NOT say vague things like:
+
+- “the issue may be in the overlay”
+- “it could be a z-index problem”
+
+I want exact file paths, component names, state variable names, and class names.
+
+Also do NOT fix or change anything yet.
+Just map the system so I can inspect it properly.
+
+FINAL OUTPUT FORMAT
+
+Use this exact structure:
+
+- Tour entry point:
+- Tour library:
+- Step config files:
+- Open/close state:
+- Overlay/backdrop files:
+- Tooltip/card files:
+- Spotlight/highlight config:
+- Global side effects:
+- Portal/mount location:
+- Parent containers affecting layout:
+- Full relevant file list:

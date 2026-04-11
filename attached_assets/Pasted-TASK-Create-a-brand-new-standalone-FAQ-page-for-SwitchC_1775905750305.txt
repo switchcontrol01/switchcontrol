@@ -1,0 +1,148 @@
+TASK
+
+Create a brand new standalone FAQ page for SwitchControl and upgrade it heavily so it no longer feels bland, generic, or like a basic landing-page accordion.
+
+The current FAQ should no longer just scroll to a section on the homepage.
+
+Instead, the navbar FAQ item must route to a full dedicated page:
+
+"/faq"
+
+PROBLEM
+
+The current FAQ feels weak for several reasons:
+
+- it is not a separate page
+- it just scrolls down the homepage
+- the layout is too basic
+- the styling is too plain
+- it does not feel premium or product-driven
+- it does not match the quality SwitchControl should present
+
+Right now it looks like a default FAQ block, not something built for a premium Windows optimization platform.
+
+GOAL
+
+Build a unique, visually strong, animated FAQ page that:
+
+- feels like a real product page
+- matches the premium SwitchControl visual identity
+- answers user objections clearly
+- reinforces trust
+- explains important concerns with confidence
+- feels alive, fluid, and modern
+
+This page should not just be “questions and dropdowns”.
+
+It should feel like a polished support + product confidence page.
+
+ROUTING REQUIREMENTS
+
+1. Create a standalone route:
+
+- "/faq"
+
+2. Update navigation:
+
+- navbar FAQ should route to "/faq"
+- footer FAQ should route to "/faq"
+- remove homepage-only FAQ anchor scroll behavior
+
+PAGE STRUCTURE
+
+1. Hero Section
+   Create a strong hero for the FAQ page.
+
+It should include:
+
+- premium headline
+- supporting text
+- subtle animated background
+- glow, glass, depth, spotlight
+- visual continuity with the rest of the site
+
+Suggested tone:
+
+- clear
+- modern
+- reassuring
+- not corporate
+- not boring
+
+2. FAQ Intro / Trust Section
+   Before the questions, add a short section that explains what this page is for.
+
+Example direction:
+
+- common questions
+- safety concerns
+- compatibility
+- refunds
+- what makes SwitchControl different
+- what users should expect
+
+This helps the page feel intentional instead of immediately dumping users into accordions.
+
+3. Premium FAQ Experience
+   Do NOT use a bland default accordion layout.
+
+The FAQ section should feel custom and premium.
+
+Upgrade it with:
+
+- larger glass cards
+- smooth animated expand/collapse
+- subtle hover feedback
+- better spacing
+- stronger typography
+- visual hierarchy
+- motion that feels fluid and refined
+
+4. Add “info” and visual support
+   The FAQ page should not be pure text only.
+
+Include things like:
+
+- side info cards
+- highlight callouts
+- product reassurance blocks
+- “good to know” mini cards
+- compatibility notes
+- safety notes
+- animated support visuals
+- subtle icons or visual cues
+
+The goal is to make it feel rich and designed, not just functional.
+
+5. Organize Questions Better
+   Group the FAQ into logical categories instead of one generic list.
+
+Suggested categories:
+
+- General
+- Safety
+- Compatibility
+- Performance
+- Billing / Pricing / Refunds
+- Installation / Usage
+
+This will make the page feel much more thought through.
+
+6. Add Objection-Handling Content
+   This page should actively answer the doubts users actually have.
+
+Examples:
+
+- What makes SwitchControl different from other optimizers?
+- Is it safe to use?
+- Will it break my games?
+- Does it work with anti-cheat games like Fortnite or Valorant?
+- Do I need to be technical to use it?
+- Do I need to keep the app open while gaming?
+- Can I undo changes?
+- What happens if a tweak is not helpful for my system?
+- Is this just a one-click tweak app?
+- How does AI Advisor help?
+- What does BIOS Advisor do?
+- What is your refund policy?
+

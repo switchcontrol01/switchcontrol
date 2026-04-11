@@ -309,6 +309,7 @@ function ElectronAppContent() {
 
     if (
       user.isPremium === true &&
+      !trialOngoing &&
       user.hasSeenPremiumUnlock === false &&
       !localUnlockSeen &&
       !unlockFiredThisSessionRef.current
@@ -322,6 +323,7 @@ function ElectronAppContent() {
 
     if (
       user.isPremium === true &&
+      !trialOngoing &&
       user.hasSeenPremiumTour === false &&
       !localTourSeen &&
       !premiumTourFiredThisSessionRef.current
@@ -789,6 +791,14 @@ function ElectronAppContent() {
             console.log('[AppFlow] Trial tour complete — persisting');
             const store = useAuthStore.getState();
             if (store.user) store.setUser({ ...store.user, hasSeenTrialTour: true });
+            // Pre-arm premium flow guards so trial users can never bleed into premium flows
+            const userId = store.user?.id;
+            if (userId) {
+              localStorage.setItem(`sc_unlock_seen_${userId}`, '1');
+              localStorage.setItem(`sc_tour_seen_${userId}`, '1');
+            }
+            unlockFiredThisSessionRef.current = true;
+            premiumTourFiredThisSessionRef.current = true;
             await postTrialTourSeen();
             setActiveFlow("none");
           }}

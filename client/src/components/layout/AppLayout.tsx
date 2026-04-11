@@ -7,10 +7,12 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { NetworkStatusChip } from "@/components/NetworkStatusChip";
 import { useLocation, Link } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
-import { Loader2, Moon, Timer } from "lucide-react";
+import { Loader2, Moon, Timer, Zap } from "lucide-react";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useFocusStore } from "@/lib/focusStore";
+import { useAuth } from "@/hooks/use-auth";
+import { isTrialActive, formatTrialCountdown, getTrialTimeRemaining } from "@/lib/trialCountdown";
 
 function FocusModeBanner() {
   const { active, profileName, expiresAt } = useFocusStore();
@@ -52,6 +54,81 @@ function FocusModeBanner() {
           </div>
         )}
         <Link href="/focus" className="underline opacity-75 hover:opacity-100">Manage</Link>
+      </div>
+    </motion.div>
+  );
+}
+
+function TrialCountdownBanner() {
+  const { user } = useAuth();
+  const trialOn = isTrialActive(user?.plan ?? "free", user?.trialEndsAt ?? null);
+  const [label, setLabel] = useState(() => formatTrialCountdown(user?.trialEndsAt ?? null));
+  const [rem, setRem] = useState(() => getTrialTimeRemaining(user?.trialEndsAt ?? null));
+  const [dismissed, setDismissed] = useState(false);
+
+  useEffect(() => {
+    if (!trialOn || !user?.trialEndsAt) return;
+    const tick = () => {
+      setLabel(formatTrialCountdown(user.trialEndsAt));
+      setRem(getTrialTimeRemaining(user.trialEndsAt));
+    };
+    tick();
+    const id = setInterval(tick, 60_000);
+    return () => clearInterval(id);
+  }, [trialOn, user?.trialEndsAt]);
+
+  if (!trialOn || dismissed) return null;
+
+  const isUrgent = rem.days < 2;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.3 }}
+      className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur"
+      style={{
+        background: isUrgent
+          ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(168,85,247,0.14) 100%)"
+          : "linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(139,92,246,0.12) 100%)",
+        borderBottom: isUrgent
+          ? "1px solid rgba(220,38,38,0.3)"
+          : "1px solid rgba(6,182,212,0.25)",
+      }}
+      data-testid="trial-countdown-banner"
+    >
+      <div className="flex items-center gap-2 text-xs font-medium" style={{ color: isUrgent ? "rgba(248,113,113,0.95)" : "rgba(6,182,212,0.95)" }}>
+        {isUrgent ? (
+          <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
+            <div className="size-1.5 rounded-full bg-red-400" />
+          </motion.div>
+        ) : (
+          <div className="size-1.5 rounded-full" style={{ background: "rgba(6,182,212,0.85)" }} />
+        )}
+        <Timer className="size-3" />
+        <span>
+          {isUrgent ? "Trial ending soon — " : "Free trial active — "}
+          <span className="font-bold font-mono">{label}</span>
+          {" remaining"}
+        </span>
+      </div>
+      <div className="flex items-center gap-3">
+        <Link
+          href="/settings"
+          className="flex items-center gap-1 text-xs font-semibold underline-offset-2 hover:underline transition-opacity"
+          style={{ color: isUrgent ? "rgba(248,113,113,0.9)" : "rgba(6,182,212,0.9)" }}
+        >
+          <Zap className="size-3" />
+          Upgrade to Premium
+        </Link>
+        <button
+          onClick={() => setDismissed(true)}
+          className="text-white/30 hover:text-white/60 text-xs transition-colors ml-1"
+          aria-label="Dismiss"
+        >
+          ✕
+        </button>
       </div>
     </motion.div>
   );
@@ -162,6 +239,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
       <BackendStartingBanner />
       <AnimatePresence><FocusModeBanner /></AnimatePresence>
+      <AnimatePresence><TrialCountdownBanner /></AnimatePresence>
       
       <Sidebar />
       <div className="pl-64 pt-2 flex items-start gap-2 pr-4">
