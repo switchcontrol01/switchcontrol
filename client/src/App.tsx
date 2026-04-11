@@ -253,37 +253,64 @@ function ElectronAppContent() {
 
     const trialOngoing = isTrialActive(user.plan, user.trialEndsAt);
 
+    const localTrialUnlockKey  = `sc_trial_unlock_seen_${userId}`;
+    const localTrialTourKey    = `sc_trial_tour_seen_${userId}`;
+    const localTrialUnlockSeen = localStorage.getItem(localTrialUnlockKey) === '1';
+    const localTrialTourSeen   = localStorage.getItem(localTrialTourKey)   === '1';
+
     if (
       trialOngoing &&
       user.hasSeenTrialActivation === false &&
+      !localTrialUnlockSeen &&
       !trialUnlockFiredRef.current
     ) {
       console.log('[AppFlow] PRIORITY 2: Trial activation animation — triggering');
+      localStorage.setItem(localTrialUnlockKey, '1');
       trialUnlockFiredRef.current = true;
       setActiveFlow("trialUnlock");
       return;
     }
 
-    if (trialOngoing && user.hasSeenTrialTour === false && !trialTourFiredThisSessionRef.current) {
+    if (
+      trialOngoing &&
+      user.hasSeenTrialTour === false &&
+      !localTrialTourSeen &&
+      !trialTourFiredThisSessionRef.current
+    ) {
       console.log('[AppFlow] PRIORITY 3: Trial tour');
+      localStorage.setItem(localTrialTourKey, '1');
       trialTourFiredThisSessionRef.current = true;
       setActiveFlow("trialTour");
       return;
     }
 
+    // localStorage keys — act as a permanent local guard even if server save fails
+    const localUnlockKey  = `sc_unlock_seen_${userId}`;
+    const localTourKey    = `sc_tour_seen_${userId}`;
+    const localUnlockSeen = localStorage.getItem(localUnlockKey) === '1';
+    const localTourSeen   = localStorage.getItem(localTourKey)   === '1';
+
     if (
       user.isPremium === true &&
       user.hasSeenPremiumUnlock === false &&
+      !localUnlockSeen &&
       !unlockFiredThisSessionRef.current
     ) {
       console.log('[AppFlow] PRIORITY 4: Premium unlock animation — triggering');
+      localStorage.setItem(localUnlockKey, '1');  // guard immediately so restart can't re-trigger
       unlockFiredThisSessionRef.current = true;
       setActiveFlow("premiumUnlock");
       return;
     }
 
-    if (user.isPremium === true && user.hasSeenPremiumTour === false && !premiumTourFiredThisSessionRef.current) {
+    if (
+      user.isPremium === true &&
+      user.hasSeenPremiumTour === false &&
+      !localTourSeen &&
+      !premiumTourFiredThisSessionRef.current
+    ) {
       console.log('[AppFlow] PRIORITY 5: Premium guided tour');
+      localStorage.setItem(localTourKey, '1');    // guard immediately
       premiumTourFiredThisSessionRef.current = true;
       setActiveFlow("premiumTour");
       return;
