@@ -699,14 +699,14 @@ export default function Landing() {
           <HeroTiltContainer>
           <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">
             <div className="text-center">
-              <AnimateIn delay={0}>
+              <AnimateIn delay={180}>
                 <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-10">
                   <Activity className="size-3 text-primary/70" />
                   Engineering your PC for a competitive advantage.
                 </span>
               </AnimateIn>
 
-              <AnimateIn delay={100}>
+              <AnimateIn delay={360}>
                 <div className="ws-hero-text-float">
                   <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
                     <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow hero-text-light-catch">
@@ -722,14 +722,14 @@ export default function Landing() {
                 </div>
               </AnimateIn>
 
-              <AnimateIn delay={250}>
+              <AnimateIn delay={540}>
                 <p className="text-base md:text-lg font-medium text-white/45 mb-10 max-w-xl mx-auto leading-relaxed">
                   Lower input delay, stable FPS, cleaner network.
                   One app. Real results.
                 </p>
               </AnimateIn>
 
-              <AnimateIn delay={400}>
+              <AnimateIn delay={700}>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16">
                   <GlowButton
                     variant="cyan"
@@ -746,7 +746,7 @@ export default function Landing() {
                 </div>
               </AnimateIn>
 
-              <AnimateIn delay={500}>
+              <AnimateIn delay={900}>
                 <div className="max-w-2xl mx-auto" style={{ transform: "translateZ(40px)" }}>
                   <HeroAppMockup />
                 </div>
@@ -767,7 +767,7 @@ export default function Landing() {
                 { icon: Wifi, title: "Network Optimizer", desc: "TCP, UDP, DNS tuning for lower ping and stable connections.", animated: false },
                 { icon: Lock, title: "Safe & Reversible", desc: "Every change can be reverted. No critical files touched.", animated: true },
               ].map((item, i) => (
-                <Reveal key={item.title} delay={i * 0.1}>
+                <Reveal key={item.title} delay={0.05 + i * 0.15}>
                   <div className="flex flex-col items-center">
                     <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
                       {item.animated ? (
@@ -805,7 +805,7 @@ export default function Landing() {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
               {FEATURES.map((feature, i) => (
-                <Reveal key={feature.title} delay={i * 0.08}>
+                <Reveal key={feature.title} delay={i * 0.11}>
                   <div className="group relative h-full">
                     <div className={cn(
                       "absolute inset-0 rounded-2xl bg-gradient-to-b opacity-0 group-hover:opacity-100 transition-opacity duration-500",

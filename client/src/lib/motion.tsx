@@ -260,9 +260,9 @@ export function Reveal({
   children, 
   className,
   delay = 0,
-  duration = 0.5,
+  duration = 0.65,
   direction = 'up',
-  distance = 24
+  distance = 20
 }: RevealProps) {
   const ref = useRef<HTMLDivElement>(null);
   const [isVisible, setIsVisible] = useState(false);
@@ -335,8 +335,8 @@ export function Reveal({
       style={{
         opacity: isVisible ? 1 : 0,
         transform: getTransform(),
-        filter: isVisible ? 'blur(0px)' : 'blur(14px)',
-        transition: `opacity ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
+        filter: isVisible ? 'blur(0px)' : 'blur(3px)',
+        transition: `opacity ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter ${(duration * 0.8).toFixed(2)}s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
         willChange: 'opacity, transform, filter',
       }}
     >

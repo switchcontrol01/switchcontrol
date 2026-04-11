@@ -961,6 +961,7 @@ html {
 
 .animate-mockup-float {
   animation: mockupFloat 6s ease-in-out infinite;
+  animation-delay: 0.95s;
   will-change: transform;
 }
 
@@ -991,7 +992,7 @@ html {
   transform: translateX(-150%) skewX(-18deg);
   opacity: 0;
   animation: mockupReflectionSweep 3s ease-in-out infinite;
-  animation-delay: 0.4s;
+  animation-delay: 1.4s;
 }
 
 .mockup-reflection-sweep-secondary {
@@ -1336,9 +1337,12 @@ html {
 /* AnimateIn component blur reveal */
 .animate-in-wrapper {
   opacity: 0;
-  transform: translate3d(0, 18px, 0);
-  filter: blur(10px);
-  transition: opacity 700ms ease, transform 700ms ease, filter 700ms ease;
+  transform: translate3d(0, 16px, 0);
+  filter: blur(3px);
+  transition:
+    opacity  850ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 850ms cubic-bezier(0.22, 1, 0.36, 1),
+    filter   600ms cubic-bezier(0.22, 1, 0.36, 1);
   will-change: opacity, transform, filter;
 }
 
@@ -1350,9 +1354,9 @@ html {
 
 @media (max-width: 768px) {
   .animate-in-wrapper {
-    filter: blur(6px);
-    transform: translate3d(0, 12px, 0);
-    transition-duration: 600ms;
+    filter: blur(2px);
+    transform: translate3d(0, 10px, 0);
+    transition-duration: 700ms;
   }
 }
 
@@ -1362,13 +1366,6 @@ html {
     transform: none !important;
     filter: none !important;
     transition: none !important;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .animate-in-wrapper {
-    filter: blur(6px);
-    transform: translate3d(0, 10px, 0);
-    transition-duration: 400ms;
   }
 }
 
@@ -2147,24 +2144,23 @@ textarea,
 }
 .ws-hero-text-float {
   animation: heroTextFloat 8s ease-in-out infinite;
+  animation-delay: 1.2s;
   will-change: transform;
 }
 
-/* Website page entrance */
+/* Website page entrance — no blur (blur causes GPU stacking with child elements) */
 @keyframes wsPageEnter {
   from {
     opacity: 0;
-    transform: translateY(16px);
-    filter: blur(6px);
+    transform: translateY(10px);
   }
   to {
     opacity: 1;
     transform: translateY(0);
-    filter: blur(0);
   }
 }
 .ws-page-enter {
-  animation: wsPageEnter 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: wsPageEnter 0.95s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .ws-page-enter { animation: none; opacity: 1; }
