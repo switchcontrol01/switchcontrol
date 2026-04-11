@@ -7,11 +7,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { MotionProvider } from "@/lib/motion";
 import { PremiumUpgradeAnimation } from "@/components/PremiumUpgradeAnimation";
+import { TrialActivationAnimation } from "@/components/TrialActivationAnimation";
+import { TrialTour } from "@/components/TrialTour";
 
 import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen } from "@/lib/auth-store";
+import { isTrialActive } from "@/lib/trialCountdown";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
 import { DeviceLockModal } from "@/components/DeviceLockModal";
@@ -120,7 +123,7 @@ function WebsiteRoutes() {
   );
 }
 
-type AppFlow = "none" | "firstTime" | "premiumUnlock" | "premiumTour";
+type AppFlow = "none" | "firstTime" | "trialUnlock" | "trialTour" | "premiumUnlock" | "premiumTour";
 
 function ElectronAppContent() {
   const [phase, setPhase] = useState<AppPhase>("splash");
@@ -136,6 +139,7 @@ function ElectronAppContent() {
   const [showPatchNotes, setShowPatchNotes] = useState(false);
   const patchNotesCheckedRef = React.useRef(false);
   const unlockFiredThisSessionRef = React.useRef(false);
+  const trialUnlockFiredRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
   const { token, jwt, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
   const [, setLocation] = useHashLocation();
@@ -188,13 +192,18 @@ function ElectronAppContent() {
     const isFirstTimeUser = !localStorage.getItem(tourKey);
 
     console.log('[AppFlow] Flow eval — isPremium:', user.isPremium,
+      'plan:', user.plan,
+      'trialEndsAt:', user.trialEndsAt,
+      'hasSeenTrialActivation:', user.hasSeenTrialActivation,
+      'hasSeenTrialTour:', user.hasSeenTrialTour,
       'hasSeenUnlock:', user.hasSeenPremiumUnlock,
       'hasSeenTour:', user.hasSeenPremiumTour,
       'isFirstTimeUser:', isFirstTimeUser,
       'isFirstLogin:', isFirstLogin,
       'entitlementsAttempted:', entitlementsAttempted,
       'entitlementsOk:', entitlementsOk,
-      'unlockFired:', unlockFiredThisSessionRef.current);
+      'unlockFired:', unlockFiredThisSessionRef.current,
+      'trialUnlockFired:', trialUnlockFiredRef.current);
 
     if (isFirstTimeUser && isFirstLogin && entitlementsAttempted) {
       console.log('[AppFlow] PRIORITY 1: First-time onboarding tour');
@@ -207,25 +216,44 @@ function ElectronAppContent() {
       return;
     }
 
+    const trialOngoing = isTrialActive(user.plan, user.trialEndsAt);
+
+    if (
+      trialOngoing &&
+      user.hasSeenTrialActivation === false &&
+      !trialUnlockFiredRef.current
+    ) {
+      console.log('[AppFlow] PRIORITY 2: Trial activation animation — triggering');
+      trialUnlockFiredRef.current = true;
+      setActiveFlow("trialUnlock");
+      return;
+    }
+
+    if (trialOngoing && user.hasSeenTrialTour === false) {
+      console.log('[AppFlow] PRIORITY 3: Trial tour');
+      setActiveFlow("trialTour");
+      return;
+    }
+
     if (
       user.isPremium === true &&
       user.hasSeenPremiumUnlock === false &&
       !unlockFiredThisSessionRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 2: Premium unlock animation — triggering');
+      console.log('[AppFlow] PRIORITY 4: Premium unlock animation — triggering');
       unlockFiredThisSessionRef.current = true;
       setActiveFlow("premiumUnlock");
       return;
     }
 
     if (user.isPremium === true && user.hasSeenPremiumTour === false) {
-      console.log('[AppFlow] PRIORITY 3: Premium guided tour');
+      console.log('[AppFlow] PRIORITY 5: Premium guided tour');
       setActiveFlow("premiumTour");
       return;
     }
 
     console.log('[AppFlow] No flow conditions met — staying idle');
-  }, [user?.loggedIn, user?.isPremium, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting]);
+  }, [user?.loggedIn, user?.isPremium, user?.plan, user?.trialEndsAt, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, user?.hasSeenTrialActivation, user?.hasSeenTrialTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;
@@ -631,6 +659,32 @@ function ElectronAppContent() {
       )}
       
       {!isResetting && (
+        <TrialActivationAnimation
+          show={activeFlow === "trialUnlock"}
+          onComplete={async () => {
+            console.log('[AppFlow] Trial activation complete — persisting');
+            const store = useAuthStore.getState();
+            if (store.user) store.setUser({ ...store.user, hasSeenTrialActivation: true });
+            await postTrialActivationSeen();
+            setActiveFlow("trialTour");
+          }}
+        />
+      )}
+
+      {!isResetting && (
+        <TrialTour
+          show={activeFlow === "trialTour"}
+          onComplete={async () => {
+            console.log('[AppFlow] Trial tour complete — persisting');
+            const store = useAuthStore.getState();
+            if (store.user) store.setUser({ ...store.user, hasSeenTrialTour: true });
+            await postTrialTourSeen();
+            setActiveFlow("none");
+          }}
+        />
+      )}
+
+      {!isResetting && (
         <PremiumUpgradeAnimation 
           show={activeFlow === "premiumUnlock"} 
           onComplete={async () => {
@@ -712,6 +766,8 @@ function WebsiteContent() {
               isAdmin: data.isAdmin || false,
               hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
               hasSeenPremiumTour: !!data.hasSeenPremiumTour,
+              hasSeenTrialActivation: !!data.hasSeenTrialActivation,
+              hasSeenTrialTour: !!data.hasSeenTrialTour,
               loggedIn: true,
             });
           }

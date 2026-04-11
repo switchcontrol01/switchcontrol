@@ -46,7 +46,17 @@ The application is structured into `client/src` (frontend components, hooks, uti
   - `POST /bootstrap` — one-time self-service admin grant (first user only, or with `ADMIN_SETUP_KEY` env var)
 - **Admin Panel** (`client/src/pages/Admin.tsx`): Full CRUD UI at `/admin` route — user table with search/filter/plan badges, trial countdowns, SetPlan dialog, UserDetailPanel with audit logs, admin toggle.
 - **Activity Tracking**: `POST /api/activity/ping` for Electron app heartbeat (`lastAppActiveAt`); `lastLoginAt` updated on every auth.
-- **AuthUser type** (`client/src/lib/auth-store.ts`): Extended with `plan`, `trialEndsAt`, `isAdmin` fields synced from `/api/me`.
+- **AuthUser type** (`client/src/lib/auth-store.ts`): Extended with `plan`, `trialEndsAt`, `isAdmin`, `hasSeenTrialActivation`, `hasSeenTrialTour` fields synced from `/api/me`.
+
+### Free Trial Activation Experience
+- **Schema** (`shared/models/auth.ts`): `users` extended with `hasSeenTrialActivation` (boolean), `hasSeenTrialTour` (boolean), `trialActivatedAt` (timestamp).
+- **Storage** (`server/storage.ts`): `markTrialActivationSeen(userId)` and `markTrialTourSeen(userId)` in `IStorage`, `MockStorage`, and `DatabaseStorage`.
+- **Server routes** (`server/auth/google.ts`): All `/api/me` branches return `hasSeenTrialActivation`, `hasSeenTrialTour`; `POST /api/premium/trial-activation-seen` and `POST /api/premium/trial-tour-seen` mark them in DB.
+- **Countdown utilities** (`client/src/lib/trialCountdown.ts`): `isTrialActive(user)`, `formatTrialCountdown(user)`, `getTrialTimeRemaining(user)`.
+- **Activation animation** (`client/src/components/TrialActivationAnimation.tsx`): Cinematic full-screen overlay (cyan/violet palette). ~4-5s particle sequence with countdown ring, performance graph, and features list. Skip-on-click. Calls `/api/premium/trial-activation-seen` on complete.
+- **Trial tour** (`client/src/components/TrialTour.tsx`): 5-step onboarding (Welcome, AI Advisor, BIOS Advisor, Network+Power, Upgrade CTA). Calls `/api/premium/trial-tour-seen` on complete.
+- **App flow** (`client/src/App.tsx`): Priority order: firstTime → trialUnlock → trialTour → premiumUnlock → premiumTour. `trialUnlockFiredRef` prevents retrigger within a session.
+- **Sidebar badge** (`client/src/components/layout/Sidebar.tsx`): Live pulsing countdown badge (cyan) when trial active; ticks every 60 seconds. Falls back to "Free" when no trial.
 
 ### Network Diagnostics System (Premium)
 - **Backend** (`server/routes/networkDiagnostics.ts`) mounted at `/api/network/*`:

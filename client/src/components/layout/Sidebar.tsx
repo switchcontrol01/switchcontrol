@@ -15,6 +15,7 @@ import {
   LogOut,
   Activity,
   Brain,
+  Clock,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
@@ -23,6 +24,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTourStore } from "@/lib/tour-store";
+import { isTrialActive, formatTrialCountdown } from "@/lib/trialCountdown";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -349,6 +351,13 @@ function NavItemRow({
 export function Sidebar() {
   const [location, setLocation] = useLocation();
   const { user, isPremium, logout } = useAuth();
+  const trialOn = isTrialActive(user?.plan ?? "free", user?.trialEndsAt ?? null);
+  const [trialLabel, setTrialLabel] = useState(() => formatTrialCountdown(user?.trialEndsAt ?? null));
+  useEffect(() => {
+    if (!trialOn || !user?.trialEndsAt) return;
+    const id = setInterval(() => setTrialLabel(formatTrialCountdown(user.trialEndsAt)), 60_000);
+    return () => clearInterval(id);
+  }, [trialOn, user?.trialEndsAt]);
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
   const [footerHovered, setFooterHovered] = useState(false);
@@ -495,6 +504,21 @@ export function Sidebar() {
                   </span>
                   <span className="premium-badge-text">Premium</span>
                 </div>
+              ) : trialOn ? (
+                <motion.div
+                  className="flex items-center gap-1 px-1.5 py-0.5 rounded-full w-fit"
+                  style={{
+                    background: "linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(139,92,246,0.12) 100%)",
+                    border: "1px solid rgba(6,182,212,0.35)",
+                  }}
+                  animate={{ opacity: [1, 0.75, 1] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                >
+                  <Clock className="size-2.5 shrink-0" style={{ color: "rgba(6,182,212,0.9)" }} />
+                  <span className="text-[9px] font-bold truncate" style={{ color: "rgba(6,182,212,0.9)", maxWidth: 80 }}>
+                    {trialLabel}
+                  </span>
+                </motion.div>
               ) : (
                 <div className="free-badge">
                   <span className="free-badge-text">Free</span>

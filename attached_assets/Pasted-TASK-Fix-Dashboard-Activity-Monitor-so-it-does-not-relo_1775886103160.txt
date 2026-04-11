@@ -1,0 +1,108 @@
+TASK
+
+Fix Dashboard Activity Monitor so it does not reload, reset, or behave like a refresh whenever switching tabs/routes and returning to Dashboard.
+
+PROBLEM
+
+When navigating away from Dashboard and then coming back, the Activity Monitor loads again instead of staying warm and persistent.
+
+It feels like the dashboard is refreshing or remounting instead of preserving state.
+
+This creates bad UX and makes the app feel unstable.
+
+GOAL
+
+Dashboard Activity Monitor must persist across tab/route switches.
+
+When leaving Dashboard and returning:
+
+- cards should not reset unnecessarily
+- graph history should not restart from zero
+- telemetry should not feel like a hard refresh
+- last known data should remain visible immediately
+- live updates should resume smoothly from existing state
+
+IMPORTANT
+
+Do not fake this with a slower fade or loading skeleton.
+Fix the actual remount/reset cause.
+
+IMPLEMENTATION
+
+1. Audit Dashboard route lifecycle.
+   Check whether:
+
+- Dashboard component remounts on every route return
+- parent layout key changes are forcing remount
+- route transition wrappers are destroying page state
+- Activity Monitor state is local-only instead of persisted
+
+2. Audit Activity Monitor component.
+   Check for:
+
+- useEffect with mount-only fetch causing re-init every visit
+- graph timeline state stored inside component instead of persistent store
+- telemetry subscriptions being torn down and rebuilt on every route change
+- startup hydration being re-run every time
+
+3. Move persistent dashboard telemetry state into a stable shared store.
+   Examples:
+
+- Zustand store
+- React Query cache if appropriate
+- stable app-level telemetry provider
+
+State to persist:
+
+- CPU
+- RAM
+- GPU
+- Disk
+- graph history/timeline
+- connection status
+- last update timestamp
+
+4. Keep last known data visible when returning to Dashboard.
+   Do not clear cards to loading if valid cached data already exists.
+
+5. Resume live updates from cached state instead of reinitializing from zero.
+
+6. Only show loading state when:
+
+- first app boot has no telemetry yet
+- telemetry truly unavailable
+  Not every tab switch.
+
+7. Add logs:
+
+- [Dashboard] mounted
+- [Dashboard] remounted
+- [ActivityMonitor] mounted
+- [ActivityMonitor] reused cached state
+- [Telemetry] subscription resumed
+- [Telemetry] hard reset triggered
+
+8. Compare behavior with expected:
+
+- leave Dashboard
+- go to another route
+- return to Dashboard
+  Result should feel instant and continuous, not like a page refresh
+
+CHECKLIST
+
+- Activity Monitor no longer reloads on tab return
+- graph history persists
+- cards keep prior values while live updates resume
+- dashboard route no longer feels like full refresh
+- telemetry pipeline stays warm across route changes
+
+FINAL OUTPUT
+
+Return:
+
+- root cause
+- files changed
+- persistence strategy used
+- telemetry lifecycle changes
+- confirmation that Dashboard no longer reloads when returning from other tabs

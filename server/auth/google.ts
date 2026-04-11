@@ -749,6 +749,8 @@ export function setupGoogleAuth(app: Express): void {
               isAdmin: dbUser.isAdmin || false,
               hasSeenPremiumUnlock: dbUser.hasSeenPremiumUnlock || false,
               hasSeenPremiumTour: dbUser.hasSeenPremiumTour || false,
+              hasSeenTrialActivation: dbUser.hasSeenTrialActivation || false,
+              hasSeenTrialTour: dbUser.hasSeenTrialTour || false,
               authMode: 'jwt',
             });
           }
@@ -761,7 +763,7 @@ export function setupGoogleAuth(app: Express): void {
       }
       console.log(`[AUTH] /api/me authMode=jwt loggedIn=false`);
       res.setHeader('X-Auth-Mode', 'jwt');
-      return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, authMode: 'jwt' });
+      return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, hasSeenTrialActivation: false, hasSeenTrialTour: false, authMode: 'jwt' });
     }
 
     if (hasCookie) {
@@ -787,13 +789,15 @@ export function setupGoogleAuth(app: Express): void {
         isAdmin: dbUser?.isAdmin || false,
         hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
         hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
+        hasSeenTrialActivation: dbUser?.hasSeenTrialActivation || false,
+        hasSeenTrialTour: dbUser?.hasSeenTrialTour || false,
         authMode: 'cookie',
       });
     }
 
     console.log(`[AUTH] no auth provided — returning loggedIn=false`);
     res.setHeader('X-Auth-Mode', 'none');
-    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, authMode: 'none' });
+    return res.json({ loggedIn: false, isPremium: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, hasSeenTrialActivation: false, hasSeenTrialTour: false, authMode: 'none' });
   });
 
   app.get("/api/auth/me", async (req, res) => {
@@ -815,9 +819,11 @@ export function setupGoogleAuth(app: Express): void {
         isAdmin: dbUser?.isAdmin || false,
         hasSeenPremiumUnlock: dbUser?.hasSeenPremiumUnlock || false,
         hasSeenPremiumTour: dbUser?.hasSeenPremiumTour || false,
+        hasSeenTrialActivation: dbUser?.hasSeenTrialActivation || false,
+        hasSeenTrialTour: dbUser?.hasSeenTrialTour || false,
       });
     }
-    return res.json({ loggedIn: false, isPremium: false, plan: "free", isAdmin: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false });
+    return res.json({ loggedIn: false, isPremium: false, plan: "free", isAdmin: false, hasSeenPremiumUnlock: false, hasSeenPremiumTour: false, hasSeenTrialActivation: false, hasSeenTrialTour: false });
   });
 
   app.post("/api/premium/unlock-seen", async (req, res) => {
@@ -904,6 +910,70 @@ export function setupGoogleAuth(app: Express): void {
       return res.json({ ok: true });
     } catch (err) {
       console.error('[PremiumTour] error:', err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/premium/trial-activation-seen", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let userId: string | null = null;
+      let authMode = 'none';
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const payload = verifyJwt(authHeader.substring(7));
+        if (payload?.sub) { userId = payload.sub; authMode = 'jwt'; }
+      } else if (req.isAuthenticated() && req.user) {
+        userId = req.user.id; authMode = 'cookie';
+      }
+
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+      const dbUser = await storage.getUser(userId);
+      if (!dbUser) return res.status(404).json({ error: "User not found" });
+
+      if (!dbUser.hasSeenTrialActivation) {
+        await storage.markTrialActivationSeen(userId);
+        console.log(`[TrialActivation] mark seen user=${userId} authMode=${authMode}`);
+      } else {
+        console.log(`[TrialActivation] already seen user=${userId} (idempotent)`);
+      }
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error('[TrialActivation] error:', err);
+      return res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  app.post("/api/premium/trial-tour-seen", async (req, res) => {
+    try {
+      const authHeader = req.headers.authorization;
+      let userId: string | null = null;
+      let authMode = 'none';
+
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const payload = verifyJwt(authHeader.substring(7));
+        if (payload?.sub) { userId = payload.sub; authMode = 'jwt'; }
+      } else if (req.isAuthenticated() && req.user) {
+        userId = req.user.id; authMode = 'cookie';
+      }
+
+      if (!userId) return res.status(401).json({ error: "Authentication required" });
+
+      const dbUser = await storage.getUser(userId);
+      if (!dbUser) return res.status(404).json({ error: "User not found" });
+
+      if (!dbUser.hasSeenTrialTour) {
+        await storage.markTrialTourSeen(userId);
+        console.log(`[TrialTour] mark tour seen user=${userId} authMode=${authMode}`);
+      } else {
+        console.log(`[TrialTour] already seen user=${userId} (idempotent)`);
+      }
+
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error('[TrialTour] error:', err);
       return res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -1090,6 +1160,8 @@ export function setupGoogleAuth(app: Express): void {
             isAdmin: dbUserForExchange?.isAdmin || false,
             hasSeenPremiumUnlock: dbUserForExchange?.hasSeenPremiumUnlock || false,
             hasSeenPremiumTour: dbUserForExchange?.hasSeenPremiumTour || false,
+            hasSeenTrialActivation: dbUserForExchange?.hasSeenTrialActivation || false,
+            hasSeenTrialTour: dbUserForExchange?.hasSeenTrialTour || false,
           }
         });
       });

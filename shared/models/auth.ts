@@ -53,6 +53,9 @@ export const users = pgTable("users", {
   hasSeenPremiumUnlock: boolean("has_seen_premium_unlock").notNull().default(false),
   hasSeenPremiumTour: boolean("has_seen_premium_tour").notNull().default(false),
   premiumFirstSeenAt: timestamp("premium_first_seen_at"),
+  hasSeenTrialActivation: boolean("has_seen_trial_activation").notNull().default(false),
+  hasSeenTrialTour: boolean("has_seen_trial_tour").notNull().default(false),
+  trialActivatedAt: timestamp("trial_activated_at"),
 
   // Activity
   lastLoginAt: timestamp("last_login_at"),

@@ -57,6 +57,8 @@ export interface IStorage {
   setUserPremium(userId: string, isPremium: boolean): Promise<User>;
   markPremiumUnlockSeen(userId: string): Promise<User>;
   markPremiumTourSeen(userId: string): Promise<User>;
+  markTrialActivationSeen(userId: string): Promise<User>;
+  markTrialTourSeen(userId: string): Promise<User>;
   updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void>;
 
   // Device binding
@@ -183,6 +185,14 @@ class MockStorage implements IStorage {
   }
 
   async markPremiumTourSeen(userId: string): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async markTrialActivationSeen(userId: string): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async markTrialTourSeen(userId: string): Promise<User> {
     throw new Error("Database not available in NO-DB mode");
   }
 
@@ -363,6 +373,24 @@ export class DatabaseStorage implements IStorage {
     const [updated] = await db!
       .update(users)
       .set({ hasSeenPremiumTour: true, updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async markTrialActivationSeen(userId: string): Promise<User> {
+    const [updated] = await db!
+      .update(users)
+      .set({ hasSeenTrialActivation: true, trialActivatedAt: new Date(), updatedAt: new Date() })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async markTrialTourSeen(userId: string): Promise<User> {
+    const [updated] = await db!
+      .update(users)
+      .set({ hasSeenTrialTour: true, updatedAt: new Date() })
       .where(eq(users.id, userId))
       .returning();
     return updated;

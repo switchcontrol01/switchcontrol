@@ -15,6 +15,8 @@ export function useAuth() {
       isPremium: user.isPremium,
       isAdmin: user.isAdmin,
       hasSeenPremiumUnlock: user.hasSeenPremiumUnlock,
+      plan: user.plan,
+      trialEndsAt: user.trialEndsAt,
     } : null,
     isLoading: false,
     isAuthenticated: !!user,

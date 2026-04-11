@@ -21,6 +21,8 @@ export interface AuthUser {
   isAdmin: boolean;
   hasSeenPremiumUnlock: boolean;
   hasSeenPremiumTour: boolean;
+  hasSeenTrialActivation: boolean;
+  hasSeenTrialTour: boolean;
   loggedIn: boolean;
 }
 
@@ -188,6 +190,8 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
       isAdmin: data.user.isAdmin || false,
       hasSeenPremiumUnlock: !!data.user.hasSeenPremiumUnlock,
       hasSeenPremiumTour: !!data.user.hasSeenPremiumTour,
+      hasSeenTrialActivation: !!data.user.hasSeenTrialActivation,
+      hasSeenTrialTour: !!data.user.hasSeenTrialTour,
       loggedIn: true,
     };
 
@@ -238,6 +242,8 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
       isAdmin: data.isAdmin || false,
       hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
       hasSeenPremiumTour: !!data.hasSeenPremiumTour,
+      hasSeenTrialActivation: !!data.hasSeenTrialActivation,
+      hasSeenTrialTour: !!data.hasSeenTrialTour,
       loggedIn: true,
     };
   } catch (err) {
@@ -286,6 +292,8 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
       isAdmin: data.isAdmin || false,
       hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
       hasSeenPremiumTour: !!data.hasSeenPremiumTour,
+      hasSeenTrialActivation: !!data.hasSeenTrialActivation,
+      hasSeenTrialTour: !!data.hasSeenTrialTour,
       loggedIn: true,
     };
 
@@ -431,6 +439,66 @@ export async function postTourSeen(): Promise<boolean> {
     return true;
   } catch (err) {
     console.error('[PremiumTour] tour-seen error:', err);
+    return false;
+  }
+}
+
+export async function postTrialActivationSeen(): Promise<boolean> {
+  try {
+    const jwt = getStoredJwt();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+
+    console.log('[TrialActivation] posting trial-activation-seen...');
+    const response = await fetch(`${AUTH_DOMAIN}/api/premium/trial-activation-seen`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.error(`[TrialActivation] trial-activation-seen failed status=${response.status}`);
+      return false;
+    }
+
+    console.log('[TrialActivation] trial-activation-seen success');
+    const store = useAuthStore.getState();
+    if (store.user) {
+      store.setUser({ ...store.user, hasSeenTrialActivation: true });
+    }
+    return true;
+  } catch (err) {
+    console.error('[TrialActivation] trial-activation-seen error:', err);
+    return false;
+  }
+}
+
+export async function postTrialTourSeen(): Promise<boolean> {
+  try {
+    const jwt = getStoredJwt();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (jwt) headers['Authorization'] = `Bearer ${jwt}`;
+
+    console.log('[TrialTour] posting trial-tour-seen...');
+    const response = await fetch(`${AUTH_DOMAIN}/api/premium/trial-tour-seen`, {
+      method: 'POST',
+      headers,
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      console.error(`[TrialTour] trial-tour-seen failed status=${response.status}`);
+      return false;
+    }
+
+    console.log('[TrialTour] trial-tour-seen success');
+    const store = useAuthStore.getState();
+    if (store.user) {
+      store.setUser({ ...store.user, hasSeenTrialTour: true });
+    }
+    return true;
+  } catch (err) {
+    console.error('[TrialTour] trial-tour-seen error:', err);
     return false;
   }
 }
