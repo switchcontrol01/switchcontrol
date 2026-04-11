@@ -55,12 +55,15 @@ export interface IStorage {
   setUserPremium(userId: string, isPremium: boolean): Promise<User>;
   markPremiumUnlockSeen(userId: string): Promise<User>;
   markPremiumTourSeen(userId: string): Promise<User>;
-  updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date }): Promise<void>;
+  updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void>;
 
   // Admin
   listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
   countAdmins(): Promise<number>;
   setUserPlan(userId: string, opts: SetPlanOpts): Promise<User>;
+  extendTrial(userId: string, extraHours: number): Promise<User>;
+  resetUserFlags(userId: string, flags: { onboarding?: boolean; premiumTour?: boolean; premiumUnlock?: boolean }): Promise<User>;
+  deleteUser(userId: string): Promise<void>;
   setUserAdmin(userId: string, isAdmin: boolean): Promise<User>;
   addAdminLog(log: Omit<InsertAdminLog, "id" | "createdAt">): Promise<AdminLog>;
   getAdminLogs(opts: { targetUserId?: string; limit?: number; offset?: number }): Promise<AdminLog[]>;
@@ -173,7 +176,7 @@ class MockStorage implements IStorage {
     throw new Error("Database not available in NO-DB mode");
   }
 
-  async updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date }): Promise<void> {
+  async updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void> {
     // no-op in mock mode
   }
 
@@ -186,6 +189,18 @@ class MockStorage implements IStorage {
   }
 
   async setUserPlan(userId: string, opts: SetPlanOpts): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async extendTrial(userId: string, extraHours: number): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async resetUserFlags(userId: string, flags: { onboarding?: boolean; premiumTour?: boolean; premiumUnlock?: boolean }): Promise<User> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async deleteUser(userId: string): Promise<void> {
     throw new Error("Database not available in NO-DB mode");
   }
 
@@ -330,7 +345,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date }): Promise<void> {
+  async updateUserActivity(userId: string, data: { lastLoginAt?: Date; lastAppActiveAt?: Date; hasInstalledApp?: boolean }): Promise<void> {
     await db!
       .update(users)
       .set({ ...data, updatedAt: new Date() })
@@ -421,6 +436,40 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  async extendTrial(userId: string, extraHours: number): Promise<User> {
+    const existing = await this.getUser(userId);
+    if (!existing) throw new Error("User not found");
+    const now = new Date();
+    const base = existing.trialEndsAt && existing.trialEndsAt > now
+      ? existing.trialEndsAt
+      : now;
+    const newEnd = new Date(base.getTime() + extraHours * 3600_000);
+    const [updated] = await db!
+      .update(users)
+      .set({ trialEndsAt: newEnd, plan: "trial", hasUsedTrial: true, updatedAt: now })
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async resetUserFlags(userId: string, flags: { onboarding?: boolean; premiumTour?: boolean; premiumUnlock?: boolean }): Promise<User> {
+    const updateData: Partial<User> = { updatedAt: new Date() };
+    if (flags.onboarding) updateData.premiumFirstSeenAt = null;
+    if (flags.premiumTour) updateData.hasSeenPremiumTour = false;
+    if (flags.premiumUnlock) updateData.hasSeenPremiumUnlock = false;
+    const [updated] = await db!
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, userId))
+      .returning();
+    return updated;
+  }
+
+  async deleteUser(userId: string): Promise<void> {
+    await db!.delete(adminLogs).where(eq(adminLogs.targetUserId, userId));
+    await db!.delete(users).where(eq(users.id, userId));
   }
 
   async countAdmins(): Promise<number> {

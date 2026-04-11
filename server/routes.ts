@@ -533,11 +533,26 @@ export async function registerRoutes(
     }
   });
 
-  // Activity ping — called by Electron app to track lastAppActiveAt
+  // Activity ping — called by Electron app periodically
   app.post("/api/activity/ping", requireJwt, async (req, res) => {
     try {
       const cloudUser = req.cloudUser!;
       await storage.updateUserActivity(cloudUser.id, { lastAppActiveAt: new Date() });
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ error: "Activity update failed." });
+    }
+  });
+
+  // App-active — called by Electron app on launch / app-ready
+  // Sets hasInstalledApp=true and lastAppActiveAt, fire-and-forget friendly
+  app.post("/api/activity/app-active", requireJwt, async (req, res) => {
+    try {
+      const cloudUser = req.cloudUser!;
+      await storage.updateUserActivity(cloudUser.id, {
+        lastAppActiveAt: new Date(),
+        hasInstalledApp: true,
+      });
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ error: "Activity update failed." });

@@ -1,0 +1,215 @@
+TASK
+Harden the ENTIRE SwitchControl app architecture without removing features, changing UI, or reducing premium feel.
+
+GOAL
+The app currently works and looks good, but the internal structure is becoming mixed:
+- UI, logic, animation, and state are tangled
+- duplication exists across features
+- debugging is becoming harder
+- future scaling will break things
+
+This task is NOT a redesign.
+This is NOT simplification.
+This is NOT feature removal.
+
+This is:
+- separation of concerns
+- system extraction
+- consistency enforcement
+- state hardening
+- motion unification
+
+The app must look EXACTLY the same after this.
+
+---
+
+CRITICAL RULES
+- DO NOT remove features
+- DO NOT change visuals
+- DO NOT simplify animations
+- DO NOT flatten UI
+- DO NOT change behavior
+
+Only improve structure, consistency, and safety.
+
+---
+
+PHASE 1 — GLOBAL AUDIT
+
+Audit the entire codebase and identify:
+
+- files doing too many responsibilities
+- duplicated animation logic
+- duplicated color/theme values
+- duplicated business logic (premium, auth, etc.)
+- fragile state transitions
+- tightly coupled UI + logic
+- repeated graph implementations
+- repeated overlay implementations
+
+Return a clear internal mapping before refactoring.
+
+---
+
+PHASE 2 — SEPARATE CONCERNS (APP-WIDE)
+
+Across the ENTIRE app, enforce this rule:
+
+NO file should handle more than ONE of:
+- UI rendering
+- animation definitions
+- business logic
+- state control
+- navigation control
+
+Refactor where needed.
+
+---
+
+PHASE 3 — CREATE GLOBAL SYSTEMS
+
+Create these shared systems:
+
+1. motionTokens.ts
+Centralize:
+- durations
+- easing
+- delays
+- animation curves
+
+2. themeTokens.ts
+Centralize:
+- colors
+- glow values
+- glass styles
+- gradients
+
+3. graphSystem/
+Extract reusable graph primitives:
+- line graph
+- glow line
+- markers
+- labels
+- animation behavior
+
+4. overlaySystem/
+Unify:
+- lock overlays
+- premium overlays
+- modal overlays
+- background dim layers
+
+5. animationSystem/
+Centralize reusable animation patterns:
+- fade in
+- slide
+- scale
+- glow pulse
+- success burst
+
+---
+
+PHASE 4 — HARDEN STATE SYSTEM
+
+Across the app, clean and stabilize:
+
+- premium state
+- auth state
+- tour state
+- loading states
+- success states
+
+Fix:
+- duplicate triggers
+- hydration issues
+- race conditions
+- stale state risks
+
+Server truth must always override client cache when available.
+
+---
+
+PHASE 5 — REMOVE DUPLICATION
+
+Eliminate:
+- repeated animation configs
+- repeated theme values
+- repeated logic patterns
+- repeated UI logic blocks
+
+Replace with shared systems.
+
+---
+
+PHASE 6 — HARDEN NAVIGATION + UI SYNC
+
+Fix fragile behavior where UI depends on timing:
+
+- route changes
+- sidebar highlights
+- scroll to elements
+- modal open/close states
+
+Ensure:
+- no race conditions
+- no missed states
+- no flicker
+
+---
+
+PHASE 7 — PERFORMANCE HARDENING
+
+WITHOUT removing animations:
+
+- reduce unnecessary simultaneous animations
+- pause hidden components
+- optimize heavy effects (blur, shadow stacking)
+- reduce redundant renders
+
+Maintain premium feel.
+
+---
+
+PHASE 8 — PRESERVE PREMIUM QUALITY
+
+Ensure after refactor:
+- animations feel the same or better
+- UI remains fluid
+- micro-interactions remain responsive
+- nothing feels downgraded
+
+---
+
+PHASE 9 — FINAL CONSISTENCY PASS
+
+Ensure:
+- all animations use motionTokens
+- all colors use themeTokens
+- all graphs use graphSystem
+- all overlays use overlaySystem
+
+No exceptions.
+
+---
+
+CHECKLIST
+- no feature removed
+- no visual downgrade
+- structure cleaned
+- duplication removed
+- systems extracted
+- state hardened
+- animations unified
+- performance improved
+
+---
+
+FINAL OUTPUT
+Return:
+1. files changed
+2. what was separated
+3. systems created
+4. duplication removed
+5. state issues fixed
+6. performance improvements
+7. any remaining risks

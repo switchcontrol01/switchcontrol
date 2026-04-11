@@ -49,10 +49,37 @@ function serializeUser(u: User) {
     premiumActivatedAt: u.premiumActivatedAt,
     lastLoginAt: u.lastLoginAt,
     lastAppActiveAt: u.lastAppActiveAt,
+    hasInstalledApp: u.hasInstalledApp,
+    hasSeenPremiumUnlock: u.hasSeenPremiumUnlock,
+    hasSeenPremiumTour: u.hasSeenPremiumTour,
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
   };
 }
+
+function getAdminId(req: any): User {
+  return (req as any).adminUser as User;
+}
+
+async function auditLog(
+  adminUserId: string,
+  targetUserId: string,
+  action: string,
+  previousValue: any,
+  newValue: any,
+  metadata?: any
+) {
+  await storage.addAdminLog({
+    adminUserId,
+    targetUserId,
+    action,
+    previousValue,
+    newValue,
+    metadata: metadata ?? null,
+  });
+}
+
+// ─── User List ──────────────────────────────────────────────────────────────
 
 // GET /api/admin/users
 router.get("/users", requireAdmin, readLimiter, async (req, res) => {
@@ -84,7 +111,7 @@ router.get("/users/:id", requireAdmin, readLimiter, async (req, res) => {
     const user = await storage.getUser(req.params.id);
     if (!user) return res.status(404).json({ error: "User not found." });
 
-    const logs = await storage.getAdminLogs({ targetUserId: user.id, limit: 20 });
+    const logs = await storage.getAdminLogs({ targetUserId: user.id, limit: 30 });
     res.json({ user: serializeUser(user), logs });
   } catch (err) {
     console.error("[admin] getUser error:", err);
@@ -92,20 +119,37 @@ router.get("/users/:id", requireAdmin, readLimiter, async (req, res) => {
   }
 });
 
+// GET /api/admin/users/:id/activity
+router.get("/users/:id/activity", requireAdmin, readLimiter, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found." });
+
+    res.json({
+      userId: user.id,
+      lastLoginAt: user.lastLoginAt,
+      lastAppActiveAt: user.lastAppActiveAt,
+      hasInstalledApp: user.hasInstalledApp,
+      createdAt: user.createdAt,
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch activity." });
+  }
+});
+
+// ─── Plan Management ────────────────────────────────────────────────────────
+
 const setPlanSchema = z.object({
   plan: z.enum(["free", "trial", "premium"]),
   trialDurationHours: z.number().int().min(1).max(8760).optional(),
   reason: z.string().max(500).optional(),
 });
 
-// PATCH /api/admin/users/:id/plan
+// PATCH /api/admin/users/:id/plan  (generic set)
 router.patch("/users/:id/plan", requireAdmin, writeLimiter, async (req, res) => {
-  const adminUser = (req as any).adminUser as User;
-
+  const admin = getAdminId(req);
   const parsed = setPlanSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
-  }
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
 
   const { plan, trialDurationHours, reason } = parsed.data;
   const targetId = req.params.id;
@@ -114,33 +158,11 @@ router.patch("/users/:id/plan", requireAdmin, writeLimiter, async (req, res) => 
     const existing = await storage.getUser(targetId);
     if (!existing) return res.status(404).json({ error: "User not found." });
 
-    const previousValue = {
-      plan: existing.plan,
-      isPremium: existing.isPremium,
-      trialEndsAt: existing.trialEndsAt,
-    };
+    const prev = { plan: existing.plan, isPremium: existing.isPremium, trialEndsAt: existing.trialEndsAt };
+    const updated = await storage.setUserPlan(targetId, { plan, trialDurationHours, reason, grantedByAdminId: admin.id });
 
-    const updated = await storage.setUserPlan(targetId, {
-      plan,
-      trialDurationHours,
-      reason,
-      grantedByAdminId: adminUser.id,
-    });
-
-    await storage.addAdminLog({
-      adminUserId: adminUser.id,
-      targetUserId: targetId,
-      action: `set_plan:${plan}`,
-      previousValue,
-      newValue: {
-        plan: updated.plan,
-        isPremium: updated.isPremium,
-        trialEndsAt: updated.trialEndsAt,
-      },
-      metadata: { reason: reason ?? null, trialDurationHours: trialDurationHours ?? null },
-    });
-
-    console.log(`[admin] ${adminUser.email} set plan=${plan} for user=${targetId} reason="${reason ?? ''}"`);
+    await auditLog(admin.id, targetId, `set_plan:${plan}`, prev, { plan: updated.plan, isPremium: updated.isPremium, trialEndsAt: updated.trialEndsAt }, { reason: reason ?? null, trialDurationHours: trialDurationHours ?? null });
+    console.log(`[admin] ${admin.email} set plan=${plan} for user=${targetId}`);
     res.json({ ok: true, user: serializeUser(updated) });
   } catch (err) {
     console.error("[admin] setUserPlan error:", err);
@@ -148,22 +170,200 @@ router.patch("/users/:id/plan", requireAdmin, writeLimiter, async (req, res) => 
   }
 });
 
+const setTrialSchema = z.object({
+  durationHours: z.number().int().min(1).max(8760),
+  reason: z.string().max(500).optional(),
+});
+
+// POST /api/admin/users/:id/set-trial
+router.post("/users/:id/set-trial", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const parsed = setTrialSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
+
+  const { durationHours, reason } = parsed.data;
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const prev = { plan: existing.plan, trialEndsAt: existing.trialEndsAt };
+    const updated = await storage.setUserPlan(targetId, { plan: "trial", trialDurationHours: durationHours, reason, grantedByAdminId: admin.id });
+
+    await auditLog(admin.id, targetId, "set_trial", prev, { plan: updated.plan, trialEndsAt: updated.trialEndsAt, durationHours }, { reason: reason ?? null, durationHours });
+    console.log(`[admin] ${admin.email} set trial ${durationHours}h for user=${targetId}`);
+    res.json({ ok: true, user: serializeUser(updated) });
+  } catch (err) {
+    console.error("[admin] setTrial error:", err);
+    res.status(500).json({ error: "Failed to set trial." });
+  }
+});
+
+const extendTrialSchema = z.object({
+  extraHours: z.number().int().min(1).max(8760),
+  reason: z.string().max(500).optional(),
+});
+
+// POST /api/admin/users/:id/extend-trial
+router.post("/users/:id/extend-trial", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const parsed = extendTrialSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
+
+  const { extraHours, reason } = parsed.data;
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const prev = { trialEndsAt: existing.trialEndsAt };
+    const updated = await storage.extendTrial(targetId, extraHours);
+
+    await auditLog(admin.id, targetId, "extend_trial", prev, { trialEndsAt: updated.trialEndsAt }, { extraHours, reason: reason ?? null });
+    console.log(`[admin] ${admin.email} extended trial +${extraHours}h for user=${targetId}`);
+    res.json({ ok: true, user: serializeUser(updated) });
+  } catch (err) {
+    console.error("[admin] extendTrial error:", err);
+    res.status(500).json({ error: "Failed to extend trial." });
+  }
+});
+
+const revokeTrialSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
+// POST /api/admin/users/:id/revoke-trial
+router.post("/users/:id/revoke-trial", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const { reason } = revokeTrialSchema.parse(req.body ?? {});
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const prev = { plan: existing.plan, trialEndsAt: existing.trialEndsAt };
+    const updated = await storage.setUserPlan(targetId, { plan: "free", grantedByAdminId: admin.id });
+
+    await auditLog(admin.id, targetId, "revoke_trial", prev, { plan: "free" }, { reason: reason ?? null });
+    console.log(`[admin] ${admin.email} revoked trial for user=${targetId}`);
+    res.json({ ok: true, user: serializeUser(updated) });
+  } catch (err) {
+    console.error("[admin] revokeTrial error:", err);
+    res.status(500).json({ error: "Failed to revoke trial." });
+  }
+});
+
+// POST /api/admin/users/:id/reset-trial  (clear trial fields, keep plan as free)
+router.post("/users/:id/reset-trial", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const prev = { plan: existing.plan, hasUsedTrial: existing.hasUsedTrial, trialEndsAt: existing.trialEndsAt };
+    const updated = await storage.setUserPlan(targetId, { plan: "free", grantedByAdminId: admin.id });
+    await storage.updateUserActivity(targetId, {});
+
+    await auditLog(admin.id, targetId, "reset_trial", prev, { plan: "free", hasUsedTrial: false }, {});
+    console.log(`[admin] ${admin.email} reset trial for user=${targetId}`);
+    res.json({ ok: true, user: serializeUser(updated) });
+  } catch (err) {
+    console.error("[admin] resetTrial error:", err);
+    res.status(500).json({ error: "Failed to reset trial." });
+  }
+});
+
+const revertPlanSchema = z.object({
+  plan: z.enum(["free", "trial", "premium"]),
+  reason: z.string().max(500).optional(),
+  trialDurationHours: z.number().int().min(1).max(8760).optional(),
+});
+
+// POST /api/admin/users/:id/revert-plan
+router.post("/users/:id/revert-plan", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const parsed = revertPlanSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
+
+  const { plan, reason, trialDurationHours } = parsed.data;
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const prev = { plan: existing.plan, isPremium: existing.isPremium };
+    const updated = await storage.setUserPlan(targetId, { plan, trialDurationHours, reason, grantedByAdminId: admin.id });
+
+    await auditLog(admin.id, targetId, `revert_plan:${plan}`, prev, { plan: updated.plan, isPremium: updated.isPremium }, { reason: reason ?? null });
+    res.json({ ok: true, user: serializeUser(updated) });
+  } catch (err) {
+    console.error("[admin] revertPlan error:", err);
+    res.status(500).json({ error: "Failed to revert plan." });
+  }
+});
+
+const resetFlagsSchema = z.object({
+  onboarding: z.boolean().optional(),
+  premiumTour: z.boolean().optional(),
+  premiumUnlock: z.boolean().optional(),
+  reason: z.string().max(500).optional(),
+});
+
+// POST /api/admin/users/:id/reset-flags
+router.post("/users/:id/reset-flags", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+  const parsed = resetFlagsSchema.safeParse(req.body ?? {});
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
+
+  const { onboarding, premiumTour, premiumUnlock, reason } = parsed.data;
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const prev = {
+      hasSeenPremiumTour: existing.hasSeenPremiumTour,
+      hasSeenPremiumUnlock: existing.hasSeenPremiumUnlock,
+      premiumFirstSeenAt: existing.premiumFirstSeenAt,
+    };
+
+    const updated = await storage.resetUserFlags(targetId, {
+      onboarding: onboarding ?? false,
+      premiumTour: premiumTour ?? false,
+      premiumUnlock: premiumUnlock ?? false,
+    });
+
+    const resetFlags = [onboarding && "onboarding", premiumTour && "premiumTour", premiumUnlock && "premiumUnlock"].filter(Boolean);
+    await auditLog(admin.id, targetId, "reset_flags", prev, { resetFlags }, { reason: reason ?? null });
+    console.log(`[admin] ${admin.email} reset flags [${resetFlags}] for user=${targetId}`);
+    res.json({ ok: true, user: serializeUser(updated) });
+  } catch (err) {
+    console.error("[admin] resetFlags error:", err);
+    res.status(500).json({ error: "Failed to reset flags." });
+  }
+});
+
+// ─── Admin Status ────────────────────────────────────────────────────────────
+
 const setAdminSchema = z.object({
   isAdmin: z.boolean(),
 });
 
 // PATCH /api/admin/users/:id/admin-status
 router.patch("/users/:id/admin-status", requireAdmin, writeLimiter, async (req, res) => {
-  const adminUser = (req as any).adminUser as User;
-
+  const admin = getAdminId(req);
   const parsed = setAdminSchema.safeParse(req.body);
-  if (!parsed.success) {
-    return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
-  }
+  if (!parsed.success) return res.status(400).json({ error: "Invalid request.", details: parsed.error.flatten() });
 
   const targetId = req.params.id;
-
-  if (targetId === adminUser.id && !parsed.data.isAdmin) {
+  if (targetId === admin.id && !parsed.data.isAdmin) {
     return res.status(400).json({ error: "You cannot remove your own admin access." });
   }
 
@@ -172,23 +372,52 @@ router.patch("/users/:id/admin-status", requireAdmin, writeLimiter, async (req, 
     if (!existing) return res.status(404).json({ error: "User not found." });
 
     const updated = await storage.setUserAdmin(targetId, parsed.data.isAdmin);
+    await auditLog(admin.id, targetId, parsed.data.isAdmin ? "grant_admin" : "revoke_admin", { isAdmin: existing.isAdmin }, { isAdmin: updated.isAdmin }, null);
 
-    await storage.addAdminLog({
-      adminUserId: adminUser.id,
-      targetUserId: targetId,
-      action: parsed.data.isAdmin ? "grant_admin" : "revoke_admin",
-      previousValue: { isAdmin: existing.isAdmin },
-      newValue: { isAdmin: updated.isAdmin },
-      metadata: null,
-    });
-
-    console.log(`[admin] ${adminUser.email} set isAdmin=${parsed.data.isAdmin} for user=${targetId}`);
+    console.log(`[admin] ${admin.email} set isAdmin=${parsed.data.isAdmin} for user=${targetId}`);
     res.json({ ok: true, user: serializeUser(updated) });
   } catch (err) {
     console.error("[admin] setUserAdmin error:", err);
     res.status(500).json({ error: "Failed to update admin status." });
   }
 });
+
+// ─── Delete User ─────────────────────────────────────────────────────────────
+
+const deleteUserSchema = z.object({
+  confirm: z.literal(true),
+  reason: z.string().max(500).optional(),
+});
+
+// DELETE /api/admin/users/:id
+router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
+  const admin = getAdminId(req);
+
+  if (req.params.id === admin.id) {
+    return res.status(400).json({ error: "You cannot delete your own admin account." });
+  }
+
+  const parsed = deleteUserSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: "Must confirm deletion with { confirm: true }." });
+
+  const targetId = req.params.id;
+
+  try {
+    const existing = await storage.getUser(targetId);
+    if (!existing) return res.status(404).json({ error: "User not found." });
+
+    const snapshot = { email: existing.email, plan: existing.plan, isPremium: existing.isPremium };
+    await storage.deleteUser(targetId);
+
+    console.warn(`[admin] ${admin.email} DELETED user=${targetId} (${existing.email}) reason="${parsed.data.reason ?? ""}"`);
+    res.json({ ok: true, deleted: { id: targetId, ...snapshot } });
+  } catch (err) {
+    console.error("[admin] deleteUser error:", err);
+    res.status(500).json({ error: "Failed to delete user." });
+  }
+});
+
+// ─── Logs ────────────────────────────────────────────────────────────────────
 
 // GET /api/admin/logs
 router.get("/logs", requireAdmin, readLimiter, async (req, res) => {
@@ -205,19 +434,14 @@ router.get("/logs", requireAdmin, readLimiter, async (req, res) => {
   }
 });
 
-// GET /api/admin/me — quick self-check for the frontend
+// GET /api/admin/me — quick self-check
 router.get("/me", requireAdmin, readLimiter, (req, res) => {
   const adminUser = (req as any).adminUser as User;
   res.json({ ok: true, adminId: adminUser.id, email: adminUser.email });
 });
 
-/**
- * POST /api/admin/bootstrap
- * One-time self-service admin bootstrap. Works only when:
- *   a) No admins exist yet in the database, OR
- *   b) ADMIN_SETUP_KEY env var is set and matches the request body key.
- * After the first admin is set, route (a) is permanently disabled.
- */
+// ─── Bootstrap ───────────────────────────────────────────────────────────────
+
 router.post("/bootstrap", writeLimiter, async (req, res) => {
   let userId: string | undefined;
 
@@ -233,9 +457,7 @@ router.post("/bootstrap", writeLimiter, async (req, res) => {
     }
   }
 
-  if (!userId) {
-    return res.status(401).json({ error: "Authentication required." });
-  }
+  if (!userId) return res.status(401).json({ error: "Authentication required." });
 
   const { key } = req.body || {};
   const setupKey = process.env.ADMIN_SETUP_KEY;
@@ -250,7 +472,7 @@ router.post("/bootstrap", writeLimiter, async (req, res) => {
 
   try {
     const updated = await storage.setUserAdmin(userId, true);
-    console.log(`[admin] Bootstrap: user=${userId} (${updated.email}) granted admin via bootstrap`);
+    console.log(`[admin] Bootstrap: user=${userId} (${updated.email}) granted admin`);
     res.json({ ok: true, message: "Admin access granted.", userId });
   } catch (err) {
     console.error("[admin] bootstrap error:", err);

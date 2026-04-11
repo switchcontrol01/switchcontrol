@@ -6,7 +6,7 @@ import { resolveEffectivePlan, isPlanActive } from "../lib/planUtils";
 declare global {
   namespace Express {
     interface Request {
-      cloudUser?: { id: string; isPremium: boolean; email: string | null; isAdmin: boolean };
+      cloudUser?: { id: string; isPremium: boolean; plan: string; trialEndsAt: Date | null; email: string | null; isAdmin: boolean };
     }
   }
 }
@@ -30,6 +30,8 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
       req.cloudUser = {
         id: user.id,
         isPremium: isPlanActive(effectivePlan),
+        plan: effectivePlan,
+        trialEndsAt: user.trialEndsAt ?? null,
         email: user.email ?? null,
         isAdmin: user.isAdmin ?? false,
       };
@@ -50,6 +52,8 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
         req.cloudUser = {
           id: user.id,
           isPremium: isPlanActive(effectivePlan),
+          plan: effectivePlan,
+          trialEndsAt: user.trialEndsAt ?? null,
           email: user.email ?? null,
           isAdmin: user.isAdmin ?? false,
         };

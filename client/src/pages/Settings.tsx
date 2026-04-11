@@ -120,6 +120,7 @@ export default function Settings() {
   const { toast } = useToast();
   const { isPremium, user, factoryReset } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
+  const isAdmin = !!(user as any)?.isAdmin;
   const [licenseModalOpen, setLicenseModalOpen] = useState(false);
 
   const handleSave = () => {
@@ -368,6 +369,46 @@ export default function Settings() {
             </CardContent>
           </Card>
           </AnimatedSection>
+
+          {/* Admin Panel — only visible to admin users */}
+          {isAdmin && (
+            <AnimatedSection index={4}>
+            <Card className="border-orange-500/20" style={{ background: "rgba(251,146,60,0.04)" }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-orange-300">
+                  <svg className="size-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.955 11.955 0 003 10c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+                  </svg>
+                  Admin Panel
+                </CardTitle>
+                <CardDescription>Internal admin tools. Visible to admins only.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between bg-orange-500/5 border border-orange-500/15 p-3 rounded-md">
+                  <div className="space-y-0.5">
+                    <span className="text-sm font-medium text-orange-300">User Management</span>
+                    <p className="text-xs text-orange-500/60">Manage users, plans, trials, and account flags</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-testid="button-open-admin"
+                    className="border-orange-500/20 text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                    onClick={() => {
+                      if (isElectron && (window as any).electronAPI?.openExternal) {
+                        (window as any).electronAPI.openExternal('https://switchcontrol.org/admin');
+                      } else {
+                        window.open('/admin', '_blank');
+                      }
+                    }}
+                  >
+                    Open Admin
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            </AnimatedSection>
+          )}
 
           {/* Join the Community */}
           <AnimatedSection index={4}>

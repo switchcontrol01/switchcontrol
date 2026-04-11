@@ -121,7 +121,10 @@ const adviceRequestSchema = z.object({
   disabledTweaks: z.array(tweakItemSchema).default([]),
 });
 
-export type AdviceRequest = z.infer<typeof adviceRequestSchema>;
+export type AdviceRequest = z.infer<typeof adviceRequestSchema> & {
+  userPlan?: string;
+  trialEndsAt?: string | null;
+};
 
 // ---------------------------------------------------------------------------
 // Types
@@ -238,9 +241,15 @@ function buildUserPrompt(data: AdviceRequest): string {
     ? disabledHighImpact.map(t => `- [DISABLED] ${t.title} (${t.category}, risk: ${t.risk}, id: ${t.id})`).join("\n")
     : "All available tweaks are enabled.";
 
+  const planLine = data.userPlan
+    ? `USER ACCOUNT: ${data.userPlan === "trial" && data.trialEndsAt
+        ? `Trial (expires ${new Date(data.trialEndsAt).toLocaleString()})`
+        : data.userPlan.charAt(0).toUpperCase() + data.userPlan.slice(1)}`
+    : null;
+
   return `OPTIMIZATION GOAL: ${data.goal}
 TARGET GAME: ${data.game}
-
+${planLine ? planLine + "\n" : ""}
 SYSTEM SPECS:
 - CPU: ${data.system.cpu}
 - GPU: ${data.system.gpu}
@@ -453,6 +462,12 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
     });
   }
 
+  const adviceData: AdviceRequest = {
+    ...parsed.data,
+    userPlan: cloudUser?.plan ?? undefined,
+    trialEndsAt: cloudUser?.trialEndsAt?.toISOString() ?? null,
+  };
+
   const cacheKey = getCacheKey(parsed.data);
   const cached = getCached(cacheKey);
   if (cached) {
@@ -479,7 +494,7 @@ aiRouter.post("/advice", async (req: Request, res: Response) => {
       temperature: 0.4,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "user", content: buildUserPrompt(parsed.data) },
+        { role: "user", content: buildUserPrompt(adviceData) },
       ],
       response_format: { type: "json_object" },
     });

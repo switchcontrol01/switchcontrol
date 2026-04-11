@@ -167,6 +167,12 @@ export async function exchangeToken(token: string): Promise<AuthUser | null> {
     if (data.jwt) {
       useAuthStore.getState().setJwt(data.jwt);
       console.log(`[JWT] saved to memory — length=${data.jwt.length}`);
+      fetch(`${AUTH_DOMAIN}/api/activity/app-active`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${data.jwt}`, 'Content-Type': 'application/json' },
+        credentials: 'include',
+      }).then(r => console.log(`[Activity] app-active reported, status=${r.status}`))
+        .catch(e => console.warn('[Activity] app-active fire-and-forget failed:', e));
     } else {
       console.warn('[JWT] exchange response did NOT contain jwt field');
     }

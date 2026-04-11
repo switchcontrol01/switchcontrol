@@ -1,0 +1,247 @@
+TASK
+Upgrade SwitchControl telemetry + AI system to:
+1) integrate @oxmc/node-gpuinfo
+2) preload ALL telemetry during startup (not dashboard load)
+3) upgrade graph responsiveness and sensitivity
+4) make AI Advisor fully system-aware (deep context of PC + tweaks + history)
+
+---
+
+GOAL
+The app should feel like a real system intelligence layer.
+
+- No delayed telemetry
+- No “dead” graphs
+- No generic AI responses
+- AI must understand the user's actual PC state, tweaks, and behavior history
+
+---
+
+CRITICAL RULES
+- DO NOT break existing telemetry
+- DO NOT remove systeminformation
+- DO NOT fetch data only after dashboard loads
+- DO NOT fake any data
+- ALL telemetry must come from real sources
+- ALL AI context must be derived from real app state
+
+---
+
+IMPLEMENTATION
+
+---
+
+1) INSTALL + INTEGRATE GPU TELEMETRY
+
+Install:
+@oxmc/node-gpuinfo
+
+Backend:
+- create gpuTelemetry service
+- fetch:
+  - GPU usage %
+  - VRAM used / total
+  - VRAM usage %
+  - GPU name (fallback if needed)
+
+Merge into existing telemetry object:
+{
+  cpu,
+  ram,
+  disk,
+  network,
+  gpu: {
+    usage,
+    vramUsed,
+    vramTotal,
+    vramPercent
+  }
+}
+
+If GPU data fails:
+- fallback to systeminformation graphics
+- DO NOT crash
+
+---
+
+2) START TELEMETRY DURING STARTUP (IMPORTANT)
+
+Telemetry MUST begin during splash/startup animation.
+
+Flow:
+- app launches
+- preload telemetry immediately
+- begin polling loop BEFORE dashboard renders
+- cache initial snapshot
+- dashboard reads from cached state instantly
+
+DO NOT:
+- wait until dashboard mount
+- show “Unavailable” on load
+
+---
+
+3) TELEMETRY STATE MODEL
+
+Implement:
+- loading
+- ready
+- unavailable
+
+Rules:
+- loading = waiting for first payload
+- ready = valid data exists
+- unavailable = real failure or timeout
+
+Partial loading allowed:
+- GPU ready but CPU not → show GPU only
+- never mark entire dashboard unavailable
+
+---
+
+4) GRAPH UPGRADE (VERY IMPORTANT)
+
+Current problem:
+Graph feels stiff and decorative.
+
+Fix:
+
+- Increase update frequency (smooth but efficient)
+- Use interpolation between points
+- Apply slight easing (NOT laggy smoothing)
+
+Add:
+- spike detection
+- fluctuation highlighting
+- subtle glow/pulse on sudden change
+
+Graph behavior:
+- reacts instantly to real changes
+- angle shifts visible (not flat/stale lines)
+- no snapping or jitter
+
+Add lines:
+- CPU %
+- RAM %
+- GPU %
+- VRAM %
+
+Optional:
+- Disk or network in secondary layer
+
+---
+
+5) GRAPH LOADING STATE
+
+While loading:
+- animated baseline
+- soft flowing placeholder line
+- shimmer or sweep animation
+
+DO NOT:
+- leave blank graph
+- show “Unavailable” during loading
+
+---
+
+6) AI ADVISOR FULL CONTEXT (CORE FEATURE)
+
+AI must receive FULL system context:
+
+Include:
+- CPU usage + behavior
+- GPU usage + VRAM pressure
+- RAM usage
+- disk activity
+- network activity
+
+PLUS:
+
+User state:
+- all applied tweaks
+- network tweaks
+- BIOS settings (if available)
+- performance history
+- previous issues detected
+
+Build unified context object:
+
+{
+  system: {...},
+  gpu: {...},
+  memory: {...},
+  network: {...},
+  disk: {...},
+  tweaksApplied: [...],
+  biosState: {...},
+  sessionHistory: {...}
+}
+
+Send this to AI endpoints (/chat, /advice)
+
+---
+
+7) AI OUTPUT UPGRADE
+
+AI responses must:
+
+- reference REAL system state
+- avoid generic advice
+- identify:
+  - bottlenecks
+  - instability
+  - misconfiguration
+  - improvement opportunities
+
+Examples:
+- “GPU is underutilized while CPU is saturated”
+- “VRAM usage is near limit, causing frame instability”
+- “Network tweaks applied are conflicting with current load”
+
+---
+
+8) BIOS ADVISOR IMPROVEMENT
+
+Use:
+- memory profile detection
+- CPU behavior patterns
+- performance inconsistencies
+
+Output:
+- real BIOS improvement suggestions
+- not generic “enable XMP”
+
+---
+
+9) IPC + FRONTEND SYNC
+
+Ensure:
+- telemetry updates pushed via IPC
+- no polling from frontend only
+- central telemetry store in backend
+
+Frontend:
+- subscribes to telemetry stream
+- updates graph + cards instantly
+
+---
+
+10) PERFORMANCE + SAFETY
+
+- throttle telemetry polling (not excessive)
+- prevent memory leaks
+- handle GPU package failure gracefully
+- ensure no crashes if hardware unsupported
+
+---
+
+FINAL OUTPUT REQUIRED
+
+Return:
+- files modified
+- GPU integration details
+- startup telemetry flow
+- graph update logic
+- AI context structure
+- IPC architecture summary
+- any fallback handling implemented

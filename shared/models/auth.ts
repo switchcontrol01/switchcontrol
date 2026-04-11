@@ -52,6 +52,7 @@ export const users = pgTable("users", {
   // Activity
   lastLoginAt: timestamp("last_login_at"),
   lastAppActiveAt: timestamp("last_app_active_at"),
+  hasInstalledApp: boolean("has_installed_app").notNull().default(false),
 
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
