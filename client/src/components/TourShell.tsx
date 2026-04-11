@@ -230,6 +230,10 @@ export function TourShell({
   const [stepIndex, setStepIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [completing, setCompleting] = useState(false);
+  // Defer rendering by one paint cycle so the app's own page fade-in has
+  // time to settle before the tour overlay appears — prevents the dark-flash
+  // glitch where the tour backdrop fires while the app is still mid-transition.
+  const [visible, setVisible] = useState(false);
   const [, navigate] = useLocation();
   const { setTourHighlight, setTourActive } = useTourStore();
 
@@ -244,6 +248,21 @@ export function TourShell({
     }
     if (s?.route) navigate(s.route);
   }, [steps, setTourHighlight, navigate]);
+
+  // Gated visibility — defer one rAF tick after show=true so the underlying
+  // page transition completes before the overlay paints.
+  useEffect(() => {
+    if (!show) {
+      setVisible(false);
+      return;
+    }
+    // requestAnimationFrame ensures the browser has flushed the current frame
+    // (the app's fade-in) before we commit the overlay to the DOM.
+    const raf = requestAnimationFrame(() => {
+      setVisible(true);
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [show]);
 
   useEffect(() => {
     if (show) {
@@ -296,8 +315,7 @@ export function TourShell({
 
   const pal = isPremium ? tourPalette.premium : tourPalette.free;
 
-
-  if (!show) return null;
+  if (!visible) return null;
 
   return (
     <AnimatePresence>
