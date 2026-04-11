@@ -32,6 +32,7 @@ export interface SetPlanOpts {
   trialDurationHours?: number;
   reason?: string;
   grantedByAdminId?: string;
+  resetHasUsedTrial?: boolean;
 }
 
 export interface IStorage {
@@ -428,6 +429,8 @@ export class DatabaseStorage implements IStorage {
       updateData.trialStartedAt = null;
       updateData.trialGrantedByAdminId = null;
       updateData.trialReason = null;
+      updateData.trialDurationHours = null;
+      if (opts.resetHasUsedTrial) updateData.hasUsedTrial = false;
     }
 
     const [updated] = await db!
@@ -468,7 +471,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteUser(userId: string): Promise<void> {
-    await db!.delete(adminLogs).where(eq(adminLogs.targetUserId, userId));
+    // Intentionally preserve adminLogs for audit trail — targetUserId is varchar, no FK constraint
     await db!.delete(users).where(eq(users.id, userId));
   }
 

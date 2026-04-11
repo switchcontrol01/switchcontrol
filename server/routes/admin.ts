@@ -266,8 +266,7 @@ router.post("/users/:id/reset-trial", requireAdmin, writeLimiter, async (req, re
     if (!existing) return res.status(404).json({ error: "User not found." });
 
     const prev = { plan: existing.plan, hasUsedTrial: existing.hasUsedTrial, trialEndsAt: existing.trialEndsAt };
-    const updated = await storage.setUserPlan(targetId, { plan: "free", grantedByAdminId: admin.id });
-    await storage.updateUserActivity(targetId, {});
+    const updated = await storage.setUserPlan(targetId, { plan: "free", grantedByAdminId: admin.id, resetHasUsedTrial: true });
 
     await auditLog(admin.id, targetId, "reset_trial", prev, { plan: "free", hasUsedTrial: false }, {});
     console.log(`[admin] ${admin.email} reset trial for user=${targetId}`);
@@ -406,10 +405,13 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
     const existing = await storage.getUser(targetId);
     if (!existing) return res.status(404).json({ error: "User not found." });
 
-    const snapshot = { email: existing.email, plan: existing.plan, isPremium: existing.isPremium };
-    await storage.deleteUser(targetId);
+    const snapshot = { email: existing.email, plan: existing.plan, isPremium: existing.isPremium, isAdmin: existing.isAdmin };
 
+    // Audit BEFORE deletion — admin logs are preserved (no FK cascade) for the audit trail
+    await auditLog(admin.id, targetId, "delete_user", snapshot, null, { reason: parsed.data.reason ?? null });
     console.warn(`[admin] ${admin.email} DELETED user=${targetId} (${existing.email}) reason="${parsed.data.reason ?? ""}"`);
+
+    await storage.deleteUser(targetId);
     res.json({ ok: true, deleted: { id: targetId, ...snapshot } });
   } catch (err) {
     console.error("[admin] deleteUser error:", err);
