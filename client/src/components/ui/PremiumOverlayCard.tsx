@@ -10,6 +10,7 @@
  *  - Unlock CTA button
  */
 
+import { createPortal } from "react-dom";
 import { Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AnimatedCrown } from "@/components/ui/animated-crown";
@@ -111,15 +112,18 @@ export function PremiumOverlayCard({
   );
 
   if (variant === "page") {
-    return (
+    // Portal to document.body so the fixed overlay escapes CSS mask-image /
+    // filter / transform containing blocks on ancestor elements.
+    return createPortal(
       <div
-        className={`fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm ${className ?? ""}`}
+        className={`fixed inset-0 z-[9999] flex items-center justify-center backdrop-blur-sm ${className ?? ""}`}
         style={{ background: "rgba(7,9,13,0.55)" }}
         onClick={handleOuterClick}
         data-testid="premium-overlay"
       >
         {cardInner}
-      </div>
+      </div>,
+      document.body,
     );
   }
 
