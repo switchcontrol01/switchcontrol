@@ -365,11 +365,14 @@ export function TourShell({
   const [stepIndex, setStepIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [completing, setCompleting] = useState(false);
-  // Two-phase mount: backdrop appears immediately (covers dashboard),
-  // card appears after a double-rAF so the backdrop is already painted.
-  const [backdropReady, setBackdropReady] = useState(false);
-  const [cardReady, setCardReady] = useState(false);
-  const transitionStartRef = useRef<number>(0);
+  // Single-gate reveal: both backdrop AND card are mounted together at opacity:0,
+  // then revealed together after a triple-rAF so layout is fully committed before
+  // anything becomes visible. This eliminates the broken first-frame where the
+  // backdrop was opaque but the card hadn't entered the DOM yet.
+  const [mounted, setMounted] = useState(false);
+  const [revealed, setRevealed] = useState(false);
+  const rafRefs = useRef<number[]>([]);
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [, navigate] = useLocation();
   const { setTourHighlight, setTourActive } = useTourStore();
 
@@ -385,36 +388,51 @@ export function TourShell({
     if (s?.route) navigate(s.route);
   }, [steps, setTourHighlight, navigate]);
 
-  // Two-phase mount effect:
-  // 1. Immediately cover dashboard with full-opacity backdrop (no fade-in).
-  // 2. After double-rAF (two paint frames), animate the tour card in.
-  // On dismiss: card fades out first, backdrop follows after card exit completes.
+  // Unified reveal gate:
+  // - On show: mount both elements at opacity:0, then after triple-rAF (three
+  //   paint frames ensure full layout commit) flip revealed=true so both
+  //   backdrop and card fade in together as one coordinated scene.
+  // - On dismiss: flip revealed=false (both fade out), then after exit
+  //   animations complete (~480ms) unmount everything.
   useEffect(() => {
-    if (!show) {
-      console.log('[TourTransition] tour dismissed — clearing card');
-      setCardReady(false);
-      // Keep backdrop up while card exit animation plays (~420ms), then remove
-      const t = setTimeout(() => {
-        setBackdropReady(false);
-        console.log('[TourTransition] backdrop unmounted');
-      }, 480);
-      return () => clearTimeout(t);
+    // Cancel any pending rAFs and timers from previous run
+    rafRefs.current.forEach(cancelAnimationFrame);
+    rafRefs.current = [];
+    if (dismissTimerRef.current) {
+      clearTimeout(dismissTimerRef.current);
+      dismissTimerRef.current = null;
     }
-    // Phase 1: backdrop covers dashboard immediately on this tick
-    console.log('[TourTransition] shell stable');
-    setBackdropReady(true);
-    console.log('[TourTransition] backdrop mounted');
-    // Phase 2: double-rAF ensures backdrop is painted before card animates in
-    let raf1: number, raf2: number;
-    raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => {
-        setCardReady(true);
-        console.log('[TourTransition] card mounted');
-        transitionStartRef.current = performance.now();
-        console.log('[TourTransition] transition start');
+
+    if (!show) {
+      console.log('[TourTransition] tour dismissed — fading out');
+      setRevealed(false);
+      dismissTimerRef.current = setTimeout(() => {
+        setMounted(false);
+        console.log('[TourTransition] unmounted');
+      }, 500);
+      return;
+    }
+
+    // Mount both elements immediately — they start invisible (opacity:0 via
+    // Framer initial props). No visible change on this frame.
+    setMounted(true);
+    setRevealed(false);
+    console.log('[TourTransition] mounted (invisible)');
+
+    // Triple-rAF: mount → style → layout → commit → reveal
+    // Three frames guarantee the browser has fully painted both elements
+    // and calculated their final geometry before we make them visible.
+    const r1 = requestAnimationFrame(() => {
+      const r2 = requestAnimationFrame(() => {
+        const r3 = requestAnimationFrame(() => {
+          setRevealed(true);
+          console.log('[TourTransition] revealed — first visible frame');
+        });
+        rafRefs.current = [r3];
       });
+      rafRefs.current = [r2];
     });
-    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); };
+    rafRefs.current = [r1];
   }, [show]);
 
   useEffect(() => {
@@ -470,61 +488,60 @@ export function TourShell({
 
   return createPortal(
     <>
-      {/* ══ Layer 1: Dark backdrop — mounts at full opacity immediately ════════
-           NO initial fade so the dashboard is covered before anything else runs.
-           AnimatePresence handles the EXIT fade-out when show becomes false.    */}
-      <AnimatePresence>
-        {backdropReady && (
-          <motion.div
-            key="tour-backdrop"
-            className="fixed inset-0 z-[200] pointer-events-none"
-            initial={{ opacity: 1 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.45, ease: [0.4, 0, 0.8, 1] } }}
+      {/* ══ Layer 1: Dark backdrop ═══════════════════════════════════════════════
+           Mounts at opacity:0 (invisible). Only becomes visible once `revealed`
+           is set — same tick as the card — so the user never sees the overlay
+           without the card. No more broken first-frame.                         */}
+      {mounted && (
+        <motion.div
+          key="tour-backdrop"
+          className="fixed inset-0 z-[200] pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ duration: revealed ? 0.28 : 0.45, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
+        >
+          {/* Dark overlay — only over the CONTENT area (right of sidebar) */}
+          <div
+            className="absolute inset-y-0 right-0 pointer-events-auto"
+            style={{ left: 256 }}
           >
-            {/* Dark overlay — only over the CONTENT area (right of sidebar) */}
+            <div className="absolute inset-0" style={{ background: 'rgba(4,3,12,0.82)' }} />
             <div
-              className="absolute inset-y-0 right-0 pointer-events-auto"
-              style={{ left: 256 }}
-            >
-              <div className="absolute inset-0" style={{ background: 'rgba(4,3,12,0.82)' }} />
-              <div
-                className="absolute inset-0 opacity-[0.025]"
-                style={{
-                  backgroundImage: 'radial-gradient(circle, rgba(200,180,255,0.8) 1px, transparent 1px)',
-                  backgroundSize: '36px 36px',
-                }}
-              />
-              <TourBackdrop isPremium={isPremium} />
-            </div>
-            {/* Soft vignette on left edge of content area */}
-            <div
-              className="absolute inset-y-0 pointer-events-none"
+              className="absolute inset-0 opacity-[0.025]"
               style={{
-                left: 256, width: 80,
-                background: `linear-gradient(90deg, ${pal.primary}0.12) 0%, transparent 100%)`,
-                filter: 'blur(4px)',
+                backgroundImage: 'radial-gradient(circle, rgba(200,180,255,0.8) 1px, transparent 1px)',
+                backgroundSize: '36px 36px',
               }}
             />
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <TourBackdrop isPremium={isPremium} />
+          </div>
+          {/* Soft vignette on left edge of content area */}
+          <div
+            className="absolute inset-y-0 pointer-events-none"
+            style={{
+              left: 256, width: 80,
+              background: `linear-gradient(90deg, ${pal.primary}0.12) 0%, transparent 100%)`,
+              filter: 'blur(4px)',
+            }}
+          />
+        </motion.div>
+      )}
 
-      {/* ══ Layer 2: Tour card — fades in only after backdrop is painted ════════
-           Mounts after double-rAF, so the dark overlay is already on screen.   */}
-      <AnimatePresence>
-        {cardReady && !completing && (
-          <motion.div
-            key="tour-card-layer"
-            className="fixed inset-0 z-[201] pointer-events-none"
-            data-testid={testId}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.42, ease: [0.4, 0, 0.8, 1] } }}
-            transition={{ duration: 0.35 }}
-            onAnimationStart={() => console.log('[TourTransition] card animate start')}
-            onAnimationComplete={() => console.log('[TourTransition] transition complete')}
-          >
+      {/* ══ Layer 2: Tour card ═══════════════════════════════════════════════════
+           Also mounts at opacity:0 alongside the backdrop. Reveals at the same
+           tick as the backdrop via the shared `revealed` flag.                  */}
+      {mounted && !completing && (
+        <motion.div
+          key="tour-card-layer"
+          className="fixed inset-0 z-[201] pointer-events-none"
+          data-testid={testId}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: revealed ? 1 : 0 }}
+          transition={{ duration: revealed ? 0.32 : 0.42, ease: revealed ? [0.22, 1, 0.36, 1] : [0.4, 0, 0.8, 1] }}
+          onAnimationComplete={() => {
+            if (revealed) console.log('[TourTransition] card fully visible');
+          }}
+        >
             {/* Step card — centered in content area */}
             <div
               className="absolute inset-y-0 right-0 flex items-center justify-center pointer-events-auto"
@@ -719,7 +736,6 @@ export function TourShell({
             </div>
           </motion.div>
         )}
-      </AnimatePresence>
 
       {/* ══ Layer 3: Completion screen — fullscreen ════════════════════════════
            Sits above both backdrop and card layers (z-[210]).               */}
