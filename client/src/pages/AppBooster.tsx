@@ -346,7 +346,7 @@ export default function AppBooster() {
   const loadGames = useCallback(async (): Promise<GameSummary[]> => {
     console.log("[AppBooster] loadGames — start");
     try {
-      const data = await apiGet<{ games: GameSummary[] }>("/api/app-booster/games");
+      const data = await apiGet<{ games: GameSummary[] }>("/app-booster/games");
       setGames(data.games);
       setLoadError(null);
       setSelectedSlug((prev) => prev ?? (data.games[0]?.slug ?? null));
@@ -391,7 +391,7 @@ export default function AppBooster() {
           );
           const detectedCount = results.filter((r: any) => r.detected).length;
           console.log("[AppBooster] auto-scan — results:", results.length, "detected:", detectedCount);
-          await apiPost("/api/app-booster/games/scan", { results });
+          await apiPost("/app-booster/games/scan", { results });
           const refreshed = await loadGames();
           writeCache(refreshed);
           console.log("[AppBooster] auto-scan — cache updated");
@@ -410,7 +410,7 @@ export default function AppBooster() {
 
   const loadDetail = useCallback(async (slug: string) => {
     try {
-      const data = await apiGet<GameDetail>(`/api/app-booster/games/${slug}/status`);
+      const data = await apiGet<GameDetail>(`/app-booster/games/${slug}/status`);
       setGameDetail(data);
     } catch {
       toast({ title: "Failed to load game status", variant: "destructive" });
@@ -424,7 +424,7 @@ export default function AppBooster() {
 
   const loadHistory = useCallback(async () => {
     try {
-      const data = await apiGet<{ history: HistoryEntry[] }>("/api/app-booster/history");
+      const data = await apiGet<{ history: HistoryEntry[] }>("/app-booster/history");
       setHistory(data.history);
     } catch {}
   }, []);
@@ -448,7 +448,7 @@ export default function AppBooster() {
       }
       const detected = results.filter((r) => r.detected).length;
       console.log("[AppBooster] handleScan — results:", results.length, "detected:", detected);
-      await apiPost("/api/app-booster/games/scan", { results });
+      await apiPost("/app-booster/games/scan", { results });
       const refreshed = await loadGames();
       writeCache(refreshed);
       toast({
@@ -478,7 +478,7 @@ export default function AppBooster() {
     try {
       const { actions, installPath } = await apiPost<{
         actions: ProfileAction[]; installPath: string | null; profileId: string; profile: any;
-      }>(`/api/app-booster/games/${selectedSlug}/apply`, { installPath: gameDetail.installPath });
+      }>(`/app-booster/games/${selectedSlug}/apply`, { installPath: gameDetail.installPath });
 
       const actionResults: ActionResult[] = [];
       if (isElectron) {
@@ -491,7 +491,7 @@ export default function AppBooster() {
       }
 
       const { status } = await apiPost<{ status: string; succeeded: number; failed: number }>(
-        `/api/app-booster/games/${selectedSlug}/report-result`,
+        `/app-booster/games/${selectedSlug}/report-result`,
         { operation: "apply", actionResults, installPath, isElectron }
       );
 
@@ -531,7 +531,7 @@ export default function AppBooster() {
 
     try {
       const { actions, installPath } = await apiPost<{ actions: ProfileAction[]; installPath: string | null }>(
-        `/api/app-booster/games/${selectedSlug}/revert`, { installPath: gameDetail.installPath }
+        `/app-booster/games/${selectedSlug}/revert`, { installPath: gameDetail.installPath }
       );
 
       const actionResults: ActionResult[] = [];
@@ -549,7 +549,7 @@ export default function AppBooster() {
       }
 
       const { status } = await apiPost<{ status: string; succeeded: number; failed: number }>(
-        `/api/app-booster/games/${selectedSlug}/report-result`,
+        `/app-booster/games/${selectedSlug}/report-result`,
         { operation: "revert", actionResults, installPath, isElectron }
       );
 
