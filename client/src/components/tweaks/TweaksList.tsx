@@ -184,6 +184,7 @@ export function TweaksList() {
           {filteredTweaks.map((tweak, index) => (
             <motion.div
               key={tweak.id}
+              className="self-start"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, transition: { duration: 0.1 } }}
