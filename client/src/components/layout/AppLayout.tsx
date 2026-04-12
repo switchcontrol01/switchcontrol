@@ -7,7 +7,7 @@ import { UpdateBanner } from "@/components/UpdateBanner";
 import { NetworkStatusChip } from "@/components/NetworkStatusChip";
 import { useLocation, Link } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
-import { Loader2, Moon, Timer, Zap } from "lucide-react";
+import { Loader2, Moon, Timer } from "lucide-react";
 import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useFocusStore } from "@/lib/focusStore";
@@ -115,14 +115,6 @@ function TrialCountdownBanner() {
         </span>
       </div>
       <div className="flex items-center gap-3">
-        <Link
-          href="/settings"
-          className="flex items-center gap-1 text-xs font-semibold underline-offset-2 hover:underline transition-opacity"
-          style={{ color: isUrgent ? "rgba(248,113,113,0.9)" : "rgba(6,182,212,0.9)" }}
-        >
-          <Zap className="size-3" />
-          Upgrade to Premium
-        </Link>
         <button
           onClick={() => setDismissed(true)}
           className="text-white/30 hover:text-white/60 text-xs transition-colors ml-1"
