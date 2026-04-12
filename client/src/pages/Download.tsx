@@ -45,9 +45,9 @@ function CountBlock({ value, label }: { value: string; label: string }) {
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "9px" }}>
       <div style={{
         position: "relative",
-        width: "clamp(80px,8.5vw,110px)",
-        height: "clamp(92px,10vw,128px)",
-        borderRadius: "16px",
+        width: "clamp(94px,9.5vw,126px)",
+        height: "clamp(108px,11.5vw,148px)",
+        borderRadius: "18px",
         overflow: "hidden",
         background: "linear-gradient(160deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%)",
         border: "1px solid rgba(139,92,246,0.28)",
@@ -85,10 +85,10 @@ function CountBlock({ value, label }: { value: string; label: string }) {
           zIndex: 2,
         }}>
           <span style={{
-            fontSize: "clamp(36px,5vw,56px)",
+            fontSize: "clamp(42px,5.8vw,66px)",
             fontWeight: 800, color: "rgba(255,255,255,0.96)",
             fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
-            lineHeight: 1, textShadow: "0 2px 22px rgba(139,92,246,0.40)",
+            lineHeight: 1, textShadow: "0 2px 24px rgba(139,92,246,0.45)",
           }}>{cur}</span>
         </div>
         {/* Entering number */}
@@ -100,7 +100,7 @@ function CountBlock({ value, label }: { value: string; label: string }) {
             zIndex: 2,
           }}>
             <span style={{
-              fontSize: "clamp(36px,5vw,56px)",
+              fontSize: "clamp(42px,5.8vw,66px)",
               fontWeight: 800, color: "rgba(255,255,255,0.96)",
               fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
               lineHeight: 1, textShadow: "0 2px 18px rgba(139,92,246,0.35)",
@@ -410,13 +410,21 @@ export default function DownloadPage() {
             animation: "blobDrift1 20s ease-in-out infinite 4s",
           }} />
 
-          {/* Layer 5: Sun-streak light sweep — staged in after 1.8s */}
+          {/* Layer 5a: Sun-streak wide diffuse base */}
           <div style={{
-            position: "absolute", top: "10%", left: "-20%",
-            width: "50%", height: "80%",
-            background: "linear-gradient(105deg, transparent 0%, rgba(139,92,246,0.05) 25%, rgba(103,232,249,0.07) 50%, rgba(139,92,246,0.05) 75%, transparent 100%)",
-            filter: "blur(30px)",
-            animation: "sunStreakSweep 18s ease-in-out 1.8s infinite",
+            position: "absolute", top: "-10%", left: "-30%",
+            width: "70%", height: "120%",
+            background: "linear-gradient(108deg, transparent 0%, rgba(139,92,246,0.18) 30%, rgba(103,232,249,0.22) 55%, rgba(139,92,246,0.18) 80%, transparent 100%)",
+            filter: "blur(48px)",
+            animation: "sunStreakSweep 16s ease-in-out 0.5s infinite",
+          }} />
+          {/* Layer 5b: Sun-streak tight bright core */}
+          <div style={{
+            position: "absolute", top: "5%", left: "-25%",
+            width: "40%", height: "90%",
+            background: "linear-gradient(108deg, transparent 0%, rgba(167,139,250,0.28) 35%, rgba(103,232,249,0.32) 55%, rgba(167,139,250,0.28) 75%, transparent 100%)",
+            filter: "blur(22px)",
+            animation: "sunStreakSweep 16s ease-in-out 0.5s infinite",
           }} />
 
           {/* Layer 6: Topology / network SVG lines — staged in after 0.6s */}
@@ -611,10 +619,10 @@ export default function DownloadPage() {
             {/* Headline */}
             <motion.div {...stagger(1)}>
               <h1 style={{
-                fontSize: "clamp(34px,4.5vw,56px)",
-                fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.06,
+                fontSize: "clamp(40px,5.2vw,66px)",
+                fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.05,
                 color: "rgba(255,255,255,0.97)",
-                textShadow: "0 4px 48px rgba(139,92,246,0.30)",
+                textShadow: "0 4px 52px rgba(139,92,246,0.34)",
                 margin: 0,
               }}>
                 {launched ? (
@@ -727,7 +735,7 @@ export default function DownloadPage() {
                     alt="SwitchControl"
                     style={{
                       position: "relative",
-                      width: "64px", height: "64px",
+                      width: "72px", height: "72px",
                       borderRadius: "22%", objectFit: "contain",
                       animation: "logoFloat 4s ease-in-out infinite, logoGlow 3s ease-in-out infinite",
                     }}
@@ -743,7 +751,7 @@ export default function DownloadPage() {
                     }}>v1.0.0 · Early Access</span>
                   </div>
                   <h2 style={{
-                    fontSize: "clamp(15px,2.2vw,17px)", fontWeight: 800,
+                    fontSize: "clamp(17px,2.4vw,20px)", fontWeight: 800,
                     color: "rgba(255,255,255,0.97)", letterSpacing: "-0.015em", margin: 0,
                   }}>SwitchControl.exe</h2>
                   <p style={{ fontSize: "11.5px", color: "rgba(255,255,255,0.38)", margin: "2px 0 0" }}>
