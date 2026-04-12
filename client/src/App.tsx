@@ -275,6 +275,12 @@ function ElectronAppContent() {
     if (user?.hasSeenTrialTour === false) trialTourFiredThisSessionRef.current = false;
   }, [user?.hasSeenTrialTour]);
 
+  // When admin re-grants premium the server resets hasSeenPremiumUnlock to false.
+  // Clear the session-level ref so the flow eval can fire the animation again.
+  useEffect(() => {
+    if (user?.hasSeenPremiumUnlock === false) unlockFiredThisSessionRef.current = false;
+  }, [user?.hasSeenPremiumUnlock]);
+
   useEffect(() => {
     if (isResetting) return;
     if (suppressFlowsRef.current) return;
@@ -347,9 +353,12 @@ function ElectronAppContent() {
       return;
     }
 
-    // localStorage keys — act as a permanent local guard even if server save fails
+    // localStorage keys — act as a permanent local guard even if server save fails.
+    // If the server has explicitly reset hasSeenPremiumUnlock to false (e.g. admin
+    // re-grants premium), clear the local guard so the animation can replay.
     const localUnlockKey  = `sc_unlock_seen_${userId}`;
     const localTourKey    = `sc_tour_seen_${userId}`;
+    if (user.hasSeenPremiumUnlock === false) localStorage.removeItem(localUnlockKey);
     const localUnlockSeen = localStorage.getItem(localUnlockKey) === '1';
     const localTourSeen   = localStorage.getItem(localTourKey)   === '1';
 

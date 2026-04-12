@@ -462,6 +462,9 @@ export class DatabaseStorage implements IStorage {
       updateData.isPremium = true;
       updateData.trialEndsAt = null;
       updateData.trialStartedAt = null;
+      // Reset the unlock animation flag so it always replays when premium is
+      // (re-)granted, matching the behaviour of the trial activation reset.
+      updateData.hasSeenPremiumUnlock = false;
     } else if (opts.plan === "trial") {
       const hours = opts.trialDurationHours ?? 72;
       const trialEndsAt = new Date(now.getTime() + hours * 60 * 60 * 1000);
