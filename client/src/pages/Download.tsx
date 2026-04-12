@@ -481,17 +481,14 @@ export default function DownloadPage() {
       <main className="flex-1 flex flex-col items-center justify-start p-4 py-10 min-h-[calc(100vh-80px)] relative gap-8 w-full">
         <SectionGlow color="purple" intensity="strong" />
 
-        {/* ── Perspective stack: countdown behind, download card on top ──── */}
-        <div className="w-full flex flex-col items-center px-2" style={{ perspective: "1400px", perspectiveOrigin: "50% 0%" }}>
+        {/* ── Stack: countdown behind, download card on top ──── */}
+        <div className="w-full flex flex-col items-center px-2">
 
-          {/* Countdown — tilted back, milky, peeks under download card */}
+          {/* Countdown — peeks under download card */}
           <div className="w-full" style={{
             marginBottom: "-125px",
             position: "relative",
             zIndex: 0,
-            transform: "rotateX(10deg)",
-            transformOrigin: "bottom center",
-            willChange: "transform",
           }}>
             {/* Gradient mask softens the very bottom edge before the download card covers it */}
             <div style={{ position: "relative" }}>
