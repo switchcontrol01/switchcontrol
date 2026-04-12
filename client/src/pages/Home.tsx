@@ -36,6 +36,12 @@ import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligen
 import { GpuModal } from "@/components/dashboard/GpuModal";
 import { DiskTelemetryModal } from "@/components/dashboard/DiskTelemetryModal";
 import { PerformanceLab } from "@/components/dashboard/PerformanceLab";
+import {
+  MemoryPressureGraph,
+  StorageActivityGraph,
+  SystemRhythmGraph,
+  DisplaySignalGraph,
+} from "@/components/graphs/PremiumDashboardGraphs";
 
 
 interface DiskInfo {
@@ -1059,6 +1065,72 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* ── Telemetry Analytics ────────────────────────────────────── */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+          transition={{ duration: 0.4 }}
+          className="space-y-3"
+        >
+          <div className="flex items-center gap-2">
+            <Activity className="size-4 text-cyan-400" />
+            <h2 className="text-lg font-semibold tracking-tight text-white/90">Telemetry Analytics</h2>
+            <span className="ml-auto text-[9px] uppercase tracking-widest text-white/20 font-semibold">Live · Rolling window</span>
+          </div>
+
+          {/* Three live graph cards */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <MemoryPressureGraph delay={0} />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+              transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <StorageActivityGraph delay={0.05} />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
+              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+              viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+              transition={{ duration: 0.6, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <SystemRhythmGraph delay={0.1} />
+            </motion.div>
+          </div>
+
+          {/* Display signal graph — spans full width when display data available */}
+          {sysIntel.profile && sysIntel.profile.gpu.displays.length > 0 && (() => {
+            const d0 = sysIntel.profile!.gpu.displays[0];
+            const isPortrait = d0.resolutionX !== null && d0.resolutionY !== null && d0.resolutionY > d0.resolutionX;
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 14, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
+                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                viewport={{ once: true, margin: "0px 0px -40px 0px" }}
+                transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <DisplaySignalGraph
+                  refreshHz={d0.refreshRate ?? null}
+                  resolutionX={isPortrait ? (d0.resolutionY ?? null) : (d0.resolutionX ?? null)}
+                  resolutionY={isPortrait ? (d0.resolutionX ?? null) : (d0.resolutionY ?? null)}
+                  connection={d0.connection ?? null}
+                  modelName={d0.model ?? null}
+                  delay={0.15}
+                />
+              </motion.div>
+            );
+          })()}
+        </motion.div>
 
         {/* Bottom Section */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

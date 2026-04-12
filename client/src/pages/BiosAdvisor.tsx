@@ -52,6 +52,7 @@ import { useStore } from "@/lib/store";
 import { GlassCard } from "@/components/ui/glass-card";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
+import { BiosAnalyticsRings, type BiosAnalyticsData } from "@/components/graphs/BiosAnalyticsRings";
 
 type ScanState = "idle" | "collecting" | "analyzing" | "explaining" | "complete";
 
@@ -943,6 +944,38 @@ export default function BiosAdvisor() {
             </Item>
           );
         })()}
+
+        {/* ── Firmware Analytics Block ─────────────────────────────── */}
+        <Item>
+          <GlassCard className="p-5 border-violet-500/10 bg-gradient-to-br from-violet-500/[0.04] to-cyan-500/[0.02] overflow-hidden relative">
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: "radial-gradient(ellipse 70% 50% at 50% -20%, rgba(124,58,237,0.08), transparent)" }}
+            />
+            <div className="flex items-center gap-2 mb-5">
+              <div className="w-5 h-5 rounded-md bg-violet-500/20 border border-violet-500/30 flex items-center justify-center shrink-0">
+                <Target className="size-2.5 text-violet-400" />
+              </div>
+              <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">Firmware Analytics</span>
+              {!hasScanned && (
+                <span className="text-[9px] text-white/20 italic ml-1">· Run analysis to populate</span>
+              )}
+            </div>
+            <BiosAnalyticsRings
+              data={{
+                memoryScore: categoryScores["Memory & Fabric"]?.score ?? 0,
+                securityScore: categoryScores["Platform & Security"]?.score ?? 0,
+                firmwareScore: scores.competitiveReadiness,
+                performanceScore: categoryScores["CPU Scheduling & Latency"]?.score ?? 0,
+                latencyScore: scores.latency,
+                frametimeScore: scores.frametime,
+                stabilityScore: scores.stability,
+                hasScanned,
+              }}
+              delay={0}
+            />
+          </GlassCard>
+        </Item>
 
         {photoError && (
           <Item>
