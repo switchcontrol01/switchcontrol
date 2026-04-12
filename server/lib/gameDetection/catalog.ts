@@ -27,8 +27,8 @@ export const CATALOG: CatalogEntry[] = [
       "D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
       "E:\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
     ],
-    logoUrl: "https://cdn2.unrealengine.com/Fortnite%2FFNCH5S3%2FStoreArt%2FFN_S31_EGS_StoreHeader_1200x1600_-1200x1600-2e33f7e2f45e7acdd3bc75ebab45aa58.jpg",
-    coverUrl: "https://cdn2.unrealengine.com/Fortnite%2FFNCH5S3%2FStoreArt%2FFN_S31_EGS_StoreHeader_1200x1600_-1200x1600-2e33f7e2f45e7acdd3bc75ebab45aa58.jpg",
+    logoUrl: STEAM(2153380),
+    coverUrl: STEAM(2153380),
     aliases: ["fortnite battle royale", "fn"],
   },
 
@@ -280,8 +280,8 @@ export const CATALOG: CatalogEntry[] = [
       "D:\\Riot Games\\League of Legends",
       "D:\\Games\\Riot Games\\League of Legends",
     ],
-    logoUrl: STEAM(1187380),
-    coverUrl: STEAM(1187380),
+    logoUrl: STEAM(2154370),
+    coverUrl: STEAM(2154370),
     aliases: ["lol", "league", "league of legends"],
   },
 
@@ -344,8 +344,8 @@ export const CATALOG: CatalogEntry[] = [
       "C:\\Users\\%USERNAME%\\AppData\\Roaming\\.minecraft",
       "D:\\Minecraft",
     ],
-    logoUrl: "https://store-images.s-microsoft.com/image/apps.2536.13510798887401688.6e9b9e8b-7d7b-47c7-a6cd-9e1b84edbb47.e1e4c42c-1a3e-4b32-af4e-7451f29e1de5",
-    coverUrl: "https://store-images.s-microsoft.com/image/apps.2536.13510798887401688.6e9b9e8b-7d7b-47c7-a6cd-9e1b84edbb47.e1e4c42c-1a3e-4b32-af4e-7451f29e1de5",
+    logoUrl: STEAM(2328520),
+    coverUrl: STEAM(2328520),
     aliases: ["minecraft", "mc", "minecraft java", "minecraft bedrock", "minecraft windows 10"],
   },
 ];

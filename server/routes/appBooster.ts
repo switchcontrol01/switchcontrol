@@ -368,8 +368,8 @@ router.get("/games", async (_req, res) => {
         detected: s?.detected ?? false,
         installPath: s?.installPath ?? null,
         launcher: s?.launcher ?? null,
-        logoUrl: s?.logoUrl ?? g.logoUrl ?? null,
-        coverUrl: s?.coverUrl ?? g.coverUrl ?? null,
+        logoUrl: g.logoUrl ?? s?.logoUrl ?? null,
+        coverUrl: g.coverUrl ?? s?.coverUrl ?? null,
         actionCount: buildActionsForGame(g, null).length,
         knownPaths: g.knownPaths,
       };
