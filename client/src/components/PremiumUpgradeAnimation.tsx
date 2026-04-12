@@ -29,6 +29,13 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
   const onCompleteRef       = useRef(onComplete);
   onCompleteRef.current     = onComplete;
 
+  // ── Blur-in entry state ──────────────────────────────────────────────────────
+  // Driven by animate (not initial) so it always plays even on re-mount.
+  // Double-RAF guarantees the element is committed to the DOM at opacity:0 first,
+  // then the transition fires — preventing the "instant pop" on first render.
+  const [isEntered, setIsEntered]   = useState(false);
+  const enterRafRef                 = useRef<number | null>(null);
+
   const prefersReduced = useMemo(() =>
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches, []);
 
@@ -41,6 +48,28 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
     const t = setTimeout(() => setPhase('done'), 800);
     timersRef.current = [t];
   }, []);
+
+  // ── Entry blur-in trigger ────────────────────────────────────────────────────
+  // When phase transitions to an active state, wait two animation frames before
+  // setting isEntered=true. This guarantees the DOM element exists at opacity:0
+  // (the "not entered" animate value) before Framer Motion starts the transition.
+  useEffect(() => {
+    if (phase === 'idle' || phase === 'done') {
+      setIsEntered(false);
+      if (enterRafRef.current != null) cancelAnimationFrame(enterRafRef.current);
+      return;
+    }
+    // Double RAF: first frame commits the element to DOM, second triggers transition
+    if (enterRafRef.current != null) cancelAnimationFrame(enterRafRef.current);
+    enterRafRef.current = requestAnimationFrame(() => {
+      enterRafRef.current = requestAnimationFrame(() => {
+        setIsEntered(true);
+      });
+    });
+    return () => {
+      if (enterRafRef.current != null) cancelAnimationFrame(enterRafRef.current);
+    };
+  }, [phase]);
 
   useEffect(() => {
     if (!show) {
@@ -104,11 +133,18 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
       <motion.div
           key="premium-upgrade-overlay"
           className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden select-none cursor-pointer"
-          initial={{ opacity: 0, filter: 'blur(20px)', scale: 0.97 }}
-          animate={isExiting
-            ? { opacity: 0, filter: 'blur(22px)', scale: 1.04 }
-            : { opacity: 1, filter: 'blur(0px)', scale: 1 }}
-          transition={{ duration: 0.7, ease: SILK }}
+          animate={
+            isExiting
+              ? { opacity: 0, filter: 'blur(28px)', scale: 1.04 }
+              : isEntered
+                ? { opacity: 1, filter: 'blur(0px)', scale: 1 }
+                : { opacity: 0, filter: 'blur(36px)', scale: 0.96 }
+          }
+          transition={
+            isExiting
+              ? { duration: 0.85, ease: SILK }
+              : { duration: 1.5, ease: SILK }
+          }
           onClick={skip}
           data-testid="premium-upgrade-animation"
         >

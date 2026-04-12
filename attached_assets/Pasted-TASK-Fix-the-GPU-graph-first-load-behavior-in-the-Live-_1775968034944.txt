@@ -1,0 +1,124 @@
+TASK
+
+Fix the GPU graph first-load behavior in the Live System Monitor. Right now, for new users or fresh loads, the green GPU line appears late, disconnected, or slowly joins the graph after a few seconds. It looks broken and low quality.
+
+PROBLEM
+
+The GPU series is not entering the chart correctly on initial load.
+
+Current bad behavior:
+
+- CPU and RAM lines appear immediately
+- GPU line appears late
+- GPU line starts halfway or disconnected
+- then slowly joins the rest of the graph over several seconds
+- this makes the telemetry feel fake, laggy, and unreliable
+
+This is a polish failure and a telemetry UX failure.
+
+GOAL
+
+Make the GPU line behave exactly like the other series on first render:
+
+- present from the start
+- visually continuous
+- no delayed joining
+- no broken segment
+- no empty initial gap
+- no obvious late attach
+
+A new user should never see the GPU line "catch up" to the chart.
+
+IMPLEMENTATION
+
+1. Diagnose the actual cause first
+
+Check the full first-load pipeline for the GPU series:
+
+- when GPU polling starts
+- when first GPU value becomes available
+- when chart history array is initialized
+- whether GPU values are null during first render
+- whether the chart renders before the GPU series has a valid first point
+- whether the GPU dataset is appended later than CPU/RAM
+- whether null values are creating a broken line segment
+
+Do not guess. Confirm exactly where the delay happens.
+
+2. Start GPU telemetry before chart render becomes visible
+
+If the chart mounts before GPU has an initial usable value, fix that.
+
+Preferred behavior:
+
+- initialize live telemetry state before the chart becomes visible
+- or delay chart series activation until all visible series have a valid initial point
+- or seed the GPU series with a stable placeholder initialization strategy
+
+The user must never see the GPU line "boot up" late.
+
+3. Seed the GPU series correctly on first load
+
+If GPU polling needs 1 or 2 ticks to warm up, then handle that properly.
+
+Do one of these cleanly:
+
+- prefill the first GPU point using the first resolved GPU reading before chart paint
+- backfill initial history with the first valid GPU value
+- initialize the full visible GPU series buffer with a stable starting value until live polling replaces it
+
+Important:
+Do not leave null holes that make the line start halfway.
+Do not render a partial line that visibly grows in late.
+
+4. Remove null-gap rendering for visible series
+
+If the GPU series is marked enabled and visible, its line must render continuously.
+
+Rules:
+
+- no null gaps for active visible telemetry lines
+- no delayed append that creates disconnected segments
+- no visual interpolation from "nothing" to "something" in the visible chart area
+
+If the GPU value is not ready, either:
+
+- keep the chart hidden briefly
+- or seed the line with a placeholder value strategy
+- or mark GPU unavailable and do not render that series until ready
+
+But do not render a broken line.
+
+5. Synchronize first-paint behavior across all series
+
+CPU, RAM, GPU, Disk should all enter the chart using the same lifecycle standard.
+
+Need:
+
+- one unified chart initialization path
+- one first-sample readiness check
+- one consistent history buffer strategy
+
+No special ugly behavior where one line appears late and the others do not.
+
+6. Make the transition invisible to the user
+
+Even if the GPU source needs warm-up internally, the UI must hide that complexity.
+
+The result should feel instant and premium:
+
+- chart appears ready
+- all active lines are already present
+- telemetry feels live from frame one
+
+7. Add debug logging for first-load telemetry timing
+
+Temporarily add logs to confirm:
+
+- chart mount timestamp
+- GPU polling start timestamp
+- first valid GPU sample timestamp
+- first chart dataset build timestamp
+- whether GPU initial value was null / seeded / backfilled
+
+This is so the issue is solved properly instead of just visually masked.
