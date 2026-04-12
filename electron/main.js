@@ -177,6 +177,17 @@ async function pollTelemetry() {
       }
     }
 
+    // Strategy D: si.disksIO() rejected entirely (rawDiskIO = null).
+    // This happens on some Windows builds when the PDH disk counter is unavailable.
+    // Emit zeros unconditionally so the disk line always shows in the graph.
+    // A flat 0% line is better than "disk unavailable" — the user can see the axis exists.
+    if (diskIO.activeTimePct == null) {
+      diskIO.readKBps    = 0;
+      diskIO.writeKBps   = 0;
+      diskIO.activeTimePct = 0;
+      console.log('[telemetry:poll] disk strategy D: disksIO() returned null — emitting zero baseline');
+    }
+
     // ── GPU polling (runs in parallel with disk, does not block cache update) ──
     // Primary: Windows Performance Counters — works for AMD, NVIDIA, Intel.
     // Fallback: LHM → si.graphics() (for temp/VRAM when perf counter provides load).

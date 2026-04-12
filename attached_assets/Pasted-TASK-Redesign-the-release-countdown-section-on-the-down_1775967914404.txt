@@ -1,0 +1,121 @@
+TASK
+
+Redesign the release countdown section on the download page. The current version looks off-center, underwhelming, and visually broken. It does not feel premium, exciting, or intentional.
+
+PROBLEM
+
+The current countdown layout is bad.
+
+Main issues:
+
+- everything feels off-center
+- countdown card placement is awkward
+- too much dead empty space
+- visual hierarchy is weak
+- the countdown does not feel important
+- the release moment does not feel exciting
+- supporting cards look randomly scattered instead of designed as one cohesive hero section
+- the whole thing feels small, disconnected, and cheap instead of premium and cinematic
+
+This section must feel like a major launch is about to happen.
+
+GOAL
+
+Create a large, premium, centered, animated release countdown experience for the download page that feels:
+
+- cinematic
+- exciting
+- polished
+- fluid
+- premium
+- intentional
+- launch-focused
+
+It must clearly build anticipation for Tuesday 2:00 PM NZ time.
+
+IMPLEMENTATION
+
+1. Replace the current layout entirely
+
+Do not try to patch the existing scattered card layout.
+
+Rebuild the countdown section as one unified hero composition.
+
+Structure:
+
+- centered main countdown block
+- strong headline above it
+- supporting release text below it
+- subtle secondary details underneath
+- optional side accents only if they help balance the layout
+
+The main countdown must be the center of gravity of the page.
+
+2. Make the countdown large and dominant
+
+The countdown should be the hero, not a side widget.
+
+Use large segmented time blocks for:
+
+- Days
+- Hours
+- Minutes
+- Seconds
+
+Each block should feel premium and substantial.
+Not tiny badges.
+Not little stat boxes.
+
+Think:
+
+- thick glass cards
+- strong spacing
+- clear labels
+- big numerals
+- perfectly aligned baseline
+- equal sizing
+- elegant glow treatment
+
+3. Add proper animation and life
+
+The countdown must feel alive.
+
+Add:
+
+- smooth number transitions
+- soft pulse or glow breathing
+- subtle parallax / ambient motion in the container
+- gentle shimmer sweep or light travel across the countdown blocks
+- fluid fade / blur entrance on page load
+- smooth stagger reveal from top to bottom
+
+Do not make it tacky.
+No cheap bouncing.
+No aggressive looping.
+It must feel expensive and smooth.
+
+4. Fix the centering and composition
+
+Everything must be visually centered and balanced.
+
+Requirements:
+
+- countdown group perfectly centered in viewport
+- content width constrained properly
+- supporting text aligned to the countdown
+- no random floating cards causing imbalance
+- no awkward left-weight or right-weight
+- no feeling of “empty giant page with a small widget”
+
+The section should feel intentionally composed on desktop first, then adapted cleanly to mobile.
+
+5. Improve the hierarchy
+
+New hierarchy should be:
+
+1. Main headline
+2. Release countdown
+3. Launch date/time clarity
+4. Download call-to-action
+5. Secondary notes like build version / Windows support
+
