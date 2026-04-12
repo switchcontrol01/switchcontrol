@@ -141,8 +141,6 @@ function StabilityArc({ score, prefersReducedMotion }: { score: number; prefersR
           <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
-      {/* Outer decorative ring */}
-      <circle cx={60} cy={60} r={54} fill="none" stroke="rgba(255,255,255,0.03)" strokeWidth={1} />
       {/* Track arc */}
       <circle
         cx={60} cy={60} r={48}
