@@ -23,6 +23,7 @@ export function useRevealOnScroll({
     });
 
     let io: IntersectionObserver | null = null;
+    let mo: MutationObserver | null = null;
 
     // Smart emergency fallback: after 900ms reveal only elements
     // already in the viewport (not elements further down the page)
@@ -37,8 +38,10 @@ export function useRevealOnScroll({
 
     // Small delay: let the incoming page finish mounting before observing
     const timerId = setTimeout(() => {
-      const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
-      if (!els.length) return;
+      const observeEl = (el: HTMLElement) => {
+        if (el.classList.contains("is-visible")) return;
+        io!.observe(el);
+      };
 
       io = new IntersectionObserver(
         (entries) => {
@@ -54,13 +57,32 @@ export function useRevealOnScroll({
         { root: null, rootMargin, threshold }
       );
 
-      els.forEach((el) => io!.observe(el));
+      // Observe all currently-mounted elements
+      const els = Array.from(document.querySelectorAll<HTMLElement>(selector));
+      els.forEach(observeEl);
+
+      // MutationObserver: pick up data-reveal elements added after initial mount
+      // (e.g. elements inside conditionally rendered sections)
+      mo = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of Array.from(mutation.addedNodes)) {
+            if (!(node instanceof HTMLElement)) continue;
+            // Check if the added node itself matches
+            if (node.matches(selector)) observeEl(node);
+            // Check descendants
+            node.querySelectorAll<HTMLElement>(selector).forEach(observeEl);
+          }
+        }
+      });
+
+      mo.observe(document.body, { childList: true, subtree: true });
     }, 80);
 
     return () => {
       clearTimeout(timerId);
       clearTimeout(emergencyTimer);
       io?.disconnect();
+      mo?.disconnect();
     };
   // locationKey drives re-runs on navigation
   // eslint-disable-next-line react-hooks/exhaustive-deps
