@@ -65,12 +65,18 @@ const STREAKS = [
 function CompletionMoment({ onDone, isPremium }: { onDone: () => void; isPremium?: boolean }) {
   const [phase, setPhase] = useState<'enter' | 'hold' | 'exit'>('enter');
 
+  // Keep a stable ref so that parent re-renders (which produce new onDone
+  // references from inline arrow functions) never restart the timers.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
   useEffect(() => {
     const t1 = setTimeout(() => setPhase('hold'), TOUR_COMPLETION_TIMING.holdMs);
     const t2 = setTimeout(() => setPhase('exit'), TOUR_COMPLETION_TIMING.exitMs);
-    const t3 = setTimeout(onDone, TOUR_COMPLETION_TIMING.doneMs);
+    const t3 = setTimeout(() => onDoneRef.current(), TOUR_COMPLETION_TIMING.doneMs);
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
-  }, [onDone]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally empty — timers must run exactly once on mount
 
   const isExiting = phase === 'exit';
   const cp = isPremium ? tourPalette.premium : tourPalette.free;
@@ -465,6 +471,10 @@ export function TourShell({
 
   const handleNext = useCallback(() => {
     if (isLast) {
+      // Navigate to the canonical root so the dashboard settles on one
+      // consistent Route element and stops oscillating between "/" and "/dashboard".
+      navigate('/');
+      setTourHighlight(null);
       setCompleting(true);
     } else {
       const nextIdx = stepIndex + 1;
@@ -472,7 +482,7 @@ export function TourShell({
       setStepIndex(nextIdx);
       applyStep(nextIdx);
     }
-  }, [isLast, stepIndex, applyStep]);
+  }, [isLast, stepIndex, applyStep, navigate, setTourHighlight]);
 
   const handleBack = useCallback(() => {
     if (stepIndex > 0) {
