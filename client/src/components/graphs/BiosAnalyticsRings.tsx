@@ -120,7 +120,7 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
   const id = useId().replace(/:/g, "");
   const cx = size / 2;
   const cy = size / 2;
-  const maxR = size / 2 - 16;
+  const maxR = size / 2 - 28;
   const n = axes.length;
 
   function polar(i: number, r: number): [number, number] {
@@ -145,7 +145,7 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
   }, [dataPoints]);
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} overflow="visible">
       <defs>
         <radialGradient id={`radg-${id}`} cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.18" />
@@ -205,12 +205,12 @@ function RadarGraph({ axes, size = 140, delay = 0 }: { axes: RadarAxis[]; size?:
 
       {/* Axis labels */}
       {axes.map((ax, i) => {
-        const [lx, ly] = polar(i, maxR + 10);
+        const [lx, ly] = polar(i, maxR + 18);
         const anchor = lx < cx - 4 ? "end" : lx > cx + 4 ? "start" : "middle";
         return (
           <motion.text key={i} x={lx} y={ly} textAnchor={anchor} dominantBaseline="middle"
-            fill="white" fillOpacity="0.4" fontSize="7.5" fontFamily="monospace" fontWeight="600"
-            style={{ textTransform: "uppercase", letterSpacing: "0.04em" }}
+            fill="white" fillOpacity="0.85" fontSize="13" fontFamily="monospace" fontWeight="700"
+            style={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.7 + i * 0.06, duration: 0.4 }}
           >
             {ax.label}
