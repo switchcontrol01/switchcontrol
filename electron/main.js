@@ -165,6 +165,16 @@ async function pollTelemetry() {
       if (rIO != null && wIO != null) {
         lastDiskSnapshot = { rIO, wIO, ms: msTotal != null ? msTotal : 0, ts: diskNow };
       }
+
+      // Strategy C: rawDiskIO responded but rates couldn't be computed yet
+      // (first call, no lastDiskSnapshot, or WMI couldn't provide rates).
+      // Emit zeros so the disk line always appears in the graph rather than "disk unavailable".
+      if (diskIO.activeTimePct == null) {
+        diskIO.readKBps    = 0;
+        diskIO.writeKBps   = 0;
+        diskIO.activeTimePct = 0;
+        console.log('[telemetry:poll] disk strategy C: zero baseline (rawDiskIO present but rates pending)');
+      }
     }
 
     // ── GPU polling (runs in parallel with disk, does not block cache update) ──
@@ -226,12 +236,23 @@ async function pollTelemetry() {
 
 async function startTelemetryPolling() {
   console.log('[telemetry:poll] priming differential APIs (first call establishes baseline)...');
-  // First call to differential APIs always returns 0 — fire and discard.
-  await Promise.allSettled([
+  // First call to differential APIs always returns 0 — prime them and seed lastDiskSnapshot
+  // so that the first real pollTelemetry() can compute disk deltas immediately.
+  const [, , primeDisksIO] = await Promise.allSettled([
     si.currentLoad(),
     si.networkStats(),
     si.disksIO(),
   ]);
+  if (primeDisksIO.status === 'fulfilled' && primeDisksIO.value) {
+    const d = primeDisksIO.value;
+    const rIO = typeof d.rIO === 'number' ? d.rIO : null;
+    const wIO = typeof d.wIO === 'number' ? d.wIO : null;
+    const ms  = typeof d.ms  === 'number' ? d.ms  : 0;
+    if (rIO != null && wIO != null) {
+      lastDiskSnapshot = { rIO, wIO, ms, ts: Date.now() };
+      console.log('[telemetry:poll] disk baseline seeded from prime: rIO=' + rIO + ' wIO=' + wIO);
+    }
+  }
   console.log('[telemetry:poll] prime done — waiting 1.5s for real readings...');
 
   // Wait 1.5s so differential APIs have a measurement window before the first
