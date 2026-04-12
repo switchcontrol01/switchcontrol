@@ -1,0 +1,184 @@
+TASK
+
+Build a real performance intelligence upgrade across SwitchControl using these 5 systems together:
+
+1. Real-time impact feedback per tweak
+2. Before / After benchmark snapshot
+3. Auto-detect system issues with one-click fixes
+4. Advanced section for power users
+5. Rich micro-interactions and animated graphs
+
+This must be a real frontend + backend implementation. Not fake UI. Not placeholder values. Not cosmetic only.
+
+PROBLEM
+
+Right now the app looks premium, but too many actions still feel like surface-level toggles.
+
+Main problems:
+- user applies a tweak and does not feel the impact clearly
+- no strong before vs after proof
+- no diagnosis engine surfacing actual issues first
+- advanced users are not being served properly
+- micro-interactions and graph behavior are still too static or too abrupt
+- some UI states feel disconnected from backend truth
+
+This makes the app feel less trustworthy and less addictive than it should.
+
+GOAL
+
+Turn SwitchControl into a system that feels alive, intelligent, measurable, and high value.
+
+The app must:
+- show real measured impact where possible
+- compare before and after system state
+- automatically detect actionable issues
+- separate normal mode from advanced mode cleanly
+- animate fluidly and professionally across all affected views
+- use backend truth, not guessed frontend state
+
+IMPLEMENTATION
+
+1. REAL-TIME IMPACT FEEDBACK PER TWEAK
+
+Build a real impact engine for each tweak action.
+
+For every tweak card, add an expandable "Impact" section or live result row that can show:
+
+- CPU usage delta
+- RAM usage delta
+- background process count delta
+- service count delta
+- startup app delta
+- disk activity delta if available
+- network delta where relevant
+- latency estimate delta if available
+- restart required / session only / persistent status
+
+Important:
+This must not invent values.
+Only show deltas that can be measured from real system state before and after the tweak.
+If a metric cannot be measured, show nothing for that metric.
+
+Suggested model:
+
+type TweakImpactResult = {
+  tweakId: string;
+  success: boolean;
+  appliedAt: number;
+  persistent: boolean | null;
+  requiresRestart: boolean | null;
+  deltas: {
+    cpuPct?: number | null;
+    ramUsedMb?: number | null;
+    processCount?: number | null;
+    servicesRunning?: number | null;
+    startupAppsDisabled?: number | null;
+    diskActiveTimePct?: number | null;
+    networkAdaptersAffected?: number | null;
+    latencyEstimateMs?: number | null;
+  };
+  summary: string[];
+};
+
+Flow:
+- capture a system snapshot before tweak
+- apply tweak
+- wait a short controlled settle window
+- capture another snapshot
+- compute actual measurable deltas
+- persist result in state/store/history
+- render it under the tweak card with animated count-up
+
+Frontend:
+- animate the result chips
+- positive changes glow cyan/green
+- warnings glow amber
+- restart-required gets a subtle pulse badge
+- no fake flashy animation if the backend has not returned a result yet
+
+Backend:
+- add a snapshot collector that can be reused by tweak execution and benchmark mode
+- compute deltas server-side or in Electron main, not only in React
+
+2. BEFORE / AFTER BENCHMARK SNAPSHOT
+
+Add a dedicated "Before / After Snapshot" system.
+
+User flow:
+- user clicks "Run Snapshot"
+- app records current state
+- user applies selected tweaks or profile
+- app records follow-up state
+- app shows a visual comparison card
+
+Metrics to include:
+- CPU usage
+- RAM used
+- services running
+- startup apps enabled/disabled
+- disk active time if available
+- default power plan
+- gaming-related tweak states
+- network-related tweak states
+- timer resolution if actually supported and measurable
+- process count
+- top CPU offenders before and after
+
+Suggested shape:
+
+type PerformanceSnapshot = {
+  id: string;
+  createdAt: number;
+  label: "before" | "after" | "manual";
+  system: {
+    cpuLoadPct: number | null;
+    ramUsedMb: number | null;
+    ramTotalMb: number | null;
+    processCount: number | null;
+    servicesRunning: number | null;
+    diskActiveTimePct: number | null;
+    topCpuProcesses: Array<{ name: string; cpuPct: number | null }>;
+    topRamProcesses: Array<{ name: string; ramMb: number | null }>;
+  };
+  config: {
+    activePowerPlan: string | null;
+    enabledTweaks: string[];
+    timerResolutionMs: number | null;
+    gameMode: boolean | null;
+    hags: boolean | null;
+  };
+};
+
+Then render a premium comparison panel with:
+- Before column
+- After column
+- Delta column
+- animated bars
+- animated number transitions
+- mini trend graph or radial delta graphic
+
+Important:
+Do not just store one score. Store the raw measured fields too.
+The score can be derived, but the user should see actual evidence.
+
+3. AUTO-DETECT SYSTEM ISSUES WITH ONE-CLICK FIXES
+
+Build a real diagnosis engine that runs on dashboard load and on demand.
+
+Detect issues such as:
+- single-channel RAM
+- memory not running near expected EXPO/XMP speed
+- too many startup apps
+- too many background services
+- Secure Boot off
+- VBS / Memory Integrity on if conflicting with performance goal
+- Hyper-V / hypervisor state enabled
+- wrong power plan
+- Wi-Fi active when Ethernet is primary
+- Game Bar still enabled
+- delivery optimization active
+- high process count
+- active top offenders consuming CPU or RAM
+- missing or weak GPU telemetry
+- outdated BIOS profile status if BIOS data exists
+- disk activity spikes on idle if available

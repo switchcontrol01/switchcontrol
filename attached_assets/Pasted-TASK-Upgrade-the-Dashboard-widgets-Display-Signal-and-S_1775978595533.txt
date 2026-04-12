@@ -1,0 +1,130 @@
+TASK
+
+Upgrade the Dashboard widgets "Display Signal" and "Smart RAM Analysis" from decorative/static cards into real live system intelligence panels. These two widgets currently look polished, but they do not feel trustworthy enough because they do not react deeply enough to the actual machine state.
+
+PROBLEM
+
+1. Display Signal is mostly static and low-value right now.
+   It shows basic info once, but it does not behave like a live signal pipeline analyzer. It feels like a label, not intelligence.
+
+2. Smart RAM Analysis feels generic and repetitive.
+   It often says things like "RAM may be minimal" which feels weak, vague, and fake. It does not clearly classify memory state, explain what is happening, or give the user useful action.
+
+GOAL
+
+Make both widgets feel real, live, and premium.
+
+DISPLAY SIGNAL should become a live display pipeline analyzer that shows:
+
+- monitor name
+- active resolution
+- refresh rate
+- connection type if detectable
+- bit depth if detectable
+- HDR state if detectable
+- VRR / FreeSync / G-Sync style state if detectable
+- display driver chain or GPU driving the display if detectable
+- native vs current mode if possible
+
+SMART RAM ANALYSIS should become a real memory state engine that shows:
+
+- current RAM state classification
+- real reason for that classification
+- reclaimable memory estimate
+- standby/cached memory
+- top memory pressure drivers
+- top RAM-consuming processes
+- predicted gain if the user clears RAM
+- meaningful, changing advice instead of generic filler
+
+IMPLEMENTATION
+
+1. DISPLAY SIGNAL PANEL REBUILD
+
+Replace the current static card with a real live analyzer.
+
+Collect and normalize:
+
+- display name
+- current resolution
+- current refresh rate
+- current display index
+- active GPU/display chain
+- bit depth if available
+- HDR enabled or disabled if available
+- VRR state if available
+- cable / connection type if available
+- native mode if available
+
+Use systeminformation where possible, but do not stop there if systeminformation is too weak.
+Add Windows-specific collection if needed through safe PowerShell / WMI / DXGI-backed paths already used elsewhere in the app.
+
+New output model suggestion:
+
+type DisplaySignalProfile = {
+monitorName: string | null;
+resolution: string | null;
+refreshHz: number | null;
+bitDepth: number | null;
+hdrEnabled: boolean | null;
+vrrEnabled: boolean | null;
+connectionType: string | null;
+gpuName: string | null;
+isNativeMode: boolean | null;
+qualityScore: number | null;
+notes: string[];
+};
+
+Rules:
+
+- unknown values stay null
+- do not invent cable type, HDR, or VRR if not confirmed
+- no fake confidence
+
+2. DISPLAY SIGNAL QUALITY SCORE
+
+Add a real score out of 100 based on known conditions only.
+
+Possible scoring dimensions:
+
+- native resolution active
+- high refresh active
+- HDR enabled when supported
+- VRR enabled when supported
+- output driven by expected GPU
+- bit depth appropriate
+
+Show:
+
+- score
+- concise reason
+- one action suggestion when score is not ideal
+
+Examples:
+
+- "Running at native 2560x1440 and 165Hz"
+- "VRR state unknown, quality score limited by incomplete signal data"
+- "Refresh rate is below monitor maximum"
+
+3. MAKE DISPLAY SIGNAL LIVE
+
+This widget must not look frozen.
+Add:
+
+- smooth numeric transitions for refresh/resolution changes
+- glow pulse only when a display state changes
+- subtle scanline or signal sweep animation
+- live badge that feels active but not noisy
+
+Do not make it decorative-only. Changes must be tied to real data updates.
+
+4. SMART RAM ANALYSIS ENGINE REBUILD
+
+Delete vague language like:
+
+- "RAM may be minimal"
+- "memory is okay"
+- other filler that sounds fake
+
+Replace with a real state engine.
+
