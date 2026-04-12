@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { getCachedSnapshot } from "../lib/telemetry";
+import si from "systeminformation";
 
 const router = Router();
 
@@ -382,57 +383,277 @@ router.get("/latency-estimate", (_req, res) => {
   }
 });
 
-// ── Smart RAM analysis ────────────────────────────────────────────────────────
+// ── Smart RAM analysis (real state engine) ────────────────────────────────────
 
-router.get("/ram-analysis", (_req, res) => {
+router.get("/ram-analysis", async (_req, res) => {
   try {
     const snap    = getCachedSnapshot();
     const usedGB  = snap.ram.usedGB;
     const totalGB = snap.ram.totalGB;
-    const freeGB  = Math.max(0, parseFloat((totalGB - usedGB).toFixed(1)));
     const usedPct = snap.ram.usedPercent;
 
-    // Standby page cache estimate: Windows keeps 15–28% of used as reclaimable standby
-    const standbyFactor = usedPct > 88 ? 0.27 : usedPct > 75 ? 0.22 : 0.16;
-    const reclaimableGB = Math.round(usedGB * standbyFactor * 10) / 10;
-    const newUsedPct    = Math.round(Math.max(0, usedPct - (reclaimableGB / totalGB) * 100));
+    // Get richer memory data from si.mem() — buffcache is real cached+buffered pages
+    let buffcacheGB: number | null = null;
+    let availableGB: number | null = null;
+    let swapUsedGB:  number | null = null;
 
-    const pressure =
-      usedPct > 92 ? "critical" :
-      usedPct > 80 ? "high"     :
-      usedPct > 65 ? "moderate" : "low";
+    try {
+      const mem = await si.mem();
+      buffcacheGB = mem.buffcache  > 0 ? parseFloat((mem.buffcache  / 1073741824).toFixed(1)) : null;
+      availableGB = mem.available  > 0 ? parseFloat((mem.available  / 1073741824).toFixed(1)) : null;
+      swapUsedGB  = mem.swapused   > 0 ? parseFloat((mem.swapused   / 1073741824).toFixed(2)) : null;
+    } catch (_) {}
 
-    const pressureLabel =
-      pressure === "critical" ? `Critical — ${usedPct.toFixed(0)}% used, OS actively paging` :
-      pressure === "high"     ? `High — ${usedPct.toFixed(0)}% used, standby memory trimmed` :
-      pressure === "moderate" ? `Moderate — ${usedPct.toFixed(0)}% used, comfortable headroom` :
-                                `Low — ${usedPct.toFixed(0)}% used, system comfortable`;
+    // Top 5 RAM-consuming processes sorted by memRss (resident set size)
+    type TopProc = { name: string; pid: number | null; ramMb: number | null; cpuPct: number | null };
+    let topProcesses: TopProc[] = [];
+    try {
+      const procs = await si.processes();
+      topProcesses = procs.list
+        .filter((p: any) => p.memRss > 0)
+        .sort((a: any, b: any) => b.memRss - a.memRss)
+        .slice(0, 5)
+        .map((p: any) => ({
+          name:   p.name ?? "unknown",
+          pid:    typeof p.pid === "number" ? p.pid : null,
+          ramMb:  typeof p.memRss === "number" ? Math.round(p.memRss / 1024) : null,
+          cpuPct: typeof p.pcpu === "number"   ? parseFloat(p.pcpu.toFixed(1)) : null,
+        }));
+    } catch (_) {}
 
-    const risk       = usedPct > 60 ? "low" : "medium";
-    const riskLabel  = risk === "low" ? "Safe to reclaim" : "Reclaim may be minimal";
-    const impactLabel = reclaimableGB >= 2
-      ? `~${reclaimableGB} GB freed — pressure reduced to ~${newUsedPct}%`
-      : reclaimableGB >= 1
-      ? `~${reclaimableGB} GB freed — marginal improvement`
-      : "Minimal standby to reclaim at current usage";
+    // Reclaimable: if we have real buffcache data, use it — otherwise estimate conservatively
+    let reclaimableGB: number;
+    let reclaimableSource: "measured" | "estimated";
+    if (buffcacheGB !== null && buffcacheGB > 0) {
+      // On Linux, buffcache is the real reclaimable page cache.
+      // On Windows via si, this approximates standby pages.
+      reclaimableGB  = Math.round(Math.min(buffcacheGB, usedGB * 0.45) * 10) / 10;
+      reclaimableSource = "measured";
+    } else {
+      // Conservative estimate — never overclaim
+      const factor   = usedPct > 85 ? 0.18 : usedPct > 70 ? 0.14 : 0.10;
+      reclaimableGB  = Math.round(usedGB * factor * 10) / 10;
+      reclaimableSource = "estimated";
+    }
+
+    const freeGB      = availableGB ?? Math.max(0, parseFloat((totalGB - usedGB).toFixed(1)));
+    const newUsedPct  = Math.round(Math.max(0, usedPct - (reclaimableGB / totalGB) * 100));
+
+    // ── State engine ──────────────────────────────────────────────────────────
+    // "cached_heavy": lots of page cache, real memory is fine
+    // "pressure_rising": increasing usage, standby being trimmed
+    // "bottleneck": high usage, reduced headroom
+    // "critical": OS paging / swap active
+    // "stable": all good
+
+    type RamState = "stable" | "cached_heavy" | "pressure_rising" | "bottleneck" | "critical";
+    let state: RamState;
+    let reason: string;
+    let recommendation: string;
+
+    const loadTrend = snap.load_trend;
+
+    if (usedPct > 92 || (swapUsedGB !== null && swapUsedGB > 0.5)) {
+      state  = "critical";
+      reason = swapUsedGB
+        ? `RAM at ${usedPct.toFixed(0)}% with ${swapUsedGB} GB in swap — OS is paging to disk`
+        : `RAM at ${usedPct.toFixed(0)}% — OS is actively swapping, performance degraded`;
+      recommendation = "Clear RAM now or close high-pressure applications to stop paging";
+    } else if (usedPct > 80) {
+      state  = "bottleneck";
+      reason = `RAM at ${usedPct.toFixed(0)}% — standby memory pool is shrinking, headroom is limited`;
+      recommendation = "Clear standby pages or reduce background process count";
+    } else if (usedPct > 65 && loadTrend === "rising") {
+      state  = "pressure_rising";
+      reason = `RAM at ${usedPct.toFixed(0)}% and trending upward — available headroom is narrowing`;
+      recommendation = "Monitor active processes; consider clearing RAM if trend continues";
+    } else if (buffcacheGB !== null && buffcacheGB > usedGB * 0.30) {
+      state  = "cached_heavy";
+      reason = `${buffcacheGB} GB held as page cache — reclaimable by OS on demand. Real memory is healthy`;
+      recommendation = "No action required — cached memory improves disk-read performance";
+    } else {
+      state  = "stable";
+      reason = `RAM at ${usedPct.toFixed(0)}% with ${freeGB} GB available — system is comfortable`;
+      recommendation = "No action needed";
+    }
+
+    const standbyGb = buffcacheGB;
 
     res.json({
-      usedGB:    parseFloat(usedGB.toFixed(1)),
-      totalGB:   parseFloat(totalGB.toFixed(1)),
-      freeGB:    parseFloat(freeGB.toFixed(1)),
-      usedPct:   Math.round(usedPct),
-      reclaimableGB,
-      reclaimableEstimated: true,
+      totalGb:          parseFloat(totalGB.toFixed(1)),
+      usedGb:           parseFloat(usedGB.toFixed(1)),
+      freeGb:           parseFloat(freeGB.toFixed(1)),
+      availableGb:      availableGB,
+      standbyGb,
+      swapUsedGb:       swapUsedGB,
+      reclaimableGb:    reclaimableGB,
+      reclaimableSource,
       newUsedPct,
-      pressure,
-      pressureLabel,
-      risk,
-      riskLabel,
-      impactLabel,
+      usedPct:          Math.round(usedPct),
+      state,
+      reason,
+      recommendation,
+      topProcesses,
       ts: Date.now(),
     });
   } catch (e: any) {
     res.status(500).json({ error: "Failed to analyze RAM" });
+  }
+});
+
+// ── Display Signal profile ────────────────────────────────────────────────────
+
+router.get("/display-signal", async (_req, res) => {
+  try {
+    const gfx = await si.graphics();
+
+    // Normalize a display from systeminformation — be explicit when data is absent
+    const rawDisps = gfx.displays ?? [];
+    const rawCtrl  = gfx.controllers?.[0] ?? null;
+
+    const gpuName: string | null = rawCtrl?.model?.trim() || null;
+
+    interface DisplaySignalProfile {
+      monitorName:    string | null;
+      resolution:     string | null;
+      refreshHz:      number | null;
+      bitDepth:       number | null;
+      hdrEnabled:     boolean | null;
+      vrrEnabled:     boolean | null;
+      connectionType: string | null;
+      gpuName:        string | null;
+      isNativeMode:   boolean | null;
+      qualityScore:   number | null;
+      qualityReason:  string;
+      qualityAction:  string | null;
+      notes:          string[];
+      displayCount:   number;
+      ts:             number;
+    }
+
+    function normalizeDisplay(d: any): DisplaySignalProfile {
+      const resX = d.currentResX ?? d.resolutionX ?? null;
+      const resY = d.currentResY ?? d.resolutionY ?? null;
+      const hz   = d.currentRefreshRate ?? d.refreshRate ?? null;
+
+      const resolution     = (resX && resY) ? `${resX}×${resY}` : null;
+      const connectionType = typeof d.connection === "string" && d.connection.trim()
+        ? d.connection.trim() : null;
+      const monitorName    = typeof d.model === "string" && d.model.trim()
+        ? d.model.trim() : null;
+
+      // pixelDepth from si — only trust when explicitly non-null
+      const bitDepth: number | null = (typeof d.pixelDepth === "number" && d.pixelDepth > 0)
+        ? d.pixelDepth : null;
+
+      // HDR and VRR — si does not expose these fields reliably; never guess
+      const hdrEnabled: boolean | null = null;
+      const vrrEnabled: boolean | null = null;
+
+      // Native mode — si does not expose native/max resolution separately
+      const isNativeMode: boolean | null = null;
+
+      // ── Quality score ─────────────────────────────────────────────────────
+      // Only score axes where we have real confirmed data
+      const notes: string[] = [];
+      let score: number | null = null;
+      let points = 0;
+      let maxPoints = 0;
+      const qualityActions: string[] = [];
+
+      // Axis 1: Refresh rate (40 pts)
+      if (hz !== null) {
+        maxPoints += 40;
+        if      (hz >= 240) { points += 40; notes.push(`${hz}Hz ultra-high refresh rate`); }
+        else if (hz >= 144) { points += 36; notes.push(`${hz}Hz high-refresh display`); }
+        else if (hz >= 100) { points += 28; notes.push(`${hz}Hz above standard refresh`); }
+        else if (hz >= 60)  { points += 18; notes.push(`${hz}Hz standard refresh rate`);
+          qualityActions.push(`Display supports ${hz}Hz — verify maximum is being used`); }
+        else                { points += 6;  notes.push(`${hz}Hz — below typical desktop rate`);
+          qualityActions.push("Enable a higher refresh rate in Display Settings"); }
+      }
+
+      // Axis 2: Resolution (35 pts)
+      if (resX !== null && resY !== null) {
+        maxPoints += 35;
+        const px = resX * resY;
+        if      (px >= 7680 * 4320) { points += 35; notes.push(`8K resolution active`); }
+        else if (px >= 3840 * 2160) { points += 35; notes.push(`4K (${resX}×${resY}) resolution`); }
+        else if (px >= 2560 * 1440) { points += 30; notes.push(`1440p (${resX}×${resY}) resolution`); }
+        else if (px >= 1920 * 1080) { points += 22; notes.push(`1080p (${resX}×${resY}) resolution`);
+          qualityActions.push("1080p detected — 1440p or higher would improve clarity"); }
+        else                         { points += 10; notes.push(`${resolution} — below 1080p`);
+          qualityActions.push("Resolution is below Full HD"); }
+      }
+
+      // Axis 3: Bit depth (15 pts)
+      if (bitDepth !== null) {
+        maxPoints += 15;
+        if      (bitDepth >= 12) { points += 15; notes.push(`${bitDepth}-bit deep color`); }
+        else if (bitDepth >= 10) { points += 13; notes.push(`${bitDepth}-bit wide color`); }
+        else if (bitDepth >= 8)  { points += 10; notes.push(`${bitDepth}-bit standard color depth`); }
+        else                     { points += 4;  notes.push(`${bitDepth}-bit limited color depth`); }
+      }
+
+      // Axis 4: Connection type (10 pts)
+      if (connectionType !== null) {
+        maxPoints += 10;
+        const conn = connectionType.toUpperCase();
+        if      (conn.includes("DP") || conn.includes("DISPLAYPORT")) { points += 10; notes.push(`DisplayPort connection`); }
+        else if (conn.includes("HDMI 2.1"))                           { points += 10; notes.push("HDMI 2.1 connection"); }
+        else if (conn.includes("HDMI"))                               { points += 7;  notes.push(`${connectionType} connection`); }
+        else if (conn.includes("VNC"))                                { points += 0;  notes.push("VNC virtual display — not a physical monitor"); }
+        else                                                          { points += 5;  notes.push(`${connectionType} connection`); }
+      }
+
+      if (maxPoints > 0) {
+        score = Math.round((points / maxPoints) * 100);
+      }
+
+      const qualityReason = notes.length > 0
+        ? notes.slice(0, 2).join(" · ")
+        : "Display data limited — connect a physical monitor for full analysis";
+
+      const qualityAction = qualityActions.length > 0 ? qualityActions[0] : null;
+
+      return {
+        monitorName,
+        resolution,
+        refreshHz: hz,
+        bitDepth,
+        hdrEnabled,
+        vrrEnabled,
+        connectionType,
+        gpuName,
+        isNativeMode,
+        qualityScore: score,
+        qualityReason,
+        qualityAction,
+        notes,
+        displayCount: rawDisps.length,
+        ts: Date.now(),
+      };
+    }
+
+    const profile = rawDisps.length > 0 ? normalizeDisplay(rawDisps[0]) : null;
+
+    if (!profile) {
+      res.json({
+        monitorName: null, resolution: null, refreshHz: null,
+        bitDepth: null, hdrEnabled: null, vrrEnabled: null,
+        connectionType: null, gpuName: null, isNativeMode: null,
+        qualityScore: null,
+        qualityReason: "No display detected",
+        qualityAction: null,
+        notes: [],
+        displayCount: 0,
+        ts: Date.now(),
+      });
+    } else {
+      res.json(profile);
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: "Failed to collect display signal data" });
   }
 });
 

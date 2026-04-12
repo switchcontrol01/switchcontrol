@@ -1114,28 +1114,8 @@ export default function Home() {
             </motion.div>
           </div>
 
-          {/* Display signal graph — spans full width when display data available */}
-          {sysIntel.profile && sysIntel.profile.gpu.displays.length > 0 && (() => {
-            const d0 = sysIntel.profile!.gpu.displays[0];
-            const isPortrait = d0.resolutionX !== null && d0.resolutionY !== null && d0.resolutionY > d0.resolutionX;
-            return (
-              <motion.div
-                initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 14, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
-                whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                viewport={{ once: true, margin: "0px 0px -40px 0px" }}
-                transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <DisplaySignalGraph
-                  refreshHz={d0.refreshRate ?? null}
-                  resolutionX={isPortrait ? (d0.resolutionY ?? null) : (d0.resolutionX ?? null)}
-                  resolutionY={isPortrait ? (d0.resolutionX ?? null) : (d0.resolutionY ?? null)}
-                  connection={d0.connection ?? null}
-                  modelName={d0.model ?? null}
-                  delay={0.15}
-                />
-              </motion.div>
-            );
-          })()}
+          {/* Display Signal — live intelligence panel, always shown */}
+          <DisplaySignalGraph delay={0.1} />
         </motion.div>
 
         {/* Bottom Section */}

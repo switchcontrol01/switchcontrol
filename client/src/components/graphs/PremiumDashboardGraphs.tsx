@@ -8,11 +8,12 @@
 
 import { useState, useEffect, useRef, useId, useMemo } from "react";
 import { motion } from "framer-motion";
-import { MemoryStick, HardDrive, Activity, Cpu } from "lucide-react";
+import { MemoryStick, HardDrive, Activity, Cpu, Monitor } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { cn } from "@/lib/utils";
+import type { DisplaySignalProfile } from "@/hooks/useDashboardIntelligence";
 
 const HISTORY_LEN = 50;
 
@@ -429,87 +430,177 @@ export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
   );
 }
 
-// ══ Display Signal Graph (waveform panel) ═════════════════════════════════════
+// ══ Display Signal Panel (live intelligence analyzer) ════════════════════════
 
-export function DisplaySignalGraph({
-  refreshHz,
-  resolutionX,
-  resolutionY,
-  connection,
-  modelName,
-  delay = 0,
-}: {
-  refreshHz: number | null;
-  resolutionX: number | null;
-  resolutionY: number | null;
-  connection: string | null;
-  modelName: string | null;
-  delay?: number;
-}) {
-  const H = 56;
-  const hz = refreshHz ?? 60;
+function ScoreRing({ score, color }: { score: number; color: string }) {
+  const r = 20;
+  const circ = 2 * Math.PI * r;
+  const offset = circ - (score / 100) * circ;
+  return (
+    <svg width={52} height={52} viewBox="0 0 52 52" className="shrink-0">
+      <circle cx={26} cy={26} r={r} fill="none" stroke="rgba(255,255,255,0.07)" strokeWidth={4} />
+      <motion.circle
+        cx={26} cy={26} r={r}
+        fill="none" stroke={color} strokeWidth={4}
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={circ}
+        animate={{ strokeDashoffset: offset }}
+        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
+        style={{ transformOrigin: "50% 50%", transform: "rotate(-90deg)" }}
+      />
+      <text x={26} y={30} textAnchor="middle" fontSize={11} fontWeight={700}
+        fill={color} fontFamily="inherit">
+        {score}
+      </text>
+    </svg>
+  );
+}
 
-  // Generate a stylized signal waveform from Hz value
-  const wavePoints = useMemo((): SparklinePoint[] => {
-    const pts: SparklinePoint[] = [];
-    const cycles = 3.5;
-    const noise = 0.06;
-    for (let i = 0; i <= 48; i++) {
-      const t = (i / 48) * cycles * Math.PI * 2;
-      const base = Math.sin(t) * 0.5 + 0.5;
-      const n = (Math.random() - 0.5) * noise;
-      pts.push({ value: Math.max(0, Math.min(1, base + n)) });
-    }
-    return pts;
-  }, [hz]);
+function SignalField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
+  return (
+    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/[0.05] last:border-0">
+      <span className="text-[10px] text-white/35 uppercase tracking-widest shrink-0">{label}</span>
+      <span className={cn("text-[11px] font-medium text-right truncate max-w-[55%]", mono ? "font-mono text-white/80" : "text-white/60")}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+// Subtle horizontal sweep animation — purely CSS, tied to component mount/update
+function SweepLine({ active }: { active: boolean }) {
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl">
+      {active && (
+        <motion.div
+          className="absolute top-0 bottom-0 w-[1px]"
+          style={{ background: "linear-gradient(180deg, transparent 0%, rgba(139,92,246,0.5) 50%, transparent 100%)" }}
+          initial={{ left: "-2%" }}
+          animate={{ left: "102%" }}
+          transition={{ duration: 2.8, ease: "linear", repeat: Infinity, repeatDelay: 4 }}
+        />
+      )}
+    </div>
+  );
+}
+
+export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
+  const [profile, setProfile] = useState<DisplaySignalProfile | null>(null);
+  const [prevTs, setPrevTs]   = useState<number>(0);
+  const [changed, setChanged] = useState(false);
+
+  useEffect(() => {
+    const load = () =>
+      fetch("/api/dashboard-intelligence/display-signal")
+        .then(r => r.json())
+        .then((d: DisplaySignalProfile) => {
+          setProfile(d);
+          if (d.ts !== prevTs) { setChanged(true); setPrevTs(d.ts); }
+          setTimeout(() => setChanged(false), 2000);
+        })
+        .catch(() => {});
+    load();
+    const timer = setInterval(load, 15_000);
+    return () => clearInterval(timer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const score = profile?.qualityScore ?? null;
+  const scoreColor =
+    score === null     ? "#6b7280"
+    : score >= 80      ? "#34d399"
+    : score >= 55      ? "#fbbf24"
+    :                    "#f87171";
 
   const connectionColor =
-    connection === "DP" || connection?.includes("DisplayPort") ? "#06b6d4"
-    : connection?.includes("HDMI") ? "#8b5cf6"
-    : "#d946ef";
+    profile?.connectionType?.toUpperCase().includes("DP")          ? "#06b6d4"
+    : profile?.connectionType?.toUpperCase().includes("HDMI 2.1")  ? "#a78bfa"
+    : profile?.connectionType?.toUpperCase().includes("HDMI")      ? "#8b5cf6"
+    : profile?.connectionType?.toUpperCase().includes("VNC")       ? "#6b7280"
+    :                                                                  "#d946ef";
+
+  const unknown = "Unknown";
 
   return (
-    <GlassCard className="p-4 border-violet-500/10 bg-violet-500/[0.015] overflow-hidden relative">
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 50% 40% at 90% 50%, rgba(217,70,239,0.06), transparent)" }}
-      />
-      <GraphHeader Icon={Cpu} title="Display Signal" subtitle={connection ?? undefined} />
+    <motion.div
+      initial={{ opacity: 0, y: 14, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <GlassCard className="relative overflow-hidden border-violet-500/10 bg-violet-500/[0.015]">
+        <SweepLine active={changed || !profile} />
 
-      <div className="flex items-center gap-3 mb-3">
-        <div className="flex flex-col">
-          <span className="text-sm font-mono font-bold tabular-nums" style={{ color: connectionColor }}>
-            {hz}Hz
-          </span>
-          <span className="text-[9px] text-white/30 uppercase tracking-widest">Refresh</span>
-        </div>
-        <div className="w-px h-7 bg-white/8" />
-        <div className="flex flex-col">
-          <span className="text-sm font-mono font-bold tabular-nums text-white/60">
-            {resolutionX && resolutionY ? `${resolutionX}×${resolutionY}` : "—"}
-          </span>
-          <span className="text-[9px] text-white/30 uppercase tracking-widest">Resolution</span>
-        </div>
-        {modelName && (
-          <>
-            <div className="w-px h-7 bg-white/8" />
-            <span className="text-[10px] text-white/35 truncate max-w-[90px]">{modelName}</span>
-          </>
-        )}
-      </div>
+        <div className="absolute inset-0 pointer-events-none"
+          style={{ background: "radial-gradient(ellipse 45% 50% at 90% 30%, rgba(139,92,246,0.07), transparent)" }} />
 
-      <TelemetrySparkline
-        points={wavePoints}
-        min={0} max={1}
-        color={connectionColor}
-        colorStop="#7c3aed"
-        height={H}
-        showGrid={true}
-        showEndDot={false}
-        showSweep={true}
-        strokeWidth={1.4}
-        delay={delay}
-      />
-    </GlassCard>
+        <div className="p-4">
+          {/* Header */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Monitor className="size-4 text-violet-400" />
+              <span className="text-[11px] font-semibold text-white/80 uppercase tracking-widest">Display Signal</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className={cn(
+                "size-1.5 rounded-full",
+                profile ? "bg-emerald-400 animate-pulse" : "bg-white/20"
+              )} />
+              <span className="text-[9px] text-white/30 uppercase tracking-widest">
+                {profile ? "Live" : "Loading"}
+              </span>
+            </div>
+          </div>
+
+          {/* Score + primary metrics row */}
+          <div className="flex items-center gap-3 mb-3">
+            {score !== null ? (
+              <ScoreRing score={score} color={scoreColor} />
+            ) : (
+              <div className="w-[52px] h-[52px] rounded-full border-2 border-white/10 flex items-center justify-center shrink-0">
+                <span className="text-[9px] text-white/25">—</span>
+              </div>
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-baseline gap-1 mb-0.5">
+                <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connectionColor }}>
+                  {profile?.refreshHz !== null && profile?.refreshHz !== undefined ? `${profile.refreshHz}Hz` : "—Hz"}
+                </span>
+                <span className="text-xs text-white/30">@</span>
+                <span className="text-xs font-mono text-white/55">
+                  {profile?.resolution ?? "—"}
+                </span>
+              </div>
+              <p className="text-[10px] text-white/40 leading-snug line-clamp-2">
+                {profile?.qualityReason ?? "Collecting display data…"}
+              </p>
+              {profile?.qualityAction && (
+                <p className="text-[10px] text-amber-400/80 mt-0.5 leading-snug line-clamp-1">
+                  → {profile.qualityAction}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Signal attribute grid */}
+          <div className="rounded-lg bg-white/[0.025] border border-white/[0.06] px-3 py-0.5">
+            <SignalField label="Monitor"     value={profile?.monitorName    ?? unknown} />
+            <SignalField label="Connection"  value={profile?.connectionType ?? unknown} />
+            <SignalField label="GPU"         value={profile?.gpuName        ?? unknown} />
+            <SignalField label="Bit Depth"   value={profile?.bitDepth !== null && profile?.bitDepth !== undefined ? `${profile.bitDepth}-bit` : unknown} mono />
+            <SignalField label="HDR"         value={profile?.hdrEnabled === true ? "Enabled" : profile?.hdrEnabled === false ? "Disabled" : unknown} />
+            <SignalField label="VRR / G-Sync" value={profile?.vrrEnabled === true ? "Active" : profile?.vrrEnabled === false ? "Off" : unknown} />
+            <SignalField label="Native Mode" value={profile?.isNativeMode === true ? "Yes" : profile?.isNativeMode === false ? "No" : unknown} />
+          </div>
+
+          {/* Display count */}
+          {profile && profile.displayCount > 1 && (
+            <p className="text-[9px] text-white/25 mt-2 text-right">
+              {profile.displayCount} displays detected · showing primary
+            </p>
+          )}
+        </div>
+      </GlassCard>
+    </motion.div>
   );
 }

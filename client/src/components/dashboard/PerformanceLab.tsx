@@ -25,7 +25,8 @@ import {
   type LatencyData,
   type SystemDNAData,
   type CausationData,
-  type RAMAnalysisData,
+  type SmartRamProfile,
+  type RamState,
   type ActiveProblem,
 } from "@/hooks/useDashboardIntelligence";
 import {
@@ -706,135 +707,237 @@ function WhatCausedThatCard({
   );
 }
 
-// ── 6. Smart RAM Card ─────────────────────────────────────────────────────────
+// ── 6. Smart RAM Card — real memory state engine ──────────────────────────────
+
+const RAM_STATE_CONFIG: Record<RamState, {
+  label: string;
+  textColor: string;
+  barColor: string;
+  borderColor: string;
+  bgColor: string;
+  glowColor: string;
+  badgeClass: string;
+}> = {
+  stable:         { label: "Stable",         textColor: "text-emerald-400", barColor: "bg-emerald-500",  borderColor: "border-emerald-500/20", bgColor: "bg-emerald-500/[0.04]", glowColor: "rgba(52,211,153,0.25)",  badgeClass: "text-emerald-300 bg-emerald-500/10 border-emerald-500/20" },
+  cached_heavy:   { label: "Cached Heavy",   textColor: "text-cyan-400",    barColor: "bg-cyan-500",     borderColor: "border-cyan-500/20",    bgColor: "bg-cyan-500/[0.04]",    glowColor: "rgba(6,182,212,0.25)",   badgeClass: "text-cyan-300 bg-cyan-500/10 border-cyan-500/20"    },
+  pressure_rising:{ label: "Rising",         textColor: "text-amber-400",   barColor: "bg-amber-400",    borderColor: "border-amber-500/20",   bgColor: "bg-amber-500/[0.04]",   glowColor: "rgba(251,191,36,0.25)",  badgeClass: "text-amber-300 bg-amber-500/10 border-amber-500/20" },
+  bottleneck:     { label: "Bottleneck",     textColor: "text-orange-400",  barColor: "bg-orange-500",   borderColor: "border-orange-500/20",  bgColor: "bg-orange-500/[0.04]",  glowColor: "rgba(249,115,22,0.30)",  badgeClass: "text-orange-300 bg-orange-500/10 border-orange-500/20" },
+  critical:       { label: "Critical",       textColor: "text-red-400",     barColor: "bg-red-500",      borderColor: "border-red-500/20",     bgColor: "bg-red-500/[0.04]",     glowColor: "rgba(239,68,68,0.35)",   badgeClass: "text-red-300 bg-red-500/10 border-red-500/20" },
+};
 
 function SmartRAMCard({
   data,
   onClearRAM,
 }: {
-  data: RAMAnalysisData | null;
+  data: SmartRamProfile | null;
   onClearRAM: () => void;
 }) {
-  const pressureColors = {
-    critical: { text: "text-red-400",    bar: "bg-red-500",    glow: "rgba(239,68,68,0.35)" },
-    high:     { text: "text-amber-400",  bar: "bg-amber-400",  glow: "rgba(251,191,36,0.30)" },
-    moderate: { text: "text-blue-400",   bar: "bg-blue-400",   glow: "rgba(96,165,250,0.25)" },
-    low:      { text: "text-emerald-400",bar: "bg-emerald-500",glow: "rgba(52,211,153,0.25)" },
+  const [reclaimed, setReclaimed]       = useState<number | null>(null);
+  const [clearPending, setClearPending] = useState(false);
+  const prevUsedGb = useRef<number | null>(null);
+
+  const cfg     = RAM_STATE_CONFIG[data?.state ?? "stable"];
+  const usedPct = data?.usedPct ?? 0;
+  const reclaimPct = data ? Math.min(40, (data.reclaimableGb / data.totalGb) * 100) : 0;
+
+  const handleClear = async () => {
+    if (!data) return;
+    prevUsedGb.current = data.usedGb;
+    setClearPending(true);
+    await onClearRAM();
+    // After 3.5s settle, the parent will re-fetch RAM data — if usedGb drops we show delta
+    setTimeout(() => setClearPending(false), 4_000);
   };
 
-  const col = pressureColors[data?.pressure ?? "moderate"];
-  const usedPct = data?.usedPct ?? 0;
-  const reclaimPct = data ? (data.reclaimableGB / data.totalGB) * 100 : 0;
+  // Detect actual RAM drop after clear
+  useEffect(() => {
+    if (prevUsedGb.current !== null && data && data.usedGb < prevUsedGb.current - 0.05) {
+      const freed = Math.round((prevUsedGb.current - data.usedGb) * 10) / 10;
+      if (freed > 0) setReclaimed(freed);
+      prevUsedGb.current = null;
+    }
+  }, [data?.usedGb]);
 
   return (
-    <GlassCard className="relative" data-testid="card-smart-ram">
-      <div className="p-5">
-        <div className="flex items-start justify-between gap-4 mb-4">
+    <GlassCard className={cn("relative transition-colors duration-700", data ? cfg.borderColor : "")} data-testid="card-smart-ram">
+      <div className="p-5 space-y-4">
+
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-sm font-medium flex items-center gap-2">
               <HardDrive className="size-4 text-muted-foreground" />
               Smart RAM Analysis
             </h3>
             {data && (
-              <p className="text-[10px] text-muted-foreground/60 mt-0.5" data-testid="text-ram-pressure">
-                {data.pressureLabel}
-              </p>
+              <span className={cn("inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full border", cfg.badgeClass)} data-testid="text-ram-state">
+                {cfg.label}
+              </span>
             )}
           </div>
-
-          {data && (
-            <div className="shrink-0 text-right space-y-0.5">
-              <div className="text-2xl font-bold tabular-nums" data-testid="text-ram-used-pct">
-                <span className={col.text}>{data.usedPct}%</span>
+          {data ? (
+            <div className="shrink-0 text-right">
+              <div className={cn("text-2xl font-bold tabular-nums", cfg.textColor)} data-testid="text-ram-used-pct">
+                {usedPct}%
               </div>
               <div className="text-[10px] text-muted-foreground/50">
-                {data.usedGB} / {data.totalGB} GB
+                {data.usedGb} / {data.totalGb} GB
               </div>
             </div>
+          ) : (
+            <div className="h-10 w-16 rounded-lg bg-white/[0.04] animate-pulse" />
           )}
         </div>
 
-        {/* RAM bar: used + reclaimable overlay */}
+        {/* RAM usage bar */}
         {data ? (
-          <div className="space-y-2 mb-4">
-            <div className="h-2.5 rounded-full bg-white/[0.05] relative">
-              {/* Used portion */}
+          <div className="space-y-2">
+            <div className="h-2 rounded-full bg-white/[0.05] relative overflow-hidden">
               <motion.div
-                className={cn("h-full rounded-full absolute left-0 top-0", col.bar)}
-                style={{ boxShadow: `0 0 10px ${col.glow}` }}
+                className={cn("h-full rounded-full absolute left-0 top-0", cfg.barColor)}
+                style={{ boxShadow: `0 0 10px ${cfg.glowColor}` }}
                 initial={{ width: 0 }}
                 animate={{ width: `${usedPct}%` }}
                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               />
-              {/* Reclaimable overlay */}
-              <motion.div
-                className="h-full rounded-full absolute top-0 bg-teal-400/30 border border-teal-400/40"
-                style={{ left: `${Math.max(0, usedPct - reclaimPct)}%` }}
-                initial={{ width: 0 }}
-                animate={{ width: `${reclaimPct}%` }}
-                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-              />
+              {reclaimPct > 0 && (
+                <motion.div
+                  className="h-full rounded-full absolute top-0 bg-teal-400/25 border-r border-teal-400/40"
+                  style={{ left: `${Math.max(0, usedPct - reclaimPct)}%` }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${reclaimPct}%` }}
+                  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.35 }}
+                />
+              )}
             </div>
-            <div className="flex items-center gap-4 text-[10px] text-muted-foreground/50">
-              <span className="flex items-center gap-1">
-                <span className={cn("inline-block size-2 rounded-full", col.bar)} /> Used
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="inline-block size-2 rounded-full bg-teal-400/50 border border-teal-400/40" /> Estimated reclaimable
-              </span>
+            <div className="flex items-center gap-3 text-[9px] text-muted-foreground/40">
+              <span className="flex items-center gap-1"><span className={cn("inline-block size-1.5 rounded-full", cfg.barColor)} /> Used</span>
+              {reclaimPct > 0 && <span className="flex items-center gap-1"><span className="inline-block size-1.5 rounded-full bg-teal-400/50" /> Reclaimable</span>}
+              {data.swapUsedGb !== null && data.swapUsedGb > 0 && (
+                <span className="flex items-center gap-1 text-red-400/70">⚠ {data.swapUsedGb} GB swap in use</span>
+              )}
             </div>
           </div>
         ) : (
-          <div className="h-2.5 rounded-full bg-white/[0.04] animate-pulse mb-4" />
+          <div className="h-2 rounded-full bg-white/[0.04] animate-pulse" />
         )}
 
-        {/* Stats row */}
+        {/* State reason */}
+        {data && (
+          <p className="text-[11px] text-white/55 leading-relaxed" data-testid="text-ram-reason">
+            {data.reason}
+          </p>
+        )}
+
+        {/* Stats grid */}
         {data ? (
-          <div className="grid grid-cols-3 gap-3 mb-4">
-            <div className="p-2.5 rounded-lg bg-white/[0.04] text-center border border-white/[0.06]">
-              <div className="text-sm font-bold tabular-nums text-teal-400" data-testid="text-ram-reclaimable">
-                ~{data.reclaimableGB} GB
+          <div className="grid grid-cols-3 gap-2.5">
+            <div className={cn("p-2.5 rounded-lg text-center border", cfg.bgColor, cfg.borderColor)}>
+              <div className={cn("text-sm font-bold tabular-nums", cfg.textColor)} data-testid="text-ram-reclaimable">
+                {data.reclaimableGb} GB
               </div>
-              <div className="text-[9px] text-muted-foreground/50 mt-0.5">Reclaimable*</div>
+              <div className="text-[9px] text-muted-foreground/40 mt-0.5">
+                {data.reclaimableSource === "measured" ? "Reclaimable" : "Est. reclaim"}
+              </div>
             </div>
-            <div className="p-2.5 rounded-lg bg-white/[0.04] text-center border border-white/[0.06]">
+            <div className="p-2.5 rounded-lg text-center border border-white/[0.06] bg-white/[0.03]">
               <div className="text-sm font-bold tabular-nums text-white/70">
-                {data.freeGB} GB
+                {data.availableGb !== null ? `${data.availableGb} GB` : `${data.freeGb} GB`}
               </div>
-              <div className="text-[9px] text-muted-foreground/50 mt-0.5">Free now</div>
+              <div className="text-[9px] text-muted-foreground/40 mt-0.5">
+                {data.availableGb !== null ? "Available" : "Free"}
+              </div>
             </div>
-            <div className="p-2.5 rounded-lg bg-white/[0.04] text-center border border-white/[0.06]">
-              <div className={cn("text-sm font-bold", data.risk === "low" ? "text-emerald-400" : "text-amber-400")} data-testid="text-ram-risk">
-                {data.riskLabel}
+            <div className="p-2.5 rounded-lg text-center border border-white/[0.06] bg-white/[0.03]">
+              <div className="text-sm font-bold tabular-nums text-white/60">
+                {data.standbyGb !== null ? `${data.standbyGb} GB` : "—"}
               </div>
-              <div className="text-[9px] text-muted-foreground/50 mt-0.5">Clean risk</div>
+              <div className="text-[9px] text-muted-foreground/40 mt-0.5">Cache</div>
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-3 gap-2.5">
             {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-lg bg-white/[0.04] animate-pulse" />)}
           </div>
         )}
 
-        {/* Impact + action */}
-        <div className="flex items-center gap-3">
+        {/* Top processes */}
+        {data && data.topProcesses.length > 0 && (
+          <div>
+            <p className="text-[9px] text-white/25 uppercase tracking-widest mb-2">Top Memory Consumers</p>
+            <div className="space-y-1.5">
+              {data.topProcesses.slice(0, 5).map((proc, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div
+                    className="h-1 rounded-full bg-white/10 flex-1 relative overflow-hidden"
+                    title={proc.ramMb !== null ? `${proc.ramMb} MB` : undefined}
+                  >
+                    <motion.div
+                      className="h-full rounded-full bg-gradient-to-r from-teal-500/60 to-cyan-500/40"
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(100, ((proc.ramMb ?? 0) / (data.topProcesses[0]?.ramMb ?? 1)) * 100)}%` }}
+                      transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-white/50 w-[90px] truncate text-right">{proc.name}</span>
+                  <span className="text-[10px] text-white/30 tabular-nums w-[44px] text-right shrink-0">
+                    {proc.ramMb !== null ? `${proc.ramMb} MB` : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Reclaim feedback */}
+        <AnimatePresence>
+          {reclaimed !== null && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500/10 border border-teal-500/20">
+                <Zap className="size-3.5 text-teal-400 shrink-0" />
+                <span className="text-[11px] text-teal-300">
+                  Reclaimed {reclaimed} GB — memory pressure reduced
+                </span>
+                <button onClick={() => setReclaimed(null)} className="ml-auto text-white/20 hover:text-white/50">
+                  ×
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Action row */}
+        <div className="flex items-center gap-3 pt-1 border-t border-white/[0.05]">
           <div className="flex-1 min-w-0">
             {data && (
-              <p className="text-[10px] text-muted-foreground/60 leading-snug" data-testid="text-ram-impact">
-                <span className="text-teal-400 font-medium">Expected: </span>
-                {data.impactLabel}
-                {" "}<span className="text-[9px] text-muted-foreground/35">*estimated standby pages</span>
+              <p className="text-[10px] text-muted-foreground/55 leading-snug" data-testid="text-ram-recommendation">
+                {data.recommendation}
               </p>
             )}
           </div>
           <Button
             size="sm"
-            onClick={onClearRAM}
-            className="shrink-0 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/25"
+            onClick={handleClear}
+            disabled={clearPending || !data}
+            className="shrink-0 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/25 disabled:opacity-50"
             data-testid="button-smart-clear-ram"
           >
-            <Zap className="size-3.5 mr-1.5" />
-            Clear RAM
+            {clearPending ? (
+              <RefreshCw className="size-3.5 mr-1.5 animate-spin" />
+            ) : (
+              <Zap className="size-3.5 mr-1.5" />
+            )}
+            {clearPending
+              ? "Measuring…"
+              : data?.reclaimableGb
+              ? `Clear ~${data.reclaimableGb} GB`
+              : "Clear RAM"}
           </Button>
         </div>
       </div>

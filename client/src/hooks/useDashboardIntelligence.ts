@@ -85,35 +85,69 @@ export interface LatencyData {
   ts: number;
 }
 
-export interface RAMAnalysisData {
-  usedGB: number;
-  totalGB: number;
-  freeGB: number;
-  usedPct: number;
-  reclaimableGB: number;
-  reclaimableEstimated: true;
-  newUsedPct: number;
-  pressure: "critical" | "high" | "moderate" | "low";
-  pressureLabel: string;
-  risk: "low" | "medium";
-  riskLabel: string;
-  impactLabel: string;
-  ts: number;
+// ── Smart RAM profile — real state engine ──────────────────────────────────────
+
+export interface TopProcess {
+  name:   string;
+  pid:    number | null;
+  ramMb:  number | null;
+  cpuPct: number | null;
+}
+
+export type RamState = "stable" | "cached_heavy" | "pressure_rising" | "bottleneck" | "critical";
+
+export interface SmartRamProfile {
+  totalGb:          number;
+  usedGb:           number;
+  freeGb:           number;
+  availableGb:      number | null;
+  standbyGb:        number | null;
+  swapUsedGb:       number | null;
+  reclaimableGb:    number;
+  reclaimableSource: "measured" | "estimated";
+  newUsedPct:       number;
+  usedPct:          number;
+  state:            RamState;
+  reason:           string;
+  recommendation:   string;
+  topProcesses:     TopProcess[];
+  ts:               number;
+}
+
+// ── Display Signal profile ─────────────────────────────────────────────────────
+
+export interface DisplaySignalProfile {
+  monitorName:    string | null;
+  resolution:     string | null;
+  refreshHz:      number | null;
+  bitDepth:       number | null;
+  hdrEnabled:     boolean | null;
+  vrrEnabled:     boolean | null;
+  connectionType: string | null;
+  gpuName:        string | null;
+  isNativeMode:   boolean | null;
+  qualityScore:   number | null;
+  qualityReason:  string;
+  qualityAction:  string | null;
+  notes:          string[];
+  displayCount:   number;
+  ts:             number;
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 interface DashboardIntelligenceState {
-  instability: InstabilityData | null;
-  dna: SystemDNAData | null;
-  problems: ActiveProblemsData | null;
-  latency: LatencyData | null;
-  ram: RAMAnalysisData | null;
-  loading: boolean;
-  causation: CausationData | null;
-  causeLoading: boolean;
-  analyzeCause: () => Promise<void>;
-  refresh: () => void;
+  instability:   InstabilityData | null;
+  dna:           SystemDNAData | null;
+  problems:      ActiveProblemsData | null;
+  latency:       LatencyData | null;
+  ram:           SmartRamProfile | null;
+  displaySignal: DisplaySignalProfile | null;
+  loading:       boolean;
+  causation:     CausationData | null;
+  causeLoading:  boolean;
+  analyzeCause:  () => Promise<void>;
+  refresh:       () => void;
 }
 
 async function fetchJSON<T>(url: string): Promise<T> {
@@ -123,30 +157,33 @@ async function fetchJSON<T>(url: string): Promise<T> {
 }
 
 export function useDashboardIntelligence(): DashboardIntelligenceState {
-  const [instability, setInstability]   = useState<InstabilityData | null>(null);
-  const [dna, setDna]                   = useState<SystemDNAData | null>(null);
-  const [problems, setProblems]         = useState<ActiveProblemsData | null>(null);
-  const [latency, setLatency]           = useState<LatencyData | null>(null);
-  const [ram, setRam]                   = useState<RAMAnalysisData | null>(null);
-  const [loading, setLoading]           = useState(true);
-  const [causation, setCausation]       = useState<CausationData | null>(null);
-  const [causeLoading, setCauseLoading] = useState(false);
+  const [instability,   setInstability]   = useState<InstabilityData | null>(null);
+  const [dna,           setDna]           = useState<SystemDNAData | null>(null);
+  const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
+  const [latency,       setLatency]       = useState<LatencyData | null>(null);
+  const [ram,           setRam]           = useState<SmartRamProfile | null>(null);
+  const [displaySignal, setDisplaySignal] = useState<DisplaySignalProfile | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [causation,     setCausation]     = useState<CausationData | null>(null);
+  const [causeLoading,  setCauseLoading]  = useState(false);
   const initRef = useRef(false);
 
   const fetchAll = useCallback(async () => {
     try {
-      const [inst, d, probs, lat, r] = await Promise.allSettled([
+      const [inst, d, probs, lat, r, disp] = await Promise.allSettled([
         fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability"),
         fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna"),
         fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems"),
         fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate"),
-        fetchJSON<RAMAnalysisData>("/api/dashboard-intelligence/ram-analysis"),
+        fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis"),
+        fetchJSON<DisplaySignalProfile>("/api/dashboard-intelligence/display-signal"),
       ]);
-      if (inst.status === "fulfilled")  setInstability(inst.value);
-      if (d.status === "fulfilled")     setDna(d.value);
+      if (inst.status  === "fulfilled") setInstability(inst.value);
+      if (d.status     === "fulfilled") setDna(d.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
-      if (lat.status === "fulfilled")   setLatency(lat.value);
-      if (r.status === "fulfilled")     setRam(r.value);
+      if (lat.status   === "fulfilled") setLatency(lat.value);
+      if (r.status     === "fulfilled") setRam(r.value);
+      if (disp.status  === "fulfilled") setDisplaySignal(disp.value);
     } catch (_) {}
     setLoading(false);
   }, []);
@@ -170,16 +207,16 @@ export function useDashboardIntelligence(): DashboardIntelligenceState {
     initRef.current = true;
     fetchAll();
 
-    // Staggered polling intervals for each endpoint
     const intervals = [
-      setInterval(() => fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability").then(setInstability).catch(() => {}),  5_000),
-      setInterval(() => fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna").then(setDna).catch(() => {}),            12_000),
-      setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}), 8_000),
-      setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),    6_000),
-      setInterval(() => fetchJSON<RAMAnalysisData>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),         9_000),
+      setInterval(() => fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability").then(setInstability).catch(() => {}),       5_000),
+      setInterval(() => fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna").then(setDna).catch(() => {}),                  12_000),
+      setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}),   8_000),
+      setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),          6_000),
+      setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),              9_000),
+      setInterval(() => fetchJSON<DisplaySignalProfile>("/api/dashboard-intelligence/display-signal").then(setDisplaySignal).catch(() => {}), 15_000),
     ];
     return () => intervals.forEach(clearInterval);
   }, [fetchAll]);
 
-  return { instability, dna, problems, latency, ram, loading, causation, causeLoading, analyzeCause, refresh };
+  return { instability, dna, problems, latency, ram, displaySignal, loading, causation, causeLoading, analyzeCause, refresh };
 }
