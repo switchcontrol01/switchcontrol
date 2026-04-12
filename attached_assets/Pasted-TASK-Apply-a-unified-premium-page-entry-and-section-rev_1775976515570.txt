@@ -1,0 +1,114 @@
+TASK
+
+Apply a unified premium page-entry and section-reveal animation system across the entire website, not just the landing page.
+
+PAGES IN SCOPE
+
+- Home
+- Pricing
+- FAQ
+- Terms
+- Privacy
+- Download
+- any other public marketing / legal / conversion page
+- any shared layout wrappers used by those pages
+
+PROBLEM
+
+Right now the motion language is inconsistent.
+
+Even if the landing page gets fixed, the rest of the site still risks feeling flat or abrupt if pages like Pricing, FAQ, Terms, Privacy, and Download do not enter with the same polish.
+
+Some pages likely:
+
+- spawn in too abruptly
+- have no controlled entrance
+- do not fade in top to bottom
+- feel disconnected from the rest of the site
+- break the premium feel when navigating between pages
+
+That kills cohesion.
+
+GOAL
+
+Create one unified motion system for all website pages so every page feels like part of the same premium product.
+
+Every page should:
+
+- enter smoothly
+- feel fluid and staged
+- preserve hierarchy
+- avoid all-at-once spawn
+- use the same design language
+- feel premium on first load and on route change
+
+This must apply across all public pages, including legal pages.
+
+IMPLEMENTATION
+
+1. Build a shared page-entry motion wrapper
+
+Create a reusable wrapper for full-page entry motion.
+
+Use it across all public-facing pages so animation behavior is not rewritten page by page.
+
+This wrapper should handle:
+
+- initial page opacity
+- subtle y offset
+- optional soft blur cleanup
+- controlled timing
+- consistent easing
+- route-to-route continuity
+
+Do not duplicate custom animation logic in every page file.
+
+2. Standardize page reveal order
+
+Every page should reveal in this order where applicable:
+
+Stage 1
+
+- background / atmosphere already visible
+
+Stage 2
+
+- page chrome or page header area
+
+Stage 3
+
+- title / hero text / heading
+
+Stage 4
+
+- supporting copy or metadata
+
+Stage 5
+
+- main content blocks, cards, forms, lists, sections
+
+This does not mean every page must look identical.
+It means the reveal logic must feel consistent.
+
+3. Apply section reveal for lower content
+
+On long pages like:
+
+- FAQ
+- Pricing
+- Terms
+- Privacy
+
+content sections must not just appear statically.
+
+As the user scrolls:
+
+- each major section should softly reveal
+- use gentle opacity + slight motion
+- optional blur cleanup only if lightweight
+- preserve readability first
+
+Do NOT animate every tiny paragraph individually on legal pages.
+Group intelligently by section.
+
+4. Legal pages must still feel premium

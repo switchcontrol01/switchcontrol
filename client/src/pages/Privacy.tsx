@@ -1,10 +1,18 @@
+import { motion } from "framer-motion";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlassPanel } from "@/components/website/GlassPanel";
+
+const EASE_OUT = [0.22, 1, 0.36, 1] as const;
 
 export default function Privacy() {
   return (
     <WebsiteShell variant="inner" bgVariant="legal" showFooter={true}>
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24">
+      <motion.main
+        className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24"
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: EASE_OUT }}
+      >
         <GlassPanel variant="matte" className="p-6 sm:p-10">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2" data-testid="text-privacy-title">Privacy Policy</h1>
           <p className="text-white/40 mb-8">Last updated: April 11, 2026</p>
@@ -191,7 +199,7 @@ export default function Privacy() {
 
           </div>
         </GlassPanel>
-      </main>
+      </motion.main>
     </WebsiteShell>
   );
 }

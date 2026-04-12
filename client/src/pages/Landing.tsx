@@ -645,7 +645,7 @@ export default function Landing() {
 
   return (
     <WebsiteShell variant="full" bgVariant="landing" showFooter>
-      <main className="ws-page-enter">
+      <main>
         {/* ──── Hero ──── */}
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
           <HeroBackground />

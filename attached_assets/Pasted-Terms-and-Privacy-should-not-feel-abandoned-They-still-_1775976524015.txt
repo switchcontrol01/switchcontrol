@@ -1,0 +1,140 @@
+Terms and Privacy should not feel abandoned.
+
+They still need:
+
+- controlled entrance
+- polished spacing
+- readable reveal
+- subtle motion consistency
+
+Do not turn them into flashy pages.
+Just make them feel intentionally designed.
+
+5. FAQ page behavior
+
+FAQ should have:
+
+- smooth page entry
+- smooth section entry
+- polished expand/collapse behavior if accordions exist
+- no abrupt snapping open or closed
+- no cheap spring bounce
+
+It should feel refined and crisp.
+
+6. Pricing page behavior
+
+Pricing is a money page, so motion matters more here.
+
+Pricing should:
+
+- reveal headline first
+- then supporting copy
+- then pricing cards
+- then comparison / secondary sections
+- then FAQ or lower sections if present
+
+Cards should not all pop in at once.
+Use a controlled stagger that still feels premium and restrained.
+
+7. Download page behavior
+
+Keep the countdown design language, but make the page entry match the rest of the site.
+
+The countdown page should:
+
+- enter with hierarchy
+- background alive first
+- countdown headline area first
+- timer block next
+- download card after
+- supporting notes after
+
+No random spawn.
+
+8. Navigation transitions between pages
+
+When moving between public pages, the transition should feel continuous.
+
+Avoid:
+
+- hard content swaps
+- flash of unanimated content
+- route snapping
+- inconsistent motion based on page type
+
+Make route transitions feel like one product system.
+
+9. Keep motion restrained and high-end
+
+This must not become over-animated.
+
+Do:
+
+- opacity
+- transform
+- subtle blur cleanup
+- layered staging
+- restrained stagger
+
+Do not:
+
+- use exaggerated bounce
+- use template-looking motion presets
+- over-rotate
+- over-scale
+- animate every element separately for no reason
+
+10. Performance first
+
+The whole site still needs to run smoothly.
+
+Audit for:
+
+- unnecessary rerenders during animation
+- heavy filter abuse
+- layout thrashing
+- expensive scroll observers
+- too many animated nodes at once
+
+Keep the feel expensive, not heavy.
+
+11. Make the system reusable
+
+This should become the website’s motion language, not a one-off patch.
+
+Use shared primitives or wrappers for:
+
+- page entry
+- section reveal
+- card stagger
+- content group reveal
+
+So future pages inherit the same polish automatically.
+
+CHECKLIST
+
+- all public pages use one motion system
+- Home, Pricing, FAQ, Terms, Privacy, and Download all enter smoothly
+- no all-at-once spawn on any page
+- content reveals top to bottom
+- long pages reveal by section, not dead static blocks
+- FAQ interactions feel refined
+- Pricing cards reveal in a controlled way
+- Download page matches the same motion system
+- route transitions feel cohesive
+- legal pages still feel premium and intentional
+- animations are performant and restrained
+
+FINAL OUTPUT
+
+Return:
+
+1. exact shared components / wrappers created
+2. exact page files updated
+3. animation sequence used across pages
+4. which pages now use section reveal
+5. confirmation that Terms, Privacy, FAQ, Pricing, Download, and Home now all follow the same motion language
+6. screen recordings of at least Home, Pricing, FAQ, Terms, and Download
+
+This needs to feel like one premium website system, not one good page and five neglected ones.
