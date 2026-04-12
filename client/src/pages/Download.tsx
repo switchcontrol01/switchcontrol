@@ -3,7 +3,7 @@ import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles } from "lucide-
 import { useAuth } from "@/components/ProtectedRoute";
 import { brand } from "@/config/brand";
 import { motion, useMotion } from "@/lib/motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlassPanel } from "@/components/website/GlassPanel";
 import { GlowButton } from "@/components/website/GlowButton";
@@ -87,6 +87,128 @@ function DownloadPatchNotesCard() {
   );
 }
 
+// ── Decorative install-time countdown timer ────────────────────────────────────
+function InstallTimer() {
+  const TOTAL = 30;
+  const [count, setCount] = useState(TOTAL);
+  const raf = useRef<number | null>(null);
+  const startTs = useRef<number>(Date.now());
+
+  useEffect(() => {
+    function tick() {
+      const elapsed = (Date.now() - startTs.current) / 1000;
+      const remaining = Math.max(0, TOTAL - (elapsed % (TOTAL + 1.5)));
+      setCount(Math.ceil(remaining));
+      raf.current = requestAnimationFrame(tick);
+    }
+    raf.current = requestAnimationFrame(tick);
+    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
+  }, []);
+
+  const radius = 38;
+  const circ   = 2 * Math.PI * radius;
+  const dashOffset = circ * (1 - count / TOTAL);
+
+  return (
+    <div
+      className="select-none pointer-events-none"
+      style={{
+        background: "rgba(10,8,20,0.72)",
+        backdropFilter: "blur(14px)",
+        WebkitBackdropFilter: "blur(14px)",
+        border: "1px solid rgba(139,92,246,0.18)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(139,92,246,0.06), inset 0 1px 0 rgba(255,255,255,0.07)",
+        borderRadius: "18px",
+        padding: "18px 22px 20px",
+        width: "130px",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: "10px",
+      }}
+    >
+      {/* label top */}
+      <span style={{
+        fontSize: "8.5px",
+        fontWeight: 700,
+        letterSpacing: "0.13em",
+        textTransform: "uppercase",
+        color: "rgba(192,155,255,0.55)",
+      }}>
+        Install Time
+      </span>
+
+      {/* circular ring */}
+      <div style={{ position: "relative", width: 92, height: 92 }}>
+        <svg width="92" height="92" style={{ transform: "rotate(-90deg)" }}>
+          {/* track */}
+          <circle
+            cx="46" cy="46" r={radius}
+            fill="none"
+            stroke="rgba(255,255,255,0.06)"
+            strokeWidth="5"
+          />
+          {/* progress */}
+          <circle
+            cx="46" cy="46" r={radius}
+            fill="none"
+            stroke="url(#timerGrad)"
+            strokeWidth="5"
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={dashOffset}
+            style={{ transition: "stroke-dashoffset 0.2s linear" }}
+          />
+          <defs>
+            <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#06b6d4" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* center number */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+        }}>
+          <span style={{ fontSize: "28px", fontWeight: 800, color: "rgba(255,255,255,0.92)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+            {String(count).padStart(2, "0")}
+          </span>
+          <span style={{ fontSize: "10px", fontWeight: 600, color: "rgba(139,92,246,0.75)", marginTop: "1px" }}>
+            sec
+          </span>
+        </div>
+      </div>
+
+      {/* bottom label */}
+      <span style={{
+        fontSize: "9px",
+        fontWeight: 600,
+        color: "rgba(255,255,255,0.28)",
+        textAlign: "center",
+        lineHeight: 1.4,
+      }}>
+        avg. setup<br/>duration
+      </span>
+
+      {/* small glow dot */}
+      <div style={{
+        width: 5,
+        height: 5,
+        borderRadius: "50%",
+        background: "rgba(139,92,246,0.7)",
+        boxShadow: "0 0 8px 2px rgba(139,92,246,0.45)",
+        animation: "timerDot 1.5s ease-in-out infinite",
+      }} />
+    </div>
+  );
+}
+
 // ── Side particle data ─────────────────────────────────────────────────────────
 const LEFT_PARTICLES = [
   { top: "18%",  size: 3,   dur: 2.8, delay: 0,    color: "rgba(168,85,246,0.55)" },
@@ -156,153 +278,182 @@ export default function DownloadPage() {
         @media (prefers-reduced-motion: reduce) {
           .side-particle { animation-duration: calc(var(--dur) * 2.5); }
         }
+        @keyframes timerDot {
+          0%, 100% { opacity: 0.6; transform: scale(1); }
+          50%       { opacity: 1;   transform: scale(1.5); }
+        }
       `}</style>
 
-      <main className="flex-1 flex flex-col items-center justify-start p-4 py-10 min-h-[calc(100vh-80px)] relative gap-8 w-full">
+      <main className="flex-1 flex flex-col items-center justify-start p-4 pt-20 pb-16 min-h-[calc(100vh-80px)] relative gap-8 w-full">
         <SectionGlow color="purple" intensity="strong" />
 
         {/* ── Download card ───────────────────────────────────────────────── */}
         <div className="w-full flex flex-col items-center px-2">
-          <div className="relative w-full max-w-lg">
-          {/* Left-side particles */}
-          {LEFT_PARTICLES.map((p, i) => (
-            <div
-              key={`lp-${i}`}
-              className="side-particle"
-              style={{
-                top: p.top,
-                left: `-${10 + (i % 3) * 6}px`,
-                width: p.size,
-                height: p.size,
-                background: p.color,
-                boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-                "--dur": `${p.dur}s`,
-                "--delay": `${p.delay}s`,
-                "--dx": `${-12 - (i % 4) * 5}px`,
-              } as React.CSSProperties}
-            />
-          ))}
+          {/* Outer wrapper — wider than card so the timer can sit outside */}
+          <div className="relative w-full" style={{ maxWidth: "720px" }}>
 
-          {/* Right-side particles */}
-          {RIGHT_PARTICLES.map((p, i) => (
-            <div
-              key={`rp-${i}`}
-              className="side-particle"
+            {/* ── Tilted install-time timer (left side, large screens only) ── */}
+            <motion.div
+              className="hidden lg:block"
+              initial={{ opacity: 0, x: -24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.6, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
               style={{
-                top: p.top,
-                right: `-${10 + (i % 3) * 6}px`,
-                width: p.size,
-                height: p.size,
-                background: p.color,
-                boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-                "--dur": `${p.dur}s`,
-                "--delay": `${p.delay}s`,
-                "--dx": `${12 + (i % 4) * 5}px`,
-              } as React.CSSProperties}
-            />
-          ))}
+                position: "absolute",
+                left: "0px",
+                top: "88px",
+                transform: "rotate(22deg)",
+                transformOrigin: "center center",
+                zIndex: 10,
+              }}
+            >
+              <InstallTimer />
+            </motion.div>
 
-          <GlassPanel variant="elevated" glow="purple" className="w-full max-w-lg p-0">
-            <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
-              <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-cyan-600/30 blur-2xl scale-150 opacity-60" />
-                  <motion.img 
-                    src={faviconImg}
-                    alt="SwitchControl"
-                    className="relative w-20 h-20 md:w-24 md:h-24 rounded-[22%] transition-all duration-300 object-contain logo-animate"
-                    initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
-                    whileHover={{ scale: prefersReducedMotion ? 1.01 : 1.03 }}
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                    }}
+            {/* ── Main card (centered) ── */}
+            <div className="flex justify-center">
+              <div className="relative w-full max-w-lg">
+                {/* Left-side particles */}
+                {LEFT_PARTICLES.map((p, i) => (
+                  <div
+                    key={`lp-${i}`}
+                    className="side-particle"
+                    style={{
+                      top: p.top,
+                      left: `-${10 + (i % 3) * 6}px`,
+                      width: p.size,
+                      height: p.size,
+                      background: p.color,
+                      boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+                      "--dur": `${p.dur}s`,
+                      "--delay": `${p.delay}s`,
+                      "--dx": `${-12 - (i % 4) * 5}px`,
+                    } as React.CSSProperties}
                   />
-                </div>
-              </div>
-              <div className="flex items-center justify-center gap-2 mb-3">
-                <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                  v1.0.0 (Early Access)
-                </span>
-              </div>
-              <h1 className="text-2xl font-bold text-white" data-testid="text-download-title">Download {brand.name}</h1>
-              <p className="text-sm text-white/50 mt-1">
-                Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Get the desktop app to start optimizing.
-              </p>
-            </div>
+                ))}
 
-            <div className="p-6 sm:p-8 space-y-6 relative">
-              <SectionGlow color="cyan" intensity="strong" />
-              <div className="space-y-3">
-                <div className="flex items-center gap-3 text-sm text-white/50">
-                  <CheckCircle className="size-4 text-emerald-400 shrink-0" />
-                  <span>v1.0.0 (Early Access) - Latest build</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-white/50">
-                  <Monitor className="size-4 text-primary shrink-0" />
-                  <span>Windows Installer (.exe) • Windows 10/11 64-bit</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-white/50">
-                  <Shield className="size-4 text-blue-400 shrink-0" />
-                  <span>Digitally signed • No bundled software</span>
-                </div>
-                <div className="flex items-center gap-3 text-sm text-white/50">
-                  <Clock className="size-4 text-amber-400 shrink-0" />
-                  <span>~350 MB • Installs in under 30 seconds</span>
-                </div>
-              </div>
+                {/* Right-side particles */}
+                {RIGHT_PARTICLES.map((p, i) => (
+                  <div
+                    key={`rp-${i}`}
+                    className="side-particle"
+                    style={{
+                      top: p.top,
+                      right: `-${10 + (i % 3) * 6}px`,
+                      width: p.size,
+                      height: p.size,
+                      background: p.color,
+                      boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
+                      "--dur": `${p.dur}s`,
+                      "--delay": `${p.delay}s`,
+                      "--dx": `${12 + (i % 4) * 5}px`,
+                    } as React.CSSProperties}
+                  />
+                ))}
 
-              <GlowButton
-                variant="primary"
-                size="lg"
-                className="w-full"
-                onClick={() => {
-                  alert('Download would start here. This is a demo - the actual installer is not yet available.');
-                }}
-                data-testid="button-download-windows"
-              >
-                <Download className="size-5" />
-                Download SwitchControl_v1.0.0_Setup.exe
-              </GlowButton>
+                <GlassPanel variant="elevated" glow="purple" className="w-full max-w-lg p-0">
+                  <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
+                    <div className="flex justify-center mb-4">
+                      <div className="relative">
+                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-cyan-600/30 blur-2xl scale-150 opacity-60" />
+                        <motion.img 
+                          src={faviconImg}
+                          alt="SwitchControl"
+                          className="relative w-20 h-20 md:w-24 md:h-24 rounded-[22%] transition-all duration-300 object-contain logo-animate"
+                          initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
+                          whileHover={{ scale: prefersReducedMotion ? 1.01 : 1.03 }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-center gap-2 mb-3">
+                      <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
+                        v1.0.0 (Early Access)
+                      </span>
+                    </div>
+                    <h1 className="text-2xl font-bold text-white" data-testid="text-download-title">Download {brand.name}</h1>
+                    <p className="text-sm text-white/50 mt-1">
+                      Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Get the desktop app to start optimizing.
+                    </p>
+                  </div>
 
-              <p className="text-xs text-center text-white/35">
-                By downloading, you agree to our{" "}
-                <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
-                {" "}and{" "}
-                <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
-              </p>
+                  <div className="p-6 sm:p-8 space-y-6 relative">
+                    <SectionGlow color="cyan" intensity="strong" />
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 text-sm text-white/50">
+                        <CheckCircle className="size-4 text-emerald-400 shrink-0" />
+                        <span>v1.0.0 (Early Access) - Latest build</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-white/50">
+                        <Monitor className="size-4 text-primary shrink-0" />
+                        <span>Windows Installer (.exe) • Windows 10/11 64-bit</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-white/50">
+                        <Shield className="size-4 text-blue-400 shrink-0" />
+                        <span>Digitally signed • No bundled software</span>
+                      </div>
+                      <div className="flex items-center gap-3 text-sm text-white/50">
+                        <Clock className="size-4 text-amber-400 shrink-0" />
+                        <span>~350 MB • Installs in under 30 seconds</span>
+                      </div>
+                    </div>
 
-              <div className="pt-4 border-t border-white/[0.06]">
-                <h4 className="text-sm font-medium text-white mb-4">Installation Steps</h4>
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    { step: 1, label: "Download", icon: Download },
-                    { step: 2, label: "Install", icon: Monitor },
-                    { step: 3, label: "Launch", icon: Shield },
-                    { step: 4, label: "Optimize", icon: CheckCircle }
-                  ].map((item, index) => (
-                    <motion.div
-                      key={item.step}
-                      className="text-center p-2 rounded-xl bg-white/[0.03] border border-white/[0.08]"
-                      initial={{ opacity: 0, y: prefersReducedMotion ? 5 : 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + index * 0.1, duration: prefersReducedMotion ? 0.15 : 0.3 }}
-                      whileHover={{ scale: prefersReducedMotion ? 1.02 : 1.05, borderColor: 'rgba(139, 92, 246, 0.5)' }}
-                      data-testid={`step-install-${item.step}`}
+                    <GlowButton
+                      variant="primary"
+                      size="lg"
+                      className="w-full"
+                      onClick={() => {
+                        alert('Download would start here. This is a demo - the actual installer is not yet available.');
+                      }}
+                      data-testid="button-download-windows"
                     >
-                      <item.icon className="size-5 mx-auto mb-1 text-primary" />
-                      <p className="text-xs font-medium text-white">{item.step}</p>
-                      <p className="text-[10px] text-white/40">{item.label}</p>
-                    </motion.div>
-                  ))}
-                </div>
+                      <Download className="size-5" />
+                      Download SwitchControl_v1.0.0_Setup.exe
+                    </GlowButton>
+
+                    <p className="text-xs text-center text-white/35">
+                      By downloading, you agree to our{" "}
+                      <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
+                      {" "}and{" "}
+                      <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
+                    </p>
+
+                    <div className="pt-4 border-t border-white/[0.06]">
+                      <h4 className="text-sm font-medium text-white mb-4">Installation Steps</h4>
+                      <div className="grid grid-cols-4 gap-2">
+                        {[
+                          { step: 1, label: "Download", icon: Download },
+                          { step: 2, label: "Install", icon: Monitor },
+                          { step: 3, label: "Launch", icon: Shield },
+                          { step: 4, label: "Optimize", icon: CheckCircle }
+                        ].map((item, index) => (
+                          <motion.div
+                            key={item.step}
+                            className="text-center p-2 rounded-xl bg-white/[0.03] border border-white/[0.08]"
+                            initial={{ opacity: 0, y: prefersReducedMotion ? 5 : 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.5 + index * 0.1, duration: prefersReducedMotion ? 0.15 : 0.3 }}
+                            whileHover={{ scale: prefersReducedMotion ? 1.02 : 1.05, borderColor: 'rgba(139, 92, 246, 0.5)' }}
+                            data-testid={`step-install-${item.step}`}
+                          >
+                            <item.icon className="size-5 mx-auto mb-1 text-primary" />
+                            <p className="text-xs font-medium text-white">{item.step}</p>
+                            <p className="text-[10px] text-white/40">{item.label}</p>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </GlassPanel>
               </div>
             </div>
-          </GlassPanel>
-          </div>{/* end download card */}
-        </div>{/* end perspective container */}
+          </div>
+        </div>
 
         {/* ── What's New card ─────────────────────────────────────────────── */}
         <DownloadPatchNotesCard />
