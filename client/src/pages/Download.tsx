@@ -42,12 +42,12 @@ function CountBlock({ value, label }: { value: string; label: string }) {
   }, [value]);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "9px" }}>
       <div style={{
         position: "relative",
-        width: "clamp(60px,9vw,86px)",
-        height: "clamp(68px,10vw,96px)",
-        borderRadius: "14px",
+        width: "clamp(80px,8.5vw,110px)",
+        height: "clamp(92px,10vw,128px)",
+        borderRadius: "16px",
         overflow: "hidden",
         background: "linear-gradient(160deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%)",
         border: "1px solid rgba(139,92,246,0.28)",
@@ -85,10 +85,10 @@ function CountBlock({ value, label }: { value: string; label: string }) {
           zIndex: 2,
         }}>
           <span style={{
-            fontSize: "clamp(26px,4.5vw,42px)",
+            fontSize: "clamp(36px,5vw,56px)",
             fontWeight: 800, color: "rgba(255,255,255,0.96)",
             fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
-            lineHeight: 1, textShadow: "0 2px 18px rgba(139,92,246,0.35)",
+            lineHeight: 1, textShadow: "0 2px 22px rgba(139,92,246,0.40)",
           }}>{cur}</span>
         </div>
         {/* Entering number */}
@@ -100,7 +100,7 @@ function CountBlock({ value, label }: { value: string; label: string }) {
             zIndex: 2,
           }}>
             <span style={{
-              fontSize: "clamp(26px,4.5vw,42px)",
+              fontSize: "clamp(36px,5vw,56px)",
               fontWeight: 800, color: "rgba(255,255,255,0.96)",
               fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
               lineHeight: 1, textShadow: "0 2px 18px rgba(139,92,246,0.35)",
@@ -115,8 +115,8 @@ function CountBlock({ value, label }: { value: string; label: string }) {
         }} />
       </div>
       <span style={{
-        fontSize: "9px", fontWeight: 700, letterSpacing: "0.18em",
-        textTransform: "uppercase", color: "rgba(192,155,255,0.48)",
+        fontSize: "10px", fontWeight: 700, letterSpacing: "0.18em",
+        textTransform: "uppercase", color: "rgba(192,155,255,0.52)",
       }}>{label}</span>
     </div>
   );
@@ -126,15 +126,15 @@ function CountBlock({ value, label }: { value: string; label: string }) {
 function Colon() {
   return (
     <div style={{
-      display: "flex", flexDirection: "column", gap: "12px",
+      display: "flex", flexDirection: "column", gap: "14px",
       alignItems: "center", justifyContent: "center",
-      paddingBottom: "20px",
+      paddingBottom: "22px",
     }}>
       {[0, 1].map(i => (
         <div key={i} style={{
-          width: "5px", height: "5px", borderRadius: "50%",
-          background: "rgba(139,92,246,0.65)",
-          boxShadow: "0 0 8px 2px rgba(139,92,246,0.40)",
+          width: "6px", height: "6px", borderRadius: "50%",
+          background: "rgba(139,92,246,0.70)",
+          boxShadow: "0 0 10px 3px rgba(139,92,246,0.45)",
           animation: "colonPulse 1s step-end infinite",
           animationDelay: `${i * 0.1}s`,
         }} />
@@ -292,20 +292,20 @@ export default function DownloadPage() {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        padding: "clamp(72px,10vh,100px) clamp(16px,4vw,40px) 48px",
+        padding: "clamp(56px,7vh,80px) clamp(16px,4vw,36px) 36px",
         minHeight: "calc(100vh - 80px)",
         position: "relative",
         overflowX: "hidden",
-        gap: "clamp(20px,3vh,32px)",
+        gap: "clamp(16px,2.5vh,24px)",
       }}>
 
         {/* ── Background atmosphere ── */}
         <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
           <div style={{
             position: "absolute", top: "15%", left: "40%", transform: "translateX(-50%)",
-            width: "clamp(500px,70vw,900px)", height: "clamp(320px,45vw,580px)",
+            width: "clamp(600px,80vw,1100px)", height: "clamp(360px,50vw,680px)",
             borderRadius: "50%",
-            background: "radial-gradient(ellipse,rgba(109,40,217,0.20) 0%,rgba(139,92,246,0.07) 45%,transparent 72%)",
+            background: "radial-gradient(ellipse,rgba(109,40,217,0.28) 0%,rgba(139,92,246,0.10) 45%,transparent 72%)",
             filter: "blur(52px)", animation: "ambientBreathe 8s ease-in-out infinite",
           }} />
           <div style={{
@@ -333,11 +333,11 @@ export default function DownloadPage() {
           transition={{ duration: 0.4 }}
           style={{
             position: "relative", zIndex: 1,
-            width: "100%", maxWidth: "940px",
+            width: "100%", maxWidth: "1020px",
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
-            gap: "clamp(28px,5vw,56px)",
+            gap: "clamp(20px,3.5vw,44px)",
             flexWrap: "wrap",
             justifyContent: "center",
           }}
@@ -345,11 +345,11 @@ export default function DownloadPage() {
 
           {/* ── LEFT: Headline + Countdown + Date ── */}
           <div style={{
-            flex: "1 1 360px",
-            minWidth: "300px",
+            flex: "1 1 380px",
+            minWidth: "320px",
             display: "flex", flexDirection: "column",
             alignItems: "flex-start",
-            gap: "clamp(14px,2.5vh,22px)",
+            gap: "clamp(10px,1.8vh,16px)",
           }}>
 
             {/* Eyebrow pill */}
@@ -382,10 +382,10 @@ export default function DownloadPage() {
             {/* Headline */}
             <motion.div {...stagger(1)}>
               <h1 style={{
-                fontSize: "clamp(28px,4vw,46px)",
-                fontWeight: 800, letterSpacing: "-0.025em", lineHeight: 1.08,
+                fontSize: "clamp(34px,4.5vw,56px)",
+                fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.06,
                 color: "rgba(255,255,255,0.97)",
-                textShadow: "0 4px 40px rgba(139,92,246,0.22)",
+                textShadow: "0 4px 48px rgba(139,92,246,0.30)",
                 margin: 0,
               }}>
                 {launched ? (
@@ -416,10 +416,10 @@ export default function DownloadPage() {
                     position: "absolute",
                     top: "50%", left: "50%",
                     transform: "translate(-50%,-50%)",
-                    width: "clamp(280px,50vw,440px)", height: "clamp(80px,14vw,130px)",
+                    width: "clamp(340px,55vw,520px)", height: "clamp(100px,16vw,160px)",
                     borderRadius: "50%",
-                    background: "radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,rgba(103,232,249,0.05) 55%,transparent 78%)",
-                    filter: "blur(24px)",
+                    background: "radial-gradient(ellipse,rgba(139,92,246,0.26) 0%,rgba(103,232,249,0.08) 55%,transparent 78%)",
+                    filter: "blur(28px)",
                     animation: "ambientBreathe 4.5s ease-in-out infinite",
                     pointerEvents: "none",
                   }} />
@@ -466,25 +466,26 @@ export default function DownloadPage() {
           {/* ── RIGHT: Download card ── */}
           <motion.div
             {...stagger(2)}
-            style={{ flex: "1 1 300px", minWidth: "280px", maxWidth: "380px" }}
+            style={{ flex: "1 1 320px", minWidth: "300px", maxWidth: "420px" }}
           >
             <div style={{
               borderRadius: "20px",
               overflow: "hidden",
               background: "linear-gradient(160deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.02) 100%)",
               backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)",
-              border: "1px solid rgba(139,92,246,0.24)",
+              border: "1px solid rgba(139,92,246,0.32)",
               boxShadow: [
-                "0 24px 64px rgba(0,0,0,0.55)",
-                "inset 0 1px 0 rgba(255,255,255,0.10)",
-                "0 0 0 1px rgba(139,92,246,0.06)",
+                "0 28px 72px rgba(0,0,0,0.60)",
+                "inset 0 1px 0 rgba(255,255,255,0.12)",
+                "0 0 0 1px rgba(139,92,246,0.10)",
+                "0 0 60px rgba(109,40,217,0.14)",
               ].join(","),
             }}>
               {/* Card header — compact inline logo + title */}
               <div style={{
-                padding: "20px 22px 16px",
+                padding: "22px 24px 18px",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
-                display: "flex", alignItems: "center", gap: "14px",
+                display: "flex", alignItems: "center", gap: "16px",
               }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
@@ -497,7 +498,7 @@ export default function DownloadPage() {
                     alt="SwitchControl"
                     style={{
                       position: "relative",
-                      width: "52px", height: "52px",
+                      width: "64px", height: "64px",
                       borderRadius: "22%", objectFit: "contain",
                       animation: "logoFloat 4s ease-in-out infinite, logoGlow 3s ease-in-out infinite",
                     }}
@@ -523,9 +524,9 @@ export default function DownloadPage() {
               </div>
 
               {/* Card body */}
-              <div style={{ padding: "16px 22px 20px" }}>
+              <div style={{ padding: "18px 24px 22px" }}>
                 {/* Spec rows */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginBottom: "16px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "9px", marginBottom: "18px" }}>
                   {[
                     { icon: CheckCircle, color: "#34d399", text: "Latest build · Digitally signed" },
                     { icon: Monitor, color: "#a78bfa", text: "Windows 10/11 64-bit · .exe installer" },
@@ -543,28 +544,28 @@ export default function DownloadPage() {
                   onClick={() => alert("Download would start here. The installer is not yet available.")}
                   data-testid="button-download-windows"
                   style={{
-                    width: "100%", padding: "13px 18px", borderRadius: "11px",
+                    width: "100%", padding: "15px 20px", borderRadius: "12px",
                     border: "none", cursor: "pointer",
                     background: "linear-gradient(135deg,#7c3aed 0%,#6d28d9 40%,#4c1d95 100%)",
-                    boxShadow: "0 8px 28px rgba(109,40,217,0.48),inset 0 1px 0 rgba(255,255,255,0.15)",
-                    display: "flex", alignItems: "center", justifyContent: "center", gap: "9px",
-                    fontSize: "14px", fontWeight: 700, color: "#fff", letterSpacing: "0.01em",
+                    boxShadow: "0 10px 34px rgba(109,40,217,0.56),inset 0 1px 0 rgba(255,255,255,0.18)",
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                    fontSize: "15px", fontWeight: 700, color: "#fff", letterSpacing: "0.01em",
                     transition: "transform 0.18s ease, box-shadow 0.18s ease",
                   }}
                   onMouseEnter={e => {
                     const el = e.currentTarget as HTMLButtonElement;
-                    el.style.transform = "translateY(-1px)";
-                    el.style.boxShadow = "0 12px 36px rgba(109,40,217,0.62),inset 0 1px 0 rgba(255,255,255,0.20)";
+                    el.style.transform = "translateY(-2px)";
+                    el.style.boxShadow = "0 16px 44px rgba(109,40,217,0.68),inset 0 1px 0 rgba(255,255,255,0.22)";
                   }}
                   onMouseLeave={e => {
                     const el = e.currentTarget as HTMLButtonElement;
                     el.style.transform = "translateY(0)";
-                    el.style.boxShadow = "0 8px 28px rgba(109,40,217,0.48),inset 0 1px 0 rgba(255,255,255,0.15)";
+                    el.style.boxShadow = "0 10px 34px rgba(109,40,217,0.56),inset 0 1px 0 rgba(255,255,255,0.18)";
                   }}
                 >
-                  <Download size={15} />
+                  <Download size={16} />
                   Download SwitchControl.exe
-                  <ArrowRight size={13} style={{ opacity: 0.65 }} />
+                  <ArrowRight size={14} style={{ opacity: 0.70 }} />
                 </button>
 
                 {/* Legal */}
