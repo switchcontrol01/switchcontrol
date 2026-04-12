@@ -116,7 +116,13 @@ function TikTokIcon({ className }: { className?: string }) {
 const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 
 export default function Settings() {
-  const { account, resetData, enhancedSensorsEnabled, setEnhancedSensorsEnabled } = useStore();
+  const { 
+    account, resetData, 
+    enhancedSensorsEnabled, setEnhancedSensorsEnabled,
+    appBoosterEnabled, setAppBoosterEnabled,
+    realtimeMetricsEnabled, setRealtimeMetricsEnabled,
+    pauseWhenMinimized, setPauseWhenMinimized,
+  } = useStore();
   const { toast } = useToast();
   const { isPremium, user, factoryReset } = useAppAuth();
   const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
@@ -147,27 +153,61 @@ export default function Settings() {
               <CardDescription>Configure general app behavior.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {[
-                { label: "Enable App Booster", desc: "Automatically optimize priority for active games." },
-                { label: "Real-time Metrics", desc: "Update dashboard stats every second." },
-                { label: "Pause when minimized", desc: "Stop polling stats when app is in background." },
-              ].map((row, i) => (
-                <motion.div
-                  key={row.label}
-                  initial={{ opacity: 0, x: -6 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.3, delay: 0.05 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-                >
-                  <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
-                    <div className="space-y-0.5">
-                      <Label>{row.label}</Label>
-                      <p className="text-xs text-muted-foreground">{row.desc}</p>
-                    </div>
-                    <Switch defaultChecked />
+              {/* Enable App Booster */}
+              <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}>
+                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                  <div className="space-y-0.5">
+                    <Label>Enable App Booster</Label>
+                    <p className="text-xs text-muted-foreground">Automatically optimize priority for active games.</p>
                   </div>
-                  {i < 2 && <Separator className="bg-border/50 mt-5" />}
-                </motion.div>
-              ))}
+                  <Switch
+                    checked={appBoosterEnabled}
+                    data-testid="toggle-app-booster-enabled"
+                    onCheckedChange={(checked) => {
+                      setAppBoosterEnabled(checked);
+                      toast({ title: checked ? "App Booster Enabled" : "App Booster Disabled", description: checked ? "Game priority optimization is active." : "App Booster will not run automatically." });
+                    }}
+                  />
+                </div>
+                <Separator className="bg-border/50 mt-5" />
+              </motion.div>
+
+              {/* Real-time Metrics */}
+              <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.11, ease: [0.22, 1, 0.36, 1] }}>
+                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                  <div className="space-y-0.5">
+                    <Label>Real-time Metrics</Label>
+                    <p className="text-xs text-muted-foreground">Update dashboard stats every second.</p>
+                  </div>
+                  <Switch
+                    checked={realtimeMetricsEnabled}
+                    data-testid="toggle-realtime-metrics"
+                    onCheckedChange={(checked) => {
+                      setRealtimeMetricsEnabled(checked);
+                      toast({ title: checked ? "Live Metrics Enabled" : "Live Metrics Paused", description: checked ? "Dashboard stats updating in real time." : "Stats display is frozen — no polling overhead." });
+                    }}
+                  />
+                </div>
+                <Separator className="bg-border/50 mt-5" />
+              </motion.div>
+
+              {/* Pause when minimized */}
+              <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.17, ease: [0.22, 1, 0.36, 1] }}>
+                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                  <div className="space-y-0.5">
+                    <Label>Pause when minimized</Label>
+                    <p className="text-xs text-muted-foreground">Stop polling stats when app is in background.</p>
+                  </div>
+                  <Switch
+                    checked={pauseWhenMinimized}
+                    data-testid="toggle-pause-when-minimized"
+                    onCheckedChange={(checked) => {
+                      setPauseWhenMinimized(checked);
+                      toast({ title: checked ? "Background Pause Enabled" : "Background Pause Disabled", description: checked ? "Stats polling pauses when app is hidden." : "Stats will update even when app is minimized." });
+                    }}
+                  />
+                </div>
+              </motion.div>
               {isElectron && (
                 <>
                   <Separator className="bg-border/50" />

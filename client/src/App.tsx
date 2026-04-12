@@ -16,6 +16,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen } from "@/lib/auth-store";
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
+import { useStore } from "@/lib/store";
 import { PendingActivationModal } from "@/components/PendingActivationModal";
 import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
@@ -166,6 +167,8 @@ function ElectronAppContent() {
     retry: retryDeviceLock,
   } = usePremiumDeviceLock(isElectron, isPremiumVerified, user?.loggedIn ?? false);
 
+  const { realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
+
   // Start the telemetry WebSocket as soon as the user is authenticated.
   // This warms up the connection before the Dashboard even mounts, so history
   // is already accumulating when they first visit (and never resets on tab switches).
@@ -173,6 +176,34 @@ function ElectronAppContent() {
     if (phase !== 'authenticated') return;
     telemetryManager.start();
   }, [phase]);
+
+  // React to the "Real-time Metrics" toggle.
+  // When disabled the telemetry WS stays connected but messages are discarded,
+  // so re-enabling instantly resumes without a reconnect.
+  useEffect(() => {
+    if (realtimeMetricsEnabled) {
+      telemetryManager.resume();
+    } else {
+      telemetryManager.pause();
+    }
+  }, [realtimeMetricsEnabled]);
+
+  // React to the "Pause when minimized" toggle + document visibility changes.
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!pauseWhenMinimized) return;
+      if (document.hidden) {
+        telemetryManager.pause();
+      } else {
+        // Only resume if the user hasn't separately disabled real-time metrics
+        if (realtimeMetricsEnabled) telemetryManager.resume();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    // Apply immediately so current state is reflected on toggle
+    handleVisibility();
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [pauseWhenMinimized, realtimeMetricsEnabled]);
 
   // login_success → next phase: 600ms lets the login screen blur-exit finish.
   // First-time users see the welcome animation; returning users go straight to

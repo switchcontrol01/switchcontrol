@@ -34,6 +34,9 @@ interface AppState {
   history: HistoryItem[];
   latestAIScan: AIScanResult | null;
   enhancedSensorsEnabled: boolean;
+  appBoosterEnabled: boolean;
+  realtimeMetricsEnabled: boolean;
+  pauseWhenMinimized: boolean;
   
   // Actions
   toggleTweak: (id: string) => void;
@@ -46,6 +49,9 @@ interface AppState {
   runAIScan: () => Promise<void>;
   updateCounter: (key: keyof Omit<AccountStats, 'lastScan'>, increment?: number) => void;
   setEnhancedSensorsEnabled: (enabled: boolean) => void;
+  setAppBoosterEnabled: (enabled: boolean) => void;
+  setRealtimeMetricsEnabled: (enabled: boolean) => void;
+  setPauseWhenMinimized: (enabled: boolean) => void;
 }
 
 const DEFAULT_ACCOUNT_STATS: AccountStats = {
@@ -70,6 +76,9 @@ export const useStore = create<AppState>()(
       history: [],
       latestAIScan: null,
       enhancedSensorsEnabled: false,
+      appBoosterEnabled: true,
+      realtimeMetricsEnabled: true,
+      pauseWhenMinimized: true,
 
       toggleTweak: (id) => {
         const { tweaks } = get();
@@ -209,6 +218,9 @@ export const useStore = create<AppState>()(
       setStats: (newStats) => set((state) => ({ stats: { ...state.stats, ...newStats } })),
       
       setEnhancedSensorsEnabled: (enabled) => set({ enhancedSensorsEnabled: enabled }),
+      setAppBoosterEnabled: (enabled) => set({ appBoosterEnabled: enabled }),
+      setRealtimeMetricsEnabled: (enabled) => set({ realtimeMetricsEnabled: enabled }),
+      setPauseWhenMinimized: (enabled) => set({ pauseWhenMinimized: enabled }),
       
       resetData: () => set({
         tweaks: {},
@@ -234,6 +246,9 @@ export const useStore = create<AppState>()(
         history: state.history,
         latestAIScan: state.latestAIScan,
         enhancedSensorsEnabled: state.enhancedSensorsEnabled,
+        appBoosterEnabled: state.appBoosterEnabled,
+        realtimeMetricsEnabled: state.realtimeMetricsEnabled,
+        pauseWhenMinimized: state.pauseWhenMinimized,
       }),
       onRehydrateStorage: () => (state) => {
         if (!state) return;

@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion, Reveal, pageTransition } from "@/lib/motion";
 import { apiGet, apiPost } from "@/lib/api";
+import { useStore } from "@/lib/store";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 
 // ── types ────────────────────────────────────────────────────────────────────
@@ -388,6 +389,7 @@ function writeCache(games: GameSummary[]) {
 
 export default function AppBooster() {
   const { toast } = useToast();
+  const { appBoosterEnabled } = useStore();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
   const isElectron = useRef(getIsElectron()).current;
@@ -452,16 +454,16 @@ export default function AppBooster() {
   // auto-scan once on first open in Electron if no games have been detected yet
   useEffect(() => {
     let cancelled = false;
-    console.log("[AppBooster] mounted — isElectron:", isElectron);
+    console.log("[AppBooster] mounted — isElectron:", isElectron, "appBoosterEnabled:", appBoosterEnabled);
     (async () => {
       const loaded = await loadGames();
       if (cancelled || hasAutoScanned.current) return;
 
       const noneDetected = loaded.every((g) => !g.detected);
       const bridgeAvail  = isElectron && !!(window as any).electronAPI?.appBooster?.scanGames;
-      console.log("[AppBooster] auto-scan check — noneDetected:", noneDetected, "bridgeAvail:", bridgeAvail, "games:", loaded.length);
+      console.log("[AppBooster] auto-scan check — noneDetected:", noneDetected, "bridgeAvail:", bridgeAvail, "appBoosterEnabled:", appBoosterEnabled, "games:", loaded.length);
 
-      if (noneDetected && loaded.length > 0 && bridgeAvail) {
+      if (noneDetected && loaded.length > 0 && bridgeAvail && appBoosterEnabled) {
         hasAutoScanned.current = true;
         setIsScanning(true);
         console.log("[AppBooster] auto-scan — starting");

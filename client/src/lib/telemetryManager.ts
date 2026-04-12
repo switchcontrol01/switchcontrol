@@ -16,6 +16,7 @@ const UNAVAILABLE_TIMEOUT_MS = 8000;
 // ── Module-level singleton state ───────────────────────────────────────────────
 
 let _started = false;
+let _paused = false;      // true = connected but discarding incoming data
 let _ws: WebSocket | null = null;
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let _unavailableTimer: ReturnType<typeof setTimeout> | null = null;
@@ -80,6 +81,7 @@ function connect() {
         };
 
         socket.onmessage = (e) => {
+          if (_paused) return;
           try {
             const msg = JSON.parse(e.data);
             if (msg.type !== "telemetry") return;
@@ -166,6 +168,25 @@ export const telemetryManager = {
     _started = true;
     console.log("[Telemetry] Manager starting");
     connect();
+  },
+
+  /**
+   * Pause processing incoming telemetry messages.
+   * The WebSocket stays connected — data is just discarded until resume().
+   */
+  pause() {
+    _paused = true;
+  },
+
+  /**
+   * Resume processing telemetry after a pause().
+   */
+  resume() {
+    _paused = false;
+  },
+
+  get paused() {
+    return _paused;
   },
 
   /**
