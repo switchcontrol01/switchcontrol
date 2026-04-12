@@ -122,9 +122,9 @@ export function PremiumOverlayCard({
       <div
         className={`fixed top-0 right-0 bottom-0 left-64 z-[9999] flex items-center justify-center ${className ?? ""}`}
         style={{
-          background: "rgba(0, 0, 0, 0.52)",
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
+          background: "rgba(0, 0, 0, 0.45)",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
         }}
         onClick={handleOuterClick}
         data-testid="premium-overlay"
