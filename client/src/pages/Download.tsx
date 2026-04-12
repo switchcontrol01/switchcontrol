@@ -445,29 +445,23 @@ export default function DownloadPage() {
 
         {/* ── Download card ───────────────────────────────────────────────── */}
         <div className="w-full flex flex-col items-center px-2">
-          {/* Outer wrapper — wider than card so the countdown can sit outside */}
-          <div className="relative w-full" style={{ maxWidth: "740px" }}>
+          {/* Outer wrapper — flex row on large screens so countdown sits cleanly left of card */}
+          <div className="flex items-start justify-center gap-8 w-full" style={{ maxWidth: "980px" }}>
 
-            {/* ── Tilted launch countdown (left side, large screens only) ── */}
+            {/* ── Launch countdown (left side, large screens only, slight rightward angle) ── */}
             <motion.div
-              className="hidden lg:block"
-              initial={{ opacity: 0, x: -28, rotate: 20 }}
-              animate={{ opacity: 1, x: 0, rotate: 20 }}
+              className="hidden lg:block flex-shrink-0 self-center"
+              initial={{ opacity: 0, x: -28, rotate: 5 }}
+              animate={{ opacity: 1, x: 0, rotate: 5 }}
               transition={{ duration: 0.65, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              style={{
-                position: "absolute",
-                left: "0px",
-                top: "80px",
-                transformOrigin: "center center",
-                zIndex: 10,
-              }}
+              style={{ transformOrigin: "center center" }}
             >
               <LaunchCountdown />
             </motion.div>
 
-            {/* ── Main card (centered) ── */}
-            <div className="flex justify-center">
-              <div className="relative w-full max-w-lg">
+            {/* ── Main card ── */}
+            <div className="flex-1 min-w-0">
+              <div className="relative w-full max-w-xl mx-auto">
                 {/* Left-side particles */}
                 {LEFT_PARTICLES.map((p, i) => (
                   <div
@@ -506,7 +500,7 @@ export default function DownloadPage() {
                   />
                 ))}
 
-                <GlassPanel variant="elevated" glow="purple" className="w-full max-w-lg p-0">
+                <GlassPanel variant="elevated" glow="purple" className="w-full p-0" style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)", border: "1px solid rgba(255,255,255,0.14)" }}>
                   <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
                     <div className="flex justify-center mb-4">
                       <div className="relative">
@@ -531,7 +525,7 @@ export default function DownloadPage() {
                         v1.0.0 (Early Access)
                       </span>
                     </div>
-                    <h1 className="text-2xl font-bold text-white" data-testid="text-download-title">Download {brand.name}</h1>
+                    <h1 className="text-2xl font-bold text-white" data-testid="text-download-title">Download SwitchControl.exe</h1>
                     <p className="text-sm text-white/50 mt-1">
                       Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Get the desktop app to start optimizing.
                     </p>
@@ -568,7 +562,7 @@ export default function DownloadPage() {
                       data-testid="button-download-windows"
                     >
                       <Download className="size-5" />
-                      Download SwitchControl_v1.0.0_Setup.exe
+                      Download SwitchControl.exe
                     </GlowButton>
 
                     <p className="text-xs text-center text-white/35">
