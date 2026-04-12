@@ -459,11 +459,11 @@ export default function AppBooster() {
       const loaded = await loadGames();
       if (cancelled || hasAutoScanned.current) return;
 
-      const noneDetected = loaded.every((g) => !g.detected);
-      const bridgeAvail  = isElectron && !!(window as any).electronAPI?.appBooster?.scanGames;
-      console.log("[AppBooster] auto-scan check — noneDetected:", noneDetected, "bridgeAvail:", bridgeAvail, "appBoosterEnabled:", appBoosterEnabled, "games:", loaded.length);
+      const hasUndetected = loaded.some((g) => !g.detected);
+      const bridgeAvail   = isElectron && !!(window as any).electronAPI?.appBooster?.scanGames;
+      console.log("[AppBooster] auto-scan check — hasUndetected:", hasUndetected, "bridgeAvail:", bridgeAvail, "appBoosterEnabled:", appBoosterEnabled, "games:", loaded.length);
 
-      if (noneDetected && loaded.length > 0 && bridgeAvail && appBoosterEnabled) {
+      if (hasUndetected && loaded.length > 0 && bridgeAvail && appBoosterEnabled) {
         hasAutoScanned.current = true;
         setIsScanning(true);
         console.log("[AppBooster] auto-scan — starting");
