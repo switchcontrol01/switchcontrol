@@ -25,6 +25,8 @@ import {
   UNSUPPORTED_TWEAKS,
   FailureType,
 } from "@/hooks/use-tweak-executor";
+import { useTweakImpact } from "@/hooks/useTweakImpact";
+import { TweakImpactResult } from "@/components/tweaks/TweakImpactResult";
 
 interface TweakCardProps {
   tweak: Tweak;
@@ -179,6 +181,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
   const { isPremium }                 = useAuth();
   const { openUpgradeModal }          = useUpgradeModal();
   const { executeTweak, executing }   = useTweakExecutor();
+  const { impacts, measuring, startMeasure, clearImpact } = useTweakImpact();
 
   const isPremiumTweak = isTweakPremium(tweak.id);
   const isLocked       = isPremiumTweak && !isPremium;
@@ -212,18 +215,22 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
     if (isLocked)      { openUpgradeModal('Premium Tweak'); return; }
     if (isUnsupported) return;
 
-    // Clear any previous failure immediately
+    // Clear any previous failure / impact result immediately
     setFailureInfo(null);
+    clearImpact(tweak.id);
 
     const action = isEnabled ? 'revert' : 'apply';
     console.log(`[Tweaks:TOGGLE_START] id="${tweak.id}" action=${action} isReal=${isReal}`);
 
     if (isReal) {
+      // Begin measuring before execution
+      const commit = startMeasure(tweak.id, action);
       console.log(`[Tweaks:BACKEND_ACTION] id="${tweak.id}" calling executeTweak action=${action}`);
       const outcome = await executeTweak(tweak.id, isEnabled);
       if (outcome.success) {
         console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action}`);
         onToggle();
+        commit(); // start the 3.5s settle window
       } else if (outcome.failureType) {
         console.warn(`[Tweaks:RESULT] id="${tweak.id}" success=false failureType=${outcome.failureType} msg="${outcome.userMessage}"`);
         showFailure({
@@ -236,7 +243,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
       console.log(`[Tweaks:RESULT] id="${tweak.id}" success=true action=${action} (browser-mode, state-only)`);
       onToggle();
     }
-  }, [isLocked, isUnsupported, isReal, executeTweak, tweak.id, isEnabled, onToggle, showFailure]);
+  }, [isLocked, isUnsupported, isReal, executeTweak, tweak.id, isEnabled, onToggle, showFailure, startMeasure, clearImpact]);
 
   // ── Badge strip ──────────────────────────────────────────────────────────────
   const realBadge = !isUnsupported && isReal ? (
@@ -370,6 +377,14 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               />
             )}
           </AnimatePresence>
+
+          {/* Real measured before/after impact (only when isReal and telemetry available) */}
+          <TweakImpactResult
+            tweakId={tweak.id}
+            result={impacts[tweak.id] ?? null}
+            measuring={measuring === tweak.id}
+            onDismiss={() => clearImpact(tweak.id)}
+          />
 
           {/* TrustLayer — expandable impact breakdown */}
           <TrustLayer tweak={tweak} isOpen={trustOpen} />

@@ -1,10 +1,10 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { TweakCard } from "./TweakCard";
-import { TWEAKS_DATA, TweakCategory } from "@/lib/mock-data";
+import { TWEAKS_DATA, TweakCategory, TweakLevel } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, SlidersHorizontal, RotateCcw, CheckCircle2 } from "lucide-react";
+import { Search, SlidersHorizontal, RotateCcw, CheckCircle2, AlertTriangle, ShieldCheck, FlaskConical, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak } from "@/hooks/use-tweak-executor";
@@ -21,15 +21,55 @@ const CATEGORY_MAP: Record<string, TweakCategory[]> = {
   "Aesthetics":  ["Windows UX"],
 };
 
+// ── Level tab config ─────────────────────────────────────────────────────────
+
+type LevelFilter = "All" | TweakLevel;
+
+const LEVEL_TABS: { id: LevelFilter; label: string; icon: typeof ShieldCheck; color: string; activeClass: string; warnOnFirstOpen?: boolean }[] = [
+  { id: "All",          label: "All",          icon: Cpu,          color: "text-white/60",    activeClass: "bg-primary text-white border-primary shadow-[0_0_15px_rgba(168,85,247,0.3)]" },
+  { id: "Recommended",  label: "Recommended",  icon: ShieldCheck,  color: "text-emerald-400", activeClass: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_rgba(52,211,153,0.2)]" },
+  { id: "Advanced",     label: "Advanced",     icon: SlidersHorizontal, color: "text-blue-400", activeClass: "bg-blue-500/15 text-blue-300 border-blue-500/30 shadow-[0_0_12px_rgba(96,165,250,0.2)]", warnOnFirstOpen: true },
+  { id: "Experimental", label: "Experimental", icon: FlaskConical, color: "text-amber-400",  activeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30 shadow-[0_0_12px_rgba(251,191,36,0.2)]", warnOnFirstOpen: true },
+];
+
+const LEVEL_WARN: Record<string, { title: string; body: string }> = {
+  Advanced: {
+    title: "Advanced Tweaks",
+    body:  "These tweaks modify system internals and are intended for power users. They carry a higher risk of instability on some hardware. Review each tweak before applying.",
+  },
+  Experimental: {
+    title: "Experimental Tweaks",
+    body:  "Experimental tweaks are unproven — they may cause crashes, performance regressions, or driver conflicts on certain systems. Apply at your own risk and create a restore point first.",
+  },
+};
+
 export function TweaksList() {
   const { tweaks, toggleTweak, resetData, enableRecommended, setTweak } = useStore();
   const { syncAllTweaks, localState, isElectron } = useTweakExecutor();
   const { toast } = useToast();
-  const [search, setSearch]       = useState("");
+  const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState<string>("All");
-  const [showRisky, setShowRisky] = useState(false);
-  const [syncing, setSyncing]     = useState(false);
+  const [activeLevel, setActiveLevel] = useState<LevelFilter>("All");
+  const [showRisky, setShowRisky]   = useState(false);
+  const [syncing, setSyncing]       = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
+  const [warnLevel, setWarnLevel]   = useState<string | null>(null); // level name that needs confirmation
+  const seenWarnings = useRef<Set<string>>(new Set());
+
+  const handleLevelTab = (tab: typeof LEVEL_TABS[number]) => {
+    if (tab.warnOnFirstOpen && !seenWarnings.current.has(tab.id)) {
+      setWarnLevel(tab.id);
+    } else {
+      setActiveLevel(tab.id);
+    }
+  };
+
+  const confirmLevelWarn = () => {
+    if (!warnLevel) return;
+    seenWarnings.current.add(warnLevel);
+    setActiveLevel(warnLevel as LevelFilter);
+    setWarnLevel(null);
+  };
 
   // Log state on load so we can verify what's stored
   useEffect(() => {
@@ -83,9 +123,10 @@ export function TweaksList() {
                             t.description.toLowerCase().includes(search.toLowerCase());
       const matchesChip   = activeChip === "All" || (CATEGORY_MAP[activeChip]?.includes(t.category));
       const matchesRisk   = showRisky ? true : t.risk !== "Risky";
-      return matchesSearch && matchesChip && matchesRisk;
+      const matchesLevel  = activeLevel === "All" || t.level === activeLevel;
+      return matchesSearch && matchesChip && matchesRisk && matchesLevel;
     });
-  }, [search, activeChip, showRisky]);
+  }, [search, activeChip, showRisky, activeLevel]);
 
   return (
     <div className="space-y-6 h-full flex flex-col">
@@ -144,7 +185,31 @@ export function TweaksList() {
         </div>
       </motion.div>
 
-      {/* Filter Chips */}
+      {/* Level filter tabs */}
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {LEVEL_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeLevel === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => handleLevelTab(tab)}
+              data-testid={`level-tab-${tab.id.toLowerCase()}`}
+              className={cn(
+                "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[11px] font-semibold tracking-wide border transition-all duration-300",
+                isActive
+                  ? tab.activeClass
+                  : "bg-white/[0.04] text-white/40 border-white/[0.07] hover:text-white/60 hover:border-white/15"
+              )}
+            >
+              <Icon className={cn("size-3", isActive ? "" : tab.color)} />
+              {tab.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Category chips */}
       <ScrollArea className="w-full whitespace-nowrap">
         <div className="flex gap-2 pb-2">
           {["All", ...CATEGORIES].map((chip, i) => (
@@ -170,6 +235,54 @@ export function TweaksList() {
           ))}
         </div>
       </ScrollArea>
+
+      {/* Level warning dialog */}
+      <AnimatePresence>
+        {warnLevel && LEVEL_WARN[warnLevel] && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[6px]"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setWarnLevel(null)}
+            />
+            <motion.div
+              className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-sm pointer-events-auto"
+              initial={{ opacity: 0, scale: 0.92, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.94, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="bg-gradient-to-br from-white/[0.16] via-white/[0.10] to-white/[0.07] backdrop-blur-2xl border border-white/[0.20] rounded-2xl p-6 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="size-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white text-base">{LEVEL_WARN[warnLevel].title}</h3>
+                    <p className="text-sm text-white/55 mt-1 leading-relaxed">{LEVEL_WARN[warnLevel].body}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setWarnLevel(null)}
+                    data-testid="button-level-warn-cancel"
+                    className="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white/80 hover:bg-white/5 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={confirmLevelWarn}
+                    data-testid="button-level-warn-confirm"
+                    className="px-4 py-2 rounded-lg text-sm font-medium bg-amber-500/15 text-amber-300 border border-amber-500/25 hover:bg-amber-500/25 transition-colors"
+                  >
+                    I understand
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Sync status indicator */}
       <AnimatePresence>

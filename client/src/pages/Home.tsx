@@ -36,6 +36,7 @@ import { MemoryIntelligenceModal } from "@/components/dashboard/MemoryIntelligen
 import { GpuModal } from "@/components/dashboard/GpuModal";
 import { DiskTelemetryModal } from "@/components/dashboard/DiskTelemetryModal";
 import { PerformanceLab } from "@/components/dashboard/PerformanceLab";
+import { DetectedIssues } from "@/components/dashboard/DetectedIssues";
 import {
   MemoryPressureGraph,
   StorageActivityGraph,
@@ -663,6 +664,11 @@ export default function Home() {
         {/* System State Bar — real-time derived anchor */}
         <div data-reveal>
           <SystemStateBar />
+        </div>
+
+        {/* Detected Issues — real evidence-backed problems only */}
+        <div data-reveal>
+          <DetectedIssues />
         </div>
 
         {/* Activity Monitor Grid */}

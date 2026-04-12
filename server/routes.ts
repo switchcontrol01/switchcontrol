@@ -24,6 +24,7 @@ import debloaterRouter from "./routes/debloater";
 import cleanerRouter from "./routes/cleaner";
 import focusModeRouter from "./routes/focusMode";
 import { systemIntelligenceRouter } from "./routes/systemIntelligence";
+import issueDetectorRouter from "./routes/issueDetector";
 import { getSystemIntelligence } from "./lib/systemIntelligence";
 import { getSnapshot, getSystemSpecs, startTelemetryPolling } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
@@ -51,6 +52,7 @@ export async function registerRoutes(
   app.use("/api/cleaner", cleanerRouter);
   app.use("/api/focus", focusModeRouter);
   app.use("/api/system-intelligence", systemIntelligenceRouter);
+  app.use("/api/issues", issueDetectorRouter);
 
   // Warm up system intelligence in the background — doesn't block server start
   getSystemIntelligence().catch(() => {});
