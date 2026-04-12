@@ -145,14 +145,15 @@ function PostureRadar({ dimensions }: { dimensions: PostureDimension[] }) {
   }).join(" ");
 
   const labelAt = (i: number): Pt => ({
-    x: CX + (R + 18) * Math.cos(angleFor(i)),
-    y: CY + (R + 18) * Math.sin(angleFor(i)),
+    x: CX + (R + 20) * Math.cos(angleFor(i)),
+    y: CY + (R + 20) * Math.sin(angleFor(i)),
   });
 
   return (
     <motion.svg
       viewBox="0 0 160 160"
-      className="w-full max-w-[160px] mx-auto"
+      className="w-full max-w-[220px] mx-auto"
+      overflow="visible"
       initial={{ opacity: 0, scale: 0.85 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -194,7 +195,7 @@ function PostureRadar({ dimensions }: { dimensions: PostureDimension[] }) {
         return (
           <text key={i} x={lp.x} y={lp.y}
             textAnchor="middle" dominantBaseline="middle"
-            fill={d.color || "rgba(255,255,255,0.45)"} fontSize={7.5} fontWeight={500}
+            fill={d.color || "rgba(255,255,255,0.60)"} fontSize={10} fontWeight={600}
             style={{ userSelect: "none" }}
           >
             {d.label}
