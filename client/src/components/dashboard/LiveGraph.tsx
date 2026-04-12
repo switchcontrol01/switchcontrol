@@ -175,6 +175,31 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const selectedDiskMountRef = useRef(selectedDiskMount);
   selectedDiskMountRef.current = selectedDiskMount;
 
+  // ── GPU first-load tracking ───────────────────────────────────────────────
+  // gpuDetectedRef: true once any tick confirms GPU is present on this machine.
+  // gpuEverDetected: React state mirror — causes re-render so the GPU Line &
+  //   toggle are added to the chart immediately on first confirmation.
+  // markGpuDetected(): called on first GPU confirmation. Back-fills every
+  //   existing null-GPU data point with 0 so the line has no start gap.
+  const gpuDetectedRef = useRef(false);
+  const [gpuEverDetected, setGpuEverDetected] = useState(false);
+
+  const markGpuDetected = useCallback(() => {
+    if (gpuDetectedRef.current) return;
+    gpuDetectedRef.current = true;
+    setGpuEverDetected(true);
+    console.log(`[LiveGraph][GPU] ✓ detected at ${Date.now()} — backfilling ${0}-valued null gaps`);
+    // Replace every null gpuLoad in existing history with 0 so Recharts can
+    // draw the line from the very first chart data point.
+    setData(prev => prev.map(pt => ({ ...pt, gpuLoad: pt.gpuLoad ?? 0 })));
+  }, []);
+
+  // ── Debug: mount timestamp ────────────────────────────────────────────────
+  useEffect(() => {
+    console.log(`[LiveGraph] mounted at ${Date.now()} — Electron: ${!!(window as any).electronAPI?.telemetry?.getLive}`);
+    return () => { console.log('[LiveGraph] unmounted'); };
+  }, []);
+
   // ── Web fallback: WebSocket-driven via hook ──────────────────────────────
   const isElectron = !!(window as any).electronAPI?.telemetry?.getLive;
   const { telemetry: wsTelemetry, spikes: wsSpikes, status: wsStatus, history: wsHistory } = useLiveTelemetry();
@@ -193,15 +218,24 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     const len = wsHistory.cpu.length;
     const now = Date.now();
 
+    // If ANY historical GPU value is non-null the machine has a GPU — mark it
+    // detected now so the line guard and zero-substitution are active before
+    // we build the seeded array.
+    const gpuInHistory = wsHistory.gpu.some(v => v != null);
+    if (gpuInHistory) markGpuDetected();
+    const gpuKnown = gpuDetectedRef.current; // stable after markGpuDetected
+
     const seeded: DataPoint[] = wsHistory.cpu.map((cpuLoad, i) => {
       const msAgo = (len - 1 - i) * 1000;
       const t = new Date(now - msAgo);
       const timeStr = `${t.getMinutes()}:${t.getSeconds().toString().padStart(2, "0")}`;
+      // Substitute 0 for null GPU when GPU is confirmed — avoids broken start segment
+      const gpuRaw = wsHistory.gpu[i] ?? null;
       return {
         time: timeStr,
         cpuLoad: cpuLoad ?? 0,
         cpuTemp: null,
-        gpuLoad: wsHistory.gpu[i] ?? null,
+        gpuLoad: gpuKnown && gpuRaw === null ? 0 : gpuRaw,
         gpuTemp: null,
         gpuMemPct: wsHistory.vram[i] ?? null,
         ram: wsHistory.ram[i] ?? 0,
@@ -213,9 +247,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       };
     });
 
-    console.log('[ActivityMonitor] seeding graph from', seeded.length, 'cached history points');
+    console.log(`[LiveGraph] seeding ${seeded.length} history pts — GPU in history: ${gpuInHistory}`);
     setData(seeded);
-  }, [wsHistory, isElectron]);
+  }, [wsHistory, isElectron, markGpuDetected]);
 
   // Feed WebSocket data into graph when not running in Electron
   useEffect(() => {
@@ -230,12 +264,19 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     const ramPercent = snap.ram?.usedPercent ?? 0;
     const netRxSec = snap.network?.rx_sec != null ? snap.network.rx_sec / 1024 : null;
     const netTxSec = snap.network?.tx_sec != null ? snap.network.tx_sec / 1024 : null;
-    const gpuLoad = snap.gpu?.load ?? null;
+    const gpuLoadRaw = snap.gpu?.load ?? null;
     const gpuTemp = snap.temps?.gpu ?? snap.gpu?.tempC ?? null;
     const gpuMemPct = snap.gpu?.vramPercent ?? null;
     const gpuMemUsed = snap.gpu?.vramUsedMb ?? null;
     const gpuMemTotal = snap.gpu?.vramTotalMb ?? null;
     const gpuClockMhz = snap.gpu?.clockMhz ?? null;
+
+    // Mark GPU as detected when any GPU field is confirmed — call before
+    // building the data point so zero-substitution is applied immediately.
+    if (gpuLoadRaw != null || gpuTemp != null) markGpuDetected();
+    // Substitute 0 for null GPU load when GPU is confirmed present — this
+    // keeps the series continuous from chart paint instead of joining late.
+    const gpuLoad = gpuDetectedRef.current && gpuLoadRaw === null ? 0 : gpuLoadRaw;
 
     // Disk — always read raw values; never suppress on available flag alone.
     // 0.0 is a valid idle value and must not be treated as missing.
@@ -250,7 +291,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       gpuTemp, gpuLoad,
       gpuMemUsed, gpuMemTotal, gpuMemPct,
       gpuPower: null, gpuClockMhz,
-      showGpu: gpuLoad != null || gpuTemp != null,
+      showGpu: gpuEverDetected || gpuLoad != null || gpuTemp != null,
       ramUsedGb, ramTotalGb, ramPercent,
       showRam: ramTotalGb > 0,
       diskActiveTime, diskReadKBps, diskWriteKBps, diskAvailable,
@@ -295,7 +336,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       const cpuLoad = safeNumber(live.cpu?.usagePct, 0);
       const cpuTemp = live.cpu?.tempC != null && live.cpu.tempC > 0 ? safeNumber(live.cpu.tempC) : null;
       const gpuTemp = live.gpu?.tempC != null && live.gpu.tempC > 0 ? safeNumber(live.gpu.tempC) : null;
-      const gpuLoad = live.gpu?.usagePct != null && live.gpu.usagePct >= 0 ? safeNumber(live.gpu.usagePct) : null;
+      const gpuLoadRaw = live.gpu?.usagePct != null && live.gpu.usagePct >= 0 ? safeNumber(live.gpu.usagePct) : null;
       const gpuMemUsed = live.gpu?.vramUsedMb != null ? safeNumber(live.gpu.vramUsedMb) : null;
       const gpuMemTotal = live.gpu?.vramTotalMb != null && live.gpu.vramTotalMb > 0 ? safeNumber(live.gpu.vramTotalMb) : null;
       const gpuMemPct = live.gpu?.vramUsagePct != null ? live.gpu.vramUsagePct
@@ -303,6 +344,15 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           ? Math.round((gpuMemUsed / gpuMemTotal) * 100) : null);
       const gpuPower = live.gpu?.powerW != null && live.gpu.powerW > 0 ? safeNumber(live.gpu.powerW) : null;
       const gpuClockMhz = live.gpu?.clockMhz != null && live.gpu.clockMhz > 0 ? safeNumber(live.gpu.clockMhz) : null;
+
+      // Mark GPU detected as soon as the backend confirms the GPU is available
+      // (live.gpu.available) or any GPU field is non-null — so zero-substitution
+      // kicks in for any subsequent null load readings during warm-up.
+      const gpuAvailableFlag = live.gpu?.available ?? (gpuLoadRaw != null || gpuTemp != null);
+      if (gpuAvailableFlag) markGpuDetected();
+      // Use 0 instead of null when GPU is known to exist — keeps the chart
+      // series continuous from the very first data point.
+      const gpuLoad = gpuDetectedRef.current && gpuLoadRaw === null ? 0 : gpuLoadRaw;
 
       const ramUsedGb = safeNumber(live.ram?.usedGb, 0);
       const ramTotalGb = safeNumber(live.ram?.totalGb, 0);
@@ -322,7 +372,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       const telemetryState: LatestState = {
         cpuLoad, cpuTemp, gpuTemp, gpuLoad,
         gpuMemUsed, gpuMemTotal, gpuMemPct, gpuPower, gpuClockMhz,
-        showGpu: live.gpu?.available ?? (gpuTemp != null || gpuLoad != null),
+        showGpu: gpuEverDetected || gpuAvailableFlag,
         ramUsedGb, ramTotalGb, ramPercent,
         showRam: hasRam,
         diskActiveTime, diskReadKBps, diskWriteKBps,
@@ -402,8 +452,10 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
   // Metric availability — only true when at least one real non-null value exists
   // For disk: server sets available=true only after confirmed real data from disksIO
+  // GPU: use gpuEverDetected (set by markGpuDetected) — NOT data.some(), which
+  // would be false during the warm-up window and cause the late-join visual bug.
   const hasCpuTemp = data.some(d => d.cpuTemp != null);
-  const hasGpuLoad = data.some(d => d.gpuLoad != null);
+  const hasGpuLoad = gpuEverDetected;
   const hasGpuTemp = data.some(d => d.gpuTemp != null);
   const hasGpuMem = data.some(d => d.gpuMemPct != null);
   const hasRamData = data.some(d => d.ram != null);
@@ -415,10 +467,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   // Log which metrics are active (once after first data arrives)
   if (data.length === 1) {
     const first = data[0];
-    console.log("[LiveGraph] Metric availability —",
+    console.log(
+      `[LiveGraph] First data point at ${Date.now()} —`,
       `CPU:yes RAM:${hasRamData ? "yes" : "no"}`,
-      `GPU:${hasGpuLoad ? "yes" : "no (no utilizationGpu on this platform)"}`,
-      `Disk:${hasDiskData ? "yes (activeTime)" : "no — server did not confirm disk.available"}`,
+      `GPU:${hasGpuLoad ? `yes (load=${first.gpuLoad})` : "pending (no GPU or not detected yet)"}`,
+      `Disk:${hasDiskData ? "yes" : "no"}`,
       `Net:${hasNetRx || hasNetTx ? "yes" : "no"}`
     );
   }
@@ -673,12 +726,14 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                   dot={false} activeDot={{ r: 3 }}
                 />
               )}
-              {/* GPU — only when platform provides utilizationGpu */}
+              {/* GPU — only when platform confirms a GPU is present (gpuEverDetected).
+                  connectNulls=true is a safety net for any null gaps during warm-up;
+                  the zero-substitution in the data path means there should be none. */}
               {hasGpuLoad && toggles.gpu && (
                 <Line
                   yAxisId="pct" type="monotone" dataKey="gpuLoad"
                   name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2}
-                  dot={false} activeDot={{ r: 3 }} connectNulls={false}
+                  dot={false} activeDot={{ r: 3 }} connectNulls={true}
                 />
               )}
 
