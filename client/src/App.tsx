@@ -325,10 +325,10 @@ function ElectronAppContent() {
       user.hasSeenTrialActivation === false &&
       !trialUnlockFiredRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 2: Trial activation animation — triggering',
+      console.log('[AppFlow] PRIORITY 2: Trial activation animation — triggering after 700ms settle delay',
         { plan: user.plan, trialEndsAt: user.trialEndsAt, hasSeenTrialActivation: user.hasSeenTrialActivation });
       trialUnlockFiredRef.current = true;
-      setActiveFlow("trialUnlock");
+      setTimeout(() => setActiveFlow("trialUnlock"), 700);
       return;
     }
 

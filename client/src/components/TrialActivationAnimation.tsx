@@ -262,10 +262,13 @@ export function TrialActivationAnimation({ show, onComplete }: Props) {
     console.log('[TrialAnimation] show=true, starting sequence, prefersReduced=', prefersReduced);
 
     if (prefersReduced) {
-      setPhase('cta-reveal');
-      advance(3000, () => {
+      setPhase('card-reveal');
+      advance(600,  () => setPhase('graph-draw'));
+      advance(1300, () => setPhase('text-reveal'));
+      advance(2100, () => setPhase('cta-reveal'));
+      advance(8100, () => {
         setPhase('exiting');
-        advance(400, () => {
+        advance(600, () => {
           setPhase('done');
           onCompleteRef.current();
         });
@@ -274,14 +277,14 @@ export function TrialActivationAnimation({ show, onComplete }: Props) {
     }
 
     setPhase('darken');
-    advance(350, () => setPhase('ring-appear'));
-    advance(800, () => setPhase('card-reveal'));
-    advance(1500, () => setPhase('graph-draw'));
-    advance(2300, () => setPhase('text-reveal'));
-    advance(3200, () => setPhase('cta-reveal'));
-    advance(6200, () => {
+    advance(600,  () => setPhase('ring-appear'));
+    advance(1400, () => setPhase('card-reveal'));
+    advance(2500, () => setPhase('graph-draw'));
+    advance(3700, () => setPhase('text-reveal'));
+    advance(5000, () => setPhase('cta-reveal'));
+    advance(10000, () => {
       setPhase('exiting');
-      advance(700, () => {
+      advance(800, () => {
         setPhase('done');
         onCompleteRef.current();
       });
