@@ -323,7 +323,7 @@ export function BiosAnalyticsRings({
           Performance Radar
         </motion.p>
         <div className="flex justify-center">
-          <RadarGraph axes={radarAxes} size={150} delay={delay + 0.3} />
+          <RadarGraph axes={radarAxes} size={240} delay={delay + 0.3} />
         </div>
       </div>
 

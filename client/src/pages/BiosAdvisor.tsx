@@ -493,6 +493,24 @@ function ScanProgress({ state }: { state: ScanState }) {
   );
 }
 
+// Defined at module level so React sees a stable component type across renders.
+// If defined inside BiosAdvisor(), every render creates a new function reference
+// which makes React unmount+remount every <Item> in the tree, replaying animations.
+function Item({ children, className, ...props }: { children?: ReactNode; className?: string; [key: string]: unknown }) {
+  return (
+    <motion.div
+      className={className}
+      initial={{ opacity: 0, y: 16, scale: 0.99 }}
+      whileInView={{ opacity: 1, y: 0, scale: 1 }}
+      viewport={{ once: true, margin: "-40px" }}
+      transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
+      {...(props as any)}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export default function BiosAdvisor() {
   const { prefersReducedMotion } = useMotion();
   const { isPremium } = useAuth();
@@ -578,18 +596,6 @@ export default function BiosAdvisor() {
   const detectionSummary = useMemo(() => getDetectionSummary(allDetections), [allDetections]);
   
   const Container = "div";
-  const Item = ({ children, className, ...props }: { children?: ReactNode; className?: string; [key: string]: unknown }) => (
-    <motion.div
-      className={className}
-      initial={{ opacity: 0, y: 16, scale: 0.99 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true, margin: "-40px" }}
-      transition={{ duration: 0.44, ease: [0.22, 1, 0.36, 1] }}
-      {...(props as any)}
-    >
-      {children}
-    </motion.div>
-  );
 
   const handleScan = useCallback(async () => {
     setScanState("collecting");
