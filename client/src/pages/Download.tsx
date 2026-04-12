@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles } from "lucide-react";
+import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles, Rocket } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
 import { brand } from "@/config/brand";
 import { motion, useMotion } from "@/lib/motion";
@@ -87,123 +87,275 @@ function DownloadPatchNotesCard() {
   );
 }
 
-// ── Decorative install-time countdown timer ────────────────────────────────────
-function InstallTimer() {
-  const TOTAL = 30;
-  const [count, setCount] = useState(TOTAL);
-  const raf = useRef<number | null>(null);
-  const startTs = useRef<number>(Date.now());
+// ── Animated flip digit ────────────────────────────────────────────────────────
+function FlipDigit({ value, label }: { value: string; label: string }) {
+  const [displayed, setDisplayed] = useState(value);
+  const [flipping, setFlipping] = useState(false);
+  const prev = useRef(value);
 
   useEffect(() => {
-    function tick() {
-      const elapsed = (Date.now() - startTs.current) / 1000;
-      const remaining = Math.max(0, TOTAL - (elapsed % (TOTAL + 1.5)));
-      setCount(Math.ceil(remaining));
-      raf.current = requestAnimationFrame(tick);
+    if (value !== prev.current) {
+      setFlipping(true);
+      const t = setTimeout(() => {
+        setDisplayed(value);
+        setFlipping(false);
+        prev.current = value;
+      }, 180);
+      return () => clearTimeout(t);
     }
-    raf.current = requestAnimationFrame(tick);
-    return () => { if (raf.current) cancelAnimationFrame(raf.current); };
-  }, []);
+  }, [value]);
 
-  const radius = 38;
-  const circ   = 2 * Math.PI * radius;
-  const dashOffset = circ * (1 - count / TOTAL);
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
+      {/* digit block */}
+      <div style={{
+        position: "relative",
+        width: "54px",
+        height: "62px",
+        borderRadius: "10px",
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(139,92,246,0.18)",
+        boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.06)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        overflow: "hidden",
+      }}>
+        {/* top/bottom half divider line */}
+        <div style={{
+          position: "absolute",
+          left: 0, right: 0,
+          top: "50%",
+          height: "1px",
+          background: "rgba(0,0,0,0.35)",
+          zIndex: 2,
+        }} />
+
+        {/* digit */}
+        <span
+          style={{
+            fontSize: "30px",
+            fontWeight: 800,
+            color: "rgba(255,255,255,0.94)",
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: "-0.02em",
+            lineHeight: 1,
+            display: "block",
+            transition: flipping ? "transform 0.18s ease-in, opacity 0.18s ease-in" : "none",
+            transform: flipping ? "scaleY(0.4) translateY(-4px)" : "scaleY(1) translateY(0)",
+            opacity: flipping ? 0 : 1,
+          }}
+        >
+          {displayed}
+        </span>
+
+        {/* gradient overlay top */}
+        <div style={{
+          position: "absolute",
+          inset: 0,
+          background: "linear-gradient(180deg, rgba(139,92,246,0.04) 0%, transparent 50%)",
+          borderRadius: "inherit",
+          pointerEvents: "none",
+        }} />
+      </div>
+
+      {/* label */}
+      <span style={{
+        fontSize: "8.5px",
+        fontWeight: 700,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        color: "rgba(192,155,255,0.45)",
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+// ── Launch countdown widget ────────────────────────────────────────────────────
+// Target: Tuesday 22 April 2026 14:00 NZST (UTC+12) = 22 April 02:00 UTC
+const LAUNCH_UTC = new Date("2026-04-22T02:00:00Z").getTime();
+
+function getTimeLeft() {
+  const diff = Math.max(0, LAUNCH_UTC - Date.now());
+  const totalSecs = Math.floor(diff / 1000);
+  const d = Math.floor(totalSecs / 86400);
+  const h = Math.floor((totalSecs % 86400) / 3600);
+  const m = Math.floor((totalSecs % 3600) / 60);
+  const s = totalSecs % 60;
+  return { d, h, m, s, launched: diff === 0 };
+}
+
+function pad(n: number) { return String(n).padStart(2, "0"); }
+
+function LaunchCountdown() {
+  const [time, setTime] = useState(getTimeLeft);
+  const [pulse, setPulse] = useState(false);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setTime(getTimeLeft());
+      setPulse(true);
+      setTimeout(() => setPulse(false), 250);
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div
       className="select-none pointer-events-none"
       style={{
-        background: "rgba(10,8,20,0.72)",
-        backdropFilter: "blur(14px)",
-        WebkitBackdropFilter: "blur(14px)",
-        border: "1px solid rgba(139,92,246,0.18)",
-        boxShadow: "0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(139,92,246,0.06), inset 0 1px 0 rgba(255,255,255,0.07)",
-        borderRadius: "18px",
-        padding: "18px 22px 20px",
-        width: "130px",
+        background: "rgba(8,6,18,0.78)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(139,92,246,0.22)",
+        boxShadow: [
+          "0 16px 48px rgba(0,0,0,0.55)",
+          "0 0 0 1px rgba(139,92,246,0.07)",
+          "inset 0 1px 0 rgba(255,255,255,0.08)",
+          "0 0 80px rgba(139,92,246,0.08)",
+        ].join(", "),
+        borderRadius: "20px",
+        padding: "18px 20px 22px",
+        width: "180px",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: "10px",
+        gap: "14px",
       }}
     >
-      {/* label top */}
-      <span style={{
-        fontSize: "8.5px",
-        fontWeight: 700,
-        letterSpacing: "0.13em",
-        textTransform: "uppercase",
-        color: "rgba(192,155,255,0.55)",
-      }}>
-        Install Time
-      </span>
-
-      {/* circular ring */}
-      <div style={{ position: "relative", width: 92, height: 92 }}>
-        <svg width="92" height="92" style={{ transform: "rotate(-90deg)" }}>
-          {/* track */}
-          <circle
-            cx="46" cy="46" r={radius}
-            fill="none"
-            stroke="rgba(255,255,255,0.06)"
-            strokeWidth="5"
-          />
-          {/* progress */}
-          <circle
-            cx="46" cy="46" r={radius}
-            fill="none"
-            stroke="url(#timerGrad)"
-            strokeWidth="5"
-            strokeLinecap="round"
-            strokeDasharray={circ}
-            strokeDashoffset={dashOffset}
-            style={{ transition: "stroke-dashoffset 0.2s linear" }}
-          />
-          <defs>
-            <linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor="#8b5cf6" />
-              <stop offset="100%" stopColor="#06b6d4" />
-            </linearGradient>
-          </defs>
-        </svg>
-
-        {/* center number */}
+      {/* header */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
         <div style={{
-          position: "absolute",
-          inset: 0,
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
+          gap: "5px",
         }}>
-          <span style={{ fontSize: "28px", fontWeight: 800, color: "rgba(255,255,255,0.92)", lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
-            {String(count).padStart(2, "0")}
+          <Rocket
+            style={{
+              width: "10px",
+              height: "10px",
+              color: "rgba(192,155,255,0.80)",
+              animation: "rocketBob 2s ease-in-out infinite",
+            }}
+          />
+          <span style={{
+            fontSize: "8px",
+            fontWeight: 800,
+            letterSpacing: "0.16em",
+            textTransform: "uppercase",
+            color: "rgba(192,155,255,0.70)",
+          }}>
+            Official Launch
           </span>
-          <span style={{ fontSize: "10px", fontWeight: 600, color: "rgba(139,92,246,0.75)", marginTop: "1px" }}>
-            sec
+        </div>
+
+        {/* live pulse dot */}
+        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+          <div style={{
+            width: "5px",
+            height: "5px",
+            borderRadius: "50%",
+            background: pulse ? "rgba(139,92,246,0.95)" : "rgba(139,92,246,0.55)",
+            boxShadow: pulse ? "0 0 10px 3px rgba(139,92,246,0.5)" : "0 0 4px 1px rgba(139,92,246,0.25)",
+            transition: "all 0.15s ease",
+          }} />
+          <span style={{
+            fontSize: "8px",
+            fontWeight: 600,
+            color: "rgba(255,255,255,0.22)",
+            letterSpacing: "0.04em",
+          }}>
+            2 PM · Tue Apr 22 · NZT
           </span>
         </div>
       </div>
 
-      {/* bottom label */}
-      <span style={{
-        fontSize: "9px",
-        fontWeight: 600,
-        color: "rgba(255,255,255,0.28)",
-        textAlign: "center",
-        lineHeight: 1.4,
-      }}>
-        avg. setup<br/>duration
-      </span>
-
-      {/* small glow dot */}
+      {/* thin gradient divider */}
       <div style={{
-        width: 5,
-        height: 5,
-        borderRadius: "50%",
-        background: "rgba(139,92,246,0.7)",
-        boxShadow: "0 0 8px 2px rgba(139,92,246,0.45)",
-        animation: "timerDot 1.5s ease-in-out infinite",
+        width: "100%",
+        height: "1px",
+        background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.30), transparent)",
+      }} />
+
+      {/* digit blocks */}
+      {time.launched ? (
+        <div style={{
+          textAlign: "center",
+          color: "rgba(192,155,255,0.90)",
+          fontSize: "13px",
+          fontWeight: 700,
+          lineHeight: 1.4,
+        }}>
+          🚀 We&apos;re Live!
+        </div>
+      ) : (
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
+          <FlipDigit value={pad(time.d)} label="days" />
+          {/* colon */}
+          <div style={{
+            fontSize: "22px",
+            fontWeight: 800,
+            color: "rgba(139,92,246,0.55)",
+            marginTop: "14px",
+            lineHeight: 1,
+            animation: "colonBlink 1s step-end infinite",
+          }}>:</div>
+          <FlipDigit value={pad(time.h)} label="hrs" />
+          <div style={{
+            fontSize: "22px",
+            fontWeight: 800,
+            color: "rgba(139,92,246,0.55)",
+            marginTop: "14px",
+            lineHeight: 1,
+            animation: "colonBlink 1s step-end infinite",
+          }}>:</div>
+          <FlipDigit value={pad(time.m)} label="min" />
+        </div>
+      )}
+
+      {/* seconds bar */}
+      {!time.launched && (
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "5px" }}>
+          <div style={{
+            width: "100%",
+            height: "3px",
+            borderRadius: "2px",
+            background: "rgba(255,255,255,0.06)",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              height: "100%",
+              borderRadius: "2px",
+              background: "linear-gradient(90deg, #8b5cf6, #06b6d4)",
+              width: `${(time.s / 59) * 100}%`,
+              transition: "width 0.95s linear",
+              boxShadow: "0 0 6px rgba(139,92,246,0.6)",
+            }} />
+          </div>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}>
+            <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.20)", fontWeight: 600 }}>
+              {pad(time.s)}s
+            </span>
+            <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.18)", fontVariantNumeric: "tabular-nums" }}>
+              {time.d}d {pad(time.h)}:{pad(time.m)} left
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* glow orb at bottom */}
+      <div style={{
+        width: "32px",
+        height: "4px",
+        borderRadius: "2px",
+        background: "linear-gradient(90deg, rgba(139,92,246,0.0), rgba(139,92,246,0.50), rgba(6,182,212,0.40), rgba(6,182,212,0.0))",
+        filter: "blur(2px)",
       }} />
     </div>
   );
@@ -278,9 +430,13 @@ export default function DownloadPage() {
         @media (prefers-reduced-motion: reduce) {
           .side-particle { animation-duration: calc(var(--dur) * 2.5); }
         }
-        @keyframes timerDot {
-          0%, 100% { opacity: 0.6; transform: scale(1); }
-          50%       { opacity: 1;   transform: scale(1.5); }
+        @keyframes colonBlink {
+          0%, 49% { opacity: 1; }
+          50%, 100% { opacity: 0.2; }
+        }
+        @keyframes rocketBob {
+          0%, 100% { transform: translateY(0px) rotate(-45deg); }
+          50%       { transform: translateY(-2px) rotate(-45deg); }
         }
       `}</style>
 
@@ -289,25 +445,24 @@ export default function DownloadPage() {
 
         {/* ── Download card ───────────────────────────────────────────────── */}
         <div className="w-full flex flex-col items-center px-2">
-          {/* Outer wrapper — wider than card so the timer can sit outside */}
-          <div className="relative w-full" style={{ maxWidth: "720px" }}>
+          {/* Outer wrapper — wider than card so the countdown can sit outside */}
+          <div className="relative w-full" style={{ maxWidth: "740px" }}>
 
-            {/* ── Tilted install-time timer (left side, large screens only) ── */}
+            {/* ── Tilted launch countdown (left side, large screens only) ── */}
             <motion.div
               className="hidden lg:block"
-              initial={{ opacity: 0, x: -24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.6, delay: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, x: -28, rotate: 20 }}
+              animate={{ opacity: 1, x: 0, rotate: 20 }}
+              transition={{ duration: 0.65, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
               style={{
                 position: "absolute",
                 left: "0px",
-                top: "88px",
-                transform: "rotate(22deg)",
+                top: "80px",
                 transformOrigin: "center center",
                 zIndex: 10,
               }}
             >
-              <InstallTimer />
+              <LaunchCountdown />
             </motion.div>
 
             {/* ── Main card (centered) ── */}
