@@ -221,6 +221,44 @@ async function runPS(script: string): Promise<string | null> {
   }
 }
 
+// ── Windows monitor EDID name collector ───────────────────────────────────────
+
+async function collectMonitorEdidNames(): Promise<Array<{ name: string; manufacturer: string }>> {
+  const raw = await runPS(`
+try {
+  $monitors = Get-CimInstance -Namespace root/wmi -ClassName WmiMonitorID -ErrorAction SilentlyContinue
+  if (-not $monitors) { Write-Output '[]'; return }
+  $result = @()
+  foreach ($m in $monitors) {
+    $name = ''
+    $mfr  = ''
+    if ($m.UserFriendlyName) {
+      $name = ([System.Text.Encoding]::ASCII.GetString($m.UserFriendlyName)).TrimEnd([char]0).Trim()
+    }
+    if ($m.ManufacturerName) {
+      $mfr = ([System.Text.Encoding]::ASCII.GetString($m.ManufacturerName)).TrimEnd([char]0).Trim()
+    }
+    $result += [PSCustomObject]@{ Name = $name; Manufacturer = $mfr }
+  }
+  $result | ConvertTo-Json -Compress
+} catch { Write-Output '[]' }
+`.trim());
+
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    const arr = Array.isArray(parsed) ? parsed : [parsed];
+    return arr
+      .filter((m: any) => typeof m === "object" && m !== null)
+      .map((m: any) => ({
+        name: (m.Name ?? "").trim(),
+        manufacturer: (m.Manufacturer ?? "").trim(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 // ── Windows platform state collectors ────────────────────────────────────────
 
 async function collectWindowsPlatformStates(): Promise<{
@@ -321,7 +359,7 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     bbRes, biosRes, cpuRes, graphicsRes, memLayoutRes,
     diskLayoutRes, fsSizeRes, netIfRes, netConnRes,
     procsRes, osRes, batteryRes, usersRes,
-    platformStates,
+    platformStates, monitorEdidRes,
   ] = await Promise.allSettled([
     si.baseboard(),
     si.bios(),
@@ -337,7 +375,10 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     si.battery(),
     si.users(),
     collectWindowsPlatformStates(),
+    collectMonitorEdidNames(),
   ]);
+  const edidNames: Array<{ name: string; manufacturer: string }> =
+    monitorEdidRes.status === "fulfilled" ? monitorEdidRes.value : [];
 
   // Chassis
   let chassisType: string | null = null;
@@ -362,14 +403,41 @@ async function collect(): Promise<SystemIntelligenceProfile> {
     bus: safeStr(c.bus),
   })).filter((c: SipController) => c.name !== null);
 
-  const displays: SipDisplay[] = (graphics?.displays ?? []).map((d: any) => ({
-    model: safeStr(d.model),
-    main: safeBool(d.main),
-    connection: safeStr(d.connection),
-    resolutionX: safeNum(d.resolutionX),
-    resolutionY: safeNum(d.resolutionY),
-    refreshRate: safeNum(d.currentRefreshRate ?? d.refreshRate),
-  }));
+  // Generic-sounding model names that should be replaced with EDID data when available
+  const GENERIC_NAMES = new Set([
+    "generic pnp monitor", "generic monitor", "pnp monitor",
+    "default monitor", "non-pnp monitor", "plug and play monitor",
+  ]);
+
+  const displays: SipDisplay[] = (graphics?.displays ?? []).map((d: any, i: number) => {
+    const siModel = safeStr(d.model);
+    const edid = edidNames[i] ?? null;
+
+    // Prefer EDID model name when systeminformation returns a generic placeholder
+    let resolvedModel: string | null = siModel;
+    if (edid && edid.name) {
+      const siLower = (siModel ?? "").toLowerCase().trim();
+      if (!siModel || GENERIC_NAMES.has(siLower)) {
+        // Build display name: "Samsung S27AG32x" style if manufacturer differs from name prefix
+        const mfr = edid.manufacturer;
+        const mdl = edid.name;
+        if (mfr && !mdl.toLowerCase().startsWith(mfr.toLowerCase())) {
+          resolvedModel = `${mfr} ${mdl}`.trim();
+        } else {
+          resolvedModel = mdl;
+        }
+      }
+    }
+
+    return {
+      model: resolvedModel,
+      main: safeBool(d.main),
+      connection: safeStr(d.connection),
+      resolutionX: safeNum(d.resolutionX),
+      resolutionY: safeNum(d.resolutionY),
+      refreshRate: safeNum(d.currentRefreshRate ?? d.refreshRate),
+    };
+  });
 
   // ── Memory layout ──
   const memLayout = memLayoutRes.status === "fulfilled" ? memLayoutRes.value : [];

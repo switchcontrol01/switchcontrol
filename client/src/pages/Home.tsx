@@ -1002,14 +1002,23 @@ export default function Home() {
                       ))}
                       {sysIntel.profile.gpu.displays.length > 0 && (
                         <div className="pt-1.5 border-t border-white/[0.06] space-y-1">
-                          {sysIntel.profile.gpu.displays.slice(0, 2).map((disp, i) => (
-                            <p key={i} className="text-[10px] text-white/40">
-                              {disp.model ? `${disp.model} ` : ""}
-                              {disp.resolutionX && disp.resolutionY ? `${disp.resolutionX}×${disp.resolutionY}` : ""}
-                              {disp.refreshRate ? ` @ ${disp.refreshRate}Hz` : ""}
-                              {disp.connection ? ` (${disp.connection})` : ""}
-                            </p>
-                          ))}
+                          {sysIntel.profile.gpu.displays.slice(0, 3).map((disp, i) => {
+                            const rx = disp.resolutionX;
+                            const ry = disp.resolutionY;
+                            const isPortrait = rx !== null && ry !== null && ry > rx;
+                            const w = isPortrait ? ry : rx;
+                            const h = isPortrait ? rx : ry;
+                            const resStr = w && h ? `${w}×${h}${isPortrait ? " ↺" : ""}` : null;
+                            return (
+                              <p key={i} className="text-[10px] text-white/40 leading-snug">
+                                {disp.model ? <span className="text-white/55">{disp.model}</span> : null}
+                                {disp.model ? " " : ""}
+                                {resStr ?? ""}
+                                {disp.refreshRate ? ` @ ${disp.refreshRate}Hz` : ""}
+                                {disp.connection ? ` (${disp.connection})` : ""}
+                              </p>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
