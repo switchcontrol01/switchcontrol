@@ -134,18 +134,17 @@ function StabilityArc({ score, prefersReducedMotion }: { score: number; prefersR
   const col = scoreColor(score);
 
   return (
-    <svg viewBox="0 0 120 120" className="w-full h-full" aria-hidden="true">
-      <defs>
-        <filter id="arc-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="3" result="blur" />
-          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-        </filter>
-      </defs>
-      {/* Track arc */}
+    <svg
+      viewBox="0 0 120 120"
+      className="w-full h-full"
+      aria-hidden="true"
+      style={{ display: "block", background: "transparent", overflow: "visible" }}
+    >
+      {/* Track arc — dark purple-tinted, no white to avoid compositor outline artifact */}
       <circle
         cx={60} cy={60} r={48}
         fill="none"
-        stroke="rgba(255,255,255,0.06)"
+        stroke="rgba(80,60,120,0.22)"
         strokeWidth={9}
         strokeLinecap="round"
         pathLength={1}
@@ -162,16 +161,16 @@ function StabilityArc({ score, prefersReducedMotion }: { score: number; prefersR
         pathLength={1}
         transform="rotate(135 60 60)"
         strokeDasharray={`${fill} ${1 - fill}`}
-        style={{ filter: `drop-shadow(0 0 7px ${col.hex}99)` }}
+        style={{ filter: `drop-shadow(0 0 6px ${col.hex}bb)` }}
       />
       {/* Tick marks */}
       {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
         const angle = (135 + t * 270) * (Math.PI / 180);
-        const x1 = 60 + 52 * Math.cos(angle);
-        const y1 = 60 + 52 * Math.sin(angle);
-        const x2 = 60 + 55 * Math.cos(angle);
-        const y2 = 60 + 55 * Math.sin(angle);
-        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.12)" strokeWidth={1} />;
+        const x1 = 60 + 51 * Math.cos(angle);
+        const y1 = 60 + 51 * Math.sin(angle);
+        const x2 = 60 + 54 * Math.cos(angle);
+        const y2 = 60 + 54 * Math.sin(angle);
+        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="rgba(255,255,255,0.10)" strokeWidth={1} />;
       })}
     </svg>
   );
