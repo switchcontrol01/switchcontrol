@@ -649,18 +649,6 @@ export default function DownloadPage() {
                 </div>
               ) : (
                 <div style={{ position: "relative" }}>
-                  {/* Glow bloom behind countdown */}
-                  <div style={{
-                    position: "absolute",
-                    top: "50%", left: "50%",
-                    transform: "translate(-50%,-50%)",
-                    width: "clamp(260px,42vw,380px)", height: "clamp(80px,12vw,120px)",
-                    borderRadius: "50%",
-                    background: "radial-gradient(ellipse,rgba(139,92,246,0.26) 0%,rgba(103,232,249,0.08) 55%,transparent 78%)",
-                    filter: "blur(28px)",
-                    animation: "ambientBreathe 4.5s ease-in-out infinite",
-                    pointerEvents: "none",
-                  }} />
                   <div style={{
                     position: "relative",
                     display: "flex", alignItems: "flex-end",
