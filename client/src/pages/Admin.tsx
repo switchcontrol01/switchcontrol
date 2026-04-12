@@ -1053,7 +1053,29 @@ export default function AdminPage() {
     if (selectedUser?.id === updated.id) setSelectedUser(updated);
     const currentUser = useAuthStore.getState().user;
     if (currentUser?.id === updated.id) {
+      // ── Immediate auth-store patch ──────────────────────────────────────────
+      // The admin grant response comes from the same DB connection that just
+      // wrote the new plan, so serializeUser(updated) is always correct. We
+      // apply it directly to the auth store so the AppFlow/unlock animation
+      // triggers instantly — without waiting for a separate /api/me round-trip
+      // that may hit a different DB connection and see a stale snapshot.
+      const isActive = updated.effectivePlan === "premium" || updated.effectivePlan === "trial";
+      useAuthStore.getState().setUser({
+        ...currentUser,
+        isPremium:             isActive && updated.effectivePlan === "premium",
+        plan:                  updated.effectivePlan ?? updated.plan ?? (isActive ? "premium" : "free"),
+        trialEndsAt:           updated.trialEndsAt ?? null,
+        isAdmin:               updated.isAdmin,
+        hasSeenPremiumUnlock:  updated.hasSeenPremiumUnlock,
+        hasSeenPremiumTour:    updated.hasSeenPremiumTour,
+      });
+
+      // Signal App.tsx to clear all session-level animation guards so the
+      // AppFlow re-evaluates the new state immediately.
       triggerFlowReset();
+
+      // Background confirmation fetch — refreshes any fields not in AdminUser
+      // (e.g. hasSeenTrialActivation) and re-syncs in case of edge-case drift.
       refreshEntitlements();
     }
   };

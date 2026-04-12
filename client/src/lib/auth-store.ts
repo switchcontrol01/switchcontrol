@@ -293,13 +293,25 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
       return { user: null };
     }
 
+    // Derive isPremium defensively: trust both the boolean AND the plan field.
+    // Guards against race-condition responses where the DB read on a different
+    // connection hasn't seen the just-committed write yet, returning
+    // isPremium:false while plan:'premium'. If either signals active premium,
+    // treat the user as premium.
+    const resolvedPlan: string = data.plan || (data.isPremium ? 'premium' : 'free');
+    const resolvedIsPremium: boolean = !!(
+      data.isPremium ||
+      data.plan === 'premium' ||
+      (data.plan === 'trial' && !!data.trialEndsAt && new Date() < new Date(data.trialEndsAt))
+    );
+
     const newUser: AuthUser = {
       id: data.id || store.user?.id || '',
       email: data.email || null,
       username: data.name || data.firstName || null,
       avatarUrl: data.avatar || null,
-      plan: data.plan || (data.isPremium ? 'premium' : 'free'),
-      isPremium: data.isPremium || false,
+      plan: resolvedPlan,
+      isPremium: resolvedIsPremium,
       trialEndsAt: data.trialEndsAt || null,
       isAdmin: data.isAdmin || false,
       hasSeenPremiumUnlock: !!data.hasSeenPremiumUnlock,
