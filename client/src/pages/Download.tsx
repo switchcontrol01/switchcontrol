@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles, Zap, ArrowRight, Rocket } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
 import { motion } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import faviconImg from "@/assets/favicon.png";
 
@@ -168,11 +168,15 @@ function SecondsBar({ s }: { s: number }) {
   );
 }
 
-// ── Ambient particles ─────────────────────────────────────────────────────────
-const PARTICLES = Array.from({ length: 12 }, (_, i) => ({
-  id: i, x: 8 + (i * 7.5) % 84, startY: 15 + (i * 8) % 65,
-  size: 1.5 + (i % 3) * 0.8, dur: 7 + (i % 5) * 2.2, delay: (i * 0.8) % 7,
-  opacity: 0.12 + (i % 4) * 0.06,
+// ── Ambient particles — full viewport distribution ─────────────────────────────
+const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
+  id: i,
+  x: 3 + ((i * 29 + i * i * 3) % 93),
+  startY: (i * 3.4 + (i % 7) * 5.2) % 97,
+  size: 1.2 + (i % 4) * 0.65,
+  dur: 9 + (i % 6) * 2.5,
+  delay: (i * 0.71) % 9,
+  opacity: 0.09 + (i % 5) * 0.045,
   color: i % 3 === 0 ? "168,85,247" : i % 3 === 1 ? "103,232,249" : "255,255,255",
 }));
 
@@ -229,10 +233,34 @@ function PatchNotesCard() {
 export default function DownloadPage() {
   const { user } = useAuth();
   const [time, setTime] = useState(getTimeLeft);
+  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
+  const [sceneReady, setSceneReady] = useState(false);
+  const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
     const id = setInterval(() => setTime(getTimeLeft()), 1000);
     return () => clearInterval(id);
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      setMouse({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+      rafRef.current = null;
+    });
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, [handleMouseMove]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSceneReady(true), 80);
+    return () => clearTimeout(t);
   }, []);
 
   const launched = time.launched;
@@ -284,6 +312,34 @@ export default function DownloadPage() {
           0%   { transform: scale(0.80); opacity: 0; }
           100% { transform: scale(1);    opacity: 1; }
         }
+        @keyframes sunStreakSweep {
+          0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+          8%   { opacity: 1; }
+          92%  { opacity: 1; }
+          100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+        }
+        @keyframes topoFlow {
+          0%, 100% { transform: translateX(0px) translateY(0px); }
+          33%       { transform: translateX(-10px) translateY(4px); }
+          66%       { transform: translateX(8px) translateY(-5px); }
+        }
+        @keyframes topoFlow2 {
+          0%, 100% { transform: translateX(0px) translateY(0px); }
+          33%       { transform: translateX(12px) translateY(-3px); }
+          66%       { transform: translateX(-7px) translateY(6px); }
+        }
+        @keyframes blobDrift1 {
+          0%, 100% { transform: translate(0px, 0px) scale(1); }
+          50%       { transform: translate(-18px, 14px) scale(1.04); }
+        }
+        @keyframes blobDrift2 {
+          0%, 100% { transform: translate(0px, 0px) scale(1); }
+          50%       { transform: translate(14px, -12px) scale(1.06); }
+        }
+        @keyframes blobDrift3 {
+          0%, 100% { transform: translate(0px, 0px) scale(1); }
+          50%       { transform: translate(-10px, 16px) scale(0.97); }
+        }
       `}</style>
 
       <main style={{
@@ -299,31 +355,204 @@ export default function DownloadPage() {
         gap: "clamp(16px,2.5vh,24px)",
       }}>
 
-        {/* ── Background atmosphere ── */}
-        <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+        {/* ── Background atmosphere — full-scene layered system ── */}
+        <div aria-hidden style={{
+          position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0,
+          opacity: sceneReady ? 1 : 0,
+          transition: "opacity 1.2s ease",
+        }}>
+
+          {/* Layer 1: Primary center glow — mouse parallax */}
           <div style={{
-            position: "absolute", top: "15%", left: "40%", transform: "translateX(-50%)",
-            width: "clamp(600px,80vw,1100px)", height: "clamp(360px,50vw,680px)",
+            position: "absolute", top: "8%", left: "50%",
+            width: "clamp(700px,90vw,1300px)", height: "clamp(420px,58vw,820px)",
             borderRadius: "50%",
-            background: "radial-gradient(ellipse,rgba(109,40,217,0.28) 0%,rgba(139,92,246,0.10) 45%,transparent 72%)",
-            filter: "blur(52px)", animation: "ambientBreathe 8s ease-in-out infinite",
+            background: "radial-gradient(ellipse,rgba(109,40,217,0.30) 0%,rgba(139,92,246,0.10) 42%,transparent 70%)",
+            filter: "blur(56px)",
+            transform: `translate(calc(-50% + ${(mouse.x - 0.5) * 18}px), ${(mouse.y - 0.5) * 12}px)`,
+            transition: "transform 0.9s ease-out",
+            animation: "ambientBreathe 9s ease-in-out infinite",
           }} />
+
+          {/* Layer 2: Secondary offset glow bottom-right — mouse parallax */}
           <div style={{
-            position: "absolute", bottom: "10%", right: "8%",
-            width: "clamp(180px,30vw,360px)", height: "clamp(120px,20vw,240px)",
+            position: "absolute", bottom: "6%", right: "4%",
+            width: "clamp(260px,36vw,500px)", height: "clamp(160px,24vw,320px)",
             borderRadius: "50%",
-            background: "radial-gradient(ellipse,rgba(6,182,212,0.11) 0%,transparent 70%)",
-            filter: "blur(48px)", animation: "ambientBreathe 10s ease-in-out infinite 3s",
+            background: "radial-gradient(ellipse,rgba(6,182,212,0.14) 0%,rgba(103,232,249,0.05) 55%,transparent 75%)",
+            filter: "blur(52px)",
+            transform: `translate(${(mouse.x - 0.5) * -14}px, ${(mouse.y - 0.5) * -10}px)`,
+            transition: "transform 1.1s ease-out",
+            animation: "blobDrift2 14s ease-in-out infinite",
           }} />
-          {PARTICLES.map(p => (
-            <div key={p.id} style={{
-              position: "absolute", left: `${p.x}%`, top: `${p.startY}%`,
-              width: p.size, height: p.size, borderRadius: "50%",
-              background: `rgba(${p.color},${p.opacity})`,
-              boxShadow: `0 0 ${p.size * 3}px rgba(${p.color},${p.opacity * 0.6})`,
-              animation: `particleDrift ${p.dur}s ease-out ${p.delay}s infinite`,
-            }} />
-          ))}
+
+          {/* Layer 3: Upper-left ghost glow — mouse parallax */}
+          <div style={{
+            position: "absolute", top: "5%", left: "2%",
+            width: "clamp(200px,28vw,400px)", height: "clamp(150px,22vw,300px)",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse,rgba(139,92,246,0.10) 0%,transparent 70%)",
+            filter: "blur(60px)",
+            transform: `translate(${(mouse.x - 0.5) * 22}px, ${(mouse.y - 0.5) * 16}px)`,
+            transition: "transform 1.3s ease-out",
+            animation: "blobDrift3 18s ease-in-out infinite",
+          }} />
+
+          {/* Layer 4: Lower mid glow — fills dead lower zone */}
+          <div style={{
+            position: "absolute", bottom: "22%", left: "50%",
+            width: "clamp(400px,55vw,800px)", height: "clamp(200px,28vw,400px)",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse,rgba(88,28,220,0.12) 0%,rgba(139,92,246,0.04) 55%,transparent 75%)",
+            filter: "blur(70px)",
+            transform: `translate(-50%, ${(mouse.y - 0.5) * 8}px)`,
+            transition: "transform 1.0s ease-out",
+            animation: "blobDrift1 20s ease-in-out infinite 4s",
+          }} />
+
+          {/* Layer 5: Sun-streak light sweep — staged in after 1.8s */}
+          <div style={{
+            position: "absolute", top: "10%", left: "-20%",
+            width: "50%", height: "80%",
+            background: "linear-gradient(105deg, transparent 0%, rgba(139,92,246,0.05) 25%, rgba(103,232,249,0.07) 50%, rgba(139,92,246,0.05) 75%, transparent 100%)",
+            filter: "blur(30px)",
+            animation: "sunStreakSweep 18s ease-in-out 1.8s infinite",
+          }} />
+
+          {/* Layer 6: Topology / network SVG lines — staged in after 0.6s */}
+          <svg
+            viewBox="0 0 1440 900"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="none"
+            style={{
+              position: "absolute", left: 0, top: 0, width: "100%", height: "100%",
+              opacity: sceneReady ? 1 : 0,
+              transition: "opacity 1.8s ease 0.6s",
+              animation: "topoFlow 28s ease-in-out infinite",
+            }}
+          >
+            <defs>
+              <linearGradient id="dlGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0" />
+                <stop offset="18%" stopColor="#8b5cf6" stopOpacity="0.28" />
+                <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.42" />
+                <stop offset="82%" stopColor="#8b5cf6" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="dlGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#6d28d9" stopOpacity="0" />
+                <stop offset="22%" stopColor="#6d28d9" stopOpacity="0.18" />
+                <stop offset="50%" stopColor="#06b6d4" stopOpacity="0.26" />
+                <stop offset="78%" stopColor="#6d28d9" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="#6d28d9" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="dlGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#7c3aed" stopOpacity="0" />
+                <stop offset="25%" stopColor="#7c3aed" stopOpacity="0.14" />
+                <stop offset="55%" stopColor="#a78bfa" stopOpacity="0.20" />
+                <stop offset="80%" stopColor="#7c3aed" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="dlGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0" />
+                <stop offset="30%" stopColor="#8b5cf6" stopOpacity="0.10" />
+                <stop offset="60%" stopColor="#67e8f9" stopOpacity="0.16" />
+                <stop offset="85%" stopColor="#8b5cf6" stopOpacity="0.10" />
+                <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {/* Line at ~18% viewport height */}
+            <path
+              d="M0 162 Q120 148 240 162 T480 155 T720 168 T960 152 T1200 160 T1440 157"
+              stroke="url(#dlGrad1)" strokeWidth="1" fill="none" strokeLinecap="round"
+            />
+            {/* Line at ~38% viewport height */}
+            <path
+              d="M0 342 Q100 330 200 342 T400 336 T600 348 T800 334 T1000 344 T1200 338 T1440 341"
+              stroke="url(#dlGrad2)" strokeWidth="0.8" fill="none" strokeLinecap="round"
+            />
+            {/* Line at ~60% viewport height */}
+            <path
+              d="M0 540 Q90 528 180 540 T360 533 T540 547 T720 532 T900 542 T1080 535 T1260 540 T1440 537"
+              stroke="url(#dlGrad3)" strokeWidth="0.7" fill="none" strokeLinecap="round"
+            />
+            {/* Line at ~80% viewport height */}
+            <path
+              d="M0 720 Q110 712 220 720 T440 715 T660 724 T880 714 T1100 720 T1320 717 T1440 719"
+              stroke="url(#dlGrad4)" strokeWidth="0.6" fill="none" strokeLinecap="round"
+            />
+            {/* Secondary faint lines for depth */}
+            <path
+              d="M0 260 Q150 252 300 260 T600 255 T900 262 T1200 257 T1440 260"
+              stroke="url(#dlGrad2)" strokeWidth="0.5" fill="none" strokeLinecap="round" opacity="0.6"
+            />
+            <path
+              d="M0 460 Q130 452 260 460 T520 454 T780 463 T1040 455 T1300 461 T1440 459"
+              stroke="url(#dlGrad3)" strokeWidth="0.4" fill="none" strokeLinecap="round" opacity="0.55"
+            />
+            <path
+              d="M0 640 Q100 634 200 640 T400 635 T600 642 T800 636 T1000 641 T1200 637 T1440 640"
+              stroke="url(#dlGrad4)" strokeWidth="0.4" fill="none" strokeLinecap="round" opacity="0.5"
+            />
+          </svg>
+
+          {/* Second topology layer — drifts opposite direction */}
+          <svg
+            viewBox="0 0 1440 900"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            preserveAspectRatio="none"
+            style={{
+              position: "absolute", left: 0, top: 0, width: "100%", height: "100%",
+              opacity: sceneReady ? 0.7 : 0,
+              transition: "opacity 2.2s ease 0.9s",
+              animation: "topoFlow2 34s ease-in-out infinite",
+            }}
+          >
+            <defs>
+              <linearGradient id="dlGrad5" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#a78bfa" stopOpacity="0" />
+                <stop offset="30%" stopColor="#a78bfa" stopOpacity="0.12" />
+                <stop offset="65%" stopColor="#67e8f9" stopOpacity="0.18" />
+                <stop offset="100%" stopColor="#a78bfa" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path
+              d="M0 200 Q180 190 360 200 T720 194 T1080 202 T1440 198"
+              stroke="url(#dlGrad5)" strokeWidth="0.6" fill="none" strokeLinecap="round"
+            />
+            <path
+              d="M0 400 Q160 392 320 400 T640 394 T960 402 T1280 396 T1440 400"
+              stroke="url(#dlGrad5)" strokeWidth="0.5" fill="none" strokeLinecap="round" opacity="0.8"
+            />
+            <path
+              d="M0 600 Q140 592 280 600 T560 595 T840 603 T1120 597 T1440 600"
+              stroke="url(#dlGrad5)" strokeWidth="0.45" fill="none" strokeLinecap="round" opacity="0.65"
+            />
+            <path
+              d="M0 800 Q120 793 240 800 T480 795 T720 803 T960 797 T1200 801 T1440 799"
+              stroke="url(#dlGrad5)" strokeWidth="0.4" fill="none" strokeLinecap="round" opacity="0.5"
+            />
+          </svg>
+
+          {/* Layer 7: Particles — full viewport */}
+          <div style={{
+            position: "absolute", inset: 0,
+            opacity: sceneReady ? 1 : 0,
+            transition: "opacity 2.5s ease 0.4s",
+          }}>
+            {PARTICLES.map(p => (
+              <div key={p.id} style={{
+                position: "absolute", left: `${p.x}%`, top: `${p.startY}%`,
+                width: p.size, height: p.size, borderRadius: "50%",
+                background: `rgba(${p.color},${p.opacity})`,
+                boxShadow: `0 0 ${p.size * 3.5}px rgba(${p.color},${p.opacity * 0.7})`,
+                animation: `particleDrift ${p.dur}s ease-out ${p.delay}s infinite`,
+              }} />
+            ))}
+          </div>
+
         </div>
 
         {/* ── Main hero — two columns on desktop, stack on mobile ── */}
