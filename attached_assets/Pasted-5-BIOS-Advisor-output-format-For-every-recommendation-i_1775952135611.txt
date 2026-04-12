@@ -1,0 +1,95 @@
+5. BIOS Advisor output format
+
+For every recommendation, include:
+
+- title
+- status: Confirmed / Likely / Unknown
+- reason
+- user impact
+- action
+
+Example:
+
+- BIOS Version Outdated
+  
+  - Confirmed
+  - Installed BIOS is F7 dated 2023-10-05
+  - Newer BIOS may improve CPU microcode and memory compatibility
+  - Action: compare current version against board support page
+
+- EXPO / XMP
+  
+  - Likely Enabled
+  - RAM is configured at 6000 MT/s across both sticks
+  - Good for memory bandwidth and gaming performance
+  - Action: verify in BIOS if needed
+
+- Secure Boot
+  
+  - Confirmed Disabled
+  - Windows reports Secure Boot is off
+  - Security feature disabled
+  - Action: enable if required for specific security or platform requirements
+
+6. Feed this profile into both BIOS Advisor and AI Advisor
+
+This system profile must not live only inside BIOS Advisor.
+
+AI Advisor should also receive it so when the user asks:
+
+- “what motherboard do I have?”
+- “is my BIOS old?”
+- “is EXPO on?”
+- “do I have virtualization enabled?”
+
+the answer is grounded in the real profile.
+
+7. Add a visible “System Firmware Profile” section in BIOS Advisor UI
+
+Show a clean card with:
+
+- motherboard
+- BIOS vendor/version/date
+- CPU
+- RAM layout
+- Secure Boot
+- TPM
+- virtualization
+- Memory Integrity / VBS
+- EXPO/XMP inferred state
+
+This makes the page feel real and trustworthy.
+
+8. Do not overclaim
+
+This is critical.
+
+Any BIOS item that cannot be directly confirmed must never be shown as confirmed.
+Use:
+
+- Confirmed
+- Likely
+- Unknown
+
+No fake confidence.
+
+CHECKLIST
+
+- Build a normalized BIOS Advisor profile object
+- Populate motherboard, BIOS, CPU, GPU, RAM, and storage info
+- Add Windows platform-state detection
+- Add EXPO/XMP inference logic
+- Add certainty labels to every BIOS recommendation
+- Feed the same profile into BIOS Advisor and AI Advisor
+- Add a visible firmware profile panel in BIOS Advisor
+- Do not guess when data is missing
+
+FINAL OUTPUT
+
+Return:
+
+1. the exact files changed
+2. the new BIOS Advisor profile object shape
+3. which fields are directly collected vs inferred
+4. a sample real advisor response using the profile
+5. confirmation that unknown values remain unknown instead of guessed

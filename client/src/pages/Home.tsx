@@ -9,7 +9,7 @@ import { useStore } from "@/lib/store";
 import { useAdvisorStore } from "@/stores/advisorStore";
 import { useDashboardActivityStore } from "@/stores/dashboardActivityStore";
 import { getAdvisorInsightText, getBiosStatusText } from "@/lib/systemStateEngine";
-import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi } from "lucide-react";
+import { Cpu, HardDrive, MemoryStick, Activity, Zap, Shield, Sparkles, Brain, Target, ArrowRight, Wifi, MonitorCog, Network, Server, Layers, AlertTriangle, Monitor } from "lucide-react";
 import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
 import { PredictiveWarnings } from "@/components/intelligence/PredictiveWarnings";
 import { LatencyMap } from "@/components/intelligence/LatencyMap";
@@ -28,6 +28,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
 import { useBiosAdvisorStore } from "@/stores/biosAdvisorStore";
+import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
 
 import { MemoryCleanerModal } from "@/components/dashboard/MemoryCleanerModal";
 import { CpuCoresModal } from "@/components/dashboard/CpuCoresModal";
@@ -350,6 +351,7 @@ export default function Home() {
   const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
+  const sysIntel = useSystemIntelligence();
   useRevealOnScroll();
   const liveStatus = useLiveStatus();
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
@@ -791,6 +793,263 @@ export default function Home() {
         <div data-reveal data-delay="2">
           <StorageCards ssds={ssdData} />
         </div>
+
+        {/* System Intelligence Hardware Grid */}
+        {sysIntel.profile && (
+          <div className="space-y-4" data-reveal data-delay="2">
+            <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
+              <MonitorCog className="size-5 text-violet-400" />
+              System Intelligence
+              <span className="ml-auto text-[10px] font-mono text-white/30">
+                {new Date(sysIntel.profile.collectedAt).toLocaleTimeString()}
+              </span>
+            </h2>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+
+              {/* Motherboard / BIOS Card */}
+              {(sysIntel.profile.baseboard.model || sysIntel.profile.bios.version) && (
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 h-full border-violet-500/15">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center shrink-0">
+                        <MonitorCog className="size-3 text-violet-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/70">Motherboard / BIOS</span>
+                    </div>
+                    <div className="space-y-2">
+                      {sysIntel.profile.baseboard.model && (
+                        <div>
+                          <p className="text-[10px] text-white/40 uppercase tracking-wider">Board</p>
+                          <p className="text-sm font-medium text-white/90 leading-tight">
+                            {[sysIntel.profile.baseboard.manufacturer, sysIntel.profile.baseboard.model].filter(Boolean).join(" ")}
+                          </p>
+                        </div>
+                      )}
+                      {sysIntel.profile.bios.version && (
+                        <div>
+                          <p className="text-[10px] text-white/40 uppercase tracking-wider">BIOS</p>
+                          <p className="text-sm font-medium text-white/80 leading-tight">
+                            {[sysIntel.profile.bios.vendor, sysIntel.profile.bios.version].filter(Boolean).join(" ")}
+                            {sysIntel.profile.bios.releaseDate && (
+                              <span className="text-[10px] text-white/30 ml-1 font-mono">{sysIntel.profile.bios.releaseDate}</span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                        {sysIntel.profile.platform.secureBootEnabled !== null && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${sysIntel.profile.platform.secureBootEnabled ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}>
+                            Secure Boot {sysIntel.profile.platform.secureBootEnabled ? "On" : "Off"}
+                          </span>
+                        )}
+                        {sysIntel.profile.platform.uefiBoot !== null && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full border bg-white/5 text-white/40 border-white/10 font-medium">
+                            {sysIntel.profile.platform.uefiBoot ? "UEFI" : "Legacy BIOS"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              )}
+
+              {/* RAM Layout Card */}
+              {sysIntel.profile.memory.sticks.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+                  transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 h-full border-cyan-500/15">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-cyan-500/15 border border-cyan-500/25 flex items-center justify-center shrink-0">
+                        <MemoryStick className="size-3 text-cyan-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/70">RAM Layout</span>
+                      {sysIntel.profile.memory.inferredDualChannel !== null && (
+                        <span className={`ml-auto text-[10px] px-1.5 py-0.5 rounded-full border font-medium ${sysIntel.profile.memory.inferredDualChannel ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-white/5 text-white/40 border-white/10"}`}>
+                          {sysIntel.profile.memory.inferredDualChannel ? "Dual-Channel" : "Single-Channel"}
+                        </span>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      {sysIntel.profile.memory.sticks.slice(0, 4).map((stick, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="text-white/50">{stick.slot ?? stick.bank ?? `Slot ${i + 1}`}</span>
+                          <span className="text-white/80 font-mono">
+                            {stick.sizeMb ? `${Math.round(stick.sizeMb / 1024)}GB` : "–"}
+                            {stick.type ? ` ${stick.type}` : ""}
+                            {stick.configuredClockMhz ? ` @ ${stick.configuredClockMhz}MHz` : stick.clockMhz ? ` @ ${stick.clockMhz}MHz` : ""}
+                          </span>
+                        </div>
+                      ))}
+                      <div className="pt-1 border-t border-white/[0.06]">
+                        <p className="text-[10px]">
+                          <span className="text-white/40">EXPO/XMP: </span>
+                          <span className={sysIntel.profile.inference.expoOrXmp.state === "confirmed" ? "text-emerald-400" : sysIntel.profile.inference.expoOrXmp.state === "likely" ? "text-amber-400" : "text-white/40"}>
+                            {sysIntel.profile.inference.expoOrXmp.state === "confirmed" ? "Confirmed Active" :
+                             sysIntel.profile.inference.expoOrXmp.state === "likely" ? "Likely Active" : "Not Detected"}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              )}
+
+              {/* Network Status Card */}
+              {sysIntel.profile.network.interfaces.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+                  transition={{ duration: 0.5, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 h-full border-blue-500/15">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
+                        <Network className="size-3 text-blue-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/70">Network</span>
+                    </div>
+                    <div className="space-y-2">
+                      {sysIntel.profile.network.interfaces.slice(0, 3).map((iface, i) => (
+                        <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iface.operstate === "up" ? "bg-emerald-400" : "bg-white/20"}`} />
+                            <span className="text-white/60 truncate">{iface.name ?? "Interface"}</span>
+                            <span className={`text-[10px] px-1 py-0 rounded border font-medium ${iface.wifi ? "text-blue-400 border-blue-500/20 bg-blue-500/10" : "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"}`}>
+                              {iface.wifi ? "Wi-Fi" : "Ethernet"}
+                            </span>
+                          </div>
+                          <span className="text-white/50 font-mono shrink-0">
+                            {iface.speedMbps ? `${iface.speedMbps}M` : "?"}
+                          </span>
+                        </div>
+                      ))}
+                      {sysIntel.profile.network.defaultGateway && (
+                        <div className="pt-1 border-t border-white/[0.06]">
+                          <p className="text-[10px] text-white/30">
+                            Gateway: <span className="font-mono text-white/50">{sysIntel.profile.network.defaultGateway}</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              )}
+
+              {/* Top CPU Processes Card */}
+              {sysIntel.profile.processes.topCpu.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+                  transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 h-full border-orange-500/15">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/25 flex items-center justify-center shrink-0">
+                        <Cpu className="size-3 text-orange-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/70">Top CPU Processes</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {sysIntel.profile.processes.topCpu.map((proc, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          <span className="text-[10px] text-white/30 w-4 font-mono shrink-0">{i + 1}</span>
+                          <span className="text-white/70 truncate flex-1">{proc.name}</span>
+                          <span className={`font-mono shrink-0 ${(proc.cpu ?? 0) > 20 ? "text-red-400" : (proc.cpu ?? 0) > 10 ? "text-amber-400" : "text-white/50"}`}>
+                            {proc.cpu?.toFixed(1) ?? "–"}%
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              )}
+
+              {/* GPU Controller Card */}
+              {sysIntel.profile.gpu.controllers.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+                  transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 h-full border-primary/15">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
+                        <Monitor className="size-3 text-primary" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/70">GPU / Display</span>
+                    </div>
+                    <div className="space-y-2">
+                      {sysIntel.profile.gpu.controllers.map((ctrl, i) => (
+                        <div key={i}>
+                          <p className="text-sm font-medium text-white/90 leading-tight">{ctrl.name ?? "Unknown GPU"}</p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            {ctrl.vramMb && <span className="text-[10px] text-white/50 font-mono">{Math.round(ctrl.vramMb / 1024)}GB VRAM</span>}
+                            {ctrl.bus && <span className="text-[10px] text-white/30">{ctrl.bus}</span>}
+                          </div>
+                        </div>
+                      ))}
+                      {sysIntel.profile.gpu.displays.length > 0 && (
+                        <div className="pt-1.5 border-t border-white/[0.06] space-y-1">
+                          {sysIntel.profile.gpu.displays.slice(0, 2).map((disp, i) => (
+                            <p key={i} className="text-[10px] text-white/40">
+                              {disp.model ? `${disp.model} ` : ""}
+                              {disp.resolutionX && disp.resolutionY ? `${disp.resolutionX}×${disp.resolutionY}` : ""}
+                              {disp.refreshRate ? ` @ ${disp.refreshRate}Hz` : ""}
+                              {disp.connection ? ` (${disp.connection})` : ""}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              )}
+
+              {/* Storage Layout Card */}
+              {sysIntel.profile.storage.layout.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
+                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
+                  transition={{ duration: 0.5, delay: 0.30, ease: [0.22, 1, 0.36, 1] }}
+                >
+                  <GlassCard className="p-4 h-full border-amber-500/15">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
+                        <HardDrive className="size-3 text-amber-400" />
+                      </div>
+                      <span className="text-xs font-semibold text-white/70">Storage Layout</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {sysIntel.profile.storage.layout.slice(0, 4).map((disk, i) => (
+                        <div key={i} className="flex items-center justify-between text-xs gap-2">
+                          <span className="text-white/60 truncate flex-1">{disk.name ?? "Disk"}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {disk.sizeGb && <span className="text-white/50 font-mono">{disk.sizeGb}GB</span>}
+                            {disk.type && <span className="text-[10px] px-1 py-0 rounded border text-amber-400 border-amber-500/20 bg-amber-500/10">{disk.type}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </GlassCard>
+                </motion.div>
+              )}
+
+            </div>
+          </div>
+        )}
 
         {/* Bottom Section */}
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

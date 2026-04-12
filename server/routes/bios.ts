@@ -233,6 +233,14 @@ const explainSchema = z.object({
     stability: z.number(),
     competitiveReadiness: z.number(),
   }),
+  // Optional system intelligence enrichment
+  motherboard: z.string().max(200).optional(),
+  biosVersion: z.string().max(100).optional(),
+  biosDate: z.string().max(50).optional(),
+  ramLayout: z.string().max(200).optional(),
+  expoXmpState: z.enum(["confirmed", "likely", "unknown"]).optional(),
+  secureBoot: z.boolean().nullable().optional(),
+  vbsEnabled: z.boolean().nullable().optional(),
 });
 
 const EXPLAIN_PROMPT = `You are a firmware analysis expert for competitive gaming PCs. Given the user's hardware and detected firmware settings, provide a concise analysis.
@@ -280,13 +288,23 @@ biosRouter.post("/explain", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Invalid request body" });
     }
 
-    const { cpuModel, gpuModel, ramTotalGB, detections, scores } = parsed.data;
+    const { cpuModel, gpuModel, ramTotalGB, detections, scores,
+            motherboard, biosVersion, biosDate, ramLayout,
+            expoXmpState, secureBoot, vbsEnabled } = parsed.data;
 
-    console.log(`[BIOS:explain:${requestId}] Calling OpenAI | user=${cloudUser?.id} | cpu=${cpuModel} gpu=${gpuModel} detections=${detections.length}`);
+    console.log(`[BIOS:explain:${requestId}] Calling OpenAI | user=${cloudUser?.id} | cpu=${cpuModel} gpu=${gpuModel} detections=${detections.length} | MB=${motherboard ?? "?"} BIOS=${biosVersion ?? "?"}`);
 
     const startTime = Date.now();
 
-    const userMessage = `Hardware: ${cpuModel}, ${gpuModel}, ${ramTotalGB}GB RAM
+    const hwLines: string[] = [`Hardware: ${cpuModel}, ${gpuModel}, ${ramTotalGB}GB RAM`];
+    if (motherboard) hwLines.push(`Motherboard: ${motherboard}`);
+    if (biosVersion) hwLines.push(`BIOS: ${biosVersion}${biosDate ? ` (${biosDate})` : ""}`);
+    if (ramLayout) hwLines.push(`RAM Layout: ${ramLayout}`);
+    if (expoXmpState) hwLines.push(`EXPO/XMP: ${expoXmpState === "confirmed" ? "Confirmed Active" : expoXmpState === "likely" ? "Likely Active" : "Not Detected"}`);
+    if (secureBoot !== null && secureBoot !== undefined) hwLines.push(`Secure Boot: ${secureBoot ? "Enabled" : "Disabled"}`);
+    if (vbsEnabled !== null && vbsEnabled !== undefined) hwLines.push(`VBS/Memory Integrity: ${vbsEnabled ? "Enabled (may reduce GPU performance)" : "Disabled"}`);
+
+    const userMessage = `${hwLines.join("\n")}
 Firmware Scores: Latency ${scores.latency}/100, Frametime ${scores.frametime}/100, Stability ${scores.stability}/100, Readiness ${scores.competitiveReadiness}/100
 
 Detected Settings:

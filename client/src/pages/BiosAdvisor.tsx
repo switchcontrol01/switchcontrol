@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
+import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
 import { getUserFriendlyError } from "@/lib/api";
 import { cloudApiPost } from "@/lib/cloud-api";
 import { 
@@ -493,6 +494,7 @@ export default function BiosAdvisor() {
   const { isPremium } = useAuth();
   const { isOnline } = useNetworkStatus();
   const { stats } = useStore();
+  const sysIntel = useSystemIntelligence();
 
   const {
     hasScanned,
@@ -705,9 +707,10 @@ export default function BiosAdvisor() {
     setAiExplainLoading(true);
     setAiExplainError(null);
 
-    const cpu = lastTelemetry?.cpuModel || stats.cpuName || "Unknown CPU";
-    const gpu = lastTelemetry?.gpuModel || stats.gpuName || "Unknown GPU";
-    console.log(`[BiosAdvisor] explain request | cpu=${cpu} gpu=${gpu} detections=${allDetections.length}`);
+    const cpu = lastTelemetry?.cpuModel || stats.cpuName || sysIntel.cpu || "Unknown CPU";
+    const gpu = lastTelemetry?.gpuModel || stats.gpuName || sysIntel.gpu || "Unknown GPU";
+    const si = sysIntel.profile;
+    console.log(`[BiosAdvisor] explain request | cpu=${cpu} gpu=${gpu} detections=${allDetections.length} | MB=${si?.baseboard.model ?? "?"} BIOS=${si?.bios.version ?? "?"}`);
 
     try {
       const data = await cloudApiPost("/bios/explain", {
@@ -721,6 +724,15 @@ export default function BiosAdvisor() {
           stability: scores.stability,
           competitiveReadiness: scores.competitiveReadiness,
         },
+        ...(si && {
+          motherboard: [si.baseboard.manufacturer, si.baseboard.model].filter(Boolean).join(" ") || undefined,
+          biosVersion: si.bios.version ?? undefined,
+          biosDate: si.bios.releaseDate ?? undefined,
+          ramLayout: si.memory.sticks.length > 0 ? sysIntel.ram : undefined,
+          expoXmpState: si.inference.expoOrXmp.state,
+          secureBoot: si.platform.secureBootEnabled,
+          vbsEnabled: si.platform.vbsEnabled,
+        }),
       });
       console.log(`[BiosAdvisor] explain response OK | overview length=${data.overview?.length} recommendations=${data.recommendations?.length}`);
       storeSetAiExplanation(data, analysisHash ?? "");
@@ -812,6 +824,93 @@ export default function BiosAdvisor() {
         </Item>
 
         <ScanProgress state={scanState} />
+
+        {/* Hardware Profile Panel — powered by System Intelligence */}
+        {sysIntel.profile && (() => {
+          const si = sysIntel.profile!;
+          const mbStr = [si.baseboard.manufacturer, si.baseboard.model].filter(Boolean).join(" ");
+          const biosStr = [si.bios.vendor, si.bios.version, si.bios.releaseDate].filter(Boolean).join(" · ");
+          const ramStr = sysIntel.ram;
+          const getInferBadge = (state: "confirmed" | "likely" | "unknown") =>
+            state === "confirmed" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" :
+            state === "likely"    ? "bg-amber-500/15 text-amber-400 border-amber-500/30" :
+                                    "bg-white/5 text-white/40 border-white/10";
+
+          return (
+            <Item>
+              <GlassCard className="p-4 bg-violet-500/5 border-violet-500/15">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-5 h-5 rounded-md bg-violet-500/20 border border-violet-500/30 flex items-center justify-center shrink-0">
+                    <Cpu className="size-2.5 text-violet-400" />
+                  </div>
+                  <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">Hardware Profile</span>
+                  <span className="ml-auto text-[10px] text-white/30 font-mono">Collected {new Date(si.collectedAt).toLocaleTimeString()}</span>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {mbStr && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Motherboard</p>
+                      <p className="text-xs font-medium text-white/80 leading-tight">{mbStr}</p>
+                    </div>
+                  )}
+                  {biosStr && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">BIOS</p>
+                      <p className="text-xs font-medium text-white/80 leading-tight">{biosStr}</p>
+                    </div>
+                  )}
+                  {ramStr !== "Unknown" && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">RAM Layout</p>
+                      <p className="text-xs font-medium text-white/80 leading-tight">{ramStr}</p>
+                    </div>
+                  )}
+                  {si.platform.secureBootEnabled !== null && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Secure Boot</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.secureBootEnabled ? "text-emerald-400" : "text-amber-400"}`}>
+                        {si.platform.secureBootEnabled ? "Enabled" : "Disabled"}
+                      </p>
+                    </div>
+                  )}
+                  {si.platform.vbsEnabled !== null && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">VBS / Memory Integrity</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.vbsEnabled ? "text-amber-400" : "text-emerald-400"}`}>
+                        {si.platform.vbsEnabled ? "Enabled (may reduce GPU perf)" : "Disabled"}
+                      </p>
+                    </div>
+                  )}
+                  {si.platform.tpmPresent !== null && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">TPM</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.tpmPresent ? "text-emerald-400" : "text-white/40"}`}>
+                        {si.platform.tpmPresent ? "Present" : "Not Detected"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06] flex-wrap">
+                  <span className="text-[10px] text-white/40 uppercase tracking-wider mr-1">EXPO/XMP</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${getInferBadge(si.inference.expoOrXmp.state)}`}>
+                    {si.inference.expoOrXmp.state === "confirmed" ? "Confirmed Active" :
+                     si.inference.expoOrXmp.state === "likely" ? "Likely Active" : "Unknown / Off"}
+                  </span>
+                  <span className="text-[10px] text-white/30 ml-1">{si.inference.expoOrXmp.reason}</span>
+                </div>
+                {si.inference.biosFreshness.state !== "confirmed" && (
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <span className="text-[10px] text-white/40 uppercase tracking-wider mr-1">BIOS Age</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${getInferBadge(si.inference.biosFreshness.state)}`}>
+                      {si.inference.biosFreshness.state === "likely" ? "May Need Update" : "Check Manufacturer Site"}
+                    </span>
+                    <span className="text-[10px] text-white/30 ml-1">{si.inference.biosFreshness.reason}</span>
+                  </div>
+                )}
+              </GlassCard>
+            </Item>
+          );
+        })()}
 
         {photoError && (
           <Item>

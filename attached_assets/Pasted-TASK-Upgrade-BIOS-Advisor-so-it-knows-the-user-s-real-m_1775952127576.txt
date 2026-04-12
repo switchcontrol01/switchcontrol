@@ -1,0 +1,148 @@
+TASK
+
+Upgrade BIOS Advisor so it knows the user’s real motherboard, BIOS, RAM layout, platform state, and Windows-visible firmware/security states before giving advice. It must stop acting generic.
+
+PROBLEM
+
+The current BIOS Advisor is too blind. It does not know enough about the actual system, so its advice can feel broad, guessed, or disconnected from the user’s motherboard and firmware environment.
+
+I want BIOS Advisor to be driven by a real hardware + firmware profile, not just a surface-level response.
+
+GOAL
+
+Build a BIOS Advisor system profile that includes:
+
+- motherboard manufacturer
+- motherboard model
+- BIOS vendor
+- BIOS version
+- BIOS release date
+- CPU model
+- GPU model
+- RAM total
+- RAM stick layout per slot
+- RAM speed per stick
+- storage layout summary
+- Windows-visible firmware and platform states
+
+The advisor must classify every BIOS-related recommendation as:
+
+- Confirmed
+- Likely
+- Unknown
+
+No fake certainty.
+
+IMPLEMENTATION
+
+1. Create a unified BIOS Advisor profile object
+
+Add a single normalized object that the BIOS Advisor uses as its truth source.
+
+Suggested shape:
+
+type BiosAdvisorProfile = {
+  baseboard: {
+    manufacturer: string | null;
+    model: string | null;
+    version: string | null;
+  };
+  bios: {
+    vendor: string | null;
+    version: string | null;
+    releaseDate: string | null;
+  };
+  cpu: {
+    manufacturer: string | null;
+    brand: string | null;
+    cores: number | null;
+    physicalCores: number | null;
+  };
+  gpu: {
+    name: string | null;
+    vramMb: number | null;
+  };
+  memory: {
+    totalMb: number | null;
+    sticks: Array<{
+      bank: string | null;
+      sizeMb: number | null;
+      clockMhz: number | null;
+      configuredClockMhz: number | null;
+      manufacturer: string | null;
+      partNum: string | null;
+    }>;
+    inferredDualChannel: boolean | null;
+  };
+  storage: {
+    drives: Array<{
+      name: string | null;
+      type: string | null;
+      sizeGb: number | null;
+      interfaceType: string | null;
+    }>;
+  };
+  platform: {
+    secureBootEnabled: boolean | null;
+    tpmPresent: boolean | null;
+    virtualizationEnabled: boolean | null;
+    hypervisorPresent: boolean | null;
+    memoryIntegrityEnabled: boolean | null;
+    vbsEnabled: boolean | null;
+    resizeBarEnabled: boolean | null;
+    uefiBoot: boolean | null;
+  };
+  inference: {
+    expoOrXmp: {
+      state: "confirmed" | "likely" | "unknown";
+      reason: string;
+    };
+  };
+};
+
+2. Collect real hardware data first
+
+Use "systeminformation" where reliable for:
+
+- "si.baseboard()"
+- "si.bios()"
+- "si.cpu()"
+- "si.graphics()"
+- "si.memLayout()"
+- "si.diskLayout()"
+
+Normalize all values. Never send raw messy objects straight into the advisor.
+
+3. Add Windows platform-state collectors
+
+Use PowerShell or safe Windows queries for:
+
+- Secure Boot enabled
+- TPM present
+- virtualization enabled
+- hypervisor present
+- VBS / Memory Integrity state
+- UEFI boot mode if detectable
+- Resize BAR if you already have a reliable path, otherwise leave unknown
+
+Important:
+If a value cannot be collected reliably, return null and label that state as Unknown. Do not invent fallback guesses.
+
+4. Add inference logic for EXPO / XMP
+
+Do not claim direct BIOS access unless there really is one.
+
+Use simple inference:
+
+- If high-speed DDR5 kit is installed and configured speed is clearly elevated, mark EXPO/XMP as Likely Enabled
+- If kit supports high speed but system is running far below expected configured speed, mark Likely Disabled
+- If data is insufficient, mark Unknown
+
+The advisor must explain the reason for the inference.
+
+Example:
+
+- "Likely enabled because both sticks are running at 6000 MT/s"
+- "Likely disabled because the kit appears high-speed but current configured speed is near baseline"
+- "Unknown because configured speed was not available"
+

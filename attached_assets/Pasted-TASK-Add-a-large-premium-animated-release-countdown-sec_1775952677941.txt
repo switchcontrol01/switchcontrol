@@ -1,0 +1,108 @@
+TASK
+
+Add a large, premium, animated release countdown section to the Download page that tells visitors SwitchControl is releasing on Tuesday at 2:00 PM New Zealand time.
+
+TARGET RELEASE TIME
+
+Tuesday, 2:00 PM NZ time
+
+Use the real target timestamp in code, not a fake hardcoded display string.
+
+PROBLEM
+
+The Download page needs urgency, excitement, and a clear launch moment.
+
+Right now it does not feel alive enough and does not build anticipation strongly enough before release.
+
+GOAL
+
+Create a bold release countdown experience that feels premium, fluid, cinematic, and exciting.
+
+It must:
+
+- be large and immediately noticeable
+- feel smooth and expensive, not cheap or template-like
+- animate continuously but cleanly
+- clearly show that SwitchControl releases Tuesday at 2:00 PM NZ time
+- update live in real time
+- work well on desktop and mobile
+
+DESIGN DIRECTION
+
+Build this as a hero-level countdown block on the Download page.
+
+Visual feel:
+
+- premium
+- futuristic
+- polished
+- fluid
+- suspenseful
+- high-end gaming/software launch energy
+
+Do not make it childish, cluttered, or overly flashy.
+
+IMPLEMENTATION
+
+1. Add a dedicated countdown section to the Download page
+
+Place it high on the page so it is seen immediately.
+
+Suggested structure:
+
+- small release badge
+- large headline
+- supporting text
+- big animated countdown
+- optional subtle subtext like:
+  "SwitchControl launches Tuesday at 2:00 PM NZ time"
+
+2. Countdown content
+
+Headline ideas:
+
+- Releasing Soon
+- Launching Tuesday
+- SwitchControl Drops In
+- The Launch Starts In
+
+Use the one that fits the page best.
+
+Main timer units:
+
+- Days
+- Hours
+- Minutes
+- Seconds
+
+The timer must tick live every second.
+
+3. Timezone handling
+
+This is critical.
+
+Use the real New Zealand release time.
+Do not rely on the viewer’s local timezone in a sloppy way.
+
+Target the countdown to:
+
+- Tuesday
+- 2:00 PM
+- New Zealand time
+
+Use a proper timezone-safe implementation so the countdown ends at the correct release moment.
+
+4. Animation quality
+
+This must feel fluid and premium.
+
+Add:
+
+- number transitions that animate smoothly when values change
+- soft glow pulses around the timer
+- subtle floating light / gradient movement in the background
+- slight parallax or ambient motion if already used elsewhere on the site
+- smooth fade and rise reveal on first load
+
+The animation must take its time.
+Nothing should pop in abruptly or feel laggy.

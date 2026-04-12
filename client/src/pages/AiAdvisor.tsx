@@ -16,7 +16,7 @@ import {
 import {
   Brain, Cpu, MemoryStick, HardDrive, Wifi, Gamepad2,
   AlertTriangle, Loader2, Zap, Send, RotateCcw,
-  Bot, User, MonitorCog, Activity, Eye,
+  Bot, User, MonitorCog, Activity, Eye, Monitor,
   Paperclip, X, CheckCircle2, TrendingUp, ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ import { cloudApiPost } from "@/lib/cloud-api";
 import { useAuth } from "@/hooks/use-auth";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
 
@@ -76,6 +77,7 @@ interface SystemContext {
     motherboard: string;
     display: string;
     network: string;
+    notes?: string;
   };
   enabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
   disabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
@@ -453,7 +455,10 @@ function SystemSpecRow({ icon: Icon, label, value, color }: { icon: typeof Cpu; 
 }
 
 function SystemProfileCard({ context }: { context: SystemContext | null }) {
-  const hasAny = context?.system.cpu || context?.system.gpu || context?.system.ram || context?.system.storage;
+  const s = context?.system;
+  const hasAny = s?.cpu || s?.gpu || s?.ram || s?.storage;
+  const hasExtended = s?.motherboard || s?.display || s?.network;
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -16 }}
@@ -475,10 +480,16 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
       </div>
       {hasAny ? (
         <div>
-          <SystemSpecRow icon={Cpu} label="CPU" value={context?.system.cpu ?? ""} color="bg-primary/10 text-primary/70" />
-          <SystemSpecRow icon={Eye} label="GPU" value={context?.system.gpu ?? ""} color="bg-violet-500/10 text-violet-400/70" />
-          <SystemSpecRow icon={MemoryStick} label="RAM" value={context?.system.ram ?? ""} color="bg-cyan-500/10 text-cyan-400/70" />
-          <SystemSpecRow icon={HardDrive} label="Storage" value={context?.system.storage ?? ""} color="bg-emerald-500/10 text-emerald-400/70" />
+          {s?.cpu && <SystemSpecRow icon={Cpu} label="CPU" value={s.cpu} color="bg-primary/10 text-primary/70" />}
+          {s?.gpu && <SystemSpecRow icon={Eye} label="GPU" value={s.gpu} color="bg-violet-500/10 text-violet-400/70" />}
+          {s?.ram && <SystemSpecRow icon={MemoryStick} label="RAM" value={s.ram} color="bg-cyan-500/10 text-cyan-400/70" />}
+          {s?.storage && <SystemSpecRow icon={HardDrive} label="Storage" value={s.storage} color="bg-emerald-500/10 text-emerald-400/70" />}
+          {s?.motherboard && <SystemSpecRow icon={MonitorCog} label="Board" value={s.motherboard} color="bg-orange-500/10 text-orange-400/70" />}
+          {s?.network && <SystemSpecRow icon={Wifi} label="Network" value={s.network} color="bg-blue-500/10 text-blue-400/70" />}
+          {s?.display && <SystemSpecRow icon={Monitor} label="Display" value={s.display} color="bg-pink-500/10 text-pink-400/70" />}
+          {!hasExtended && (
+            <p className="text-[10px] text-white/25 text-center pt-2">Loading extended system profile…</p>
+          )}
         </div>
       ) : (
         <p className="text-[11px] text-white/25 text-center py-2">Specs detected when running on Windows</p>
@@ -725,6 +736,7 @@ export default function AiAdvisor() {
   const { isOnline } = useNetworkStatus();
   const { stats, tweaks } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
+  const sysIntel = useSystemIntelligence();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
 
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -842,7 +854,7 @@ export default function AiAdvisor() {
     revealTimerRef.current = setTimeout(tick, 60);
   }, [prefersReducedMotion, cancelReveal, smartScroll, forceScrollBottom]);
 
-  // Build system context from store — runs whenever tweaks, stats, or telemetry changes
+  // Build system context — merges store specs + live telemetry + system intelligence profile
   useEffect(() => {
     const allTweaks = TWEAKS_DATA;
     const enabledTweaks = allTweaks
@@ -857,17 +869,78 @@ export default function AiAdvisor() {
       console.log(`[AI:CONTEXT] enabled_tweaks=${enabledTweaks.map(t => t.id).join(", ")}`);
     }
 
+    const si = sysIntel.profile;
+
+    // Build display string from system intelligence
+    let displayStr = "";
+    if (si?.gpu.displays.length) {
+      const main = si.gpu.displays.find(d => d.main) ?? si.gpu.displays[0];
+      const parts: string[] = [];
+      if (main.model) parts.push(main.model);
+      if (main.resolutionX && main.resolutionY) parts.push(`${main.resolutionX}x${main.resolutionY}`);
+      if (main.refreshRate) parts.push(`@ ${main.refreshRate}Hz`);
+      displayStr = parts.join(" ");
+    }
+
+    // Build motherboard string
+    const mbParts = [si?.baseboard.manufacturer, si?.baseboard.model].filter(Boolean);
+    const motherboardStr = mbParts.join(" ") || "";
+
+    // Build network string
+    const activeIface = si?.network.interfaces.find(n => n.operstate === "up" && !n.internal);
+    let networkStr = "";
+    if (activeIface) {
+      const type = activeIface.wifi ? "Wi-Fi" : "Ethernet";
+      const speed = activeIface.speedMbps ? ` ${activeIface.speedMbps}Mbps` : "";
+      const name = activeIface.name ? ` (${activeIface.name})` : "";
+      networkStr = `${type}${speed}${name}`;
+    }
+
+    // RAM — prefer system intelligence over store (has per-stick detail)
+    let ramStr = stats.totalRamGb ? `${stats.totalRamGb} GB` : "";
+    if (si?.memory.sticks.length) {
+      const s = si.memory.sticks[0];
+      const speed = s.configuredClockMhz ?? s.clockMhz;
+      const type = s.type ?? "DDR";
+      const count = si.memory.sticks.length;
+      const sizeEach = s.sizeMb ? Math.round(s.sizeMb / 1024) : null;
+      if (count > 1 && sizeEach && speed) ramStr = `${count}x${sizeEach}GB ${type} @ ${speed}MHz`;
+      else if (si.memory.totalMb) ramStr = `${Math.round(si.memory.totalMb / 1024)}GB ${type}${speed ? ` @ ${speed}MHz` : ""}`;
+    }
+
+    // GPU — prefer system intelligence name + VRAM detail
+    let gpuStr = stats.gpuName || "";
+    if (si?.gpu.controllers.length) {
+      const g = si.gpu.controllers[0];
+      gpuStr = [g.name, g.vramMb ? `${Math.round(g.vramMb / 1024)}GB VRAM` : null].filter(Boolean).join(" ") || gpuStr;
+    }
+
+    // Storage
+    let storageStr = stats.diskName || "";
+    if (si?.storage.layout.length) {
+      const d = si.storage.layout[0];
+      storageStr = [d.name, d.sizeGb ? `${d.sizeGb}GB` : null, d.type].filter(Boolean).join(" ") || storageStr;
+    }
+
+    // BIOS inference notes
+    const biosNote = si ? [
+      si.inference.expoOrXmp.state !== "unknown" ? `EXPO/XMP: ${si.inference.expoOrXmp.reason}` : null,
+      si.platform.secureBootEnabled !== null ? `Secure Boot: ${si.platform.secureBootEnabled ? "On" : "Off"}` : null,
+      si.platform.vbsEnabled ? "VBS/Memory Integrity: On (may reduce GPU performance)" : null,
+    ].filter(Boolean).join("; ") : "";
+
     const ctx: SystemContext = {
       isPremium,
       system: {
-        cpu: stats.cpuName || "",
-        gpu: stats.gpuName || "",
-        ram: stats.totalRamGb ? `${stats.totalRamGb} GB` : "",
-        storage: stats.diskName || "",
-        os: "Windows 11",
-        motherboard: "",
-        display: "",
-        network: "",
+        cpu: stats.cpuName || si?.cpu.brand || "",
+        gpu: gpuStr,
+        ram: ramStr,
+        storage: storageStr,
+        os: si?.platform.os ? `${si.platform.os} (build ${si.platform.build ?? "?"})` : "Windows 11",
+        motherboard: motherboardStr,
+        display: displayStr,
+        network: networkStr,
+        notes: biosNote,
       },
       enabledTweaks,
       disabledTweaks,
@@ -890,7 +963,8 @@ export default function AiAdvisor() {
     };
     setContext(ctx);
     contextRef.current = ctx;
-  }, [stats, tweaks, liveTel, isPremium]);
+    if (si) console.log(`[AI:CONTEXT] system-intelligence enriched | MB=${si.baseboard.model} | BIOS=${si.bios.version} | net=${networkStr}`);
+  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile]);
 
   // Auto-analysis welcome message
   useEffect(() => {
