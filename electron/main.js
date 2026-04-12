@@ -104,6 +104,12 @@ let lastDiskSnapshot = null; // { rIO, wIO, ms, ts }
 // { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
 let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
 
+// Fast GPU existence flag — set true as soon as si.graphics() confirms a controller.
+// si.graphics() completes in ~300–600ms (no PowerShell overhead), so this is known
+// well before the renderer's first getLive() call. Used to signal "GPU present,
+// load pending" so the chart series is always structurally present from frame 1.
+let gpuExistsOnHardware = false;
+
 async function pollTelemetry() {
   try {
     const [load, mem, temps, fsData, netStats, rawDiskIO] = await Promise.all([
@@ -246,7 +252,48 @@ async function pollTelemetry() {
 }
 
 async function startTelemetryPolling() {
-  console.log('[telemetry:poll] priming differential APIs (first call establishes baseline)...');
+  console.log('[telemetry:poll] priming differential APIs + pre-warming GPU sources...');
+
+  // ── GPU pre-warm (fire-and-forget, runs in parallel with CPU/disk prime) ──
+  // PowerShell perf counters have a 2-4s cold-start overhead on first call.
+  // By starting all GPU queries NOW (before the 1.5s measurement window wait),
+  // gpuPollCache has real values before the first real pollTelemetry() executes.
+  // This ensures getLive() can return gpu.available=true + a valid load reading
+  // from the very first renderer call — no delayed line join on the chart.
+  si.graphics().then(gfx => {
+    const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
+    if (ctrl) {
+      gpuExistsOnHardware = true;
+      console.log('[telemetry:poll] GPU presence confirmed (fast path):', ctrl.model || 'unknown');
+      // Also seed VRAM from this call so getGpuStatic() cache is warm
+      if (!gpuStaticCache) {
+        gpuStaticCache = {
+          memUsedMb:  ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null,
+          memTotalMb: ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)        : null,
+        };
+        gpuStaticTs = Date.now();
+      }
+    }
+  }).catch(() => {});
+
+  getGpuPerfCounterLoad().then(load => {
+    if (load != null) {
+      gpuPollCache = { ...gpuPollCache, load, source: 'perf-counter' };
+      console.log('[telemetry:poll] GPU pre-warm (perf counter) complete: load=' + load + '%');
+    }
+  }).catch(() => {});
+
+  getLhmTelemetry().then(lhm => {
+    if (lhm) {
+      const upd = { ...gpuPollCache };
+      if (lhm.gpuLoad != null && upd.load == null) { upd.load = lhm.gpuLoad; upd.source = 'lhm'; }
+      if (lhm.gpuTemp  != null && lhm.gpuTemp  > 0) upd.temp  = lhm.gpuTemp;
+      if (lhm.gpuPower != null && lhm.gpuPower > 0) upd.power = lhm.gpuPower;
+      gpuPollCache = upd;
+      console.log('[telemetry:poll] GPU pre-warm (LHM) complete: load=' + lhm.gpuLoad + ' temp=' + lhm.gpuTemp);
+    }
+  }).catch(() => {});
+
   // First call to differential APIs always returns 0 — prime them and seed lastDiskSnapshot
   // so that the first real pollTelemetry() can compute disk deltas immediately.
   const [, , primeDisksIO] = await Promise.allSettled([
@@ -1296,7 +1343,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         timestamp: Date.now(),
         cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
         ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
-        gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
+        gpu:     { available: gpuExistsOnHardware, model: null, usagePct: gpuExistsOnHardware ? 0 : null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
         disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null },
         network: { rxKBps: 0, txKBps: 0 },
         ssds:    [],
@@ -1351,7 +1398,16 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     const netRxKBs = Math.round(netRxSec / 1024);
     const netTxKBs = Math.round(netTxSec / 1024);
 
-    const gpuAvailable = gpuLoad != null || gpuTemp != null;
+    // gpuExistsOnHardware is set true as soon as si.graphics() returns a controller
+    // at startup (fast path, ~300–600ms). This lets us flag the GPU as "available"
+    // and emit usagePct:0 as a startup placeholder before the PowerShell perf counter
+    // (2–4s cold start) returns its first reading — keeping the chart line present
+    // from frame 1 instead of joining 4–6s late.
+    const gpuAvailable = gpuLoad != null || gpuTemp != null || gpuExistsOnHardware;
+    // While GPU is confirmed present but perf counter hasn't returned yet (load==null),
+    // emit 0 so the series exists in the chart data. The line will show a flat 0%
+    // baseline for those first few seconds — honest, continuous, and never broken.
+    const gpuUsagePct = gpuLoad != null && gpuLoad >= 0 ? gpuLoad : (gpuExistsOnHardware ? 0 : null);
     const vramUsedMb  = gpuMemUsed  != null ? gpuMemUsed  : null;
     const vramTotalMb = gpuMemTotal != null ? gpuMemTotal : null;
     const vramUsagePct = (vramUsedMb != null && vramTotalMb != null && vramTotalMb > 0)
@@ -1372,7 +1428,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       gpu: {
         available:   gpuAvailable,
         model:       cachedSpecs?.gpu?.model || null,
-        usagePct:    gpuLoad  != null && gpuLoad  >= 0 ? gpuLoad  : null,
+        usagePct:    gpuUsagePct,
         tempC:       gpuTemp  != null && gpuTemp  >  0 ? gpuTemp  : null,
         vramUsedMb,
         vramTotalMb,
