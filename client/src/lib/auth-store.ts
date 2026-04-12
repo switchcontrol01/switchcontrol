@@ -46,6 +46,8 @@ interface AuthState {
   isValidating: boolean;
   electronAuthState: ElectronAuthState;
   oauthError: string | null;
+  /** Incremented by triggerFlowReset() to signal App.tsx to clear all session guards */
+  flowResetTs: number;
   setToken: (token: string) => void;
   setJwt: (jwt: string | null) => void;
   setUser: (user: AuthUser | null) => void;
@@ -65,6 +67,7 @@ export const useAuthStore = create<AuthState>()(
       isValidating: false,
       electronAuthState: 'idle' as ElectronAuthState,
       oauthError: null,
+      flowResetTs: 0,
       setToken: (token) => set({ token }),
       setJwt: (jwt) => set({ jwt }),
       setUser: (user) => set({ user }),
@@ -99,6 +102,15 @@ export const useAuthStore = create<AuthState>()(
 if (typeof window !== 'undefined') {
   const _bootState = useAuthStore.getState();
   console.log("[AUTH BOOT] persisted jwt length:", _bootState.jwt?.length, "token present:", !!_bootState.token, "user present:", !!_bootState.user);
+}
+
+/**
+ * Called by Admin.tsx after granting/revoking premium or trial for the current user.
+ * Increments flowResetTs which App.tsx watches to clear all in-session animation guards,
+ * so the flow re-evals without being blocked by stale session refs.
+ */
+export function triggerFlowReset() {
+  useAuthStore.setState(s => ({ flowResetTs: s.flowResetTs + 1 }));
 }
 
 function getStoredJwt(): string | null {

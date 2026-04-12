@@ -157,6 +157,7 @@ function ElectronAppContent() {
   const premiumTourFiredThisSessionRef = React.useRef(false);
   const suppressFlowsRef = React.useRef(false);
   const { token, jwt, user, setToken, setUser, logout: storeLogout, setValidating } = useAuthStore();
+  const flowResetTs = useAuthStore(s => s.flowResetTs);
   const [, setLocation] = useHashLocation();
 
   // Premium device lock — Electron only, runs after entitlements confirmed from server
@@ -281,6 +282,24 @@ function ElectronAppContent() {
     if (user?.hasSeenPremiumUnlock === false) unlockFiredThisSessionRef.current = false;
   }, [user?.hasSeenPremiumUnlock]);
 
+  // Admin.tsx calls triggerFlowReset() after granting/revoking premium or trial.
+  // This clears all in-session animation guards so the AppFlow can re-eval immediately,
+  // even if the flag values haven't changed (e.g. hasSeenPremiumUnlock was already false).
+  useEffect(() => {
+    if (flowResetTs === 0) return;
+    console.log('[AppFlow] flowResetTs fired — clearing all session guards for re-eval');
+    unlockFiredThisSessionRef.current = false;
+    trialUnlockFiredRef.current = false;
+    trialTourFiredThisSessionRef.current = false;
+    premiumTourFiredThisSessionRef.current = false;
+    const userId = useAuthStore.getState().user?.id;
+    if (userId) {
+      localStorage.removeItem(`sc_unlock_seen_${userId}`);
+      localStorage.removeItem(`sc_tour_seen_${userId}`);
+      localStorage.removeItem(`sc_trial_tour_seen_${userId}`);
+    }
+  }, [flowResetTs]);
+
   useEffect(() => {
     if (isResetting) return;
     if (suppressFlowsRef.current) return;
@@ -320,21 +339,24 @@ function ElectronAppContent() {
 
     const trialOngoing = isTrialActive(user.plan, user.trialEndsAt);
 
-    // PRIORITY 2: Trial activation animation
-    // Guards: server-side hasSeenTrialActivation (cross-session) +
-    //         trialUnlockFiredRef (same-session dedup).
-    // The localStorage key is NOT used here — it was set at flow entry which
-    // caused a permanent block when the animation was interrupted before the
-    // server flag could be persisted.
+    // PRIORITY 2: Trial activation (animation removed — go straight to tour)
+    // Mark hasSeenTrialActivation=true immediately so we don't loop, fire the
+    // server save in the background, then jump directly to the tour.
     if (
       trialOngoing &&
       user.hasSeenTrialActivation === false &&
       !trialUnlockFiredRef.current
     ) {
-      console.log('[AppFlow] PRIORITY 2: Trial activation animation — triggering after 700ms settle delay',
-        { plan: user.plan, trialEndsAt: user.trialEndsAt, hasSeenTrialActivation: user.hasSeenTrialActivation });
+      console.log('[AppFlow] PRIORITY 2: Trial — skipping animation, going straight to tour',
+        { plan: user.plan, trialEndsAt: user.trialEndsAt });
       trialUnlockFiredRef.current = true;
-      setTimeout(() => setActiveFlow("trialUnlock"), 700);
+      // Optimistically mark seen in store so the AppFlow won't re-fire this branch
+      const store = useAuthStore.getState();
+      if (store.user) store.setUser({ ...store.user, hasSeenTrialActivation: true });
+      postTrialActivationSeen().catch(() => {});
+      // Go straight to tour
+      trialTourFiredThisSessionRef.current = true;
+      setActiveFlow("trialTour");
       return;
     }
 
@@ -391,7 +413,7 @@ function ElectronAppContent() {
     }
 
     console.log('[AppFlow] No flow conditions met — staying idle');
-  }, [user?.loggedIn, user?.isPremium, user?.plan, user?.trialEndsAt, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, user?.hasSeenTrialActivation, user?.hasSeenTrialTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting, isPhaseStable]);
+  }, [user?.loggedIn, user?.isPremium, user?.plan, user?.trialEndsAt, user?.hasSeenPremiumUnlock, user?.hasSeenPremiumTour, user?.hasSeenTrialActivation, user?.hasSeenTrialTour, phase, activeFlow, isFirstLogin, entitlementsAttempted, entitlementsOk, isResetting, isPhaseStable, flowResetTs]);
 
   const activeFlowRef = React.useRef<AppFlow>(activeFlow);
   activeFlowRef.current = activeFlow;

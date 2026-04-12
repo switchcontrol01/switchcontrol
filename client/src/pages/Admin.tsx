@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useAuthStore, refreshEntitlements } from "@/lib/auth-store";
+import { useAuthStore, refreshEntitlements, triggerFlowReset } from "@/lib/auth-store";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
 
@@ -1053,6 +1053,7 @@ export default function AdminPage() {
     if (selectedUser?.id === updated.id) setSelectedUser(updated);
     const currentUser = useAuthStore.getState().user;
     if (currentUser?.id === updated.id) {
+      triggerFlowReset();
       refreshEntitlements();
     }
   };
