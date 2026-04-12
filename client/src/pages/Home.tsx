@@ -328,7 +328,7 @@ export default function Home() {
     } else {
       console.log('[ActivityMonitor] mounted — no cached history yet, status:', telStatus);
     }
-  });
+  }, []);
   // ── End lifecycle logging ────────────────────────────────────────────────────
   const { addEvent, setLastAction } = useDashboardActivityStore();
   const { lastRunAt: advisorLastRunAt } = useAdvisorStore();

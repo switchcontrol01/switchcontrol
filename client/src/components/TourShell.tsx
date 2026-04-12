@@ -460,8 +460,10 @@ export function TourShell({
     } else {
       setTourActive(false);
       setTourHighlight(null);
-      // Safety: clear any in-flight navigation guard when the tour exits.
       setTourNavigating(false);
+      // Reset completing so the fullscreen completion layer's pointer-events-auto
+      // overlay doesn't linger and block scroll/clicks after the tour exits.
+      setCompleting(false);
     }
   }, [show]);
 
@@ -525,8 +527,8 @@ export function TourShell({
         >
           {/* Dark overlay — only over the CONTENT area (right of sidebar) */}
           <div
-            className="absolute inset-y-0 right-0 pointer-events-auto"
-            style={{ left: 256 }}
+            className="absolute inset-y-0 right-0"
+            style={{ left: 256, pointerEvents: revealed ? 'auto' : 'none' }}
           >
             <div className="absolute inset-0" style={{ background: 'rgba(4,3,12,0.82)' }} />
             <div
@@ -769,6 +771,7 @@ export function TourShell({
             className="fixed inset-0 z-[210] pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
             <CompletionMoment onDone={handleComplete} isPremium={isPremium} />
