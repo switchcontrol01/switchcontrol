@@ -27,7 +27,9 @@ export function WelcomeAnimation({
   introDelay = 0.55,
 }: WelcomeAnimationProps) {
   useEffect(() => {
-    const t = setTimeout(onComplete, 4800);
+    // 5800ms gives the progress bar time to finish its animation
+    // (introDelay 1.3s + 1.3s delay + 2.8s fill = 5.4s) before advancing.
+    const t = setTimeout(onComplete, 5800);
     return () => clearTimeout(t);
   }, [onComplete]);
 
@@ -62,12 +64,16 @@ export function WelcomeAnimation({
   return (
     <motion.div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden select-none"
-      style={{ background: "linear-gradient(160deg, #06060e 0%, #0c0c1d 40%, #0a0a18 70%, #06060e 100%)" }}
-      /* No opacity-0 here — the parent App.tsx wrapper handles the opacity cross-fade.
-         We only use blur for an extra layer of visual depth. */
-      initial={{ filter: "blur(12px)" }}
+      /* Background is intentionally omitted here.
+         App.tsx renders a persistent atmospheric background layer that lives
+         OUTSIDE AnimatePresence and never remounts. WelcomeAnimation is a
+         transparent overlay — the shared background breathes through it,
+         creating continuity with the login screen's exiting atmosphere.
+         The parent App.tsx wrapper owns the opacity cross-fade; we add
+         a secondary blur for visual depth during the container's fade-in. */
+      initial={{ filter: "blur(10px)" }}
       animate={{ filter: "blur(0px)" }}
-      transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
     >
 
       {/* ── Scan-line overlay ──────────────────────────────────────────── */}

@@ -206,9 +206,9 @@ function ElectronAppContent() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [pauseWhenMinimized, realtimeMetricsEnabled]);
 
-  // login_success → next phase: 600ms lets the login screen blur-exit finish.
-  // First-time users see the welcome animation; returning users go straight to
-  // the dashboard (they already got the welcome once).
+  // login_success → next phase: give the success bloom overlay time to breathe
+  // (and give the login exit animation a head start) before the welcome mounts.
+  // 1000ms feels deliberate and premium; 600ms felt rushed.
   useEffect(() => {
     if (phase !== "login_success") return;
     const t = setTimeout(() => {
@@ -218,7 +218,7 @@ function ElectronAppContent() {
         setPhase("authenticated");
         setLocation("/dashboard");
       }
-    }, 600);
+    }, 1000);
     return () => clearTimeout(t);
   }, [phase, isFirstLogin]);
 
@@ -788,6 +788,39 @@ function ElectronAppContent() {
       <UpgradeModalProvider>
       <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
+      {/* ── Persistent atmospheric background ─────────────────────────────
+          This layer lives OUTSIDE AnimatePresence. It never unmounts.
+          Login and Welcome are transparent overlays on top of it, so the
+          dark atmosphere continues breathing during the transition instead
+          of hard-cutting between two separate background layers. */}
+      {(phase === "splash" || phase === "unauthenticated" || phase === "login_success" || phase === "welcome") && (
+        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#080810" }}>
+          <motion.div
+            className="absolute inset-0"
+            animate={{
+              background: [
+                "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)",
+                "radial-gradient(ellipse 70% 55% at 48% 44%, rgba(139,92,246,0.26) 0%, rgba(168,85,247,0.09) 35%, transparent 60%)",
+                "radial-gradient(ellipse 90% 60% at 52% 52%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)",
+              ]
+            }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute inset-0"
+            style={{ background: "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.10) 0%, transparent 42%)" }}
+            animate={{ opacity: [0.5, 0.85, 0.5] }}
+            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div
+            className="absolute inset-0"
+            style={{ background: "radial-gradient(circle at 72% 78%, rgba(56,189,248,0.08) 0%, transparent 40%)" }}
+            animate={{ opacity: [0.4, 0.75, 0.4] }}
+            transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+          />
+        </div>
+      )}
+
       <AnimatePresence mode="sync">
         {phase === "splash" && (
           <motion.div
@@ -796,7 +829,7 @@ function ElectronAppContent() {
             exit={{ opacity: 0, scale: 1.008, filter: "blur(8px)" }}
             transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
             className="h-full"
-            style={{ position: "absolute", inset: 0 }}
+            style={{ position: "absolute", inset: 0, zIndex: 1 }}
           >
             <Splash onComplete={() => {}} />
           </motion.div>
@@ -807,8 +840,9 @@ function ElectronAppContent() {
             key="login"
             initial={{ opacity: 0, filter: "blur(14px)", scale: 1.014 }}
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 0.95, ease: [0.4, 0, 0.15, 1] } }}
-            exit={{ opacity: 0, filter: "blur(40px)", scale: 0.94, transition: { duration: 1.2, ease: [0.4, 0, 0.6, 1] } }}
+            exit={{ opacity: 0, filter: "blur(50px)", scale: 0.93, transition: { duration: 1.7, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
+            style={{ zIndex: 1 }}
           >
             <LoginScreen succeeded={phase === "login_success"} />
           </motion.div>
@@ -817,15 +851,16 @@ function ElectronAppContent() {
         {phase === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, filter: "blur(40px)", scale: 1.025 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 1.35, delay: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+            initial={{ opacity: 0, filter: "blur(28px)", scale: 1.018 }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 2.2, delay: 1.0, ease: [0.22, 1, 0.36, 1] } }}
             exit={{ opacity: 0, filter: "blur(12px)", scale: 0.98, transition: { duration: 0.65, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
+            style={{ zIndex: 1 }}
           >
             <WelcomeAnimation 
               userName={user?.username || null}
               isPremium={user?.isPremium}
-              introDelay={0.45}
+              introDelay={1.3}
               onComplete={() => {
                 setPhase("authenticated");
                 setLocation("/dashboard");
