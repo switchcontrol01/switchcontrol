@@ -913,23 +913,21 @@ function ElectronAppContent() {
       {!isResetting && (
         <PremiumUpgradeAnimation 
           show={activeFlow === "premiumUnlock"} 
-          onComplete={async () => {
-            console.log('[AppFlow] Unlock animation complete — setting optimistic local flag');
+          onComplete={() => {
+            console.log('[AppFlow] Unlock animation complete — transitioning to premiumTour');
             const store = useAuthStore.getState();
             if (store.user) {
               store.setUser({ ...store.user, hasSeenPremiumUnlock: true });
             }
-            console.log('[AppFlow] Posting unlock-seen to server');
-            await postUnlockSeen();
+            // Fire-and-forget — do NOT await. setActiveFlow must fire immediately
+            // so the tour blur-in overlaps the animation blur-out (no black gap).
+            postUnlockSeen().catch(() => {});
 
-            // Set the same loop-guards the flow-eval branch would have set so that
-            // when the tour finishes and setActiveFlow("none") re-runs the flow
-            // eval, both guards are already armed and the tour cannot re-fire.
+            // Arm loop-guards before tour mounts so the flow eval can never re-fire
             const userId = useAuthStore.getState().user?.id;
             if (userId) localStorage.setItem(`sc_tour_seen_${userId}`, '1');
             premiumTourFiredThisSessionRef.current = true;
 
-            console.log('[AppFlow] Unlock persisted — transitioning to premiumTour');
             setActiveFlow("premiumTour");
           }} 
         />

@@ -23,6 +23,8 @@ const PHASE_ORDER: Phase[] = ['idle', 'detecting', 'activating', 'completing', '
 
 export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
   const [phase, setPhase]   = useState<Phase>('idle');
+  const phaseRef            = useRef<Phase>('idle');
+  phaseRef.current          = phase;
   const timersRef           = useRef<ReturnType<typeof setTimeout>[]>([]);
   const onCompleteRef       = useRef(onComplete);
   onCompleteRef.current     = onComplete;
@@ -34,16 +36,30 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
     setPhase('exiting');
-    // Fire onComplete immediately — AnimatePresence blur-out runs while tour fades in
     onCompleteRef.current();
+    // Self-cleanup after exit blur plays (~700ms transition + 100ms buffer)
+    const t = setTimeout(() => setPhase('done'), 800);
+    timersRef.current = [t];
   }, []);
 
   useEffect(() => {
-    if (!show) { setPhase('idle'); return; }
+    if (!show) {
+      // If already mid-exit, leave phase alone — the doneMs timer will clean up.
+      // Only hard-reset if we haven't started the exit sequence yet.
+      if (phaseRef.current !== 'exiting' && phaseRef.current !== 'done') {
+        timersRef.current.forEach(clearTimeout);
+        timersRef.current = [];
+        setPhase('idle');
+      }
+      return;
+    }
 
     if (prefersReduced) {
       setPhase('completing');
-      const t = setTimeout(() => { onCompleteRef.current(); }, UPGRADE_TIMING.reducedDoneMs);
+      const t = setTimeout(() => {
+        onCompleteRef.current();
+        setPhase('done');
+      }, UPGRADE_TIMING.reducedDoneMs);
       timersRef.current = [t];
       return () => clearTimeout(t);
     }
@@ -59,16 +75,19 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
     at(UPGRADE_TIMING.activatingMs,  () => setPhase('activating'));
     at(UPGRADE_TIMING.completingMs,  () => setPhase('completing'));
     at(UPGRADE_TIMING.holdingMs,     () => setPhase('holding'));
-    // Exit: call onComplete at START of exit so tour blur-in overlaps our blur-out
+    // Exit: fire onComplete at START of exit so tour blur-in overlaps our blur-out.
+    // The doneMs timer self-cleans the component after the blur plays — we must NOT
+    // rely on show=false→phase='idle' because that kills the component instantly.
     at(UPGRADE_TIMING.exitingMs,     () => {
       setPhase('exiting');
       onCompleteRef.current();
     });
+    at(UPGRADE_TIMING.doneMs,        () => setPhase('done'));
 
     return () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
   }, [show, prefersReduced]);
 
-  if (!show && phase === 'idle') return null;
+  if (phase === 'idle' || phase === 'done') return null;
 
   const pi           = PHASE_ORDER.indexOf(phase);
   const isDetecting  = pi >= 1;
@@ -78,14 +97,17 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
   const isExiting    = pi >= 5;
 
   return (
-    <AnimatePresence>
-      {phase !== 'idle' && phase !== 'done' && (
-        <motion.div
+    // No AnimatePresence needed — exit blur is driven by isExiting via animate props.
+    // This avoids the AnimatePresence exit race where show→false kills the wrapper
+    // before the blur-out can play, causing an instant blink-out instead of a fade.
+    <>
+      <motion.div
           key="premium-upgrade-overlay"
           className="fixed inset-0 z-[200] flex flex-col items-center justify-center overflow-hidden select-none cursor-pointer"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, filter: 'blur(22px)', scale: 1.04 }}
+          initial={{ opacity: 0, filter: 'blur(20px)', scale: 0.97 }}
+          animate={isExiting
+            ? { opacity: 0, filter: 'blur(22px)', scale: 1.04 }
+            : { opacity: 1, filter: 'blur(0px)', scale: 1 }}
           transition={{ duration: 0.7, ease: SILK }}
           onClick={skip}
           data-testid="premium-upgrade-animation"
@@ -392,7 +414,6 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
           </motion.div>
 
         </motion.div>
-      )}
-    </AnimatePresence>
+    </>
   );
 }
