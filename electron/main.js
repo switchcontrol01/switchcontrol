@@ -407,6 +407,34 @@ function createWindow() {
       callback({ cancel: false, responseHeaders: details.responseHeaders });
     }
   );
+
+  // In packaged mode the frontend loads via file://, so absolute-path asset URLs like
+  // /games/fortnite.png resolve to the filesystem root instead of the dist bundle.
+  // Intercept those file:// requests and redirect them to the correct bundled location.
+  if (!isDev) {
+    electronSession.defaultSession.webRequest.onBeforeRequest(
+      { urls: ['file:///games/*', 'file://*/*/games/*'] },
+      (details, callback) => {
+        try {
+          const url = details.url;
+          // Match file:// requests whose pathname ends in /games/<filename>.
+          // When the frontend loads via file://, <img src="/games/x.png"> resolves
+          // to file:///games/x.png (filesystem root) instead of dist/games/x.png.
+          const m = url.match(/\/games\/([a-zA-Z0-9_\-]+\.(png|jpg|jpeg|webp|svg))(?:[?#]|$)/i);
+          if (m) {
+            const filename = m[1];
+            const distGamesPath = path.join(process.resourcesPath, 'dist', 'games', filename);
+            // Build a valid file:// URL (forward slashes, ensure triple-slash on Windows)
+            const redirectURL = 'file:///' + distGamesPath.replace(/\\/g, '/').replace(/^\/+/, '');
+            console.log(`[Assets] Redirecting ${url} → ${redirectURL}`);
+            callback({ redirectURL });
+            return;
+          }
+        } catch {}
+        callback({ cancel: false });
+      }
+    );
+  }
   
   // === NAVIGATION GUARDS ===
   // Block navigation to external sites - open in browser instead
