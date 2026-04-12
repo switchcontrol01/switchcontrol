@@ -488,23 +488,23 @@ export default function DownloadPage() {
 
           {/* Countdown — tilted back, milky, peeks under download card */}
           <div className="w-full" style={{
-            marginBottom: "-180px",
+            marginBottom: "-125px",
             position: "relative",
             zIndex: 0,
             transform: "rotateX(10deg)",
             transformOrigin: "bottom center",
             willChange: "transform",
           }}>
-            {/* Gradient mask fades the bottom of the countdown out before it's hidden */}
-            <div style={{ position: "relative", overflow: "hidden" }}>
+            {/* Gradient mask softens the very bottom edge before the download card covers it */}
+            <div style={{ position: "relative" }}>
               <LaunchCountdown />
               <div style={{
                 position: "absolute",
                 bottom: 0,
                 left: 0,
                 right: 0,
-                height: "160px",
-                background: "linear-gradient(to bottom, transparent 0%, rgba(8,6,22,0.7) 55%, rgba(8,6,22,0.97) 100%)",
+                height: "90px",
+                background: "linear-gradient(to bottom, transparent 0%, rgba(8,6,22,0.6) 60%, rgba(8,6,22,0.95) 100%)",
                 pointerEvents: "none",
               }} />
             </div>
