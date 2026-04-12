@@ -44,56 +44,88 @@ function PatchNotesSection() {
   const lastSeen = localStorage.getItem(PATCH_NOTES_STORAGE_KEY);
   const isNew = lastSeen !== notes.version;
 
+  const preview = notes.changes.slice(0, 3);
+  const extra  = notes.changes.length - preview.length;
+
   return (
-    <GlassCard blur="sm" hoverEffect={false} className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <motion.div
+      className="relative overflow-hidden rounded-xl flex"
+      style={{
+        background: "linear-gradient(105deg, rgba(139,92,246,0.07) 0%, rgba(255,255,255,0.02) 60%)",
+        border: "1px solid rgba(139,92,246,0.18)",
+        boxShadow: "0 0 0 1px rgba(139,92,246,0.06) inset",
+      }}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Purple left accent stripe */}
+      <div className="w-1 shrink-0 rounded-l-xl"
+        style={{ background: "linear-gradient(180deg, rgba(139,92,246,0.9) 0%, rgba(109,40,217,0.5) 100%)" }} />
+
+      <div className="flex items-start gap-6 px-5 py-4 flex-1 min-w-0">
+        {/* Left — icon + label + version */}
+        <div className="flex flex-col items-center gap-2 shrink-0 pt-0.5">
           <div className="flex items-center justify-center size-8 rounded-lg"
-            style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.22)" }}>
-            <Sparkles className="size-4" style={{ color: "rgba(192,155,255,0.85)" }} />
+            style={{ background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.28)" }}>
+            <Sparkles className="size-4" style={{ color: "rgba(192,155,255,0.9)" }} />
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-semibold text-white">What's New</h3>
-              {isNew && (
-                <span className="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full"
-                  style={{ background: "rgba(139,92,246,0.18)", color: "rgba(192,155,255,0.9)", border: "1px solid rgba(139,92,246,0.25)" }}>
-                  New
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground mt-0.5">{notes.title}</p>
-          </div>
+          <span className="text-[9px] font-bold tracking-widest uppercase leading-none"
+            style={{ color: "rgba(192,155,255,0.55)" }}>
+            What's New
+          </span>
         </div>
-        <span className="text-[11px] font-medium px-2 py-0.5 rounded-md"
-          style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.30)", border: "1px solid rgba(255,255,255,0.07)" }}>
+
+        {/* Middle — title + headline */}
+        <div className="min-w-0 shrink-0 w-48">
+          <div className="flex items-center gap-2 mb-0.5">
+            <h3 className="text-[13px] font-semibold text-white leading-snug truncate">{notes.title}</h3>
+            {isNew && (
+              <span className="text-[8px] font-bold tracking-widest uppercase px-1.5 py-[3px] rounded-full shrink-0"
+                style={{ background: "rgba(139,92,246,0.22)", color: "rgba(192,155,255,0.95)", border: "1px solid rgba(139,92,246,0.30)" }}>
+                New
+              </span>
+            )}
+          </div>
+          <p className="text-[11.5px] leading-snug" style={{ color: "rgba(255,255,255,0.38)" }}>
+            {notes.headline}
+          </p>
+          <p className="text-[10px] mt-2" style={{ color: "rgba(255,255,255,0.18)" }}>
+            {new Date(notes.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+          </p>
+        </div>
+
+        {/* Divider */}
+        <div className="w-px self-stretch shrink-0" style={{ background: "rgba(255,255,255,0.06)" }} />
+
+        {/* Right — change list */}
+        <div className="flex-1 min-w-0 space-y-1.5">
+          {preview.map((change, i) => (
+            <motion.div
+              key={i}
+              className="flex items-start gap-2"
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 + i * 0.055, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <CheckCircle2 className="size-3 mt-[3px] shrink-0" style={{ color: "rgba(139,92,246,0.6)" }} />
+              <p className="text-[11.5px] leading-snug truncate" style={{ color: "rgba(255,255,255,0.48)" }}>{change}</p>
+            </motion.div>
+          ))}
+          {extra > 0 && (
+            <p className="text-[10.5px] pl-5" style={{ color: "rgba(255,255,255,0.22)" }}>
+              +{extra} more improvement{extra > 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
+
+        {/* Version badge — top-right */}
+        <span className="text-[10.5px] font-medium px-2 py-1 rounded-md self-start shrink-0"
+          style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.25)", border: "1px solid rgba(255,255,255,0.07)" }}>
           v{notes.version}
         </span>
       </div>
-
-      <p className="text-[13px] leading-relaxed" style={{ color: "rgba(255,255,255,0.45)" }}>
-        {notes.headline}
-      </p>
-
-      <div className="space-y-2.5 pt-1">
-        {notes.changes.map((change, i) => (
-          <motion.div
-            key={i}
-            className="flex items-start gap-2.5"
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.35, delay: 0.08 + i * 0.06, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <CheckCircle2 className="size-3.5 mt-[2px] shrink-0" style={{ color: "rgba(139,92,246,0.65)" }} />
-            <p className="text-[12.5px] leading-snug" style={{ color: "rgba(255,255,255,0.50)" }}>{change}</p>
-          </motion.div>
-        ))}
-      </div>
-
-      <p className="text-[10px] pt-1" style={{ color: "rgba(255,255,255,0.18)" }}>
-        {new Date(notes.date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
-      </p>
-    </GlassCard>
+    </motion.div>
   );
 }
 
@@ -144,6 +176,8 @@ export default function Settings() {
           title="Settings"
           subtitle="Manage application preferences and account details."
         />
+
+        <PatchNotesSection />
 
         <div className="space-y-6">
           <AnimatedSection index={0}>
@@ -293,11 +327,6 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
-          </AnimatedSection>
-
-          {/* What's New — patch notes */}
-          <AnimatedSection index={2}>
-            <PatchNotesSection />
           </AnimatedSection>
 
           {/* Software Update — Electron only */}
