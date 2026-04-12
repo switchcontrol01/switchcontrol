@@ -651,7 +651,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
 
               {/* ── COLLAPSED + EXPANDED: Core lines ── */}
-              {/* Disk active time — dotted amber line, only when server confirmed real data */}
+              {/* Disk active time — dotted amber line. hasDiskData = at least one non-null activeTimePct. */}
               {hasDiskData && toggles.disk && (
                 <Line
                   yAxisId="pct" type="monotone" dataKey="diskActiveTime"

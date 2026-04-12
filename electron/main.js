@@ -140,15 +140,15 @@ async function pollTelemetry() {
 
           if (msSec != null && msSec >= 0) {
             diskIO.activeTimePct = parseFloat(Math.min(msSec / 10, 100).toFixed(1));
-          } else if (msTotal != null && lastDiskSnapshot.ms >= 0) {
+          } else if (msTotal != null && msTotal > 0) {
+            // msTotal > 0 confirms the kernel is tracking ms-busy; if stuck at 0 fall through
             const deltaMs = Math.max(0, msTotal - lastDiskSnapshot.ms);
             diskIO.activeTimePct = parseFloat(Math.min((deltaMs / (dt_s * 1000)) * 100, 100).toFixed(1));
           } else {
-            // Fallback: estimate from IOPS — cap at 100%, use 1 IOP ≈ 1% activity as rough heuristic
-            const totalIOps = (d.rIO_sec || 0) + (d.wIO_sec || 0);
-            if (totalIOps > 0) {
-              diskIO.activeTimePct = parseFloat(Math.min(totalIOps / 2, 100).toFixed(1));
-            }
+            // ms data missing or stuck at 0 — estimate from throughput (matches server/lib/telemetry.ts).
+            // Always produces a value (even 0 when idle) so hasDiskData is true in the client.
+            const combined = (diskIO.readKBps ?? 0) + (diskIO.writeKBps ?? 0);
+            diskIO.activeTimePct = parseFloat(Math.min(combined / 100, 100).toFixed(1));
           }
         }
       } else if (rIO == null && (d.rIO_sec != null || d.wIO_sec != null)) {
