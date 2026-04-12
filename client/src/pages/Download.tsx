@@ -277,10 +277,8 @@ function LaunchCountdown() {
       <div
         className="countdown-card relative rounded-2xl p-6 sm:p-10 md:p-12 text-center"
         style={{
-          background: "linear-gradient(160deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.05) 55%, rgba(255,255,255,0.08) 100%)",
+          background: "linear-gradient(160deg, rgba(18,12,42,0.96) 0%, rgba(12,8,32,0.98) 55%, rgba(16,10,40,0.96) 100%)",
           border: "1px solid rgba(255,255,255,0.14)",
-          backdropFilter: "blur(28px) saturate(160%)",
-          WebkitBackdropFilter: "blur(28px) saturate(160%)",
         }}
       >
         {/* Ambient blobs */}
