@@ -174,8 +174,8 @@ function FlipDigit({ value, label }: { value: string; label: string }) {
 }
 
 // ── Launch countdown widget ────────────────────────────────────────────────────
-// Target: Tuesday 22 April 2026 14:00 NZST (UTC+12) = 22 April 02:00 UTC
-const LAUNCH_UTC = new Date("2026-04-22T02:00:00Z").getTime();
+// Target: Tuesday 14 April 2026 14:00 NZST (UTC+12) = 14 April 02:00 UTC
+const LAUNCH_UTC = new Date("2026-04-14T02:00:00Z").getTime();
 
 function getTimeLeft() {
   const diff = Math.max(0, LAUNCH_UTC - Date.now());
@@ -267,7 +267,7 @@ function LaunchCountdown() {
             color: "rgba(255,255,255,0.22)",
             letterSpacing: "0.04em",
           }}>
-            2 PM · Tue Apr 22 · NZT
+            2 PM · Tue Apr 14 · NZT
           </span>
         </div>
       </div>
