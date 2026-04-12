@@ -45,8 +45,8 @@ function CountBlock({ value, label }: { value: string; label: string }) {
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "9px" }}>
       <div style={{
         position: "relative",
-        width: "clamp(94px,9.5vw,126px)",
-        height: "clamp(108px,11.5vw,148px)",
+        width: "clamp(68px,6vw,92px)",
+        height: "clamp(80px,8vw,112px)",
         borderRadius: "18px",
         overflow: "hidden",
         background: "linear-gradient(160deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%)",
@@ -85,7 +85,7 @@ function CountBlock({ value, label }: { value: string; label: string }) {
           zIndex: 2,
         }}>
           <span style={{
-            fontSize: "clamp(42px,5.8vw,66px)",
+            fontSize: "clamp(28px,3.8vw,46px)",
             fontWeight: 800, color: "rgba(255,255,255,0.96)",
             fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
             lineHeight: 1, textShadow: "0 2px 24px rgba(139,92,246,0.45)",
@@ -100,7 +100,7 @@ function CountBlock({ value, label }: { value: string; label: string }) {
             zIndex: 2,
           }}>
             <span style={{
-              fontSize: "clamp(42px,5.8vw,66px)",
+              fontSize: "clamp(28px,3.8vw,46px)",
               fontWeight: 800, color: "rgba(255,255,255,0.96)",
               fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
               lineHeight: 1, textShadow: "0 2px 18px rgba(139,92,246,0.35)",
@@ -583,7 +583,8 @@ export default function DownloadPage() {
           {/* ── LEFT: Headline + Countdown + Date ── */}
           <div style={{
             flex: "1 1 380px",
-            minWidth: "320px",
+            minWidth: 0,
+            overflow: "hidden",
             display: "flex", flexDirection: "column",
             alignItems: "flex-start",
             gap: "clamp(10px,1.8vh,16px)",
@@ -653,7 +654,7 @@ export default function DownloadPage() {
                     position: "absolute",
                     top: "50%", left: "50%",
                     transform: "translate(-50%,-50%)",
-                    width: "clamp(340px,55vw,520px)", height: "clamp(100px,16vw,160px)",
+                    width: "clamp(260px,42vw,380px)", height: "clamp(80px,12vw,120px)",
                     borderRadius: "50%",
                     background: "radial-gradient(ellipse,rgba(139,92,246,0.26) 0%,rgba(103,232,249,0.08) 55%,transparent 78%)",
                     filter: "blur(28px)",
@@ -663,7 +664,7 @@ export default function DownloadPage() {
                   <div style={{
                     position: "relative",
                     display: "flex", alignItems: "flex-end",
-                    gap: "clamp(5px,1.2vw,10px)",
+                    gap: "clamp(4px,0.7vw,7px)",
                   }}>
                     <CountBlock value={pad(time.d)} label="Days" />
                     <Colon />
