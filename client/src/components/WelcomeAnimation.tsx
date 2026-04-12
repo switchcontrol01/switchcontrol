@@ -7,15 +7,25 @@ interface WelcomeAnimationProps {
   userName: string | null;
   isPremium?: boolean;
   onComplete: () => void;
+  /**
+   * Extra delay (seconds) added to all internal element animations.
+   * This should match the outer AnimatePresence wrapper's fade-in delay
+   * so elements only start appearing after the screen becomes visible.
+   */
+  introDelay?: number;
 }
 
-// Deterministic particle seed to avoid hydration flicker
 function seededRandom(seed: number) {
   const x = Math.sin(seed + 1) * 10000;
   return x - Math.floor(x);
 }
 
-export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAnimationProps) {
+export function WelcomeAnimation({
+  userName,
+  isPremium,
+  onComplete,
+  introDelay = 0.55,
+}: WelcomeAnimationProps) {
   useEffect(() => {
     const t = setTimeout(onComplete, 4800);
     return () => clearTimeout(t);
@@ -27,7 +37,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
       x: seededRandom(i * 7) * 100,
       y: seededRandom(i * 13) * 100,
       size: 1.5 + seededRandom(i * 17) * 3.5,
-      delay: seededRandom(i * 3) * 3,
+      delay: introDelay + 0.4 + seededRandom(i * 3) * 2.5,
       duration: 3.5 + seededRandom(i * 11) * 4,
       drift: (seededRandom(i * 19) - 0.5) * 40,
       color: i % 5 === 0
@@ -38,24 +48,26 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
         ? "rgba(192,132,252,0.8)"
         : "rgba(139,92,246,0.6)",
     }));
-  }, []);
+  }, [introDelay]);
 
   const beamLines = useMemo(() => (
     Array.from({ length: 6 }, (_, i) => ({
       id: i,
       angle: i * 30 + 15,
-      delay: i * 0.2,
+      delay: introDelay + 0.2 + i * 0.18,
       opacity: 0.04 + seededRandom(i * 7) * 0.06,
     }))
-  ), []);
+  ), [introDelay]);
 
   return (
     <motion.div
       className="fixed inset-0 flex flex-col items-center justify-center overflow-hidden select-none"
       style={{ background: "linear-gradient(160deg, #06060e 0%, #0c0c1d 40%, #0a0a18 70%, #06060e 100%)" }}
-      initial={{ opacity: 0, filter: "blur(10px)" }}
-      animate={{ opacity: 1, filter: "blur(0px)" }}
-      transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+      /* No opacity-0 here — the parent App.tsx wrapper handles the opacity cross-fade.
+         We only use blur for an extra layer of visual depth. */
+      initial={{ filter: "blur(12px)" }}
+      animate={{ filter: "blur(0px)" }}
+      transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
     >
 
       {/* ── Scan-line overlay ──────────────────────────────────────────── */}
@@ -80,7 +92,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
 
       {/* ── Ambient background orbs ───────────────────────────────────── */}
 
-      {/* Primary large purple orb */}
+      {/* Primary large purple orb — starts at reduced opacity so it blooms in */}
       <motion.div
         className="absolute pointer-events-none"
         style={{
@@ -90,9 +102,9 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           background: "radial-gradient(ellipse, rgba(139,92,246,0.3) 0%, rgba(99,102,241,0.08) 45%, transparent 70%)",
           filter: "blur(90px)",
         }}
-        initial={{ opacity: 0, scale: 0.4 }}
+        initial={{ opacity: 0.15, scale: 0.6 }}
         animate={{ opacity: 1, scale: [1, 1.08, 1] }}
-        transition={{ opacity: { duration: 1.2 }, scale: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1.2 } }}
+        transition={{ opacity: { duration: 0.9, delay: introDelay * 0.4 }, scale: { duration: 4, repeat: Infinity, ease: "easeInOut", delay: introDelay + 0.8 } }}
       />
 
       {/* Pink top-right orb */}
@@ -106,7 +118,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
         }}
         initial={{ opacity: 0, x: 30 }}
         animate={{ opacity: [0, 0.9, 0.7, 0.9], x: [30, 0, -10, 0] }}
-        transition={{ duration: 2.2, delay: 0.3, ease: "easeOut", times: [0, 0.5, 0.75, 1] }}
+        transition={{ duration: 2.2, delay: introDelay * 0.5 + 0.1, ease: "easeOut", times: [0, 0.5, 0.75, 1] }}
       />
 
       {/* Cyan bottom-left orb */}
@@ -120,7 +132,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
         }}
         initial={{ opacity: 0, x: -30 }}
         animate={{ opacity: [0, 0.8, 0.6, 0.8], x: [-30, 0, 10, 0] }}
-        transition={{ duration: 2.5, delay: 0.5, ease: "easeOut", times: [0, 0.5, 0.75, 1] }}
+        transition={{ duration: 2.5, delay: introDelay * 0.5 + 0.2, ease: "easeOut", times: [0, 0.5, 0.75, 1] }}
       />
 
       {/* Violet bottom-right orb — breathes */}
@@ -132,8 +144,9 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           background: "radial-gradient(ellipse, rgba(167,139,250,0.15) 0%, transparent 65%)",
           filter: "blur(55px)",
         }}
-        animate={{ opacity: [0.5, 0.9, 0.5], scale: [1, 1.15, 1] }}
-        transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.5, 0.9, 0.5], scale: [1, 1.15, 1] }}
+        transition={{ opacity: { duration: 1.8, delay: introDelay * 0.5 }, scale: { duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: introDelay + 1 } }}
       />
 
       {/* ── Diagonal light beams ───────────────────────────────────────── */}
@@ -152,7 +165,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           }}
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: beam.opacity }}
-          transition={{ duration: 1.8, delay: 0.4 + beam.delay, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: 1.8, delay: beam.delay, ease: [0.22, 1, 0.36, 1] }}
         />
       ))}
 
@@ -187,9 +200,9 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
       {/* ── Logo ──────────────────────────────────────────────────────── */}
       <motion.div
         className="relative mb-9 z-10"
-        initial={{ scale: 0.3, opacity: 0, y: 30 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+        initial={{ scale: 0.3, opacity: 0, y: 30, filter: "blur(10px)" }}
+        animate={{ scale: 1, opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: introDelay + 0.1 }}
       >
         {/* Energy ring 1 — expands outward */}
         <motion.div
@@ -197,7 +210,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           style={{ inset: -8 }}
           initial={{ opacity: 0.8, scale: 0.8 }}
           animate={{ opacity: [0.8, 0], scale: [0.8, 2.2] }}
-          transition={{ duration: 1.6, delay: 0.5, ease: "easeOut" }}
+          transition={{ duration: 1.6, delay: introDelay + 0.5, ease: "easeOut" }}
         />
         {/* Energy ring 2 */}
         <motion.div
@@ -205,7 +218,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           style={{ inset: -8 }}
           initial={{ opacity: 0.7, scale: 0.8 }}
           animate={{ opacity: [0.7, 0], scale: [0.8, 2.8] }}
-          transition={{ duration: 1.9, delay: 0.75, ease: "easeOut" }}
+          transition={{ duration: 1.9, delay: introDelay + 0.75, ease: "easeOut" }}
         />
         {/* Energy ring 3 */}
         <motion.div
@@ -213,7 +226,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           style={{ inset: -8 }}
           initial={{ opacity: 0.6, scale: 0.8 }}
           animate={{ opacity: [0.6, 0], scale: [0.8, 3.5] }}
-          transition={{ duration: 2.2, delay: 1.0, ease: "easeOut" }}
+          transition={{ duration: 2.2, delay: introDelay + 1.0, ease: "easeOut" }}
         />
 
         {/* Persistent pulsing halo */}
@@ -223,8 +236,9 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
             background: "radial-gradient(ellipse, rgba(139,92,246,0.45) 0%, rgba(236,72,153,0.12) 50%, transparent 75%)",
             filter: "blur(20px)",
           }}
-          animate={{ opacity: [0.5, 1, 0.5], scale: [0.85, 1.15, 0.85] }}
-          transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 0.5, 1, 0.5], scale: [0.85, 1.15, 0.85] }}
+          transition={{ opacity: { duration: 0.6, delay: introDelay + 0.3 }, scale: { duration: 2.6, repeat: Infinity, ease: "easeInOut", delay: introDelay + 1.2 } }}
         />
 
         {/* Rotating sparkle ring */}
@@ -234,8 +248,8 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           initial={{ opacity: 0, rotate: 0 }}
           animate={{ opacity: [0, 0.6, 0.6], rotate: 360 }}
           transition={{
-            opacity: { duration: 1, delay: 0.6 },
-            rotate: { duration: 8, repeat: Infinity, ease: "linear", delay: 0.6 },
+            opacity: { duration: 1, delay: introDelay + 0.6 },
+            rotate: { duration: 8, repeat: Infinity, ease: "linear", delay: introDelay + 0.6 },
           }}
         >
           {[0, 60, 120, 180, 240, 300].map((angle, i) => (
@@ -252,7 +266,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
                 transform: `rotate(${angle}deg) translateX(68px)`,
               }}
               animate={{ scale: [1, 1.6, 1], opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 1.4, delay: i * 0.15, repeat: Infinity, ease: "easeInOut" }}
+              transition={{ duration: 1.4, delay: introDelay + 1.0 + i * 0.15, repeat: Infinity, ease: "easeInOut" }}
             />
           ))}
         </motion.div>
@@ -263,6 +277,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
           alt="SwitchControl"
           className="w-28 h-28 object-contain rounded-3xl relative z-10"
           draggable={false}
+          initial={{ filter: "drop-shadow(0 0 16px rgba(139,92,246,0.6)) drop-shadow(0 0 40px rgba(139,92,246,0.3))" }}
           animate={{
             filter: [
               "drop-shadow(0 0 16px rgba(139,92,246,0.6)) drop-shadow(0 0 40px rgba(139,92,246,0.3))",
@@ -270,16 +285,16 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
               "drop-shadow(0 0 16px rgba(139,92,246,0.6)) drop-shadow(0 0 40px rgba(139,92,246,0.3))",
             ],
           }}
-          transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+          transition={{ duration: 2.4, delay: introDelay + 0.8, repeat: Infinity, ease: "easeInOut" }}
         />
       </motion.div>
 
       {/* ── Text block ────────────────────────────────────────────────── */}
       <motion.div
         className="text-center relative z-10"
-        initial={{ opacity: 0, y: 22 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.55 }}
+        initial={{ opacity: 0, y: 22, filter: "blur(8px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: introDelay + 0.45 }}
       >
         <h1 className="text-[2.8rem] font-bold leading-none mb-3 tracking-tight">
           <span className="text-white">Welcome</span>
@@ -292,7 +307,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
                 backgroundSize: "200% auto",
               }}
               animate={{ backgroundPosition: ["0% center", "200% center", "0% center"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              transition={{ duration: 3, delay: introDelay + 1, repeat: Infinity, ease: "linear" }}
             >
               ,&nbsp;{userName}
             </motion.span>
@@ -303,15 +318,15 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: 0.9 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1], delay: introDelay + 0.75 }}
         >
           {isPremium ? (
             <span className="inline-flex items-center justify-center gap-2 text-amber-300/90 text-[15px]">
-              <motion.span animate={{ rotate: [-8, 8, -8] }} transition={{ duration: 1.8, repeat: Infinity }}>
+              <motion.span animate={{ rotate: [-8, 8, -8] }} transition={{ duration: 1.8, delay: introDelay + 1, repeat: Infinity }}>
                 <Crown className="w-4 h-4 flex-shrink-0" />
               </motion.span>
               Premium Member
-              <motion.span animate={{ rotate: [8, -8, 8] }} transition={{ duration: 1.8, repeat: Infinity }}>
+              <motion.span animate={{ rotate: [8, -8, 8] }} transition={{ duration: 1.8, delay: introDelay + 1, repeat: Infinity }}>
                 <Crown className="w-4 h-4 flex-shrink-0" />
               </motion.span>
             </span>
@@ -328,7 +343,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
         className="flex flex-col items-center gap-3 mt-10 z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 0.5 }}
+        transition={{ delay: introDelay + 1.3, duration: 0.5 }}
       >
         {/* Animated progress bar */}
         <div className="w-36 h-[2px] rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.07)" }}>
@@ -340,7 +355,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
             }}
             initial={{ width: "0%", x: "-100%" }}
             animate={{ width: "100%", x: "0%" }}
-            transition={{ duration: 2.8, delay: 1.5, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 2.8, delay: introDelay + 1.3, ease: [0.22, 1, 0.36, 1] }}
           />
         </div>
 
@@ -364,7 +379,7 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
               transition={{
                 duration: 1.0,
                 repeat: Infinity,
-                delay: i * 0.18,
+                delay: introDelay + 1.3 + i * 0.18,
                 ease: "easeInOut",
               }}
             />
@@ -372,13 +387,13 @@ export function WelcomeAnimation({ userName, isPremium, onComplete }: WelcomeAni
         </div>
       </motion.div>
 
-      {/* ── Zap icon flash on entry ────────────────────────────────────── */}
+      {/* ── Zap icon flash on entry — delayed to match intro ──────────── */}
       <motion.div
         className="absolute pointer-events-none z-20"
         style={{ left: "50%", top: "50%", marginLeft: -24, marginTop: -24 }}
-        initial={{ opacity: 1, scale: 0.5 }}
-        animate={{ opacity: [1, 0], scale: [0.5, 4] }}
-        transition={{ duration: 0.7, delay: 0.15, ease: "easeOut" }}
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: [0, 1, 0], scale: [0.5, 4, 4] }}
+        transition={{ duration: 0.8, delay: introDelay + 0.05, ease: "easeOut", times: [0, 0.2, 1] }}
       >
         <Zap className="w-12 h-12 text-violet-400" style={{ filter: "drop-shadow(0 0 20px rgba(139,92,246,1))" }} />
       </motion.div>

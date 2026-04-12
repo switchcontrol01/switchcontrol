@@ -773,14 +773,15 @@ function ElectronAppContent() {
         {phase === "welcome" && (
           <motion.div
             key="welcome"
-            initial={{ opacity: 0, filter: "blur(28px)", scale: 1.022 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 1.2, delay: 0.3, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, filter: "blur(8px)", transition: { duration: 0.55 } }}
+            initial={{ opacity: 0, filter: "blur(40px)", scale: 1.025 }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 1.35, delay: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, filter: "blur(12px)", scale: 0.98, transition: { duration: 0.65, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
           >
             <WelcomeAnimation 
               userName={user?.username || null}
               isPremium={user?.isPremium}
+              introDelay={0.45}
               onComplete={() => {
                 setPhase("authenticated");
                 setLocation("/dashboard");
