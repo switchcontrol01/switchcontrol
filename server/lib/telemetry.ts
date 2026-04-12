@@ -188,75 +188,95 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
     const d = diskIo.value as any;
     const now = Date.now();
 
-    const rIO: number | null = typeof d.rIO === "number" ? d.rIO : null;
-    const wIO: number | null = typeof d.wIO === "number" ? d.wIO : null;
-    const msTotal: number | null = typeof d.ms === "number" ? d.ms : null;
+    const rIO: number | null  = typeof d.rIO  === "number" ? d.rIO  : null;
+    const wIO: number | null  = typeof d.wIO  === "number" ? d.wIO  : null;
+    const msTotal: number | null = typeof d.ms === "number" ? d.ms  : null;
 
-    // Try systeminformation's built-in per-second rates first
-    const rSec: number | null = d.rIO_sec ?? null;
-    const wSec: number | null = d.wIO_sec ?? null;
-    // ms_sec = ms busy per second (Linux); tIO_sec = total IO time per second (Windows) — same metric
-    const msSec: number | null = d.ms_sec ?? d.tIO_sec ?? null;
+    // si-native per-second rates — systeminformation computes these internally
+    // when it has a prior snapshot. tIO_sec (total IO time/sec) is the Windows
+    // equivalent of Linux ms_sec. We accept any of them.
+    const rSec: number | null  = typeof d.rIO_sec === "number" ? d.rIO_sec : null;
+    const wSec: number | null  = typeof d.wIO_sec === "number" ? d.wIO_sec : null;
+    const msSec: number | null = typeof d.ms_sec  === "number" ? d.ms_sec
+                               : typeof d.tIO_sec  === "number" ? d.tIO_sec
+                               : null;
 
-    if (lastDiskSnapshot && rIO != null && wIO != null) {
+    // ── Strategy: try in order of reliability ────────────────────────────────
+    //  A) si-native per-second rates   → most accurate, works from 2nd call
+    //  B) our own cumulative delta      → reliable when A is unavailable
+    //  C) zero baseline                 → always produce a value when disk exists
+    //     so the frontend can show the line (it will be at 0% when idle, which is correct)
+
+    let computed = false;
+
+    // A: si-native rates available (non-null and have had a prior si snapshot)
+    if (!computed && rSec != null && wSec != null) {
+      disk.readKBps    = parseFloat((rSec / 2).toFixed(1));
+      disk.writeKBps   = parseFloat((wSec / 2).toFixed(1));
+      disk.activeTimePct = msSec != null && msSec >= 0
+        ? parseFloat(Math.min(msSec / 10, 100).toFixed(1))
+        : parseFloat(Math.min((rSec + wSec) / 50, 100).toFixed(1));
+      disk.available = true;
+      computed = true;
+      if (!diskAvailableConfirmed) {
+        diskAvailableConfirmed = true;
+        console.log(`[DiskTelemetry] Confirmed via si-native rates: activeTime=${disk.activeTimePct}% R=${disk.readKBps}KB/s W=${disk.writeKBps}KB/s`);
+      }
+    }
+
+    // B: cumulative delta computation
+    if (!computed && lastDiskSnapshot && rIO != null && wIO != null) {
       const dt_s = (now - lastDiskSnapshot.ts) / 1000;
       if (dt_s > 0.1) {
         const deltaR = Math.max(0, rIO - lastDiskSnapshot.rIO);
         const deltaW = Math.max(0, wIO - lastDiskSnapshot.wIO);
-        // sectors/s → KB/s (1 sector = 512 bytes = 0.5 KB)
-        disk.readKBps = parseFloat((deltaR / dt_s / 2).toFixed(1));
+        disk.readKBps  = parseFloat((deltaR / dt_s / 2).toFixed(1));
         disk.writeKBps = parseFloat((deltaW / dt_s / 2).toFixed(1));
 
-        // Active time %: prefer real ms-busy metrics, fall back to throughput estimate.
-        // msTotal > 0 guard confirms the kernel is actually tracking ms-busy time;
-        // if it stays at 0 (some VMs) we skip to the throughput estimate instead.
         if (msSec != null && msSec >= 0) {
-          // ms/s ÷ 10 = % busy (systeminformation native delta)
           disk.activeTimePct = parseFloat(Math.min(msSec / 10, 100).toFixed(1));
-        } else if (msTotal != null && msTotal > 0) {
-          // Cumulative ms delta — works on real physical drives
-          const deltaMs = Math.max(0, msTotal - (lastDiskSnapshot.ms ?? 0));
+        } else if (msTotal != null && msTotal > 0 && lastDiskSnapshot.ms != null) {
+          const deltaMs = Math.max(0, msTotal - lastDiskSnapshot.ms);
           disk.activeTimePct = parseFloat(Math.min((deltaMs / (dt_s * 1000)) * 100, 100).toFixed(1));
         } else {
-          // ms data missing or stuck at 0 (VM/container) — estimate from throughput.
-          // 100 KB/s ≈ 1% is a conservative scale for NVMe SSDs at 10+ GB/s peak.
           const combined = (disk.readKBps ?? 0) + (disk.writeKBps ?? 0);
           disk.activeTimePct = parseFloat(Math.min(combined / 100, 100).toFixed(1));
         }
-
-        // Mark available if we have at least throughput data
-        disk.available = disk.readKBps != null || disk.writeKBps != null;
+        disk.available = true;
+        computed = true;
         if (!diskAvailableConfirmed) {
           diskAvailableConfirmed = true;
-          console.log(`[Telemetry] Disk confirmed: activeTime=${disk.activeTimePct}% R=${disk.readKBps}KB/s W=${disk.writeKBps}KB/s`);
+          console.log(`[DiskTelemetry] Confirmed via delta: activeTime=${disk.activeTimePct}% R=${disk.readKBps}KB/s W=${disk.writeKBps}KB/s`);
         }
-      }
-    } else if (rSec != null && wSec != null) {
-      // systeminformation provided its own delta (some environments)
-      disk.readKBps = parseFloat((rSec / 2).toFixed(1));
-      disk.writeKBps = parseFloat((wSec / 2).toFixed(1));
-      disk.activeTimePct = msSec != null
-        ? parseFloat(Math.min(msSec / 10, 100).toFixed(1))
-        : parseFloat(Math.min((rSec + wSec) / 50, 100).toFixed(1));
-      disk.available = true;
-      if (!diskAvailableConfirmed) {
-        diskAvailableConfirmed = true;
-        console.log(`[Telemetry] Disk confirmed (si-native): activeTime=${disk.activeTimePct}% R=${disk.readKBps}KB/s W=${disk.writeKBps}KB/s`);
       }
     }
 
-    // Store snapshot for next delta computation
+    // C: disk IO object exists but rates not ready yet (first call / too fast).
+    //    Emit a real zero baseline so the frontend series is visible immediately.
+    if (!computed && (rIO != null || rSec != null)) {
+      disk.readKBps    = 0;
+      disk.writeKBps   = 0;
+      disk.activeTimePct = 0;
+      disk.available   = true;
+      if (!diskAvailableConfirmed) {
+        console.log("[DiskTelemetry] First call — emitting zero baseline, real rates follow next tick");
+      }
+    }
+
+    // Update snapshot for next delta
     if (rIO != null && wIO != null) {
       lastDiskSnapshot = { rIO, wIO, ms: msTotal ?? 0, ts: now };
     }
 
-    if (!disk.available && !diskUnavailableLogged && lastDiskSnapshot) {
+    if (!disk.available && !diskUnavailableLogged) {
       diskUnavailableLogged = true;
-      console.log("[Telemetry] disksIO: no usable fields on this platform. Raw keys:", Object.keys(d).join(","));
+      console.log("[DiskTelemetry] disksIO returned no usable fields. Raw keys:", Object.keys(d).join(","));
     }
+
+    console.log(`[DiskTelemetry] tick: available=${disk.available} activeTimePct=${disk.activeTimePct} R=${disk.readKBps} W=${disk.writeKBps} (rSec=${rSec} wSec=${wSec} msSec=${msSec} rIO=${rIO} wIO=${wIO})`);
   } else if (diskIo.status === "rejected" && !diskUnavailableLogged) {
     diskUnavailableLogged = true;
-    console.log("[Telemetry] disksIO failed:", (diskIo as PromiseRejectedResult).reason?.message ?? "unknown");
+    console.log("[DiskTelemetry] disksIO failed:", (diskIo as PromiseRejectedResult).reason?.message ?? "unknown");
   }
 
   const snapshot: TelemetrySnapshot = {

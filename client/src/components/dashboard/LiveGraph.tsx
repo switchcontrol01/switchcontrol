@@ -407,8 +407,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const hasGpuTemp = data.some(d => d.gpuTemp != null);
   const hasGpuMem = data.some(d => d.gpuMemPct != null);
   const hasRamData = data.some(d => d.ram != null);
-  const hasDiskData = data.some(d => d.diskActiveTime != null);
-  const hasDiskRW = data.some(d => d.diskReadKBps != null || d.diskWriteKBps != null);
+  const hasDiskData = data.some(d => d.diskActiveTime != null) || (latest?.diskAvailable ?? false);
+  const hasDiskRW = data.some(d => d.diskReadKBps != null || d.diskWriteKBps != null) || (latest?.diskAvailable ?? false);
   const hasNetRx = data.some(d => d.netRx != null);
   const hasNetTx = data.some(d => d.netTx != null);
 
