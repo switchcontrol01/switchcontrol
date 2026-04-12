@@ -543,7 +543,15 @@ router.get("/games/:slug/status", async (req, res) => {
     const profile = PROFILES[game.profileId] ?? null;
     const actions = buildActionsForGame(game, state.installPath);
 
-    res.json({ ...state, profile, actions });
+    res.json({
+      ...state,
+      profile,
+      actions,
+      logoUrl:   game.logoUrl   ?? null,
+      coverUrl:  game.coverUrl  ?? null,
+      publisher: game.publisher ?? null,
+      genre:     game.genre     ?? null,
+    });
   } catch (e: any) {
     console.error("[AppBooster] GET /status error:", e.message);
     res.status(500).json({ error: "Failed to load game status" });

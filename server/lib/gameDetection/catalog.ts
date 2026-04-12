@@ -7,7 +7,7 @@ import type { CatalogEntry } from "./types";
 // BRANDING: logo/cover URLs using Steam CDN (free, no auth) or curated stable URLs
 
 const STEAM = (appId: number) =>
-  `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg`;
+  `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/library_600x900.jpg`;
 
 export const CATALOG: CatalogEntry[] = [
   // ── Battle Royale ─────────────────────────────────────────────────────────
@@ -27,8 +27,8 @@ export const CATALOG: CatalogEntry[] = [
       "D:\\Games\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
       "E:\\Epic Games\\Fortnite\\FortniteGame\\Binaries\\Win64",
     ],
-    logoUrl: STEAM(2153380),
-    coverUrl: STEAM(2153380),
+    logoUrl: STEAM(2280890),
+    coverUrl: STEAM(2280890),
     aliases: ["fortnite battle royale", "fn"],
   },
 
@@ -280,8 +280,8 @@ export const CATALOG: CatalogEntry[] = [
       "D:\\Riot Games\\League of Legends",
       "D:\\Games\\Riot Games\\League of Legends",
     ],
-    logoUrl: STEAM(2154370),
-    coverUrl: STEAM(2154370),
+    logoUrl: STEAM(2154380),
+    coverUrl: STEAM(2154380),
     aliases: ["lol", "league", "league of legends"],
   },
 
