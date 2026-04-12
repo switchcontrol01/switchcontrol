@@ -264,6 +264,17 @@ function ElectronAppContent() {
     return () => clearTimeout(t);
   }, [phase]);
 
+  // When an admin re-grants a trial, the server resets hasSeenTrialActivation
+  // and hasSeenTrialTour to false. Clear the matching session-level refs so the
+  // flow eval can fire the trial sequence again within the same app session.
+  useEffect(() => {
+    if (user?.hasSeenTrialActivation === false) trialUnlockFiredRef.current = false;
+  }, [user?.hasSeenTrialActivation]);
+
+  useEffect(() => {
+    if (user?.hasSeenTrialTour === false) trialTourFiredThisSessionRef.current = false;
+  }, [user?.hasSeenTrialTour]);
+
   useEffect(() => {
     if (isResetting) return;
     if (suppressFlowsRef.current) return;

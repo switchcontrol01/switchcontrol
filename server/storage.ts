@@ -477,6 +477,11 @@ export class DatabaseStorage implements IStorage {
       updateData.trialGrantedByAdminId = opts.grantedByAdminId ?? null;
       updateData.trialReason = opts.reason ?? null;
       updateData.hasUsedTrial = true;
+      // Reset the "seen" flags so the trial activation animation and tour
+      // always replay when a trial is (re-)granted, even if the user has
+      // been through them before on a previous trial grant.
+      updateData.hasSeenTrialActivation = false;
+      updateData.hasSeenTrialTour = false;
     } else if (opts.plan === "free" || opts.plan === null) {
       updateData.plan = "free";
       updateData.isPremium = false;
