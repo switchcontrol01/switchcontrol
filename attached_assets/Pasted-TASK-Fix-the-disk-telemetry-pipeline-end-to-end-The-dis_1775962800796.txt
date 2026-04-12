@@ -1,0 +1,127 @@
+TASK
+Fix the disk telemetry pipeline end to end. The disk line still does not appear on the dashboard graph even after repeated attempted fixes. Stop guessing and trace the real data flow from backend source to final chart render.
+PROBLEM
+The dashboard graph now shows CPU, RAM, and GPU, but disk is still missing.
+This means the issue is not visual polish. The issue is structural.
+The disk telemetry is failing in one of these layers:
+collection
+caching
+IPC payload assembly
+frontend mapping
+graph history storage
+graph visibility guard
+tooltip rendering
+I do not want another partial guess. I want the exact failure point found and fixed.
+GOAL
+Make disk telemetry appear reliably in:
+the live graph line
+the graph legend
+the tooltip
+the history buffer
+any related live dashboard cards if applicable
+Disk must work the same way CPU, RAM, and GPU now work.
+IMPLEMENTATION
+Trace the full disk telemetry chain end to end
+Audit the exact path for disk values:
+raw disk source collection in Electron main
+any polling cache object
+final getLive() or equivalent IPC payload
+preload exposure
+frontend live telemetry hook
+dashboard history buffer / graph data transform
+graph visibility condition
+tooltip field mapping
+Log each stage clearly.
+I want logs for:
+raw disk source values
+cached disk values
+final IPC payload values
+frontend received values
+history buffer stored values
+graph guard decision for disk visibility
+Find the exact field names and standardize them
+Check for mismatches like:
+diskUsage
+diskLoad
+diskBusy
+diskPct
+diskActive
+disks.active
+diskIoPct
+rIO_sec or wIO_sec derived values
+old disk field names still referenced in chart code
+Pick one final canonical field and use it consistently everywhere.
+Example:
+live.disk = { usagePct: number | null, readMbps: number | null, writeMbps: number | null, activeMs: number | null, available: boolean }
+Or whatever shape already fits the app, but it must be one shape only.
+Remove broken disk visibility guards
+Audit every guard that can hide the disk line.
+Examples:
+if (!diskValue) hide
+if (diskValue <= 0) hide
+if (!Number.isFinite(diskValue)) hide
+showDisk = diskAvailable && diskUsagePct > 0
+That is wrong if idle disk can be 0.0 but should still render.
+Fix rule:
+if disk telemetry is available, render the disk series
+allow 0.0 values
+only hide if value is null, undefined, or explicitly unavailable
+Check history buffer storage
+Very likely problem: CPU/RAM/GPU are being pushed into graph history, but disk is not.
+Audit the exact history append logic.
+Confirm the history object stores disk every tick, for example:
+timestamp
+cpu
+ram
+gpu
+disk
+If disk is missing there, the graph can never draw it.
+Fix the history append so disk is always stored when available.
+Check tooltip mapping separately
+The line and tooltip may use different keys.
+Audit tooltip renderer and ensure it reads the same disk field that the graph stores.
+Disk tooltip should show a valid value even when idle:
+Disk %: 0.0%
+Do not suppress it just because it is zero.
+Add temporary debug output until confirmed working
+Add short-term debug logs like:
+[DiskTelemetry] raw source: ... [DiskTelemetry] cache: ... [DiskTelemetry] ipc payload: ... [DiskTelemetry] frontend live: ... [DiskTelemetry] appended history point: ... [DiskTelemetry] showDisk decision: ...
+I want the exact point where disk disappears identified, not guessed.
+Validate with real output before closing
+Do not mark complete until all of these are confirmed:
+backend logs show real disk value entering payload
+frontend logs show same disk value received
+history buffer includes disk field
+chart series includes disk line
+tooltip shows disk value
+idle 0.0 still renders instead of disappearing
+If current disk source is bad, replace it
+If the current disk source is unreliable, replace it with a better Windows-compatible source.
+Allowed fallback:
+performance counters
+systeminformation disk IO stats if reliable
+a normalized active percentage based on read/write activity if clearly documented
+But do not fake it.
+If a source is not reliable, mark unavailable. If it is reliable, wire it cleanly.
+CHECKLIST
+audit full disk telemetry chain
+identify exact break point
+standardize one disk field shape
+fix history storage
+fix chart visibility guard
+fix tooltip mapping
+allow idle 0.0 values to still render
+verify with logs and real graph output
+FINAL OUTPUT
+Return:
+exact failure point found
+exact files changed
+final disk telemetry field shape
+proof that disk enters backend payload
+proof that disk reaches frontend history buffer
+confirmation that disk line and tooltip now render even at 0.0 idle
+Also tell them this:
+Do not close this as "fixed" unless the dashboard visibly shows the disk line on my machine.
+My standard on this one is simple: if I cannot see the disk line, it is not fixed.
+My read on your screenshot: the chart is still only plotting CPU, RAM, and GPU. So the current disk fix did not land in the actual rendered history series.
+One more hard truth. If they have "fixed" it five times and you still cannot see it, they are patching the wrong layer. The next move is not another rewrite. It is instrumentation and tracing.
