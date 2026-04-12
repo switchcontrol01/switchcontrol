@@ -1,181 +1,15 @@
 import { Link } from "wouter";
-import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles, Rocket } from "lucide-react";
+import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles, Zap, ArrowRight } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
-import { brand } from "@/config/brand";
-import { motion, useMotion } from "@/lib/motion";
-import { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
-import { GlassPanel } from "@/components/website/GlassPanel";
-import { GlowButton } from "@/components/website/GlowButton";
-import { SectionGlow } from "@/components/website/WebsiteBackground";
 import faviconImg from "@/assets/favicon.png";
 
-interface PatchNotes {
-  version: string;
-  title: string;
-  headline: string;
-  date: string;
-  changes: string[];
-  type: string;
-}
-
-function DownloadPatchNotesCard() {
-  const [notes, setNotes] = useState<PatchNotes | null>(null);
-
-  useEffect(() => {
-    fetch("/patch-notes.json")
-      .then((r) => r.json())
-      .then(setNotes)
-      .catch(() => {});
-  }, []);
-
-  if (!notes) return null;
-
-  return (
-    <motion.div
-      className="w-full max-w-lg"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.55, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="rounded-xl border p-5 space-y-3"
-        style={{
-          background: "rgba(12,10,20,0.70)",
-          backdropFilter: "blur(16px)",
-          WebkitBackdropFilter: "blur(16px)",
-          borderColor: "rgba(255,255,255,0.07)",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06)",
-        }}
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Sparkles className="size-3.5" style={{ color: "rgba(192,155,255,0.75)" }} />
-            <span className="text-[11px] font-semibold tracking-widest uppercase"
-              style={{ color: "rgba(192,155,255,0.70)", letterSpacing: "0.10em" }}>
-              What&apos;s New
-            </span>
-          </div>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
-            style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.28)", border: "1px solid rgba(255,255,255,0.07)" }}>
-            v{notes.version}
-          </span>
-        </div>
-        <div>
-          <p className="text-[13px] font-semibold text-white/80 leading-snug">{notes.title}</p>
-          <p className="text-[12px] leading-relaxed mt-0.5" style={{ color: "rgba(255,255,255,0.38)" }}>
-            {notes.headline}
-          </p>
-        </div>
-        <div className="space-y-1.5">
-          {notes.changes.slice(0, 4).map((change, i) => (
-            <div key={i} className="flex items-start gap-2">
-              <span className="mt-[4px] size-1 rounded-full shrink-0"
-                style={{ background: "rgba(139,92,246,0.60)" }} />
-              <p className="text-[11.5px] leading-snug" style={{ color: "rgba(255,255,255,0.42)" }}>
-                {change}
-              </p>
-            </div>
-          ))}
-          {notes.changes.length > 4 && (
-            <p className="text-[11px] pl-3" style={{ color: "rgba(255,255,255,0.22)" }}>
-              +{notes.changes.length - 4} more improvements
-            </p>
-          )}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-// ── Animated flip digit ────────────────────────────────────────────────────────
-function FlipDigit({ value, label }: { value: string; label: string }) {
-  const [displayed, setDisplayed] = useState(value);
-  const [flipping, setFlipping] = useState(false);
-  const prev = useRef(value);
-
-  useEffect(() => {
-    if (value !== prev.current) {
-      setFlipping(true);
-      const t = setTimeout(() => {
-        setDisplayed(value);
-        setFlipping(false);
-        prev.current = value;
-      }, 180);
-      return () => clearTimeout(t);
-    }
-  }, [value]);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "5px" }}>
-      {/* digit block */}
-      <div style={{
-        position: "relative",
-        width: "54px",
-        height: "62px",
-        borderRadius: "10px",
-        background: "rgba(255,255,255,0.04)",
-        border: "1px solid rgba(139,92,246,0.18)",
-        boxShadow: "inset 0 2px 8px rgba(0,0,0,0.4), 0 1px 0 rgba(255,255,255,0.06)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        overflow: "hidden",
-      }}>
-        {/* top/bottom half divider line */}
-        <div style={{
-          position: "absolute",
-          left: 0, right: 0,
-          top: "50%",
-          height: "1px",
-          background: "rgba(0,0,0,0.35)",
-          zIndex: 2,
-        }} />
-
-        {/* digit */}
-        <span
-          style={{
-            fontSize: "30px",
-            fontWeight: 800,
-            color: "rgba(255,255,255,0.94)",
-            fontVariantNumeric: "tabular-nums",
-            letterSpacing: "-0.02em",
-            lineHeight: 1,
-            display: "block",
-            transition: flipping ? "transform 0.18s ease-in, opacity 0.18s ease-in" : "none",
-            transform: flipping ? "scaleY(0.4) translateY(-4px)" : "scaleY(1) translateY(0)",
-            opacity: flipping ? 0 : 1,
-          }}
-        >
-          {displayed}
-        </span>
-
-        {/* gradient overlay top */}
-        <div style={{
-          position: "absolute",
-          inset: 0,
-          background: "linear-gradient(180deg, rgba(139,92,246,0.04) 0%, transparent 50%)",
-          borderRadius: "inherit",
-          pointerEvents: "none",
-        }} />
-      </div>
-
-      {/* label */}
-      <span style={{
-        fontSize: "8.5px",
-        fontWeight: 700,
-        letterSpacing: "0.12em",
-        textTransform: "uppercase",
-        color: "rgba(192,155,255,0.45)",
-      }}>
-        {label}
-      </span>
-    </div>
-  );
-}
-
-// ── Launch countdown widget ────────────────────────────────────────────────────
-// Target: Tuesday 14 April 2026 14:00 NZST (UTC+12) = 14 April 02:00 UTC
+// ── Constants ─────────────────────────────────────────────────────────────────
+// Target: Tuesday 14 April 2026 14:00 NZST (UTC+12) = 02:00 UTC
 const LAUNCH_UTC = new Date("2026-04-14T02:00:00Z").getTime();
+const SILK = [0.22, 1, 0.36, 1] as const;
 
 function getTimeLeft() {
   const diff = Math.max(0, LAUNCH_UTC - Date.now());
@@ -189,423 +23,633 @@ function getTimeLeft() {
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 
-function LaunchCountdown() {
-  const [time, setTime] = useState(getTimeLeft);
-  const [pulse, setPulse] = useState(false);
+// ── Smooth animated number segment ───────────────────────────────────────────
+function CountBlock({ value, label }: { value: string; label: string }) {
+  const [cur, setCur] = useState(value);
+  const [next, setNext] = useState(value);
+  const [animating, setAnimating] = useState(false);
+  const prevRef = useRef(value);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setTime(getTimeLeft());
-      setPulse(true);
-      setTimeout(() => setPulse(false), 250);
-    }, 1000);
-    return () => clearInterval(id);
-  }, []);
+    if (value === prevRef.current) return;
+    setNext(value);
+    setAnimating(true);
+    const t = setTimeout(() => {
+      setCur(value);
+      setAnimating(false);
+      prevRef.current = value;
+    }, 320);
+    return () => clearTimeout(t);
+  }, [value]);
 
   return (
-    <div
-      className="select-none pointer-events-none"
-      style={{
-        background: "rgba(8,6,18,0.78)",
-        backdropFilter: "blur(20px)",
-        WebkitBackdropFilter: "blur(20px)",
-        border: "1px solid rgba(139,92,246,0.22)",
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+      {/* Glass block */}
+      <div style={{
+        position: "relative",
+        width: "clamp(72px,13vw,108px)",
+        height: "clamp(80px,15vw,124px)",
+        borderRadius: "16px",
+        overflow: "hidden",
+        background: "linear-gradient(160deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%)",
+        border: "1px solid rgba(139,92,246,0.28)",
         boxShadow: [
-          "0 16px 48px rgba(0,0,0,0.55)",
-          "0 0 0 1px rgba(139,92,246,0.07)",
-          "inset 0 1px 0 rgba(255,255,255,0.08)",
-          "0 0 80px rgba(139,92,246,0.08)",
-        ].join(", "),
-        borderRadius: "20px",
-        padding: "18px 20px 22px",
-        width: "180px",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: "14px",
-      }}
-    >
-      {/* header */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "4px" }}>
+          "0 24px 64px rgba(0,0,0,0.65)",
+          "inset 0 1px 0 rgba(255,255,255,0.10)",
+          "inset 0 -1px 0 rgba(0,0,0,0.25)",
+          "0 0 0 1px rgba(139,92,246,0.08)",
+        ].join(","),
+      }}>
+        {/* Top highlight */}
         <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "5px",
+          position: "absolute", top: 0, left: 0, right: 0, height: "1px",
+          background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.20),transparent)",
+        }} />
+
+        {/* Center divider */}
+        <div style={{
+          position: "absolute", top: "50%", left: "8px", right: "8px", height: "1px",
+          background: "rgba(0,0,0,0.40)", zIndex: 3,
+        }} />
+
+        {/* Violet inner glow */}
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "radial-gradient(ellipse 100% 60% at 50% 0%,rgba(139,92,246,0.10) 0%,transparent 70%)",
+          pointerEvents: "none",
+        }} />
+
+        {/* Exiting number (slides up + blurs out) */}
+        <div style={{
+          position: "absolute", inset: 0,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          transition: animating ? "transform 0.32s cubic-bezier(0.55,0,1,0.45),opacity 0.22s ease,filter 0.22s ease" : "none",
+          transform: animating ? "translateY(-28%) scale(0.88)" : "translateY(0) scale(1)",
+          opacity: animating ? 0 : 1,
+          filter: animating ? "blur(6px)" : "blur(0px)",
+          zIndex: 2,
         }}>
-          <Rocket
-            style={{
-              width: "10px",
-              height: "10px",
-              color: "rgba(192,155,255,0.80)",
-              animation: "rocketBob 2s ease-in-out infinite",
-            }}
-          />
           <span style={{
-            fontSize: "8px",
+            fontSize: "clamp(32px,6vw,52px)",
             fontWeight: 800,
-            letterSpacing: "0.16em",
-            textTransform: "uppercase",
-            color: "rgba(192,155,255,0.70)",
-          }}>
-            Official Launch
-          </span>
+            color: "rgba(255,255,255,0.96)",
+            fontVariantNumeric: "tabular-nums",
+            letterSpacing: "-0.03em",
+            lineHeight: 1,
+            textShadow: "0 2px 20px rgba(139,92,246,0.35)",
+          }}>{cur}</span>
         </div>
 
-        {/* live pulse dot */}
-        <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+        {/* Entering number (slides up from below) */}
+        {animating && (
           <div style={{
-            width: "5px",
-            height: "5px",
-            borderRadius: "50%",
-            background: pulse ? "rgba(139,92,246,0.95)" : "rgba(139,92,246,0.55)",
-            boxShadow: pulse ? "0 0 10px 3px rgba(139,92,246,0.5)" : "0 0 4px 1px rgba(139,92,246,0.25)",
-            transition: "all 0.15s ease",
-          }} />
-          <span style={{
-            fontSize: "8px",
-            fontWeight: 600,
-            color: "rgba(255,255,255,0.22)",
-            letterSpacing: "0.04em",
+            position: "absolute", inset: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            animation: "slideInUp 0.32s cubic-bezier(0.22,1,0.36,1) forwards",
+            zIndex: 2,
           }}>
-            2 PM · Tue Apr 14 · NZT
-          </span>
-        </div>
+            <span style={{
+              fontSize: "clamp(32px,6vw,52px)",
+              fontWeight: 800,
+              color: "rgba(255,255,255,0.96)",
+              fontVariantNumeric: "tabular-nums",
+              letterSpacing: "-0.03em",
+              lineHeight: 1,
+              textShadow: "0 2px 20px rgba(139,92,246,0.35)",
+            }}>{next}</span>
+          </div>
+        )}
+
+        {/* Bottom ambient */}
+        <div style={{
+          position: "absolute", bottom: 0, left: 0, right: 0, height: "40%",
+          background: "linear-gradient(0deg,rgba(0,0,0,0.30),transparent)",
+          pointerEvents: "none",
+        }} />
       </div>
 
-      {/* thin gradient divider */}
-      <div style={{
-        width: "100%",
-        height: "1px",
-        background: "linear-gradient(90deg, transparent, rgba(139,92,246,0.30), transparent)",
-      }} />
-
-      {/* digit blocks */}
-      {time.launched ? (
-        <div style={{
-          textAlign: "center",
-          color: "rgba(192,155,255,0.90)",
-          fontSize: "13px",
-          fontWeight: 700,
-          lineHeight: 1.4,
-        }}>
-          🚀 We&apos;re Live!
-        </div>
-      ) : (
-        <div style={{ display: "flex", alignItems: "flex-start", gap: "6px" }}>
-          <FlipDigit value={pad(time.d)} label="days" />
-          {/* colon */}
-          <div style={{
-            fontSize: "22px",
-            fontWeight: 800,
-            color: "rgba(139,92,246,0.55)",
-            marginTop: "14px",
-            lineHeight: 1,
-            animation: "colonBlink 1s step-end infinite",
-          }}>:</div>
-          <FlipDigit value={pad(time.h)} label="hrs" />
-          <div style={{
-            fontSize: "22px",
-            fontWeight: 800,
-            color: "rgba(139,92,246,0.55)",
-            marginTop: "14px",
-            lineHeight: 1,
-            animation: "colonBlink 1s step-end infinite",
-          }}>:</div>
-          <FlipDigit value={pad(time.m)} label="min" />
-        </div>
-      )}
-
-      {/* seconds bar */}
-      {!time.launched && (
-        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "5px" }}>
-          <div style={{
-            width: "100%",
-            height: "3px",
-            borderRadius: "2px",
-            background: "rgba(255,255,255,0.06)",
-            overflow: "hidden",
-          }}>
-            <div style={{
-              height: "100%",
-              borderRadius: "2px",
-              background: "linear-gradient(90deg, #8b5cf6, #06b6d4)",
-              width: `${(time.s / 59) * 100}%`,
-              transition: "width 0.95s linear",
-              boxShadow: "0 0 6px rgba(139,92,246,0.6)",
-            }} />
-          </div>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.20)", fontWeight: 600 }}>
-              {pad(time.s)}s
-            </span>
-            <span style={{ fontSize: "8px", color: "rgba(255,255,255,0.18)", fontVariantNumeric: "tabular-nums" }}>
-              {time.d}d {pad(time.h)}:{pad(time.m)} left
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* glow orb at bottom */}
-      <div style={{
-        width: "32px",
-        height: "4px",
-        borderRadius: "2px",
-        background: "linear-gradient(90deg, rgba(139,92,246,0.0), rgba(139,92,246,0.50), rgba(6,182,212,0.40), rgba(6,182,212,0.0))",
-        filter: "blur(2px)",
-      }} />
+      {/* Label */}
+      <span style={{
+        fontSize: "clamp(9px,1.5vw,11px)",
+        fontWeight: 700,
+        letterSpacing: "0.18em",
+        textTransform: "uppercase",
+        color: "rgba(192,155,255,0.50)",
+      }}>{label}</span>
     </div>
   );
 }
 
-// ── Side particle data ─────────────────────────────────────────────────────────
-const LEFT_PARTICLES = [
-  { top: "18%",  size: 3,   dur: 2.8, delay: 0,    color: "rgba(168,85,246,0.55)" },
-  { top: "34%",  size: 2,   dur: 3.4, delay: 0.6,  color: "rgba(139,92,246,0.40)" },
-  { top: "50%",  size: 4,   dur: 2.5, delay: 1.1,  color: "rgba(103,232,249,0.45)" },
-  { top: "65%",  size: 2.5, dur: 3.8, delay: 0.3,  color: "rgba(168,85,246,0.35)" },
-  { top: "80%",  size: 3,   dur: 3.0, delay: 1.6,  color: "rgba(255,255,255,0.25)" },
-  { top: "27%",  size: 2,   dur: 4.1, delay: 0.9,  color: "rgba(103,232,249,0.30)" },
-  { top: "56%",  size: 3.5, dur: 2.9, delay: 2.0,  color: "rgba(168,85,246,0.50)" },
-  { top: "72%",  size: 2,   dur: 3.6, delay: 0.4,  color: "rgba(255,255,255,0.20)" },
-];
-const RIGHT_PARTICLES = [
-  { top: "22%",  size: 3,   dur: 3.1, delay: 0.2,  color: "rgba(103,232,249,0.50)" },
-  { top: "40%",  size: 2,   dur: 2.6, delay: 0.8,  color: "rgba(168,85,246,0.40)" },
-  { top: "55%",  size: 4,   dur: 3.3, delay: 1.4,  color: "rgba(139,92,246,0.55)" },
-  { top: "70%",  size: 2.5, dur: 2.8, delay: 0.1,  color: "rgba(103,232,249,0.35)" },
-  { top: "84%",  size: 3,   dur: 3.7, delay: 1.8,  color: "rgba(255,255,255,0.22)" },
-  { top: "30%",  size: 2,   dur: 4.0, delay: 0.5,  color: "rgba(168,85,246,0.30)" },
-  { top: "62%",  size: 3.5, dur: 2.7, delay: 2.2,  color: "rgba(103,232,249,0.45)" },
-  { top: "46%",  size: 2,   dur: 3.5, delay: 1.0,  color: "rgba(255,255,255,0.18)" },
-];
+// ── Separator colon ───────────────────────────────────────────────────────────
+function Colon() {
+  return (
+    <div style={{
+      display: "flex", flexDirection: "column", gap: "14px",
+      alignItems: "center", justifyContent: "center",
+      paddingBottom: "24px",
+    }}>
+      {[0, 1].map(i => (
+        <div key={i} style={{
+          width: "5px", height: "5px", borderRadius: "50%",
+          background: "rgba(139,92,246,0.65)",
+          boxShadow: "0 0 8px 2px rgba(139,92,246,0.40)",
+          animation: "colonPulse 1s step-end infinite",
+          animationDelay: `${i * 0.1}s`,
+        }} />
+      ))}
+    </div>
+  );
+}
 
-export default function DownloadPage() {
-  const { user } = useAuth();
-  const { prefersReducedMotion } = useMotion();
+// ── Ambient drifting particles ────────────────────────────────────────────────
+const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
+  id: i,
+  x: 8 + (i * 6.5) % 84,
+  startY: 20 + (i * 7) % 60,
+  size: 1.5 + (i % 3) * 1,
+  dur: 6 + (i % 5) * 2.4,
+  delay: (i * 0.7) % 7,
+  opacity: 0.15 + (i % 4) * 0.08,
+  color: i % 3 === 0 ? "168,85,247" : i % 3 === 1 ? "103,232,249" : "255,255,255",
+}));
+
+// ── Patch notes card ──────────────────────────────────────────────────────────
+interface PatchNotes {
+  version: string; title: string; headline: string; date: string;
+  changes: string[]; type: string;
+}
+
+function PatchNotesCard() {
+  const [notes, setNotes] = useState<PatchNotes | null>(null);
+  useEffect(() => {
+    fetch("/patch-notes.json").then(r => r.json()).then(setNotes).catch(() => {});
+  }, []);
+  if (!notes) return null;
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, filter: "blur(8px)" }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ duration: 0.8, delay: 1.2, ease: SILK }}
+      style={{
+        width: "100%", maxWidth: "480px",
+        borderRadius: "16px",
+        padding: "20px 24px",
+        background: "rgba(8,6,18,0.70)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        boxShadow: "0 8px 32px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.05)",
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "12px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <Sparkles size={12} style={{ color: "rgba(192,155,255,0.70)" }} />
+          <span style={{ fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em", textTransform: "uppercase", color: "rgba(192,155,255,0.65)" }}>
+            What&apos;s New
+          </span>
+        </div>
+        <span style={{
+          fontSize: "10px", fontWeight: 500, padding: "2px 8px", borderRadius: "6px",
+          background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.28)",
+          border: "1px solid rgba(255,255,255,0.07)",
+        }}>v{notes.version}</span>
+      </div>
+      <p style={{ fontSize: "13px", fontWeight: 600, color: "rgba(255,255,255,0.80)", marginBottom: "4px" }}>{notes.title}</p>
+      <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.36)", marginBottom: "12px", lineHeight: 1.5 }}>{notes.headline}</p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+        {notes.changes.slice(0, 3).map((c, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+            <div style={{ marginTop: "5px", width: "4px", height: "4px", borderRadius: "50%", flexShrink: 0, background: "rgba(139,92,246,0.55)" }} />
+            <span style={{ fontSize: "11.5px", color: "rgba(255,255,255,0.40)", lineHeight: 1.45 }}>{c}</span>
+          </div>
+        ))}
+        {notes.changes.length > 3 && (
+          <span style={{ fontSize: "11px", paddingLeft: "12px", color: "rgba(255,255,255,0.22)" }}>
+            +{notes.changes.length - 3} more improvements
+          </span>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Main countdown component ──────────────────────────────────────────────────
+function LaunchHero({ user }: { user: any }) {
+  const [time, setTime] = useState(getTimeLeft);
+  const shimmerRef = useRef(false);
+  const launched = time.launched;
+
+  useEffect(() => {
+    const id = setInterval(() => setTime(getTimeLeft()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Entrance stagger config
+  const stagger = (i: number) => ({
+    initial: { opacity: 0, y: 24, filter: "blur(12px)" },
+    animate: { opacity: 1, y: 0, filter: "blur(0px)" },
+    transition: { duration: 0.9, delay: 0.15 + i * 0.12, ease: SILK },
+  });
 
   return (
-    <WebsiteShell variant="inner" bgVariant="download" showFooter={false}>
-      <style>{`
-        @keyframes logoFloat {
-          0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
-        }
-        @keyframes glowPulse {
-          0%, 100% { 
-            filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.5)) drop-shadow(0 0 24px rgba(139, 92, 246, 0.3));
-          }
-          50% { 
-            filter: drop-shadow(0 0 20px rgba(139, 92, 246, 0.7)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.5));
-          }
-        }
-        .logo-animate {
-          animation: logoFloat 3s ease-in-out infinite, glowPulse 2.5s ease-in-out infinite;
-        }
-        .logo-animate:hover {
-          transform: scale(1.03);
-          filter: drop-shadow(0 0 24px rgba(139, 92, 246, 0.8)) drop-shadow(0 0 48px rgba(139, 92, 246, 0.6));
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .logo-animate {
-            animation: logoFloat 8s ease-in-out infinite, glowPulse 6s ease-in-out infinite;
-          }
-        }
-        @keyframes sideParticle {
-          0%   { opacity: 0;    transform: translate(0, 0)    scale(1); }
-          15%  { opacity: 1; }
-          80%  { opacity: 0.6; }
-          100% { opacity: 0;    transform: translate(var(--dx), -80px) scale(0.3); }
-        }
-        .side-particle {
-          animation: sideParticle var(--dur) ease-out var(--delay) infinite;
-          border-radius: 50%;
-          position: absolute;
-          pointer-events: none;
-          will-change: transform, opacity;
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .side-particle { animation-duration: calc(var(--dur) * 2.5); }
-        }
-        @keyframes colonBlink {
-          0%, 49% { opacity: 1; }
-          50%, 100% { opacity: 0.2; }
-        }
-        @keyframes rocketBob {
-          0%, 100% { transform: translateY(0px) rotate(-45deg); }
-          50%       { transform: translateY(-2px) rotate(-45deg); }
-        }
-      `}</style>
+    <div style={{
+      display: "flex", flexDirection: "column", alignItems: "center",
+      gap: "clamp(24px,4vw,40px)", width: "100%", textAlign: "center",
+    }}>
 
-      <main className="flex-1 flex flex-col items-center justify-start p-4 pt-20 pb-16 min-h-[calc(100vh-80px)] relative gap-8 w-full">
-        <SectionGlow color="purple" intensity="strong" />
+      {/* ── Eyebrow / headline ── */}
+      <motion.div {...stagger(0)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "10px" }}>
+        <div style={{
+          display: "inline-flex", alignItems: "center", gap: "7px",
+          padding: "5px 14px", borderRadius: "100px",
+          background: "rgba(139,92,246,0.10)",
+          border: "1px solid rgba(139,92,246,0.25)",
+        }}>
+          <div style={{
+            width: "6px", height: "6px", borderRadius: "50%",
+            background: "rgba(139,92,246,0.9)",
+            boxShadow: "0 0 8px 3px rgba(139,92,246,0.50)",
+            animation: "livePulse 2s ease-in-out infinite",
+          }} />
+          <span style={{
+            fontSize: "11px", fontWeight: 700, letterSpacing: "0.14em",
+            textTransform: "uppercase", color: "rgba(192,155,255,0.75)",
+          }}>
+            {launched ? "Now Available" : "Official Launch"}
+          </span>
+        </div>
 
-        {/* ── Download card ───────────────────────────────────────────────── */}
-        <div className="w-full flex flex-col items-center px-2">
-          {/* Outer wrapper — flex row on large screens so countdown sits cleanly left of card */}
-          <div className="flex items-start justify-center gap-8 w-full" style={{ maxWidth: "980px" }}>
+        <h1 style={{
+          fontSize: "clamp(26px,5vw,52px)",
+          fontWeight: 800,
+          letterSpacing: "-0.025em",
+          lineHeight: 1.1,
+          color: "rgba(255,255,255,0.97)",
+          textShadow: "0 4px 40px rgba(139,92,246,0.25)",
+          margin: 0,
+        }}>
+          {launched ? (
+            <>SwitchControl is <span style={{ background: "linear-gradient(135deg,#a78bfa,#67e8f9)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>live</span></>
+          ) : (
+            <>SwitchControl launches <span style={{ background: "linear-gradient(135deg,#a78bfa,#67e8f9)", WebkitBackgroundClip: "text", backgroundClip: "text", WebkitTextFillColor: "transparent" }}>in</span></>
+          )}
+        </h1>
+      </motion.div>
 
-            {/* ── Launch countdown (left side, large screens only, slight rightward angle) ── */}
+      {/* ── Countdown hero (or LIVE state) ── */}
+      <motion.div {...stagger(1)} style={{ width: "100%" }}>
+        {launched ? (
+          /* ── LAUNCHED STATE ── */
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: "20px",
+          }}>
             <motion.div
-              className="hidden lg:block flex-shrink-0 self-center"
-              initial={{ opacity: 0, x: -28, rotate: 5 }}
-              animate={{ opacity: 1, x: 0, rotate: 5 }}
-              transition={{ duration: 0.65, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-              style={{ transformOrigin: "center center" }}
+              initial={{ scale: 0.85, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 1.2, ease: SILK }}
+              style={{
+                fontSize: "clamp(52px,12vw,96px)",
+                lineHeight: 1,
+                animation: "launchGlow 3s ease-in-out infinite",
+              }}
             >
-              <LaunchCountdown />
+              🚀
             </motion.div>
+            <p style={{
+              fontSize: "clamp(20px,4vw,32px)", fontWeight: 700,
+              color: "rgba(255,255,255,0.90)", letterSpacing: "-0.01em",
+            }}>
+              SwitchControl is now available!
+            </p>
+          </div>
+        ) : (
+          /* ── COUNTDOWN BLOCKS ── */
+          <div style={{
+            display: "flex", flexDirection: "column", alignItems: "center", gap: "0px",
+          }}>
+            {/* Ambient glow behind countdown */}
+            <div style={{
+              position: "absolute",
+              width: "clamp(320px,60vw,580px)",
+              height: "clamp(120px,20vw,200px)",
+              borderRadius: "50%",
+              background: "radial-gradient(ellipse,rgba(139,92,246,0.18) 0%,rgba(103,232,249,0.06) 55%,transparent 75%)",
+              filter: "blur(32px)",
+              animation: "ambientBreathe 5s ease-in-out infinite",
+              pointerEvents: "none",
+              zIndex: 0,
+            }} />
 
-            {/* ── Main card ── */}
-            <div className="flex-1 min-w-0">
-              <div className="relative w-full max-w-xl mx-auto">
-                {/* Left-side particles */}
-                {LEFT_PARTICLES.map((p, i) => (
-                  <div
-                    key={`lp-${i}`}
-                    className="side-particle"
-                    style={{
-                      top: p.top,
-                      left: `-${10 + (i % 3) * 6}px`,
-                      width: p.size,
-                      height: p.size,
-                      background: p.color,
-                      boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-                      "--dur": `${p.dur}s`,
-                      "--delay": `${p.delay}s`,
-                      "--dx": `${-12 - (i % 4) * 5}px`,
-                    } as React.CSSProperties}
-                  />
-                ))}
+            {/* Digit row */}
+            <div style={{
+              display: "flex", alignItems: "flex-end", justifyContent: "center",
+              gap: "clamp(6px,2vw,14px)",
+              position: "relative", zIndex: 1,
+            }}>
+              <CountBlock value={pad(time.d)} label="Days" />
+              <Colon />
+              <CountBlock value={pad(time.h)} label="Hours" />
+              <Colon />
+              <CountBlock value={pad(time.m)} label="Minutes" />
+              <Colon />
+              <CountBlock value={pad(time.s)} label="Seconds" />
+            </div>
+          </div>
+        )}
+      </motion.div>
 
-                {/* Right-side particles */}
-                {RIGHT_PARTICLES.map((p, i) => (
-                  <div
-                    key={`rp-${i}`}
-                    className="side-particle"
-                    style={{
-                      top: p.top,
-                      right: `-${10 + (i % 3) * 6}px`,
-                      width: p.size,
-                      height: p.size,
-                      background: p.color,
-                      boxShadow: `0 0 ${p.size * 2}px ${p.color}`,
-                      "--dur": `${p.dur}s`,
-                      "--delay": `${p.delay}s`,
-                      "--dx": `${12 + (i % 4) * 5}px`,
-                    } as React.CSSProperties}
-                  />
-                ))}
+      {/* ── Release date line ── */}
+      {!launched && (
+        <motion.div {...stagger(2)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+          <p style={{
+            fontSize: "clamp(13px,2.5vw,17px)",
+            color: "rgba(255,255,255,0.55)",
+            fontWeight: 500,
+            letterSpacing: "0.01em",
+          }}>
+            Releasing <strong style={{ color: "rgba(192,155,255,0.85)", fontWeight: 700 }}>Tuesday, April 14</strong> at{" "}
+            <strong style={{ color: "rgba(192,155,255,0.85)", fontWeight: 700 }}>2:00 PM NZT</strong>
+          </p>
+          <p style={{ fontSize: "12px", color: "rgba(255,255,255,0.24)", fontWeight: 500 }}>
+            First public release · Windows 10/11 · v1.0.0 Early Access
+          </p>
+        </motion.div>
+      )}
 
-                <GlassPanel variant="elevated" glow="purple" className="w-full p-0" style={{ background: "rgba(255,255,255,0.07)", backdropFilter: "blur(28px)", WebkitBackdropFilter: "blur(28px)", border: "1px solid rgba(255,255,255,0.14)" }}>
-                  <div className="p-6 sm:p-8 text-center border-b border-white/[0.06]">
-                    <div className="flex justify-center mb-4">
-                      <div className="relative">
-                        <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary/40 to-cyan-600/30 blur-2xl scale-150 opacity-60" />
-                        <motion.img 
-                          src={faviconImg}
-                          alt="SwitchControl"
-                          className="relative w-20 h-20 md:w-24 md:h-24 rounded-[22%] transition-all duration-300 object-contain logo-animate"
-                          initial={{ opacity: 0, scale: prefersReducedMotion ? 0.95 : 0.9 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          transition={{ duration: prefersReducedMotion ? 0.2 : 0.4 }}
-                          whileHover={{ scale: prefersReducedMotion ? 1.01 : 1.03 }}
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 mb-3">
-                      <span className="text-[10px] font-medium px-2.5 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/30">
-                        v1.0.0 (Early Access)
-                      </span>
-                    </div>
-                    <h1 className="text-2xl font-bold text-white" data-testid="text-download-title">Download SwitchControl.exe</h1>
-                    <p className="text-sm text-white/50 mt-1">
-                      Welcome back, {user?.firstName || user?.email?.split('@')[0] || 'User'}! Get the desktop app to start optimizing.
-                    </p>
+      {/* ── Download card ── */}
+      <motion.div {...stagger(3)} style={{ width: "100%", maxWidth: "480px" }}>
+        <div style={{
+          borderRadius: "20px",
+          overflow: "hidden",
+          background: "linear-gradient(160deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%)",
+          backdropFilter: "blur(28px)",
+          WebkitBackdropFilter: "blur(28px)",
+          border: "1px solid rgba(139,92,246,0.22)",
+          boxShadow: [
+            "0 32px 80px rgba(0,0,0,0.60)",
+            "inset 0 1px 0 rgba(255,255,255,0.10)",
+            "0 0 0 1px rgba(139,92,246,0.06)",
+          ].join(","),
+        }}>
+          {/* Card header */}
+          <div style={{
+            padding: "28px 28px 20px",
+            textAlign: "center",
+            borderBottom: "1px solid rgba(255,255,255,0.06)",
+          }}>
+            <div style={{ position: "relative", display: "inline-block", marginBottom: "16px" }}>
+              <div style={{
+                position: "absolute", inset: "-16px",
+                background: "radial-gradient(ellipse,rgba(139,92,246,0.35) 0%,transparent 70%)",
+                filter: "blur(20px)",
+                animation: "ambientBreathe 4s ease-in-out infinite",
+              }} />
+              <motion.img
+                src={faviconImg}
+                alt="SwitchControl"
+                style={{
+                  position: "relative",
+                  width: "80px", height: "80px",
+                  borderRadius: "22%",
+                  objectFit: "contain",
+                  animation: "logoFloat 4s ease-in-out infinite, logoGlow 3s ease-in-out infinite",
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: "8px" }}>
+              <span style={{
+                display: "inline-block",
+                fontSize: "10px", fontWeight: 700, letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                padding: "3px 10px", borderRadius: "100px",
+                background: "rgba(139,92,246,0.15)",
+                border: "1px solid rgba(139,92,246,0.30)",
+                color: "rgba(192,155,255,0.80)",
+                marginBottom: "10px",
+              }}>v1.0.0 · Early Access</span>
+            </div>
+
+            <h2 style={{
+              fontSize: "clamp(18px,3vw,22px)", fontWeight: 800,
+              color: "rgba(255,255,255,0.97)", letterSpacing: "-0.015em",
+              margin: "0 0 6px",
+            }}>Download SwitchControl.exe</h2>
+            <p style={{ fontSize: "13px", color: "rgba(255,255,255,0.42)", margin: 0 }}>
+              {user?.firstName
+                ? `Welcome back, ${user.firstName}! Get the desktop app.`
+                : "Get the desktop app to start optimizing."}
+            </p>
+          </div>
+
+          {/* Card body */}
+          <div style={{ padding: "20px 28px 24px" }}>
+            {/* Specs list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
+              {[
+                { icon: CheckCircle, color: "#34d399", text: "v1.0.0 (Early Access) · Latest build" },
+                { icon: Monitor, color: "#a78bfa", text: "Windows Installer (.exe) · Windows 10/11 64-bit" },
+                { icon: Shield, color: "#60a5fa", text: "Digitally signed · No bundled software" },
+                { icon: Clock, color: "#fbbf24", text: "~350 MB · Installs in under 30 seconds" },
+              ].map(({ icon: Icon, color, text }, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                  <Icon size={14} style={{ color, flexShrink: 0 }} />
+                  <span style={{ fontSize: "12.5px", color: "rgba(255,255,255,0.48)" }}>{text}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* CTA Button */}
+            <button
+              onClick={() => alert("Download would start here. The installer is not yet available.")}
+              data-testid="button-download-windows"
+              style={{
+                width: "100%",
+                padding: "14px 20px",
+                borderRadius: "12px",
+                border: "none",
+                cursor: "pointer",
+                background: "linear-gradient(135deg,#7c3aed 0%,#6d28d9 40%,#4c1d95 100%)",
+                boxShadow: "0 8px 32px rgba(109,40,217,0.50),inset 0 1px 0 rgba(255,255,255,0.15)",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
+                fontSize: "15px", fontWeight: 700, color: "#fff",
+                letterSpacing: "0.01em",
+                transition: "all 0.2s ease",
+                position: "relative", overflow: "hidden",
+              }}
+              onMouseEnter={e => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.transform = "translateY(-1px)";
+                el.style.boxShadow = "0 12px 40px rgba(109,40,217,0.65),inset 0 1px 0 rgba(255,255,255,0.20)";
+              }}
+              onMouseLeave={e => {
+                const el = e.currentTarget as HTMLButtonElement;
+                el.style.transform = "translateY(0)";
+                el.style.boxShadow = "0 8px 32px rgba(109,40,217,0.50),inset 0 1px 0 rgba(255,255,255,0.15)";
+              }}
+            >
+              <Download size={16} />
+              Download SwitchControl.exe
+              <ArrowRight size={14} style={{ opacity: 0.70 }} />
+            </button>
+
+            {/* Legal */}
+            <p style={{
+              fontSize: "11px", textAlign: "center",
+              color: "rgba(255,255,255,0.28)", marginTop: "12px",
+            }}>
+              By downloading, you agree to our{" "}
+              <Link href="/terms" style={{ color: "rgba(139,92,246,0.80)", textDecoration: "none" }}>Terms</Link>
+              {" "}and{" "}
+              <Link href="/privacy" style={{ color: "rgba(139,92,246,0.80)", textDecoration: "none" }}>Privacy Policy</Link>.
+            </p>
+
+            {/* Install steps */}
+            <div style={{
+              marginTop: "20px",
+              paddingTop: "20px",
+              borderTop: "1px solid rgba(255,255,255,0.06)",
+            }}>
+              <p style={{ fontSize: "11px", fontWeight: 600, color: "rgba(255,255,255,0.30)", marginBottom: "12px", textAlign: "center", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                Installation
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: "8px" }}>
+                {[
+                  { n: "1", label: "Download", icon: Download },
+                  { n: "2", label: "Install", icon: Monitor },
+                  { n: "3", label: "Launch", icon: Zap },
+                  { n: "4", label: "Optimize", icon: CheckCircle },
+                ].map(({ n, label, icon: Icon }, i) => (
+                  <div key={i} data-testid={`step-install-${n}`} style={{
+                    display: "flex", flexDirection: "column", alignItems: "center", gap: "6px",
+                    padding: "10px 4px",
+                    borderRadius: "10px",
+                    background: "rgba(255,255,255,0.03)",
+                    border: "1px solid rgba(255,255,255,0.07)",
+                  }}>
+                    <Icon size={14} style={{ color: "rgba(139,92,246,0.70)" }} />
+                    <span style={{ fontSize: "13px", fontWeight: 700, color: "rgba(255,255,255,0.50)" }}>{n}</span>
+                    <span style={{ fontSize: "9.5px", color: "rgba(255,255,255,0.30)", textAlign: "center" }}>{label}</span>
                   </div>
-
-                  <div className="p-6 sm:p-8 space-y-6 relative">
-                    <SectionGlow color="cyan" intensity="strong" />
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-3 text-sm text-white/50">
-                        <CheckCircle className="size-4 text-emerald-400 shrink-0" />
-                        <span>v1.0.0 (Early Access) - Latest build</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-white/50">
-                        <Monitor className="size-4 text-primary shrink-0" />
-                        <span>Windows Installer (.exe) • Windows 10/11 64-bit</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-white/50">
-                        <Shield className="size-4 text-blue-400 shrink-0" />
-                        <span>Digitally signed • No bundled software</span>
-                      </div>
-                      <div className="flex items-center gap-3 text-sm text-white/50">
-                        <Clock className="size-4 text-amber-400 shrink-0" />
-                        <span>~350 MB • Installs in under 30 seconds</span>
-                      </div>
-                    </div>
-
-                    <GlowButton
-                      variant="primary"
-                      size="lg"
-                      className="w-full"
-                      onClick={() => {
-                        alert('Download would start here. This is a demo - the actual installer is not yet available.');
-                      }}
-                      data-testid="button-download-windows"
-                    >
-                      <Download className="size-5" />
-                      Download SwitchControl.exe
-                    </GlowButton>
-
-                    <p className="text-xs text-center text-white/35">
-                      By downloading, you agree to our{" "}
-                      <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
-                      {" "}and{" "}
-                      <Link href="/privacy" className="text-primary hover:underline">Privacy Policy</Link>.
-                    </p>
-
-                    <div className="pt-4 border-t border-white/[0.06]">
-                      <h4 className="text-sm font-medium text-white mb-4">Installation Steps</h4>
-                      <div className="grid grid-cols-4 gap-2">
-                        {[
-                          { step: 1, label: "Download", icon: Download },
-                          { step: 2, label: "Install", icon: Monitor },
-                          { step: 3, label: "Launch", icon: Shield },
-                          { step: 4, label: "Optimize", icon: CheckCircle }
-                        ].map((item, index) => (
-                          <motion.div
-                            key={item.step}
-                            className="text-center p-2 rounded-xl bg-white/[0.03] border border-white/[0.08]"
-                            initial={{ opacity: 0, y: prefersReducedMotion ? 5 : 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: 0.5 + index * 0.1, duration: prefersReducedMotion ? 0.15 : 0.3 }}
-                            whileHover={{ scale: prefersReducedMotion ? 1.02 : 1.05, borderColor: 'rgba(139, 92, 246, 0.5)' }}
-                            data-testid={`step-install-${item.step}`}
-                          >
-                            <item.icon className="size-5 mx-auto mb-1 text-primary" />
-                            <p className="text-xs font-medium text-white">{item.step}</p>
-                            <p className="text-[10px] text-white/40">{item.label}</p>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </GlassPanel>
+                ))}
               </div>
             </div>
           </div>
         </div>
+      </motion.div>
 
-        {/* ── What's New card ─────────────────────────────────────────────── */}
-        <DownloadPatchNotesCard />
+      {/* ── Patch notes ── */}
+      <motion.div {...stagger(4)} style={{ width: "100%", display: "flex", justifyContent: "center" }}>
+        <PatchNotesCard />
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+export default function DownloadPage() {
+  const { user } = useAuth();
+
+  return (
+    <WebsiteShell variant="inner" bgVariant="download" showFooter={false}>
+      <style>{`
+        @keyframes slideInUp {
+          from { transform: translateY(30%) scale(0.92); opacity: 0; filter: blur(6px); }
+          to   { transform: translateY(0)   scale(1);    opacity: 1; filter: blur(0px); }
+        }
+        @keyframes colonPulse {
+          0%, 49% { opacity: 0.9; }
+          50%, 100% { opacity: 0.25; }
+        }
+        @keyframes livePulse {
+          0%, 100% { box-shadow: 0 0 6px 2px rgba(139,92,246,0.45); opacity: 1; }
+          50%       { box-shadow: 0 0 14px 5px rgba(139,92,246,0.65); opacity: 0.80; }
+        }
+        @keyframes ambientBreathe {
+          0%, 100% { opacity: 0.70; transform: scale(1); }
+          50%       { opacity: 1.00; transform: scale(1.06); }
+        }
+        @keyframes logoFloat {
+          0%, 100% { transform: translateY(0px); }
+          50%       { transform: translateY(-8px); }
+        }
+        @keyframes logoGlow {
+          0%, 100% { filter: drop-shadow(0 0 14px rgba(139,92,246,0.50)); }
+          50%       { filter: drop-shadow(0 0 26px rgba(139,92,246,0.75)); }
+        }
+        @keyframes launchGlow {
+          0%, 100% { filter: drop-shadow(0 0 16px rgba(139,92,246,0.60)); }
+          50%       { filter: drop-shadow(0 0 32px rgba(139,92,246,0.90)); }
+        }
+        @keyframes particleDrift {
+          0%   { opacity: 0;    transform: translateY(0px)   scale(1); }
+          10%  { opacity: 1; }
+          80%  { opacity: 0.6; }
+          100% { opacity: 0;    transform: translateY(-90px) scale(0.3); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          @keyframes ambientBreathe { 0%,100% { opacity:0.80; transform:scale(1); } }
+          @keyframes logoFloat { 0%,100% { transform:translateY(0); } }
+          @keyframes livePulse { 0%,100% { box-shadow:0 0 6px 2px rgba(139,92,246,0.45); } }
+        }
+      `}</style>
+
+      <main style={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        padding: "clamp(80px,12vw,120px) clamp(16px,5vw,40px) 80px",
+        minHeight: "calc(100vh - 80px)",
+        position: "relative",
+        overflowX: "hidden",
+      }}>
+
+        {/* ── Ambient background atmosphere ── */}
+        <div aria-hidden style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 0 }}>
+          {/* Central violet bloom */}
+          <div style={{
+            position: "absolute",
+            top: "20%", left: "50%", transform: "translateX(-50%)",
+            width: "clamp(400px,70vw,800px)",
+            height: "clamp(300px,50vw,550px)",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse,rgba(109,40,217,0.22) 0%,rgba(139,92,246,0.08) 45%,transparent 72%)",
+            filter: "blur(48px)",
+            animation: "ambientBreathe 7s ease-in-out infinite",
+          }} />
+          {/* Cyan accent — lower right */}
+          <div style={{
+            position: "absolute",
+            bottom: "15%", right: "10%",
+            width: "clamp(200px,35vw,420px)",
+            height: "clamp(150px,25vw,300px)",
+            borderRadius: "50%",
+            background: "radial-gradient(ellipse,rgba(6,182,212,0.12) 0%,transparent 70%)",
+            filter: "blur(56px)",
+            animation: "ambientBreathe 9s ease-in-out infinite 2s",
+          }} />
+          {/* Particle drift */}
+          {PARTICLES.map(p => (
+            <div key={p.id} style={{
+              position: "absolute",
+              left: `${p.x}%`,
+              top: `${p.startY}%`,
+              width: p.size,
+              height: p.size,
+              borderRadius: "50%",
+              background: `rgba(${p.color},${p.opacity})`,
+              boxShadow: `0 0 ${p.size * 3}px rgba(${p.color},${p.opacity * 0.7})`,
+              animation: `particleDrift ${p.dur}s ease-out ${p.delay}s infinite`,
+            }} />
+          ))}
+        </div>
+
+        {/* ── Content ── */}
+        <div style={{ position: "relative", zIndex: 1, width: "100%", maxWidth: "560px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+          <LaunchHero user={user} />
+        </div>
       </main>
     </WebsiteShell>
   );
