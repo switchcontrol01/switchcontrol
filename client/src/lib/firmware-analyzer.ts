@@ -1,5 +1,6 @@
 import type { DetectionStatus, BiosSetting } from "./bios-advisor-data";
 import { BIOS_SETTINGS } from "./bios-advisor-data";
+import type { SystemIntelligenceProfile } from "@/stores/systemIntelligenceStore";
 
 export interface HardwareTelemetry {
   cpuBoostClock: number | null;
@@ -580,4 +581,224 @@ export function getDetectionSummary(detections: FirmwareDetection[]): {
     : 0;
 
   return { detected, inferred, unknown, userConfirmed, photoVerified, photoSuspected, avgConfidence };
+}
+
+// ── System Intelligence Enrichment ───────────────────────────────────────────
+// Maps platform state data from the System Intelligence profile into concrete
+// FirmwareDetection items. Only produces detections for fields with real data —
+// any null field remains Unknown (no invented fallbacks).
+
+export function enrichWithSystemIntelligence(
+  existing: FirmwareDetection[],
+  profile: SystemIntelligenceProfile
+): FirmwareDetection[] {
+  const enriched: FirmwareDetection[] = [...existing];
+  const existingIds = new Set(existing.map(d => d.settingId));
+
+  const push = (d: FirmwareDetection) => {
+    // Only override if not already Photo Verified or User Confirmed
+    const prev = existing.find(e => e.settingId === d.settingId);
+    if (prev && (prev.status === "Photo Verified" || prev.status === "User Confirmed")) return;
+    const idx = enriched.findIndex(e => e.settingId === d.settingId);
+    if (idx >= 0) enriched[idx] = d;
+    else enriched.push(d);
+  };
+
+  const { platform, inference } = profile;
+
+  // ── VBS / Memory Integrity ────────────────────────────────────────────────
+  if (platform.vbsEnabled !== null || platform.memoryIntegrityEnabled !== null) {
+    const vbsOn = platform.vbsEnabled;
+    const hvciOn = platform.memoryIntegrityEnabled;
+    const bothOff = vbsOn === false && hvciOn === false;
+    const eitherOn = vbsOn === true || hvciOn === true;
+    push({
+      settingId: "vbs-hvci",
+      status: "Detected",
+      confidence: 0.97,
+      reason: eitherOn
+        ? `Windows reports ${[vbsOn && "VBS", hvciOn && "Memory Integrity (HVCI)"].filter(Boolean).join(" and ")} enabled — adds hypervisor overhead that can affect GPU frametimes.`
+        : bothOff
+        ? "Windows confirms VBS and Memory Integrity are both disabled — no hypervisor overhead."
+        : `VBS: ${vbsOn === null ? "unknown" : vbsOn ? "on" : "off"} · HVCI: ${hvciOn === null ? "unknown" : hvciOn ? "on" : "off"}.`,
+      detectedValue: eitherOn ? "Enabled" : bothOff ? "Disabled" : "Partial",
+      isOptimal: !eitherOn,
+    });
+  }
+
+  // ── Secure Boot ───────────────────────────────────────────────────────────
+  if (platform.secureBootEnabled !== null) {
+    push({
+      settingId: "secure-boot",
+      status: "Detected",
+      confidence: 0.98,
+      reason: platform.secureBootEnabled
+        ? "Windows confirms Secure Boot is enabled."
+        : "Windows reports Secure Boot is disabled — may be required for certain anti-cheat (Valorant) and Windows 11 security features.",
+      detectedValue: platform.secureBootEnabled ? "Enabled" : "Disabled",
+      isOptimal: platform.secureBootEnabled ?? true,
+    });
+  }
+
+  // ── TPM ───────────────────────────────────────────────────────────────────
+  if (platform.tpmPresent !== null) {
+    push({
+      settingId: "tpm",
+      status: "Detected",
+      confidence: 0.96,
+      reason: platform.tpmPresent
+        ? "Windows confirms a TPM is present (fTPM or discrete)."
+        : "No TPM detected — Windows 11 requirements and BitLocker are unavailable.",
+      detectedValue: platform.tpmPresent ? "Present" : "Not Detected",
+      isOptimal: platform.tpmPresent ?? false,
+    });
+  }
+
+  // ── Virtualization (SVM / VT-x) ───────────────────────────────────────────
+  if (platform.virtualizationEnabled !== null || platform.hypervisorPresent !== null) {
+    const virtOn = platform.virtualizationEnabled;
+    const hvPresent = platform.hypervisorPresent;
+    const detected = virtOn !== null ? virtOn : hvPresent !== null ? hvPresent : null;
+    if (detected !== null) {
+      push({
+        settingId: "virtualization",
+        status: "Detected",
+        confidence: 0.90,
+        reason: detected
+          ? `CPU virtualization is enabled${hvPresent ? " and a hypervisor is active" : ""}.`
+          : "CPU virtualization appears disabled — WSL2, Docker Desktop, and Windows Sandbox will not function.",
+        detectedValue: detected ? "Enabled" : "Disabled",
+        isOptimal: undefined,
+      });
+    }
+  }
+
+  // ── UEFI Boot ─────────────────────────────────────────────────────────────
+  if (platform.uefiBoot !== null) {
+    push({
+      settingId: "uefi-boot",
+      status: "Detected",
+      confidence: 0.99,
+      reason: platform.uefiBoot
+        ? "Windows confirms UEFI boot mode is active."
+        : "Windows is booting in Legacy BIOS mode — Secure Boot, Resize BAR, and modern security features are unavailable.",
+      detectedValue: platform.uefiBoot ? "UEFI" : "Legacy BIOS",
+      isOptimal: platform.uefiBoot,
+    });
+  }
+
+  // ── Resize BAR ────────────────────────────────────────────────────────────
+  if (platform.resizeBarEnabled !== null) {
+    push({
+      settingId: "resize-bar",
+      status: "Detected",
+      confidence: 0.93,
+      reason: platform.resizeBarEnabled
+        ? "System reports Resize BAR / SAM is active — GPU VRAM fully accessible from CPU."
+        : "Resize BAR / SAM appears inactive — check Above 4G Decoding and Re-Size BAR settings in BIOS.",
+      detectedValue: platform.resizeBarEnabled ? "Enabled" : "Disabled",
+      isOptimal: platform.resizeBarEnabled,
+    });
+  }
+
+  // ── XMP / EXPO — enrich with SI inference if not already Detected ─────────
+  if (!existingIds.has("xmp-expo") || existing.find(d => d.settingId === "xmp-expo")?.status === "Inferred") {
+    const xmp = inference.expoOrXmp;
+    if (xmp.state !== "unknown") {
+      const siStatus: DetectionStatus = xmp.state === "confirmed" ? "Detected" : "Inferred";
+      const prevConf = existing.find(d => d.settingId === "xmp-expo")?.confidence ?? 0;
+      const siConf = xmp.state === "confirmed" ? 0.92 : 0.72;
+      // Only override if SI has higher confidence
+      if (siConf >= prevConf) {
+        push({
+          settingId: "xmp-expo",
+          status: siStatus,
+          confidence: siConf,
+          reason: xmp.reason,
+          detectedValue: xmp.state === "confirmed" ? "Active" : "Likely Active",
+          isOptimal: true,
+        });
+      }
+    }
+  }
+
+  return enriched;
+}
+
+// ── BiosAdvisorProfile — normalized summary for advisor and AI context ───────
+// Constructed from the SystemIntelligenceProfile. All fields nullable.
+export interface BiosAdvisorProfile {
+  baseboard: { manufacturer: string | null; model: string | null; version: string | null };
+  bios: { vendor: string | null; version: string | null; releaseDate: string | null };
+  cpu: { manufacturer: string | null; brand: string | null; cores: number | null; physicalCores: number | null };
+  gpu: { name: string | null; vramMb: number | null };
+  memory: {
+    totalMb: number | null;
+    sticks: Array<{ bank: string | null; sizeMb: number | null; clockMhz: number | null; configuredClockMhz: number | null; manufacturer: string | null; partNum: string | null }>;
+    inferredDualChannel: boolean | null;
+  };
+  storage: { drives: Array<{ name: string | null; type: string | null; sizeGb: number | null; interfaceType: string | null }> };
+  platform: {
+    secureBootEnabled: boolean | null;
+    tpmPresent: boolean | null;
+    virtualizationEnabled: boolean | null;
+    hypervisorPresent: boolean | null;
+    memoryIntegrityEnabled: boolean | null;
+    vbsEnabled: boolean | null;
+    resizeBarEnabled: boolean | null;
+    uefiBoot: boolean | null;
+  };
+  inference: {
+    expoOrXmp: { state: "confirmed" | "likely" | "unknown"; reason: string };
+  };
+}
+
+export function buildBiosAdvisorProfile(si: SystemIntelligenceProfile): BiosAdvisorProfile {
+  return {
+    baseboard: si.baseboard,
+    bios: si.bios,
+    cpu: {
+      manufacturer: si.cpu.manufacturer,
+      brand: si.cpu.brand,
+      cores: si.cpu.logicalCores,
+      physicalCores: si.cpu.physicalCores,
+    },
+    gpu: {
+      name: si.gpu.controllers[0]?.name ?? null,
+      vramMb: si.gpu.controllers[0]?.vramMb ?? null,
+    },
+    memory: {
+      totalMb: si.memory.totalMb,
+      sticks: si.memory.sticks.map(s => ({
+        bank: s.bank,
+        sizeMb: s.sizeMb,
+        clockMhz: s.clockMhz,
+        configuredClockMhz: s.configuredClockMhz,
+        manufacturer: s.manufacturer,
+        partNum: s.partNum,
+      })),
+      inferredDualChannel: si.memory.inferredDualChannel,
+    },
+    storage: {
+      drives: si.storage.layout.map(d => ({
+        name: d.name,
+        type: d.type,
+        sizeGb: d.sizeGb,
+        interfaceType: d.interfaceType,
+      })),
+    },
+    platform: {
+      secureBootEnabled: si.platform.secureBootEnabled,
+      tpmPresent: si.platform.tpmPresent,
+      virtualizationEnabled: si.platform.virtualizationEnabled,
+      hypervisorPresent: si.platform.hypervisorPresent,
+      memoryIntegrityEnabled: si.platform.memoryIntegrityEnabled,
+      vbsEnabled: si.platform.vbsEnabled,
+      resizeBarEnabled: si.platform.resizeBarEnabled,
+      uefiBoot: si.platform.uefiBoot,
+    },
+    inference: {
+      expoOrXmp: si.inference.expoOrXmp,
+    },
+  };
 }

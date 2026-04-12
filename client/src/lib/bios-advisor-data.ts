@@ -34,7 +34,8 @@ export type BiosCategory =
   | "CPU Scheduling & Latency"
   | "Power & Voltage"
   | "Memory & Fabric"
-  | "EMI & Signal Integrity";
+  | "EMI & Signal Integrity"
+  | "Platform & Security";
 
 export interface BiosScore {
   latency: number;
@@ -819,6 +820,152 @@ export const BIOS_SETTINGS: BiosSetting[] = [
       { brand: "MSI", path: ["OC", "PCIe Spread Spectrum"] },
       { brand: "Gigabyte", path: ["Settings", "IO Ports", "PCIe Spread Spectrum"] }
     ]
+  },
+
+  // Platform & Security
+  {
+    id: "resize-bar",
+    name: "Resize BAR / Smart Access Memory",
+    category: "Platform & Security",
+    whatItIs: "Allows the CPU to access the full GPU VRAM at once instead of a 256MB window. Requires UEFI, PCIe 4.0, and support from both GPU and CPU.",
+    affects: ["Frametime", "Latency"],
+    recommendation: "Enable if your GPU and CPU both support it. Requires UEFI boot and may need a BIOS update.",
+    pros: ["Up to 10% framerate gain in some titles", "Reduces CPU overhead for streaming GPU buffer transfers"],
+    cons: ["Requires UEFI boot mode", "Not all GPU/CPU combos support it"],
+    whenNotToChange: "Legacy systems or GPUs that do not support BAR resizing.",
+    impact: "High",
+    risk: "Low",
+    detectionStatus: "Unknown",
+    currentValue: "Unknown",
+    latencyScore: 5,
+    frametimeScore: 8,
+    stabilityScore: 0,
+    motherboardPaths: [
+      { brand: "ASUS", path: ["Advanced", "PCI Subsystem Settings", "Above 4G Decoding", "Re-Size BAR Support"] },
+      { brand: "MSI", path: ["Settings", "Advanced", "PCI Subsystem Settings", "Re-Size BAR Support"] },
+      { brand: "Gigabyte", path: ["Settings", "IO Ports", "Above 4G Decoding", "Re-Size BAR Support"] },
+      { brand: "ASRock", path: ["Advanced", "PCI Configuration", "Re-Size BAR Support"] }
+    ]
+  },
+  {
+    id: "vbs-hvci",
+    name: "VBS / Memory Integrity (HVCI)",
+    category: "Platform & Security",
+    whatItIs: "Virtualization Based Security isolates the OS kernel using a hypervisor. Memory Integrity (HVCI) validates kernel-mode driver code. Both add a layer of virtualization overhead.",
+    affects: ["Frametime", "Latency"],
+    recommendation: "Disable for competitive gaming builds. VBS/HVCI adds hypervisor overhead that can affect GPU frametimes and interrupt latency. Enable if your threat model requires it.",
+    pros: ["Protects against kernel-level exploits and rootkits"],
+    cons: ["Adds CPU/GPU overhead of 5–15% in some workloads", "Can increase DPC latency and frametime variance"],
+    whenNotToChange: "Corporate or enterprise machines where security policy requires it.",
+    impact: "High",
+    risk: "Low",
+    detectionStatus: "Unknown",
+    currentValue: "Unknown",
+    latencyScore: 8,
+    frametimeScore: 10,
+    stabilityScore: -2,
+    motherboardPaths: [
+      { brand: "ASUS", path: ["Advanced", "CPU Configuration", "Virtualization Technology"] },
+      { brand: "MSI", path: ["Settings", "Advanced", "Windows OS Configuration", "Hyper-V"] },
+      { brand: "Gigabyte", path: ["Settings", "Windows OS Configuration", "Virtualization Based Security"] }
+    ]
+  },
+  {
+    id: "secure-boot",
+    name: "Secure Boot",
+    category: "Platform & Security",
+    whatItIs: "A firmware security standard that ensures only trusted software runs during boot. Required by some anti-cheat solutions and enables advanced Windows security features.",
+    affects: ["Stability"],
+    recommendation: "Keep enabled unless you dual-boot an unsupported OS or use custom bootloaders. Secure Boot has no meaningful impact on gaming performance.",
+    pros: ["Blocks malicious boot-level code", "Required for some anti-cheat (Valorant, etc.) and Windows Copilot+ features"],
+    cons: ["Can block booting Linux or custom kernels without proper keys"],
+    whenNotToChange: "Almost never for single-boot Windows gaming PCs.",
+    impact: "Low",
+    risk: "Low",
+    detectionStatus: "Unknown",
+    currentValue: "Unknown",
+    latencyScore: 0,
+    frametimeScore: 0,
+    stabilityScore: 2,
+    motherboardPaths: [
+      { brand: "ASUS", path: ["Security", "Secure Boot", "Secure Boot Control"] },
+      { brand: "MSI", path: ["Settings", "Security", "Secure Boot"] },
+      { brand: "Gigabyte", path: ["BIOS", "Secure Boot", "Secure Boot Enable"] },
+      { brand: "ASRock", path: ["Security", "Secure Boot"] }
+    ]
+  },
+  {
+    id: "virtualization",
+    name: "CPU Virtualization (SVM / VT-x)",
+    category: "Platform & Security",
+    whatItIs: "Enables hardware-assisted virtualization in the CPU. Required for VMs, WSL2, Hyper-V, and Windows Sandbox. Also a dependency for VBS.",
+    affects: ["Stability", "Latency"],
+    recommendation: "Enable if you use any virtualization (WSL2, Docker, VMs). Disable only on dedicated gaming rigs where VBS overhead is a concern.",
+    pros: ["Required for modern container workflows and VMs"],
+    cons: ["Enables Hyper-V layer which can slightly raise interrupt latency on some systems"],
+    whenNotToChange: "If you rely on Docker, WSL2, or Windows Sandbox.",
+    impact: "Low",
+    risk: "Low",
+    detectionStatus: "Unknown",
+    currentValue: "Unknown",
+    latencyScore: 2,
+    frametimeScore: 1,
+    stabilityScore: 0,
+    motherboardPaths: [
+      { brand: "ASUS", path: ["Advanced", "CPU Configuration", "SVM Mode"] },
+      { brand: "MSI", path: ["OC", "CPU Features", "SVM Mode"] },
+      { brand: "Gigabyte", path: ["Tweaker", "Advanced CPU Settings", "SVM Mode"] },
+      { brand: "ASRock", path: ["Advanced", "CPU Configuration", "SVM Mode"] },
+      { brand: "Intel", path: ["Advanced", "CPU Configuration", "Intel Virtualization Technology"] }
+    ]
+  },
+  {
+    id: "tpm",
+    name: "TPM (Trusted Platform Module)",
+    category: "Platform & Security",
+    whatItIs: "A cryptographic chip used to store encryption keys, support BitLocker, and enable Windows 11. May be firmware TPM (fTPM) or discrete.",
+    affects: ["Stability"],
+    recommendation: "Keep enabled. fTPM is required for Windows 11 and BitLocker. No meaningful gaming performance impact.",
+    pros: ["Required for Windows 11 and BitLocker", "Supports hardware-backed key storage"],
+    cons: ["fTPM can introduce rare periodic stutters on some Ryzen platforms (mitigated by BIOS updates)"],
+    whenNotToChange: "Almost never.",
+    impact: "Low",
+    risk: "Low",
+    detectionStatus: "Unknown",
+    currentValue: "Unknown",
+    latencyScore: 0,
+    frametimeScore: 0,
+    stabilityScore: 1,
+    motherboardPaths: [
+      { brand: "ASUS", path: ["Advanced", "Trusted Computing", "Security Device Support"] },
+      { brand: "MSI", path: ["Settings", "Security", "Trusted Computing"] },
+      { brand: "Gigabyte", path: ["Settings", "Miscellaneous", "AMD fTPM switch"] },
+      { brand: "ASRock", path: ["Advanced", "CPU Configuration", "AMD fTPM"] }
+    ]
+  },
+  {
+    id: "uefi-boot",
+    name: "UEFI Boot Mode",
+    category: "Platform & Security",
+    whatItIs: "UEFI is the modern firmware interface, replacing legacy BIOS. UEFI mode enables Secure Boot, Resize BAR, fast boot, GPT partitions, and NVMe boot.",
+    affects: ["Stability", "Latency"],
+    recommendation: "Always use UEFI mode on modern hardware. Legacy BIOS mode disables critical features and has no performance benefit.",
+    pros: ["Required for Secure Boot, Resize BAR, and GPT", "Faster POST times"],
+    cons: ["Requires re-installing Windows from MBR to GPT if switching from legacy"],
+    whenNotToChange: "If you must maintain compatibility with very old OS installations.",
+    impact: "Medium",
+    risk: "Medium",
+    detectionStatus: "Unknown",
+    currentValue: "Unknown",
+    latencyScore: 3,
+    frametimeScore: 2,
+    stabilityScore: 2,
+    motherboardPaths: [
+      { brand: "ASUS", path: ["Boot", "Boot Configuration", "Boot Option Filter"] },
+      { brand: "MSI", path: ["Settings", "Boot", "Boot Mode Select"] },
+      { brand: "Gigabyte", path: ["BIOS", "Boot Option Priorities"] },
+      { brand: "ASRock", path: ["Boot", "Boot from Onboard LAN"] }
+    ]
   }
 ];
 
@@ -826,7 +973,8 @@ export const BIOS_CATEGORIES: BiosCategory[] = [
   "CPU Scheduling & Latency",
   "Power & Voltage",
   "Memory & Fabric",
-  "EMI & Signal Integrity"
+  "EMI & Signal Integrity",
+  "Platform & Security"
 ];
 
 export type BiosDifficulty = "Easy" | "Moderate" | "Advanced";

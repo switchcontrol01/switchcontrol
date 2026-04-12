@@ -41,6 +41,7 @@ import {
   type HardwareTelemetry,
   type FirmwareDetection,
   analyzeFirmware,
+  enrichWithSystemIntelligence,
   applyDetectionsToSettings,
   computeAnalysisHash,
   buildTelemetryFromStore,
@@ -58,14 +59,16 @@ const CATEGORY_ICONS: Record<BiosCategory, React.ElementType> = {
   "CPU Scheduling & Latency": Cpu,
   "Power & Voltage": Zap,
   "Memory & Fabric": MemoryStick,
-  "EMI & Signal Integrity": Radio
+  "EMI & Signal Integrity": Radio,
+  "Platform & Security": Shield,
 };
 
 const CATEGORY_COLORS: Record<BiosCategory, string> = {
   "CPU Scheduling & Latency": "from-primary/20 to-cyan-500/10 border-primary/30",
   "Power & Voltage": "from-amber-500/20 to-orange-500/10 border-amber-500/30",
   "Memory & Fabric": "from-blue-500/20 to-indigo-500/10 border-blue-500/30",
-  "EMI & Signal Integrity": "from-emerald-500/20 to-teal-500/10 border-emerald-500/30"
+  "EMI & Signal Integrity": "from-emerald-500/20 to-teal-500/10 border-emerald-500/30",
+  "Platform & Security": "from-violet-500/20 to-purple-500/10 border-violet-500/30",
 };
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -612,7 +615,11 @@ export default function BiosAdvisor() {
     await new Promise(r => setTimeout(r, 400));
     setScanState("analyzing");
 
-    const newDetections = analyzeFirmware(telemetry);
+    const rawDetections = analyzeFirmware(telemetry);
+    // Enrich with real platform state data from System Intelligence (Secure Boot, VBS, TPM, etc.)
+    const newDetections = sysIntel.profile
+      ? enrichWithSystemIntelligence(rawDetections, sysIntel.profile)
+      : rawDetections;
     const newHash = computeAnalysisHash(telemetry);
 
     const newAnalyzedSettings = applyDetectionsToSettings(BIOS_SETTINGS, newDetections, photoDetections);
@@ -886,6 +893,31 @@ export default function BiosAdvisor() {
                       <p className="text-[10px] text-white/40 uppercase tracking-wider">TPM</p>
                       <p className={`text-xs font-medium leading-tight ${si.platform.tpmPresent ? "text-emerald-400" : "text-white/40"}`}>
                         {si.platform.tpmPresent ? "Present" : "Not Detected"}
+                      </p>
+                    </div>
+                  )}
+                  {si.platform.uefiBoot !== null && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Boot Mode</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.uefiBoot ? "text-emerald-400" : "text-amber-400"}`}>
+                        {si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"}
+                      </p>
+                    </div>
+                  )}
+                  {si.platform.virtualizationEnabled !== null && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Virtualization</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.virtualizationEnabled ? "text-emerald-400" : "text-white/40"}`}>
+                        {si.platform.virtualizationEnabled ? "Enabled" : "Disabled"}
+                        {si.platform.hypervisorPresent ? " (Hypervisor Active)" : ""}
+                      </p>
+                    </div>
+                  )}
+                  {si.platform.resizeBarEnabled !== null && (
+                    <div className="space-y-0.5">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Resize BAR / SAM</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.resizeBarEnabled ? "text-emerald-400" : "text-amber-400"}`}>
+                        {si.platform.resizeBarEnabled ? "Active" : "Inactive"}
                       </p>
                     </div>
                   )}

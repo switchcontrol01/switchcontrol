@@ -231,6 +231,7 @@ async function collectWindowsPlatformStates(): Promise<{
   memoryIntegrityEnabled: boolean | null;
   vbsEnabled: boolean | null;
   uefiBoot: boolean | null;
+  resizeBarEnabled: boolean | null;
 }> {
   const defaults = {
     secureBootEnabled: null as boolean | null,
@@ -240,6 +241,7 @@ async function collectWindowsPlatformStates(): Promise<{
     memoryIntegrityEnabled: null as boolean | null,
     vbsEnabled: null as boolean | null,
     uefiBoot: null as boolean | null,
+    resizeBarEnabled: null as boolean | null,
   };
 
   if (!isWindows) return defaults;
@@ -258,6 +260,20 @@ try {
     if ($regHVCI) { $mi = [bool]($regHVCI.Enabled -eq 1) }
   } catch {}
   $uefi = $null; try { $fw = (Get-WmiObject -Class Win32_OperatingSystem -ErrorAction SilentlyContinue).FirmwareType; if ($fw -eq "Uefi") { $uefi = $true } elseif ($fw -eq "Bios") { $uefi = $false } } catch {}
+  $rebar = $null
+  try {
+    $gpuClass = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Class\\{4d36e968-e325-11ce-bfc1-08002be10318}"
+    $subkeys = Get-ChildItem $gpuClass -ErrorAction SilentlyContinue | Where-Object { $_.Name -notmatch "Properties" }
+    foreach ($sk in $subkeys) {
+      $v = Get-ItemProperty $sk.PSPath -Name "EnableResizeBAR" -ErrorAction SilentlyContinue
+      if ($null -ne $v) { $rebar = [bool]($v.EnableResizeBAR -eq 1); break }
+      $v2 = Get-ItemProperty $sk.PSPath -Name "KMD_EnableResizableBar" -ErrorAction SilentlyContinue
+      if ($null -ne $v2) { $rebar = [bool]($v2.KMD_EnableResizableBar -eq 1); break }
+    }
+    if ($null -eq $rebar) {
+      $v3 = Get-ItemProperty "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\OpenGLDrivers" -ErrorAction SilentlyContinue
+    }
+  } catch {}
   [PSCustomObject]@{
     SecureBoot = if ($sb -eq $null) { "null" } else { if ($sb) { "true" } else { "false" } }
     TpmPresent = if ($tpm -eq $null) { "null" } else { if ($tpm) { "true" } else { "false" } }
@@ -266,6 +282,7 @@ try {
     VbsEnabled = if ($vbs -eq $null) { "null" } else { if ($vbs) { "true" } else { "false" } }
     MemoryIntegrityEnabled = if ($mi -eq $null) { "null" } else { if ($mi) { "true" } else { "false" } }
     UefiBoot = if ($uefi -eq $null) { "null" } else { if ($uefi) { "true" } else { "false" } }
+    ResizeBar = if ($rebar -eq $null) { "null" } else { if ($rebar) { "true" } else { "false" } }
   } | ConvertTo-Json -Compress
 } catch { Write-Output '{}' }
 `.trim();
@@ -286,6 +303,7 @@ try {
       vbsEnabled:               parseBool(obj.VbsEnabled),
       memoryIntegrityEnabled:   parseBool(obj.MemoryIntegrityEnabled),
       uefiBoot:                 parseBool(obj.UefiBoot),
+      resizeBarEnabled:         parseBool(obj.ResizeBar),
     };
   } catch {
     console.warn("[SysIntelligence] Failed to parse Windows platform states");
@@ -476,7 +494,8 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   // ── Platform states (Windows) ──
   const pStates = platformStates.status === "fulfilled" ? platformStates.value : {
     secureBootEnabled: null, tpmPresent: null, hypervisorPresent: null,
-    virtualizationEnabled: null, memoryIntegrityEnabled: null, vbsEnabled: null, uefiBoot: null,
+    virtualizationEnabled: null, memoryIntegrityEnabled: null, vbsEnabled: null,
+    uefiBoot: null, resizeBarEnabled: null,
   };
 
   // ── Containers ──
