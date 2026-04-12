@@ -414,17 +414,17 @@ export default function DownloadPage() {
           <div style={{
             position: "absolute", top: "-10%", left: "-30%",
             width: "70%", height: "120%",
-            background: "linear-gradient(108deg, transparent 0%, rgba(139,92,246,0.18) 30%, rgba(103,232,249,0.22) 55%, rgba(139,92,246,0.18) 80%, transparent 100%)",
+            background: "linear-gradient(108deg, transparent 0%, rgba(139,92,246,0.10) 30%, rgba(103,232,249,0.13) 55%, rgba(139,92,246,0.10) 80%, transparent 100%)",
             filter: "blur(48px)",
-            animation: "sunStreakSweep 16s ease-in-out 0.5s infinite",
+            animation: "sunStreakSweep 16s ease-in-out 1s infinite",
           }} />
           {/* Layer 5b: Sun-streak tight bright core */}
           <div style={{
             position: "absolute", top: "5%", left: "-25%",
             width: "40%", height: "90%",
-            background: "linear-gradient(108deg, transparent 0%, rgba(167,139,250,0.28) 35%, rgba(103,232,249,0.32) 55%, rgba(167,139,250,0.28) 75%, transparent 100%)",
+            background: "linear-gradient(108deg, transparent 0%, rgba(167,139,250,0.16) 35%, rgba(103,232,249,0.19) 55%, rgba(167,139,250,0.16) 75%, transparent 100%)",
             filter: "blur(22px)",
-            animation: "sunStreakSweep 16s ease-in-out 0.5s infinite",
+            animation: "sunStreakSweep 16s ease-in-out 1s infinite",
           }} />
 
           {/* Layer 6: Topology / network SVG lines — staged in after 0.6s */}
@@ -703,7 +703,7 @@ export default function DownloadPage() {
           {/* ── RIGHT: Download card ── */}
           <motion.div
             {...stagger(2)}
-            style={{ flex: "1 1 320px", minWidth: "300px", maxWidth: "420px" }}
+            style={{ flex: "1 1 370px", minWidth: "350px", maxWidth: "500px" }}
           >
             <div style={{
               borderRadius: "20px",
@@ -720,9 +720,9 @@ export default function DownloadPage() {
             }}>
               {/* Card header — compact inline logo + title */}
               <div style={{
-                padding: "22px 24px 18px",
+                padding: "24px 26px 20px",
                 borderBottom: "1px solid rgba(255,255,255,0.06)",
-                display: "flex", alignItems: "center", gap: "16px",
+                display: "flex", alignItems: "center", gap: "18px",
               }}>
                 <div style={{ position: "relative", flexShrink: 0 }}>
                   <div style={{
@@ -761,9 +761,9 @@ export default function DownloadPage() {
               </div>
 
               {/* Card body */}
-              <div style={{ padding: "18px 24px 22px" }}>
+              <div style={{ padding: "20px 26px 24px" }}>
                 {/* Spec rows */}
-                <div style={{ display: "flex", flexDirection: "column", gap: "9px", marginBottom: "18px" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "10px", marginBottom: "20px" }}>
                   {[
                     { icon: CheckCircle, color: "#34d399", text: "Latest build · Digitally signed" },
                     { icon: Monitor, color: "#a78bfa", text: "Windows 10/11 64-bit · .exe installer" },
