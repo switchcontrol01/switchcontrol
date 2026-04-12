@@ -266,8 +266,8 @@ function LaunchCountdown() {
           100% { transform: translate(0, 0)   rotate(360deg); }
         }
         @keyframes countdownGlow {
-          0%, 100% { box-shadow: 0 0 60px rgba(139,92,246,0.18), 0 0 120px rgba(103,232,249,0.06), inset 0 1px 0 rgba(255,255,255,0.06); }
-          50%       { box-shadow: 0 0 80px rgba(139,92,246,0.28), 0 0 160px rgba(103,232,249,0.10), inset 0 1px 0 rgba(255,255,255,0.10); }
+          0%, 100% { box-shadow: 0 8px 60px rgba(0,0,0,0.35), 0 0 80px rgba(255,255,255,0.03), inset 0 1px 0 rgba(255,255,255,0.12); }
+          50%       { box-shadow: 0 12px 80px rgba(0,0,0,0.45), 0 0 120px rgba(255,255,255,0.05), inset 0 1px 0 rgba(255,255,255,0.16); }
         }
         .countdown-card {
           animation: countdownGlow 4s ease-in-out infinite;
@@ -275,12 +275,12 @@ function LaunchCountdown() {
       `}</style>
 
       <div
-        className="countdown-card relative overflow-hidden rounded-2xl p-6 sm:p-10 md:p-12 text-center"
+        className="countdown-card relative rounded-2xl p-6 sm:p-10 md:p-12 text-center"
         style={{
-          background: "linear-gradient(160deg, rgba(20,14,38,0.96) 0%, rgba(10,8,22,0.98) 60%, rgba(14,18,34,0.96) 100%)",
-          border: "1px solid rgba(139,92,246,0.20)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          background: "linear-gradient(160deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.05) 55%, rgba(255,255,255,0.08) 100%)",
+          border: "1px solid rgba(255,255,255,0.14)",
+          backdropFilter: "blur(28px) saturate(160%)",
+          WebkitBackdropFilter: "blur(28px) saturate(160%)",
         }}
       >
         {/* Ambient blobs */}
@@ -483,13 +483,23 @@ export default function DownloadPage() {
       <main className="flex-1 flex flex-col items-center justify-start p-4 py-10 min-h-[calc(100vh-80px)] relative gap-8 w-full">
         <SectionGlow color="purple" intensity="strong" />
 
-        {/* ── Launch Countdown — hero block ──────────────────────────────── */}
-        <div className="w-full max-w-3xl px-2">
-          <LaunchCountdown />
-        </div>
+        {/* ── Perspective stack: countdown behind, download card on top ──── */}
+        <div className="w-full flex flex-col items-center px-2" style={{ perspective: "1400px", perspectiveOrigin: "50% 0%" }}>
 
-        {/* ── Download card ───────────────────────────────────────────────── */}
-        <div className="relative w-full max-w-lg">
+          {/* Countdown — tilted back, milky, peeks under download card */}
+          <div className="w-full" style={{
+            marginBottom: "-110px",
+            position: "relative",
+            zIndex: 0,
+            transform: "rotateX(10deg)",
+            transformOrigin: "bottom center",
+            willChange: "transform",
+          }}>
+            <LaunchCountdown />
+          </div>
+
+          {/* ── Download card — on top ───────────────────────────────────── */}
+          <div className="relative w-full max-w-lg" style={{ zIndex: 10 }}>
           {/* Left-side particles */}
           {LEFT_PARTICLES.map((p, i) => (
             <div
@@ -627,7 +637,8 @@ export default function DownloadPage() {
               </div>
             </div>
           </GlassPanel>
-        </div>
+          </div>{/* end download card */}
+        </div>{/* end perspective container */}
 
         {/* ── What's New card ─────────────────────────────────────────────── */}
         <DownloadPatchNotesCard />
