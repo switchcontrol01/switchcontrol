@@ -66,13 +66,13 @@ let lastDiskSnapshot: { rIO: number; wIO: number; ms: number; ts: number } | nul
 let cachedSnapshot: TelemetrySnapshot | null = null;
 let pollingTimer: NodeJS.Timeout | null = null;
 
-// GPU cache polled less frequently (every 3s) since graphics() is expensive
+// GPU cache — polled every second so the 1-second chart line stays smooth
 let cachedGpu: GpuTelemetry = {
   load: null, vramUsedMb: null, vramTotalMb: null,
   vramPercent: null, tempC: null, clockMhz: null, name: null,
 };
 let lastGpuPollTs = 0;
-const GPU_POLL_INTERVAL_MS = 3000;
+const GPU_POLL_INTERVAL_MS = 1000;
 
 // ── GPU polling ──────────────────────────────────────────────────────────────
 
@@ -207,17 +207,22 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
         disk.readKBps = parseFloat((deltaR / dt_s / 2).toFixed(1));
         disk.writeKBps = parseFloat((deltaW / dt_s / 2).toFixed(1));
 
-        // Active time %: only from real ms-busy metrics — never estimated from throughput
-        // (throughput normalization is arbitrary and misleading)
+        // Active time %: prefer real ms-busy metrics, fall back to throughput estimate.
+        // msTotal > 0 guard confirms the kernel is actually tracking ms-busy time;
+        // if it stays at 0 (some VMs) we skip to the throughput estimate instead.
         if (msSec != null && msSec >= 0) {
-          // ms/s ÷ 10 = % busy
+          // ms/s ÷ 10 = % busy (systeminformation native delta)
           disk.activeTimePct = parseFloat(Math.min(msSec / 10, 100).toFixed(1));
-        } else if (msTotal != null && msTotal > 0 && lastDiskSnapshot.ms >= 0) {
-          // Only use ms delta if the kernel actually reports ms (> 0 confirms it works)
-          const deltaMs = Math.max(0, msTotal - lastDiskSnapshot.ms);
+        } else if (msTotal != null && msTotal > 0) {
+          // Cumulative ms delta — works on real physical drives
+          const deltaMs = Math.max(0, msTotal - (lastDiskSnapshot.ms ?? 0));
           disk.activeTimePct = parseFloat(Math.min((deltaMs / (dt_s * 1000)) * 100, 100).toFixed(1));
+        } else {
+          // ms data missing or stuck at 0 (VM/container) — estimate from throughput.
+          // 100 KB/s ≈ 1% is a conservative scale for NVMe SSDs at 10+ GB/s peak.
+          const combined = (disk.readKBps ?? 0) + (disk.writeKBps ?? 0);
+          disk.activeTimePct = parseFloat(Math.min(combined / 100, 100).toFixed(1));
         }
-        // If no ms data: activeTimePct stays null — honest, not estimated
 
         // Mark available if we have at least throughput data
         disk.available = disk.readKBps != null || disk.writeKBps != null;

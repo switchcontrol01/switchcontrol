@@ -678,7 +678,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 <Line
                   yAxisId="pct" type="monotone" dataKey="gpuLoad"
                   name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2}
-                  dot={false} activeDot={{ r: 3 }} connectNulls
+                  dot={false} activeDot={{ r: 3 }} connectNulls={false}
                 />
               )}
 
