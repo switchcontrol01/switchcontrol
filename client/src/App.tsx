@@ -707,9 +707,18 @@ function ElectronAppContent() {
         // isPremium state. Mark entitlementsAttempted so the post-auth effect skips
         // its duplicate fetch. A 8 s timeout prevents the splash from hanging
         // if the server is unreachable at startup.
+        //
+        // AUTH GATE: serverExplicitlyRejected tracks whether the server was reachable
+        // AND returned no valid session. Only set to true when the fetch completed (not
+        // timed out) and still returned null — meaning the JWT is expired or revoked.
+        // Network errors / timeouts use grace-store fallback and do NOT force logout,
+        // to allow offline / slow-network app usage.
+        let serverExplicitlyRejected = false;
+
         try {
+          let timedOut = false;
           const _timeout = new Promise<{ user: null }>((resolve) =>
-            setTimeout(() => resolve({ user: null }), 8000)
+            setTimeout(() => { timedOut = true; resolve({ user: null }); }, 8000)
           );
           const result = await Promise.race([refreshEntitlements(), _timeout]);
           if (result.user) {
@@ -721,26 +730,57 @@ function ElectronAppContent() {
               result.user.plan ?? null,
               result.user.id ?? null,
             );
-          } else {
-            console.warn('[Entitlements] startup fetch returned no user — checking grace store');
-            const graceStatus = usePremiumGraceStore.getState().getStatus(true);
-            console.log('[Entitlements] startup grace store status:', graceStatus);
+          } else if (timedOut) {
+            // Server took > 8 s — treat like a network error, check grace store
+            console.warn('[Entitlements] startup fetch timed out — checking grace store');
+            const graceStatus = usePremiumGraceStore.getState().getStatus(false);
+            console.log('[Entitlements] startup grace store status (timeout):', graceStatus);
             if (graceStatus === 'active' || graceStatus === 'grace') {
-              console.log('[Entitlements] grace fallback on startup — entitlementsVerified set');
+              console.log('[Entitlements] grace fallback on timeout — entitlementsVerified set');
               setEntitlementsVerified(true);
             } else {
-              console.warn('[Entitlements] startup: no server user, no grace — showing free state');
+              // Timeout + no grace: conservative — allow session but without entitlements
+              console.warn('[Entitlements] startup timeout, no grace — allowing session in free state');
+            }
+          } else {
+            // Server responded but returned no valid user (loggedIn: false, 401, etc.)
+            // This is an EXPLICIT rejection — the stored JWT is expired or revoked.
+            console.warn('[Auth] Boot: server explicitly rejected stored credentials — loggedIn=false or 4xx');
+            const graceStatus = usePremiumGraceStore.getState().getStatus(true);
+            console.log('[Entitlements] startup grace store status (rejected):', graceStatus);
+            if (graceStatus === 'active' || graceStatus === 'grace') {
+              // Grace store was verified recently — allow session but flag for re-auth soon
+              console.log('[Entitlements] grace fallback on rejection — entitlementsVerified set');
+              setEntitlementsVerified(true);
+            } else {
+              // Server said no AND no grace fallback → must force logout
+              console.error('[Auth] Boot: JWT rejected by server + no grace store — forcing logout');
+              serverExplicitlyRejected = true;
             }
           }
         } catch (err) {
-          console.warn('[Entitlements] startup fetch error — checking grace store:', err);
-          const graceStatus = usePremiumGraceStore.getState().getStatus(true);
+          // Network error — server completely unreachable (no internet, server down)
+          // Do NOT force logout; allow the cached session with grace-store fallback.
+          console.warn('[Entitlements] startup fetch error (network unreachable) — checking grace store:', err);
+          const graceStatus = usePremiumGraceStore.getState().getStatus(false);
           if (graceStatus === 'active' || graceStatus === 'grace') {
-            console.log('[Entitlements] grace fallback on startup error — entitlementsVerified set');
+            console.log('[Entitlements] grace fallback on network error — entitlementsVerified set');
             setEntitlementsVerified(true);
+          } else {
+            console.warn('[Entitlements] network error + no grace — allowing session in free state');
           }
         }
+
         setEntitlementsAttempted(true);
+
+        // AUTH GATE: if server explicitly rejected the token, clear all state and
+        // force the user back to the login screen — do NOT proceed to dashboard.
+        if (serverExplicitlyRejected) {
+          console.error('[Auth] Boot: forcing logout — dashboard mount blocked');
+          storeLogout();
+          setPhase("unauthenticated");
+          return;
+        }
 
         const welcomeKey = `sc_welcomed_${user.id}`;
         const hasBeenWelcomed = localStorage.getItem(welcomeKey);
