@@ -1,0 +1,170 @@
+2. Add Explorer and shell tweaks
+
+A. Launch folder windows in a separate process
+Control type:
+toggle
+
+B. Explorer compact mode
+Control type:
+toggle if not already fully supported
+
+C. Disable transparency effects
+Control type:
+toggle
+
+D. Disable animation effects
+Control type:
+toggle
+
+E. Show file extensions
+Control type:
+toggle
+
+F. Disable search highlights if not already truly supported
+Control type:
+toggle
+
+G. Disable recent files history if not already fully implemented
+Control type:
+toggle
+
+All of these should show:
+current value
+apply
+verify
+reset
+
+3. Add power and background behavior tweaks
+
+A. PowerThrottlingOff
+Control type:
+toggle
+
+Purpose:
+Disables Windows power throttling for performance-focused systems.
+
+Requirements:
+read
+apply
+verify
+compatibility check
+
+B. Background app restrictions
+If a true numeric or policy control exists, keep as toggle or stepped policy control only.
+Do not fake it.
+
+C. Delivery Optimization advanced control
+If already present, improve details and verification.
+If missing, add as toggle.
+
+D. Storage Sense
+If already present, improve verification and current-state readout.
+If missing, add.
+
+E. Maintenance disable
+If already present, tighten details.
+If missing, add.
+
+4. Add scheduler and multimedia related tweaks
+
+A. MMCSS network and scheduling related control
+Only if real and safely handled.
+If values are stepped, use stepped selector.
+
+B. Processor scheduling mode
+If real and supported, expose proper scheduler-related control.
+No fake wording.
+
+C. Multimedia profile tuning
+If supported through registry and verifiable, add advanced stepped controls.
+
+D. Foreground boost related scheduler tuning
+Only if distinct from Win32PrioritySeparation and not redundant.
+
+5. Add NIC and network adapter tweaks
+
+These should be compatibility-gated and only show if the adapter and property exist.
+
+Add read, apply, verify support for:
+
+A. Receive Buffers
+Control type:
+slider or stepped numeric input
+
+B. Transmit Buffers
+Control type:
+slider or stepped numeric input
+
+C. RSS queue count
+Control type:
+slider or stepped selector
+
+D. Interrupt Moderation
+Control type:
+toggle
+
+E. Interrupt Moderation Rate
+Control type:
+selector if supported by adapter
+
+F. Energy Efficient Ethernet
+Control type:
+toggle
+
+G. Flow Control
+Control type:
+toggle
+
+H. Green Ethernet
+Control type:
+toggle if supported
+
+Important:
+These must be adapter-aware.
+Do not blindly show controls that the current NIC does not support.
+
+The UI should say:
+supported on this adapter
+not supported on this adapter
+
+6. Add input and desktop related tweaks
+
+A. Enhanced Pointer Precision
+Control type:
+toggle if not already fully supported
+
+B. LowLevelHooksTimeout
+already listed above
+
+C. Keyboard and mouse queue sliders
+If already added in first task, do not duplicate.
+Just integrate them into the input category cleanly.
+
+7. Add additional real Windows toggles worth including
+
+Add these if not already present or not fully implemented:
+
+A. Disable Windows Error Reporting
+B. Disable Windows Search Indexing
+C. Disable SysMain or Superfetch
+D. Disable Prefetch
+E. Disable Activity History
+F. Disable Copilot
+G. Disable Cortana
+H. Disable Telemetry
+I. Disable Notifications
+J. Disable Background Apps
+K. Disable Hibernation
+L. Disable Bluetooth
+M. Disable Xbox services
+N. Disable Xbox Game Bar
+O. Disable Fax and print services if safe and honest
+P. Disable USB selective suspend
+Q. Disable PCIe Link State Power Management
+R. Disable Fullscreen optimizations if implemented per-app or system-wide honestly
+S. Enable Hardware GPU Scheduling if supported
+T. Enable Game Mode
+U. Disable Multi-Plane Overlay if you can safely verify it
+V. Disable Windows Error Reporting
+W. Disable Search Highlights
+X. Compact Explorer

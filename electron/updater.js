@@ -7,18 +7,19 @@
  * Renderer consumes state via IPC only — it never drives update logic.
  *
  * ── Trust model ──────────────────────────────────────────────────────────────
+ * - Renderer never owns updater logic. It reads state and sends commands via
+ *   IPC. Main process is the sole authority on all state transitions.
  * - Updater trusts ONLY the configured generic provider host.
- * - Host:      https://releases.switchcontrol.org
- * - Metadata:  latest.yml   (stable channel)
- *              beta.yml     (beta channel, not currently active)
- * - Installer: served from the same host; path embedded in latest.yml
- * - Metadata is uploaded LAST after the installer so a live latest.yml
- *   always points at an already-present binary. This is intentional.
- * - Downgrade is disabled intentionally — autoUpdater.allowDowngrade = false.
+ * - Metadata and installer MUST live on the same backend (R2 generic provider).
+ *   Never split them across providers.
+ * - Stable track resolves through latest.yml. The user-facing 'stable' track
+ *   maps internally to electron-updater channel 'latest', which reads latest.yml.
+ * - Metadata (latest.yml) is published LAST in the release flow, after the
+ *   installer and blockmap are already live. A live latest.yml therefore always
+ *   points at an already-present binary. This ordering is intentional.
+ * - Downgrade is intentionally disabled — autoUpdater.allowDowngrade = false.
  * - Packages are cryptographically signed by electron-builder; electron-updater
  *   verifies the SHA-512 hash from latest.yml before applying any update.
- * - Metadata and binaries MUST remain on the same backend (R2 generic provider).
- *   Never split them across providers.
  *
  * ── Channel model ────────────────────────────────────────────────────────────
  * User-facing release track : 'stable'  (default)
@@ -41,6 +42,12 @@
  */
 
 const { app, BrowserWindow } = require('electron');
+
+// ── Provider constants ────────────────────────────────────────────────────────
+// Single source of truth — never hardcode these strings elsewhere in this file.
+
+const UPDATE_PROVIDER = 'generic';
+const UPDATE_BASE_URL = 'https://releases.switchcontrol.org';
 
 // ── Release track configuration ───────────────────────────────────────────────
 
@@ -121,6 +128,25 @@ function parseUrgency(releaseNotes) {
   return 'normal';
 }
 
+/**
+ * Returns a clean slate for all transient update fields.
+ * Call before every new check so the UI never shows leftovers
+ * from a previous check cycle.
+ */
+function resetTransientState() {
+  return {
+    availableVersion: null,
+    downloadPercent: 0,
+    bytesPerSecond: 0,
+    transferred: 0,
+    total: 0,
+    releaseNotes: null,
+    releaseDate: null,
+    errorMessage: null,
+    urgency: 'normal',
+  };
+}
+
 // ── State guards ──────────────────────────────────────────────────────────────
 
 function canCheck(status) {
@@ -162,15 +188,16 @@ function initUpdater(isDev = false) {
     return;
   }
 
-  // ── Startup sanity assertions ─────────────────────────────────────────────
-  // These fire in packaged builds to catch misconfiguration early.
-
-  let feedUrl;
-  try {
-    feedUrl = autoUpdater.getFeedURL?.() ?? null;
-  } catch (_) {
-    feedUrl = null;
+  // ── Channel validation ────────────────────────────────────────────────────
+  // Guard against unexpected values so the updater always operates on a known
+  // track. Any unsupported value falls back to stable.
+  if (!['stable', 'beta'].includes(state.channel)) {
+    console.warn('[Updater] Unsupported channel "' + state.channel + '" — falling back to stable.');
+    state.channel = 'stable';
   }
+
+  const electronChannel = getElectronChannel(state.channel);
+  const metadataFile    = getMetadataFileForChannel(state.channel);
 
   if (!app.isPackaged) {
     // This branch should never be reached in a packaged build since we guard
@@ -178,30 +205,22 @@ function initUpdater(isDev = false) {
     console.warn('[Updater] WARNING: initUpdater reached non-dev path in unpackaged build.');
   }
 
-  // Resolve the expected channel (electron-updater string, not user-facing track)
-  const electronChannel = getElectronChannel(RELEASE_TRACK);
-  const metadataFile    = getMetadataFileForChannel(RELEASE_TRACK);
-
-  if (!['latest', 'beta'].includes(electronChannel)) {
-    console.warn('[Updater] WARNING: Unrecognised electron channel "' + electronChannel + '" — defaulting to latest.');
-  }
-
-  autoUpdater.autoDownload = false;
-  autoUpdater.autoInstallOnAppQuit = true;
-  autoUpdater.allowDowngrade = false;
-  autoUpdater.forceDevUpdateConfig = false;
-  autoUpdater.channel = electronChannel;
+  autoUpdater.autoDownload          = false;
+  autoUpdater.autoInstallOnAppQuit  = true;
+  autoUpdater.allowDowngrade        = false;
+  autoUpdater.forceDevUpdateConfig  = false;
+  autoUpdater.channel               = electronChannel;
 
   // ── Runtime proof log ─────────────────────────────────────────────────────
   // Printed on every packaged startup so future debugging is never guesswork.
   console.log('[Updater] ========== UPDATER INIT ==========');
-  console.log('[Updater] Provider     : generic');
-  console.log('[Updater] Base URL     : https://releases.switchcontrol.org');
-  console.log('[Updater] Channel      : ' + RELEASE_TRACK + ' (user-facing)');
-  console.log('[Updater] Metadata     : ' + metadataFile);
-  console.log('[Updater] Feed URL     : https://releases.switchcontrol.org/' + metadataFile);
-  console.log('[Updater] Electron ch  : ' + electronChannel + ' (internal, passed to autoUpdater)');
-  console.log('[Updater] Current ver  : ' + state.currentVersion);
+  console.log('[Updater] Provider     :', UPDATE_PROVIDER);
+  console.log('[Updater] Base URL     :', UPDATE_BASE_URL);
+  console.log('[Updater] Channel      :', state.channel, '(user-facing)');
+  console.log('[Updater] Metadata     :', metadataFile);
+  console.log('[Updater] Feed URL     :', UPDATE_BASE_URL + '/' + metadataFile);
+  console.log('[Updater] Electron ch  :', electronChannel, '(internal, passed to autoUpdater)');
+  console.log('[Updater] Current ver  :', state.currentVersion);
   console.log('[Updater] autoDownload : false (user-initiated only)');
   console.log('[Updater] allowDowngr  : false');
   console.log('[Updater] =====================================');
@@ -212,6 +231,7 @@ function initUpdater(isDev = false) {
     console.log('[Updater] Checking for update...');
     state = {
       ...state,
+      ...resetTransientState(),
       status: 'checking',
       checkedAt: new Date().toISOString(),
     };
@@ -225,10 +245,11 @@ function initUpdater(isDev = false) {
     state = {
       ...state,
       status: 'available',
-      availableVersion: info.version,
+      availableVersion: info.version || null,
       releaseNotes: info.releaseNotes || null,
       releaseDate: info.releaseDate || null,
       urgency,
+      errorMessage: null,
     };
     broadcast('update-available');
   });
@@ -238,11 +259,8 @@ function initUpdater(isDev = false) {
     _consecutiveFailures = 0;
     state = {
       ...state,
+      ...resetTransientState(),
       status: 'not-available',
-      availableVersion: null,
-      releaseNotes: null,
-      releaseDate: null,
-      errorMessage: null,
       checkedAt: new Date().toISOString(),
     };
     broadcast('update-not-available');
@@ -258,6 +276,7 @@ function initUpdater(isDev = false) {
       bytesPerSecond: progress.bytesPerSecond ?? 0,
       transferred: progress.transferred ?? 0,
       total: progress.total ?? 0,
+      errorMessage: null,
     };
     broadcast('download-progress');
   });
@@ -269,9 +288,10 @@ function initUpdater(isDev = false) {
       ...state,
       status: 'downloaded',
       downloadPercent: 100,
-      availableVersion: info.version,
+      availableVersion: info.version || state.availableVersion,
       releaseNotes: info.releaseNotes || state.releaseNotes,
       releaseDate: info.releaseDate || state.releaseDate,
+      errorMessage: null,
     };
     broadcast('update-downloaded');
   });
@@ -293,78 +313,75 @@ function initUpdater(isDev = false) {
 
 function checkForUpdates() {
   if (!_autoUpdater) {
-    console.warn('[Updater] checkForUpdates called before init or in dev mode — ignored.');
-    return;
+    console.warn('[Updater] checkForUpdates called before init or in dev mode.');
+    return { ok: false, reason: 'not-initialized' };
   }
+
   if (!canCheck(state.status)) {
     console.warn('[Updater] checkForUpdates blocked in state:', state.status);
-    return;
+    return { ok: false, reason: 'invalid-state', state: state.status };
   }
 
-  // Full reset of all stale fields before a new check so the UI never shows
-  // leftovers from a previous check cycle.
   state = {
     ...state,
+    ...resetTransientState(),
     status: 'checking',
-    availableVersion: null,
-    releaseNotes: null,
-    releaseDate: null,
-    errorMessage: null,
-    downloadPercent: 0,
-    bytesPerSecond: 0,
-    transferred: 0,
-    total: 0,
     checkedAt: new Date().toISOString(),
   };
-
   broadcast('checking-for-update');
 
   try {
     _autoUpdater.checkForUpdates();
+    return { ok: true };
   } catch (err) {
     const msg = err?.message || 'checkForUpdates failed';
     _consecutiveFailures += 1;
     console.error('[Updater] checkForUpdates threw:', msg);
     state = { ...state, status: 'error', errorMessage: msg };
     broadcast('error');
+    return { ok: false, reason: 'exception', error: msg };
   }
 }
 
 function downloadUpdate() {
   if (!_autoUpdater) {
-    console.warn('[Updater] downloadUpdate called before init or in dev mode — ignored.');
-    return;
+    console.warn('[Updater] downloadUpdate called before init or in dev mode.');
+    return { ok: false, reason: 'not-initialized' };
   }
+
   if (!canDownload(state.status)) {
     console.warn('[Updater] downloadUpdate blocked in state:', state.status);
-    return;
+    return { ok: false, reason: 'invalid-state', state: state.status };
   }
 
-  console.log('[Updater] Starting download...');
-
   try {
+    console.log('[Updater] Starting download...');
     _autoUpdater.downloadUpdate();
+    return { ok: true };
   } catch (err) {
     const msg = err?.message || 'downloadUpdate failed';
     _consecutiveFailures += 1;
     console.error('[Updater] downloadUpdate threw:', msg);
     state = { ...state, status: 'error', errorMessage: msg };
     broadcast('error');
+    return { ok: false, reason: 'exception', error: msg };
   }
 }
 
 function quitAndInstall() {
   if (!_autoUpdater) {
-    console.warn('[Updater] quitAndInstall called before init or in dev mode — ignored.');
-    return;
+    console.warn('[Updater] quitAndInstall called before init or in dev mode.');
+    return { ok: false, reason: 'not-initialized' };
   }
+
   if (!canInstall(state.status)) {
     console.warn('[Updater] quitAndInstall blocked in state:', state.status);
-    return;
+    return { ok: false, reason: 'invalid-state', state: state.status };
   }
 
   console.log('[Updater] Triggering quit-and-install...');
   _autoUpdater.quitAndInstall(false, true);
+  return { ok: true };
 }
 
 function getState() {

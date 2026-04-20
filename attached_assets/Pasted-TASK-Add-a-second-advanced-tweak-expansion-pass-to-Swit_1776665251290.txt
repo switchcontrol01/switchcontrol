@@ -1,0 +1,145 @@
+TASK
+
+Add a second advanced tweak expansion pass to SwitchControl focused on real, verified, non-placebo system tweaks that were not included in the first slider and queue-size task.
+
+This task is specifically for the extra tweak set after:
+Win32PrioritySeparation
+MouseDataQueueSize
+KeyboardDataQueueSize
+SystemResponsiveness
+NetworkThrottlingIndex
+
+Do not redo the first task.
+Build this as a separate expansion pass.
+
+These tweaks must be real, readable, applyable, revertable where possible, and verified after apply.
+
+Keep them free.
+
+PROBLEM
+
+The Tweaks page has improved, but it still needs more depth in the real advanced Windows tuning layer.
+
+There are still missing areas:
+
+1. UI and shell responsiveness tweaks
+2. process and hook timeout tuning
+3. Explorer behavior and desktop responsiveness
+4. power throttling and background behavior
+5. NIC and network adapter tuning
+6. visual effect and animation performance settings
+7. scheduler and multimedia tuning
+8. real compatibility gating per system
+
+The app should feel like a serious tuning suite, not just a pretty toggle collection.
+
+GOAL
+
+Add another set of real advanced tweaks with:
+
+1. proper read and verify logic
+2. safe versus moderate labeling
+3. restart or sign-out requirements shown clearly
+4. compatibility detection
+5. free access
+6. strong descriptions
+7. no placebo or outdated garbage
+
+HARD RULES
+
+1. Only add tweaks that can be:
+   read
+   applied
+   verified
+   reverted or reset where possible
+
+2. Do not add myths or fake performance tweaks.
+
+3. If a tweak is version-sensitive, vendor-specific, or unsupported on some systems, detect that and disable the control cleanly.
+
+4. If a tweak is not suitable for a slider, keep it as:
+   toggle
+   stepped control
+   select
+   action button
+
+5. All tweaks added in this task should be free.
+
+IMPLEMENTATION
+
+1. Add these UI and responsiveness tweaks
+
+A. MenuShowDelay
+Control type:
+slider or stepped numeric input
+
+Purpose:
+Changes Start menu and context menu open delay.
+
+Requirements:
+read current value
+apply exact value
+verify exact value
+show default
+show recommended
+show caution if value is set extremely low
+
+Description:
+Controls how quickly Windows menus appear.
+
+Suggested logic:
+min 0
+max 400
+step 10
+default 400
+recommended 0 or 50 depending on your product philosophy
+
+B. LowLevelHooksTimeout
+Control type:
+slider or stepped numeric input
+
+Purpose:
+Controls timeout for low-level hook processing.
+
+Requirements:
+read current value
+apply exact value
+verify exact value
+show warning if pushed into unsafe range
+
+Description:
+Changes how long Windows waits on low-level input hooks before timing them out.
+
+Use caution labels because extreme values can create side effects.
+
+C. HungAppTimeout
+Control type:
+slider
+
+Purpose:
+Controls how long Windows waits before classifying an app as hung.
+
+Requirements:
+read
+apply
+verify
+show default
+show recommended
+
+Description:
+Lower values can make Windows respond faster to hangs, but too low can misclassify slow apps.
+
+D. WaitToKillAppTimeout
+Control type:
+slider
+
+Purpose:
+Controls how long Windows waits before terminating applications during shutdown.
+
+Requirements:
+read
+apply
+verify
+show default
+show recommended
+show shutdown behavior warning

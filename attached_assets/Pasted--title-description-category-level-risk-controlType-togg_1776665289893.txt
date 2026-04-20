@@ -1,0 +1,176 @@
+- title
+- description
+- category
+- level
+- risk
+- controlType: "toggle" | "slider" | "action"
+- supported: true | false | "conditional"
+- requiresAdmin
+- requiresReboot
+- requiresAgent
+- premium
+- backendKey
+- visibility
+- warning
+- expected
+- sliderConfig if applicable
+
+Suggested shape:
+
+type TweakControlType = "toggle" | "slider" | "action";
+
+type TweakSupport = true | false | "conditional";
+
+interface SliderConfig {
+min: number;
+max: number;
+step: number;
+defaultValue: number;
+recommendedValue?: number;
+unit?: string;
+formatHint?: string;
+}
+
+interface CanonicalTweak {
+id: string;
+title: string;
+description: string;
+category: TweakCategory;
+level: TweakLevel;
+risk: RiskLevel;
+controlType: TweakControlType;
+supported: TweakSupport;
+requiresAdmin?: boolean;
+requiresReboot?: boolean;
+requiresAgent?: boolean;
+premium: boolean;
+backendKey?: string;
+visibility?: "default" | "advanced" | "hidden" | "unsupported";
+warning?: string | null;
+expected: TweakExpected;
+sliderConfig?: SliderConfig;
+}
+
+This registry must replace the current drift-heavy setup.
+
+2. Stop using mock-data.ts as tweak truth
+
+Refactor mock-data.ts so it no longer acts like the canonical tweak definition source.
+
+Do one of these cleanly:
+
+Option A:
+Retire tweak metadata from mock-data.ts entirely and move it into canonical registry.
+
+Option B:
+Convert mock-data.ts into a thin import/export layer that consumes the canonical registry.
+
+Do not keep parallel metadata definitions.
+
+No duplicated title, risk, category, level, or support truth.
+
+3. Unify premium gating
+
+Remove fragmented premium logic from scattered files.
+
+Premium status for tweaks must come from canonical tweak registry only.
+
+Do not keep separate logic across:
+
+- tweak tiers
+- premium config
+- ad hoc checks
+
+One tweak, one premium truth.
+
+4. Unify support truth
+
+Any tweak that is unsupported, agent-only, or not safely implementable must be represented honestly.
+
+These tweaks must not be presented as normal real toggles:
+
+- p-states
+- irq-priority
+- timer-res unless it is truly implemented properly with agent/runtime logic
+- desktop-comp
+- hdcp
+
+Required behavior:
+
+If unsupported:
+
+- supported = false
+- visibility = "unsupported" or hidden from normal UI
+- UI must show exact reason
+
+If agent-only:
+
+- supported = "conditional"
+- requiresAgent = true
+- UI must explicitly say it needs a runtime agent
+
+Do not let these appear like fully normal real tweaks if they are not.
+
+5. Quarantine or demote weak / fake tweaks
+
+Review and cleanly reclassify these weak or misleading entries:
+
+- desktop-comp
+- hdcp
+- p-states
+- irq-priority
+- timer-res if not truly agent-backed
+
+Do not remove blindly if they are useful for roadmap visibility.
+But do one of these:
+
+- move them to unsupported section
+- move them to hidden roadmap state
+- move them to planned/agent-required section
+- or remove them from public tweak list entirely
+
+The app must stop overpromising.
+
+6. Add slider support to the frontend and backend model
+
+We now need real sliders.
+
+The tweak system must support slider-based tweaks as first-class controls.
+
+Do not hack sliders as fake toggle variants.
+
+Add proper model support so the card system and executor can handle:
+
+- current value
+- default value
+- recommended value
+- range
+- step
+- unit
+- read / write / verify
+
+Required slider tweaks to implement first:
+
+A. Win32PrioritySeparation slider
+Range:
+
+- 0 to 63
+  Use a clean UI explanation for what the value affects.
+  Backend must read current value and write chosen value.
+
+B. KeyboardDataQueueSize slider
+Range:
+
+- safe constrained range only
+  Do not allow stupid values.
+  Use sane allowed min/max.
+  Backend must read/write/verify registry value.
+
+C. MouseDataQueueSize slider
+Range:
+
+- safe constrained range only
+  Backend must read/write/verify registry value.
+
+D. SystemResponsiveness slider
+Range:

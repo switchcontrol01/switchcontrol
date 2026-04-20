@@ -1,0 +1,147 @@
+Do not add duplicates. Audit first.
+
+8. Add compatibility and support metadata
+
+Every new tweak in this task should support:
+supported OS check
+admin required
+restart required
+sign-out required
+laptop relevance if applicable
+GPU or NIC vendor relevance if applicable
+service exists check if service-based
+registry path availability if relevant
+
+If unsupported:
+disable the control
+show exact reason
+
+9. Add free access
+
+Everything added in this task should be free.
+
+Remove premium lock from any of these if currently gated:
+MenuShowDelay
+LowLevelHooksTimeout
+HungAppTimeout
+WaitToKillAppTimeout
+Power throttling control
+Explorer advanced toggles
+NIC buffer tuning
+RSS tuning
+interrupt moderation
+EEE
+Flow Control
+Green Ethernet
+visual effect performance toggles
+additional verified registry tweaks from this task
+
+10. Improve tweak card detail quality
+
+For every new tweak add:
+clear title
+clear description
+advanced details drawer
+raw path or property name
+current raw value
+default value
+recommended value
+status after verify
+
+11. Add warning system
+
+Mark tweaks as:
+Safe
+Moderate
+Advanced
+Experimental if truly needed
+
+Examples:
+MenuShowDelay safe
+HungAppTimeout moderate
+LowLevelHooksTimeout advanced or moderate
+NIC buffers moderate
+EEE safe
+interrupt moderation moderate
+service-disabling tweaks moderate or advanced depending on service
+
+12. Improve categories
+
+Ensure the page has clean tweak categories such as:
+UI
+Input
+Latency
+Network
+Memory
+Scheduler
+Visuals
+Services
+Explorer
+Power
+
+Place each new tweak correctly.
+
+FILES TO CHANGE
+
+At minimum:
+
+src/pages/Tweaks.tsx
+src/components/tweaks/*
+src/lib/tweaks or tweak definition files
+electron/tweak-executor.js
+electron/main.js if IPC changes are needed
+electron/preload.js if needed
+any adapter or system capability helper modules
+any types or state layer supporting slider and stepped tweaks
+
+CHECKLIST
+
+add MenuShowDelay
+add LowLevelHooksTimeout
+add HungAppTimeout
+add WaitToKillAppTimeout
+add Explorer separate process
+add transparency toggle
+add animation effects toggle
+add file extensions toggle
+add power throttling toggle
+add additional shell and explorer tweaks
+add NIC receive buffers
+add NIC transmit buffers
+add RSS queue count
+add interrupt moderation
+add interrupt moderation rate if supported
+add EEE
+add flow control
+add green ethernet if supported
+add compatibility detection
+add support gating
+add verification
+add reset and revert where possible
+make all new tweaks free
+do not duplicate existing tweaks without auditing
+do not add placebo tweaks
+
+FINAL OUTPUT
+
+Return:
+
+1. exact files changed
+2. exact tweaks added in this second pass
+3. which are sliders
+4. which are stepped controls
+5. which are toggles
+6. which require admin
+7. which require restart or sign-out
+8. which are adapter-specific
+9. which were made free
+10. confirmation that unsupported tweaks are hidden or disabled cleanly
+11. confirmation that every added tweak has read, apply, verify logic
+
+IMPORTANT
+
+Do not improvise fake performance claims.
+If a tweak is real but nuanced, explain it honestly in the description.
+
+Quality over quantity.
+Real tuning over hype.
