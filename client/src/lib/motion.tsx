@@ -259,16 +259,19 @@ export function Reveal({
   children,
   className,
   delay = 0,
-  y = 14,
-  blur = 6,
+  y = 10,
+  blur = 5,
   once = true,
   ...rest
 }: RevealProps) {
   const ref = useRef<HTMLDivElement | null>(null);
+  // margin pushes the trigger point upward so elements already near the viewport
+  // edge don't require half their height visible — they reveal as soon as 8% is
+  // in view, which prevents the "snap in" that happens with tighter thresholds.
   const inView = useInView(ref, {
     once,
-    margin: "0px 0px -8% 0px",
-    amount: 0.12,
+    margin: "0px 0px -5% 0px",
+    amount: 0.08,
   });
 
   return (
@@ -282,7 +285,7 @@ export function Reveal({
           : { opacity: 0, y, filter: `blur(${blur}px)` }
       }
       transition={{
-        duration: 0.55,
+        duration: 0.50,
         delay,
         ease: [0.22, 1, 0.36, 1],
       }}
@@ -331,13 +334,13 @@ export function RevealItem({
     <motion.div
       className={cn(className)}
       variants={{
-        hidden: { opacity: 0, y: 14, filter: "blur(6px)" },
+        hidden: { opacity: 0, y: 10, filter: "blur(5px)" },
         visible: {
           opacity: 1,
           y: 0,
           filter: "blur(0px)",
           transition: {
-            duration: 0.55,
+            duration: 0.50,
             ease: [0.22, 1, 0.36, 1],
           },
         },

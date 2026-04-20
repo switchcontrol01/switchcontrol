@@ -700,12 +700,7 @@ export default function Home() {
           </h2>
           
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-              transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
+            <div>
               <StatCard
                 title="Memory"
                 value={Number.isFinite(liveRamUsedGb) ? liveRamUsedGb.toFixed(1) : '0.0'}
@@ -719,14 +714,9 @@ export default function Home() {
                 className="border-teal-500/20 shadow-[0_0_20px_-10px_hsl(170_100%_50%/0.1)]"
                 loading={specStatus === "loading"}
               />
-            </motion.div>
+            </div>
             
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-              transition={{ duration: 0.5, delay: 0.07, ease: [0.22, 1, 0.36, 1] }}
-            >
+            <div>
               <StatCard
                 title="CPU"
                 value={stats.cpuName}
@@ -736,14 +726,9 @@ export default function Home() {
                 className="border-purple-500/20 shadow-[0_0_20px_-10px_hsl(270_100%_50%/0.1)]"
                 loading={specStatus === "loading"}
               />
-            </motion.div>
+            </div>
             
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-              transition={{ duration: 0.5, delay: 0.14, ease: [0.22, 1, 0.36, 1] }}
-            >
+            <div>
               <StatCard
                 title="GPU"
                 value={stats.gpuName}
@@ -752,14 +737,9 @@ export default function Home() {
                 className="border-cyan-500/20 shadow-[0_0_20px_-10px_hsl(190_100%_50%/0.1)]"
                 loading={specStatus === "loading"}
               />
-            </motion.div>
+            </div>
             
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-              transition={{ duration: 0.5, delay: 0.21, ease: [0.22, 1, 0.36, 1] }}
-            >
+            <div>
               <StatCard
                 title={
                   allDisks.length > 1 ? (
@@ -791,7 +771,7 @@ export default function Home() {
                 className="border-amber-500/20 shadow-[0_0_20px_-10px_hsl(40_100%_50%/0.1)]"
                 loading={specStatus === "loading"}
               />
-            </motion.div>
+            </div>
           </div>
         </Reveal>
 
@@ -841,12 +821,7 @@ export default function Home() {
 
               {/* Motherboard / BIOS Card */}
               {(sysIntel.profile.baseboard.model || sysIntel.profile.bios.version) && (
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-                  transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-                >
+                <div>
                   <GlassCard className="p-4 h-full border-violet-500/15">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center shrink-0">
@@ -888,17 +863,12 @@ export default function Home() {
                       </div>
                     </div>
                   </GlassCard>
-                </motion.div>
+                </div>
               )}
 
               {/* RAM Layout Card */}
               {sysIntel.profile.memory.sticks.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-                  transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-                >
+                <div>
                   <GlassCard className="p-4 h-full border-cyan-500/15">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 rounded-lg bg-cyan-500/15 border border-cyan-500/25 flex items-center justify-center shrink-0">
@@ -933,17 +903,12 @@ export default function Home() {
                       </div>
                     </div>
                   </GlassCard>
-                </motion.div>
+                </div>
               )}
 
               {/* Network Status Card */}
               {sysIntel.profile.network.interfaces.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-                  transition={{ duration: 0.5, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-                >
+                <div>
                   <GlassCard className="p-4 h-full border-blue-500/15">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 rounded-lg bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
@@ -975,17 +940,12 @@ export default function Home() {
                       )}
                     </div>
                   </GlassCard>
-                </motion.div>
+                </div>
               )}
 
               {/* Top CPU Processes Card */}
               {sysIntel.profile.processes.topCpu.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-                  transition={{ duration: 0.5, delay: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                >
+                <div>
                   <GlassCard className="p-4 h-full border-orange-500/15">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/25 flex items-center justify-center shrink-0">
@@ -1005,17 +965,12 @@ export default function Home() {
                       ))}
                     </div>
                   </GlassCard>
-                </motion.div>
+                </div>
               )}
 
               {/* GPU Controller Card */}
               {sysIntel.profile.gpu.controllers.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-                  transition={{ duration: 0.5, delay: 0.24, ease: [0.22, 1, 0.36, 1] }}
-                >
+                <div>
                   <GlassCard className="p-4 h-full border-primary/15">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
@@ -1056,17 +1011,12 @@ export default function Home() {
                       )}
                     </div>
                   </GlassCard>
-                </motion.div>
+                </div>
               )}
 
               {/* Storage Layout Card */}
               {sysIntel.profile.storage.layout.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16, filter: prefersReducedMotion ? "none" : "blur(8px)" }}
-                  whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                  viewport={{ once: true, margin: "0px 0px -60px 0px" }}
-                  transition={{ duration: 0.5, delay: 0.30, ease: [0.22, 1, 0.36, 1] }}
-                >
+                <div>
                   <GlassCard className="p-4 h-full border-amber-500/15">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-6 h-6 rounded-lg bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
@@ -1086,7 +1036,7 @@ export default function Home() {
                       ))}
                     </div>
                   </GlassCard>
-                </motion.div>
+                </div>
               )}
 
             </div>
@@ -1094,13 +1044,7 @@ export default function Home() {
         )}
 
         {/* ── Telemetry Analytics ────────────────────────────────────── */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, margin: "0px 0px -40px 0px" }}
-          transition={{ duration: 0.4 }}
-          className="space-y-3"
-        >
+        <Reveal className="space-y-3">
           <div className="flex items-center gap-2">
             <Activity className="size-4 text-cyan-400" />
             <h2 className="text-lg font-semibold tracking-tight text-white/90">Telemetry Analytics</h2>
@@ -1109,45 +1053,19 @@ export default function Home() {
 
           {/* Three live graph cards */}
           <div className="grid gap-4 md:grid-cols-3">
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "0px 0px -40px 0px" }}
-              transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <MemoryPressureGraph delay={0} />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "0px 0px -40px 0px" }}
-              transition={{ duration: 0.6, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <StorageActivityGraph delay={0.05} />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 18, filter: prefersReducedMotion ? "none" : "blur(10px)" }}
-              whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "0px 0px -40px 0px" }}
-              transition={{ duration: 0.6, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <SystemRhythmGraph delay={0.1} />
-            </motion.div>
+            <div><MemoryPressureGraph delay={0} /></div>
+            <div><StorageActivityGraph delay={0.05} /></div>
+            <div><SystemRhythmGraph delay={0.1} /></div>
           </div>
 
           {/* Display Signal — live intelligence panel, always shown */}
           <DisplaySignalGraph delay={0.1} />
-        </motion.div>
+        </Reveal>
 
         {/* Bottom Section */}
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Reveal className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {/* Account Status Card - Updated */}
-          <motion.div
-            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20, filter: prefersReducedMotion ? "none" : "blur(12px)" }}
-            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            viewport={{ once: true, margin: "0px 0px -80px 0px" }}
-            transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <div>
             <GlassCard className="overflow-hidden relative group h-full">
             <div className="absolute -right-16 -top-16 h-40 w-40 bg-emerald-500/8 blur-3xl rounded-full pointer-events-none group-hover:bg-emerald-500/15 transition-colors duration-500" />
             <div className="p-6 pb-4">
@@ -1196,29 +1114,18 @@ export default function Home() {
               </div>
             </div>
           </GlassCard>
-          </motion.div>
+          </div>
 
           {/* AI Advisor Summary Widget */}
-          <motion.div
-            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20, filter: prefersReducedMotion ? "none" : "blur(12px)" }}
-            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            viewport={{ once: true, margin: "0px 0px -80px 0px" }}
-            transition={{ duration: 0.55, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
-            data-tour="ai-advisor"
-          >
+          <div data-tour="ai-advisor">
             <AIAdvisorSummaryCard isPremium={isPremium} />
-          </motion.div>
+          </div>
 
           {/* BIOS Score Summary Card */}
-          <motion.div
-            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20, filter: prefersReducedMotion ? "none" : "blur(12px)" }}
-            whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-            viewport={{ once: true, margin: "0px 0px -80px 0px" }}
-            transition={{ duration: 0.55, delay: 0.16, ease: [0.22, 1, 0.36, 1] }}
-          >
+          <div>
             <BiosScoreSummaryCard isPremium={isPremium} />
-          </motion.div>
-        </div>
+          </div>
+        </Reveal>
 
         {/* Dashboard Insights — scroll-depth section with real system intelligence */}
         <Reveal delay={0.18}>
