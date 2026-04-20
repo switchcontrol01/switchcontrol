@@ -11,10 +11,31 @@ interface TelemetryStoreState {
   connected: boolean;
   lastUpdateTs: number | null;
 
-  _setTelemetry: (t: LiveTelemetry) => void;
+  // ── Batched hot-path updater ─────────────────────────────────────────────────
+  // Single set() call per telemetry tick — replaces the previous 3 separate calls
+  // (_setTelemetry + _setStatus + _appendHistory) which triggered 3 React render
+  // passes per second. Now exactly 1 render pass per tick.
+  _onTick: (
+    t: LiveTelemetry,
+    spikes: SpikeState | null,
+    cpu: number,
+    ram: number,
+    gpu: number | null,
+    vram: number | null,
+    rxKbps: number,
+    txKbps: number,
+    diskActiveTime: number | null,
+    diskReadKBps: number | null,
+    diskWriteKBps: number | null,
+  ) => void;
+
+  // ── Individual setters (used for connection state, resets, etc.) ─────────────
   _setStatus: (s: TelemetryStatus) => void;
   _setConnected: (c: boolean) => void;
   _setSpikes: (updater: (prev: SpikeState) => SpikeState) => void;
+
+  // kept for hard-reset only
+  _setTelemetry: (t: LiveTelemetry) => void;
   _appendHistory: (
     cpu: number,
     ram: number,
@@ -28,9 +49,13 @@ interface TelemetryStoreState {
   ) => void;
 }
 
+// slice(1) is faster than spread+shift for arrays that are already at max length
 function appendCapped<T>(arr: T[], val: T): T[] {
-  const next = [...arr, val];
-  if (next.length > HISTORY_LEN) next.shift();
+  if (arr.length < HISTORY_LEN) {
+    return arr.concat([val]);
+  }
+  const next = arr.slice(1);
+  next.push(val);
   return next;
 }
 
@@ -46,10 +71,30 @@ export const useTelemetryStore = create<TelemetryStoreState>((set) => ({
   connected: false,
   lastUpdateTs: null,
 
-  _setTelemetry: (t) => set({ telemetry: t, lastUpdateTs: Date.now() }),
+  // Single batched update — one React render pass per tick
+  _onTick: (t, newSpikes, cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) =>
+    set((state) => ({
+      telemetry: t,
+      lastUpdateTs: Date.now(),
+      status: "ready",
+      ...(newSpikes !== null ? { spikes: newSpikes } : {}),
+      history: {
+        cpu: appendCapped(state.history.cpu, cpu),
+        ram: appendCapped(state.history.ram, ram),
+        gpu: appendCapped(state.history.gpu, gpu),
+        vram: appendCapped(state.history.vram, vram),
+        rxKbps: appendCapped(state.history.rxKbps, rxKbps),
+        txKbps: appendCapped(state.history.txKbps, txKbps),
+        diskActiveTime: appendCapped(state.history.diskActiveTime, diskActiveTime),
+        diskReadKBps: appendCapped(state.history.diskReadKBps, diskReadKBps),
+        diskWriteKBps: appendCapped(state.history.diskWriteKBps, diskWriteKBps),
+      },
+    })),
+
   _setStatus: (s) => set({ status: s }),
   _setConnected: (c) => set({ connected: c }),
   _setSpikes: (updater) => set((state) => ({ spikes: updater(state.spikes) })),
+  _setTelemetry: (t) => set({ telemetry: t, lastUpdateTs: Date.now() }),
   _appendHistory: (cpu, ram, gpu, vram, rxKbps, txKbps, diskActiveTime, diskReadKBps, diskWriteKBps) =>
     set((state) => ({
       history: {

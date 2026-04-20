@@ -189,16 +189,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     if (gpuDetectedRef.current) return;
     gpuDetectedRef.current = true;
     setGpuEverDetected(true);
-    console.log(`[LiveGraph][GPU] ✓ detected at ${Date.now()} — backfilling ${0}-valued null gaps`);
     // Replace every null gpuLoad in existing history with 0 so Recharts can
     // draw the line from the very first chart data point.
     setData(prev => prev.map(pt => ({ ...pt, gpuLoad: pt.gpuLoad ?? 0 })));
-  }, []);
-
-  // ── Debug: mount timestamp ────────────────────────────────────────────────
-  useEffect(() => {
-    console.log(`[LiveGraph] mounted at ${Date.now()} — Electron: ${!!(window as any).electronAPI?.telemetry?.getLive}`);
-    return () => { console.log('[LiveGraph] unmounted'); };
   }, []);
 
   // ── Web fallback: WebSocket-driven via hook ──────────────────────────────
@@ -248,7 +241,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       };
     });
 
-    console.log(`[LiveGraph] seeding ${seeded.length} history pts — GPU in history: ${gpuInHistory}`);
     setData(seeded);
   }, [wsHistory, isElectron, markGpuDetected]);
 
@@ -288,15 +280,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     const diskWriteKBps = snap.disk?.writeKBps ?? null;
 
     diskLogTickRef.current += 1;
-    if (diskLogTickRef.current <= 3 || diskLogTickRef.current % 10 === 0) {
-      console.log(`[LiveGraph][Disk] WS path tick#${diskLogTickRef.current} →`, {
-        activeTimePct: snap.disk?.activeTimePct,
-        readKBps: diskReadKBps,
-        writeKBps: diskWriteKBps,
-        available: diskAvailable,
-        "→ diskActiveTime (dataset)": diskActiveTime,
-      });
-    }
 
     const telemetryState: LatestState = {
       cpuLoad, cpuTemp,
@@ -386,17 +369,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       const diskWriteKBps  = live.disk?.writeKBps  != null ? safeNumber(live.disk.writeKBps)  : null;
 
       diskLogTickRef.current += 1;
-      if (diskLogTickRef.current <= 3 || diskLogTickRef.current % 10 === 0) {
-        console.log(`[LiveGraph][Disk] IPC raw tick#${diskLogTickRef.current} →`, {
-          activeTimePct: live.disk?.activeTimePct,
-          readKBps: live.disk?.readKBps,
-          writeKBps: live.disk?.writeKBps,
-          available: live.disk?.available,
-          source: live.disk?.source,
-          "→ diskActiveTime (dataset)": diskActiveTime,
-          "→ diskReadKBps (dataset)": diskReadKBps,
-        });
-      }
 
       const telemetryState: LatestState = {
         cpuLoad, cpuTemp, gpuTemp, gpuLoad,
@@ -492,26 +464,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const hasDiskRW = data.some(d => d.diskReadKBps != null || d.diskWriteKBps != null) || (latest?.diskAvailable ?? false);
   const hasNetRx = data.some(d => d.netRx != null);
   const hasNetTx = data.some(d => d.netTx != null);
-
-  // Log which metrics are active (once after first data arrives)
-  if (data.length === 1) {
-    const first = data[0];
-    console.log(
-      `[LiveGraph] First data point at ${Date.now()} —`,
-      `CPU:yes RAM:${hasRamData ? "yes" : "no"}`,
-      `GPU:${hasGpuLoad ? `yes (load=${first.gpuLoad})` : "pending (no GPU or not detected yet)"}`,
-      `Disk:${hasDiskData ? "yes" : "no"}`,
-      `Net:${hasNetRx || hasNetTx ? "yes" : "no"}`
-    );
-    // Final dataset disk confirmation — confirms disk survived the full pipeline
-    console.log("[LiveGraph][Disk] FINAL DATASET first point →", {
-      diskActiveTime: first.diskActiveTime,
-      diskReadKBps: first.diskReadKBps,
-      diskWriteKBps: first.diskWriteKBps,
-      hasDiskData,
-      "Line renders": hasDiskData && toggles.disk,
-    });
-  }
 
   const netPeak = Math.max(...data.map(d => Math.max(d.netRx ?? 0, d.netTx ?? 0)), 10);
   const netDomainMax = Math.ceil(netPeak * 1.3 / 10) * 10;

@@ -300,8 +300,6 @@ export async function getSnapshot(): Promise<TelemetrySnapshot> {
       diskUnavailableLogged = true;
       console.log("[DiskTelemetry] disksIO returned no usable fields. Raw keys:", Object.keys(d).join(","));
     }
-
-    console.log(`[DiskTelemetry] tick: available=${disk.available} activeTimePct=${disk.activeTimePct} R=${disk.readKBps} W=${disk.writeKBps} (rSec=${rSec} wSec=${wSec} msSec=${msSec} rIO=${rIO} wIO=${wIO})`);
   } else if (diskIo.status === "rejected" && !diskUnavailableLogged) {
     diskUnavailableLogged = true;
     console.log("[DiskTelemetry] disksIO failed:", (diskIo as PromiseRejectedResult).reason?.message ?? "unknown");

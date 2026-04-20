@@ -6,6 +6,16 @@
  * which this manager writes into.
  *
  * Calling start() more than once is a no-op.
+ *
+ * CPU BUDGET NOTES
+ * ────────────────
+ * Each telemetry message triggers exactly ONE Zustand set() call (_onTick) which
+ * causes exactly ONE React render pass across all subscribed components.
+ * Previously there were 3 separate set() calls per message (telemetry + status +
+ * history) causing 3 render passes per second.
+ *
+ * All console.log calls that previously fired inside the WebSocket message handler
+ * (hot path, once per tick) have been removed. Logs for connection events only.
  */
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
@@ -59,12 +69,9 @@ async function buildWsUrl(): Promise<string> {
 // ── Connection logic ───────────────────────────────────────────────────────────
 
 function connect() {
-  const store = useTelemetryStore.getState();
-
   if (_unavailableTimer) clearTimeout(_unavailableTimer);
   _unavailableTimer = setTimeout(() => {
     if (useTelemetryStore.getState().status !== "ready") {
-      console.log("[Telemetry] No data received — marking unavailable");
       useTelemetryStore.getState()._setStatus("unavailable");
     }
   }, UNAVAILABLE_TIMEOUT_MS);
@@ -100,8 +107,6 @@ function connect() {
             const ramVal = data.ram.usedPercent;
             const gpuVal = data.gpu?.load ?? null;
             const vramVal = data.gpu?.vramPercent ?? null;
-            // Disk — always read raw values from server; never suppress based on available flag alone.
-            // A value of 0.0 is valid (idle disk) and must not be treated as missing.
             const diskActiveTime = data.disk?.activeTimePct ?? null;
             const diskReadKBps = data.disk?.readKBps ?? null;
             const diskWriteKBps = data.disk?.writeKBps ?? null;
@@ -110,20 +115,22 @@ function connect() {
             const ramSpike = detectSpike(h.ram, ramVal);
             const gpuSpike = detectSpike(h.gpu, gpuVal);
 
+            let newSpikes = null;
             if (cpuSpike || ramSpike || gpuSpike) {
-              st._setSpikes((prev) => ({
-                cpu: cpuSpike ? true : prev.cpu,
-                ram: ramSpike ? true : prev.ram,
-                gpu: gpuSpike ? true : prev.gpu,
-              }));
+              newSpikes = {
+                cpu: cpuSpike ? true : st.spikes.cpu,
+                ram: ramSpike ? true : st.spikes.ram,
+                gpu: gpuSpike ? true : st.spikes.gpu,
+              };
               if (cpuSpike) scheduleResetSpike("cpu");
               if (ramSpike) scheduleResetSpike("ram");
               if (gpuSpike) scheduleResetSpike("gpu");
             }
 
-            st._setTelemetry(data);
-            st._setStatus("ready");
-            st._appendHistory(
+            // Single batched set() — one React render pass instead of 3
+            st._onTick(
+              data,
+              newSpikes,
               cpuVal,
               ramVal,
               gpuVal,
@@ -132,7 +139,7 @@ function connect() {
               data.network.tx_sec / 1024,
               diskActiveTime,
               diskReadKBps,
-              diskWriteKBps
+              diskWriteKBps,
             );
           } catch {}
         };
@@ -162,8 +169,7 @@ export const telemetryManager = {
    */
   start() {
     if (_started) {
-      console.log("[Telemetry] Manager already running — skipping start");
-      return;
+      return; // silent no-op — already running, no log spam
     }
     _started = true;
     console.log("[Telemetry] Manager starting");
@@ -202,8 +208,6 @@ export const telemetryManager = {
     const st = useTelemetryStore.getState();
     st._setConnected(false);
     st._setStatus("loading");
-    // Clear history
-    st._appendHistory; // keep reference but reset via store
     useTelemetryStore.setState({
       history: {
         cpu: [], ram: [], gpu: [], vram: [],

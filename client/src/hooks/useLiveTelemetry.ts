@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useShallow } from "zustand/react/shallow";
 import { telemetryManager } from "@/lib/telemetryManager";
 import { useTelemetryStore } from "@/stores/telemetryStore";
 
@@ -58,18 +59,27 @@ export type TelemetryStatus = "loading" | "ready" | "unavailable";
 //
 // All state lives in useTelemetryStore (Zustand singleton). This hook just
 // ensures the manager is running and returns the current store slice.
-// Navigating away from a page that uses this hook no longer resets anything —
-// the manager and store survive the full app lifetime.
+//
+// useShallow is used so that the returned object reference only changes when
+// one of the selected fields actually changes — not on every unrelated set().
+// This prevents consumers from re-rendering when e.g. only `lastUpdateTs`
+// changed but not the fields they use.
 
 export function useLiveTelemetry() {
   useEffect(() => {
-    // Idempotent — calling start() when already running is a no-op.
+    // Idempotent — calling start() when already running is a silent no-op.
     telemetryManager.start();
-    console.log("[Telemetry] subscription resumed — reading from persistent store");
   }, []);
 
-  const { telemetry, history, spikes, status, connected } = useTelemetryStore();
-  return { telemetry, history, spikes, status, connected };
+  return useTelemetryStore(
+    useShallow((s) => ({
+      telemetry: s.telemetry,
+      history: s.history,
+      spikes: s.spikes,
+      status: s.status,
+      connected: s.connected,
+    }))
+  );
 }
 
 // ── Formatters ─────────────────────────────────────────────────────────────────

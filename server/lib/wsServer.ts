@@ -27,8 +27,10 @@ export function setupWebSocketServer(httpServer: HttpServer) {
       .catch(() => {});
   });
 
-  // Broadcast cached snapshot to all clients every 1 second
+  // Broadcast cached snapshot to all clients every 2 seconds.
   // (background polling in telemetry.ts refreshes the cache independently)
+  // 2 s is imperceptible for system-stats displays and halves the frontend
+  // render budget compared to the previous 1 s interval.
   broadcastInterval = setInterval(() => {
     if (!wss || wss.clients.size === 0) return;
     const snap = getCachedSnapshot();
@@ -39,7 +41,7 @@ export function setupWebSocketServer(httpServer: HttpServer) {
         client.send(msg);
       }
     });
-  }, 1000);
+  }, 2000);
 
   console.log("[WS] Live telemetry WebSocket server ready at /ws/telemetry");
 }
