@@ -58,9 +58,8 @@ const KEY_ID      = process.env.R2_ACCESS_KEY_ID;
 const KEY_SECRET  = process.env.R2_SECRET_ACCESS_KEY;
 const BUCKET      = process.env.R2_BUCKET || 'switchcontrol-releases';
 
-// Update host — production URL for releases.switchcontrol.org.
-// This must match build.publish.url in electron/package.json.
-const PUBLIC_URL  = (process.env.R2_PUBLIC_URL || 'https://releases.switchcontrol.org').replace(/\/$/, '');
+// Update host — R2 public URL. Must match build.publish.url in electron/package.json.
+const PUBLIC_URL  = (process.env.R2_PUBLIC_URL || 'https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev').replace(/\/$/, '');
 
 const missing = [
   !ACCOUNT_ID  && 'R2_ACCOUNT_ID',
