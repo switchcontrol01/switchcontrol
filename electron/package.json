@@ -35,6 +35,7 @@
       "main.js",
       "preload.js",
       "updater.js",
+      "user-data-paths.js",
       "tweak-executor.js",
       "network-tweak-executor.js",
       "slider-tweak-executor.js",
