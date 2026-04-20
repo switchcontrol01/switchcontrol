@@ -1909,8 +1909,8 @@ ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
     return { success: false, error: 'Invalid GUID' };
   }
   try {
-    const { execSync } = require('child_process');
-    execSync(`powercfg /setactive "${guid.trim()}"`, { stdio: 'pipe' });
+    const { execFileSync } = require('child_process');
+    execFileSync('powercfg', ['/setactive', guid.trim()], { stdio: 'pipe' });
     // Verify the plan is now active
     const verifyState = await powerPlanManager.getPowerPlanState();
     const activeGuid = verifyState?.activeScheme?.guid ?? '';
