@@ -147,7 +147,18 @@ async function startBackend(app) {
       console.log(`[Backend]   child_env ${k}: ${!!env[k]}`);
     }
     console.log('[Backend] AI_MODEL in child env:', env.AI_MODEL || '(not set, will use gpt-4o-mini)');
+    console.log('[Backend] DATABASE_URL in child env:', env.DATABASE_URL ? `YES (${env.DATABASE_URL.substring(0, 30)}...)` : 'NO — will use in-memory mode');
+    console.log('[Backend] ELECTRON_BACKEND in child env:', env.ELECTRON_BACKEND || '(not set)');
     console.log('[Backend] ==========================================');
+
+    // Explicitly strip DATABASE_URL when running as Electron backend.
+    // The Replit PostgreSQL server is unreachable from the user's machine —
+    // if this key leaks in (e.g. via a system env var or sc-config.json),
+    // the server would try to open PG connections and hang.
+    if (env.DATABASE_URL) {
+      console.warn('[Backend] WARNING: DATABASE_URL found in child env — stripping it for Electron mode');
+      delete env.DATABASE_URL;
+    }
 
     console.log('[Backend] Spawning child process...');
     console.log('[Backend]   execPath:', process.execPath);

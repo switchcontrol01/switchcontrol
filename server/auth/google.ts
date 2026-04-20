@@ -164,12 +164,14 @@ export function setupGoogleAuth(app: Express): void {
 
   let sessionStore: session.Store;
 
-  if (isNoDbMode || !process.env.DATABASE_URL) {
+  const isElectronMode = process.env.ELECTRON_BACKEND === '1';
+
+  if (isNoDbMode || !process.env.DATABASE_URL || isElectronMode) {
     const MemStore = MemoryStore(session);
     sessionStore = new MemStore({
       checkPeriod: sessionTtl,
     });
-    console.log("[AUTH] Using memory session store (NO-DB mode)");
+    console.log("[AUTH] Using memory session store (NO-DB / Electron desktop mode)");
   } else {
     const pgStore = connectPg(session);
     sessionStore = new pgStore({

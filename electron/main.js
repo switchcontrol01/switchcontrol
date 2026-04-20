@@ -426,8 +426,8 @@ function createWindow() {
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
     height: 800,
-    show: false,
-    backgroundColor: '#0c0e12',
+    show: true,
+    backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
     webPreferences: {
@@ -625,19 +625,8 @@ function createWindow() {
     }
   });
 
-  // Fallback: if ready-to-show never fires (backend stall, renderer crash, etc.)
-  // force the window visible after 8 seconds so the user isn't left with nothing.
-  const showFallback = setTimeout(() => {
-    if (mainWindow && !mainWindow.isVisible()) {
-      console.warn('[SwitchControl] ready-to-show never fired — force showing window');
-      mainWindow.show();
-    }
-  }, 8000);
-
   mainWindow.once('ready-to-show', () => {
-    clearTimeout(showFallback);
-    console.log('[SwitchControl] Window ready-to-show');
-    mainWindow.show();
+    console.log('[SwitchControl] Window ready-to-show fired');
   });
   mainWindow.on('closed', () => { 
     mainWindow = null; 
