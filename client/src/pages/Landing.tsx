@@ -36,6 +36,7 @@ import { SectionHeader } from "@/components/website/SectionHeader";
 import { SectionDivider } from "@/components/website/SectionDivider";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
 import { TelemetryLineOverlay } from "@/components/website/TelemetryLineOverlay";
+import { installerUrl } from "@shared/downloadConfig";
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
   const rafRef = useRef<number | null>(null);
@@ -633,12 +634,8 @@ export default function Landing() {
   const { user } = useAuth();
   useMomentumScroll();
 
-  const handleAuthAwareClick = (e: MouseEvent) => {
-    if (user) {
-      window.location.href = "/download";
-    } else {
-      window.location.href = "/login?next=/download";
-    }
+  const handleAuthAwareClick = (_e: MouseEvent) => {
+    window.location.href = installerUrl("hero");
   };
 
   return (

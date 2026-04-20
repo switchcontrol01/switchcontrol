@@ -68,7 +68,9 @@ ADMIN_EMAILS = "switchcontrol67@gmail.com,cooperhagarty353@gmail.com"
 
 [userenv.production]
 GOOGLE_REDIRECT_URI = "https://switchcontrol.org/api/auth/google/callback"
+INSTALLER_DOWNLOAD_URL = "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.0.exe"
 
 [userenv.development]
 GOOGLE_REDIRECT_URI = "/api/auth/google/callback"
 JWT_SECRET = "sc-jwt-dev-secret-change-in-production-2026"
+INSTALLER_DOWNLOAD_URL = "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.0.exe"
