@@ -31,9 +31,9 @@ function PatchNotesCard() {
   if (!notes) return null;
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16, filter: "blur(8px)" }}
-      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-      transition={{ duration: 0.75, delay: 1.0, ease: SILK }}
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.65, delay: 0.9, ease: SILK }}
       style={{
         width: "100%", maxWidth: "900px",
         borderRadius: "14px", padding: "16px 22px",
@@ -118,9 +118,9 @@ export default function DownloadPage() {
   }, []);
 
   const stagger = (i: number) => ({
-    initial: { opacity: 0, y: 20, filter: "blur(10px)" },
-    animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-    transition: { duration: 0.85, delay: 0.1 + i * 0.11, ease: SILK },
+    initial: { opacity: 0, y: 22 },
+    animate: { opacity: 1, y: 0 },
+    transition: { duration: 0.65, delay: 0.08 + i * 0.10, ease: SILK },
   });
 
   return (
@@ -615,7 +615,9 @@ export default function DownloadPage() {
                   <div style={{
                     position: "absolute", inset: "-10px",
                     background: "radial-gradient(ellipse,rgba(139,92,246,0.30) 0%,transparent 70%)",
-                    filter: "blur(14px)", animation: "ambientBreathe 4s ease-in-out infinite",
+                    filter: "blur(14px)",
+                    willChange: "opacity",
+                    animation: "ambientBreathe 4s ease-in-out infinite",
                   }} />
                   <img
                     src={faviconImg}
