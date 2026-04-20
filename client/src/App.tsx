@@ -951,6 +951,7 @@ function ElectronAppContent() {
               isPremium={user?.isPremium}
               introDelay={1.7}
               onComplete={() => {
+                console.log('[Handoff] intro exit complete — mounting dashboard');
                 setPhase("authenticated");
                 setLocation("/dashboard");
               }}
@@ -961,21 +962,24 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, scale: 0.988, filter: "blur(14px)" }}
+            // IMPORTANT: Do NOT use filter or scale/transform here.
+            // Any CSS filter or transform on this wrapper creates a new containing
+            // block for position:fixed descendants (the Sidebar, fixed modals).
+            // That traps them inside this compositing layer, causing visual
+            // misalignment until the filter clears. Opacity alone is safe — it
+            // does NOT create a containing block.
+            // The inner AppLayout page div (0.32s, blur 6px) provides the visual
+            // entrance drama; clearContainingBlock cleans that up after it completes.
+            initial={{ opacity: 0 }}
             animate={
               isSigningOut
                 ? { opacity: 0, scale: 0.975, filter: "blur(28px)", transition: { duration: 1.2, ease: [0.4, 0, 0.6, 1] } }
-                : { opacity: 1, scale: 1, filter: "blur(0px)", transition: {
-                    // Opacity and scale lead — they carry the reveal feel.
-                    // Filter clears after a deliberate pause so card animations
-                    // don't fight an active parent blur during the handoff.
-                    opacity: { duration: 1.0,  delay: 0.35, ease: [0.22, 1, 0.36, 1] },
-                    scale:   { duration: 1.2,  delay: 0.35, ease: [0.22, 1, 0.36, 1] },
-                    filter:  { duration: 1.6,  delay: 0.30, ease: [0.22, 1, 0.36, 1] },
-                  }}
+                : { opacity: 1, transition: { duration: 0.9, delay: 0.25, ease: [0.22, 1, 0.36, 1] } }
             }
             className="h-full"
             style={{ pointerEvents: isSigningOut ? "none" : undefined }}
+            onAnimationStart={() => console.log('[Handoff] dashboard fade-in started')}
+            onAnimationComplete={() => console.log('[Handoff] dashboard fade-in complete — layout stable')}
           >
             <Router hook={useHashLocation}>
               <ElectronAppRoutes />
