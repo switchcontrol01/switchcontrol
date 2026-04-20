@@ -264,6 +264,31 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 - `@replit/vite-plugin-cartographer`
 - `@replit/vite-plugin-dev-banner`
 
+### Activity Intelligence (History Page)
+**Files**: `client/src/pages/History.tsx`, `client/src/components/history/HistoryCharts.tsx`
+
+**Architecture**: History page rebuilt from flat log into full analytics center. All enrichment computed client-side from the existing `HistoryItem` shape (id/timestamp/action/page/result/notes) — no store schema changes required.
+
+**Data enrichment** (derived at render time):
+- `status`: "success" | "failed" | "warning" | "reverted" | "info" — inferred from result/action text
+- `module`: normalized from `page` field (Tweaks/Security/Power/Network/Cleaner/Debloat/Startup/AI Advisor/BIOS Advisor/Dashboard/App Booster)
+- `impact`: "low" | "medium" | "high" — derived from module + status
+- `isMajor`: boolean for major event strip (failed, high-impact, Security, BIOS Advisor)
+
+**Sections**:
+- **Summary Cards** (6): Total Actions, Success Rate (color-coded), Failed Actions, Top Module, Last Active, Sessions (7d)
+- **Recent Major Events strip**: horizontal scroll of cards for isMajor events only
+- **Analytics Charts** (collapsible): Actions Over Time (AreaChart), Success vs Failure (stacked BarChart), Module Usage (animated horizontal bars) — all with time range selectors (1D/7D/30D/All)
+- **Search + Filters**: text search (action/module/result/notes), module filter chips, status filter chips, sort toggle (newest/oldest), collapsible on mobile
+- **Grouped Timeline**: date groups (Today/Yesterday/Earlier This Week/Older) with expandable event rows
+- **Expandable Event Rows**: left-border color by status, expand reveals full timestamp, module, status, impact, result, notes, event ID
+
+**Session intelligence**: `detectSessions()` — groups events with ≤15 min gaps into sessions. Used for "Sessions (7d)" summary card.
+
+**Export** (3 options): All history JSON, Filtered view JSON, Filtered view CSV — via dropdown menu.
+
+**Mobile**: Summary cards `grid-cols-2 sm:grid-cols-3 xl:grid-cols-6`, charts `grid-cols-1 md:grid-cols-3`, filter panel collapsible, timeline single-column, expand still smooth.
+
 ### System Integrity Module (Security Page)
 **Files**: `client/src/pages/Security.tsx`, `client/src/components/security/SecurityStartupTab.tsx`, `client/src/components/security/SecurityProcessesTab.tsx`, `client/src/components/security/SecurityAuditTab.tsx`, `electron/security-helper.js`
 
