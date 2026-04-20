@@ -81,7 +81,9 @@ async function callIpc(tweakId: string, action: "enable" | "disable") {
       };
     };
   }).electronAPI.networkTweaks;
-  return api.execute(tweakId, action);
+  // Preload expects "apply" / "revert" — translate from internal enable/disable semantics
+  const ipcAction = action === "enable" ? "apply" : "revert";
+  return api.execute(tweakId, ipcAction);
 }
 
 async function reportResult(

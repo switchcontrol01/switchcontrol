@@ -578,7 +578,7 @@ const TWEAK_REGISTRY = {
 /**
  * Execute a network tweak action.
  * @param {string} tweakId
- * @param {'enable'|'disable'} action
+ * @param {'apply'|'revert'} action  — must match the preload ALLOWED_TWEAK_ACTIONS set
  * @returns {{ tweakId, action, success, verified, message, requiresRestart, disabled?, reason?, error? }}
  */
 async function executeNetworkTweak(tweakId, action) {
@@ -604,7 +604,7 @@ async function executeNetworkTweak(tweakId, action) {
     };
   }
 
-  const script = action === 'enable' ? entry.apply : entry.revert;
+  const script = action === 'apply' ? entry.apply : entry.revert;
 
   try {
     const output = await execPowerShell(script);
@@ -614,14 +614,14 @@ async function executeNetworkTweak(tweakId, action) {
       try {
         const checkOut = await execPowerShell(entry.check);
         const isEnabled = checkOut.trim().toLowerCase() === 'true';
-        verified = action === 'enable' ? isEnabled : !isEnabled;
+        verified = action === 'apply' ? isEnabled : !isEnabled;
       } catch (verifyErr) {
         console.warn(`[NetworkTweak] Verification failed for ${tweakId}:`, verifyErr.message);
         verified = false;
       }
     }
 
-    const verb = action === 'enable' ? 'Enabled' : 'Disabled';
+    const verb = action === 'apply' ? 'Enabled' : 'Disabled';
     return {
       tweakId, action,
       success: true,

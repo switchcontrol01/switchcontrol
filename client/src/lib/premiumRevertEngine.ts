@@ -136,8 +136,8 @@ async function revertSingleNetworkTweak(
       return 'skipped_conflict';
     }
 
-    // 3. Execute disable
-    const result = await api.execute(tweakId, 'disable');
+    // 3. Execute revert (preload expects "revert", not "disable")
+    const result = await api.execute(tweakId, 'revert');
     if (!result?.success) {
       console.error(`[Revert:NET] execute failed tweakId="${tweakId}"`, result?.message);
       useTweakOwnershipStore.getState().markNetworkTweakRevertFailed(tweakId);
