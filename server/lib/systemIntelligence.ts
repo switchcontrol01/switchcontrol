@@ -19,8 +19,13 @@ const PS_TIMEOUT_MS = 8_000;
 export interface SipController {
   name: string | null;
   vendor: string | null;
+  subVendor: string | null;
+  vendorId: string | null;
+  deviceId: string | null;
   vramMb: number | null;
+  vramDynamic: boolean | null;
   bus: string | null;
+  external: boolean | null;
 }
 
 export interface SipDisplay {
@@ -399,8 +404,13 @@ async function collect(): Promise<SystemIntelligenceProfile> {
   const controllers: SipController[] = (graphics?.controllers ?? []).map((c: any) => ({
     name: safeStr(c.model),
     vendor: safeStr(c.vendor),
-    vramMb: safeNum(typeof c.vram === "number" ? c.vram : c.vramDynamic),
+    subVendor: safeStr(c.subVendor ?? null),
+    vendorId: safeStr(c.vendorId ?? null),
+    deviceId: safeStr(c.deviceId ?? null),
+    vramMb: safeNum(typeof c.vram === "number" ? c.vram : null),
+    vramDynamic: typeof c.vramDynamic === "boolean" ? c.vramDynamic : null,
     bus: safeStr(c.bus),
+    external: typeof c.external === "boolean" ? c.external : null,
   })).filter((c: SipController) => c.name !== null);
 
   // Generic-sounding model names that should be replaced with EDID data when available

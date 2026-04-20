@@ -13,8 +13,13 @@ import { create } from "zustand";
 export interface SipController {
   name: string | null;
   vendor: string | null;
+  subVendor: string | null;
+  vendorId: string | null;
+  deviceId: string | null;
   vramMb: number | null;
+  vramDynamic: boolean | null;
   bus: string | null;
+  external: boolean | null;
 }
 
 export interface SipDisplay {
