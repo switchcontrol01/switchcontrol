@@ -361,8 +361,6 @@ export function Sidebar() {
   }, [trialOn, user?.trialEndsAt]);
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
-  const [footerHovered, setFooterHovered] = useState(false);
-
   useEffect(() => {
     const handleWindowBlur = () => {
       if (document.activeElement instanceof HTMLElement) {
@@ -453,15 +451,9 @@ export function Sidebar() {
 
         <motion.div
           className="sidebar-footer-inner p-4"
-          onHoverStart={() => setFooterHovered(true)}
-          onHoverEnd={() => setFooterHovered(false)}
         >
           {/* User row */}
-          <motion.div
-            className="sidebar-user-row flex items-center gap-3 px-2 py-2 rounded-xl"
-            animate={footerHovered ? { backgroundColor: "rgba(139,92,246,0.06)" } : { backgroundColor: "rgba(0,0,0,0)" }}
-            transition={{ duration: 0.2, ease: EASE_PREMIUM }}
-          >
+          <div className="sidebar-user-row flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/[0.03]">
             {/* Avatar */}
             <div className="sidebar-avatar-wrap relative shrink-0">
               {avatarUrl ? (
@@ -475,23 +467,14 @@ export function Sidebar() {
                   {userInitials}
                 </div>
               )}
-              {/* Avatar ring glow */}
-              <motion.div
+              {/* Avatar ring glow — stable, not tied to hover */}
+              <div
                 className="absolute inset-0 rounded-full pointer-events-none"
-                animate={
-                  footerHovered
-                    ? {
-                        boxShadow: isPremium
-                          ? "0 0 0 2px rgba(139,92,246,0.6), 0 0 10px rgba(139,92,246,0.35)"
-                          : "0 0 0 2px rgba(255,255,255,0.15), 0 0 6px rgba(255,255,255,0.08)",
-                      }
-                    : {
-                        boxShadow: isPremium
-                          ? "0 0 0 1.5px rgba(139,92,246,0.35), 0 0 6px rgba(139,92,246,0.2)"
-                          : "0 0 0 1.5px rgba(255,255,255,0.1)",
-                      }
-                }
-                transition={{ duration: 0.25, ease: EASE_PREMIUM }}
+                style={{
+                  boxShadow: isPremium
+                    ? "0 0 0 1.5px rgba(139,92,246,0.35), 0 0 6px rgba(139,92,246,0.2)"
+                    : "0 0 0 1.5px rgba(255,255,255,0.1)",
+                }}
               />
             </div>
 
@@ -554,7 +537,7 @@ export function Sidebar() {
                 {isSigningOut ? "Signing out…" : "Sign out"}
               </TooltipContent>
             </Tooltip>
-          </motion.div>
+          </div>
 
           {/* Bottom bar: version + social icons */}
           <div className="mt-2 flex items-center justify-between px-2">
