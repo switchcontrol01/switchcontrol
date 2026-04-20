@@ -50,8 +50,12 @@ const updaterService = require('./updater');
 
 app.setName('SwitchControl');
 const isDev = !app.isPackaged;
+const isProd = !isDev;
+const allowDebug = process.env.DEBUG_MODE === 'true';
 console.log('[BOOT] app.isPackaged:', app.isPackaged);
 console.log('[BOOT] isDev:', isDev);
+console.log('[BOOT] isProd:', isProd);
+console.log('[BOOT] allowDebug (DEBUG_MODE):', allowDebug);
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
@@ -410,9 +414,10 @@ app.on('open-url', (event, url) => {
 });
 
 function createWindow() {
-  console.log('[BOOT] Creating window with DevTools enabled');
+  const devToolsEnabled = isDev || allowDebug;
+  console.log('[BOOT] Creating window — devToolsEnabled:', devToolsEnabled, '| isProd:', isProd, '| allowDebug:', allowDebug);
   mainWindow = new BrowserWindow({
-    title: 'SwitchControl DEBUG BUILD',
+    title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
     height: 800,
     show: false,
@@ -424,34 +429,54 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: true,
+      devTools: devToolsEnabled,
     }
   });
 
-  // Add keyboard shortcut handler for DevTools (before-input-event)
+  // ── DevTools keyboard shortcut guard ────────────────────────────────────────
+  // In production: block F12, Ctrl+Shift+I, Ctrl+Shift+J entirely.
+  // In development / DEBUG_MODE=true: pass them through to toggle DevTools normally.
   mainWindow.webContents.on('before-input-event', (event, input) => {
-    // F12 = toggle DevTools
-    if (input.key.toLowerCase() === 'f12') {
-      console.log('[DevTools] F12 pressed - toggling DevTools');
-      mainWindow.webContents.toggleDevTools();
+    const key = input.key.toLowerCase();
+    const isDevToolsShortcut =
+      key === 'f12' ||
+      (input.control && input.shift && key === 'i') ||
+      (input.control && input.shift && key === 'j');
+
+    if (!isDevToolsShortcut) return;
+
+    if (isProd && !allowDebug) {
+      // Block the shortcut silently in production
       event.preventDefault();
       return;
     }
-    // Ctrl+Shift+I = toggle DevTools
-    if (input.control && input.shift && input.key.toLowerCase() === 'i') {
-      console.log('[DevTools] Ctrl+Shift+I pressed - toggling DevTools');
-      mainWindow.webContents.toggleDevTools();
-      event.preventDefault();
-      return;
-    }
-    // Ctrl+Shift+J = toggle DevTools console
-    if (input.control && input.shift && input.key.toLowerCase() === 'j') {
-      console.log('[DevTools] Ctrl+Shift+J pressed - toggling DevTools');
-      mainWindow.webContents.toggleDevTools();
-      event.preventDefault();
-      return;
+
+    // Dev / debug mode — toggle as before
+    console.log('[DevTools] Shortcut pressed - toggling DevTools');
+    mainWindow.webContents.toggleDevTools();
+    event.preventDefault();
+  });
+
+  // ── Block right-click "Inspect" in production ────────────────────────────────
+  mainWindow.webContents.on('context-menu', (e) => {
+    if (isProd && !allowDebug) e.preventDefault();
+  });
+
+  // ── Force-close DevTools if somehow opened in production ─────────────────────
+  mainWindow.webContents.on('devtools-opened', () => {
+    if (isProd && !allowDebug) {
+      console.warn('[DevTools] DevTools opened in production — closing immediately');
+      mainWindow.webContents.closeDevTools();
     }
   });
+
+  // ── Auto-open DevTools in detached window when debug override is active ───────
+  if (allowDebug) {
+    mainWindow.webContents.once('did-finish-load', () => {
+      console.log('[DevTools] DEBUG_MODE=true — opening DevTools in detached mode');
+      mainWindow.webContents.openDevTools({ mode: 'detach' });
+    });
+  }
 
   const { session: electronSession } = require('electron');
   electronSession.defaultSession.webRequest.onHeadersReceived(
