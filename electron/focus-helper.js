@@ -256,9 +256,14 @@ let lastTriggerState = {
 };
 let enabledTriggers = {};
 let triggerWindow = null; // renderer window for sending events
+let _isSeedPoll = false;  // true for the very first poll — establishes baseline without firing
 
 async function pollTriggers() {
   if (!triggerCallback) return;
+
+  // Consume the seed flag: first poll only records state, never fires callbacks.
+  const isSeed = _isSeedPoll;
+  _isSeedPoll = false;
 
   // Game launch trigger
   if (enabledTriggers.game_launch) {
@@ -272,7 +277,7 @@ async function pollTriggers() {
     const current = match && match[1] !== 'none' ? match[1] : null;
     if (current && !lastTriggerState.gameProcess) {
       lastTriggerState.gameProcess = current;
-      triggerCallback('game_launch', { processName: current });
+      if (!isSeed) triggerCallback('game_launch', { processName: current });
     } else if (!current) {
       lastTriggerState.gameProcess = null;
     }
@@ -305,7 +310,7 @@ public class WinUtil {
     const isFullscreen = result.output.includes('fullscreen:true');
     if (isFullscreen && !lastTriggerState.fullscreen) {
       lastTriggerState.fullscreen = true;
-      triggerCallback('fullscreen', {});
+      if (!isSeed) triggerCallback('fullscreen', {});
     } else if (!isFullscreen) {
       lastTriggerState.fullscreen = false;
     }
@@ -322,7 +327,7 @@ public class WinUtil {
     const hasController = !result.output.includes('ctrl:none');
     if (hasController && !lastTriggerState.controllerConnected) {
       lastTriggerState.controllerConnected = true;
-      triggerCallback('controller', {});
+      if (!isSeed) triggerCallback('controller', {});
     } else if (!hasController) {
       lastTriggerState.controllerConnected = false;
     }
@@ -339,7 +344,7 @@ public class WinUtil {
     const hasHeadset = !result.output.includes('headset:none');
     if (hasHeadset && !lastTriggerState.headsetConnected) {
       lastTriggerState.headsetConnected = true;
-      triggerCallback('headset', {});
+      if (!isSeed) triggerCallback('headset', {});
     } else if (!hasHeadset) {
       lastTriggerState.headsetConnected = false;
     }
@@ -459,7 +464,8 @@ ipcMain.handle('focus:startTriggerMonitor', async (event, { triggers }) => {
   };
 
   triggerIntervalId = setInterval(pollTriggers, 5000);
-  pollTriggers(); // immediate first check
+  _isSeedPoll = true;  // first poll only records baseline — does not fire triggers
+  pollTriggers();
 
   return { ok: true, monitoring: true, triggers: enabledTriggers };
 });
