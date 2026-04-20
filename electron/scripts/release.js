@@ -91,16 +91,18 @@ const rootPkgPath     = path.join(__dirname, '..', '..', 'package.json');
 const electronPkgPath = path.join(__dirname, '..', 'package.json');
 
 if (fs.existsSync(rootPkgPath)) {
-  const rootVersion     = JSON.parse(fs.readFileSync(rootPkgPath, 'utf8')).version;
   const electronVersion = JSON.parse(fs.readFileSync(electronPkgPath, 'utf8')).version;
+  const rootPkgRaw      = fs.readFileSync(rootPkgPath, 'utf8');
+  const rootPkg         = JSON.parse(rootPkgRaw);
+  const rootVersion     = rootPkg.version;
   if (rootVersion !== electronVersion) {
-    console.error('\nERROR: Version mismatch!');
-    console.error(`  root/package.json     : ${rootVersion}`);
-    console.error(`  electron/package.json : ${electronVersion}`);
-    console.error('\nFix: set both files to the same version before releasing.');
-    process.exit(1);
+    console.log(`\nVersion sync: root/package.json is ${rootVersion}, electron is ${electronVersion} — auto-correcting...`);
+    rootPkg.version = electronVersion;
+    fs.writeFileSync(rootPkgPath, JSON.stringify(rootPkg, null, 2) + '\n', 'utf8');
+    console.log(`Version sync OK: root/package.json updated to ${electronVersion}`);
+  } else {
+    console.log(`Version sync OK: ${electronVersion}`);
   }
-  console.log(`Version sync OK: ${electronVersion}`);
 } else {
   console.log('(Skipping root version check — root package.json not found from electron/scripts)');
 }
