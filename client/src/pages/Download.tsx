@@ -1,162 +1,14 @@
 import { Link } from "wouter";
-import { Download, Shield, CheckCircle, Monitor, Clock, Sparkles, Zap, ArrowRight, Rocket } from "lucide-react";
+import { Download, CheckCircle, Monitor, Clock, Sparkles, Zap, ArrowRight, Rocket } from "lucide-react";
 import { useAuth } from "@/components/ProtectedRoute";
 import { motion } from "framer-motion";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import faviconImg from "@/assets/favicon.png";
+import { INSTALLER_CONFIG, installerUrl } from "@shared/downloadConfig";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SILK = [0.22, 1, 0.36, 1] as const;
-
-/** Static countdown label shown on the website download page. */
-const STATIC_TIME_LEFT = "1h left";
-
-// ── Animated flip digit block — UNCHANGED visual style ────────────────────────
-function CountBlock({ value, label }: { value: string; label: string }) {
-  const [cur, setCur] = useState(value);
-  const [next, setNext] = useState(value);
-  const [animating, setAnimating] = useState(false);
-  const prevRef = useRef(value);
-
-  useEffect(() => {
-    if (value === prevRef.current) return;
-    setNext(value);
-    setAnimating(true);
-    const t = setTimeout(() => {
-      setCur(value);
-      setAnimating(false);
-      prevRef.current = value;
-    }, 280);
-    return () => clearTimeout(t);
-  }, [value]);
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "9px" }}>
-      <div style={{
-        position: "relative",
-        width: "clamp(68px,6vw,92px)",
-        height: "clamp(80px,8vw,112px)",
-        borderRadius: "18px",
-        overflow: "hidden",
-        background: "linear-gradient(160deg,rgba(255,255,255,0.07) 0%,rgba(255,255,255,0.02) 100%)",
-        border: "1px solid rgba(139,92,246,0.28)",
-        boxShadow: [
-          "0 16px 48px rgba(0,0,0,0.60)",
-          "inset 0 1px 0 rgba(255,255,255,0.10)",
-          "inset 0 -1px 0 rgba(0,0,0,0.22)",
-          "0 0 0 1px rgba(139,92,246,0.08)",
-        ].join(","),
-      }}>
-        {/* Top highlight */}
-        <div style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: "1px",
-          background: "linear-gradient(90deg,transparent,rgba(255,255,255,0.20),transparent)",
-        }} />
-        {/* Center divider */}
-        <div style={{
-          position: "absolute", top: "50%", left: "8px", right: "8px", height: "1px",
-          background: "rgba(0,0,0,0.38)", zIndex: 3,
-        }} />
-        {/* Violet inner glow */}
-        <div style={{
-          position: "absolute", inset: 0,
-          background: "radial-gradient(ellipse 100% 55% at 50% 0%,rgba(139,92,246,0.12) 0%,transparent 70%)",
-          pointerEvents: "none",
-        }} />
-        {/* Exiting number */}
-        <div style={{
-          position: "absolute", inset: 0,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          transition: animating ? "transform 0.28s cubic-bezier(0.55,0,1,0.45),opacity 0.20s ease,filter 0.20s ease" : "none",
-          transform: animating ? "translateY(-26%) scale(0.88)" : "translateY(0) scale(1)",
-          opacity: animating ? 0 : 1,
-          filter: animating ? "blur(5px)" : "blur(0px)",
-          zIndex: 2,
-        }}>
-          <span style={{
-            fontSize: "clamp(28px,3.8vw,46px)",
-            fontWeight: 800, color: "rgba(255,255,255,0.96)",
-            fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
-            lineHeight: 1, textShadow: "0 2px 24px rgba(139,92,246,0.45)",
-          }}>{cur}</span>
-        </div>
-        {/* Entering number */}
-        {animating && (
-          <div style={{
-            position: "absolute", inset: 0,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            animation: "slideInUp 0.28s cubic-bezier(0.22,1,0.36,1) forwards",
-            zIndex: 2,
-          }}>
-            <span style={{
-              fontSize: "clamp(28px,3.8vw,46px)",
-              fontWeight: 800, color: "rgba(255,255,255,0.96)",
-              fontVariantNumeric: "tabular-nums", letterSpacing: "-0.03em",
-              lineHeight: 1, textShadow: "0 2px 18px rgba(139,92,246,0.35)",
-            }}>{next}</span>
-          </div>
-        )}
-        {/* Bottom ambient */}
-        <div style={{
-          position: "absolute", bottom: 0, left: 0, right: 0, height: "40%",
-          background: "linear-gradient(0deg,rgba(0,0,0,0.28),transparent)",
-          pointerEvents: "none",
-        }} />
-      </div>
-      <span style={{
-        fontSize: "10px", fontWeight: 700, letterSpacing: "0.18em",
-        textTransform: "uppercase", color: "rgba(192,155,255,0.52)",
-      }}>{label}</span>
-    </div>
-  );
-}
-
-// ── Separator colon — UNCHANGED ───────────────────────────────────────────────
-function Colon() {
-  return (
-    <div style={{
-      display: "flex", flexDirection: "column", gap: "14px",
-      alignItems: "center", justifyContent: "center",
-      paddingBottom: "22px",
-    }}>
-      {[0, 1].map(i => (
-        <div key={i} style={{
-          width: "6px", height: "6px", borderRadius: "50%",
-          background: "rgba(139,92,246,0.70)",
-          boxShadow: "0 0 10px 3px rgba(139,92,246,0.45)",
-          animation: "colonPulse 1s step-end infinite",
-          animationDelay: `${i * 0.1}s`,
-        }} />
-      ))}
-    </div>
-  );
-}
-
-// ── Seconds progress bar ──────────────────────────────────────────────────────
-function SecondsBar({ s }: { s: number }) {
-  return (
-    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "5px" }}>
-      <div style={{
-        width: "100%", height: "2px", borderRadius: "2px",
-        background: "rgba(255,255,255,0.06)", overflow: "hidden",
-      }}>
-        <div style={{
-          height: "100%", borderRadius: "2px",
-          background: "linear-gradient(90deg,#8b5cf6,#06b6d4)",
-          width: `${(s / 59) * 100}%`,
-          transition: "width 0.95s linear",
-          boxShadow: "0 0 6px rgba(139,92,246,0.55)",
-        }} />
-      </div>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <span style={{ fontSize: "9px", color: "rgba(255,255,255,0.22)", fontVariantNumeric: "tabular-nums" }}>
-          {pad(s)}s
-        </span>
-      </div>
-    </div>
-  );
-}
 
 // ── Ambient particles — full viewport distribution ─────────────────────────────
 const PARTICLES = Array.from({ length: 30 }, (_, i) => ({
@@ -222,7 +74,7 @@ function PatchNotesCard() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DownloadPage() {
   const { user } = useAuth();
-  const launched = false;
+  const launched = true;
   const [sceneReady, setSceneReady] = useState(false);
   const rafRef = useRef<number | null>(null);
 
@@ -274,13 +126,15 @@ export default function DownloadPage() {
   return (
     <WebsiteShell variant="inner" bgVariant="download" showFooter={false}>
       <style>{`
-        @keyframes slideInUp {
-          from { transform: translateY(28%) scale(0.90); opacity: 0; filter: blur(5px); }
-          to   { transform: translateY(0)   scale(1);    opacity: 1; filter: blur(0px); }
+        @keyframes shimmerSweep {
+          0%   { transform: translateX(-100%); opacity: 0; }
+          10%  { opacity: 1; }
+          90%  { opacity: 1; }
+          100% { transform: translateX(200%); opacity: 0; }
         }
-        @keyframes colonPulse {
-          0%, 49% { opacity: 0.9; }
-          50%, 100% { opacity: 0.22; }
+        @keyframes liveIndicatorPulse {
+          0%, 100% { opacity: 1; box-shadow: 0 0 6px 2px rgba(34,197,94,0.55); }
+          50%       { opacity: 0.65; box-shadow: 0 0 10px 4px rgba(34,197,94,0.80); }
         }
         @keyframes livePulse {
           0%, 100% { box-shadow: 0 0 6px 2px rgba(139,92,246,0.45); }
@@ -638,40 +492,99 @@ export default function DownloadPage() {
               </h1>
             </motion.div>
 
-            {/* Countdown — static "1h left" */}
+            {/* ── Live release section — replaces countdown ── */}
             <motion.div {...stagger(2)} style={{ width: "100%" }}>
-              <p style={{
-                fontSize: "clamp(36px,5.5vw,60px)",
-                fontWeight: 800,
-                letterSpacing: "-0.02em",
-                lineHeight: 1,
-                margin: 0,
-                background: "linear-gradient(135deg,#a78bfa,#67e8f9)",
-                WebkitBackgroundClip: "text",
-                backgroundClip: "text",
-                WebkitTextFillColor: "transparent",
+              <div style={{
+                position: "relative",
+                borderRadius: "18px",
+                padding: "22px 24px",
+                background: "linear-gradient(135deg,rgba(139,92,246,0.10) 0%,rgba(6,182,212,0.05) 100%)",
+                backdropFilter: "blur(18px)", WebkitBackdropFilter: "blur(18px)",
+                border: "1px solid rgba(139,92,246,0.22)",
+                boxShadow: [
+                  "0 12px 40px rgba(0,0,0,0.40)",
+                  "inset 0 1px 0 rgba(255,255,255,0.08)",
+                  "0 0 0 1px rgba(139,92,246,0.06)",
+                  "0 0 48px rgba(109,40,217,0.10)",
+                ].join(","),
+                overflow: "hidden",
               }}>
-                {STATIC_TIME_LEFT}
-              </p>
-            </motion.div>
+                {/* Shimmer sweep */}
+                <div style={{
+                  position: "absolute", inset: 0, pointerEvents: "none",
+                  background: "linear-gradient(105deg,transparent 25%,rgba(255,255,255,0.055) 50%,transparent 75%)",
+                  animation: "shimmerSweep 4s ease-in-out 0.8s infinite",
+                }} />
 
-            {/* Release date */}
-            {!launched && (
-              <motion.div {...stagger(3)}>
+                {/* Top accent line */}
+                <div style={{
+                  position: "absolute", top: 0, left: "10%", right: "10%", height: "1px",
+                  background: "linear-gradient(90deg,transparent,rgba(139,92,246,0.55),rgba(103,232,249,0.45),transparent)",
+                }} />
+
+                {/* Live badge + meta row */}
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "14px", flexWrap: "wrap" }}>
+                  <div style={{
+                    display: "inline-flex", alignItems: "center", gap: "6px",
+                    padding: "4px 10px 4px 8px", borderRadius: "100px",
+                    background: "rgba(34,197,94,0.10)",
+                    border: "1px solid rgba(34,197,94,0.28)",
+                  }}>
+                    <div style={{
+                      width: "7px", height: "7px", borderRadius: "50%",
+                      background: "#22c55e",
+                      animation: "liveIndicatorPulse 2s ease-in-out infinite",
+                    }} />
+                    <span style={{
+                      fontSize: "10px", fontWeight: 700, letterSpacing: "0.14em",
+                      textTransform: "uppercase", color: "rgba(134,239,172,0.92)",
+                    }}>Live</span>
+                  </div>
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.30)", fontWeight: 500 }}>
+                    v{INSTALLER_CONFIG.version}
+                  </span>
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.18)" }}>·</span>
+                  <span style={{ fontSize: "11px", color: "rgba(255,255,255,0.30)", fontWeight: 500 }}>
+                    {INSTALLER_CONFIG.fileSizeMb} MB
+                  </span>
+                </div>
+
+                {/* Main headline */}
                 <p style={{
-                  fontSize: "clamp(12px,1.8vw,15px)", color: "rgba(255,255,255,0.50)",
-                  fontWeight: 500, letterSpacing: "0.01em", margin: 0, lineHeight: 1.5,
+                  fontSize: "clamp(24px,3.2vw,34px)",
+                  fontWeight: 800, letterSpacing: "-0.025em", lineHeight: 1.1,
+                  margin: "0 0 8px", color: "rgba(255,255,255,0.95)",
                 }}>
-                  Releasing{" "}
-                  <strong style={{ color: "rgba(192,155,255,0.82)", fontWeight: 700 }}>Tuesday, April 14</strong>
-                  {" "}at{" "}
-                  <strong style={{ color: "rgba(192,155,255,0.82)", fontWeight: 700 }}>2:00 PM NZT</strong>
+                  Available{" "}
+                  <span style={{
+                    background: "linear-gradient(135deg,#a78bfa,#67e8f9)",
+                    WebkitBackgroundClip: "text", backgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}>now</span>
                 </p>
-                <p style={{ fontSize: "11px", color: "rgba(255,255,255,0.22)", fontWeight: 500, margin: "4px 0 0" }}>
-                  First public release · Windows 10/11 · v1.0.0 Early Access
+
+                {/* Subtext */}
+                <p style={{
+                  fontSize: "13px", color: "rgba(255,255,255,0.40)",
+                  margin: "0 0 16px", lineHeight: 1.55, fontWeight: 500,
+                }}>
+                  Download the live Windows installer and start optimizing today.
                 </p>
-              </motion.div>
-            )}
+
+                {/* Platform tags */}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "7px" }}>
+                  {["Windows 10 / 11", "64-bit", "Free to try"].map((tag) => (
+                    <span key={tag} style={{
+                      fontSize: "10.5px", fontWeight: 600, padding: "3px 11px",
+                      borderRadius: "100px",
+                      background: "rgba(255,255,255,0.04)",
+                      border: "1px solid rgba(255,255,255,0.10)",
+                      color: "rgba(255,255,255,0.38)",
+                    }}>{tag}</span>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
           </div>
 
           {/* ── RIGHT: Download card ── */}
@@ -722,7 +635,7 @@ export default function DownloadPage() {
                       textTransform: "uppercase", padding: "2px 8px", borderRadius: "100px",
                       background: "rgba(139,92,246,0.15)", border: "1px solid rgba(139,92,246,0.28)",
                       color: "rgba(192,155,255,0.80)",
-                    }}>v1.0.0 · Early Access</span>
+                    }}>v{INSTALLER_CONFIG.version} · Windows</span>
                   </div>
                   <h2 style={{
                     fontSize: "clamp(17px,2.4vw,20px)", fontWeight: 800,
@@ -752,7 +665,7 @@ export default function DownloadPage() {
 
                 {/* CTA */}
                 <button
-                  onClick={() => alert("Download would start here. The installer is not yet available.")}
+                  onClick={() => { window.location.href = installerUrl("download_page"); }}
                   data-testid="button-download-windows"
                   style={{
                     width: "100%", padding: "15px 20px", borderRadius: "12px",

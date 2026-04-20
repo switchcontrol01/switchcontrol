@@ -22,6 +22,14 @@ Key data models include `userSettings` (preferences, tier), `appliedTweaks` (ena
 ### Application Structure
 The application is structured into `client/src` (frontend components, hooks, utilities, pages), `server/` (Express entry, routes, database), and `shared/` (Drizzle schema, auth models).
 
+### Installer Download
+- **Canonical config** (`shared/downloadConfig.ts`): Single source of truth — `INSTALLER_CONFIG` holds `version`, `fileName`, `publicPath` (`/downloads/SwitchControl-Setup.exe`), `platform`, `fileSizeMb`, `releasedAt`. All download CTAs import `installerUrl(source)` from this file.
+- **Server route** (`GET /downloads/:fileName`): Reads `INSTALLER_DOWNLOAD_URL` env var and issues a `302` redirect. Logs `source` query param for tracking. Returns `503` if env var is not set.
+- **Environment variable required**: `INSTALLER_DOWNLOAD_URL` must be set to the hosted `.exe` URL (e.g. Cloudflare R2 or S3 presigned URL) before downloads will work in production.
+- **Source tracking**: All CTAs append `?source=` to the download URL. Current sources: `navbar`, `download_page`.
+- **Download page** (`client/src/pages/Download.tsx`): Timer/countdown fully removed. Replaced with animated "Available now" live-release glass card. `launched = true`. Download button calls `installerUrl("download_page")`.
+- **Navbar** (`client/src/components/website/WebsiteShell.tsx`): Desktop and mobile Download buttons call `installerUrl("navbar")` directly — no navigation to /download page.
+
 ### Premium Device Lock (Desktop App Only)
 - **Schema** (`shared/models/auth.ts`): `users` table has `premiumBoundDeviceId` (VARCHAR), `premiumBoundAt` (TIMESTAMP), `premiumLastSeenDeviceId` (VARCHAR). Columns auto-created on server startup via `server/lib/deviceBindingMigration.ts`.
 - **Binding endpoint** (`POST /api/device/premium-validate`): Electron-only. Uses `x-device-id` header. If no bound device → first-bind (stores device). If device matches → OK. If device differs → `{ status: 'locked' }`. Uses `requireJwt` only (never requireCloudPremium) so the check itself is never self-blocked.

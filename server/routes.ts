@@ -690,5 +690,25 @@ export async function registerRoutes(
     }
   });
 
+  // ── Installer download route ──────────────────────────────────────────────────
+  // Serves the SwitchControl Windows installer. INSTALLER_DOWNLOAD_URL must be set
+  // to the real hosted file URL (e.g. Cloudflare R2, S3, etc).
+  app.get("/downloads/:fileName", (req, res) => {
+    const { fileName } = req.params;
+    const source = typeof req.query.source === "string" ? req.query.source : "direct";
+    const installerUrl = process.env.INSTALLER_DOWNLOAD_URL;
+
+    if (!installerUrl) {
+      console.error(`[Download] INSTALLER_DOWNLOAD_URL is not configured — cannot serve ${fileName}`);
+      return res.status(503).json({
+        error: "Installer temporarily unavailable. Please try again later.",
+        path: fileName,
+      });
+    }
+
+    console.log(`[Download] Installer requested — file=${fileName} source=${source}`);
+    res.redirect(302, installerUrl);
+  });
+
   return httpServer;
 }

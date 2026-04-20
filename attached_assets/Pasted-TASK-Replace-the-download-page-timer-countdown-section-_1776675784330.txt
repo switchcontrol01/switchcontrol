@@ -1,0 +1,172 @@
+TASK
+
+Replace the download page timer/countdown section with a premium “SwitchControl is live” release section.
+
+This is a UI/UX task only.
+Do NOT modify download logic or backend behavior in this task.
+
+PROBLEM
+
+The download page still contains a timer/countdown section.
+
+This is now outdated because SwitchControl is already released.
+
+The timer:
+
+- feels unfinished
+- wastes prime visual space
+- reduces perceived polish at launch
+
+GOAL
+
+Remove the timer completely and replace it with a premium animated live-release section that clearly communicates that SwitchControl is live and ready to download.
+
+This section must feel high-end, intentional, and aligned with the rest of the UI.
+
+STRICT RULES
+
+- Do NOT touch download logic
+- Do NOT change any installer URLs
+- Do NOT modify CTA behavior
+- Do NOT redesign the entire page
+- Do NOT introduce generic or template-looking UI
+- Do NOT break layout or responsiveness
+- Do NOT change global styles
+
+Only replace the timer section.
+
+IMPLEMENTATION
+
+1. Remove timer section
+
+Completely remove:
+
+- countdown timer UI
+- any timer logic
+- any related state or hooks
+- any references to launch countdown
+
+There should be ZERO timer remnants in the UI.
+
+2. Add new live-release section
+
+Create a new section in the same location where the timer existed.
+
+This section must visually feel like a live product launch state.
+
+Core content:
+
+Main heading:
+SwitchControl is live
+
+Subheading:
+Download the live Windows installer now
+
+Optional additions if available:
+
+- version from canonical config
+- file size
+- small LIVE badge
+- “Built for Windows” support line
+
+3. Visual style
+
+Match the existing premium glass aesthetic.
+
+Required:
+
+- glass panel or layered glass card
+- soft backdrop blur
+- subtle white translucent overlay
+- violet / cyan glow accents
+- smooth lighting, not harsh
+
+Do NOT:
+
+- use flat black backgrounds
+- use plain boxes
+- use default UI styles
+
+4. Animation
+
+Add subtle premium motion only.
+
+Allowed:
+
+- soft glow pulse
+- shimmer sweep across text or card
+- gentle fade + scale on mount
+- small live pulse indicator
+
+NOT allowed:
+
+- bouncy animations
+- aggressive movement
+- anything gimmicky
+- anything that delays usability
+
+Animation must feel:
+controlled, smooth, premium
+
+5. CTA inside section
+
+Include a primary download button inside this section.
+
+IMPORTANT:
+
+- this button must use the existing canonical download logic
+- do NOT duplicate logic
+- do NOT hardcode a new URL
+- reuse existing handler/component
+
+6. Layout behavior
+
+Ensure:
+
+- section is centered properly
+- no layout shift on load
+- no jump when it appears
+- works on both desktop and smaller screens
+- spacing matches surrounding sections
+
+7. No regressions
+
+Do NOT break:
+
+- navbar
+- hero section
+- other CTAs
+- glass styling across site
+- existing animations
+- download functionality
+
+8. Cleanup
+
+Remove any unused:
+
+- timer components
+- timer styles
+- countdown utilities
+
+CHECKLIST
+
+- timer fully removed
+- no countdown logic remains
+- new “SwitchControl is live” section added
+- matches premium glass UI
+- includes working download CTA
+- uses existing download logic with no duplication
+- smooth animation, no jank
+- no layout shift or snap
+- no regressions anywhere else
+
+FINAL OUTPUT
+
+Return:
+
+1. exact files changed
+2. timer components/logic removed
+3. new section component added
+4. how animation is implemented
+5. confirmation no layout shift
+6. confirmation download button uses existing logic

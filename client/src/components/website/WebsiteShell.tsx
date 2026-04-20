@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { Link } from "wouter";
+import { installerUrl } from "@shared/downloadConfig";
 import { BrandLogo } from "@/components/BrandLogo";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { brand } from "@/config/brand";
@@ -102,12 +103,14 @@ function FullHeader() {
                     </button>
                   </Link>
                 )}
-                <Link href="/download">
-                  <GlowButton variant="primary" data-testid="button-header-download">
-                    <Download className="size-4" />
-                    Download
-                  </GlowButton>
-                </Link>
+                <GlowButton
+                  variant="primary"
+                  data-testid="button-header-download"
+                  onClick={() => { window.location.href = installerUrl("navbar"); }}
+                >
+                  <Download className="size-4" />
+                  Download
+                </GlowButton>
                 <button
                   className="text-sm text-white/40 hover:text-white/70 transition-colors px-3 py-2"
                   onClick={handleLogout}
@@ -186,12 +189,17 @@ function FullHeader() {
                       </button>
                     </Link>
                   )}
-                  <Link href="/download">
-                    <GlowButton variant="cyan" className="w-full">
-                      <Download className="size-4" />
-                      Download
-                    </GlowButton>
-                  </Link>
+                  <GlowButton
+                    variant="cyan"
+                    className="w-full"
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      window.location.href = installerUrl("navbar");
+                    }}
+                  >
+                    <Download className="size-4" />
+                    Download
+                  </GlowButton>
                   <button
                     className="w-full text-sm text-white/40 hover:text-white/70 py-2 flex items-center justify-center gap-2"
                     onClick={handleLogout}
