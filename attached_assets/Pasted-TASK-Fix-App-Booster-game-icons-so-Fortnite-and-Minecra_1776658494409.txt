@@ -1,0 +1,101 @@
+TASK
+
+Fix App Booster game icons so Fortnite and Minecraft always display correctly in both dev and packaged Electron builds.
+
+PROBLEM
+
+Fortnite and Minecraft icons are still broken.
+
+Replit previously said this was fixed, but it clearly is not.
+
+Right now the UI is failing in one of these areas:
+
+- game name to icon mapping is too strict
+- aliases are missing
+- packaged Electron asset paths are wrong
+- fallback rendering is broken
+- detection output and UI catalog keys do not match
+
+This must be fixed properly, not guessed.
+
+GOAL
+
+Make Fortnite and Minecraft icons load reliably in:
+
+- development
+- packaged Electron build
+- detected installs
+- catalog list
+- selected game detail panel
+
+No blank icons.
+No broken images.
+No false "fixed" claim unless verified in packaged app.
+
+IMPLEMENTATION
+
+1. Audit the full icon pipeline end to end
+
+Trace this exact flow:
+
+- game detection output
+- game slug generation
+- catalog item slug
+- icon lookup key
+- final rendered image src
+- packaged asset resolution
+
+Log the exact values for:
+
+- detected game name
+- executable name
+- resolved slug
+- icon key
+- final asset path
+
+2. Add a canonical slug resolver
+
+Create one shared resolver function used everywhere.
+
+Example behavior:
+
+- lowercase
+- trim whitespace
+- remove punctuation where needed
+- normalize separators
+- normalize special launch names
+
+Examples that must map correctly:
+
+Fortnite:
+
+- fortnite
+- Fortnite
+- FortniteClient-Win64-Shipping
+- FortniteLauncher
+- Epic Fortnite
+
+Minecraft:
+
+- minecraft
+- Minecraft
+- Minecraft Launcher
+- Minecraft for Windows
+- MinecraftLauncher
+- javaw with Minecraft context if needed
+
+All UI and detection code must use the same canonical slug, not separate ad hoc matching.
+
+3. Add explicit alias mapping
+
+Add a hard alias map before final icon lookup.
+
+Must include at minimum:
+
+- fortniteclient-win64-shipping -> fortnite
+- fortnitelauncher -> fortnite
+- minecraftlauncher -> minecraft
+- minecraft-for-windows -> minecraft
+- minecraft-launcher -> minecraft
+
+If detection returns brand/platform decorated names, strip them down to canonical game slug.

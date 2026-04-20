@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTweakExecutor, isElectronWithTweaks, isRealTweak } from "@/hooks/use-tweak-executor";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
+import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 
 const CATEGORIES = ["Performance", "Latency", "Visuals", "Services", "Aesthetics"];
 
@@ -252,7 +253,7 @@ export function TweaksList() {
               exit={{ opacity: 0, scale: 0.94, y: 8 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
-              <div className="bg-gradient-to-br from-white/[0.16] via-white/[0.10] to-white/[0.07] backdrop-blur-2xl border border-white/[0.20] rounded-2xl p-6 shadow-[0_24px_60px_rgba(0,0,0,0.55)]">
+              <GlassModalSurface className="p-6">
                 <div className="flex items-start gap-3 mb-4">
                   <div className="w-9 h-9 rounded-full bg-amber-500/15 border border-amber-500/25 flex items-center justify-center shrink-0">
                     <AlertTriangle className="size-4 text-amber-400" />
@@ -278,7 +279,7 @@ export function TweaksList() {
                     I understand
                   </button>
                 </div>
-              </div>
+              </GlassModalSurface>
             </motion.div>
           </>
         )}

@@ -1,0 +1,87 @@
+4. Fix packaged Electron asset loading
+
+Do not rely on fragile raw string paths for these icons.
+
+Use one stable asset strategy only.
+
+Preferred approach:
+
+- import bundled game icons through Vite
+  or
+- use a generated local asset manifest with verified packaged paths
+
+Do not mix:
+
+- absolute "/games/..."
+- relative guesses
+- manual file string concatenation
+
+Verify Fortnite and Minecraft icons resolve correctly in packaged Electron, not just localhost.
+
+5. Add hard fallback rendering
+
+If icon lookup fails or image load fails:
+
+show a fallback immediately:
+
+- branded gradient circle or square
+- first letter badge
+- no blank image containers
+
+A missing icon must never render as empty.
+
+6. Add onError image fallback
+
+Any "<img>" used for game icons must have a real "onError" fallback handler that swaps to:
+
+- fallback asset
+  or
+- local generated badge state
+
+Do not leave broken image URLs active.
+
+7. Verify both list and detail panel
+
+Fix all icon locations, not just one.
+
+Must work in:
+
+- left catalog list
+- installed list
+- selected game card
+- profile header if used anywhere else
+
+8. Add debug verification logs temporarily
+
+For Fortnite and Minecraft specifically, log:
+
+- raw game input
+- canonical slug
+- chosen icon source
+- whether primary load succeeded
+- whether fallback was used
+
+Keep logs until verified in packaged build, then reduce noise.
+
+CHECKLIST
+
+- canonical slug resolver added
+- Fortnite aliases added
+- Minecraft aliases added
+- detection and UI use same slug logic
+- packaged Electron asset path verified
+- blank icon rendering removed
+- img onError fallback added
+- Fortnite icon works in list and detail view
+- Minecraft icon works in list and detail view
+- verified in packaged build, not just dev
+
+FINAL OUTPUT
+
+Return:
+
+1. canonical slug resolver logic
+2. alias map entries added for Fortnite and Minecraft
+3. final icon asset strategy used
+4. fallback behavior when image load fails
+5. confirmation with packaged-build verification for both Fortnite and Minecraft

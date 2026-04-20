@@ -1,7 +1,8 @@
-import { useCallback, useEffect, ReactNode } from "react";
+import { useCallback, useEffect, ReactNode, HTMLAttributes } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface GlassModalLayoutProps {
   open: boolean;
@@ -34,6 +35,27 @@ export function HwBadge({
     <span className={`inline-flex items-center justify-center p-1.5 rounded-lg border shadow-[0_0_10px_var(--tw-shadow-color)] shrink-0 ${styles[color]}`}>
       {children}
     </span>
+  );
+}
+
+// ── Shared modal surface — one material used everywhere ───────────────────────
+// This is the single source of truth for all custom modals (TweakCard, NetworkTweaks,
+// PowerPlan, TweaksList warnings, etc.). It replaces the milky white gradient variant.
+// Use this instead of "bg-gradient-to-br from-white/[0.18]..." in any modal surface.
+export function GlassModalSurface({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "relative bg-[hsl(260,22%,7%)]/90 backdrop-blur-2xl border border-white/[0.10] rounded-2xl overflow-hidden",
+        "shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(139,92,246,0.10),0_0_60px_rgba(139,92,246,0.08),inset_0_1px_0_rgba(255,255,255,0.08)]",
+        className
+      )}
+      {...props}
+    >
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-purple-500/[0.05] to-transparent pointer-events-none" />
+      {children}
+    </div>
   );
 }
 

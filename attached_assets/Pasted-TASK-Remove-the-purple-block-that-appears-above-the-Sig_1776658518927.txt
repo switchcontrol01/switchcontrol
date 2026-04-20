@@ -1,0 +1,88 @@
+TASK
+
+Remove the purple block that appears above the Sign out button in the sidebar footer.
+
+PROBLEM
+
+This is not caused by the Settings nav item.
+
+The real issue is in the footer hover logic:
+"sidebar-footer-inner" sets "footerHovered = true" when anything inside the footer is hovered, including the Sign out button.
+That hover state then applies a purple background to "sidebar-user-row".
+
+So when hovering Sign out, the entire user row lights up purple, which looks like a broken purple block above the button.
+
+GOAL
+
+Remove that purple footer hover block entirely.
+
+Only the actual Sign out button should visually react when hovered.
+The user row should not get a purple hover background from footer-level hover state.
+
+IMPLEMENTATION
+
+1. Remove footer-wide hover state
+
+Delete:
+
+- "const [footerHovered, setFooterHovered] = useState(false);"
+
+Remove from "sidebar-footer-inner":
+
+- "onHoverStart={() => setFooterHovered(true)}"
+- "onHoverEnd={() => setFooterHovered(false)}"
+
+2. Remove row-wide purple hover background
+
+In "sidebar-user-row", remove the animated background tied to "footerHovered".
+
+Replace this:
+
+<motion.div
+  className="sidebar-user-row flex items-center gap-3 px-2 py-2 rounded-xl"
+  animate={footerHovered ? { backgroundColor: "rgba(139,92,246,0.06)" } : { backgroundColor: "rgba(0,0,0,0)" }}
+  transition={{ duration: 0.2, ease: EASE_PREMIUM }}
+>
+
+with:
+
+<div className="sidebar-user-row flex items-center gap-3 px-2 py-2 rounded-xl">
+
+3. Remove footerHovered dependency from avatar ring
+
+The avatar ring currently changes based on "footerHovered".
+Replace it with a stable visual state that does not depend on footer hover.
+
+Use a constant premium/non-premium ring glow only.
+
+4. Keep hover feedback only on Sign out button
+
+The Sign out button already has its own "whileHover" and "whileTap".
+Keep that.
+Do not trigger any parent row or footer background when hovering it.
+
+5. Optional refinement
+
+If a row hover is still wanted, use a subtle neutral hover directly on "sidebar-user-row", for example:
+
+- "hover:bg-white/[0.03]"
+
+Do not use a purple footer-wide hover state.
+
+CHECKLIST
+
+- footerHovered state removed
+- sidebar-footer-inner no longer controls row hover background
+- sidebar-user-row no longer turns purple when hovering Sign out
+- avatar ring no longer depends on footerHovered
+- Sign out button still has its own hover effect
+- purple box above Sign out fully removed
+
+FINAL OUTPUT
+
+Return:
+
+1. exact root cause
+2. exact lines removed
+3. exact replacement for sidebar-user-row
+4. confirmation the purple box is gone

@@ -8,6 +8,7 @@ import {
   Zap, CheckCircle2, XCircle, Terminal, RefreshCw, ShieldOff, AlertCircle,
   ShieldAlert, Ban, HelpCircle, ChevronDown, ChevronUp, BarChart2,
 } from "lucide-react";
+import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 import { TrustLayer } from "@/components/intelligence/TrustLayer";
 import { Tweak, RiskLevel, TweakLevel, TweakExpected, ImpactLevel } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
@@ -407,7 +408,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               data-testid={`modal-tweak-${tweak.id}`}
               variants={modalContent} initial="initial" animate="animate" exit="exit"
             >
-              <div className="relative bg-gradient-to-br from-white/[0.18] via-white/[0.12] to-white/[0.08] backdrop-blur-2xl border border-white/[0.22] rounded-2xl p-6 shadow-[0_24px_80px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.10),inset_0_1px_0_rgba(255,255,255,0.22)]">
+              <GlassModalSurface className="p-6">
                 <motion.button
                   type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(false); }}
                   className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity"
@@ -552,7 +553,7 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                     </div>
                   )}
                 </div>
-              </div>
+              </GlassModalSurface>
             </motion.div>
           </>
         )}
