@@ -13,6 +13,24 @@
  *   R2_ACCESS_KEY_ID     — R2 API token key ID
  *   R2_SECRET_ACCESS_KEY — R2 API token secret
  *   R2_BUCKET            — bucket name (default: switchcontrol-releases)
+ *
+ * Upload order is intentional:
+ *   1. installer (.exe)
+ *   2. blockmap (.exe.blockmap) if present
+ *   3. stable.yml (compat shim for legacy builds — see note below)
+ *   4. latest.yml LAST
+ *
+ * latest.yml goes live last because if it were uploaded first and a client
+ * checked for updates before the installer arrived, the update would fail.
+ * stable.yml is kept as a compat shim: builds that shipped with
+ * autoUpdater.channel = 'stable' (legacy test builds) request stable.yml.
+ * If no such builds exist in the wild this shim is harmless to keep.
+ *
+ * Trust model:
+ *   - This script is the sole release delivery mechanism.
+ *   - Artifacts are uploaded to R2 only; no GitHub Releases involvement.
+ *   - Metadata (latest.yml) is signed-hash authoritative; electron-updater
+ *     verifies SHA-512 from latest.yml before applying any update.
  */
 
 'use strict';
@@ -40,11 +58,9 @@ const KEY_ID      = process.env.R2_ACCESS_KEY_ID;
 const KEY_SECRET  = process.env.R2_SECRET_ACCESS_KEY;
 const BUCKET      = process.env.R2_BUCKET || 'switchcontrol-releases';
 
-// ── Update host (temporary R2 dev URL — switch back by updating R2_PUBLIC_URL) ──
-// When releases.switchcontrol.org is ready, set in electron/.env:
-//   R2_PUBLIC_URL=https://releases.switchcontrol.org
-// and update build.publish.url in electron/package.json to match.
-const PUBLIC_URL  = (process.env.R2_PUBLIC_URL || 'https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev').replace(/\/$/, '');
+// Update host — production URL for releases.switchcontrol.org.
+// This must match build.publish.url in electron/package.json.
+const PUBLIC_URL  = (process.env.R2_PUBLIC_URL || 'https://releases.switchcontrol.org').replace(/\/$/, '');
 
 const missing = [
   !ACCOUNT_ID  && 'R2_ACCOUNT_ID',
@@ -61,9 +77,32 @@ Create electron/.env by copying the example:
   PowerShell:  Copy-Item .env.example .env
   cmd:         copy .env.example .env
 
-Then fill in the missing values. See RELEASE_GUIDE.md → "Credentials Setup" for where to find each value in Cloudflare.
+Then fill in the missing values. See RELEASE_GUIDE.md → "Credentials Setup".
 `);
   process.exit(1);
+}
+
+// ── Version sync check ────────────────────────────────────────────────────────
+// Root package.json and electron/package.json must have the same version.
+// Fail hard if they differ — partial releases with mismatched versions cause
+// clients to receive installers that report wrong version numbers.
+
+const rootPkgPath     = path.join(__dirname, '..', '..', 'package.json');
+const electronPkgPath = path.join(__dirname, '..', 'package.json');
+
+if (fs.existsSync(rootPkgPath)) {
+  const rootVersion     = JSON.parse(fs.readFileSync(rootPkgPath, 'utf8')).version;
+  const electronVersion = JSON.parse(fs.readFileSync(electronPkgPath, 'utf8')).version;
+  if (rootVersion !== electronVersion) {
+    console.error('\nERROR: Version mismatch!');
+    console.error(`  root/package.json     : ${rootVersion}`);
+    console.error(`  electron/package.json : ${electronVersion}`);
+    console.error('\nFix: set both files to the same version before releasing.');
+    process.exit(1);
+  }
+  console.log(`Version sync OK: ${electronVersion}`);
+} else {
+  console.log('(Skipping root version check — root package.json not found from electron/scripts)');
 }
 
 // ── Find artifacts ────────────────────────────────────────────────────────────
@@ -76,35 +115,91 @@ if (!fs.existsSync(distDir)) {
 }
 
 // Auto-generate latest.yml if electron-builder didn't produce it.
-// (electron-builder v25 only writes latest.yml when it performs its own upload;
-//  since we upload separately, we generate the file ourselves when absent.)
 const ymlPath = path.join(distDir, 'latest.yml');
 if (!fs.existsSync(ymlPath)) {
   console.log('latest.yml not found in dist/ — generating from installer...');
   require('./generate-latest-yml.js');
   console.log();
-  // Re-check: if the generator failed it would have process.exit(1)'d already.
 }
 
 const allFiles = fs.readdirSync(distDir);
 
-// Also generate stable.yml shim if absent (compat for 1.0.0 builds with channel=stable)
+// Ensure stable.yml exists as a compat shim.
+// stable.yml retained for legacy builds that shipped with channel='stable'.
+// If no such builds are in the wild this is a harmless identical copy.
 const stableYmlPath = path.join(distDir, 'stable.yml');
 if (!fs.existsSync(stableYmlPath)) {
   const latestContent = fs.readFileSync(ymlPath, 'utf8');
   fs.writeFileSync(stableYmlPath, latestContent, 'utf8');
-  console.log('stable.yml generated as compat shim from latest.yml');
+  console.log('stable.yml written as compat shim (copy of latest.yml)');
 }
 
+// Collect artifacts: exe, blockmap, stable.yml, latest.yml
 const artifacts = allFiles
-  .filter(f => f === 'latest.yml' || f === 'stable.yml' || f.endsWith('.exe') || f.endsWith('.exe.blockmap'))
+  .filter(f => f.endsWith('.exe') || f.endsWith('.exe.blockmap') || f === 'latest.yml' || f === 'stable.yml')
   .map(f => ({ name: f, localPath: path.join(distDir, f) }));
 
 if (artifacts.length === 0) {
   console.error('ERROR: No release artifacts found in dist/.');
-  console.error('Expected: latest.yml, stable.yml, SwitchControl Setup x.y.z.exe, *.exe.blockmap');
+  console.error('Expected: latest.yml, SwitchControl Setup x.y.z.exe, *.exe.blockmap');
   process.exit(1);
 }
+
+// ── Pre-upload validation ─────────────────────────────────────────────────────
+// Validate every artifact before uploading anything.
+// A partial release is worse than a failed release.
+
+console.log('\nValidating artifacts...');
+
+const { version: pkgVersion } = JSON.parse(fs.readFileSync(electronPkgPath, 'utf8'));
+const latestYmlContent = fs.readFileSync(ymlPath, 'utf8');
+let validationFailed = false;
+
+// Validate latest.yml has required fields
+if (!latestYmlContent.includes('version:')) {
+  console.error('  FAIL latest.yml: missing "version" field');
+  validationFailed = true;
+}
+if (!latestYmlContent.includes('sha512:')) {
+  console.error('  FAIL latest.yml: missing "sha512" field');
+  validationFailed = true;
+}
+if (!latestYmlContent.includes(`version: ${pkgVersion}`)) {
+  console.error(`  FAIL latest.yml: version mismatch — file does not contain "version: ${pkgVersion}"`);
+  validationFailed = true;
+}
+
+// Validate each artifact exists and is nonzero
+for (const a of artifacts) {
+  const stat = fs.statSync(a.localPath);
+  if (stat.size === 0) {
+    console.error(`  FAIL ${a.name}: file is 0 bytes`);
+    validationFailed = true;
+  } else {
+    console.log(`  OK   ${a.name}  (${(stat.size / 1024 / 1024).toFixed(1)} MB)`);
+  }
+}
+
+// Validate that the installer filename referenced in latest.yml actually exists
+const exeArtifacts = artifacts.filter(a => a.name.endsWith('.exe'));
+if (exeArtifacts.length === 0) {
+  console.error('  FAIL: No .exe installer found in dist/');
+  validationFailed = true;
+} else {
+  for (const exe of exeArtifacts) {
+    if (!latestYmlContent.includes(exe.name)) {
+      console.error(`  FAIL latest.yml does not reference installer "${exe.name}"`);
+      validationFailed = true;
+    }
+  }
+}
+
+if (validationFailed) {
+  console.error('\nERROR: Pre-upload validation failed. Fix the issues above before releasing.');
+  process.exit(1);
+}
+
+console.log('\nAll validations passed.');
 
 console.log(`\nFound ${artifacts.length} artifact(s) to upload:`);
 for (const a of artifacts) {
@@ -121,12 +216,9 @@ const crypto = require('crypto');
 
 const R2_ENDPOINT = `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`;
 
-// Raw bytes — required for intermediate steps in AWS SigV4 key derivation.
-// Each step's output Buffer is used as the key for the next step.
 function hmacBuf(key, data) {
   return crypto.createHmac('sha256', key).update(data, 'utf8').digest();
 }
-// Hex string — used only for the final signature output.
 function hmacHex(key, data) {
   return crypto.createHmac('sha256', key).update(data, 'utf8').digest('hex');
 }
@@ -143,7 +235,7 @@ function getContentType(filename) {
 
 /**
  * AWS Signature V4 PUT for a single file.
- * R2 is fully S3-compatible so this works without any SDK.
+ * R2 is S3-compatible so no SDK is required.
  */
 function uploadFile(artifact) {
   return new Promise((resolve, reject) => {
@@ -151,14 +243,14 @@ function uploadFile(artifact) {
     const bodyHash  = hash(body);
     const key       = artifact.name;
     const now       = new Date();
-    const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, '');   // YYYYMMDD
-    const amzDate   = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');    // YYYYMMDDTHHmmssZ
+    const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const amzDate   = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
     const service   = 's3';
     const region    = 'auto';
     const host      = `${BUCKET}.${ACCOUNT_ID}.r2.cloudflarestorage.com`;
     const contentType = getContentType(key);
 
-    // Cache-Control: manifest files must always be fresh; binaries can be cached forever
+    // Manifest files must never be cached; binaries are immutable once uploaded.
     const isManifest = key.endsWith('.yml');
     const cacheControl = isManifest
       ? 'no-cache, no-store, must-revalidate'
@@ -166,19 +258,16 @@ function uploadFile(artifact) {
 
     const headers = {
       host,
-      'content-type':     contentType,
-      'content-length':   String(body.length),
-      'cache-control':    cacheControl,
-      'x-amz-date':       amzDate,
+      'content-type':         contentType,
+      'content-length':       String(body.length),
+      'cache-control':        cacheControl,
+      'x-amz-date':           amzDate,
       'x-amz-content-sha256': bodyHash,
     };
 
-    // Canonical request
     const signedHeaders = Object.keys(headers).sort().join(';');
     const canonicalHeaders = Object.keys(headers).sort()
       .map(k => `${k}:${headers[k]}\n`).join('');
-
-    // Canonical URI must use the same percent-encoded path as the actual request
     const canonicalUri = `/${encodeURIComponent(key)}`;
 
     const canonicalRequest = [
@@ -190,7 +279,6 @@ function uploadFile(artifact) {
       bodyHash,
     ].join('\n');
 
-    // String to sign
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
     const stringToSign = [
       'AWS4-HMAC-SHA256',
@@ -199,8 +287,6 @@ function uploadFile(artifact) {
       hash(canonicalRequest),
     ].join('\n');
 
-    // Signing key — each step must receive raw Buffer bytes, not a hex string.
-    // Using hex strings as intermediate keys produces the wrong HMAC (SignatureDoesNotMatch).
     const kDate    = hmacBuf(`AWS4${KEY_SECRET}`, dateStamp);
     const kRegion  = hmacBuf(kDate,    region);
     const kService = hmacBuf(kRegion,  service);
@@ -216,11 +302,7 @@ function uploadFile(artifact) {
     const reqHeaders = { ...headers, authorization };
     delete reqHeaders.host;
 
-    // URL-encode the key so filenames with spaces ("SwitchControl Setup x.y.z.exe")
-    // are sent correctly over the wire.  encodeURIComponent covers spaces → %20
-    // and leaves dots/digits untouched, which is exactly what R2/S3 expect.
     const encodedKey = encodeURIComponent(key);
-
     const options = {
       hostname: host,
       path:     `/${encodedKey}`,
@@ -248,10 +330,6 @@ function uploadFile(artifact) {
 
 // ── Verification ─────────────────────────────────────────────────────────────
 
-/**
- * HEAD request to a public URL.  Returns { ok, status, url }.
- * Follows up to 3 redirects automatically.
- */
 function headRequest(url, redirectsLeft = 3) {
   return new Promise((resolve) => {
     const parsed = new URL(url);
@@ -273,13 +351,16 @@ function headRequest(url, redirectsLeft = 3) {
   });
 }
 
-// ── Run uploads sequentially, then verify ────────────────────────────────────
+// ── Upload sequence ───────────────────────────────────────────────────────────
+// Order: installer → blockmap → stable.yml → latest.yml (metadata last)
+// latest.yml MUST be uploaded last: if it goes live before the installer,
+// clients will see a broken update where the binary is unreachable.
 
 (async () => {
-  // Upload installer + blockmap first, latest.yml last
-  // (metadata only goes live once binaries are available)
   const sorted = [
-    ...artifacts.filter(a => a.name !== 'latest.yml'),
+    ...artifacts.filter(a => a.name.endsWith('.exe') && !a.name.endsWith('.blockmap')),
+    ...artifacts.filter(a => a.name.endsWith('.blockmap')),
+    ...artifacts.filter(a => a.name === 'stable.yml'),
     ...artifacts.filter(a => a.name === 'latest.yml'),
   ];
 
@@ -300,7 +381,6 @@ function headRequest(url, redirectsLeft = 3) {
 
   let allOk = true;
   for (const a of artifacts) {
-    // URL-encode the filename so spaces → %20 in the printed/verified URL
     const publicUrl = `${PUBLIC_URL}/${encodeURIComponent(a.name)}`;
     process.stdout.write(`  ${publicUrl} ... `);
     const result = await headRequest(publicUrl);
@@ -319,9 +399,34 @@ function headRequest(url, redirectsLeft = 3) {
     process.exit(1);
   }
 
+  // ── Optional release manifest for admin/debug visibility ─────────────────
+  // This file is NOT used by the updater. It is purely informational so
+  // you can quickly verify what is live on R2 without parsing latest.yml.
+  const exeName = exeArtifacts[0]?.name ?? null;
+  const releaseInfo = {
+    version: pkgVersion,
+    channel: 'stable',
+    installer: exeName,
+    metadataFile: 'latest.yml',
+    releasedAt: new Date().toISOString(),
+    host: PUBLIC_URL,
+  };
+  const releaseInfoPath = path.join(distDir, 'release-info.json');
+  fs.writeFileSync(releaseInfoPath, JSON.stringify(releaseInfo, null, 2) + '\n', 'utf8');
+
+  // Upload release-info.json last (informational only — not depended on by updater)
+  process.stdout.write('  Uploading release-info.json ... ');
+  try {
+    await uploadFile({ name: 'release-info.json', localPath: releaseInfoPath });
+    console.log('OK');
+  } catch (err) {
+    // Non-fatal — updater does not depend on this file
+    console.log(`WARN (${err.message}) — release-info.json is optional`);
+  }
+
   console.log('\nAll files live and reachable.');
   console.log('\nPublic URLs:');
-  for (const a of artifacts) {
+  for (const a of [...sorted, { name: 'release-info.json' }]) {
     console.log(`  ${PUBLIC_URL}/${encodeURIComponent(a.name)}`);
   }
   console.log('\nDone.\n');

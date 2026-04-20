@@ -1,18 +1,39 @@
 name: Release SwitchControl
 
+# Triggered by pushing a version tag: git tag v1.2.3 && git push origin v1.2.3
 on:
   push:
     tags:
-      - 'v[0-9]+.[0-9]+.[0-9]+'      # stable:  v1.2.3
-      - 'v[0-9]+.[0-9]+.[0-9]+-beta*' # beta:    v1.2.3-beta.1
+      - 'v[0-9]+.[0-9]+.[0-9]+'       # stable:  v1.2.3
+      - 'v[0-9]+.[0-9]+.[0-9]+-beta*'  # beta:    v1.2.3-beta.1
+
+# ── What this workflow does ───────────────────────────────────────────────────
+# 1. Validates version sync (root/package.json == electron/package.json)
+# 2. Syncs tag version into electron/package.json
+# 3. Builds the React frontend
+# 4. Builds the Windows Electron installer via electron-builder
+# 5. Generates latest.yml metadata (SHA-512 + size)
+# 6. Validates all artifacts before any upload
+# 7. Uploads to Cloudflare R2 — installer first, metadata last
+#
+# ── What this workflow does NOT do ───────────────────────────────────────────
+# - Does NOT create GitHub Releases for update delivery
+# - Does NOT upload update artifacts to GitHub Releases
+# - Does NOT reference GitHub as an update metadata source
+#
+# The only update delivery backend is https://releases.switchcontrol.org (R2).
+# GitHub Releases must never be the source of truth for electron-updater.
+# If you want a GitHub Release for marketing/changelogs, add a separate job
+# that does not affect update infrastructure.
 
 permissions:
-  contents: write   # needed to create/update GitHub releases
+  contents: read  # read-only; we do not create GitHub Releases here
 
 jobs:
   release-windows:
-    name: Build & Publish Windows Installer
+    name: Build & Upload to R2
     runs-on: windows-latest
+    timeout-minutes: 60
 
     steps:
       # ── 1. Checkout ─────────────────────────────────────────────────────────
@@ -29,7 +50,7 @@ jobs:
           cache: 'npm'
 
       # ── 3. Extract version from tag ─────────────────────────────────────────
-      - name: Extract version
+      - name: Extract version from tag
         id: version
         shell: bash
         run: |
@@ -39,84 +60,140 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Release version: $VERSION"
 
-      # ── 4. Bump app version in electron/package.json ────────────────────────
-      - name: Sync electron package version
+      # ── 4. Sync version into electron/package.json ──────────────────────────
+      # The tag is the single source of truth for version at release time.
+      # Both root/package.json and electron/package.json are updated to match.
+      - name: Sync version into packages
         shell: bash
         run: |
           VERSION="${{ steps.version.outputs.version }}"
           node -e "
             const fs = require('fs');
-            const p = JSON.parse(fs.readFileSync('electron/package.json', 'utf8'));
-            p.version = '$VERSION';
-            fs.writeFileSync('electron/package.json', JSON.stringify(p, null, 2) + '\n');
-            console.log('electron/package.json version set to', p.version);
+            ['package.json', 'electron/package.json'].forEach(f => {
+              const p = JSON.parse(fs.readFileSync(f, 'utf8'));
+              p.version = '$VERSION';
+              fs.writeFileSync(f, JSON.stringify(p, null, 2) + '\n');
+              console.log(f + ' version set to ' + p.version);
+            });
           "
 
-      # ── 5. Install root dependencies (web app) ──────────────────────────────
+      # ── 5. Validate version sync ─────────────────────────────────────────────
+      # Fail fast if the two package.json files still differ after sync.
+      - name: Validate version sync
+        run: node electron/scripts/sync-version.js
+
+      # ── 6. Install root dependencies ────────────────────────────────────────
       - name: Install root dependencies
         run: npm ci
 
-      # ── 6. Build the React frontend ─────────────────────────────────────────
-      - name: Build frontend
+      # ── 7. Build frontend ───────────────────────────────────────────────────
+      - name: Build React frontend
         run: npm run build
         env:
           NODE_ENV: production
 
-      # ── 7. Copy frontend dist into electron/dist-frontend ───────────────────
+      # ── 8. Copy frontend dist into electron/dist-frontend ───────────────────
       - name: Copy frontend to electron
-        shell: bash
+        shell: pwsh
         run: |
-          mkdir -p electron/dist-frontend
-          cp -r dist/public/. electron/dist-frontend/
-          echo "Frontend dist contents:"
-          ls -la electron/dist-frontend/ | head -20
+          if (Test-Path "electron/dist-frontend") {
+            Remove-Item "electron/dist-frontend" -Recurse -Force
+          }
+          # Adjust source path to match your actual vite output directory
+          if (Test-Path "dist/public") {
+            Copy-Item "dist/public" "electron/dist-frontend" -Recurse
+          } elseif (Test-Path "dist-frontend") {
+            Copy-Item "dist-frontend" "electron/dist-frontend" -Recurse
+          } else {
+            Write-Error "ERROR: Could not find frontend build output. Looked for dist/public and dist-frontend."
+            exit 1
+          }
+          Write-Host "Frontend dist-frontend contents:"
+          Get-ChildItem "electron/dist-frontend" | Select-Object -First 20
 
-      # ── 8. Install Electron dependencies ────────────────────────────────────
+      # ── 9. Install Electron dependencies ────────────────────────────────────
       - name: Install Electron dependencies
         working-directory: electron
         run: npm ci
 
-      # ── 9. Build native modules (if any) ────────────────────────────────────
+      # ── 10. Build native modules (optional) ─────────────────────────────────
       - name: Build native modules
         working-directory: electron
+        shell: bash
         run: |
           if [ -f "scripts/build-native.js" ]; then
             node scripts/build-native.js || echo "Native build skipped (non-fatal)"
           fi
-        shell: bash
 
-      # ── 10. Build NSIS installer + update metadata ──────────────────────────
-      #   GH_TOKEN lets electron-builder publish directly to GitHub Releases.
-      #   The `publish always` flag ensures metadata (latest.yml) is uploaded.
-      #   For private release server: set GEN_RELEASES_TOKEN secret instead.
-      - name: Build installer & publish
+      # ── 11. Build NSIS installer ─────────────────────────────────────────────
+      # --publish never: electron-builder must NOT push to any publish target.
+      # Upload is handled manually by release.js so we control the exact order.
+      - name: Build Windows installer
         working-directory: electron
-        run: npx electron-builder --win --publish always
+        run: npx electron-builder --win --publish never
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          # If using a private release server (generic provider), configure:
-          # RELEASES_SERVER_TOKEN: ${{ secrets.RELEASES_SERVER_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
 
-      # ── 11. Verify artifacts ─────────────────────────────────────────────────
-      - name: List build artifacts
-        shell: bash
+      # ── 12. Generate latest.yml ──────────────────────────────────────────────
+      # Produces electron/dist/latest.yml and electron/dist/stable.yml
+      - name: Generate latest.yml metadata
+        working-directory: electron
+        run: node scripts/generate-latest-yml.js
+
+      # ── 13. Validate artifacts ───────────────────────────────────────────────
+      # Fail before uploading anything if artifacts are missing or malformed.
+      # A partial upload is worse than a failed build.
+      - name: Validate release artifacts
+        working-directory: electron
+        shell: pwsh
         run: |
-          echo "=== Build artifacts ==="
-          ls -lh electron/dist/ || echo "No dist directory"
-          find electron/dist -name "*.exe" -o -name "*.yml" -o -name "*.yaml" 2>/dev/null | head -20
+          $version = "${{ steps.version.outputs.version }}"
+          $distDir = "dist"
+          Write-Host "Validating artifacts for version: $version"
 
-      # ── 12. Upload artifacts to GitHub Release ───────────────────────────────
-      - name: Create / update GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          name: SwitchControl ${{ steps.version.outputs.tag }}
-          draft: false
-          prerelease: ${{ contains(steps.version.outputs.tag, '-beta') || contains(steps.version.outputs.tag, '-alpha') }}
-          generate_release_notes: true
-          files: |
-            electron/dist/*.exe
-            electron/dist/latest.yml
-            electron/dist/latest-mac.yml
+          $exe = Get-ChildItem "$distDir\*.exe" -Exclude "*.exe.blockmap" | Select-Object -First 1
+          if (-not $exe) { Write-Error "No installer .exe found"; exit 1 }
+          if ($exe.Length -eq 0) { Write-Error "Installer is 0 bytes"; exit 1 }
+          Write-Host "OK   installer : $($exe.Name)  ($([math]::Round($exe.Length/1MB,1)) MB)"
+
+          $yml = "$distDir\latest.yml"
+          if (-not (Test-Path $yml)) { Write-Error "latest.yml not found"; exit 1 }
+          $ymlContent = Get-Content $yml -Raw
+          if (-not ($ymlContent -match "version: $version")) {
+            Write-Error "latest.yml version mismatch — expected: $version"; exit 1
+          }
+          if (-not ($ymlContent -match "sha512:")) {
+            Write-Error "latest.yml missing sha512 field"; exit 1
+          }
+          if (-not ($ymlContent -match [regex]::Escape($exe.Name))) {
+            Write-Error "latest.yml does not reference installer: $($exe.Name)"; exit 1
+          }
+          Write-Host "OK   latest.yml : version=$version sha512=present installer=referenced"
+          Write-Host "All validations passed."
+
+      # ── 14. Upload to R2 ────────────────────────────────────────────────────
+      # release.js handles upload order: installer → blockmap → stable.yml → latest.yml
+      # latest.yml is uploaded LAST so clients never see metadata before the binary.
+      - name: Upload to Cloudflare R2
+        working-directory: electron
+        run: node scripts/release.js
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          R2_ACCOUNT_ID:        ${{ secrets.R2_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID:     ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET:            ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_URL:        https://releases.switchcontrol.org
+
+      # ── 15. Summary ─────────────────────────────────────────────────────────
+      - name: Release summary
+        shell: pwsh
+        run: |
+          $version = "${{ steps.version.outputs.version }}"
+          Write-Host ""
+          Write-Host "======================================================="
+          Write-Host "  SwitchControl v$version — Release complete"
+          Write-Host "  Update host  : https://releases.switchcontrol.org"
+          Write-Host "  Metadata     : https://releases.switchcontrol.org/latest.yml"
+          Write-Host "  Channel      : stable"
+          Write-Host "  Provider     : R2 generic (no GitHub Releases)"
+          Write-Host "======================================================="

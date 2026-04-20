@@ -2288,27 +2288,56 @@ app.whenReady().then(async () => {
 
   // ── Auto-Updater IPC ──────────────────────────────────────────────────────
   // Main process owns all update logic. Renderer only reads state + triggers.
+  // IPC handlers enforce the same state guards as updater.js so stale renderer
+  // clicks (double-click, UI lag) can never cause impossible transitions.
 
   ipcMain.handle('updater:getState', () => updaterService.getState());
 
   ipcMain.handle('updater:check', () => {
+    const { status } = updaterService.getState();
+    if (!updaterService.canCheck(status)) {
+      console.warn('[IPC] updater:check ignored — blocked in state:', status);
+      return false;
+    }
     updaterService.checkForUpdates();
     return true;
   });
 
   ipcMain.handle('updater:download', () => {
+    const { status } = updaterService.getState();
+    if (!updaterService.canDownload(status)) {
+      console.warn('[IPC] updater:download ignored — blocked in state:', status);
+      return false;
+    }
     updaterService.downloadUpdate();
     return true;
   });
 
   ipcMain.handle('updater:install', () => {
+    const { status } = updaterService.getState();
+    if (!updaterService.canInstall(status)) {
+      console.warn('[IPC] updater:install ignored — blocked in state:', status);
+      return false;
+    }
     updaterService.quitAndInstall();
     return true;
   });
 
-  // Initialize updater. In packaged builds, do a silent check after 8 seconds.
+  // ── Updater boot ─────────────────────────────────────────────────────────
+  // In dev mode: no-op. In packaged mode: init then silent check after 8s.
+
   updaterService.initUpdater(isDev);
+
   if (!isDev) {
+    // Sanity assertions for packaged builds. These run after initUpdater so
+    // the autoUpdater module has already been configured.
+    const { version: appVer } = require('./package.json');
+    if (!appVer) {
+      console.error('[Updater] BOOT ASSERTION FAILED: could not read version from electron/package.json');
+    } else {
+      console.log('[Updater] Boot assertion OK — app version:', appVer);
+    }
+
     setTimeout(() => {
       console.log('[Updater] Startup check (8s after ready)...');
       updaterService.checkForUpdates();

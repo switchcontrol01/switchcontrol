@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, RefreshCw, ArrowUpCircle, AlertTriangle, CheckCircle2, X } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useUpdater } from '@/hooks/use-updater';
 import { Button } from '@/components/ui/button';
 
@@ -46,12 +46,26 @@ const URGENCY_STYLES = {
 
 export function UpdateBanner() {
   const { state, download, install } = useUpdater();
-  const [dismissed, setDismissed] = useState(false);
+
+  // Track the last version the user dismissed.
+  // If a new version appears (different version string), the banner re-shows
+  // even if the user previously dismissed an older version.
+  const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
 
   const { status, availableVersion, downloadPercent, bytesPerSecond, transferred, total, urgency } = state;
 
+  // While downloading, dismissal is blocked so the user can see progress.
+  // Once a new availableVersion is seen, clear any dismissal of a prior version.
+  useEffect(() => {
+    if (availableVersion && dismissedVersion && availableVersion !== dismissedVersion) {
+      setDismissedVersion(null);
+    }
+  }, [availableVersion, dismissedVersion]);
+
+  const isDismissed = dismissedVersion === availableVersion;
+
   const visible =
-    !dismissed &&
+    !isDismissed &&
     (status === 'available' || status === 'downloading' || status === 'downloaded');
 
   const style = URGENCY_STYLES[urgency as keyof typeof URGENCY_STYLES] ?? URGENCY_STYLES.normal;
@@ -97,7 +111,7 @@ export function UpdateBanner() {
                 {/* Progress bar */}
                 <div className="h-1 w-full rounded-full bg-white/10 overflow-hidden">
                   <motion.div
-                    className={`h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400`}
+                    className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400"
                     animate={{ width: `${downloadPercent}%` }}
                     transition={{ ease: 'linear', duration: 0.4 }}
                   />
@@ -140,9 +154,10 @@ export function UpdateBanner() {
                 Restart & Install
               </Button>
             )}
+            {/* Dismiss is blocked during active download so progress stays visible */}
             {status !== 'downloading' && (
               <button
-                onClick={() => setDismissed(true)}
+                onClick={() => setDismissedVersion(availableVersion)}
                 data-testid="button-updater-dismiss"
                 className="size-6 rounded-md flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-white/5 transition-colors"
                 aria-label="Dismiss update banner"

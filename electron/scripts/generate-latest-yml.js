@@ -4,8 +4,8 @@
  * ----------------------
  * Generates latest.yml for the electron-updater generic provider.
  *
- * electron-builder only writes latest.yml when it performs an actual publish
- * upload (requires cloud credentials at build time).  Since we upload
+ * electron-builder only writes latest.yml when it performs its own publish
+ * upload (requires cloud credentials at build time). Since we upload
  * separately via release.js, this script fills the gap: it reads the built
  * installer from dist/, computes the SHA-512 hash electron-updater expects,
  * and writes a correctly-formatted latest.yml into dist/.
@@ -13,8 +13,13 @@
  * Usage (called automatically by release.js when latest.yml is absent):
  *   node scripts/generate-latest-yml.js
  *
- * Or run manually before `npm run release`:
+ * Or manually before `npm run release`:
  *   node scripts/generate-latest-yml.js
+ *
+ * Trust model note:
+ *   The sha512 in latest.yml is what electron-updater verifies against the
+ *   downloaded binary. The field must be a base64-encoded SHA-512 of the
+ *   full installer binary. Do not modify this value manually.
  */
 
 'use strict';
@@ -38,23 +43,51 @@ if (!fs.existsSync(pkgPath)) {
   process.exit(1);
 }
 
-const version = JSON.parse(fs.readFileSync(pkgPath, 'utf8')).version;
+const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+const version = pkg.version;
+const productName = pkg.build?.productName || 'SwitchControl';
+
 if (!version) {
   console.error('ERROR: Could not read version from electron/package.json.');
   process.exit(1);
 }
 
 // ── Find the installer ────────────────────────────────────────────────────────
+// Strict selection: we match only the canonical installer filename that
+// electron-builder produces for this product/version combination.
+// If multiple .exe files exist we fail loudly rather than guessing.
 
 const distFiles = fs.readdirSync(distDir);
-const exeFile = distFiles.find(f => f.endsWith('.exe') && !f.endsWith('.exe.blockmap'));
+const exeFiles = distFiles.filter(f => f.endsWith('.exe') && !f.endsWith('.exe.blockmap'));
 
-if (!exeFile) {
+if (exeFiles.length === 0) {
   console.error('ERROR: No installer (.exe) found in dist/. Run `npm run dist:win` first.');
   process.exit(1);
 }
 
-// ── Compute SHA-512 (base64) — this is what electron-updater verifies ─────────
+// Prefer the exact product+version filename that electron-builder generates.
+// e.g. "SwitchControl Setup 1.0.0.exe"
+const expectedName = `${productName} Setup ${version}.exe`;
+let exeFile;
+
+if (exeFiles.includes(expectedName)) {
+  exeFile = expectedName;
+} else if (exeFiles.length === 1) {
+  // Only one .exe present — use it but warn that the name is unexpected.
+  exeFile = exeFiles[0];
+  console.warn(`WARN: Expected installer "${expectedName}" but found "${exeFile}".`);
+  console.warn('      Proceeding with the single available installer.');
+} else {
+  // Multiple .exe files and none matches the expected name — fail deterministically.
+  console.error(`ERROR: Multiple installer .exe files found in dist/ and none matches expected name:`);
+  console.error(`  Expected : ${expectedName}`);
+  console.error(`  Found    :`);
+  for (const f of exeFiles) console.error(`    ${f}`);
+  console.error('Remove the unexpected .exe files or rename the correct one, then retry.');
+  process.exit(1);
+}
+
+// ── Compute SHA-512 (base64) — verified by electron-updater on download ───────
 
 const exePath  = path.join(distDir, exeFile);
 const exeBuf   = fs.readFileSync(exePath);
@@ -63,13 +96,14 @@ const byteSize = exeBuf.length;
 
 // ── Write latest.yml ──────────────────────────────────────────────────────────
 //
-// Format must match exactly what electron-updater expects:
+// Format must match exactly what electron-updater expects for a generic provider:
 //   https://www.electron.build/configuration/publish#genericserveroptions
 //
 // Notes:
 //   - `url` and `path` use the raw filename (spaces are fine; updater URL-encodes them)
-//   - `sha512` is base64-encoded SHA-512 of the full installer binary
-//   - `size` is file size in bytes
+//   - `sha512` is the base64-encoded SHA-512 of the full installer binary
+//   - `size` is the file size in bytes
+//   - `releaseDate` is ISO 8601 UTC
 
 const releaseDate = new Date().toISOString();
 
@@ -88,16 +122,18 @@ const yml = [
 const ymlPath = path.join(distDir, 'latest.yml');
 fs.writeFileSync(ymlPath, yml, 'utf8');
 
-// Also write stable.yml — backward-compat shim for 1.0.0 builds that had
-// autoUpdater.channel = "stable" hardcoded (looks for stable.yml on R2).
-// Safe to keep forever; uploading an identical copy is harmless.
+// stable.yml — compat shim for legacy builds that shipped with channel='stable'.
+// Those builds request stable.yml instead of latest.yml from the update host.
+// Keeping an identical copy is harmless. Remove this if you confirm no such
+// builds are in the wild.
 const stableYmlPath = path.join(distDir, 'stable.yml');
 fs.writeFileSync(stableYmlPath, yml, 'utf8');
 
 console.log(`Generated dist/latest.yml`);
-console.log(`Generated dist/stable.yml  (compat shim for v1.0.0 channel=stable)`);
+console.log(`Generated dist/stable.yml  (compat shim — identical copy of latest.yml)`);
 console.log(`  version  : ${version}`);
+console.log(`  product  : ${productName}`);
 console.log(`  file     : ${exeFile}`);
-console.log(`  size     : ${(byteSize / 1024 / 1024).toFixed(1)} MB`);
+console.log(`  size     : ${(byteSize / 1024 / 1024).toFixed(1)} MB  (${byteSize} bytes)`);
 console.log(`  sha512   : ${sha512.slice(0, 24)}...`);
 console.log(`  date     : ${releaseDate}`);

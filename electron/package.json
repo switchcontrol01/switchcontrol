@@ -13,6 +13,7 @@
     "build:native": "node scripts/build-native.js",
     "dist:win": "npm run prebuild && npm run build:native && electron-builder --win",
     "generate-latest-yml": "node scripts/generate-latest-yml.js",
+    "sync-version": "node scripts/sync-version.js",
     "release": "node scripts/release.js"
   },
 
@@ -89,7 +90,7 @@
     "publish": [
       {
         "provider": "generic",
-        "url": "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev"
+        "url": "https://releases.switchcontrol.org"
       }
     ],
 
