@@ -45,8 +45,9 @@ require('./security-helper');
 require('./debloat-helper');
 require('./cleaner-helper');
 require('./focus-helper');
-const configStore = require('./config-store');
+const configStore  = require('./config-store');
 const updaterService = require('./updater');
+const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE } = require('./user-data-paths');
 
 app.setName('SwitchControl');
 const isDev = !app.isPackaged;
@@ -930,7 +931,7 @@ async function getGpuStatic() {
 function getOrCreateDeviceId() {
   const fs = require('fs');
   const crypto = require('crypto');
-  const deviceIdPath = path.join(app.getPath('userData'), 'device-id.json');
+  const deviceIdPath = DEVICE_ID_FILE;
   
   try {
     if (fs.existsSync(deviceIdPath)) {
@@ -2314,6 +2315,40 @@ app.whenReady().then(async () => {
   const userDataPath = app.getPath('userData');
   configStore.init(userDataPath);
   console.log('[BOOT] Config store initialized:', userDataPath);
+
+  // ── Persistent user-data restoration audit ────────────────────────────────
+  // Reports which data files were found in %APPDATA%\SwitchControl\ so we can
+  // confirm that data survived uninstall + reinstall on every boot.
+  {
+    const dataFiles = [
+      { label: 'tweak-state.json', file: TWEAK_STATE_FILE },
+      { label: 'sc-config.json',   file: CONFIG_FILE       },
+      { label: 'device-id.json',   file: DEVICE_ID_FILE    },
+    ];
+    const found    = dataFiles.filter(d => fs.existsSync(d.file));
+    const missing  = dataFiles.filter(d => !fs.existsSync(d.file));
+    const isRestoredInstall = found.length > 0;
+    console.log(`[UserData] AppData root: ${APPDATA_DIR}`);
+    console.log(`[UserData] Restore status: ${isRestoredInstall ? 'EXISTING DATA FOUND — restoring user state' : 'FRESH INSTALL — no prior user data'}`);
+    found.forEach(d => {
+      try {
+        const stat = fs.statSync(d.file);
+        console.log(`[UserData]   ✓ ${d.label} (${stat.size} bytes, modified ${stat.mtime.toISOString()})`);
+      } catch { console.log(`[UserData]   ✓ ${d.label}`); }
+    });
+    missing.forEach(d => console.log(`[UserData]   · ${d.label} (not yet created — will be written on first use)`));
+
+    // If tweak-state exists, report the count of persisted tweak states
+    if (fs.existsSync(TWEAK_STATE_FILE)) {
+      try {
+        const ts = JSON.parse(fs.readFileSync(TWEAK_STATE_FILE, 'utf8'));
+        const tweakCount = ts && ts.tweaks ? Object.keys(ts.tweaks).length : 0;
+        const enabledCount = ts && ts.tweaks ? Object.values(ts.tweaks).filter(Boolean).length : 0;
+        console.log(`[UserData]   Tweaks persisted: ${tweakCount} total, ${enabledCount} enabled`);
+      } catch { /* parse errors handled separately by tweak-executor */ }
+    }
+  }
+  // ── End restoration audit ─────────────────────────────────────────────────
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   console.log('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));

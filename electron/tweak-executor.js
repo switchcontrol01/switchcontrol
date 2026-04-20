@@ -2,9 +2,7 @@ const { execFile } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
-
-const TWEAK_STATE_FILE = path.join(process.env.APPDATA || '', 'SwitchControl', 'tweak-state.json');
-const TWEAK_LOG_FILE  = path.join(process.env.APPDATA || '', 'SwitchControl', 'tweak-log.json');
+const { TWEAK_STATE_FILE, TWEAK_LOG_FILE } = require('./user-data-paths');
 
 // ─── file helpers ──────────────────────────────────────────────────────────────
 function ensureStateDir() {
@@ -13,17 +11,34 @@ function ensureStateDir() {
 }
 
 function loadState() {
+  const defaultState = { meta: { windowsBuild: os.release(), lastVerified: null }, tweaks: {} };
   try {
     ensureStateDir();
-    if (fs.existsSync(TWEAK_STATE_FILE)) {
-      const data = JSON.parse(fs.readFileSync(TWEAK_STATE_FILE, 'utf8'));
-      return {
-        meta:   data.meta   || { windowsBuild: os.release(), lastVerified: null },
-        tweaks: data.tweaks || {},
-      };
+    if (!fs.existsSync(TWEAK_STATE_FILE)) return defaultState;
+    const raw  = fs.readFileSync(TWEAK_STATE_FILE, 'utf8');
+    const data = JSON.parse(raw);
+    // Must be a plain object — reject arrays, primitives, null
+    if (!data || typeof data !== 'object' || Array.isArray(data)) {
+      console.warn('[TweakExecutor] tweak-state.json has unexpected shape — resetting');
+      return defaultState;
     }
-  } catch (e) { console.error('[TweakExecutor] loadState failed:', e.message); }
-  return { meta: { windowsBuild: os.release(), lastVerified: null }, tweaks: {} };
+    // Validate tweaks map: every value must be a boolean
+    const rawTweaks = data.tweaks;
+    let tweaks = {};
+    if (rawTweaks && typeof rawTweaks === 'object' && !Array.isArray(rawTweaks)) {
+      for (const [k, v] of Object.entries(rawTweaks)) {
+        if (typeof v === 'boolean') tweaks[k] = v;
+        // Non-boolean values are silently dropped to prevent stale/corrupt entries
+      }
+    }
+    const meta = (data.meta && typeof data.meta === 'object' && !Array.isArray(data.meta))
+      ? { windowsBuild: String(data.meta.windowsBuild || os.release()), lastVerified: data.meta.lastVerified || null }
+      : { windowsBuild: os.release(), lastVerified: null };
+    return { meta, tweaks };
+  } catch (e) {
+    console.error('[TweakExecutor] loadState failed — using default empty state:', e.message);
+    return defaultState;
+  }
 }
 
 function saveState(state) {

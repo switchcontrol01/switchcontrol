@@ -250,8 +250,33 @@ export const useStore = create<AppState>()(
         realtimeMetricsEnabled: state.realtimeMetricsEnabled,
         pauseWhenMinimized: state.pauseWhenMinimized,
       }),
-      onRehydrateStorage: () => (state) => {
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.error('[Store:REHYDRATE] Deserialization error — falling back to defaults:', error);
+          return;
+        }
         if (!state) return;
+
+        // Guard: tweaks must be a plain object (not array, null, or primitive).
+        // A corrupted or version-mismatched localStorage entry must not crash the app.
+        if (!state.tweaks || typeof state.tweaks !== 'object' || Array.isArray(state.tweaks)) {
+          console.warn('[Store:REHYDRATE] tweaks field is invalid — resetting to {}');
+          state.tweaks = {};
+        } else {
+          // Drop any entry whose value is not a boolean (stale/corrupt from old versions)
+          const sanitized: Record<string, boolean> = {};
+          for (const [k, v] of Object.entries(state.tweaks)) {
+            if (typeof v === 'boolean') sanitized[k] = v;
+          }
+          state.tweaks = sanitized;
+        }
+
+        // Guard: history must be an array
+        if (!Array.isArray(state.history)) {
+          console.warn('[Store:REHYDRATE] history field is invalid — resetting to []');
+          state.history = [];
+        }
+
         // Recompute tweaksApplied from actual persisted tweaks — never trust a stale counter
         const actualCount = Object.values(state.tweaks).filter(Boolean).length;
         console.log(`[Store:REHYDRATE] total_stored=${Object.keys(state.tweaks).length} enabled=${actualCount} source=localStorage`);
@@ -263,6 +288,14 @@ export const useStore = create<AppState>()(
             lastScan: actualCount > 0 ? new Date().toISOString() : null,
           },
         };
+      },
+      migrate: (persistedState: any, version: number) => {
+        // Placeholder for future migrations.
+        // If the persisted version is older, transform the shape here.
+        if (!persistedState || typeof persistedState !== 'object') {
+          return { tweaks: {}, history: [] };
+        }
+        return persistedState;
       },
       version: 1,
     }
