@@ -1,0 +1,150 @@
+9. Add historical scan persistence
+
+Right now cleaner history mainly stores clean sessions.
+Also store scan summaries so the app can graph found junk even when the user does not clean.
+
+Suggested new persistence:
+
+- scan mode
+- scan timestamp
+- total bytes found
+- total files found
+- category totals
+- item findings
+
+This is important for trend graphs.
+
+10. Add “recommended now” card
+
+This should be one of the best premium elements.
+
+Show 3 to 5 recommended cleaner items right now based on actual scan results.
+
+Each recommendation should explain why:
+
+- large temp accumulation
+- repeated cache growth
+- safe removable reports
+- startup waste found
+- privacy residue detected
+
+Do not use vague AI fluff.
+Use rule-based explanations from actual scan results.
+
+11. Add live system context
+
+Use existing telemetry to make Cleaner feel smarter.
+
+Examples:
+
+- if disk usage is high, emphasize storage items
+- if RAM pressure is high, highlight DNS cache only lightly, do not overclaim
+- if process count is high, highlight dead startup entries more
+- if gaming-related processes are active, deprioritize shader cache cleaning unless user confirms
+
+This should stay conservative.
+
+12. Add stronger history UI inside Cleaner
+
+Current history is too basic.
+
+Add:
+
+- filter by clean vs scan
+- filter by mode
+- filter by success/failure
+- grouped sessions
+- small charts above history
+- expandable session details
+
+13. Add search and filters for cleaner items
+
+Required filters:
+
+- all
+- found only
+- selected only
+- safe only
+- admin required
+- biggest first
+- category
+- priority
+
+Add search by item name and description.
+
+14. Add empty state intelligence
+
+If nothing meaningful is found, do not just look empty.
+
+Show:
+
+- system is already clean
+- last scan time
+- highest remaining category if any
+- suggestion for advanced scan only if justified
+- optional note about auto-rebuilding caches
+
+15. Keep trust model explicit
+
+Continue to make it clear:
+
+- scans are real
+- file sizes are real
+- estimates are conservative
+- some caches rebuild automatically
+- some cleaning is safe but low value
+- no fake FPS promises
+
+16. Backend changes
+
+Audit and improve:
+
+- cleaner-helper.js
+- cleaner.ts
+- cleaner history persistence
+- scan summary persistence
+
+Consider adding a second table for scan history if needed, for example:
+cleaner_scan_history
+
+Store:
+
+- mode
+- findings JSON
+- category totals
+- total bytes found
+- total files found
+- ran_at
+
+17. Frontend polish
+
+Keep current premium look:
+
+- dark glass
+- neon violet and cyan accents
+- blur and fade motion
+- smooth chart animation
+- no lag
+- clean layout hierarchy
+
+Do not clutter the page.
+Do not make charts feel like admin dashboards.
+It should feel premium.
+
+FILES TO CHANGE
+
+At minimum:
+
+- src/pages/Cleaner.tsx
+- electron/cleaner-helper.js
+- server/routes/cleaner.ts
+
+Possible new components:
+
+- src/components/cleaner/CleanerSummaryCards.tsx
+- src/components/cleaner/CleanerTrendCharts.tsx
+- src/components/cleaner/CleanerRecommendations.tsx
+- src/components/cleaner/CleanerLargestOffenders.tsx
+- src/components/cleaner/CleanerHistoryPanel.tsx
+- src/components/cleaner/CleanerFilters.tsx
+

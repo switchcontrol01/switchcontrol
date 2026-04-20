@@ -1,0 +1,172 @@
+TASK
+
+Expand the Tweaks module with real advanced tweak controls, including true numeric sliders where the underlying Windows setting actually supports a numeric value.
+
+This is not a cosmetic slider update.
+
+Every new slider must be backed by real read, apply, verify, and revert logic. No fake UI. No placebo controls. No pretend tuning.
+
+Also, make these new advanced tweaks free, not premium-gated.
+
+Keep the current premium visual language:
+dark glass UI
+violet and cyan accents
+smooth fade and blur motion
+rich micro-interactions
+clean card hierarchy
+desktop and mobile polish
+
+Do not remove the existing design direction. Improve the intelligence and control depth.
+
+PROBLEM
+
+The current Tweaks page has good visual polish, but control depth is still limited in some areas.
+
+Current issues:
+
+1. Too many binary controls
+   Some settings are treated as simple toggles even though they are better represented as real numeric tuning.
+
+2. No true advanced tuning layer
+   The page needs more serious power-user controls, especially around:
+   scheduler behavior
+   input queueing
+   responsiveness
+   network buffer and latency controls
+   memory-manager tuning
+   priority and cache behavior
+
+3. Sliders are missing where they actually make sense
+   The app should support real sliders for settings that map to actual numeric system values.
+
+4. Risk of fake UX
+   Do not add fake 0 to 100 sliders for settings that are actually on/off. That would make the app look like placebo software.
+
+5. Current advanced catalog is still too shallow
+   There is room for many more real tweaks that advanced users expect.
+
+GOAL
+
+Upgrade Tweaks into a deeper advanced tuning page with:
+
+1. Real slider-based controls for valid numeric settings
+2. Strong validation and verification for each slider
+3. Clear min, max, default, recommended, current, and pending values
+4. Free access for the new advanced slider tweaks listed below
+5. More real registry and system tweaks added to the catalog
+6. Better explanation of what each tweak actually changes
+7. No fake sliders for toggle-only settings
+
+ARCHITECTURE RULES
+
+1. Only use sliders for true numeric settings
+   A setting qualifies for slider UI only if the app can:
+   read current value
+   show current value
+   show min and max
+   apply exact numeric value
+   verify exact numeric value after apply
+   revert to default or previous value
+
+2. Keep toggles as toggles
+   Do not convert real on/off tweaks into sliders just to make the UI look richer.
+
+3. Every slider card must support:
+   current value
+   pending value
+   applied value
+   default value
+   recommended value
+   min and max
+   reset to default
+   apply
+   revert
+   verify
+   restart-required badge when needed
+   admin-required badge when needed
+   safe or advanced badge
+   free badge if applicable
+
+4. No placebo wording
+   Descriptions must explain the real system effect, not fake marketing language.
+
+IMPLEMENTATION
+
+1. Add a new tweak control type: slider
+
+Extend the tweak model so a tweak can render as one of:
+toggle
+slider
+select if useful later
+action button if needed
+
+Suggested shape:
+
+type TweakControlType = "toggle" | "slider";
+
+type SliderConfig = {
+min: number;
+max: number;
+step: number;
+defaultValue: number;
+recommendedValue?: number;
+unit?: string;
+marks?: Array<{ value: number; label: string }>;
+};
+
+type TweakDefinition = {
+id: string;
+title: string;
+description: string;
+controlType: TweakControlType;
+category: string;
+isPremium?: boolean;
+requiresAdmin?: boolean;
+requiresRestart?: boolean;
+safety: "safe" | "moderate" | "advanced";
+sliderConfig?: SliderConfig;
+readCurrentValue?: boolean;
+verifyAfterApply?: boolean;
+};
+
+2. Add real slider card UI
+
+For slider tweaks, build a dedicated card UI.
+
+Each slider card must show:
+title
+description
+badges
+current value
+editable slider
+numeric input box beside slider
+default value
+recommended value
+apply button
+reset button
+revert button if previous value exists
+verification result line
+status text
+
+Visual requirements:
+same glass card quality as current tweak cards
+smooth thumb animation
+value transitions
+soft glow around active slider
+clear value labels
+works on desktop and mobile
+no lag
+
+3. Add these slider-based tweaks first
+
+A. Win32PrioritySeparation
+This is mandatory.
+
+Use a slider-backed advanced control, but do not present it as fake magic.
+Present it honestly.
+
+UI label:
+Foreground / Background Priority Balance
+
+Description:
+Adjusts how aggressively Windows favors the active foreground application versus background tasks.

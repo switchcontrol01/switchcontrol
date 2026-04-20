@@ -1,0 +1,134 @@
+GOAL
+Transform System Integrity into a premium, high-depth module with five strong layers:
+Overview A clean executive summary with score, recent changes, trend graphs, and current posture.
+Protection Expanded Defender and Windows security intelligence with clear freshness and audit context.
+Startup Real startup management with actions, delay control, publisher visibility, and impact ranking.
+Processes Deep process trust analysis with signer, path, publisher, elevated state, suspicious location flags, and gaming impact.
+Advanced Audit A serious Windows security and configuration audit covering firmware, services, remote access, integrity features, and persistence risks.
+The module must become:
+more useful
+more intelligent
+more visual
+more premium
+more actionable
+It should feel like a serious reason to use SwitchControl.
+ARCHITECTURE DIRECTION
+Use a tabbed or segmented layout for the Security page.
+Required sections:
+Overview
+Protection
+Startup
+Processes
+Advanced Audit
+Optional:
+History
+AI Analysis
+Do not cram everything into one long page with random cards. Keep the first visible state clean and high-signal.
+Recommended top structure:
+Header
+Executive strip with live status + scan controls
+Tabbed content
+Rich charts and detailed panels inside each tab
+Historical changes and recommendations at the bottom or in Overview
+IMPLEMENTATION
+Expand backend security data collection in security-helper.js
+Add new IPC handlers for deeper Windows security inspection.
+Required new handlers:
+security:getAdvancedProtection
+security:getAdvancedAudit
+security:getScheduledTasks
+security:getServices
+security:getProcessDetails
+security:getRecentChanges
+security:getSecurityHistory
+security:openProcessLocation
+security:openStartupLocation
+Required audit categories to support:
+A. Defender / protection
+Defender service running
+cloud-delivered protection
+sample submission consent
+controlled folder access
+PUA protection
+SmartScreen state
+signature version
+signature age
+quick scan age
+full scan age
+B. Platform / firmware / trust
+Secure Boot enabled
+TPM present
+TPM ready
+BitLocker status
+Memory Integrity / HVCI
+virtualization-based security state
+UAC status / level
+C. Remote surface / risky features
+RDP enabled
+Remote Assistance enabled
+SMBv1 enabled or disabled
+guest account enabled or disabled
+proxy enabled
+DNS override visible
+Windows Update service state
+D. Persistence / suspicious items
+suspicious scheduled tasks
+suspicious services
+hosts file modified or suspicious
+unsigned startup items
+unsigned or suspicious background processes
+E. Process trust data For each process detail, include if possible:
+executable path
+publisher
+signed or unsigned
+signer name
+parent process
+start time
+elevated or not
+suspicious location flag
+gaming impact
+recommended action
+Use Windows-only best-effort logic. If a value cannot be retrieved, return null honestly. Do not fake data.
+Upgrade security-helper.js with strong audit logic
+Implement best-effort PowerShell and Windows-native checks for:
+Protection:
+Get-MpComputerStatus expanded fields
+Defender service state
+SmartScreen relevant registry or policy status
+signature age calculation
+scan age calculation
+Platform trust:
+Confirm-SecureBootUEFI
+Get-Tpm
+Get-BitLockerVolume
+Device Guard / VBS / HVCI checks
+UAC registry policy
+Remote and risky surface:
+Terminal Services / RDP registry
+Remote Assistance policy
+SMBv1 feature state
+WinHTTP / proxy state
+Windows Update service state
+Persistence:
+scheduled tasks list with filtering
+services list with start mode, status, binary path, signer if possible
+hosts file inspection
+startup entries with signer and publisher enrichment
+process executable info enrichment
+For suspicious classification, add rule-based logic:
+binary in temp folder
+binary in user-writable weird path
+unsigned executable
+unknown publisher
+scheduled task with odd path
+service binary outside normal Windows / Program Files locations
+suspicious persistence naming patterns
+Keep classification practical, not paranoid.
+Add startup actions into the actual UI
+Use the existing backend actions already present:
+startup:setEnabled
+startup:setDelay
+startup:verifyState
+In the Startup tab, every startup item should support:
+Disable
+Enable

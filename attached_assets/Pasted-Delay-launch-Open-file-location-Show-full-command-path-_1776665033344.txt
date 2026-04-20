@@ -1,0 +1,155 @@
+Delay launch
+Open file location
+Show full command path
+Show publisher
+Show impact
+Show recommendation
+Show verification state after action
+Add row expansion or action drawer.
+Required behavior:
+action buttons must feel instant
+optimistic UI is okay, but verify final state after action
+show success / failure feedback
+do not require full page refresh
+Delay launch:
+allow preset options such as 30s, 1m, 2m, 5m
+show current delay state if known
+
+Turn Background Watch into real Process Trust Analysis
+Replace the weak current process view with a richer process intelligence panel.
+Each process row should include:
+name
+CPU
+RAM
+signed or unsigned
+publisher
+path
+category
+impact on gaming
+trust state
+suspicious location indicator
+elevated indicator
+parent process
+start time
+Required UI behavior:
+compact default rows
+expandable detail panel
+trust badge
+severity marker
+quick explanation for why a process is flagged
+Examples of trust states:
+trusted
+review
+suspicious
+unknown
+Examples of reasons:
+unsigned executable in AppData
+overlay process using CPU
+launcher auto-running in background
+system process
+unknown publisher
+Also add actions:
+Open file location
+Copy path
+View parent process
+Inspect reason
+Optional future safe terminate suggestion, but do not implement process killing unless it is safe and intentionally approved
+Build an Advanced Security Audit tab
+Add a dedicated Advanced Audit tab with a proper scan button.
+This must inspect and display:
+Protection
+Defender core state
+SmartScreen
+cloud-delivered protection
+sample submission
+controlled folder access
+PUA protection
+Platform trust
+Secure Boot
+TPM
+BitLocker
+Memory Integrity
+VBS / HVCI
+UAC
+Remote surface
+RDP
+Remote Assistance
+SMBv1
+guest account
+proxy
+Windows Update state
+Persistence risks
+suspicious scheduled tasks
+suspicious services
+hosts tampering
+unsigned startup items
+unsigned suspicious processes
+Each item needs:
+status
+severity
+short explanation
+recommendation
+fix availability classification
+Fix availability classification:
+safe auto-fix
+manual review
+info only
+Do not pretend everything is auto-fixable.
+Add rich animated graphs
+This is mandatory.
+Do not add fake decorative graphs. Use real data where possible.
+Required graphs:
+A. System Health Score Trend Main line chart
+based on completed scans
+shows score over time
+color should reflect improving vs falling posture
+support ranges:
+5 min
+15 min
+1 hour
+session
+B. Background Load Trend Line chart
+background CPU load
+RAM pressure
+process count
+should show drift/spikes
+smooth animated transitions
+C. Process Spike Graph Line or area chart
+top offender CPU over time
+helps show what process is spiking in the background
+D. Security Posture Breakdown Animated bar chart or segmented horizontal bars Show:
+protection
+startup
+background
+configuration
+update hygiene
+Optional graph:
+startup issue count trend
+suspicious item count trend
+Graph rules:
+premium, clean, glowing but restrained
+no childish rainbow nonsense
+use SwitchControl visual language
+subtle motion
+clear labels
+strong readability
+desktop and mobile responsive
+Add historical memory and recent change detection
+The module should feel alive.
+Add a recent changes panel that compares current scan to previous scan.
+Track and surface events like:
+new startup item detected
+startup item disabled or enabled
+new unsigned process seen
+Defender turned off
+firewall changed
+new scheduled task detected
+suspicious service appeared
+SmartScreen changed
+Secure Boot / TPM state changed if detectable
+Show these in a clean "Recent Security-Relevant Changes" panel.
+Each change needs:
+title
+time
+severity
+short explanation

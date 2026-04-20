@@ -1,31 +1,89 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-// SINGLE UNIFIED API - All frontend code must use window.electronAPI
+// ─── Input validation helpers ─────────────────────────────────────────────────
+// Lightweight guards that reject garbage before it crosses the privilege boundary.
+// Main process remains the final authority — these are a first filter only.
+
+function assertString(value, name) {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new TypeError(`${name} must be a non-empty string`);
+  }
+  return value.trim();
+}
+
+function assertOptionalString(value, name) {
+  if (value == null) return value;
+  if (typeof value !== 'string') {
+    throw new TypeError(`${name} must be a string`);
+  }
+  return value;
+}
+
+function assertFunction(value, name) {
+  if (typeof value !== 'function') {
+    throw new TypeError(`${name} must be a function`);
+  }
+  return value;
+}
+
+function assertPlainObject(value, name) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError(`${name} must be a plain object`);
+  }
+  return value;
+}
+
+// ─── Allowed value sets ───────────────────────────────────────────────────────
+const ALLOWED_TWEAK_ACTIONS = new Set(['apply', 'revert']);
+const ALLOWED_MEMORY_MODES  = new Set(['safe', 'smart', 'advanced']);
+
+// ─── Unified renderer API ─────────────────────────────────────────────────────
+// All frontend code must use window.electronAPI
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
 
-  // App info
-  getVersion: () => ipcRenderer.invoke('app:getVersion'),
-  getAppVersion: () => ipcRenderer.invoke('app:getVersion'),
-  getPlatform: () => ipcRenderer.invoke('app:getPlatform'),
-  isPackaged: () => ipcRenderer.invoke('app:isPackaged'),
-  getDeviceId: () => ipcRenderer.invoke('app:getDeviceId'),
-  isAdmin: () => ipcRenderer.invoke('app:isAdmin'),
-
-  quitApp: () => ipcRenderer.invoke('app:quit'),
-
-  // Backend info (for packaged mode API routing)
-  getBackendPort: () => ipcRenderer.invoke('app:getBackendPort'),
-  isBackendReady: () => ipcRenderer.invoke('app:isBackendReady'),
+  // ── Low-risk read-only ──────────────────────────────────────────────────────
+  getVersion:      () => ipcRenderer.invoke('app:getVersion'),
+  getAppVersion:   () => ipcRenderer.invoke('app:getVersion'),
+  getPlatform:     () => ipcRenderer.invoke('app:getPlatform'),
+  isPackaged:      () => ipcRenderer.invoke('app:isPackaged'),
+  getDeviceId:     () => ipcRenderer.invoke('app:getDeviceId'),
+  isAdmin:         () => ipcRenderer.invoke('app:isAdmin'),
+  getBackendPort:  () => ipcRenderer.invoke('app:getBackendPort'),
+  isBackendReady:  () => ipcRenderer.invoke('app:isBackendReady'),
   getBackendError: () => ipcRenderer.invoke('app:getBackendError'),
+  debugCookies:    () => ipcRenderer.invoke('auth:debugCookies'),
+  openDevTools:    () => ipcRenderer.invoke('app:openDevTools'),
+  openLogs:        () => ipcRenderer.invoke('app:openLogs'),
+
+  // ── Controlled privileged actions ───────────────────────────────────────────
+  quitApp:          () => ipcRenderer.invoke('app:quit'),
+  restart:          () => ipcRenderer.invoke('app:restart'),
+  resetAppData:     () => ipcRenderer.invoke('app:resetData'),
+  clearAuthCookies: () => ipcRenderer.invoke('auth:clearCookies'),
+
+  openExternal: (url) => {
+    assertString(url, 'url');
+    return ipcRenderer.invoke('open-external', url);
+  },
+
+  // ── Event subscriptions ─────────────────────────────────────────────────────
+  // Every subscription returns its own scoped unsubscribe function.
+  // removeAllListeners is never used for app-owned shared channels.
+
   onBackendReady: (callback) => {
-    ipcRenderer.on('backend-ready', (event, data) => {
+    assertFunction(callback, 'onBackendReady callback');
+    const handler = (_event, data) => {
       console.log('[Backend] backend-ready event received, port:', data?.port);
       callback(data);
-    });
+    };
+    ipcRenderer.on('backend-ready', handler);
+    return () => ipcRenderer.removeListener('backend-ready', handler);
   },
+
   onBackendError: (callback) => {
-    const handler = (event, data) => {
+    assertFunction(callback, 'onBackendError callback');
+    const handler = (_event, data) => {
       console.error('[Backend] backend-error event received:', data?.error);
       callback(data);
     };
@@ -33,172 +91,197 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('backend-error', handler);
   },
 
-  // Auth callbacks (deep-link handling)
-  auth: {
-    onCallback: (callback) => {
-      ipcRenderer.on('auth-callback', (event, url) => {
-        console.log('[PremiumFlow] deep-link received:', url);
-        callback(url);
-      });
-    },
-    removeCallbackListener: () => {
-      ipcRenderer.removeAllListeners('auth-callback');
-    },
-  },
-
-  // Window focus event (for UI cleanup on re-focus)
   onWindowFocus: (callback) => {
-    ipcRenderer.on('window-focus', () => {
+    assertFunction(callback, 'onWindowFocus callback');
+    const handler = () => {
       console.log('[Window] Focus event received');
       callback();
-    });
-  },
-  removeWindowFocusListener: () => {
-    ipcRenderer.removeAllListeners('window-focus');
+    };
+    ipcRenderer.on('window-focus', handler);
+    return () => ipcRenderer.removeListener('window-focus', handler);
   },
 
-  // Window controls
+  // ── Auth — deep-link callback ───────────────────────────────────────────────
+  auth: {
+    onCallback: (callback) => {
+      assertFunction(callback, 'auth.onCallback callback');
+      const handler = (_event, url) => {
+        console.log('[PremiumFlow] deep-link received:', url);
+        callback(url);
+      };
+      ipcRenderer.on('auth-callback', handler);
+      return () => ipcRenderer.removeListener('auth-callback', handler);
+    },
+  },
+
+  // ── Window controls ─────────────────────────────────────────────────────────
   window: {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
-    close: () => ipcRenderer.invoke('window:close'),
+    close:    () => ipcRenderer.invoke('window:close'),
   },
 
-  // System data
+  // ── Low-risk read-only system data ──────────────────────────────────────────
   system: {
-    getInfo: () => ipcRenderer.invoke('system:getInfo'),
-    getSpecs: () => ipcRenderer.invoke('system:getSpecs'),
+    getInfo:     () => ipcRenderer.invoke('system:getInfo'),
+    getSpecs:    () => ipcRenderer.invoke('system:getSpecs'),
     getRamUsage: () => ipcRenderer.invoke('system:getRamUsage'),
-    getAllDisks: () => ipcRenderer.invoke('system:getAllDisks'),
+    getAllDisks:  () => ipcRenderer.invoke('system:getAllDisks'),
   },
 
-  // Telemetry (live stats)
   telemetry: {
-    getLive: (selectedDiskMount) => ipcRenderer.invoke('telemetry:getLive', selectedDiskMount),
-    getEnhanced: () => ipcRenderer.invoke('telemetry:getEnhanced'),
-    getCpuCores: () => ipcRenderer.invoke('telemetry:getCpuCores'),
-    getMemoryDetails: () => ipcRenderer.invoke('telemetry:getMemoryDetails'),
-    getGpu: () => ipcRenderer.invoke('telemetry:getGpu'),
-    getDisk: (selectedDiskMount) => ipcRenderer.invoke('telemetry:getDisk', selectedDiskMount),
+    getLive:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getLive', selectedDiskMount),
+    getEnhanced:          () => ipcRenderer.invoke('telemetry:getEnhanced'),
+    getCpuCores:          () => ipcRenderer.invoke('telemetry:getCpuCores'),
+    getMemoryDetails:     () => ipcRenderer.invoke('telemetry:getMemoryDetails'),
+    getGpu:               () => ipcRenderer.invoke('telemetry:getGpu'),
+    getDisk:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getDisk', selectedDiskMount),
     getHardwareTelemetry: () => ipcRenderer.invoke('telemetry:getHardwareTelemetry'),
   },
 
-  // Tweaks
-  tweaks: {
-    execute: (tweakId, action) => ipcRenderer.invoke('tweak:execute', tweakId, action),
-    checkStatus: (tweakId) => ipcRenderer.invoke('tweak:checkStatus', tweakId),
-    syncAll: () => ipcRenderer.invoke('tweak:syncAll'),
-    getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
-    getInfo: () => ipcRenderer.invoke('tweak:getInfo'),
-    getLog: () => ipcRenderer.invoke('tweak:getLog'),
-  },
-
-  // Memory cleaner
-  memory: {
-    clean: (mode) => ipcRenderer.invoke('memory:clean', mode),
-  },
-
-  // External links
-  openExternal: (url) => ipcRenderer.invoke('open-external', url),
-
-  // DevTools (development only)
-  openDevTools: () => ipcRenderer.invoke('app:openDevTools'),
-
-  // App data management
-  restart: () => ipcRenderer.invoke('app:restart'),
-  resetAppData: () => ipcRenderer.invoke('app:resetData'),
-  openLogs: () => ipcRenderer.invoke('app:openLogs'),
-
-  // Auth cookie management
-  clearAuthCookies: () => ipcRenderer.invoke('auth:clearCookies'),
-
-  // Debug: dump Electron cookies for switchcontrol.org
-  debugCookies: () => ipcRenderer.invoke('auth:debugCookies'),
-
-  // Power plan management
-  powerPlans: {
-    getState:       ()          => ipcRenderer.invoke('powerPlans:getState'),
-    applyProfile:   (profileId) => ipcRenderer.invoke('powerPlans:applyProfile', profileId),
-    listSchemes:    ()          => ipcRenderer.invoke('powerPlans:listSchemes'),
-    activateByGuid: (guid)      => ipcRenderer.invoke('powerPlans:activateByGuid', guid),
-  },
-
-  // Packaged config store — persisted secrets (e.g. OPENAI_API_KEY)
-  config: {
-    get: (key) => ipcRenderer.invoke('config:get', key),
-    set: (key, value) => ipcRenderer.invoke('config:set', key, value),
-    getPresence: () => ipcRenderer.invoke('config:getPresence'),
-  },
-
-  // System Integrity / Security
   security: {
     getStatus:       () => ipcRenderer.invoke('security:getStatus'),
     getStartupApps:  () => ipcRenderer.invoke('security:getStartupApps'),
     getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
   },
 
-  // System Cleaner — real file scanning and deletion
-  cleaner: {
-    scan:    (itemIds) => ipcRenderer.invoke('cleaner:scan', itemIds),
-    clean:   (itemIds) => ipcRenderer.invoke('cleaner:clean', itemIds),
-    verify:  (itemIds) => ipcRenderer.invoke('cleaner:verify', itemIds),
+  // ── Packaged config store — persisted secrets (e.g. OPENAI_API_KEY) ─────────
+  config: {
+    get: (key) => {
+      assertString(key, 'key');
+      return ipcRenderer.invoke('config:get', key);
+    },
+    set: (key, value) => {
+      assertString(key, 'key');
+      assertOptionalString(value, 'value');
+      return ipcRenderer.invoke('config:set', key, value);
+    },
+    getPresence: () => ipcRenderer.invoke('config:getPresence'),
   },
 
-  // Debloat Manager — real Windows app/registry/service removal
-  debloat: {
-    scan:        (items)  => ipcRenderer.invoke('debloat:scan', items),
-    removeItem:  (item)   => ipcRenderer.invoke('debloat:removeItem', item),
-    restoreItem: (item)   => ipcRenderer.invoke('debloat:restoreItem', item),
-    verifyItem:  (item)   => ipcRenderer.invoke('debloat:verifyItem', item),
+  // ── System mutation surfaces ─────────────────────────────────────────────────
+  tweaks: {
+    execute: (tweakId, action) => {
+      const id  = assertString(tweakId, 'tweakId');
+      const act = assertString(action, 'action');
+      if (!ALLOWED_TWEAK_ACTIONS.has(act)) {
+        throw new TypeError('tweaks.execute: action must be "apply" or "revert"');
+      }
+      return ipcRenderer.invoke('tweak:execute', id, act);
+    },
+    checkStatus: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('tweak:checkStatus', tweakId);
+    },
+    syncAll:       () => ipcRenderer.invoke('tweak:syncAll'),
+    getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
+    getInfo:       () => ipcRenderer.invoke('tweak:getInfo'),
+    getLog:        () => ipcRenderer.invoke('tweak:getLog'),
   },
 
-  // Startup Manager — real Windows startup control
-  // setEnabled uses the StartupApproved registry key (same method as Task Manager)
-  // setDelay creates/removes a Task Scheduler delayed task
-  startup: {
-    setEnabled:   (params) => ipcRenderer.invoke('startup:setEnabled', params),
-    setDelay:     (params) => ipcRenderer.invoke('startup:setDelay', params),
-    verifyState:  (params) => ipcRenderer.invoke('startup:verifyState', params),
+  memory: {
+    clean: (mode) => {
+      const m = assertString(mode, 'mode');
+      if (!ALLOWED_MEMORY_MODES.has(m)) {
+        throw new TypeError('memory.clean: mode must be "safe", "smart", or "advanced"');
+      }
+      return ipcRenderer.invoke('memory:clean', m);
+    },
   },
 
-  // App Booster — per-game optimization actions
-  appBooster: {
-    scanGames:       (games)   => ipcRenderer.invoke('appBooster:scanGames', games),
-    executeAction:   (params)  => ipcRenderer.invoke('appBooster:executeAction', params),
-    browseExecutable:(params)  => ipcRenderer.invoke('appBooster:browseExecutable', params),
+  powerPlans: {
+    getState:       ()          => ipcRenderer.invoke('powerPlans:getState'),
+    applyProfile:   (profileId) => {
+      assertString(profileId, 'profileId');
+      return ipcRenderer.invoke('powerPlans:applyProfile', profileId);
+    },
+    listSchemes:    ()          => ipcRenderer.invoke('powerPlans:listSchemes'),
+    activateByGuid: (guid)      => {
+      assertString(guid, 'guid');
+      return ipcRenderer.invoke('powerPlans:activateByGuid', guid);
+    },
   },
 
-  // Network Tweaks — real Windows system-level network changes
   networkTweaks: {
-    execute:     (tweakId, action) => ipcRenderer.invoke('networkTweaks:execute', tweakId, action),
-    checkStatus: (tweakId)        => ipcRenderer.invoke('networkTweaks:checkStatus', tweakId),
-    checkAll:    ()               => ipcRenderer.invoke('networkTweaks:checkAll'),
-    getDisabled: ()               => ipcRenderer.invoke('networkTweaks:getDisabled'),
+    execute: (tweakId, action) => {
+      const id  = assertString(tweakId, 'tweakId');
+      const act = assertString(action, 'action');
+      if (!ALLOWED_TWEAK_ACTIONS.has(act)) {
+        throw new TypeError('networkTweaks.execute: action must be "apply" or "revert"');
+      }
+      return ipcRenderer.invoke('networkTweaks:execute', id, act);
+    },
+    checkStatus: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('networkTweaks:checkStatus', tweakId);
+    },
+    checkAll:    () => ipcRenderer.invoke('networkTweaks:checkAll'),
+    getDisabled: () => ipcRenderer.invoke('networkTweaks:getDisabled'),
   },
 
-  // Focus Mode — real system-level actions (power plan, notifications, input lockdown, etc.)
+  cleaner: {
+    scan:   (itemIds) => ipcRenderer.invoke('cleaner:scan', itemIds),
+    clean:  (itemIds) => ipcRenderer.invoke('cleaner:clean', itemIds),
+    verify: (itemIds) => ipcRenderer.invoke('cleaner:verify', itemIds),
+  },
+
+  debloat: {
+    scan:        (items) => ipcRenderer.invoke('debloat:scan', items),
+    removeItem:  (item)  => ipcRenderer.invoke('debloat:removeItem', item),
+    restoreItem: (item)  => ipcRenderer.invoke('debloat:restoreItem', item),
+    verifyItem:  (item)  => ipcRenderer.invoke('debloat:verifyItem', item),
+  },
+
+  startup: {
+    setEnabled:  (params) => ipcRenderer.invoke('startup:setEnabled', params),
+    setDelay:    (params) => ipcRenderer.invoke('startup:setDelay', params),
+    verifyState: (params) => ipcRenderer.invoke('startup:verifyState', params),
+  },
+
+  appBooster: {
+    scanGames:        (games)  => ipcRenderer.invoke('appBooster:scanGames', games),
+    executeAction:    (params) => {
+      assertPlainObject(params, 'params');
+      return ipcRenderer.invoke('appBooster:executeAction', params);
+    },
+    browseExecutable: (params) => {
+      assertPlainObject(params, 'params');
+      return ipcRenderer.invoke('appBooster:browseExecutable', params);
+    },
+  },
+
   focus: {
-    apply:               (params)  => ipcRenderer.invoke('focus:apply', params),
-    revert:              (params)  => ipcRenderer.invoke('focus:revert', params),
-    verify:              ()        => ipcRenderer.invoke('focus:verify'),
-    startTriggerMonitor: (params)  => ipcRenderer.invoke('focus:startTriggerMonitor', params),
-    stopTriggerMonitor:  ()        => ipcRenderer.invoke('focus:stopTriggerMonitor'),
-    checkSchedule:       (params)  => ipcRenderer.invoke('focus:checkSchedule', params),
+    apply:               (params) => ipcRenderer.invoke('focus:apply', params),
+    revert:              (params) => ipcRenderer.invoke('focus:revert', params),
+    verify:              ()       => ipcRenderer.invoke('focus:verify'),
+    startTriggerMonitor: (params) => ipcRenderer.invoke('focus:startTriggerMonitor', params),
+    stopTriggerMonitor:  ()       => ipcRenderer.invoke('focus:stopTriggerMonitor'),
+    checkSchedule:       (params) => ipcRenderer.invoke('focus:checkSchedule', params),
     onTriggerFired: (callback) => {
-      const handler = (event, payload) => callback(payload);
+      assertFunction(callback, 'focus.onTriggerFired callback');
+      const handler = (_event, payload) => callback(payload);
       ipcRenderer.on('focus:triggerFired', handler);
       return () => ipcRenderer.removeListener('focus:triggerFired', handler);
     },
   },
 
-  // Auto-Updater — renderer reads state, main process owns all logic
+  // ── Updater — renderer reads state, main process owns all logic ─────────────
   updater: {
-    getState:      () => ipcRenderer.invoke('updater:getState'),
-    check:         () => ipcRenderer.invoke('updater:check'),
-    download:      () => ipcRenderer.invoke('updater:download'),
-    install:       () => ipcRenderer.invoke('updater:install'),
+    getState: () => ipcRenderer.invoke('updater:getState'),
+    check:    () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install:  () => ipcRenderer.invoke('updater:install'),
     onEvent: (callback) => {
-      const handler = (event, payload) => callback(payload);
+      assertFunction(callback, 'updater.onEvent callback');
+      const handler = (_event, payload) => {
+        if (!payload || typeof payload !== 'object') {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('[preload] updater:event received malformed payload');
+          }
+          return;
+        }
+        callback(payload);
+      };
       ipcRenderer.on('updater:event', handler);
       return () => ipcRenderer.removeListener('updater:event', handler);
     },

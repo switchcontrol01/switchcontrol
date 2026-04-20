@@ -1,0 +1,148 @@
+4. Add advanced debloat audit mode
+
+Add a dedicated Advanced Audit action.
+
+This should scan and summarize:
+
+- total debloatable items visible for current role + level
+- already absent items
+- present items
+- admin required items
+- restart/sign-out required items
+- non-restorable items
+- blocked/denylisted items
+- services vs appx vs registry mix
+
+Return this in a premium audit panel so the user sees:
+
+- what is actually actionable right now
+- what is already cleaned
+- what carries more consequence
+
+5. Add stronger item ranking and recommendation system
+
+Each debloat item should have richer decision context.
+
+Add item metadata labels like:
+
+- Recommended
+- Optional
+- Cosmetic
+- Meaningful
+- Advanced
+- Permanent
+- Gaming-safe
+- Low-value
+- Power-user only
+
+For example:
+
+- Advertising ID = low-risk, cosmetic/privacy
+- Xbox Game Bar = situational, gaming-dependent
+- SysMain = advanced, system-level, not for everyone
+- Widgets = cosmetic + resource trim
+- Mixed Reality = removable if unused
+
+This should be driven in UI logic, not random copy.
+
+6. Add filtering and sorting
+
+Add premium filter controls above the item list.
+
+Required filters:
+
+- category
+- safety tier
+- type
+- restorable only
+- admin required
+- restart required
+- selected only
+- actionable only
+
+Required sort options:
+
+- recommended first
+- highest RAM estimate
+- highest disk estimate
+- safest first
+- riskiest first
+- alphabetical
+
+This will massively improve usability.
+
+7. Add searchable item list
+
+Add search for:
+
+- item name
+- category
+- affected features
+- description
+
+This becomes necessary as the registry grows.
+
+8. Upgrade item cards with smarter detail
+
+Each item row/card should show:
+
+- why it matters
+- what it affects
+- whether it is reversible
+- whether it is role-recommended
+- whether it is already absent
+- whether it needs admin
+- whether it needs restart or sign-out
+
+Support row expansion for richer detail.
+
+Expanded detail should show:
+
+- removal method
+- affected features
+- restore notes
+- caution text
+- recommendation label
+- reason for selection in current role if applicable
+
+9. Add session result intelligence
+
+Your current result view is decent, but it should be upgraded.
+
+Add:
+
+- summary chips for results
+- results graph
+- failed items section
+- restored items section
+- unsupported items section
+- verification issue section
+
+Also add:
+
+- “successful changes”
+- “needs attention”
+- “manual follow-up needed”
+
+Make the result session feel like a premium report, not just a list.
+
+10. Upgrade Debloat History
+
+The internal debloat history should become stronger even if the global History page also improves.
+
+Add:
+
+- grouped by day
+- filter by action
+- filter by status
+- quick stats
+- top removed items
+- top failed items
+- restore events visibility
+
+If possible, add:
+
+- number of apply sessions
+- number of restore sessions
+- most commonly removed category
+- failure rate

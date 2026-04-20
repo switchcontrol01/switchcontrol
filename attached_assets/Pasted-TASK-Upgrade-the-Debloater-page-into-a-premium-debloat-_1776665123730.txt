@@ -1,0 +1,186 @@
+TASK
+
+Upgrade the Debloater page into a premium debloat intelligence and execution center with richer analytics, stronger graphs, deeper trust indicators, better history, and before-vs-after proof.
+
+PROBLEM
+
+The current Debloater page already has strong foundations:
+
+- role-based presets
+- debloat levels
+- safety tiers
+- estimated RAM and disk impact
+- real Electron PowerShell execution
+- restore support
+- scan support
+- results view
+- history view
+
+That is good.
+
+But it still has major gaps that stop it from feeling truly elite.
+
+Current weaknesses:
+
+1. Not enough proof after actions
+   The page estimates impact before apply, but does not strongly prove what changed after apply.
+
+2. Weak analytics depth
+   The current impact bars are decent, but there are no richer graphs for:
+
+- category distribution
+- safe vs medium vs high risk mix
+- restored vs removed vs failed history
+- before vs after resource deltas
+- most affected categories over time
+
+3. Weak trust and decision support
+   Users still need more help understanding:
+
+- why this item matters
+- how risky it is
+- whether it is cosmetic or meaningful
+- whether it helps gaming, RAM, telemetry, or clutter
+- whether the change is reversible
+
+4. History is still too basic inside Debloater
+   The history panel is useful, but not premium enough.
+   It should feel more like a real debloat audit trail.
+
+5. No advanced audit layer
+   The page does not yet have a smarter audit that tells the user:
+
+- what is currently installed and removable
+- what is already absent
+- what is denied by safety rules
+- what needs admin
+- what needs restart
+- what is permanent
+- what is not worth touching
+
+6. No before vs after comparison card
+   This is one of the biggest missing premium features.
+
+7. No stronger filtering and ranking
+   Items should be easier to sort and filter by:
+
+- impact
+- safety
+- reversibility
+- restart needed
+- admin needed
+- category
+- recommended for current role
+
+GOAL
+
+Turn Debloater into a premium command center that does all of this:
+
+- tells the user what can be removed
+- tells them why it matters
+- ranks what is actually worth doing
+- shows before vs after proof
+- visualizes category and risk distribution
+- highlights what is safe, permanent, reversible, or high consequence
+- tracks debloat actions and outcomes cleanly
+- feels rich, premium, and serious
+
+Keep the current SwitchControl visual language:
+
+- dark glass UI
+- violet and cyan accent language
+- smooth blur/fade animation
+- premium charts
+- desktop and mobile polish
+
+Do not make it cluttered.
+Do not make it look like a Windows admin table.
+Do not remove the current vibe.
+
+IMPLEMENTATION
+
+1. Add a real Debloat Intelligence section at the top
+
+Above the item list, add a premium intelligence strip or card cluster showing:
+
+- Selected Items
+- Estimated RAM Saved
+- Estimated Disk Saved
+- Reversible Items
+- Permanent Items
+- Restart Required
+- Admin Required
+- Highest Risk Tier Present
+- Recommended Confidence for Current Role
+
+This should feel more like an executive summary.
+
+2. Add richer graphs
+
+Add premium animated charts that actually help decisions.
+
+Required graphs:
+
+A. Category Distribution chart
+Show selected items by category:
+
+- Consumer Apps
+- Telemetry
+- Gaming
+- Cloud
+- System Services
+- Shell & UI
+
+Use a donut chart or animated horizontal bar chart.
+
+B. Risk Distribution chart
+Show selected items split by:
+
+- Safe
+- Medium
+- High
+
+This should be clearer and more premium than the current mini safety ring.
+
+C. Estimated Impact chart
+Add a dual comparison chart for:
+
+- RAM savings estimate
+- Disk savings estimate
+
+This can be a bar chart or stacked metric panel.
+
+D. Result Outcome chart
+When a session exists, show:
+
+- Removed
+- Restored
+- Failed
+- Verification Failed
+- Already Absent
+- Unsupported
+
+This makes results feel real and expensive.
+
+3. Add before vs after proof
+
+This is a major upgrade.
+
+When a debloat session completes, capture and show a before vs after delta card using live telemetry and scan state when possible.
+
+Examples:
+
+- process count before vs after
+- RAM usage before vs after
+- startup clutter count before vs after if available
+- removable items remaining
+- items already absent now
+
+Important:
+Do not fake precision.
+If exact proof is not available, label it honestly as:
+
+- estimated
+- sampled
+- current snapshot
+

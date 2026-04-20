@@ -1,0 +1,166 @@
+Also store enough scan history to drive the graphs.
+At minimum:
+current session history Preferred:
+persisted local history in app storage
+Expand Defender intelligence in the Protection tab
+Create a serious Defender Intelligence card.
+Required fields:
+real-time protection
+tamper protection
+firewall
+antispyware
+Defender service state
+signature version
+signature age
+quick scan age
+full scan age
+cloud-delivered protection
+sample submission
+controlled folder access
+PUA protection
+SmartScreen state
+Also add:
+freshness summary
+recommendations if stale
+severity chips
+Example:
+Signatures outdated by X days
+Quick scan overdue
+Cloud-delivered protection off
+PUA protection disabled
+This should feel far more serious than the current 4-row status block.
+Improve recommendations engine
+Update the recommendations logic so it considers new audit surfaces.
+Recommendations should now be able to come from:
+protection audit
+startup analysis
+process trust analysis
+advanced audit
+historical regression
+update hygiene
+Add recommendation categories:
+protection
+startup
+performance
+configuration
+trust
+persistence
+remote surface
+Each recommendation should include:
+title
+summary
+severity
+performance impact
+security impact
+action label
+action type
+source subsystem
+Make recommendations smarter and more specific.
+Add quarantine-style issue list
+In Overview or Advanced Audit, create a high-signal issue list.
+This is not real quarantine. It is a triage list.
+Show:
+highest severity issues first
+suspicious unsigned persistence
+risky remote exposure
+stale protection
+critical disabled protections
+Each row should explain:
+what it is
+why it matters
+what to do next
+This makes the module feel decisive.
+Add one-click safe actions only where truly safe
+Where safe, add one-click actions such as:
+disable startup item
+restore startup item
+apply startup delay
+open process file location
+open startup file location
+copy process path
+For security settings: only add one-click toggles if the implementation is reliable and safe. Otherwise mark as manual review.
+Do not add fake action buttons.
+Rebuild the page structure in Security.tsx
+Refactor the Security page into a cleaner architecture.
+Recommended layout:
+Header area
+title
+live system strip
+scan controls
+current posture chip
+Overview tab
+health score
+recent security changes
+high-priority issues
+main graphs
+recommendation summary
+Protection tab
+Defender intelligence panel
+protection freshness
+SmartScreen / PUA / cloud controls
+protection posture chart
+Startup tab
+startup impact graph
+startup ranking list
+action controls
+delayed launches
+command path and publisher details
+Processes tab
+process trust overview
+top offenders graph
+expandable trust rows
+signer/path/publisher/elevated details
+Advanced Audit tab
+full audit cards
+firmware and integrity
+remote surface
+persistence and suspicious items
+scheduled tasks and services
+AI screenshot analysis can stay, but it should no longer dominate the module.
+UI and motion direction
+Keep it premium and smooth.
+Requirements:
+glass cards
+clear tab transitions
+blur/fade entrance
+animated chart loading
+smooth badge transitions
+expandable rows with controlled motion
+premium empty states
+mobile layout must still feel high-end
+no laggy nonsense
+no overloaded animation spam
+Animations should communicate:
+scan progress
+chart transitions
+state changes
+row expansion
+success/failure of actions
+But keep them controlled and elegant.
+Data persistence and local history
+Persist local scan history.
+Store at least:
+timestamp
+health score
+protection breakdown
+startup issue count
+background issue count
+suspicious item count
+key state snapshots
+This is needed for:
+score trend graph
+recent changes
+posture history
+session continuity
+Use a clean local persistence strategy already consistent with the app.
+Safe fallback behavior
+Everything must fail honestly.
+If a check cannot be performed:
+show Unknown
+explain why
+do not fake "Secure"
+If not on Windows desktop:
+degrade gracefully
+keep AI analysis available if appropriate
+clearly label unavailable sources
+If a field is unsupported on a certai

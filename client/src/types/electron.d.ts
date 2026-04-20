@@ -144,8 +144,7 @@ declare global {
       openExternal: (url: string) => Promise<void>;
       
       auth: {
-        onCallback: (callback: (url: string) => void) => void;
-        removeCallbackListener: () => void;
+        onCallback: (callback: (url: string) => void) => () => void;
       };
       
       window: {

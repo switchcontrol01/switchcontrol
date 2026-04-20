@@ -1,0 +1,140 @@
+13. Add richer tweak explanations
+
+Every advanced tweak should explain:
+what it changes
+why someone would use it
+who should avoid it
+whether restart is needed
+whether it affects latency, stability, compatibility, or power use
+
+No vague filler text.
+
+14. Add advanced tweak ideas beyond current catalog
+
+Add any of these if real and safe enough:
+
+Registry or system:
+MenuShowDelay
+HungAppTimeout
+WaitToKillAppTimeout
+LowLevelHooksTimeout
+IoPageLockLimit only if valid for current Windows versions
+Disable NTFS last access updates if still relevant and safe
+SMB tuning only if valid and verified
+Nagle-related advanced networking if not already present
+NonBestEffortLimit only if real and handled honestly
+QoS reserved bandwidth related settings if real and not placebo
+Explorer launch in This PC
+separate explorer process
+disable transparency effects
+disable animation effects
+processor scheduling mode related tuning
+power throttling controls
+multimedia profile tuning
+priority control for selected game executable if valid
+interrupt affinity or MSI mode only if the app can truly handle it safely and verify it
+HPET or timer source changes should only be added if extremely carefully implemented and honestly described, otherwise do not add them
+
+If a tweak is outdated, misleading, version-dependent, or basically placebo, do not include it.
+
+15. Add warning labels for questionable tweaks
+
+Some tweaks should be marked:
+Safe
+Moderate
+Advanced
+Experimental
+Unsupported on this system
+Not recommended
+
+Do not pretend every tweak is universally good.
+
+16. Add current system compatibility visibility
+
+For each tweak, if applicable, detect:
+Windows version compatibility
+GPU vendor compatibility
+laptop versus desktop relevance
+admin availability
+service exists or not
+registry key exists or not
+
+If unsupported, say so clearly and disable apply.
+
+FILES TO CHANGE
+
+At minimum:
+
+src/pages/Tweaks.tsx
+src/components/tweaks if split into components
+src/lib or src/types tweak definitions
+electron/tweak-executor.js or equivalent
+electron/main.js IPC handlers if needed
+electron/preload.js if new slider APIs are required
+server-side tweak metadata files if used
+any store or state layer handling tweak current values and pending values
+
+If the current tweak architecture is too toggle-only, refactor it properly instead of hacking sliders into the old model.
+
+CHECKLIST
+
+add real slider control type
+add numeric input with slider
+add Win32PrioritySeparation advanced control
+add MouseDataQueueSize slider
+add KeyboardDataQueueSize slider
+add SystemResponsiveness slider if valid
+add NetworkThrottlingIndex control if valid
+add verification after apply
+add reset to default
+add revert to previous
+add advanced details drawer
+add safe-range warnings
+add current value, default value, recommended value
+make requested new slider tweaks free
+keep toggle-only tweaks as toggles
+add more real advanced tweaks
+improve tweak search and filters
+preserve premium visual quality
+do not add fake sliders
+
+FINAL OUTPUT
+
+Return all of the following:
+
+1. exact files changed
+
+2. which tweaks were added
+
+3. which of those are sliders
+
+4. which settings remained toggles and why
+
+5. which new tweaks were made free
+
+6. how Win32PrioritySeparation was represented in UI
+
+7. min, max, step, default, and recommended values for each slider
+
+8. what verification logic was added
+
+9. what warning logic was added for unsafe ranges
+
+10. confirmation that no fake slider-only cosmetics were added
+
+OPTIONAL ADDITIONS IF TIME ALLOWS
+
+If the architecture supports it cleanly, also add:
+tiny sparkline showing before versus after impact for a tweak after apply
+comparison row showing old value → new value
+recommended badge based on current system state
+advanced raw registry copy button
+filter chip for slider-only tweaks
+
+IMPORTANT
+
+Do not implement fake percentage sliders for settings whose underlying Windows behavior does not truly map to a freeform percentage.
+
+If a setting is actually a stepped raw value, use a stepped slider or segmented control.
+
+Accuracy matters more than looking fancy.

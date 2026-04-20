@@ -1,0 +1,200 @@
+TASK
+
+Harden the Electron preload bridge so the renderer only gets safe, minimal, validated access to privileged IPC surfaces.
+
+PROBLEM
+
+Current preload works, but it is too permissive.
+
+Main issues:
+
+1. The preload exposes a very large privileged surface to the renderer.
+2. Many invoke calls pass raw values straight through with no preload-side validation.
+3. Some event APIs use removeAllListeners, which is unsafe and can remove unrelated listeners.
+4. The updater bridge is mostly fine, but should still be tightened slightly.
+5. Because the app runs elevated, the preload boundary must be stricter than normal.
+
+This is not a UI change.
+This is an IPC boundary hardening pass.
+
+GOAL
+
+After this refactor:
+
+- preload exposes only controlled, intentional APIs
+- dangerous calls validate inputs before crossing into main
+- event subscriptions always return scoped unsubscribe functions
+- no removeAllListeners is used for shared channels
+- updater bridge remains clean and minimal
+- auth and window-focus listeners are converted to safe unsubscribe patterns
+- invalid renderer input gets rejected early and predictably
+- preload becomes production-safe and easier to audit
+
+HARD RULES
+
+1. Do not break existing frontend functionality.
+2. Do not redesign the renderer API shape unless necessary.
+3. Do not remove updater functionality.
+4. Do not change visual UI.
+5. Keep contextIsolation true and do not loosen Electron security.
+6. Every listener registration must return its own unsubscribe function.
+7. Do not use removeAllListeners for app-owned shared channels.
+8. Add lightweight validation in preload for sensitive actions.
+9. If an input is invalid, throw a clear error before invoke.
+10. Keep the updater bridge small and strict.
+
+FILES TO CHANGE
+
+- electron/preload.js
+- optionally any small renderer callsites if needed to adapt listener cleanup usage
+- do not touch unrelated app visuals
+
+IMPLEMENTATION
+
+1. Replace unsafe listener removal patterns
+
+Current bad patterns:
+
+- auth.removeCallbackListener uses removeAllListeners('auth-callback')
+- removeWindowFocusListener uses removeAllListeners('window-focus')
+
+Replace them with scoped subscription functions that return an unsubscribe function.
+
+Target pattern:
+
+onCallback: (callback) => {
+if (typeof callback !== 'function') {
+throw new TypeError('auth.onCallback callback must be a function');
+}
+const handler = (_event, url) => callback(url);
+ipcRenderer.on('auth-callback', handler);
+return () => ipcRenderer.removeListener('auth-callback', handler);
+}
+
+Same for:
+
+- onWindowFocus
+- any other event listener still using removeAllListeners
+
+If the renderer currently depends on removeCallbackListener or removeWindowFocusListener, update callsites to use returned unsubscribe functions cleanly.
+
+2. Harden updater bridge
+
+Keep updater API limited to:
+
+- getState
+- check
+- download
+- install
+- onEvent
+
+Add callback validation to onEvent.
+
+Use this exact style:
+
+updater: {
+getState: () => ipcRenderer.invoke('updater:getState'),
+check: () => ipcRenderer.invoke('updater:check'),
+download: () => ipcRenderer.invoke('updater:download'),
+install: () => ipcRenderer.invoke('updater:install'),
+onEvent: (callback) => {
+if (typeof callback !== 'function') {
+throw new TypeError('updater.onEvent callback must be a function');
+}
+const handler = (_event, payload) => callback(payload);
+ipcRenderer.on('updater:event', handler);
+return () => ipcRenderer.removeListener('updater:event', handler);
+},
+},
+
+Do not expose anything else for updater.
+
+3. Add shared preload validation helpers
+
+Create small helper functions at the top of preload.js for input validation.
+
+Examples:
+
+function assertString(value, name) {
+if (typeof value !== 'string' || !value.trim()) {
+throw new TypeError("${name} must be a non-empty string");
+}
+return value.trim();
+}
+
+function assertOptionalString(value, name) {
+if (value == null) return value;
+if (typeof value !== 'string') {
+throw new TypeError("${name} must be a string");
+}
+return value;
+}
+
+function assertFunction(value, name) {
+if (typeof value !== 'function') {
+throw new TypeError("${name} must be a function");
+}
+return value;
+}
+
+function assertPlainObject(value, name) {
+if (!value || typeof value !== 'object' || Array.isArray(value)) {
+throw new TypeError("${name} must be an object");
+}
+return value;
+}
+
+Keep them lightweight and reusable.
+
+4. Validate dangerous or sensitive invoke arguments in preload
+
+Add preload-side validation before calling ipcRenderer.invoke on these surfaces:
+
+- openExternal(url)
+- tweaks.execute(tweakId, action)
+- tweaks.checkStatus(tweakId)
+- powerPlans.applyProfile(profileId)
+- config.get(key)
+- config.set(key, value)
+- networkTweaks.execute(tweakId, action)
+- networkTweaks.checkStatus(tweakId)
+- appBooster.executeAction(params)
+- appBooster.browseExecutable(params)
+- memory.clean(mode)
+
+Validation examples:
+
+A. openExternal
+
+- url must be a non-empty string
+
+B. tweaks.execute
+
+- tweakId must be non-empty string
+- action must be one of apply or revert
+
+C. powerPlans.applyProfile
+
+- profileId must be non-empty string
+
+D. config.get and config.set
+
+- key must be non-empty string
+- value may be string or null depending on existing logic, but validate type clearly
+
+E. networkTweaks.execute
+
+- tweakId must be non-empty string
+- action must be apply or revert
+
+F. memory.clean
+
+- mode must be one of safe, smart, advanced
+
+G. appBooster.executeAction / browseExecutable
+
+- params must be a plain object
+- validate required fields if they already have known shape
+
+Do not over-engineer this. The purpose is to stop obvious garbage from crossing the privilege boundary.
+

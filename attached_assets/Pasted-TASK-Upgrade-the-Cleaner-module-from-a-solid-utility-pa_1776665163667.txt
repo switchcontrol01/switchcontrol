@@ -1,0 +1,162 @@
+TASK
+
+Upgrade the Cleaner module from a solid utility page into a premium cleaning intelligence center.
+
+Keep the current real-scan architecture and honest behavior.
+
+Do not turn this into fake optimization junk.
+Do not invent savings.
+Do not show made-up performance claims.
+
+The Cleaner must remain truthful, but it needs much more depth, analytics, prioritization, and premium UI.
+
+PROBLEM
+
+The current Cleaner page has a strong real foundation, but it still feels too flat for the rest of SwitchControl.
+
+Current strengths:
+
+- real PowerShell-driven scans
+- real file sizes from actual system locations
+- verify flow exists
+- safe vs advanced split exists
+- categories are meaningful
+- history exists
+- copy is honest
+
+Current weaknesses:
+
+1. No graph intelligence
+   There is no visual trend system showing how junk is changing over time.
+
+2. No prioritization layer
+   Every cleaner item feels too equal.
+   The user cannot quickly tell:
+
+- what is biggest
+- what is safest
+- what is worth cleaning now
+- what will just regenerate
+- what actually matters
+
+3. No before vs after intelligence
+   The page does not clearly show:
+
+- what was there before
+- what changed after clean
+- which category mattered most
+- what remains
+
+4. No premium analytics
+   No charts for:
+
+- total junk found over time
+- bytes removed over time
+- category breakdown
+- recurring junk sources
+- scan trends
+- per-session clean activity
+
+5. No “recommended now” logic
+   The page should tell the user what is worth cleaning right now instead of just listing items.
+
+6. No strong offender ranking
+   A premium cleaner should highlight the biggest junk sources instantly.
+
+7. No category trend depth
+   Categories exist visually, but not analytically.
+
+8. No stronger cleaner history intelligence
+   History exists in backend, but not in a premium command-center way.
+
+GOAL
+
+Turn Cleaner into a premium real-scan cleaning intelligence page that shows:
+
+- what junk exists now
+- what matters most
+- what is safe to clean
+- what will rebuild automatically
+- what has changed over time
+- what was removed before vs after
+- which sources are recurring
+- how much was actually cleaned historically
+
+The final page should feel like:
+
+- a real scan engine
+- a storage and junk analytics center
+- a premium cleanup dashboard
+- a trustworthy system maintenance module
+
+IMPLEMENTATION
+
+1. Rebuild the Cleaner page structure
+
+Refactor Cleaner into these sections:
+
+A. Header
+
+- keep current title and subtitle
+- keep live strip
+- keep scan and mode controls
+
+B. Executive summary row
+Add premium summary cards for:
+
+- total junk found
+- total selected
+- estimated removable now
+- largest category
+- last scan time
+- last clean amount
+- recurring junk count if available
+
+C. Graph section
+Add animated charts for:
+
+- junk found over time
+- bytes removed over time
+- category distribution
+- recurring source ranking
+
+D. Recommended now section
+Show the best items to clean right now based on:
+
+- current size
+- safety
+- category
+- rebuild behavior
+- actual worth
+
+E. Cleaner item list
+Keep current grouped items, but improve ranking and insight.
+
+F. History and trends section
+Upgrade cleaner history into a real analytics section, not just a plain log.
+
+2. Add premium graphs
+
+These graphs are mandatory.
+
+A. Junk Found Over Time
+Line or area chart
+
+- x-axis = scan dates
+- y-axis = total bytes found
+- support 7d / 30d / all if enough data exists
+
+B. Bytes Removed Over Time
+Bar or area chart
+
+- x-axis = clean session
+- y-axis = bytes removed
+
+C. Category Breakdown
+Animated donut or horizontal bar chart
+Categories:
+
+- storage
+- privacy
+- latency
+- performance

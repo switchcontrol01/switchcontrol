@@ -1,0 +1,134 @@
+D. Recurring Junk Sources
+Bar chart or ranked list
+Shows which cleaner items repeatedly appear across scans
+
+E. Optional
+Top sources this week
+Scan frequency trend
+Safe vs advanced clean ratio
+
+3. Add cleaner priority scoring
+
+Each cleaner item must get a priority signal.
+
+Suggested labels:
+
+- Clean Now
+- Good Opportunity
+- Minor
+- Rebuilds Quickly
+- Not Worth It Yet
+
+Use a rule-based scoring model only.
+Do not invent fake intelligence.
+
+Base score on:
+
+- current found size
+- file count
+- category
+- risk level
+- whether it rebuilds automatically
+- whether it affects latency perception
+- whether it is negligible
+
+Example:
+
+- huge temp cache = Clean Now
+- tiny DNS cache = Minor
+- shader cache = Rebuilds Quickly
+- dead startup entries = Good Opportunity
+
+4. Add “largest offenders” panel
+
+Add a premium card that highlights the top 3 to 5 biggest junk sources currently detected.
+
+Each row should show:
+
+- item name
+- category
+- size found
+- safety label
+- priority label
+- quick clean action if selected
+
+This should be one of the first things the user sees.
+
+5. Add “before vs after” session summary
+
+After a clean action, show a stronger results panel.
+
+Must include:
+
+- total bytes removed
+- total files removed
+- items fully verified clean
+- partials
+- failures
+- top category cleaned
+- what remains after verification
+
+Add a visual before vs after comparison:
+
+- before found size
+- after remaining size
+- removed amount
+
+This is mandatory. It makes the cleaner feel serious.
+
+6. Add item insight tags
+
+Each cleaner item should show richer insight tags like:
+
+- Safe
+- Admin
+- Rebuilds Automatically
+- Temporary Stutter Risk
+- Low Value
+- Worth Cleaning
+- Latency Relevant
+- Privacy Relevant
+
+Examples:
+
+- shader_cache = Rebuilds Automatically, Moderate, Latency Relevant
+- windows_temp = Safe, Worth Cleaning
+- dns_cache = Safe, Low Value, RAM Minor
+- dead_startup_entries = Safe, Boot Relevant
+
+7. Add category intelligence
+
+For each category section, add:
+
+- total items found
+- total size in category
+- selected size in category
+- whether category is high value right now
+
+Example:
+Storage Noise
+
+- 4 items found
+- 2.1 GB removable
+- highest current category
+
+This makes categories useful, not just decorative.
+
+8. Add scan history intelligence
+
+Upgrade cleaner history.
+
+Show:
+
+- recent scan sessions
+- recent clean sessions
+- size removed each session
+- mode used
+- success/failure summary
+- top cleaned categories
+- recurring item appearances
+
+Use the existing cleaner_history data and extend it if needed.
+
+If needed, also store scan summaries separately so trend graphs are more accurate.
+

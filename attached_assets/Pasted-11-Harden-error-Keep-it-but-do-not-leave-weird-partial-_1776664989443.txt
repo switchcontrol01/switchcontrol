@@ -1,0 +1,137 @@
+11. Harden "error"
+
+Keep it, but do not leave weird partial download assumptions if a check/download fails.
+
+Use:
+
+autoUpdater.on('error', (err) => {
+  const msg = err?.message || 'Unknown updater error';
+  console.error('[Updater] Error:', msg);
+  state = {
+    ...state,
+    status: 'error',
+    errorMessage: msg,
+  };
+  broadcast('error');
+});
+
+12. Add guards to "checkForUpdates"
+
+Current function is too weak.
+
+Replace it with guarded logic.
+
+Required behavior:
+
+- if updater missing, log and return
+- if current state is not allowed, log and return
+- before invoking, reset stale transient state
+- set "status: 'checking'"
+- broadcast immediately
+- then call "_autoUpdater.checkForUpdates()"
+
+Use this shape:
+
+function checkForUpdates() {
+  if (!_autoUpdater) {
+    console.warn('[Updater] checkForUpdates called before init or in dev mode.');
+    return { ok: false, reason: 'not-initialized' };
+  }
+
+  if (!canCheck(state.status)) {
+    console.warn('[Updater] checkForUpdates blocked in state:', state.status);
+    return { ok: false, reason: 'invalid-state', state: state.status };
+  }
+
+  state = {
+    ...state,
+    ...resetTransientState(),
+    status: 'checking',
+    checkedAt: new Date().toISOString(),
+  };
+  broadcast('checking-for-update');
+
+  try {
+    _autoUpdater.checkForUpdates();
+    return { ok: true };
+  } catch (err) {
+    const msg = err?.message || 'checkForUpdates failed';
+    console.error('[Updater]', msg);
+    state = { ...state, status: 'error', errorMessage: msg };
+    broadcast('error');
+    return { ok: false, reason: 'exception', error: msg };
+  }
+}
+
+13. Add guards to "downloadUpdate"
+
+Only allow download in "available".
+
+Use this shape:
+
+function downloadUpdate() {
+  if (!_autoUpdater) {
+    console.warn('[Updater] downloadUpdate called before init or in dev mode.');
+    return { ok: false, reason: 'not-initialized' };
+  }
+
+  if (!canDownload(state.status)) {
+    console.warn('[Updater] downloadUpdate blocked in state:', state.status);
+    return { ok: false, reason: 'invalid-state', state: state.status };
+  }
+
+  try {
+    console.log('[Updater] Starting download...');
+    _autoUpdater.downloadUpdate();
+    return { ok: true };
+  } catch (err) {
+    const msg = err?.message || 'downloadUpdate failed';
+    console.error('[Updater]', msg);
+    state = { ...state, status: 'error', errorMessage: msg };
+    broadcast('error');
+    return { ok: false, reason: 'exception', error: msg };
+  }
+}
+
+14. Add guards to "quitAndInstall"
+
+Only allow install in "downloaded".
+
+Use this shape:
+
+function quitAndInstall() {
+  if (!_autoUpdater) {
+    console.warn('[Updater] quitAndInstall called before init or in dev mode.');
+    return { ok: false, reason: 'not-initialized' };
+  }
+
+  if (!canInstall(state.status)) {
+    console.warn('[Updater] quitAndInstall blocked in state:', state.status);
+    return { ok: false, reason: 'invalid-state', state: state.status };
+  }
+
+  console.log('[Updater] Triggering quit-and-install...');
+  _autoUpdater.quitAndInstall(false, true);
+  return { ok: true };
+}
+
+15. Keep "getState()" simple but clean
+
+Keep:
+
+function getState() {
+  return { ...state };
+}
+
+That part is fine.
+
+16. Add trust-model comments
+
+At the top of the file, add short comments documenting:
+
+- renderer never owns updater logic
+- updater trusts only configured generic provider
+- stable track resolves through latest.yml
+- metadata and installer must live on the same backend
+- metadata should be published last in release flow
+- downgrade is intentionally disabled

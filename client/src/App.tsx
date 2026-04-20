@@ -525,14 +525,11 @@ function ElectronAppContent() {
     };
     
     if (api?.onWindowFocus) {
-      api.onWindowFocus(() => {
+      const unsub = api.onWindowFocus(() => {
         console.log('[App] Electron window focus');
         resetUIState();
       });
-      
-      return () => {
-        api.removeWindowFocusListener?.();
-      };
+      return unsub;
     }
   }, [activeFlow]);
 
@@ -562,7 +559,7 @@ function ElectronAppContent() {
     console.log('[App] Registering deep link auth callback (once)');
     const api = (window as any).electronAPI;
 
-    api.auth.onCallback(async (url: string) => {
+    const unsubAuth = api.auth.onCallback(async (url: string) => {
       console.log('[DeepLink] ===== RENDERER CALLBACK RECEIVED =====');
       console.log('[DeepLink] URL:', url);
       useAuthStore.getState().setElectronAuthState('callback_received');
@@ -669,9 +666,7 @@ function ElectronAppContent() {
       }
     });
 
-    return () => {
-      (window as any).electronAPI?.auth?.removeCallbackListener?.();
-    };
+    return unsubAuth;
   }, []);
 
   useEffect(() => {

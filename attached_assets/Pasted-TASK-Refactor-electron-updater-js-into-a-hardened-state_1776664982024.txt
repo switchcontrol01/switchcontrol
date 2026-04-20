@@ -1,0 +1,225 @@
+TASK
+
+Refactor "electron/updater.js" into a hardened, state-guarded updater core for the R2 generic-provider flow.
+
+PROBLEM
+
+The current updater core works at a basic level, but it is still too soft in important places:
+
+1. "channel: 'latest'" is misleading and not a clean release-track model
+2. updater actions are not guarded by valid states
+3. stale updater state can linger across checks
+4. logs are not strong enough to prove release source assumptions
+5. install/download/check actions can be called in invalid states
+6. error recovery is too thin
+7. startup sanity is not explicit enough
+
+GOAL
+
+After this refactor:
+
+- updater state transitions are strict
+- stale state is cleared properly before new checks
+- invalid actions are blocked safely
+- stable release track is named honestly
+- logs clearly show the updater model
+- main process remains full owner of updater flow
+- renderer cannot push updater into nonsense states
+- this file is production-safe and boringly predictable
+
+FILE TO CHANGE
+
+- "electron/updater.js"
+
+IMPLEMENTATION
+
+1. Replace fake channel naming
+
+Current:
+
+channel: 'latest'
+
+Change to:
+
+channel: 'stable'
+
+Then add explicit metadata mapping logic.
+
+Use this exact helper:
+
+function getMetadataFileForChannel(channel) {
+  if (channel === 'beta') return 'beta.yml';
+  return 'latest.yml';
+}
+
+Add a constant for provider info:
+
+const UPDATE_PROVIDER = 'generic';
+const UPDATE_BASE_URL = 'https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev';
+
+Keep it centralized.
+
+2. Add strict state guard helpers
+
+Add these helpers near the top:
+
+function canCheck(status) {
+  return ['idle', 'not-available', 'error', 'available'].includes(status);
+}
+
+function canDownload(status) {
+  return status === 'available';
+}
+
+function canInstall(status) {
+  return status === 'downloaded';
+}
+
+3. Add clean reset helpers
+
+Add a helper to clear transient state:
+
+function resetTransientState() {
+  return {
+    availableVersion: null,
+    downloadPercent: 0,
+    bytesPerSecond: 0,
+    transferred: 0,
+    total: 0,
+    releaseNotes: null,
+    releaseDate: null,
+    errorMessage: null,
+    urgency: 'normal',
+  };
+}
+
+Use this before every new update check.
+
+4. Improve startup logging
+
+In "initUpdater", after setup, log all of this clearly:
+
+- packaged/dev mode
+- provider
+- base URL
+- release track
+- metadata file
+- current version
+
+Example target log style:
+
+console.log('[Updater] Provider:', UPDATE_PROVIDER);
+console.log('[Updater] Base URL:', UPDATE_BASE_URL);
+console.log('[Updater] Channel:', state.channel);
+console.log('[Updater] Metadata file:', getMetadataFileForChannel(state.channel));
+console.log('[Updater] Current version:', state.currentVersion);
+
+Also keep the existing initialization log.
+
+5. Harden "initUpdater"
+
+Inside "initUpdater":
+
+- keep "autoDownload = false"
+- keep "autoInstallOnAppQuit = true"
+- keep "allowDowngrade = false"
+- keep "forceDevUpdateConfig = false"
+
+But also:
+
+- validate channel
+- fallback to stable if unsupported
+
+Example:
+
+if (!['stable', 'beta'].includes(state.channel)) {
+  console.warn('[Updater] Unsupported channel, falling back to stable:', state.channel);
+  state.channel = 'stable';
+}
+
+Then set:
+
+autoUpdater.channel = state.channel === 'beta' ? 'beta' : 'latest';
+
+Only do this if required by your actual electron-updater generic-provider behavior.
+If stable must still resolve through "latest.yml", keep that mapping explicit in logs/comments.
+
+6. Harden "checking-for-update" event handling
+
+Current behavior is too weak.
+
+When checking starts, state must become:
+
+- "status: 'checking'"
+- "checkedAt: new Date().toISOString()"
+- clear transient stale fields
+
+Target:
+
+autoUpdater.on('checking-for-update', () => {
+  console.log('[Updater] Checking for update...');
+  state = {
+    ...state,
+    ...resetTransientState(),
+    status: 'checking',
+    checkedAt: new Date().toISOString(),
+  };
+  broadcast('checking-for-update');
+});
+
+7. Harden "update-available"
+
+Keep existing behavior but ensure fields are fully updated and clean.
+
+Use:
+
+autoUpdater.on('update-available', (info) => {
+  console.log('[Updater] Update available:', info.version, '| Date:', info.releaseDate);
+  const urgency = parseUrgency(info.releaseNotes);
+  state = {
+    ...state,
+    status: 'available',
+    availableVersion: info.version || null,
+    releaseNotes: info.releaseNotes || null,
+    releaseDate: info.releaseDate || null,
+    urgency,
+    errorMessage: null,
+  };
+  broadcast('update-available');
+});
+
+8. Harden "update-not-available"
+
+Clear stale available/update fields when no update exists.
+
+Target:
+
+autoUpdater.on('update-not-available', () => {
+  console.log('[Updater] No update available. Current version is latest.');
+  state = {
+    ...state,
+    ...resetTransientState(),
+    status: 'not-available',
+    checkedAt: new Date().toISOString(),
+  };
+  broadcast('update-not-available');
+});
+
+9. Harden "download-progress"
+
+Keep it, but clear any old error state and store rounded progress cleanly.
+
+10. Harden "update-downloaded"
+
+Keep it, but ensure final state is explicit and clean:
+
+state = {
+  ...state,
+  status: 'downloaded',
+  downloadPercent: 100,
+  availableVersion: info.version || state.availableVersion,
+  releaseNotes: info.releaseNotes || state.releaseNotes,
+  releaseDate: info.releaseDate || state.releaseDate,
+  errorMessage: null,
+};
+
