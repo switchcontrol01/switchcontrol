@@ -24,6 +24,7 @@ import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
 import { PremiumRevertModal } from "@/components/PremiumRevertModal";
+import { usePremiumGraceStore } from "@/stores/premiumGraceStore";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -246,23 +247,42 @@ function ElectronAppContent() {
     if (!user?.loggedIn) return;
     if (entitlementsAttempted) return;
 
-    console.log('[AppFlow] Hydrating entitlements for this session...');
+    console.log('[Entitlements] post-auth hydration begin — cached isPremium:', user?.isPremium, 'plan:', user?.plan);
     console.log('[PremiumTruth] entitlement fetch start — cached isPremium:', user?.isPremium);
     refreshEntitlements()
       .then((result) => {
-        console.log('[AppFlow] Entitlements hydrated — isPremium:', result.user?.isPremium, 'plan:', result.user?.plan, 'trialEndsAt:', result.user?.trialEndsAt, 'hasSeenTrialActivation:', result.user?.hasSeenTrialActivation, 'hasSeenTrialTour:', result.user?.hasSeenTrialTour, 'hasSeenPremiumUnlock:', result.user?.hasSeenPremiumUnlock);
+        console.log('[Entitlements] post-auth hydration result — isPremium:', result.user?.isPremium ?? 'null', 'plan:', result.user?.plan ?? 'null');
         console.log('[PremiumTruth] entitlement fetch result — isPremium:', result.user?.isPremium ?? 'null (no user)');
         if (result.user) {
           setEntitlementsOk(true);
           setEntitlementsVerified(true);
+          usePremiumGraceStore.getState().setVerified(
+            result.user.isPremium,
+            result.user.plan ?? null,
+            result.user.id ?? null,
+          );
+          console.log('[Entitlements] grace store updated — isPremium:', result.user.isPremium, 'plan:', result.user.plan);
         } else {
-          console.warn('[AppFlow] Entitlement hydration returned no user — entitlementsOk stays false');
-          console.warn('[PremiumTruth] backend returned no user — isPremium forced to false');
+          console.warn('[Entitlements] server returned no user — checking grace store for fallback');
+          console.warn('[PremiumTruth] backend returned no user — checking grace store');
+          const graceStatus = usePremiumGraceStore.getState().getStatus(true);
+          console.log('[Entitlements] grace store status:', graceStatus);
+          if (graceStatus === 'active' || graceStatus === 'grace') {
+            console.log('[Entitlements] grace store active — entitlementsVerified set via grace fallback');
+            setEntitlementsVerified(true);
+          } else {
+            console.warn('[Entitlements] grace store expired/unavailable — showing free state');
+          }
         }
       })
       .catch((err) => {
-        console.warn('[AppFlow] Entitlement hydration failed:', err);
-        console.warn('[PremiumTruth] entitlement fetch failed — isPremium stays false (no stale fallback)');
+        console.warn('[Entitlements] post-auth hydration error — checking grace store:', err);
+        console.warn('[PremiumTruth] entitlement fetch failed — checking grace store fallback');
+        const graceStatus = usePremiumGraceStore.getState().getStatus(true);
+        if (graceStatus === 'active' || graceStatus === 'grace') {
+          console.log('[Entitlements] grace fallback on error — entitlementsVerified set');
+          setEntitlementsVerified(true);
+        }
       })
       .finally(() => {
         setEntitlementsAttempted(true);
@@ -677,9 +697,50 @@ function ElectronAppContent() {
     const checkAuth = async () => {
       const hasCredential = !!(token || jwt);
       console.log('[Auth] Boot: token present:', !!token, 'jwt present:', !!jwt, 'user present:', !!user, 'premium:', user?.isPremium);
+      console.log('[Entitlements] startup restore begin — hasCredential:', hasCredential, 'cached isPremium:', user?.isPremium ?? 'n/a', 'plan:', user?.plan ?? 'n/a');
 
       if (hasCredential && user) {
         console.log('[Auth] Using stored user data:', user.id, 'isPremium:', user.isPremium);
+
+        // Force a fresh entitlement fetch BEFORE transitioning to the dashboard so
+        // there is no startup window where the UI shows stale (potentially wrong)
+        // isPremium state. Mark entitlementsAttempted so the post-auth effect skips
+        // its duplicate fetch. A 8 s timeout prevents the splash from hanging
+        // if the server is unreachable at startup.
+        try {
+          const _timeout = new Promise<{ user: null }>((resolve) =>
+            setTimeout(() => resolve({ user: null }), 8000)
+          );
+          const result = await Promise.race([refreshEntitlements(), _timeout]);
+          if (result.user) {
+            console.log('[Entitlements] startup fetch OK — isPremium:', result.user.isPremium, 'plan:', result.user.plan);
+            setEntitlementsOk(true);
+            setEntitlementsVerified(true);
+            usePremiumGraceStore.getState().setVerified(
+              result.user.isPremium,
+              result.user.plan ?? null,
+              result.user.id ?? null,
+            );
+          } else {
+            console.warn('[Entitlements] startup fetch returned no user — checking grace store');
+            const graceStatus = usePremiumGraceStore.getState().getStatus(true);
+            console.log('[Entitlements] startup grace store status:', graceStatus);
+            if (graceStatus === 'active' || graceStatus === 'grace') {
+              console.log('[Entitlements] grace fallback on startup — entitlementsVerified set');
+              setEntitlementsVerified(true);
+            } else {
+              console.warn('[Entitlements] startup: no server user, no grace — showing free state');
+            }
+          }
+        } catch (err) {
+          console.warn('[Entitlements] startup fetch error — checking grace store:', err);
+          const graceStatus = usePremiumGraceStore.getState().getStatus(true);
+          if (graceStatus === 'active' || graceStatus === 'grace') {
+            console.log('[Entitlements] grace fallback on startup error — entitlementsVerified set');
+            setEntitlementsVerified(true);
+          }
+        }
+        setEntitlementsAttempted(true);
 
         const welcomeKey = `sc_welcomed_${user.id}`;
         const hasBeenWelcomed = localStorage.getItem(welcomeKey);
@@ -753,14 +814,31 @@ function ElectronAppContent() {
 
   const handleSafeRefreshEntitlements = useCallback(async () => {
     suppressFlowsRef.current = true;
+    console.log('[Entitlements] manual refresh begin');
     console.log('[PremiumTruth] modal-triggered entitlement fetch start');
     try {
       const result = await refreshEntitlements();
+      console.log('[Entitlements] manual refresh result — isPremium:', result.user?.isPremium ?? 'null', 'plan:', result.user?.plan ?? 'null');
       console.log('[PremiumTruth] modal-triggered entitlement fetch result — isPremium:', result.user?.isPremium ?? 'null (no user)');
       if (result.user) {
+        setEntitlementsOk(true);
         setEntitlementsVerified(true);
+        usePremiumGraceStore.getState().setVerified(
+          result.user.isPremium,
+          result.user.plan ?? null,
+          result.user.id ?? null,
+        );
+        console.log('[Entitlements] manual refresh — grace store updated, UI unlocked');
       } else {
-        setEntitlementsVerified(false);
+        console.warn('[Entitlements] manual refresh — server returned no user, checking grace store');
+        const graceStatus = usePremiumGraceStore.getState().getStatus(true);
+        console.log('[Entitlements] manual refresh — grace store status:', graceStatus);
+        if (graceStatus === 'active' || graceStatus === 'grace') {
+          console.log('[Entitlements] manual refresh — grace fallback active, entitlementsVerified set');
+          setEntitlementsVerified(true);
+        } else {
+          setEntitlementsVerified(false);
+        }
       }
       return result;
     } finally {

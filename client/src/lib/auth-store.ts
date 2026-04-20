@@ -1,7 +1,21 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-const AUTH_DOMAIN = "https://switchcontrol.org";
+// In the packaged Electron app, window.location.protocol is "file:" so all auth
+// requests must target the production server explicitly. In any other context
+// (web browser, dev Electron via HTTP) the calls should hit the same-origin local
+// server so that local admin grants and local JWT secrets line up correctly.
+const _isPackagedElectron =
+  typeof window !== 'undefined' &&
+  !!(window as any).electronAPI?.isElectron &&
+  window.location.protocol === 'file:';
+
+const AUTH_DOMAIN = _isPackagedElectron ? "https://switchcontrol.org" : "";
+
+if (typeof window !== 'undefined') {
+  console.log(`[Entitlements] AUTH_DOMAIN resolved — packaged=${_isPackagedElectron} domain="${AUTH_DOMAIN || '(same-origin)'}"`);
+}
+
 const TOKEN_KEY = "sc_auth_token_v2";
 const JWT_KEY = "sc_jwt";
 
@@ -275,7 +289,9 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
       headers['Authorization'] = `Bearer ${jwt}`;
     }
 
-    const response = await fetch(`${AUTH_DOMAIN}/api/me`, {
+    const url = `${AUTH_DOMAIN}/api/me`;
+    console.log(`[Entitlements] refreshEntitlements → ${url || '(same-origin)/api/me'} jwt=${jwt ? 'present' : 'missing'}`);
+    const response = await fetch(url, {
       headers,
       credentials: 'include',
     });
