@@ -3,6 +3,12 @@ import { useToast } from '@/hooks/use-toast';
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 import { isTweakPremium } from '@/lib/premium-config';
 import { TWEAKS_DATA } from '@/lib/mock-data';
+import {
+  HKCU_TOGGLE_IDS,
+  ADMIN_TOGGLE_IDS,
+  SLIDER_IDS,
+  UNSUPPORTED_MAP,
+} from '@/lib/tweak-registry';
 
 // ── Failure types ────────────────────────────────────────────────────────────
 export type FailureType =
@@ -25,13 +31,11 @@ export interface TweakResult {
   commandsRun: string[];
   message: string | null;
   error: string | null;
-  // Structured failure info (new)
   failureType?: FailureType | null;
   userMessage?: string | null;
   hint?: string | null;
 }
 
-/** Return value from executeTweak — replaces the old boolean */
 export interface TweakExecuteOutcome {
   success: boolean;
   failureType?: FailureType | null;
@@ -54,48 +58,23 @@ interface LocalTweakState {
   windowsBuild?: string;
 }
 
-// ── Static tweak classification ────────────────────────────────────────────────
-const HKCU_TWEAKS = [
-  'gaming-mode', 'notifications', 'copilot', 'cortana', 'search-highlights',
-  'storage-sense', 'compact-explorer', 'recent-files', 'xbox-bar', 'bg-apps',
-  'disable-fso', 'disable-pointer-precision',
-  // New HKCU toggle tweaks
-  'disable-transparency', 'disable-animations',
-];
+// ── Static tweak classification — derived from the canonical registry ─────────
 
-const ADMIN_TWEAKS = [
-  'hibernation', 'fast-startup', 'energy-logging', 'maintenance',
-  'core-isolation', 'vbs', 'hyper-v', 'large-system-cache', 'page-combining',
-  'prefetch', 'superfetch', 'mem-opt', 'telemetry', 'nvidia-telemetry',
-  'tune-priority', 'bluetooth', 'wifi', 'xbox-services', 'fax-printer',
-  'synth-timers', 'preemption',
-  'disable-mpo', 'usb-selective-suspend', 'pcie-link-state', 'mmcss-gaming',
-  'disable-delivery-opt', 'disable-wer', 'win-search-index', 'disable-activity-history',
-  // New admin toggle tweaks
-  'power-throttling', 'ntfs-last-access',
-];
+/** HKCU (non-admin) toggle tweaks — no elevation needed. */
+const HKCU_TWEAKS: string[] = HKCU_TOGGLE_IDS;
+
+/** Admin-elevation toggle tweaks. */
+const ADMIN_TWEAKS: string[] = ADMIN_TOGGLE_IDS;
 
 /**
  * Slider tweaks use a separate IPC path (readSliderValue / applySliderValue).
  * They are NOT in REAL_TWEAKS (toggle path) — TweakSliderCard handles them.
  */
-export const SLIDER_TWEAKS = [
-  'win32-priority-sep', 'mouse-queue-size', 'kbd-queue-size',
-  'sys-responsiveness', 'net-throttle-index',
-  'menu-show-delay', 'hung-app-timeout',
-  // Pass 2 sliders
-  'low-level-hooks-timeout', 'wait-to-kill-app',
-] as const;
+export const SLIDER_TWEAKS = SLIDER_IDS as readonly string[];
+export type SliderTweakId = (typeof SLIDER_TWEAKS)[number];
 
-export type SliderTweakId = typeof SLIDER_TWEAKS[number];
-
-export const UNSUPPORTED_TWEAKS: Record<string, string> = {
-  'p-states':     'Requires a runtime agent process for CPU P-state control. Cannot be applied persistently via registry.',
-  'irq-priority': 'Requires kernel-level interrupt affinity control not accessible from user-mode.',
-  'timer-res':    'Timer resolution requires a persistent runtime process. The effect resets on process exit. Requires agent.',
-  'desktop-comp': 'Desktop Window Manager cannot be disabled on Windows 10/11. This is a legacy Windows XP/Vista feature.',
-  'hdcp':         'HDCP enforcement is controlled at hardware/driver level and cannot be reliably toggled via software.',
-};
+/** Map of unsupported tweak ID → human-readable reason. */
+export const UNSUPPORTED_TWEAKS: Record<string, string> = UNSUPPORTED_MAP;
 
 export const REAL_TWEAKS = [...HKCU_TWEAKS, ...ADMIN_TWEAKS];
 
@@ -161,7 +140,7 @@ export function useTweakExecutor() {
         const preStatus: TweakStatus = await getTweaksAPI().checkStatus(tweakId);
         previousIsApplied = preStatus?.isApplied ?? false;
       } catch {
-        previousIsApplied = false; // conservative fallback
+        previousIsApplied = false;
       }
     }
 
@@ -174,7 +153,6 @@ export function useTweakExecutor() {
         return FAIL('unsupported', result.userMessage, result.hint);
       }
 
-      // Detect UAC cancelled from the old path (no failureType) as well as the new path
       const isCancelled = result.failureType === 'uac_cancelled' ||
         (!result.failureType && /cancel|declined|uac prompt/i.test(result.error ?? ''));
 
@@ -216,7 +194,6 @@ export function useTweakExecutor() {
 
       const succeeded = actualState === (action === 'apply');
       if (!succeeded) {
-        // Verification mismatch after backend reported success — edge case
         return FAIL('verification_failed', 'Setting Could Not Be Verified', 'The change was applied but the system state still reads as unchanged.');
       }
 
@@ -232,7 +209,6 @@ export function useTweakExecutor() {
           isTweakPremium(tweakId),
         );
       } else if (action === 'revert') {
-        // User manually reverted — clear the ownership record if it was app-applied
         const rec = ownership.appliedTweaks[tweakId];
         if (rec?.appliedByApp) {
           ownership.recordTweakRevertSuccess(tweakId);

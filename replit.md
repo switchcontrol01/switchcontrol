@@ -363,9 +363,44 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 - `explorer-separate-process` — `SeparateProcess=1` (HKCU Explorer\Advanced). Each folder window in its own process. Free, Advanced.
 - `disable-auto-restart-apps` — `RestartApps=0` (HKLM Winlogon). Prevents auto-relaunch of Store/registered apps at sign-in. Requires admin. Free, Advanced.
 
-All 5 tweaks added to `FREE_EXCEPTION_IDS` and `TWEAK_TIER_MAP` in `shared/tweak-tiers.ts`, and as full mock-data entries in `client/src/lib/mock-data.ts`.
+All 5 tweaks added to `FREE_EXCEPTION_IDS` and `TWEAK_TIER_MAP` in `shared/tweak-tiers.ts`, and as full entries in `client/src/lib/tweak-registry.ts`.
 
-`SLIDER_TWEAKS` array in `client/src/hooks/use-tweak-executor.ts` updated to include both new slider IDs.
+### Tweaks — Canonical Architecture Refactor (April 2026)
+
+All tweak data now lives in a single canonical source of truth at **`client/src/lib/tweak-registry.ts`**.
+
+**RegistryTweak type** — each tweak now carries:
+- `supported: boolean` — false for tweaks that cannot be applied on modern Windows
+- `unsupportedReason?: string` — shown in UI when `supported === false`
+- `requiresAdmin: boolean` — whether UAC elevation is needed
+- `premium: boolean` — computed via `isPremiumTweakById` from `shared/tweak-tiers.ts`
+
+**Derived exports** (replaces hardcoded arrays in use-tweak-executor.ts):
+- `HKCU_TOGGLE_IDS` — supported non-admin toggle IDs
+- `ADMIN_TOGGLE_IDS` — supported admin-elevation toggle IDs
+- `SLIDER_IDS` — all supported slider IDs
+- `UNSUPPORTED_MAP` — `{ id: reason }` for all unsupported tweaks
+
+**Import chain**:
+```
+shared/tweak-tiers.ts          ← premium gating logic + types (single source)
+client/src/lib/tweak-registry.ts  ← canonical tweak data; imports isPremiumTweakById
+client/src/lib/mock-data.ts    ← thin re-exporter of registry + SystemStats/AI types
+client/src/hooks/use-tweak-executor.ts  ← derives arrays from registry
+client/src/lib/premium-config.ts       ← re-exports from shared/tweak-tiers
+```
+
+**Unsupported tweaks** (`supported: false`): `p-states`, `irq-priority`, `timer-res`, `desktop-comp`, `hdcp` — still visible in the tweaks list with dimmed styling and an "Unsupported" badge, but explicitly quarantined from the executor.
+
+**shared/tweak-tiers.ts updates**:
+- Added all previously-missing tweaks to `TWEAK_TIER_MAP` (disable-pointer-precision, disable-fso, usb-selective-suspend, mmcss-gaming, pcie-link-state, disable-mpo, disable-delivery-opt, disable-wer, disable-activity-history, win-search-index)
+- Added `disable-mpo` to `FREE_EXCEPTION_IDS` (fix: was incorrectly defaulting to premium)
+- Unknown tweaks now default to `free` (benefit-of-the-doubt), not `premium`
+
+**server/routes/tweakIntelligence.ts updates**:
+- Removed `timer-res` and `irq-priority` from `TWEAK_PROFILES` (unsupported tweaks should never be recommended)
+- Updated `POSTURE_SETS.performance` to replace them with `preemption`, `mmcss-gaming`
+- Updated `POSTURE_SETS.latency` to replace them with `disable-pointer-precision`, `usb-selective-suspend`, `disable-mpo`, `disable-fso`
 
 ### NIC Adapter Tuning System (April 2026)
 

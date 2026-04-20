@@ -106,14 +106,6 @@ const TWEAK_PROFILES: Record<string, TweakSignalProfile> = {
       default: "Tells the OS to prioritize the active game process.",
     },
   },
-  "timer-res": {
-    cpu: 0, mem: 0, proc: 0, net: 0, trend: 14, baseScore: 16,
-    reason: {
-      cpu: "",  mem: "", proc: "", net: "",
-      trend:   "System activity is rising — lower timer resolution reduces scheduling jitter.",
-      default: "Improves timing precision for time-sensitive games.",
-    },
-  },
   "mem-opt": {
     cpu: 10, mem: 38, proc: 8, net: 0, trend: 0, baseScore: 14,
     reason: {
@@ -257,17 +249,6 @@ const TWEAK_PROFILES: Record<string, TweakSignalProfile> = {
       default: "Reduces power diagnostic logging overhead.",
     },
   },
-  "irq-priority": {
-    cpu: 0, mem: 0, proc: 0, net: 8, trend: 16, baseScore: 12,
-    reason: {
-      cpu:     "",
-      mem:     "",
-      proc:    "",
-      net:     "Network interrupt priority matters when background network activity is present.",
-      trend:   "System load is rising — interrupt priority affects GPU and network responsiveness.",
-      default: "Prioritizes GPU and network interrupt handling.",
-    },
-  },
   "synth-timers": {
     cpu: 6, mem: 0, proc: 0, net: 0, trend: 6, baseScore: 8,
     reason: {
@@ -300,7 +281,7 @@ const POSTURE_SETS: Array<{
     id: "performance",
     label: "Performance",
     color: "hsl(338,85%,60%)",
-    tweakIds: ["gaming-mode", "tune-priority", "timer-res", "irq-priority", "p-states", "synth-timers"],
+    tweakIds: ["gaming-mode", "tune-priority", "synth-timers", "preemption", "mmcss-gaming"],
   },
   {
     id: "cleanliness",
@@ -324,7 +305,7 @@ const POSTURE_SETS: Array<{
     id: "latency",
     label: "Latency",
     color: "hsl(270,65%,62%)",
-    tweakIds: ["gaming-mode", "tune-priority", "timer-res", "irq-priority", "synth-timers", "mem-opt"],
+    tweakIds: ["gaming-mode", "tune-priority", "synth-timers", "mem-opt", "disable-pointer-precision", "usb-selective-suspend", "disable-mpo", "disable-fso"],
   },
 ];
 
