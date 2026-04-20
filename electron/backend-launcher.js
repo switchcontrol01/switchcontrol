@@ -4,6 +4,29 @@ const http = require('http');
 const net = require('net');
 const fs = require('fs');
 const configStore = require('./config-store');
+const fileLogger = require('./file-logger');
+
+// Convenience: log to console (which mirrors to the main startup log file)
+// AND append to the dedicated backend.log so we can see the child stream
+// separately from the main process log.
+function blog(...args) {
+  const line = args.map(a => {
+    if (a instanceof Error) return a.stack || a.message;
+    if (typeof a === 'object') { try { return JSON.stringify(a); } catch (e) { return String(a); } }
+    return String(a);
+  }).join(' ');
+  console.log('[Backend]', line);
+  try { fileLogger.appendBackend(line); } catch (e) {}
+}
+function berr(...args) {
+  const line = args.map(a => {
+    if (a instanceof Error) return a.stack || a.message;
+    if (typeof a === 'object') { try { return JSON.stringify(a); } catch (e) { return String(a); } }
+    return String(a);
+  }).join(' ');
+  console.error('[Backend]', line);
+  try { fileLogger.appendBackend('ERROR ' + line); } catch (e) {}
+}
 
 const TRACKED_KEYS = ['OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
 
@@ -28,17 +51,21 @@ function waitForBackend(port, timeoutMs = 20000) {
   return new Promise((resolve, reject) => {
     const start = Date.now();
     let attempt = 0;
+    let lastFailure = 'no attempts yet';
 
     function check() {
       attempt++;
       const elapsed = Date.now() - start;
       if (elapsed > timeoutMs) {
-        return reject(new Error(`Backend health check timed out after ${timeoutMs}ms (${attempt} attempts)`));
+        const msg = `Backend health check timed out after ${timeoutMs}ms (${attempt} attempts). Last failure: ${lastFailure}`;
+        berr(msg);
+        return reject(new Error(msg));
       }
 
-      const retryDelay = attempt <= 5 ? 25 : attempt <= 15 ? 80 : 180;
+      const retryDelay = attempt <= 5 ? 50 : attempt <= 15 ? 150 : 300;
+      const url = `http://127.0.0.1:${port}/api/health`;
 
-      const req = http.get(`http://127.0.0.1:${port}/api/health`, { timeout: 2000 }, (res) => {
+      const req = http.get(url, { timeout: 2000 }, (res) => {
         let body = '';
         res.on('data', (chunk) => { body += chunk; });
         res.on('end', () => {
@@ -46,27 +73,30 @@ function waitForBackend(port, timeoutMs = 20000) {
             try {
               const data = JSON.parse(body);
               if (data.status === 'ok') {
-                console.log(`[Backend] Health check PASSED — attempt ${attempt}, ${Date.now() - start}ms elapsed`);
+                blog(`Health check PASSED — attempt ${attempt}, ${Date.now() - start}ms elapsed, body=${body}`);
                 return resolve(true);
               }
+              lastFailure = `HTTP 200 but status not ok: ${body}`;
             } catch (e) {
-              console.warn(`[Backend] Health response parse error:`, e.message);
+              lastFailure = `HTTP 200 but body parse error: ${e.message}`;
             }
           } else {
-            console.log(`[Backend] Health check returned HTTP ${res.statusCode} (attempt ${attempt})`);
+            lastFailure = `HTTP ${res.statusCode} body=${body.substring(0, 200)}`;
           }
+          fileLogger.appendBackend(`HEALTH attempt=${attempt} elapsed=${elapsed}ms FAIL ${lastFailure}`);
           setTimeout(check, retryDelay);
         });
       });
 
       req.on('error', (err) => {
-        if (attempt <= 3 || attempt % 10 === 0) {
-          console.log(`[Backend] Health check attempt ${attempt} — ${err.code || err.message}`);
-        }
+        lastFailure = `${err.code || 'ERR'} ${err.message}`;
+        fileLogger.appendBackend(`HEALTH attempt=${attempt} elapsed=${elapsed}ms ERR ${lastFailure}`);
         setTimeout(check, retryDelay);
       });
 
       req.on('timeout', () => {
+        lastFailure = 'request timeout (2000ms)';
+        fileLogger.appendBackend(`HEALTH attempt=${attempt} elapsed=${elapsed}ms TIMEOUT`);
         req.destroy();
         setTimeout(check, retryDelay);
       });
@@ -185,24 +215,28 @@ async function startBackend(app) {
     console.log('[Backend] Child process spawned, PID:', backendProcess.pid);
 
     backendProcess.stdout.on('data', (data) => {
-      const lines = data.toString().trim().split('\n');
+      const lines = data.toString().split(/\r?\n/);
       for (const line of lines) {
+        if (!line) continue;
         console.log('[Backend:stdout]', line);
+        try { fileLogger.appendBackend('STDOUT ' + line); } catch (e) {}
       }
     });
 
     backendProcess.stderr.on('data', (data) => {
-      const lines = data.toString().trim().split('\n');
+      const lines = data.toString().split(/\r?\n/);
       for (const line of lines) {
+        if (!line) continue;
         console.error('[Backend:stderr]', line);
+        try { fileLogger.appendBackend('STDERR ' + line); } catch (e) {}
       }
     });
 
     backendProcess.on('exit', (code, signal) => {
-      console.log(`[Backend] Child process EXITED — code=${code} signal=${signal}`);
+      blog(`Child process EXITED — code=${code} signal=${signal}`);
       if (code !== 0 && code !== null) {
         lastError = `Backend process crashed with exit code ${code}`;
-        console.error('[Backend]', lastError);
+        berr(lastError);
       }
       backendProcess = null;
       backendReady = false;
@@ -210,7 +244,7 @@ async function startBackend(app) {
 
     backendProcess.on('error', (err) => {
       lastError = `Backend process error: ${err.message}`;
-      console.error('[Backend]', lastError);
+      berr(lastError);
       backendProcess = null;
       backendReady = false;
     });

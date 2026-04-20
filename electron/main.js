@@ -1,15 +1,25 @@
 // ============================================================
-// BOOT PROOF — if you see this in logs, this file is running
+// FILE LOGGER — must be the very first thing that runs so every
+// console.log/warn/error from this point on is captured to disk.
+// Log files: %APPDATA%\SwitchControl\logs\
 // ============================================================
-console.log('\n\n========================================');
-console.log('[BOOT] ELECTRON MAIN LOADED');
-console.log('[BOOT] __filename:', __filename);
-console.log('[BOOT] process.execPath:', process.execPath);
-console.log('[BOOT] process.cwd():', process.cwd());
-console.log('[BOOT] process.argv:', JSON.stringify(process.argv));
-console.log('[BOOT] NODE_ENV:', process.env.NODE_ENV);
-console.log('[BOOT] timestamp:', new Date().toISOString());
-console.log('========================================\n\n');
+const fileLogger = require('./file-logger');
+fileLogger.init();
+const _LOG_PATHS = fileLogger.getPaths();
+
+console.log('========================================');
+console.log('[STARTUP:1] electron main.js TOP — file logger initialized');
+console.log('[STARTUP:1] log directory:', _LOG_PATHS.logDir);
+console.log('[STARTUP:1] startup log:', _LOG_PATHS.startupLog);
+console.log('[STARTUP:1] latest log:', _LOG_PATHS.latestLog);
+console.log('[STARTUP:1] backend log:', _LOG_PATHS.backendLog);
+console.log('[STARTUP:1] __filename:', __filename);
+console.log('[STARTUP:1] process.execPath:', process.execPath);
+console.log('[STARTUP:1] process.cwd():', process.cwd());
+console.log('[STARTUP:1] process.argv:', JSON.stringify(process.argv));
+console.log('[STARTUP:1] NODE_ENV:', process.env.NODE_ENV);
+console.log('[STARTUP:1] timestamp:', new Date().toISOString());
+console.log('========================================');
 
 const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu } = require('electron');
 const { exec, execFile } = require('child_process');
@@ -382,12 +392,20 @@ function deliverDeepLink(url) {
 }
 
 // Single instance lock for Windows deep-link handling
+console.log('[STARTUP:2] requesting single-instance lock...');
 const gotTheLock = app.requestSingleInstanceLock();
+console.log('[STARTUP:2] single-instance lock result:', gotTheLock ? 'GOT_LOCK' : 'ALREADY_HELD');
 
 if (!gotTheLock) {
+  console.log('[STARTUP:2] another instance is running — quitting this one');
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
+    console.log('[STARTUP:second-instance] FIRED — commandLine:', JSON.stringify(commandLine));
+    console.log('[STARTUP:second-instance] mainWindow exists:', !!mainWindow);
+    if (mainWindow) {
+      console.log('[STARTUP:second-instance] mainWindow.isVisible:', mainWindow.isVisible(), '| isMinimized:', mainWindow.isMinimized());
+    }
     console.log('[DeepLink] ===== SECOND-INSTANCE EVENT =====');
     console.log('[DeepLink] commandLine:', JSON.stringify(commandLine));
     
@@ -420,6 +438,7 @@ app.on('open-url', (event, url) => {
 });
 
 function createWindow() {
+  console.log('[STARTUP:5] createWindow() ENTRY');
   const devToolsEnabled = isDev || allowDebug;
   console.log('[BOOT] Creating window — devToolsEnabled:', devToolsEnabled, '| isProd:', isProd, '| allowDebug:', allowDebug);
   mainWindow = new BrowserWindow({
@@ -438,6 +457,7 @@ function createWindow() {
       devTools: devToolsEnabled,
     }
   });
+  console.log('[STARTUP:5] BrowserWindow constructed — show:true, isVisible:', mainWindow.isVisible());
 
   // ── DevTools keyboard shortcut guard ────────────────────────────────────────
   // In production: block F12, Ctrl+Shift+I, Ctrl+Shift+J entirely.
@@ -571,18 +591,44 @@ function createWindow() {
   });
 
   if (isDev) {
+    console.log('[STARTUP:6] dev mode — loadURL http://localhost:5000');
     mainWindow.loadURL('http://localhost:5000');
   } else {
     const indexPath = path.join(process.resourcesPath, 'dist', 'index.html');
-    console.log('[SwitchControl] Loading:', indexPath);
-    mainWindow.loadFile(indexPath).catch(err => {
-      console.error('[SwitchControl] Failed to load:', err);
+    const indexExists = require('fs').existsSync(indexPath);
+    console.log('[STARTUP:6] packaged mode — indexPath:', indexPath, '| exists:', indexExists);
+    if (!indexExists) {
+      try {
+        const distDir = path.join(process.resourcesPath, 'dist');
+        if (require('fs').existsSync(distDir)) {
+          console.error('[STARTUP:6] dist contents:', require('fs').readdirSync(distDir).join(', '));
+        } else {
+          console.error('[STARTUP:6] dist directory does NOT exist at', distDir);
+        }
+      } catch (e) {
+        console.error('[STARTUP:6] could not list dist:', e.message);
+      }
+    }
+    mainWindow.loadFile(indexPath).then(() => {
+      console.log('[STARTUP:6] loadFile() promise RESOLVED');
+    }).catch(err => {
+      console.error('[STARTUP:6] loadFile() promise REJECTED:', err && err.message);
     });
   }
 
+  mainWindow.webContents.on('did-fail-load', (e, code, desc, url) => {
+    console.error('[STARTUP:renderer] did-fail-load — code:', code, 'desc:', desc, 'url:', url);
+  });
+  mainWindow.webContents.on('render-process-gone', (e, details) => {
+    console.error('[STARTUP:renderer] render-process-gone:', JSON.stringify(details));
+  });
+  mainWindow.webContents.on('unresponsive', () => {
+    console.error('[STARTUP:renderer] webContents UNRESPONSIVE');
+  });
+
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[SwitchControl] Renderer did-finish-load');
+    console.log('[STARTUP:7] did-finish-load — renderer ready');
     rendererReady = true;
 
     if (isDev) {
@@ -2283,7 +2329,9 @@ ipcMain.handle('auth:debugCookies', async () => {
   }));
 });
 
+console.log('[STARTUP:3] registering app.whenReady() handler');
 app.whenReady().then(async () => {
+  console.log('[STARTUP:4] app.whenReady FIRED');
   const bootStart = Date.now();
 
   // ── Hard boot evidence block — proves which EXE is actually running ────────
@@ -2381,9 +2429,12 @@ app.whenReady().then(async () => {
 
   // Start creating window immediately (shows on ready-to-show)
   // Backend starts in parallel — renderer polls until ready
+  console.log('[STARTUP:5] calling createWindow()');
   createWindow();
+  console.log('[STARTUP:5] createWindow() returned — mainWindow.isVisible:', mainWindow && mainWindow.isVisible());
 
   if (!isDev) {
+    console.log('[STARTUP:8] PACKAGED MODE — calling backendLauncher.startBackend()');
     console.log('[Backend] ===== PACKAGED MODE — Starting embedded backend =====');
     // Fire-and-forget: don't block the app.whenReady() promise.
     // The window has already been created; the renderer polls getBackendPort()
