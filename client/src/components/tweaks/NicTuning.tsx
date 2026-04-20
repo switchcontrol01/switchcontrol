@@ -71,6 +71,22 @@ function getNicAPI() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Converts raw PowerShell / WMI errors into a short, readable message.
+ * WMI errors from Get/Set-NetAdapterAdvancedProperty can be 200+ chars of stack trace.
+ */
+function sanitizeNicError(err: string | null | undefined): string {
+  if (!err) return 'Unknown error.';
+  // WMI "No matching objects" error
+  if (/no matching.*MSFT_NetAdapter/i.test(err) || /CIM.*server/i.test(err)) {
+    return 'Property not found on this NIC — the driver may not support it.';
+  }
+  // Access denied / UAC cancelled
+  if (/access.?denied|uac|cancel/i.test(err)) return 'Access denied — run as administrator.';
+  // General PowerShell error — truncate at 120 chars
+  return err.length > 120 ? err.slice(0, 117) + '…' : err;
+}
+
 function RiskBadge({ risk }: { risk: string }) {
   const cls =
     risk === 'Safe'     ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
@@ -130,7 +146,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       toast({ title: `${meta.label} Applied`, description: `Set to ${state.pending} on ${adapterName}.` });
       scheduleResultDismiss();
     } else {
-      toast({ title: 'Apply Failed', description: res.error ?? 'Could not set property.', variant: 'destructive' });
+      toast({ title: 'Apply Failed', description: sanitizeNicError(res.error) ?? 'Could not set property.', variant: 'destructive' });
     }
   }, [adapterName, propKey, meta.label, state.pending, isElectron, toast, scheduleResultDismiss]);
 
@@ -149,7 +165,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       scheduleResultDismiss();
     } else {
       setState(s => ({ ...s, applying: false, result: { ok: false, error: res.error, actualValue: null } }));
-      toast({ title: 'Reset Failed', description: res.error ?? 'Could not reset.', variant: 'destructive' });
+      toast({ title: 'Reset Failed', description: sanitizeNicError(res.error) ?? 'Could not reset.', variant: 'destructive' });
     }
   }, [adapterName, propKey, meta.label, meta.defaultValue, isElectron, toast, scheduleResultDismiss]);
 
@@ -290,7 +306,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
               <span className="flex-1">
                 {state.result.ok
                   ? `Verified${state.result.actualValue ? ` — read back: ${state.result.actualValue}` : ''}`
-                  : state.result.error}
+                  : sanitizeNicError(state.result.error)}
               </span>
             </div>
           </motion.div>

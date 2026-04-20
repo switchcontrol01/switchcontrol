@@ -294,6 +294,21 @@ async function readNicProperty(adapterName, propertyKey) {
 }
 
 /**
+ * Discover the actual RegistryKeyword present on an adapter for a given property def.
+ * Some NICs store '*GreenEthernet' as 'GreenEthernet' (no asterisk) or with different casing.
+ * Returns the real keyword string, or null if not found.
+ */
+async function discoverKeyword(safeAdapter, def) {
+  const allNames      = [def.displayName, ...def.fallbackNames];
+  const displayNames  = allNames.map(n => n.replace(/^\*/, ''));
+  const regFilter     = allNames.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
+  const dispFilter    = displayNames.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
+  const cmd = `$p = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue | Where-Object { @(${regFilter}) -contains $_.RegistryKeyword -or @(${dispFilter}) -contains $_.DisplayName }; if ($p) { ($p | Select-Object -First 1).RegistryKeyword } else { '' }`;
+  const raw = await queryPS(cmd);
+  return (raw && raw.trim()) ? raw.trim() : null;
+}
+
+/**
  * Set a NIC property value. Requires admin (UAC).
  * Returns { ok, verified, actualValue, error }
  */
@@ -301,11 +316,16 @@ async function setNicProperty(adapterName, propertyKey, value) {
   const def = NIC_PROPERTY_DEFS[propertyKey];
   if (!def) return { ok: false, error: `Unknown property: ${propertyKey}` };
 
-  const safeAdapter  = adapterName.replace(/'/g, "''");
-  const safeValue    = String(value).replace(/'/g, "''");
-  const keyword      = def.displayName;
+  const safeAdapter = adapterName.replace(/'/g, "''");
+  const safeValue   = String(value).replace(/'/g, "''");
 
-  const command = `Set-NetAdapterAdvancedProperty -Name '${safeAdapter}' -RegistryKeyword '${keyword.replace(/'/g, "''")}' -RegistryValue '${safeValue}' -EA Stop`;
+  // Discover the real RegistryKeyword on this adapter (avoids WMI errors when keyword differs from def)
+  const realKeyword = await discoverKeyword(safeAdapter, def);
+  if (!realKeyword) {
+    return { ok: false, verified: false, actualValue: null, error: `Property "${def.label}" not found on adapter — your NIC driver may not support it.` };
+  }
+
+  const command = `Set-NetAdapterAdvancedProperty -Name '${safeAdapter}' -RegistryKeyword '${realKeyword.replace(/'/g, "''")}' -RegistryValue '${safeValue}' -EA Stop`;
 
   const result = await runElevated(command);
   if (!result.ok) return { ok: false, verified: false, actualValue: null, error: result.error };
@@ -330,9 +350,15 @@ async function resetNicProperty(adapterName, propertyKey) {
   if (!def) return { ok: false, error: `Unknown property: ${propertyKey}` };
 
   const safeAdapter = adapterName.replace(/'/g, "''");
-  const keyword     = def.displayName;
 
-  const command = `Reset-NetAdapterAdvancedProperty -Name '${safeAdapter}' -DisplayName '${keyword.replace(/^\*/, '').replace(/'/g, "''")}' -EA Stop`;
+  // Discover the real RegistryKeyword on this adapter
+  const realKeyword = await discoverKeyword(safeAdapter, def);
+  if (!realKeyword) {
+    return { ok: false, error: `Property "${def.label}" not found on adapter — your NIC driver may not support it.` };
+  }
+  const displayName = realKeyword.replace(/^\*/, '');
+
+  const command = `Reset-NetAdapterAdvancedProperty -Name '${safeAdapter}' -DisplayName '${displayName.replace(/'/g, "''")}' -EA Stop`;
 
   const result = await runElevated(command);
   if (!result.ok) return { ok: false, error: result.error };
