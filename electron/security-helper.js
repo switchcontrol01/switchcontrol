@@ -4,8 +4,9 @@
  * All handlers are Windows-only and return { available: false } on other platforms or on error.
  */
 
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const { execFile } = require('child_process');
+const path = require('path');
 
 // ---------------------------------------------------------------------------
 // PowerShell helper
@@ -321,6 +322,411 @@ ipcMain.handle('startup:verifyState', async (event, { name, registryKey }) => {
     const result = await runPowerShell(cmd, 6000);
     const state = result.trim();
     return { ok: true, name, state };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:getAdvancedProtection
+// Extended Defender intelligence: cloud, PUA, SmartScreen, signature/scan age
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:getAdvancedProtection', async () => {
+  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  try {
+    const cmd = `
+      $mp   = Get-MpComputerStatus -ErrorAction SilentlyContinue
+      $pref = Get-MpPreference    -ErrorAction SilentlyContinue
+      $svc  = (Get-Service -Name WinDefend -ErrorAction SilentlyContinue)?.Status
+
+      $signatureAge = $null
+      if ($mp?.AntivirusSignatureLastUpdated) {
+        $signatureAge = [int]([DateTime]::UtcNow - $mp.AntivirusSignatureLastUpdated.ToUniversalTime()).TotalDays
+      }
+      $quickScanAge = $null
+      if ($mp?.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) {
+        $quickScanAge = [int]([DateTime]::UtcNow - $mp.QuickScanEndTime.ToUniversalTime()).TotalDays
+      }
+      $fullScanAge = $null
+      if ($mp?.FullScanEndTime -and $mp.FullScanEndTime.Year -gt 2000) {
+        $fullScanAge = [int]([DateTime]::UtcNow - $mp.FullScanEndTime.ToUniversalTime()).TotalDays
+      }
+
+      $smartScreen = $null
+      try {
+        $ss = (Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer' -Name SmartScreenEnabled -ErrorAction Stop).SmartScreenEnabled
+        $smartScreen = ($ss -ne 'Off')
+      } catch {}
+
+      @{
+        cloudProtection         = if ($pref) { $pref.MAPSReporting -ne 0 } else { $null }
+        sampleSubmission        = if ($pref) { $pref.SubmitSamplesConsent -in @(1,3) } else { $null }
+        controlledFolderAccess  = if ($pref) { $pref.EnableControlledFolderAccess -ne 0 } else { $null }
+        puaProtection           = if ($pref) { $pref.PUAProtection -ne 0 } else { $null }
+        smartScreen             = $smartScreen
+        signatureVersion        = $mp?.AntivirusSignatureVersion
+        signatureAge            = $signatureAge
+        quickScanAge            = $quickScanAge
+        fullScanAge             = $fullScanAge
+        defenderServiceRunning  = ($svc -eq 'Running')
+      } | ConvertTo-Json -Compress
+    `;
+    const raw = await runPowerShell(cmd, 18000);
+    const data = JSON.parse(raw);
+    console.log(`[Security] getAdvancedProtection OK | sigAge=${data.signatureAge}d quickAge=${data.quickScanAge}d`);
+    return { available: true, data };
+  } catch (err) {
+    console.warn(`[Security] getAdvancedProtection ERROR: ${err?.message}`);
+    return { available: false, reason: 'error', error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:getAdvancedAudit
+// Platform trust, remote surface, persistence risks
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:getAdvancedAudit', async () => {
+  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  try {
+    const cmd = `
+      $r = @{}
+
+      # Secure Boot
+      try { $r.secureBoot = [bool](Confirm-SecureBootUEFI -ErrorAction Stop) } catch { $r.secureBoot = $null }
+
+      # TPM
+      try {
+        $tpm = Get-Tpm -ErrorAction Stop
+        $r.tpmPresent = $tpm.TpmPresent
+        $r.tpmReady   = $tpm.TpmReady
+      } catch { $r.tpmPresent = $null; $r.tpmReady = $null }
+
+      # BitLocker
+      try {
+        $bl = Get-BitLockerVolume -MountPoint 'C:' -ErrorAction Stop
+        $r.bitlocker = if ($bl.ProtectionStatus -eq 'On') { 'on' } else { 'off' }
+      } catch { $r.bitlocker = $null }
+
+      # HVCI / VBS
+      try {
+        $dg = Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\DeviceGuard' -ErrorAction Stop
+        $r.hvciEnabled = $dg.HypervisorEnforcedCodeIntegrity -eq 1
+        $r.vbsEnabled  = $dg.EnableVirtualizationBasedSecurity -eq 1
+      } catch { $r.hvciEnabled = $null; $r.vbsEnabled = $null }
+
+      # UAC
+      try {
+        $uac = Get-ItemProperty 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' -ErrorAction Stop
+        $r.uacEnabled = $uac.EnableLUA -eq 1
+        $r.uacLevel   = [int]$uac.ConsentPromptBehaviorAdmin
+      } catch { $r.uacEnabled = $null; $r.uacLevel = $null }
+
+      # RDP
+      try {
+        $rdp = Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Terminal Server' -Name fDenyTSConnections -ErrorAction Stop
+        $r.rdpEnabled = $rdp.fDenyTSConnections -eq 0
+      } catch { $r.rdpEnabled = $null }
+
+      # Remote Assistance
+      try {
+        $ra = Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Remote Assistance' -Name fAllowToGetHelp -ErrorAction Stop
+        $r.remoteAssistance = $ra.fAllowToGetHelp -eq 1
+      } catch { $r.remoteAssistance = $null }
+
+      # SMBv1
+      try {
+        $smb = Get-WindowsOptionalFeature -Online -FeatureName 'SMB1Protocol' -ErrorAction Stop
+        $r.smbv1Enabled = ($smb.State -eq 'Enabled')
+      } catch {
+        try {
+          $smbReg = Get-ItemProperty 'HKLM:\\SYSTEM\\CurrentControlSet\\Services\\LanmanServer\\Parameters' -Name SMB1 -ErrorAction Stop
+          $r.smbv1Enabled = $smbReg.SMB1 -ne 0
+        } catch { $r.smbv1Enabled = $null }
+      }
+
+      # Guest account
+      try {
+        $guest = Get-LocalUser -Name 'Guest' -ErrorAction Stop
+        $r.guestAccountEnabled = $guest.Enabled
+      } catch { $r.guestAccountEnabled = $null }
+
+      # Proxy
+      try {
+        $proxy = Get-ItemProperty 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings' -ErrorAction Stop
+        $r.proxyEnabled = $proxy.ProxyEnable -eq 1
+      } catch { $r.proxyEnabled = $null }
+
+      # Windows Update service
+      try {
+        $wu = Get-Service -Name wuauserv -ErrorAction Stop
+        $r.windowsUpdateRunning = ($wu.Status -eq 'Running')
+      } catch { $r.windowsUpdateRunning = $null }
+
+      # Hosts file
+      try {
+        $hostsPath = "$env:WINDIR\\System32\\drivers\\etc\\hosts"
+        $lines = Get-Content $hostsPath -ErrorAction Stop
+        $suspicious = @($lines | Where-Object { $_ -notmatch '^\\s*#' -and $_.Trim() -ne '' -and $_ -notmatch 'localhost' })
+        $r.hostsModified      = $suspicious.Count -gt 0
+        $r.hostsSuspiciousCount = $suspicious.Count
+      } catch { $r.hostsModified = $null; $r.hostsSuspiciousCount = 0 }
+
+      $r | ConvertTo-Json -Compress
+    `;
+    const raw = await runPowerShell(cmd, 30000);
+    const data = JSON.parse(raw);
+    console.log(`[Security] getAdvancedAudit OK | secureBoot=${data.secureBoot} rdp=${data.rdpEnabled} hvci=${data.hvciEnabled}`);
+    return { available: true, data };
+  } catch (err) {
+    console.warn(`[Security] getAdvancedAudit ERROR: ${err?.message}`);
+    return { available: false, reason: 'error', error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:getProcessDetails
+// Enriched process list: path, trust classification by location
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:getProcessDetails', async () => {
+  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  try {
+    const cmd = `
+      $cimMap = @{}
+      Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | ForEach-Object { $cimMap[$_.ProcessId] = $_ }
+
+      $procs = Get-Process -ErrorAction SilentlyContinue |
+        Where-Object { $_.CPU -ne $null } |
+        Sort-Object CPU -Descending |
+        Select-Object -First 30
+
+      $result = foreach ($p in $procs) {
+        $exePath = $null
+        try { $exePath = $p.MainModule.FileName } catch {}
+        $cim = $cimMap[$p.Id]
+        [PSCustomObject]@{
+          Name      = $p.Name
+          Pid       = $p.Id
+          CpuSec    = [Math]::Round($p.CPU, 2)
+          MemMb     = [Math]::Round($p.WorkingSet64/1MB, 1)
+          Path      = $exePath
+          ParentPid = $cim?.ParentProcessId
+        }
+      }
+      $result | ConvertTo-Json -Compress
+    `;
+    const raw = await runPowerShell(cmd, 20000);
+    const items = safeParsePsJson(raw);
+    if (!items) return { available: false, reason: 'parse-error' };
+
+    const SUSPICIOUS_PATH_PATTERNS = [
+      /\\AppData\\Local\\Temp\\/i,
+      /\\AppData\\Roaming\\/i,
+      /\\Users\\[^\\]+\\Downloads\\/i,
+      /\\Users\\[^\\]+\\Desktop\\/i,
+      /\\ProgramData\\[^\\]+\\Temp\\/i,
+    ];
+    const SAFE_PATH_PREFIXES = [
+      /^C:\\Windows\\/i,
+      /^C:\\Program Files\\/i,
+      /^C:\\Program Files \(x86\)\\/i,
+    ];
+
+    const processes = items.filter(p => p && p.Name).map(p => {
+      const classification = classifyProcess(p.Name);
+      const exePath = p.Path || null;
+
+      let trustState = 'unknown';
+      let suspiciousLocation = false;
+
+      if (exePath) {
+        const isSafe = SAFE_PATH_PREFIXES.some(r => r.test(exePath));
+        const isSuspicious = SUSPICIOUS_PATH_PATTERNS.some(r => r.test(exePath));
+        suspiciousLocation = isSuspicious;
+        if (isSafe) {
+          trustState = 'trusted';
+        } else if (isSuspicious) {
+          trustState = 'suspicious';
+        } else {
+          trustState = 'review';
+        }
+      }
+
+      // Known system process names always trusted
+      const sysProcs = ['svchost', 'system', 'wininit', 'csrss', 'lsass', 'services', 'dwm', 'winlogon', 'smss', 'registry'];
+      if (sysProcs.includes(p.Name.toLowerCase().replace(/\.exe$/i, ''))) {
+        trustState = 'trusted';
+        suspiciousLocation = false;
+      }
+
+      const gamingImpactMap = { launcher: 'high', overlay: 'medium', browser: 'medium', updater: 'low', security: 'low', system: 'low' };
+
+      return {
+        name: p.Name,
+        pid: p.Pid || 0,
+        cpuSec: p.CpuSec ?? null,
+        memMb: p.MemMb ?? null,
+        path: exePath,
+        parentPid: p.ParentPid ?? null,
+        ...classification,
+        trustState,
+        suspiciousLocation,
+        gamingImpact: gamingImpactMap[classification.category] || 'low',
+        signed: null,
+        signerName: null,
+        publisher: null,
+        elevated: null,
+      };
+    });
+
+    console.log(`[Security] getProcessDetails OK | count=${processes.length} suspicious=${processes.filter(p => p.suspiciousLocation).length}`);
+    return { available: true, data: processes };
+  } catch (err) {
+    console.warn(`[Security] getProcessDetails ERROR: ${err?.message}`);
+    return { available: false, reason: 'error', error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:getScheduledTasks
+// Non-Windows scheduled tasks filtered for suspicious entries
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:getScheduledTasks', async () => {
+  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  try {
+    const cmd = `
+      $tasks = Get-ScheduledTask -ErrorAction SilentlyContinue |
+        Where-Object { $_.TaskPath -notlike '\\Microsoft\\Windows\\*' -and $_.State -ne 'Disabled' }
+      $result = foreach ($t in $tasks) {
+        $action = $t.Actions | Select-Object -First 1
+        [PSCustomObject]@{
+          Name      = $t.TaskName
+          Path      = $t.TaskPath
+          State     = $t.State.ToString()
+          Execute   = $action?.Execute
+          Arguments = $action?.Arguments
+        }
+      }
+      if ($result) { $result | ConvertTo-Json -Compress } else { '[]' }
+    `;
+    const raw = await runPowerShell(cmd, 20000);
+    const items = safeParsePsJson(raw);
+    if (!items) return { available: true, data: [] };
+
+    const SUSPICIOUS_TASK_PATTERNS = [
+      /\\AppData\\Local\\Temp\\/i,
+      /\\AppData\\Roaming\\/i,
+      /\\Users\\[^\\]+\\Downloads\\/i,
+      /\.tmp$/i,
+      /regsvr32|rundll32.*\.tmp|mshta|wscript|cscript/i,
+    ];
+
+    const tasks = items.filter(t => t && t.Name).map(t => {
+      const suspicious = SUSPICIOUS_TASK_PATTERNS.some(r =>
+        r.test(t.Execute || '') || r.test(t.Arguments || '')
+      );
+      return { ...t, suspicious };
+    });
+
+    const suspicious = tasks.filter(t => t.suspicious);
+    console.log(`[Security] getScheduledTasks OK | total=${tasks.length} suspicious=${suspicious.length}`);
+    return { available: true, data: { tasks, suspicious } };
+  } catch (err) {
+    console.warn(`[Security] getScheduledTasks ERROR: ${err?.message}`);
+    return { available: false, reason: 'error', error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:getServices
+// Running services — filtered for suspicious binary paths
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:getServices', async () => {
+  if (process.platform !== 'win32') return { available: false, reason: 'not-windows' };
+  try {
+    const cmd = `
+      Get-CimInstance Win32_Service -ErrorAction SilentlyContinue |
+        Where-Object { $_.StartMode -ne 'Disabled' -and $_.State -eq 'Running' -and $_.PathName -ne $null } |
+        Select-Object Name, DisplayName, StartMode, State, PathName, StartName |
+        ConvertTo-Json -Compress
+    `;
+    const raw = await runPowerShell(cmd, 20000);
+    const items = safeParsePsJson(raw);
+    if (!items) return { available: true, data: { services: [], suspicious: [] } };
+
+    const SAFE_SERVICE_PATHS = [
+      /^C:\\Windows\\/i,
+      /^C:\\Program Files\\/i,
+      /^C:\\Program Files \(x86\)\\/i,
+    ];
+    const SUSPICIOUS_SERVICE_PATTERNS = [
+      /\\AppData\\Local\\Temp\\/i,
+      /\\AppData\\Roaming\\/i,
+      /\\Users\\[^\\]+\\Downloads\\/i,
+    ];
+
+    const services = items.filter(s => s && s.Name).map(s => {
+      const pathStr = s.PathName || '';
+      const exeMatch = pathStr.match(/^(?:"([^"]+)"|([^\s]+))/);
+      const exePath = exeMatch ? (exeMatch[1] || exeMatch[2]) : pathStr;
+
+      const isSafe = SAFE_SERVICE_PATHS.some(r => r.test(exePath));
+      const isSusp = SUSPICIOUS_SERVICE_PATTERNS.some(r => r.test(exePath));
+      const suspicious = !isSafe || isSusp;
+
+      return {
+        name: s.Name,
+        displayName: s.DisplayName,
+        startMode: s.StartMode,
+        state: s.State,
+        path: exePath,
+        startName: s.StartName,
+        suspicious: suspicious && isSusp,
+      };
+    });
+
+    const suspicious = services.filter(s => s.suspicious);
+    console.log(`[Security] getServices OK | total=${services.length} suspicious=${suspicious.length}`);
+    return { available: true, data: { services: suspicious.slice(0, 50), suspicious } };
+  } catch (err) {
+    console.warn(`[Security] getServices ERROR: ${err?.message}`);
+    return { available: false, reason: 'error', error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:openProcessLocation
+// Opens the folder containing a process executable in Explorer
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:openProcessLocation', async (event, filePath) => {
+  if (!filePath || typeof filePath !== 'string') return { ok: false, reason: 'invalid-path' };
+  try {
+    shell.showItemInFolder(filePath);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:openStartupLocation
+// Opens the folder containing a startup item executable in Explorer
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:openStartupLocation', async (event, command) => {
+  if (!command || typeof command !== 'string') return { ok: false, reason: 'invalid-command' };
+  try {
+    // Extract the executable path from the command string
+    const match = command.match(/^(?:"([^"]+)"|([^\s]+))/);
+    const exePath = match ? (match[1] || match[2]) : command;
+    const dir = path.dirname(exePath);
+    shell.openPath(dir);
+    return { ok: true, dir };
   } catch (err) {
     return { ok: false, error: err?.message };
   }

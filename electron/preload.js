@@ -129,6 +129,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getAllDisks:  () => ipcRenderer.invoke('system:getAllDisks'),
   },
 
+  // ── Security — system integrity data ────────────────────────────────────────
+  security: {
+    getStatus:            () => ipcRenderer.invoke('security:getStatus'),
+    getStartupApps:       () => ipcRenderer.invoke('security:getStartupApps'),
+    getTopProcesses:      () => ipcRenderer.invoke('security:getTopProcesses'),
+    getAdvancedProtection: () => ipcRenderer.invoke('security:getAdvancedProtection'),
+    getAdvancedAudit:     () => ipcRenderer.invoke('security:getAdvancedAudit'),
+    getProcessDetails:    () => ipcRenderer.invoke('security:getProcessDetails'),
+    getScheduledTasks:    () => ipcRenderer.invoke('security:getScheduledTasks'),
+    getServices:          () => ipcRenderer.invoke('security:getServices'),
+    openProcessLocation:  (filePath) => {
+      assertString(filePath, 'filePath');
+      return ipcRenderer.invoke('security:openProcessLocation', filePath);
+    },
+    openStartupLocation:  (command) => {
+      assertString(command, 'command');
+      return ipcRenderer.invoke('security:openStartupLocation', command);
+    },
+  },
+
   telemetry: {
     getLive:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getLive', selectedDiskMount),
     getEnhanced:          () => ipcRenderer.invoke('telemetry:getEnhanced'),
@@ -137,12 +157,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getGpu:               () => ipcRenderer.invoke('telemetry:getGpu'),
     getDisk:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getDisk', selectedDiskMount),
     getHardwareTelemetry: () => ipcRenderer.invoke('telemetry:getHardwareTelemetry'),
-  },
-
-  security: {
-    getStatus:       () => ipcRenderer.invoke('security:getStatus'),
-    getStartupApps:  () => ipcRenderer.invoke('security:getStartupApps'),
-    getTopProcesses: () => ipcRenderer.invoke('security:getTopProcesses'),
   },
 
   // ── Packaged config store — persisted secrets (e.g. OPENAI_API_KEY) ─────────

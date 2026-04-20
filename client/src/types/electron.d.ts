@@ -193,6 +193,25 @@ declare global {
         install: () => Promise<boolean>;
         onEvent: (callback: (payload: { event: string; state: UpdaterState }) => void) => () => void;
       };
+
+      security: {
+        getStatus: () => Promise<{ available: boolean; data?: any; reason?: string }>;
+        getStartupApps: () => Promise<{ available: boolean; data?: any[]; reason?: string }>;
+        getTopProcesses: () => Promise<{ available: boolean; data?: any[]; reason?: string }>;
+        getAdvancedProtection: () => Promise<{ available: boolean; data?: any; reason?: string }>;
+        getAdvancedAudit: () => Promise<{ available: boolean; data?: any; reason?: string }>;
+        getProcessDetails: () => Promise<{ available: boolean; data?: any[]; reason?: string }>;
+        getScheduledTasks: () => Promise<{ available: boolean; data?: any; reason?: string }>;
+        getServices: () => Promise<{ available: boolean; data?: any; reason?: string }>;
+        openProcessLocation: (filePath: string) => Promise<{ ok: boolean; error?: string }>;
+        openStartupLocation: (command: string) => Promise<{ ok: boolean; dir?: string; error?: string }>;
+      };
+
+      startup: {
+        setEnabled: (params: { name: string; registryKey: string; enabled: boolean }) => Promise<{ ok: boolean; name?: string; enabled?: boolean; error?: string }>;
+        setDelay: (params: { name: string; executable: string; delayIso: string; registryKey: string }) => Promise<{ ok: boolean; taskName?: string; action?: string; error?: string }>;
+        verifyState: (params: { name: string; registryKey: string }) => Promise<{ ok: boolean; state?: string; error?: string }>;
+      };
     };
   }
 }

@@ -8,20 +8,29 @@ import { Progress } from "@/components/ui/progress";
 import { useAuthStore } from "@/lib/auth-store";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
-import { AnimatePresence } from "framer-motion";
-import { motion, useMotion, Reveal } from "@/lib/motion";
+import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import {
   Shield, ShieldCheck, ShieldAlert, ShieldOff,
   Scan, Zap, CheckCircle2, AlertTriangle, AlertCircle, Info,
   RefreshCw, X, Eye, Cpu, MonitorPlay,
-  Play, Loader2, Clock, ChevronRight, ImageIcon,
+  Play, Loader2, Clock, ImageIcon, Server, List,
+  Activity, Lock, ChevronRight, BarChart2,
 } from "lucide-react";
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip,
+  ResponsiveContainer, AreaChart, Area,
+} from "recharts";
+import { SecurityStartupTab } from "@/components/security/SecurityStartupTab";
+import { SecurityProcessesTab } from "@/components/security/SecurityProcessesTab";
+import { SecurityAuditTab } from "@/components/security/SecurityAuditTab";
 
 const CLOUD_API_BASE = "https://switchcontrol.org/api";
+const HISTORY_KEY = "sc_security_history";
+const MAX_HISTORY = 50;
 
-// ── Local types ──────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
-interface SecurityStatus {
+export interface SecurityStatus {
   realtimeProtection: boolean | null;
   tamperProtection: boolean | null;
   firewallEnabled: boolean | null;
@@ -34,7 +43,20 @@ interface SecurityStatus {
   source: "electron" | "partial" | "unavailable";
 }
 
-interface StartupItem {
+export interface AdvancedProtection {
+  cloudProtection: boolean | null;
+  sampleSubmission: boolean | null;
+  controlledFolderAccess: boolean | null;
+  puaProtection: boolean | null;
+  smartScreen: boolean | null;
+  signatureVersion: string | null;
+  signatureAge: number | null;
+  quickScanAge: number | null;
+  fullScanAge: number | null;
+  defenderServiceRunning: boolean | null;
+}
+
+export interface StartupItem {
   name: string;
   command: string;
   location: string;
@@ -44,28 +66,37 @@ interface StartupItem {
   recommendation: "keep" | "review" | "disable";
 }
 
-interface ProcessItem {
+export interface ProcessTrustItem {
   name: string;
   pid: number;
   cpuSec: number | null;
   memMb: number | null;
+  path: string | null;
+  parentPid: number | null;
   category: string;
   impact: "low" | "medium" | "high";
+  trustState: "trusted" | "review" | "suspicious" | "unknown";
+  suspiciousLocation: boolean;
+  gamingImpact: "low" | "medium" | "high";
+  signed: boolean | null;
+  signerName: string | null;
+  publisher: string | null;
+  elevated: boolean | null;
 }
 
-interface SecurityRecommendation {
+export interface SecurityRecommendation {
   id: string;
   title: string;
   summary: string;
   severity: "info" | "low" | "medium" | "high";
-  category: "protection" | "startup" | "performance" | "configuration";
+  category: "protection" | "startup" | "performance" | "configuration" | "trust" | "persistence" | "remote surface";
   performanceImpact: "none" | "low" | "medium" | "high";
   securityImpact: "none" | "low" | "medium" | "high";
   actionLabel: string | null;
   actionType: "info" | "review" | "disable" | "external";
 }
 
-interface ScanSummary {
+export interface ScanSummary {
   threatCount: number;
   startupIssues: number;
   backgroundIssues: number;
@@ -73,99 +104,627 @@ interface ScanSummary {
   systemState: "secure" | "attention" | "optimize";
 }
 
-interface ImageFinding {
+export interface ScanHistoryEntry {
+  timestamp: string;
+  healthScore: number;
+  protectionScore: number;
+  startupIssueCount: number;
+  backgroundIssueCount: number;
+  suspiciousItemCount: number;
+  processCount: number;
+  backgroundCpu: number;
+  ramPressure: number;
+}
+
+export interface SecurityChange {
+  type: string;
   title: string;
+  timestamp: string;
   severity: "info" | "low" | "medium" | "high";
   description: string;
 }
 
-interface ImageAnalysisResult {
-  analysisType: string;
-  findings: ImageFinding[];
-  recommendations: string[];
-  rawAnalysis: string;
-}
+interface ImageFinding { title: string; severity: "info"|"low"|"medium"|"high"; description: string; }
+interface ImageAnalysisResult { analysisType: string; findings: ImageFinding[]; recommendations: string[]; rawAnalysis: string; }
+
+type Tab = "overview" | "protection" | "startup" | "processes" | "audit";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const delay = (ms: number) => new Promise<void>(res => setTimeout(res, ms));
-
-function isElectronWithSecurity(): boolean {
-  return typeof window !== "undefined" && !!(window as any).electronAPI?.security;
-}
-
+const isElectronWithSecurity = () => typeof window !== "undefined" && !!(window as any).electronAPI?.security;
 const eAPI = () => (window as any).electronAPI;
 
 const SCAN_STAGES = [
   "Checking protection status",
+  "Fetching extended Defender data",
   "Inspecting startup entries",
-  "Evaluating background processes",
-  "Measuring performance cost",
+  "Evaluating running processes",
   "Building recommendations",
 ];
 
-const SEVERITY_CONFIG = {
+export const SEVERITY_CONFIG = {
   info:   { color: "text-blue-400",   bg: "bg-blue-500/15 border-blue-500/25",     label: "Info",   Icon: Info },
   low:    { color: "text-amber-400",  bg: "bg-amber-500/15 border-amber-500/25",   label: "Low",    Icon: AlertCircle },
   medium: { color: "text-orange-400", bg: "bg-orange-500/15 border-orange-500/25", label: "Medium", Icon: AlertTriangle },
   high:   { color: "text-red-400",    bg: "bg-red-500/15 border-red-500/25",       label: "High",   Icon: ShieldAlert },
 } as const;
 
-const IMPACT_COLORS = {
-  none:   "text-muted-foreground",
-  low:    "text-emerald-400",
-  medium: "text-amber-400",
-  high:   "text-red-400",
-};
-
-function formatDate(iso: string | null): string {
+export function formatDate(iso: string | null): string {
   if (!iso) return "Never";
   try { return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); }
   catch { return "Unknown"; }
 }
 
-function formatCpu(cpuSec: number | null): string {
-  if (cpuSec === null || cpuSec === undefined) return "—";
-  if (cpuSec < 60) return `${cpuSec.toFixed(1)}s`;
-  return `${(cpuSec / 60).toFixed(1)}m`;
+function loadHistory(): ScanHistoryEntry[] {
+  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); }
+  catch { return []; }
 }
 
-// ── StatusRow ────────────────────────────────────────────────────────────────
+function saveHistory(entries: ScanHistoryEntry[]) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(-MAX_HISTORY))); }
+  catch {}
+}
 
-function StatusRow({ label, value, state }: { label: string; value: string; state: "ok" | "warn" | "off" | "unknown" }) {
-  const stateConfig = {
-    ok:      { cls: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" },
-    warn:    { cls: "bg-amber-500/20 text-amber-400 border-amber-500/30",       dot: "bg-amber-400" },
-    off:     { cls: "bg-red-500/20 text-red-400 border-red-500/30",             dot: "bg-red-400" },
-    unknown: { cls: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",          dot: "bg-zinc-500" },
-  }[state];
+function detectChanges(prev: ScanHistoryEntry | null, curr: ScanHistoryEntry): SecurityChange[] {
+  if (!prev) return [];
+  const changes: SecurityChange[] = [];
+  const ts = new Date().toISOString();
+  if (prev.protectionScore !== curr.protectionScore && curr.protectionScore < prev.protectionScore) {
+    changes.push({ type: "defender_changed", title: "Protection score decreased", timestamp: ts, severity: "high", description: "A security control may have been disabled or degraded." });
+  }
+  if (prev.startupIssueCount < curr.startupIssueCount) {
+    changes.push({ type: "startup_added", title: "New startup items detected", timestamp: ts, severity: "medium", description: `Startup issue count increased from ${prev.startupIssueCount} to ${curr.startupIssueCount}.` });
+  }
+  if (prev.suspiciousItemCount < curr.suspiciousItemCount) {
+    changes.push({ type: "process_new_unsigned", title: "New suspicious processes detected", timestamp: ts, severity: "high", description: `${curr.suspiciousItemCount - prev.suspiciousItemCount} new suspicious process(es) appeared.` });
+  }
+  if (prev.healthScore > curr.healthScore + 5) {
+    changes.push({ type: "score_drop", title: "Health score dropped", timestamp: ts, severity: "medium", description: `Score fell from ${prev.healthScore} to ${curr.healthScore}.` });
+  }
+  return changes;
+}
+
+// ── Components ───────────────────────────────────────────────────────────────
+
+export function StatusRow({ label, value, state }: { label: string; value: string; state: "ok"|"warn"|"off"|"unknown" }) {
+  const cfg = { ok: { cls: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" }, warn: { cls: "bg-amber-500/20 text-amber-400 border-amber-500/30", dot: "bg-amber-400" }, off: { cls: "bg-red-500/20 text-red-400 border-red-500/30", dot: "bg-red-400" }, unknown: { cls: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30", dot: "bg-zinc-500" } }[state];
   return (
     <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
-      <Badge variant="outline" className={cn("font-medium text-xs gap-1.5", stateConfig.cls)}>
-        <span className={cn("size-1.5 rounded-full", stateConfig.dot)} />
+      <Badge variant="outline" className={cn("font-medium text-xs gap-1.5", cfg.cls)}>
+        <span className={cn("size-1.5 rounded-full", cfg.dot)} />
         {value}
       </Badge>
     </div>
   );
 }
 
-// ── HealthScoreRing ───────────────────────────────────────────────────────────
-
 function HealthScoreRing({ score, state }: { score: number; state: ScanSummary["systemState"] }) {
   const color = state === "secure" ? "#34d399" : state === "optimize" ? "#f59e0b" : "#f87171";
   const r = 36; const circ = 2 * Math.PI * r;
-  const offset = circ - (score / 100) * circ;
   return (
     <svg width="96" height="96" viewBox="0 0 96 96" className="rotate-[-90deg] shrink-0">
       <circle cx="48" cy="48" r={r} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="8" />
       <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="8" strokeLinecap="round"
-        strokeDasharray={circ} strokeDashoffset={offset} style={{ transition: "stroke-dashoffset 0.8s ease" }} />
+        strokeDasharray={circ} strokeDashoffset={circ - (score / 100) * circ}
+        style={{ transition: "stroke-dashoffset 0.8s ease" }} />
       <text x="48" y="52" textAnchor="middle" fontSize="18" fontWeight="600" fill={color}
         style={{ transform: "rotate(90deg)", transformOrigin: "48px 48px" }}>{score}</text>
     </svg>
   );
 }
+
+function PostureBar({ label, score, color }: { label: string; score: number; color: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex justify-between text-xs">
+        <span className="text-muted-foreground">{label}</span>
+        <span className={color}>{score}</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+        <motion.div className={cn("h-full rounded-full", color.replace("text-", "bg-"))}
+          initial={{ width: 0 }} animate={{ width: `${score}%` }}
+          transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
+      </div>
+    </div>
+  );
+}
+
+function MiniLineChart({ data, dataKey, color }: { data: any[]; dataKey: string; color: string }) {
+  if (data.length < 2) return (
+    <div className="flex items-center justify-center h-24 text-xs text-muted-foreground/50">Not enough history</div>
+  );
+  return (
+    <ResponsiveContainer width="100%" height={80}>
+      <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id={`grad-${dataKey}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+            <stop offset="95%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <XAxis dataKey="label" hide />
+        <YAxis domain={[0, 100]} hide />
+        <Tooltip contentStyle={{ background: "rgba(0,0,0,0.8)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, fontSize: 11 }}
+          itemStyle={{ color }} labelStyle={{ color: "rgba(255,255,255,0.5)" }} />
+        <Area type="monotone" dataKey={dataKey} stroke={color} strokeWidth={1.5}
+          fill={`url(#grad-${dataKey})`} dot={false} />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+// ── OverviewTab ───────────────────────────────────────────────────────────────
+
+function OverviewTab({
+  scanSummary, healthScore, systemState, stateColor, stateLabel,
+  scanHistory, recentChanges, recommendations, scanStatus,
+  advancedProtection, startupItems, processTrust,
+}: {
+  scanSummary: ScanSummary | null;
+  healthScore: number | null;
+  systemState: ScanSummary["systemState"];
+  stateColor: string;
+  stateLabel: string;
+  scanHistory: ScanHistoryEntry[];
+  recentChanges: SecurityChange[];
+  recommendations: SecurityRecommendation[];
+  scanStatus: string;
+  advancedProtection: AdvancedProtection | null;
+  startupItems: StartupItem[];
+  processTrust: ProcessTrustItem[];
+}) {
+  const chartData = scanHistory.slice(-20).map((e, i) => ({
+    label: new Date(e.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+    health: e.healthScore,
+    cpu: Math.round(e.backgroundCpu),
+    ram: Math.round(e.ramPressure),
+  }));
+
+  const highIssues = recommendations.filter(r => r.severity === "high" || r.severity === "medium").slice(0, 5);
+
+  const protectionScore = scanSummary
+    ? Math.max(0, 100 - (scanSummary.threatCount * 30))
+    : advancedProtection
+    ? (advancedProtection.defenderServiceRunning ? 50 : 0) + (advancedProtection.cloudProtection ? 15 : 0) + (advancedProtection.signatureAge !== null && advancedProtection.signatureAge < 3 ? 20 : 0) + (advancedProtection.smartScreen ? 15 : 0)
+    : 0;
+
+  const startupScore = scanSummary
+    ? Math.max(0, 100 - scanSummary.startupIssues * 12)
+    : startupItems.length === 0 ? 100 : Math.max(0, 100 - startupItems.filter(i => i.recommendation !== "keep").length * 12);
+
+  const bgScore = scanSummary
+    ? Math.max(0, 100 - scanSummary.backgroundIssues * 15)
+    : processTrust.length === 0 ? 100 : Math.max(0, 100 - processTrust.filter(p => p.suspiciousLocation).length * 15);
+
+  const configScore = healthScore ?? 0;
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-5">
+      {/* Left column */}
+      <div className="flex flex-col gap-4">
+        {/* Health Score */}
+        <GlassCard className="p-5" data-testid="card-health-score">
+          <div className="flex items-center gap-2 mb-4">
+            <Zap className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">System Health Score</h3>
+          </div>
+          <AnimatePresence mode="wait">
+            {healthScore !== null && scanSummary ? (
+              <motion.div key="health-data" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-6">
+                <HealthScoreRing score={healthScore} state={systemState} />
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <p className={cn("text-lg font-bold", stateColor)}>{stateLabel}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {systemState === "secure" ? "Your system is well-configured for gaming."
+                      : systemState === "attention" ? "Security issues require your attention."
+                      : "Performance optimizations are available."}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: "Threats",    value: String(scanSummary.threatCount),          bad: scanSummary.threatCount > 0 },
+                      { label: "Startup",    value: `${scanSummary.startupIssues} to review`, bad: scanSummary.startupIssues > 0 },
+                      { label: "Background", value: `${scanSummary.backgroundIssues} heavy`,  bad: scanSummary.backgroundIssues > 0 },
+                      { label: "Score",      value: `${healthScore}/100`,                     bad: healthScore < 60 },
+                    ].map(item => (
+                      <div key={item.label} className="bg-white/[0.03] rounded-lg p-2.5">
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
+                        <p className={cn("text-sm font-semibold mt-0.5", item.bad ? "text-amber-400" : "text-foreground")}>{item.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div key="health-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-4 py-4">
+                <div className="w-24 h-24 rounded-full border-[3px] border-white/10 flex items-center justify-center shrink-0">
+                  <Zap className="size-8 opacity-20" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">No data yet</p>
+                  <p className="text-xs text-muted-foreground mt-1">Run a scan to calculate your system health score.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </GlassCard>
+
+        {/* Posture Breakdown */}
+        <GlassCard className="p-5" data-testid="card-posture-breakdown">
+          <div className="flex items-center gap-2 mb-4">
+            <BarChart2 className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Security Posture Breakdown</h3>
+          </div>
+          <div className="space-y-3">
+            <PostureBar label="Protection" score={protectionScore} color="text-emerald-400" />
+            <PostureBar label="Startup hygiene" score={startupScore} color="text-cyan-400" />
+            <PostureBar label="Background processes" score={bgScore} color="text-violet-400" />
+            <PostureBar label="Configuration" score={configScore} color="text-amber-400" />
+          </div>
+          <p className="text-[10px] text-muted-foreground/50 mt-3">Based on last completed scan</p>
+        </GlassCard>
+
+        {/* Health trend */}
+        <GlassCard className="p-5" data-testid="card-health-trend">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Health Score Trend</h3>
+            <span className="ml-auto text-[10px] text-muted-foreground/50">Last {Math.min(chartData.length, 20)} scans</span>
+          </div>
+          <MiniLineChart data={chartData} dataKey="health" color="#34d399" />
+        </GlassCard>
+
+        {/* Background Load */}
+        {chartData.length >= 2 && (
+          <GlassCard className="p-5" data-testid="card-bg-load-trend">
+            <div className="flex items-center gap-2 mb-3">
+              <Cpu className="size-4 text-primary" />
+              <h3 className="font-semibold text-sm">Background Load Trend</h3>
+            </div>
+            <MiniLineChart data={chartData} dataKey="cpu" color="#818cf8" />
+          </GlassCard>
+        )}
+      </div>
+
+      {/* Right column */}
+      <div className="flex flex-col gap-4">
+        {/* Priority Issues */}
+        <GlassCard className="p-5" data-testid="card-priority-issues">
+          <div className="flex items-center gap-2 mb-3">
+            <ShieldAlert className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Priority Issues</h3>
+            {highIssues.length > 0 && <Badge variant="outline" className="ml-auto text-xs text-red-400 border-red-500/30 bg-red-500/10">{highIssues.length}</Badge>}
+          </div>
+          {highIssues.length === 0 ? (
+            <div className="text-center py-5 text-muted-foreground text-xs">
+              <CheckCircle2 className="size-7 mx-auto opacity-30 mb-2 text-emerald-400" />
+              {scanStatus === "complete" ? "No critical issues found" : "Run a scan to detect issues"}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {highIssues.map(rec => {
+                const cfg = SEVERITY_CONFIG[rec.severity as keyof typeof SEVERITY_CONFIG];
+                return (
+                  <div key={rec.id} className={cn("p-3 rounded-lg border text-xs", cfg.bg)}>
+                    <div className="flex items-start gap-2">
+                      <cfg.Icon className={cn("size-3.5 mt-0.5 shrink-0", cfg.color)} />
+                      <div>
+                        <p className={cn("font-medium", cfg.color)}>{rec.title}</p>
+                        <p className="text-muted-foreground mt-0.5 line-clamp-2">{rec.summary}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </GlassCard>
+
+        {/* Recent Changes */}
+        <GlassCard className="p-5" data-testid="card-recent-changes">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Recent Changes</h3>
+          </div>
+          {recentChanges.length === 0 ? (
+            <p className="text-xs text-muted-foreground/60 text-center py-4">
+              {scanHistory.length < 2 ? "Run multiple scans to see change detection" : "No notable changes detected"}
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {recentChanges.map((c, i) => {
+                const cfg = SEVERITY_CONFIG[c.severity as keyof typeof SEVERITY_CONFIG];
+                return (
+                  <div key={i} className={cn("p-2.5 rounded-lg border text-xs", cfg.bg)}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <cfg.Icon className={cn("size-3 shrink-0", cfg.color)} />
+                      <p className={cn("font-medium", cfg.color)}>{c.title}</p>
+                    </div>
+                    <p className="text-muted-foreground">{c.description}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </GlassCard>
+
+        {/* All Recommendations */}
+        {recommendations.length > 0 && (
+          <GlassCard className="p-5" data-testid="card-recommendations">
+            <div className="flex items-center gap-2 mb-3">
+              <List className="size-4 text-primary" />
+              <h3 className="font-semibold text-sm">All Recommendations</h3>
+              <Badge variant="outline" className="ml-auto text-xs text-muted-foreground">{recommendations.length}</Badge>
+            </div>
+            <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+              {recommendations.map(rec => {
+                const cfg = SEVERITY_CONFIG[rec.severity as keyof typeof SEVERITY_CONFIG];
+                return (
+                  <div key={rec.id} className="flex items-start gap-2 py-1.5 border-b border-white/5 last:border-0">
+                    <cfg.Icon className={cn("size-3.5 mt-0.5 shrink-0", cfg.color)} />
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium truncate">{rec.title}</p>
+                      <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{rec.summary}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </GlassCard>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── ProtectionTab ─────────────────────────────────────────────────────────────
+
+function ProtectionTab({
+  securityStatus, advancedProtection, hasSecurity, scanning,
+  onRefresh, onRefreshAdvanced,
+}: {
+  securityStatus: SecurityStatus | null;
+  advancedProtection: AdvancedProtection | null;
+  hasSecurity: boolean;
+  scanning: boolean;
+  onRefresh: () => void;
+  onRefreshAdvanced: () => void;
+}) {
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      {/* Core Defender Status */}
+      <GlassCard className="p-5" data-testid="card-defender-status">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Shield className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Defender Core Status</h3>
+          </div>
+          {hasSecurity && (
+            <Button variant="ghost" size="icon" className="size-7" disabled={scanning} onClick={onRefresh}>
+              <RefreshCw className={cn("size-3.5", scanning && "animate-spin")} />
+            </Button>
+          )}
+        </div>
+        {securityStatus ? (
+          <div className="space-y-0.5">
+            {[
+              { label: "Real-time Protection", v: securityStatus.realtimeProtection, yes: "Enabled", no: "Disabled" },
+              { label: "Firewall",             v: securityStatus.firewallEnabled,    yes: "Active",  no: "Off" },
+              { label: "Anti-spyware",         v: securityStatus.antispywareEnabled, yes: "Enabled", no: "Disabled" },
+              { label: "Tamper Protection",    v: securityStatus.tamperProtection,   yes: "On",      no: "Off" },
+            ].map(row => (
+              <StatusRow key={row.label} label={row.label}
+                value={row.v === true ? row.yes : row.v === false ? row.no : "Unknown"}
+                state={row.v === true ? "ok" : row.v === false ? (row.label === "Tamper Protection" ? "warn" : "off") : "unknown"}
+              />
+            ))}
+            {securityStatus.engineVersion && (
+              <div className="pt-2 mt-1 border-t border-white/5 text-xs text-muted-foreground flex justify-between">
+                <span>Engine</span><span className="font-mono text-[10px]">{securityStatus.engineVersion}</span>
+              </div>
+            )}
+            {securityStatus.lastQuickScan && (
+              <div className="text-xs text-muted-foreground flex justify-between">
+                <span>Last Quick Scan</span><span>{formatDate(securityStatus.lastQuickScan)}</span>
+              </div>
+            )}
+            {securityStatus.lastFullScan && (
+              <div className="text-xs text-muted-foreground flex justify-between">
+                <span>Last Full Scan</span><span>{formatDate(securityStatus.lastFullScan)}</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-muted-foreground text-sm">
+            <ShieldOff className="size-8 mx-auto opacity-30 mb-2" />
+            {hasSecurity ? "Run a scan to detect status" : "Available on Windows desktop"}
+          </div>
+        )}
+      </GlassCard>
+
+      {/* Advanced Protection */}
+      <GlassCard className="p-5" data-testid="card-advanced-protection">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Lock className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Advanced Protection</h3>
+          </div>
+          {hasSecurity && (
+            <Button variant="ghost" size="icon" className="size-7" disabled={scanning} onClick={onRefreshAdvanced}>
+              <RefreshCw className={cn("size-3.5", scanning && "animate-spin")} />
+            </Button>
+          )}
+        </div>
+        {advancedProtection ? (
+          <div className="space-y-0.5">
+            {[
+              { label: "Defender Service",        v: advancedProtection.defenderServiceRunning, yes: "Running", no: "Stopped" },
+              { label: "Cloud-delivered Protection", v: advancedProtection.cloudProtection,    yes: "On",      no: "Off" },
+              { label: "Sample Submission",        v: advancedProtection.sampleSubmission,       yes: "Enabled", no: "Disabled" },
+              { label: "Controlled Folder Access", v: advancedProtection.controlledFolderAccess, yes: "On",     no: "Off" },
+              { label: "PUA Protection",           v: advancedProtection.puaProtection,          yes: "Enabled", no: "Disabled" },
+              { label: "SmartScreen",              v: advancedProtection.smartScreen,            yes: "On",      no: "Off" },
+            ].map(row => (
+              <StatusRow key={row.label} label={row.label}
+                value={row.v === true ? row.yes : row.v === false ? row.no : "Unknown"}
+                state={row.v === true ? "ok" : row.v === false ? "off" : "unknown"}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-6 text-muted-foreground text-sm">
+            <Shield className="size-8 mx-auto opacity-30 mb-2" />
+            {hasSecurity ? "Run a Smart Scan to fetch advanced data" : "Available on Windows desktop"}
+          </div>
+        )}
+      </GlassCard>
+
+      {/* Protection Freshness */}
+      {advancedProtection && (
+        <GlassCard className="p-5 xl:col-span-2" data-testid="card-protection-freshness">
+          <div className="flex items-center gap-2 mb-4">
+            <Activity className="size-4 text-primary" />
+            <h3 className="font-semibold text-sm">Protection Freshness</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[
+              { label: "Signature Age", days: advancedProtection.signatureAge, warn: 3, critical: 7 },
+              { label: "Quick Scan Age", days: advancedProtection.quickScanAge, warn: 7, critical: 30 },
+              { label: "Full Scan Age",  days: advancedProtection.fullScanAge,  warn: 30, critical: 90 },
+            ].map(item => {
+              const val = item.days;
+              const color = val === null ? "text-zinc-400" : val >= item.critical ? "text-red-400" : val >= item.warn ? "text-amber-400" : "text-emerald-400";
+              const label = val === null ? "Unknown" : val === 0 ? "Today" : `${val} day${val !== 1 ? "s" : ""} ago`;
+              const rec = val !== null && val >= item.critical ? "Overdue — action recommended" : val !== null && val >= item.warn ? "Getting stale" : "Fresh";
+              return (
+                <div key={item.label} className="bg-white/[0.03] rounded-xl p-3">
+                  <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{item.label}</p>
+                  <p className={cn("text-xl font-bold", color)}>{label}</p>
+                  <p className={cn("text-xs mt-0.5", color)}>{rec}</p>
+                </div>
+              );
+            })}
+          </div>
+          {advancedProtection.signatureVersion && (
+            <p className="text-[11px] text-muted-foreground/50 mt-3">
+              Signature version: <span className="font-mono">{advancedProtection.signatureVersion}</span>
+            </p>
+          )}
+        </GlassCard>
+      )}
+
+      {/* Screenshot Analysis */}
+      <ScreenshotAnalysisCard />
+    </div>
+  );
+}
+
+// ── Screenshot Analysis (moved from top-level to Protection tab) ──────────────
+
+function ScreenshotAnalysisCard() {
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageBase64, setImageBase64] = useState<string | null>(null);
+  const [imageAnalyzing, setImageAnalyzing] = useState(false);
+  const [imageResult, setImageResult] = useState<ImageAnalysisResult | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!["image/jpeg","image/png","image/webp","image/gif"].includes(file.type)) { setImageError("Please upload JPEG, PNG, WebP, or GIF."); return; }
+    if (file.size > 5 * 1024 * 1024) { setImageError("Image must be under 5 MB."); return; }
+    setImageError(null); setImageResult(null); setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = ev => { const d = ev.target?.result as string; setImagePreview(d); setImageBase64(d.split(",")[1]); };
+    reader.readAsDataURL(file);
+  }, []);
+
+  const clear = useCallback(() => {
+    setImageFile(null); setImagePreview(null); setImageBase64(null); setImageResult(null); setImageError(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }, []);
+
+  const analyze = useCallback(async () => {
+    if (!imageBase64 || !imageFile || imageAnalyzing) return;
+    setImageAnalyzing(true); setImageError(null);
+    try {
+      const jwt = useAuthStore.getState().jwt;
+      const headers: Record<string,string> = { "Content-Type": "application/json" };
+      if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
+      const res = await fetch(`${CLOUD_API_BASE}/security/image-analysis`, {
+        method: "POST", headers, credentials: "include",
+        body: JSON.stringify({ imageData: imageBase64, imageType: imageFile.type, analysisType: "generic" }),
+      });
+      if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `Analysis failed (${res.status})`);
+      const d = await res.json();
+      setImageResult({ analysisType: d.analysisType ?? "generic", findings: d.findings ?? [], recommendations: d.recommendations ?? [], rawAnalysis: d.rawAnalysis ?? "" });
+    } catch (err: any) {
+      setImageError(err?.message ?? "Analysis failed.");
+    } finally {
+      setImageAnalyzing(false);
+    }
+  }, [imageBase64, imageFile, imageAnalyzing]);
+
+  return (
+    <GlassCard className="p-5" data-testid="card-image-analysis">
+      <div className="flex items-center gap-2 mb-3">
+        <Eye className="size-4 text-primary" />
+        <h3 className="font-semibold text-sm">Screenshot Analysis</h3>
+        <Badge variant="outline" className="ml-auto text-[10px] px-1.5 text-violet-400 border-violet-500/30 bg-violet-500/10">AI</Badge>
+      </div>
+      <p className="text-xs text-muted-foreground mb-3">Upload a Task Manager, Windows Security, or startup apps screenshot for AI analysis.</p>
+      {imagePreview ? (
+        <div className="space-y-3">
+          <div className="rounded-lg overflow-hidden border border-white/10"><img src={imagePreview} alt="Screenshot" className="w-full max-h-40 object-cover" /></div>
+          <div className="flex gap-2">
+            <Button className="flex-1 gap-2 text-sm" onClick={analyze} disabled={imageAnalyzing} data-testid="button-analyze-image">
+              {imageAnalyzing ? <><Loader2 className="size-3.5 animate-spin" />Analyzing…</> : <><Eye className="size-3.5" />Analyze</>}
+            </Button>
+            <Button variant="outline" size="icon" onClick={clear} className="shrink-0 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors" data-testid="button-clear-image"><X className="size-4" /></Button>
+          </div>
+          {imageError && <p className="text-xs text-red-400">{imageError}</p>}
+          {imageResult && (
+            <div className="space-y-2">
+              {imageResult.findings.slice(0, 3).map((f, i) => {
+                const cfg = SEVERITY_CONFIG[f.severity as keyof typeof SEVERITY_CONFIG] ?? SEVERITY_CONFIG.info;
+                return (
+                  <div key={i} className={cn("flex gap-2 p-2.5 rounded-lg border text-xs", cfg.bg)}>
+                    <cfg.Icon className={cn("size-3.5 mt-0.5 shrink-0", cfg.color)} />
+                    <div><p className={cn("font-medium", cfg.color)}>{f.title}</p><p className="text-muted-foreground mt-0.5">{f.description}</p></div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <button onClick={() => fileInputRef.current?.click()}
+          className="w-full border border-dashed border-white/15 rounded-xl py-6 flex flex-col items-center gap-2 text-muted-foreground hover:border-white/30 hover:bg-white/[0.02] transition-all"
+          data-testid="button-upload-screenshot">
+          <ImageIcon className="size-7 opacity-40" />
+          <span className="text-xs">Click to upload screenshot</span>
+          <span className="text-[10px] opacity-60">JPEG · PNG · WebP · max 5 MB</span>
+        </button>
+      )}
+      <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="hidden" onChange={handleFile} data-testid="input-screenshot-file" />
+    </GlassCard>
+  );
+}
+
+// ── Tab nav ───────────────────────────────────────────────────────────────────
+
+const TABS: { id: Tab; label: string; Icon: any }[] = [
+  { id: "overview",    label: "Overview",    Icon: BarChart2 },
+  { id: "protection",  label: "Protection",  Icon: Shield },
+  { id: "startup",     label: "Startup",     Icon: MonitorPlay },
+  { id: "processes",   label: "Processes",   Icon: Cpu },
+  { id: "audit",       label: "Audit",       Icon: Server },
+];
 
 // ── Main component ────────────────────────────────────────────────────────────
 
@@ -174,43 +733,44 @@ export default function Security() {
   const hasSecurity = isElectronWithSecurity();
   const { telemetry: liveTel } = useLiveTelemetry();
 
-  const [securityStatus,  setSecurityStatus]  = useState<SecurityStatus | null>(null);
-  const [startupItems,    setStartupItems]    = useState<StartupItem[]>([]);
-  const [topProcesses,    setTopProcesses]    = useState<ProcessItem[]>([]);
-  const [recommendations, setRecommendations] = useState<SecurityRecommendation[]>([]);
-  const [scanSummary,     setScanSummary]     = useState<ScanSummary | null>(null);
-  const [lastScan,        setLastScan]        = useState<Date | null>(null);
+  const [activeTab, setActiveTab] = useState<Tab>("overview");
+  const [securityStatus,    setSecurityStatus]    = useState<SecurityStatus | null>(null);
+  const [advancedProtection, setAdvancedProtection] = useState<AdvancedProtection | null>(null);
+  const [startupItems,      setStartupItems]      = useState<StartupItem[]>([]);
+  const [processTrust,      setProcessTrust]      = useState<ProcessTrustItem[]>([]);
+  const [recommendations,   setRecommendations]   = useState<SecurityRecommendation[]>([]);
+  const [scanSummary,       setScanSummary]       = useState<ScanSummary | null>(null);
+  const [lastScan,          setLastScan]          = useState<Date | null>(null);
+  const [scanHistory,       setScanHistory]       = useState<ScanHistoryEntry[]>(() => loadHistory());
+  const [recentChanges,     setRecentChanges]     = useState<SecurityChange[]>([]);
 
-  const [scanStatus, setScanStatus] = useState<"idle" | "scanning" | "complete" | "error">("idle");
+  const [scanStatus, setScanStatus] = useState<"idle"|"scanning"|"complete"|"error">("idle");
   const [scanStage,  setScanStage]  = useState(0);
-  const [scanType,   setScanType]   = useState<"quick" | "smart">("smart");
   const scanAbort = useRef(false);
 
-  const [imageFile,      setImageFile]      = useState<File | null>(null);
-  const [imagePreview,   setImagePreview]   = useState<string | null>(null);
-  const [imageBase64,    setImageBase64]    = useState<string | null>(null);
-  const [imageAnalyzing, setImageAnalyzing] = useState(false);
-  const [imageResult,    setImageResult]    = useState<ImageAnalysisResult | null>(null);
-  const [imageError,     setImageError]     = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Auto-fetch defender status on mount (background, no loading state needed)
   useEffect(() => {
     if (!hasSecurity) return;
-    eAPI().security.getStatus().then((r: any) => {
-      if (r?.available && r.data) setSecurityStatus(r.data);
-    }).catch(() => {});
+    eAPI().security.getStatus().then((r: any) => { if (r?.available && r.data) setSecurityStatus(r.data); }).catch(() => {});
+  }, [hasSecurity]);
+
+  const refreshStatus = useCallback(() => {
+    if (!hasSecurity) return;
+    eAPI().security.getStatus().then((r: any) => { if (r?.available && r.data) setSecurityStatus(r.data); }).catch(() => {});
+  }, [hasSecurity]);
+
+  const refreshAdvanced = useCallback(() => {
+    if (!hasSecurity) return;
+    eAPI().security.getAdvancedProtection().then((r: any) => { if (r?.available && r.data) setAdvancedProtection(r.data); }).catch(() => {});
   }, [hasSecurity]);
 
   const startScan = useCallback(async (type: "quick" | "smart") => {
     if (scanStatus === "scanning") return;
     scanAbort.current = false;
-    setScanType(type);
     setScanStatus("scanning");
     setScanStage(0);
 
     try {
-      // Stage 0: Security status
+      // Stage 0: Core status
       let status: SecurityStatus | null = securityStatus;
       if (hasSecurity) {
         const r = await eAPI().security.getStatus().catch(() => null);
@@ -218,673 +778,261 @@ export default function Security() {
       }
       setSecurityStatus(status);
       if (scanAbort.current) { setScanStatus("idle"); return; }
-      await delay(500);
+      await delay(400);
 
-      setScanStage(1);
-      // Stage 1: Startup apps (smart only)
+      // Stage 1: Advanced protection
+      let advProt: AdvancedProtection | null = advancedProtection;
+      if (type === "smart" && hasSecurity) {
+        setScanStage(1);
+        const r = await eAPI().security.getAdvancedProtection().catch(() => null);
+        if (r?.available && r.data) { advProt = r.data; setAdvancedProtection(r.data); }
+      }
+      if (scanAbort.current) { setScanStatus("idle"); return; }
+      await delay(350);
+
+      // Stage 2: Startup
       let startup: StartupItem[] = [];
       if (type === "smart" && hasSecurity) {
+        setScanStage(2);
         const r = await eAPI().security.getStartupApps().catch(() => null);
         if (r?.available && Array.isArray(r.data)) startup = r.data;
       }
       setStartupItems(startup);
       if (scanAbort.current) { setScanStatus("idle"); return; }
-      await delay(500);
+      await delay(350);
 
-      setScanStage(2);
-      // Stage 2: Running processes (smart only)
-      let processes: ProcessItem[] = [];
+      // Stage 3: Processes
+      let processes: ProcessTrustItem[] = [];
       if (type === "smart" && hasSecurity) {
-        const r = await eAPI().security.getTopProcesses().catch(() => null);
+        setScanStage(3);
+        const r = await eAPI().security.getProcessDetails().catch(async () => {
+          const r2 = await eAPI().security.getTopProcesses().catch(() => null);
+          return r2;
+        });
         if (r?.available && Array.isArray(r.data)) processes = r.data;
       }
-      setTopProcesses(processes);
+      setProcessTrust(processes);
       if (scanAbort.current) { setScanStatus("idle"); return; }
-      await delay(400);
-
-      setScanStage(3);
-      await delay(400);
-
-      setScanStage(4);
-      try {
-        const result = generateRecommendations({ status, startupItems: startup, topProcesses: processes });
-        setRecommendations(result.recommendations ?? []);
-        setScanSummary(result.summary ?? null);
-      } catch {
-        setRecommendations([]);
-        setScanSummary(null);
-      }
-
       await delay(300);
+
+      // Stage 4: Recommendations
+      setScanStage(4);
+      const legacyProcs = processes.map(p => ({ name: p.name, pid: p.pid, cpuSec: p.cpuSec, memMb: p.memMb, category: p.category, impact: p.impact }));
+      const result = generateRecommendations({ status, startupItems: startup, topProcesses: legacyProcs as any });
+      setRecommendations(result.recommendations ?? []);
+      setScanSummary(result.summary ?? null);
+
+      // History
+      const suspiciousCount = processes.filter(p => p.suspiciousLocation).length;
+      const newEntry: ScanHistoryEntry = {
+        timestamp: new Date().toISOString(),
+        healthScore: result.summary?.healthScore ?? 0,
+        protectionScore: status?.realtimeProtection ? (status.firewallEnabled ? 100 : 70) : 0,
+        startupIssueCount: startup.filter(i => i.recommendation !== "keep").length,
+        backgroundIssueCount: processes.filter(p => p.impact === "high").length,
+        suspiciousItemCount: suspiciousCount,
+        processCount: processes.length,
+        backgroundCpu: liveTel?.cpu.load ?? 0,
+        ramPressure: liveTel?.ram.usedPercent ?? 0,
+      };
+
+      setScanHistory(prev => {
+        const changes = detectChanges(prev[prev.length - 1] ?? null, newEntry);
+        setRecentChanges(c => [...changes, ...c].slice(0, 20));
+        const next = [...prev, newEntry];
+        saveHistory(next);
+        return next;
+      });
+
       setLastScan(new Date());
       setScanStatus("complete");
       setScanStage(5);
     } catch {
       setScanStatus("error");
     }
-  }, [hasSecurity, scanStatus, securityStatus]);
+  }, [hasSecurity, scanStatus, securityStatus, advancedProtection, liveTel]);
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (!["image/jpeg", "image/png", "image/webp", "image/gif"].includes(file.type)) {
-      setImageError("Please upload a JPEG, PNG, WebP, or GIF image."); return;
-    }
-    if (file.size > 5 * 1024 * 1024) { setImageError("Image must be under 5 MB."); return; }
-    setImageError(null); setImageResult(null); setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      const dataUrl = ev.target?.result as string;
-      setImagePreview(dataUrl);
-      setImageBase64(dataUrl.split(",")[1]);
-    };
-    reader.readAsDataURL(file);
-  }, []);
-
-  const clearImage = useCallback(() => {
-    setImageFile(null); setImagePreview(null); setImageBase64(null);
-    setImageResult(null); setImageError(null);
-    if (fileInputRef.current) fileInputRef.current.value = "";
-  }, []);
-
-  const analyzeImage = useCallback(async () => {
-    if (!imageBase64 || !imageFile || imageAnalyzing) return;
-    setImageAnalyzing(true); setImageError(null);
-    try {
-      const jwt = useAuthStore.getState().jwt;
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
-      if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
-
-      const response = await fetch(`${CLOUD_API_BASE}/security/image-analysis`, {
-        method: "POST",
-        headers,
-        credentials: "include",
-        body: JSON.stringify({
-          imageData: imageBase64,
-          imageType: imageFile.type,
-          analysisType: "generic",
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error ?? `Analysis failed (${response.status})`);
-      }
-
-      const aiRes = await response.json();
-      setImageResult({
-        analysisType: aiRes.analysisType ?? "generic",
-        findings: aiRes.findings ?? [],
-        recommendations: aiRes.recommendations ?? [],
-        rawAnalysis: aiRes.rawAnalysis ?? "No analysis returned.",
-      });
-    } catch (err: any) {
-      setImageError(err?.message ?? "Analysis failed. Please try again.");
-    } finally {
-      setImageAnalyzing(false);
-    }
-  }, [imageBase64, imageFile, imageAnalyzing]);
-
-  // Derived
   const systemState = scanSummary?.systemState ?? "secure";
   const healthScore = scanSummary?.healthScore ?? null;
   const scanning = scanStatus === "scanning";
-
   const StateIcon = systemState === "secure" ? ShieldCheck : systemState === "attention" ? ShieldAlert : Shield;
   const stateColor = systemState === "secure" ? "text-emerald-400" : systemState === "attention" ? "text-red-400" : "text-amber-400";
   const stateBg    = systemState === "secure" ? "bg-emerald-500/10 border-emerald-500/25" : systemState === "attention" ? "bg-red-500/10 border-red-500/25" : "bg-amber-500/10 border-amber-500/25";
   const stateLabel = systemState === "secure" ? "Secure" : systemState === "attention" ? "Needs Attention" : "Optimize";
 
-  const cardAnim = (delay: number) => ({
-    initial: { opacity: 0, y: prefersReducedMotion ? 6 : 22 },
-    animate: { opacity: 1, y: 0 },
-    transition: { duration: prefersReducedMotion ? 0.2 : 0.38, delay: prefersReducedMotion ? delay * 0.5 : delay, ease: [0.22, 1, 0.36, 1] as any },
-  });
-
-  const dataReveal = (delay = 0) => ({
-    initial: { opacity: 0, y: prefersReducedMotion ? 0 : 10 },
-    animate: { opacity: 1, y: 0 },
-    exit:    { opacity: 0, y: prefersReducedMotion ? 0 : -6 },
-    transition: { duration: prefersReducedMotion ? 0.15 : 0.32, delay, ease: [0.22, 1, 0.36, 1] as any },
-  });
-
   return (
     <AppLayout>
-      <Reveal className="relative">
-        <div className="flex flex-col gap-5 pb-10">
-          {/* Header */}
-          <motion.div
-            initial={prefersReducedMotion ? {} : { opacity: 0, y: -14 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
-            className="flex items-start justify-between gap-4"
-          >
-            <div>
-              <div className="flex items-center gap-3">
-                <motion.span
-                  initial={prefersReducedMotion ? {} : { rotate: -20, scale: 0.6, opacity: 0 }}
-                  animate={{ rotate: 0, scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.5, delay: 0.08, ease: [0.34, 1.56, 0.64, 1] }}
-                  className="inline-flex"
-                >
-                  <Shield className="size-6 text-primary" />
-                </motion.span>
-                <h1 className="text-2xl font-bold tracking-tight">System Integrity</h1>
-              </div>
-              <motion.p
-                className="text-sm text-muted-foreground mt-0.5"
-                initial={prefersReducedMotion ? {} : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5, delay: 0.18 }}
-              >
-                Security posture, startup analysis, and background process monitoring.
-              </motion.p>
+      <div className="flex flex-col gap-5 pb-10">
+        {/* Header */}
+        <motion.div
+          initial={prefersReducedMotion ? {} : { opacity: 0, y: -14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45, ease: [0.34, 1.56, 0.64, 1] }}
+          className="flex items-start justify-between gap-4"
+        >
+          <div>
+            <div className="flex items-center gap-3">
+              <Shield className="size-6 text-primary" />
+              <h1 className="text-2xl font-bold tracking-tight">System Integrity</h1>
             </div>
+            <p className="text-sm text-muted-foreground mt-0.5">
+              Security posture, startup analysis, process trust, and advanced audit.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 mt-1 shrink-0 flex-wrap justify-end">
             {scanStatus === "complete" && (
-              <motion.div
-                className="flex items-center gap-2 mt-1 shrink-0"
-                initial={prefersReducedMotion ? {} : { opacity: 0, x: 10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.35, delay: 0.25 }}
-              >
-                <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium", stateBg, stateColor)}>
-                  <StateIcon className="size-4" />
-                  {stateLabel}
-                </div>
-                {lastScan && (
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <Clock className="size-3" />
-                    {lastScan.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                )}
-              </motion.div>
+              <div className={cn("flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium", stateBg, stateColor)}>
+                <StateIcon className="size-4" />
+                {stateLabel}
+              </div>
             )}
+            {lastScan && <span className="text-xs text-muted-foreground flex items-center gap-1"><Clock className="size-3" />{lastScan.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>}
+          </div>
+        </motion.div>
+
+        {/* Live telemetry strip */}
+        {liveTel && (
+          <motion.div
+            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/8 bg-white/3 flex-wrap"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.25 }}
+          >
+            <div className="flex items-center gap-1.5">
+              <Cpu className="size-3 text-muted-foreground" />
+              <span className="text-[11px] font-mono tabular-nums">
+                CPU <span className={liveTel.cpu.load > 75 ? "text-red-400" : liveTel.cpu.load > 50 ? "text-amber-400" : "text-emerald-400"}>{liveTel.cpu.load.toFixed(0)}%</span>
+              </span>
+            </div>
+            <div className="h-3 w-px bg-white/15" />
+            <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
+              RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400" : liveTel.ram.usedPercent > 60 ? "text-amber-400" : "text-cyan-400"}>{liveTel.ram.usedPercent.toFixed(0)}%</span>
+            </span>
+            <div className="h-3 w-px bg-white/15" />
+            <span className="text-[11px] text-muted-foreground">{liveTel.processes.total} processes</span>
+            {liveTel.load_trend !== "stable" && (
+              <><div className="h-3 w-px bg-white/15" /><span className={cn("text-[10px]", liveTel.load_trend === "rising" ? "text-amber-400" : "text-emerald-400")}>Load {liveTel.load_trend}</span></>
+            )}
+            <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
           </motion.div>
+        )}
 
-          {/* Live resource strip */}
-          {liveTel && (
-            <motion.div
-              className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/8 bg-white/3 flex-wrap"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.4, delay: 0.3 }}
-            >
-              <div className="flex items-center gap-1.5">
-                <Cpu className="size-3 text-muted-foreground" />
-                <span className="text-[11px] font-mono tabular-nums">
-                  CPU <span className={liveTel.cpu.load > 75 ? "text-red-400" : liveTel.cpu.load > 50 ? "text-amber-400" : "text-emerald-400"}>{liveTel.cpu.load.toFixed(0)}%</span>
-                </span>
-              </div>
-              <div className="h-3 w-[1px] bg-white/15" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
-                  RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400" : liveTel.ram.usedPercent > 60 ? "text-amber-400" : "text-cyan-400"}>{liveTel.ram.usedPercent.toFixed(0)}%</span>
-                </span>
-              </div>
-              <div className="h-3 w-[1px] bg-white/15" />
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-muted-foreground">
-                  {liveTel.processes.total} processes running
-                </span>
-              </div>
-              {liveTel.load_trend !== "stable" && (
-                <>
-                  <div className="h-3 w-[1px] bg-white/15" />
-                  <span className={cn("text-[10px]", liveTel.load_trend === "rising" ? "text-amber-400" : "text-emerald-400")}>
-                    Load {liveTel.load_trend}
-                  </span>
-                </>
-              )}
-              <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
-            </motion.div>
-          )}
-
-          {/* Non-Electron notice */}
-          {!hasSecurity && (
-            <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm">
-              <Info className="size-4 text-blue-400 mt-0.5 shrink-0" />
-              <div>
-                <span className="font-medium text-blue-400">Windows Desktop Required for System Data</span>
-                <p className="text-muted-foreground mt-0.5">
-                  Defender status, startup apps, and process data require the SwitchControl desktop app running on Windows.
-                  Screenshot analysis (AI) is available now.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Post-scan summary chips */}
-          {scanStatus === "complete" && scanSummary && (
-            <div className="flex items-center gap-3 flex-wrap">
-              {[
-                { label: `${scanSummary.threatCount} threat${scanSummary.threatCount !== 1 ? "s" : ""}`,         active: scanSummary.threatCount > 0,       cls: "text-red-400 border-red-500/25 bg-red-500/10",     Icon: ShieldAlert },
-                { label: `${scanSummary.startupIssues} startup issue${scanSummary.startupIssues !== 1 ? "s" : ""}`, active: scanSummary.startupIssues > 0, cls: "text-amber-400 border-amber-500/25 bg-amber-500/10", Icon: MonitorPlay },
-                { label: `${scanSummary.backgroundIssues} background issue${scanSummary.backgroundIssues !== 1 ? "s" : ""}`, active: scanSummary.backgroundIssues > 0, cls: "text-orange-400 border-orange-500/25 bg-orange-500/10", Icon: Cpu },
-              ].map((chip, i) => (
-                <motion.div key={chip.label} {...cardAnim(0.28 + i * 0.06)}>
-                  <Badge variant="outline"
-                    className={cn("gap-1.5 py-1 px-2.5 text-xs font-medium",
-                      chip.active ? chip.cls : "text-muted-foreground border-white/10 bg-white/5"
-                    )}
-                    data-testid={`chip-${chip.label.replace(/\s+/g, "-").toLowerCase()}`}
-                  >
-                    <chip.Icon className="size-3" />
-                    {chip.label}
-                  </Badge>
-                </motion.div>
-              ))}
-            </div>
-          )}
-
-          {/* Main two-column grid */}
-          <div className="grid grid-cols-1 xl:grid-cols-[288px_1fr] gap-5">
-
-            {/* LEFT */}
-            <div className="flex flex-col gap-4">
-
-              {/* Protection Status */}
-              <motion.div {...cardAnim(0.12)}>
-              <GlassCard className="p-5" data-testid="card-security-status">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Shield className="size-4 text-primary" />
-                    <h3 className="font-semibold text-sm">Protection Status</h3>
-                  </div>
-                  {hasSecurity && (
-                    <Button variant="ghost" size="icon" className="size-7" disabled={scanning}
-                      onClick={() => eAPI().security.getStatus().then((r: any) => r?.available && r.data && setSecurityStatus(r.data)).catch(() => {})}
-                      data-testid="button-refresh-status">
-                      <RefreshCw className={cn("size-3.5", scanning && "animate-spin")} />
-                    </Button>
-                  )}
-                </div>
-                <AnimatePresence mode="wait">
-                  {securityStatus ? (
-                    <motion.div key="status-data" {...dataReveal()} className="space-y-0.5">
-                      {[
-                        { label: "Real-time Protection", value: securityStatus.realtimeProtection === true ? "Enabled" : securityStatus.realtimeProtection === false ? "Disabled" : "Unknown", state: securityStatus.realtimeProtection === true ? "ok" : securityStatus.realtimeProtection === false ? "off" : "unknown" },
-                        { label: "Firewall",             value: securityStatus.firewallEnabled === true ? "Active" : securityStatus.firewallEnabled === false ? "Off" : "Unknown",           state: securityStatus.firewallEnabled === true ? "ok" : securityStatus.firewallEnabled === false ? "off" : "unknown" },
-                        { label: "Anti-spyware",         value: securityStatus.antispywareEnabled === true ? "Enabled" : securityStatus.antispywareEnabled === false ? "Disabled" : "Unknown", state: securityStatus.antispywareEnabled === true ? "ok" : securityStatus.antispywareEnabled === false ? "off" : "unknown" },
-                        { label: "Tamper Protection",    value: securityStatus.tamperProtection === true ? "On" : securityStatus.tamperProtection === false ? "Off" : "Unknown",               state: securityStatus.tamperProtection === true ? "ok" : securityStatus.tamperProtection === false ? "warn" : "unknown" },
-                      ].map((row, i) => (
-                        <motion.div key={row.label} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.28, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}>
-                          <StatusRow label={row.label} value={row.value} state={row.state as any} />
-                        </motion.div>
-                      ))}
-                      {securityStatus.lastQuickScan && (
-                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3, delay: 0.28 }} className="pt-2 mt-1 border-t border-white/5 text-xs text-muted-foreground flex justify-between">
-                          <span>Last Quick Scan</span>
-                          <span>{formatDate(securityStatus.lastQuickScan)}</span>
-                        </motion.div>
-                      )}
-                    </motion.div>
-                  ) : (
-                    <motion.div key="status-empty" {...dataReveal()} className="text-center py-6 text-muted-foreground text-sm">
-                      <ShieldOff className="size-8 mx-auto opacity-30 mb-2" />
-                      {hasSecurity ? "Run a scan to detect status" : "Available on Windows desktop"}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </GlassCard>
-              </motion.div>
-
-              {/* Scan Actions */}
-              <motion.div {...cardAnim(0.21)}>
-              <GlassCard className="p-5" data-testid="card-scan-actions">
-                <div className="flex items-center gap-2 mb-4">
-                  <Scan className="size-4 text-primary" />
-                  <h3 className="font-semibold text-sm">Run Scan</h3>
-                </div>
-                {scanning ? (
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <div className="flex justify-between text-xs text-muted-foreground">
-                        <span>{SCAN_STAGES[Math.min(scanStage, SCAN_STAGES.length - 1)]}</span>
-                        <span>{Math.round((scanStage / SCAN_STAGES.length) * 100)}%</span>
-                      </div>
-                      <Progress value={Math.round((scanStage / SCAN_STAGES.length) * 100)} className="h-1.5" />
-                    </div>
-                    <Button variant="ghost" size="sm" className="w-full text-xs text-muted-foreground"
-                      onClick={() => { scanAbort.current = true; setScanStatus("idle"); }}
-                      data-testid="button-cancel-scan">
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2">
-                    <Button className="w-full gap-2" onClick={() => startScan("smart")} data-testid="button-smart-scan">
-                      <Zap className="size-4" />Smart Scan
-                    </Button>
-                    <Button variant="secondary" className="w-full gap-2 text-sm" onClick={() => startScan("quick")} data-testid="button-quick-scan">
-                      <Play className="size-3.5" />Quick Scan
-                    </Button>
-                    {scanStatus === "error" && (
-                      <p className="text-xs text-center text-red-400 pt-1">Scan failed. Please try again.</p>
-                    )}
-                    {scanStatus !== "idle" && (
-                      <p className="text-xs text-center text-muted-foreground pt-0.5">Smart scan checks startup apps and running processes</p>
-                    )}
-                  </div>
-                )}
-              </GlassCard>
-              </motion.div>
-
-              {/* Screenshot Analysis */}
-              <motion.div {...cardAnim(0.30)}>
-              <GlassCard className="p-5" data-testid="card-image-analysis">
-                <div className="flex items-center gap-2 mb-3">
-                  <Eye className="size-4 text-primary" />
-                  <h3 className="font-semibold text-sm">Screenshot Analysis</h3>
-                  <Badge variant="outline" className="ml-auto text-[10px] px-1.5 text-violet-400 border-violet-500/30 bg-violet-500/10">AI</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Upload a Task Manager, Windows Security, or startup apps screenshot for AI analysis.
-                </p>
-
-                {imagePreview ? (
-                  <div className="space-y-3">
-                    <div className="rounded-lg overflow-hidden border border-white/10">
-                      <img src={imagePreview} alt="Screenshot to analyze" className="w-full max-h-40 object-cover" />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button className="flex-1 gap-2 text-sm" onClick={analyzeImage} disabled={imageAnalyzing} data-testid="button-analyze-image">
-                        {imageAnalyzing ? <><Loader2 className="size-3.5 animate-spin" />Analyzing…</> : <><Eye className="size-3.5" />Analyze Screenshot</>}
-                      </Button>
-                      <Button variant="outline" size="icon" onClick={clearImage} className="shrink-0 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors" data-testid="button-clear-image">
-                        <X className="size-4" />
-                      </Button>
-                    </div>
-                    {imageError && <p className="text-xs text-red-400">{imageError}</p>}
-                    {imageResult && (
-                      <div className="space-y-2">
-                        <p className="text-xs text-muted-foreground leading-relaxed">{imageResult.rawAnalysis}</p>
-                        {imageResult.findings.slice(0, 3).map((f, i) => {
-                          const cfg = SEVERITY_CONFIG[f.severity as keyof typeof SEVERITY_CONFIG] ?? SEVERITY_CONFIG.info;
-                          return (
-                            <div key={i} className={cn("flex gap-2 p-2.5 rounded-lg border text-xs", cfg.bg)}>
-                              <cfg.Icon className={cn("size-3.5 mt-0.5 shrink-0", cfg.color)} />
-                              <div>
-                                <p className={cn("font-medium", cfg.color)}>{f.title}</p>
-                                <p className="text-muted-foreground mt-0.5">{f.description}</p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {imageResult.recommendations.length > 0 && (
-                          <div className="pt-1">
-                            <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1.5">Recommendations</p>
-                            <ul className="space-y-1">
-                              {imageResult.recommendations.map((r, i) => (
-                                <li key={i} className="text-xs text-muted-foreground flex gap-1.5">
-                                  <CheckCircle2 className="size-3 text-emerald-400 mt-0.5 shrink-0" />{r}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <button onClick={() => fileInputRef.current?.click()}
-                    className="w-full border border-dashed border-white/15 rounded-xl py-6 flex flex-col items-center gap-2 text-muted-foreground hover:border-white/30 hover:bg-white/[0.02] transition-all"
-                    data-testid="button-upload-screenshot">
-                    <ImageIcon className="size-7 opacity-40" />
-                    <span className="text-xs">Click to upload screenshot</span>
-                    <span className="text-[10px] opacity-60">JPEG · PNG · WebP · max 5 MB</span>
-                  </button>
-                )}
-
-                <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif"
-                  className="hidden" onChange={handleFileChange} data-testid="input-screenshot-file" />
-              </GlassCard>
-              </motion.div>
-            </div>
-
-            {/* RIGHT */}
-            <div className="flex flex-col gap-4">
-
-              {/* Health Score */}
-              <motion.div {...cardAnim(0.16)}>
-              <GlassCard className="p-5" data-testid="card-health-score">
-                <div className="flex items-center gap-2 mb-4">
-                  <Zap className="size-4 text-primary" />
-                  <h3 className="font-semibold text-sm">System Health Score</h3>
-                </div>
-                <AnimatePresence mode="wait">
-                  {healthScore !== null && scanSummary ? (
-                    <motion.div key="health-data" {...dataReveal()} className="flex items-center gap-6">
-                      <HealthScoreRing score={healthScore} state={systemState} />
-                      <div className="flex-1 space-y-3">
-                        <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}>
-                          <p className={cn("text-lg font-bold", stateColor)}>{stateLabel}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {systemState === "secure" ? "Your system is well-configured for gaming."
-                            : systemState === "attention" ? "Security issues require your attention."
-                            : "Performance optimizations are available."}
-                          </p>
-                        </motion.div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {[
-                            { label: "Threats",    value: String(scanSummary.threatCount),             bad: scanSummary.threatCount > 0 },
-                            { label: "Startup",    value: `${scanSummary.startupIssues} to review`,    bad: scanSummary.startupIssues > 0 },
-                            { label: "Background", value: `${scanSummary.backgroundIssues} heavy`,     bad: scanSummary.backgroundIssues > 0 },
-                            { label: "Score",      value: `${healthScore}/100`,                        bad: healthScore < 60 },
-                          ].map((item, i) => (
-                            <motion.div key={item.label} initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.25, delay: 0.14 + i * 0.05, ease: [0.22, 1, 0.36, 1] }} className="bg-white/[0.03] rounded-lg p-2.5">
-                              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
-                              <p className={cn("text-sm font-semibold mt-0.5", item.bad ? "text-amber-400" : "text-foreground")}>{item.value}</p>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    </motion.div>
-                  ) : (
-                    <motion.div key="health-empty" {...dataReveal()} className="flex items-center gap-4 py-4">
-                      <div className="w-24 h-24 rounded-full border-[3px] border-white/10 flex items-center justify-center shrink-0">
-                        <Zap className="size-8 opacity-20" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium text-muted-foreground">No data yet</p>
-                        <p className="text-xs text-muted-foreground mt-1">Run a scan to calculate your system health score.</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </GlassCard>
-              </motion.div>
-
-              {/* Startup Watch */}
-              <motion.div {...cardAnim(0.25)}>
-              <GlassCard className="p-5" data-testid="card-startup-watch">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <MonitorPlay className="size-4 text-primary" />
-                    <h3 className="font-semibold text-sm">Startup Watch</h3>
-                  </div>
-                  {startupItems.length > 0 && (
-                    <Badge variant="outline" className="text-xs text-muted-foreground">{startupItems.length} apps</Badge>
-                  )}
-                </div>
-                <AnimatePresence mode="wait">
-                  {startupItems.length > 0 ? (
-                    <motion.div key="startup-data" {...dataReveal()} className="space-y-0.5">
-                      {startupItems.slice(0, 10).map((item, i) => {
-                        const impactColor = item.impact === "high" ? "text-red-400" : item.impact === "medium" ? "text-amber-400" : "text-emerald-400";
-                        const recCls = item.recommendation === "disable" ? "bg-red-500/15 border-red-500/25 text-red-400"
-                                     : item.recommendation === "review"  ? "bg-amber-500/15 border-amber-500/25 text-amber-400"
-                                     : "bg-emerald-500/15 border-emerald-500/25 text-emerald-400";
-                        return (
-                          <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.26, delay: i * 0.05, ease: [0.22, 1, 0.36, 1] }}
-                            className="flex items-center gap-2 py-2 border-b border-white/5 last:border-0" data-testid={`row-startup-${i}`}>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium truncate">{item.name}</p>
-                              <p className="text-[10px] text-muted-foreground capitalize">{item.category} · {item.location || "Startup folder"}</p>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={cn("text-xs font-medium capitalize", impactColor)}>{item.impact}</span>
-                              <Badge variant="outline" className={cn("text-[10px] px-1.5 py-0", recCls)}>{item.recommendation}</Badge>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                      {startupItems.length > 10 && (
-                        <p className="text-xs text-muted-foreground text-center pt-2">+{startupItems.length - 10} more</p>
-                      )}
-                    </motion.div>
-                  ) : (
-                    <motion.div key="startup-empty" {...dataReveal()} className="flex items-center gap-3 py-5 text-muted-foreground">
-                      <MonitorPlay className="size-8 opacity-20 shrink-0" />
-                      <p className="text-sm">
-                        {hasSecurity ? (scanStatus === "idle" ? "Run Smart Scan to discover startup apps." : "No startup data collected.") : "Available on Windows desktop."}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </GlassCard>
-              </motion.div>
-
-              {/* Background Process Watch */}
-              <motion.div {...cardAnim(0.34)}>
-              <GlassCard className="p-5" data-testid="card-process-watch">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="size-4 text-primary" />
-                    <h3 className="font-semibold text-sm">Background Watch</h3>
-                  </div>
-                  {topProcesses.length > 0 && (
-                    <Badge variant="outline" className="text-xs text-muted-foreground">Top {Math.min(topProcesses.length, 8)} by CPU</Badge>
-                  )}
-                </div>
-                <AnimatePresence mode="wait">
-                  {topProcesses.length > 0 ? (
-                    <motion.div key="process-data" {...dataReveal()}>
-                      <div className="grid grid-cols-[1fr_64px_64px] gap-2 text-[10px] text-muted-foreground uppercase tracking-wide pb-2 border-b border-white/5">
-                        <span>Process</span><span className="text-right">CPU</span><span className="text-right">RAM</span>
-                      </div>
-                      {topProcesses.slice(0, 8).map((proc, i) => {
-                        const cls = proc.impact === "high" ? "text-red-400" : proc.impact === "medium" ? "text-amber-400" : "";
-                        return (
-                          <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.26, delay: i * 0.045, ease: [0.22, 1, 0.36, 1] }}
-                            className="grid grid-cols-[1fr_64px_64px] gap-2 py-2 border-b border-white/5 last:border-0 items-center" data-testid={`row-process-${i}`}>
-                            <div className="min-w-0">
-                              <p className={cn("text-sm font-medium truncate", cls)}>{proc.name}</p>
-                              <p className="text-[10px] text-muted-foreground capitalize">{proc.category}</p>
-                            </div>
-                            <p className={cn("text-xs text-right font-mono", cls)}>{formatCpu(proc.cpuSec)}</p>
-                            <p className="text-xs text-right font-mono text-muted-foreground">
-                              {proc.memMb !== null ? `${proc.memMb.toFixed(0)}M` : "—"}
-                            </p>
-                          </motion.div>
-                        );
-                      })}
-                    </motion.div>
-                  ) : (
-                    <motion.div key="process-empty" {...dataReveal()} className="flex items-center gap-3 py-5 text-muted-foreground">
-                      <Cpu className="size-8 opacity-20 shrink-0" />
-                      <p className="text-sm">
-                        {hasSecurity ? (scanStatus === "idle" ? "Run Smart Scan to monitor background processes." : "No process data collected.") : "Available on Windows desktop."}
-                      </p>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </GlassCard>
-              </motion.div>
+        {/* Non-Electron notice */}
+        {!hasSecurity && (
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/10 border border-blue-500/20 text-sm">
+            <Info className="size-4 text-blue-400 mt-0.5 shrink-0" />
+            <div>
+              <span className="font-medium text-blue-400">Windows Desktop Required for System Data</span>
+              <p className="text-muted-foreground mt-0.5">Defender status, startup apps, process data, and security audit require the SwitchControl desktop app running on Windows. Screenshot analysis (AI) is available now.</p>
             </div>
           </div>
+        )}
 
-          {/* Recommendations panel */}
-          <motion.div {...cardAnim(0.42)}>
-          <GlassCard className="p-5" data-testid="card-recommendations">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-primary" />
-                <h3 className="font-semibold">Recommendations</h3>
-                {recommendations.length > 0 && (
-                  <Badge variant="outline" className="text-xs text-muted-foreground">{recommendations.length}</Badge>
-                )}
+        {/* Scan controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {scanning ? (
+            <div className="flex items-center gap-3 flex-1">
+              <div className="flex-1 space-y-1">
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{SCAN_STAGES[Math.min(scanStage, SCAN_STAGES.length - 1)]}</span>
+                  <span>{Math.round((scanStage / SCAN_STAGES.length) * 100)}%</span>
+                </div>
+                <Progress value={Math.round((scanStage / SCAN_STAGES.length) * 100)} className="h-1.5" />
               </div>
-              {scanStatus === "complete" && (
-                <Button variant="ghost" size="sm" className="gap-1.5 text-xs" onClick={() => startScan(scanType)} disabled={scanning}>
-                  <RefreshCw className="size-3" />Re-scan
-                </Button>
-              )}
+              <Button variant="ghost" size="sm" className="text-xs text-muted-foreground shrink-0"
+                onClick={() => { scanAbort.current = true; setScanStatus("idle"); }} data-testid="button-cancel-scan">Cancel</Button>
             </div>
-
-            <AnimatePresence mode="wait">
-              {scanStatus === "idle" ? (
-                <motion.div key="rec-idle" {...dataReveal()} className="flex flex-col items-center gap-3 py-12 text-center">
-                  <div className="size-16 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-                    <Scan className="size-7 text-primary opacity-60" />
-                  </div>
-                  <div>
-                    <p className="font-medium">Run a scan to get recommendations</p>
-                    <p className="text-sm text-muted-foreground mt-1 max-w-sm mx-auto">
-                      Smart Scan analyzes your security posture, startup overhead, and background load — then generates personalized suggestions.
-                    </p>
-                  </div>
-                  <Button className="gap-2 mt-1" onClick={() => startScan("smart")} data-testid="button-start-scan-cta">
-                    <Zap className="size-4" />Start Smart Scan
-                  </Button>
-                </motion.div>
-              ) : scanning ? (
-                <motion.div key="rec-scanning" {...dataReveal()} className="flex flex-col items-center gap-3 py-12">
-                  <Loader2 className="size-8 animate-spin text-primary opacity-60" />
-                  <p className="text-sm text-muted-foreground">
-                    {SCAN_STAGES[Math.min(scanStage, SCAN_STAGES.length - 1)]}…
-                  </p>
-                </motion.div>
-              ) : scanStatus === "complete" && recommendations.length === 0 ? (
-                <motion.div key="rec-empty" {...dataReveal()} className="flex flex-col items-center gap-2 py-10 text-center">
-                  <ShieldCheck className="size-10 opacity-30" />
-                  <p className="text-sm text-muted-foreground max-w-sm">
-                    {!hasSecurity
-                      ? "No system data available. Install SwitchControl on Windows to get personalized recommendations."
-                      : "No issues found. Your system looks well-configured."}
-                  </p>
-                </motion.div>
-              ) : recommendations.length > 0 ? (
-                <motion.div key="rec-list" {...dataReveal()} className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {recommendations.map((rec, i) => {
-                    const cfg = SEVERITY_CONFIG[rec.severity] ?? SEVERITY_CONFIG.info;
-                    return (
-                      <motion.div key={rec.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] }}>
-                        <div className={cn("p-4 rounded-xl border space-y-2", cfg.bg)} data-testid={`card-rec-${rec.id}`}>
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                              <cfg.Icon className={cn("size-4 shrink-0", cfg.color)} />
-                              <p className={cn("text-sm font-semibold leading-tight", cfg.color)}>{rec.title}</p>
-                            </div>
-                            <Badge variant="outline" className={cn("text-[10px] px-1.5 shrink-0 border-current", cfg.color)}>{cfg.label}</Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground leading-relaxed">{rec.summary}</p>
-                          <div className="flex items-center justify-between pt-0.5">
-                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
-                              {rec.performanceImpact !== "none" && (
-                                <span className={cn("font-medium", IMPACT_COLORS[rec.performanceImpact])}>Perf: {rec.performanceImpact}</span>
-                              )}
-                              {rec.securityImpact !== "none" && (
-                                <span className={cn("font-medium", IMPACT_COLORS[rec.securityImpact])}>Security: {rec.securityImpact}</span>
-                              )}
-                            </div>
-                            {rec.actionLabel && (
-                              <button className={cn("text-[10px] font-medium flex items-center gap-0.5 hover:opacity-80 transition-opacity", cfg.color)}>
-                                {rec.actionLabel}<ChevronRight className="size-3" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </motion.div>
-              ) : null}
-            </AnimatePresence>
-          </GlassCard>
-          </motion.div>
+          ) : (
+            <>
+              <Button className="gap-2" onClick={() => startScan("smart")} data-testid="button-smart-scan"><Zap className="size-4" />Smart Scan</Button>
+              <Button variant="secondary" className="gap-2 text-sm" onClick={() => startScan("quick")} data-testid="button-quick-scan"><Play className="size-3.5" />Quick Scan</Button>
+              {scanStatus === "complete" && scanSummary && (
+                <div className="flex items-center gap-2 ml-auto flex-wrap">
+                  {[
+                    { label: `${scanSummary.threatCount} threat${scanSummary.threatCount !== 1 ? "s" : ""}`, active: scanSummary.threatCount > 0, cls: "text-red-400 border-red-500/25 bg-red-500/10", Icon: ShieldAlert },
+                    { label: `${scanSummary.startupIssues} startup issue${scanSummary.startupIssues !== 1 ? "s" : ""}`, active: scanSummary.startupIssues > 0, cls: "text-amber-400 border-amber-500/25 bg-amber-500/10", Icon: MonitorPlay },
+                    { label: `${scanSummary.backgroundIssues} background`, active: scanSummary.backgroundIssues > 0, cls: "text-orange-400 border-orange-500/25 bg-orange-500/10", Icon: Cpu },
+                  ].map(chip => (
+                    <Badge key={chip.label} variant="outline" className={cn("gap-1.5 py-1 px-2.5 text-xs font-medium", chip.active ? chip.cls : "text-muted-foreground border-white/10 bg-white/5")}>
+                      <chip.Icon className="size-3" />{chip.label}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
         </div>
 
-      </Reveal>
+        {/* Tab nav */}
+        <div className="flex gap-0 border-b border-white/8">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              data-testid={`tab-${tab.id}`}
+              className={cn(
+                "flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+                activeTab === tab.id
+                  ? "border-primary text-foreground"
+                  : "border-transparent text-muted-foreground hover:text-foreground/80"
+              )}
+            >
+              <tab.Icon className="size-3.5" />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={prefersReducedMotion ? {} : { opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {activeTab === "overview" && (
+              <OverviewTab
+                scanSummary={scanSummary} healthScore={healthScore}
+                systemState={systemState} stateColor={stateColor} stateLabel={stateLabel}
+                scanHistory={scanHistory} recentChanges={recentChanges}
+                recommendations={recommendations} scanStatus={scanStatus}
+                advancedProtection={advancedProtection}
+                startupItems={startupItems} processTrust={processTrust}
+              />
+            )}
+            {activeTab === "protection" && (
+              <ProtectionTab
+                securityStatus={securityStatus} advancedProtection={advancedProtection}
+                hasSecurity={hasSecurity} scanning={scanning}
+                onRefresh={refreshStatus} onRefreshAdvanced={refreshAdvanced}
+              />
+            )}
+            {activeTab === "startup" && (
+              <SecurityStartupTab
+                startupItems={startupItems} hasSecurity={hasSecurity}
+                scanning={scanning} onRefresh={async () => {
+                  if (!hasSecurity) return;
+                  const r = await eAPI().security.getStartupApps().catch(() => null);
+                  if (r?.available && Array.isArray(r.data)) setStartupItems(r.data);
+                }}
+              />
+            )}
+            {activeTab === "processes" && (
+              <SecurityProcessesTab
+                processTrust={processTrust} hasSecurity={hasSecurity}
+                scanning={scanning} onRefresh={async () => {
+                  if (!hasSecurity) return;
+                  const r = await eAPI().security.getProcessDetails().catch(() => null);
+                  if (r?.available && Array.isArray(r.data)) setProcessTrust(r.data);
+                }}
+              />
+            )}
+            {activeTab === "audit" && (
+              <SecurityAuditTab hasSecurity={hasSecurity} />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </AppLayout>
   );
 }

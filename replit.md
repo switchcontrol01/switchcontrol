@@ -264,6 +264,20 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 - `@replit/vite-plugin-cartographer`
 - `@replit/vite-plugin-dev-banner`
 
+### System Integrity Module (Security Page)
+**Files**: `client/src/pages/Security.tsx`, `client/src/components/security/SecurityStartupTab.tsx`, `client/src/components/security/SecurityProcessesTab.tsx`, `client/src/components/security/SecurityAuditTab.tsx`, `electron/security-helper.js`
+
+**5-tab layout** accessible at `/security` route (requires auth + Electron for most data):
+- **Overview**: Health score ring, security posture breakdown bars (Protection/Startup/Background/Config), Recharts AreaChart trend graphs (health + CPU), recent change detection (diffs last 2 scan history entries from localStorage), priority issues list, all recommendations.
+- **Protection**: Core Defender status (realtime, firewall, antispyware, tamper), Advanced Protection card (cloud protection, PUA, SmartScreen, controlled folder access, sample submission), Protection Freshness card (signature age, scan ages), Screenshot AI Analysis.
+- **Startup**: Full startup items list with expand/collapse, per-item actions: Enable/Disable (via StartupApproved registry key), Delay launch (via Task Scheduler, 30s/1m/2m/5m presets), Open file location. Filter by All/Review/Disable.
+- **Processes**: Process trust analysis sorted by trust state. Trust classification by executable path (Windows/PF = trusted, AppData/Temp/Downloads = suspicious, other = review, no path = unknown). Expand for path, parent PID, gaming impact. Filter All/Suspicious/Review.
+- **Audit**: One-click deep security audit runs in parallel: Platform & Firmware Trust (SecureBoot, TPM, BitLocker, HVCI/VBS, UAC+level), Remote & Network Exposure (RDP, Remote Assistance, SMBv1, guest account, proxy, Windows Update), Persistence (hosts file), Suspicious Scheduled Tasks, Suspicious Services.
+
+**Scan history**: `localStorage` key `sc_security_history`, max 50 entries. Each entry: timestamp, healthScore, protectionScore, issue counts, CPU/RAM snapshot. Powers trend charts + change detection. Charts show "Not enough history" until 2+ entries.
+
+**Backend IPC handlers** (all Windows-only): `security:getStatus`, `security:getStartupApps`, `security:getTopProcesses`, `security:getAdvancedProtection`, `security:getAdvancedAudit`, `security:getProcessDetails`, `security:getScheduledTasks`, `security:getServices`, `security:openProcessLocation`, `security:openStartupLocation`. Startup: `startup:setEnabled`, `startup:setDelay`, `startup:verifyState`.
+
 ### Security Hardening
 - **Server Headers**: `helmet` middleware provides CSP (unsafe-eval removed in production), HSTS, X-Content-Type-Options, X-Frame-Options (frameguard: sameorigin), Referrer-Policy, Permissions-Policy.
 - **CORS**: Strict production-only allowlist (`switchcontrol.org`). Dev adds localhost:3000/5000/5173. Blocked origins return 403.
