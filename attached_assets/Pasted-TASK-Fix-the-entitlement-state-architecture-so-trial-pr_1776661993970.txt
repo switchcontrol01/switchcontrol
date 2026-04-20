@@ -1,0 +1,107 @@
+TASK
+
+Fix the entitlement state architecture so trial, premium, and expired status can never disagree across the app.
+
+PROBLEM
+
+The app currently shows inconsistent membership states in different UI areas.
+
+Example:
+
+- top banner says trial ending soon
+- bottom-left footer says trial expired
+
+Later, when the trial was restarted, the bottom-left countdown began working again.
+
+This proves the footer can render trial state correctly, but it is sometimes reading stale or mismatched entitlement data.
+
+Console logs also show mixed entitlement values such as:
+
+- isPremium = true
+- plan = trial
+- valid future trialEndsAt
+- entitlementsVerified = true
+- storedIsPremium = true
+
+That means multiple parts of the app are resolving entitlement truth differently.
+
+GOAL
+
+Create one canonical resolved entitlement state and force all UI surfaces to use it.
+
+The app must never allow:
+
+- top banner showing trial active while footer says expired
+- premium boolean and plan logic fighting each other visually
+- stale cached membership labels surviving after entitlement refresh
+
+IMPLEMENTATION
+
+1. Audit every entitlement display surface
+
+Inspect all places rendering:
+
+- top trial banner
+- sidebar footer badge
+- license management modal
+- premium chips
+- settings account status
+- trial countdown label
+- any onboarding or trial flow logic
+
+Find exactly which places use:
+
+- user.isPremium
+- user.plan
+- user.trialEndsAt
+- local cached label state
+- grace store
+- auth context
+- auth store
+
+2. Build one canonical selector
+
+Create a shared resolver such as:
+
+resolveEntitlementUiState({
+user,
+entitlementsVerified,
+now,
+graceStatus,
+backendReachable
+})
+
+Return exactly one of:
+
+- free
+- trial_active
+- trial_expired
+- premium
+- premium_grace
+- unverified
+
+Also return derived fields such as:
+
+- countdownLabel
+- badgeText
+- showTrialBanner
+- showPremiumBadge
+
+3. Define strict priority rules
+
+Use this order:
+
+- if entitlements are not verified:
+  unverified
+
+- else if user.plan === "trial" and user.trialEndsAt exists and trialEndsAt > now:
+  trial_active
+
+- else if user.plan === "trial" and user.trialEndsAt exists and trialEndsAt <= now:
+  trial_expired
+
+- else if user.isPremium === true and grace state is active:
+  premium_grace
+
+- else if user.isPremium === true:
+  premium

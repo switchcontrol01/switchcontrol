@@ -1,0 +1,161 @@
+IMPLEMENTATION
+
+1. Rewrite SpotlightCursor for performance
+
+In components/SpotlightCursor.tsx:
+
+remove per-frame React state updates for pointer tracking
+
+use useRef for current and target positions
+
+use one persistent spotlight DOM node
+
+move it with transform: translate3d(...)
+
+drive motion through requestAnimationFrame
+
+avoid state updates on every mouse move
+
+keep opacity transitions
+
+keep desktop-only behavior
+
+keep reduced-motion fallback
+
+keep the same visual feel
+
+
+This should behave more like the app’s AppBackground spotlight logic.
+
+Hard rule:
+
+decorative cursor motion must not cause React re-renders every frame
+
+
+
+---
+
+2. Reduce LoginParticles complexity without removing the effect
+
+In components/LoginParticles.tsx:
+
+significantly reduce particle count on desktop
+
+reduce particle count further on mobile
+
+reduce number of large blob particles
+
+simplify per-particle cost where possible
+
+keep the same left/right atmospheric feeling
+
+keep the premium floating dust look
+
+keep slow ambient movement
+
+do not make it look empty
+
+
+Also in pages/Login.tsx:
+
+avoid duplicating a huge particle system twice if one controlled layer can achieve the same result
+
+if two clipped sides are kept, each side must use a much lighter particle set
+
+
+Goal: same mood, less GPU/paint cost
+
+
+---
+
+3. Preserve blur/fade reveals, but make them cleaner and universal
+
+In hooks/useRevealOnScroll.ts and components/AnimateIn.tsx:
+
+Keep the reveal style, but standardize it.
+
+Target behavior:
+
+when sections enter viewport, they fade in and blur in
+
+reveal should feel top-to-bottom and smooth
+
+should work on desktop and mobile
+
+should not feel delayed, broken, or inconsistent
+
+should not conflict with already animated hero systems
+
+
+Requirements:
+
+use a consistent reveal class / motion pattern across the site
+
+keep blur + fade
+
+use lighter blur values
+
+avoid over-stacking reveal on already animated inner children
+
+only reveal section containers or intentional blocks, not every tiny nested element
+
+keep the same premium motion language
+
+
+Hard rule:
+
+reveal animation should support the page, not fight it
+
+
+
+---
+
+4. Keep graph animations exactly, but isolate them from other heavy motion
+
+Do not remove graph animations.
+
+Instead:
+
+keep the UI graph animations
+
+keep bar motion
+
+keep sparkline motion
+
+keep metric transitions
+
+
+But reduce surrounding motion load near them:
+
+calmer parent cards
+
+fewer simultaneous background effects behind graph-heavy sections
+
+avoid combining graph motion + reveal + particle system + floating wrapper all in the same area if not necessary
+
+
+Goal: graphs remain alive and premium, but the whole section becomes lighter
+
+
+---
+
+5. Clean up Landing page motion stacking
+
+In pages/Landing.tsx:
+
+Keep:
+
+hero identity
+
+hero typography
+
+sun streaks
+
+app mockup
+
+graph sections
+
+glow feel
+
+reveal-on-scroll
+

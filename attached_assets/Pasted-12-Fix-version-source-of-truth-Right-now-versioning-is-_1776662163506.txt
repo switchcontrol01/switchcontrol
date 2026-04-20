@@ -1,0 +1,293 @@
+12. Fix version source of truth
+
+Right now versioning is messy.
+
+Required outcome
+
+One source of truth for version.
+
+Best approach
+
+Use root package.json as canonical version source, then sync electron package during build. Or use electron package as canonical source and sync root. Either is fine.
+
+What is not fine:
+
+drift
+
+
+Required rule
+
+At release time:
+
+frontend version
+
+electron app version
+
+updater version
+
+generated metadata version
+
+
+must all match exactly.
+
+Add a validation step
+
+Before build:
+
+compare root version and electron version
+
+fail build if mismatched
+
+or automatically sync one from the other in one place only
+
+
+
+---
+
+13. Tighten frontend updater hook
+
+In use-updater.ts:
+
+Improvements
+
+handle missing Electron API cleanly
+
+never assume state shape is always valid
+
+no stale event subscriptions
+
+no silent inconsistent state
+
+
+Add safety
+
+If api.getState() fails:
+
+keep default state
+
+do not crash UI
+
+
+If event payload is malformed:
+
+ignore it safely
+
+optionally warn in console in dev only
+
+
+
+---
+
+14. Tighten UpdateBanner and UpdateCard logic
+
+Keep your UI design. Do not dumb it down.
+
+But tighten behavior.
+
+Requirements
+
+no stale dismissed state surviving a new update version unless intentional
+
+if a new version appears, banner can reappear
+
+downloading state always overrides dismissed state logic properly
+
+downloaded state must always surface clearly
+
+
+Add this behavior
+
+Track dismissed version, not just dismissed boolean.
+
+Example:
+
+dismissed 1.2.3
+
+if 1.2.4 appears, banner should show again
+
+
+This is important.
+
+
+---
+
+15. Add update integrity comments in code
+
+In updater core and release script, add explicit comments about trust model.
+
+Must document
+
+updater trusts only signed packages
+
+updater trusts only configured generic provider host
+
+metadata and binaries must be kept on same backend
+
+metadata is uploaded last intentionally
+
+downgrade is disabled intentionally
+
+
+This matters because six months from now someone will break it unless the intent is obvious.
+
+
+---
+
+16. Add startup sanity assertions
+
+In main.js during app boot, add a small updater sanity block for packaged builds.
+
+Example checks
+
+if packaged and generic provider URL is missing, log hard error
+
+if packaged and updater init fails, log hard error
+
+if channel name is unsupported, default to stable and warn
+
+
+No silent nonsense.
+
+
+---
+
+17. Remove unrelated release artifacts from Windows workflow
+
+Do not upload:
+
+latest-mac.yml
+
+any Mac metadata
+
+any irrelevant artifacts
+
+
+This is a Windows updater pipeline. Keep it clean.
+
+
+---
+
+18. Add release pipeline validation step
+
+Before upload to R2, validate:
+
+installer exists
+
+metadata exists
+
+metadata version matches app version
+
+metadata path matches installer filename
+
+sha512 present
+
+file size nonzero
+
+
+Fail the workflow if any of these are wrong.
+
+No partial release garbage.
+
+
+---
+
+19. Keep frontend and backend roles clean
+
+Frontend
+
+display updater state
+
+trigger allowed actions
+
+never decide update source
+
+never assemble feed URLs
+
+never fake progress
+
+never assume version truth
+
+
+Electron main
+
+owns updater state
+
+owns provider config
+
+owns install actions
+
+owns feed logging
+
+owns failure handling
+
+
+That separation must stay strict.
+
+
+---
+
+20. Optional but recommended: add release manifest JSON
+
+In addition to latest.yml, optionally upload a tiny JSON manifest for diagnostics only.
+
+Example:
+
+release-info.json
+
+
+Containing:
+
+version
+
+installer filename
+
+release date
+
+channel
+
+sha512 prefix maybe
+
+build number if used
+
+
+Do not make updater depend on it. Use it only for admin/debug visibility if helpful.
+
+
+---
+
+CHECKLIST
+
+R2 generic provider is the only updater backend
+
+GitHub Releases removed from updater delivery path
+
+one exact release host is used
+
+stable channel is clearly defined
+
+no fake latest channel confusion
+
+updater logs provider, URL, channel, metadata target, versions
+
+stale updater state is cleared correctly
+
+check, download, and install are guarded by valid states
+
+preload exposes only minimal updater IPC
+
+renderer updater hook is resilient
+
+UpdateBanner and UpdateCard do not hold stale version state
+
+release workflow uploads installer first and metadata last
+
+workflow validates artifacts before upload
+
+Windows workflow no longer references Mac metadata
+
+version source of truth is unified
+
+compatibility files kept only if genuinely needed
+
+code comments clearly document trust model and update flow
+

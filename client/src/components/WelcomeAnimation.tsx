@@ -1,7 +1,7 @@
 import { useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import logoImg from "@/assets/logo.webp";
-import { Crown, Zap } from "lucide-react";
+import { Crown } from "lucide-react";
 
 interface WelcomeAnimationProps {
   userName: string | null;
@@ -27,8 +27,8 @@ export function WelcomeAnimation({
   introDelay = 0.55,
 }: WelcomeAnimationProps) {
   useEffect(() => {
-    // 5800ms gives the progress bar time to finish its animation
-    // (introDelay 1.3s + 1.3s delay + 2.8s fill = 5.4s) before advancing.
+    // 5800ms aligns with progress-bar completion:
+    // introDelay 1.7s + 1.3s progress-bar delay + 2.8s fill = 5.8s (5800ms).
     const t = setTimeout(onComplete, 5800);
     return () => clearTimeout(t);
   }, [onComplete]);
@@ -71,9 +71,9 @@ export function WelcomeAnimation({
          creating continuity with the login screen's exiting atmosphere.
          The parent App.tsx wrapper owns the opacity cross-fade; we add
          a secondary blur for visual depth during the container's fade-in. */
-      initial={{ filter: "blur(10px)" }}
+      initial={{ filter: "blur(18px)" }}
       animate={{ filter: "blur(0px)" }}
-      transition={{ duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: 2.0, ease: [0.22, 1, 0.36, 1] }}
     >
 
       {/* ── Scan-line overlay ──────────────────────────────────────────── */}
@@ -391,17 +391,6 @@ export function WelcomeAnimation({
             />
           ))}
         </div>
-      </motion.div>
-
-      {/* ── Zap icon flash on entry — delayed to match intro ──────────── */}
-      <motion.div
-        className="absolute pointer-events-none z-20"
-        style={{ left: "50%", top: "50%", marginLeft: -24, marginTop: -24 }}
-        initial={{ opacity: 0, scale: 0.5 }}
-        animate={{ opacity: [0, 1, 0], scale: [0.5, 4, 4] }}
-        transition={{ duration: 0.8, delay: introDelay + 0.05, ease: "easeOut", times: [0, 0.2, 1] }}
-      >
-        <Zap className="w-12 h-12 text-violet-400" style={{ filter: "drop-shadow(0 0 20px rgba(139,92,246,1))" }} />
       </motion.div>
 
     </motion.div>

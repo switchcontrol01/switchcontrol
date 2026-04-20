@@ -1,0 +1,240 @@
+Optional beta Only if implemented properly:
+
+https://releases.switchcontrol.org/beta.yml
+
+
+If beta is not fully implemented, do not half-build it. Leave beta out for now.
+
+
+---
+
+HARD RULES
+
+1. R2 only
+
+no GitHub Releases as an update provider
+
+no fallback to GitHub Releases
+
+no mixed-source metadata
+
+
+
+2. One source of truth
+
+updater checks only releases.switchcontrol.org
+
+
+
+3. Stable means latest.yml
+
+stable channel must resolve only through latest.yml
+
+
+
+4. No fake channel naming
+
+do not call latest a channel if it is just the stable metadata file
+
+keep naming honest
+
+
+
+5. Version comes from one place
+
+root package version and electron package version must never drift
+
+
+
+6. Renderer does not own updater logic
+
+renderer can request actions
+
+Electron main process owns all updater decisions and state
+
+
+
+7. All updater state resets cleanly
+
+old failed messages
+
+stale available version
+
+stuck progress
+
+stale release notes
+
+must not survive incorrectly across new checks
+
+
+
+8. Add runtime proof
+
+log provider
+
+log feed URL
+
+log channel
+
+log current version
+
+log available version
+
+log exact metadata URL being used
+
+
+
+
+
+---
+
+FILES TO AUDIT AND FIX
+
+Electron updater core
+
+electron/updater.js
+
+
+Preload bridge
+
+electron/preload.js
+
+
+Electron main boot flow
+
+electron/main.js
+
+
+Updater hook
+
+src/hooks/use-updater.ts
+
+
+Update UI
+
+src/components/UpdateBanner.tsx
+
+src/components/UpdateCard.tsx
+
+
+Metadata generator
+
+electron/scripts/generate-latest-yml.js
+
+
+Electron package config
+
+electron/package.json
+
+
+Root package version source
+
+package.json
+
+
+Release workflow
+
+.github/workflows/release.yml
+
+
+Any custom release/upload script
+
+electron/scripts/release.js
+
+or equivalent upload script if present
+
+
+Any R2 upload helper
+
+wherever upload logic currently lives
+
+
+
+---
+
+IMPLEMENTATION
+
+1. Clean provider config to R2 generic provider only
+
+In electron/package.json, define a single generic provider.
+
+Required outcome
+
+The publish config must point only to:
+
+https://releases.switchcontrol.org
+
+
+Example target shape
+
+{
+  "build": {
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://releases.switchcontrol.org"
+      }
+    ]
+  }
+}
+
+Rules
+
+remove GitHub publish config entirely
+
+remove any old GitHub updater assumptions
+
+do not keep commented-out alternate providers unless clearly marked for manual future use
+
+keep config clean and unambiguous
+
+
+
+---
+
+2. Fix channel model
+
+In electron/updater.js, stop pretending latest is a real channel abstraction unless you explicitly support channel files.
+
+Stable design
+
+Use stable as the default release track.
+
+Preferred behavior
+
+default channel = "stable"
+
+stable resolves to latest.yml
+
+
+If beta is later supported:
+
+beta resolves to beta.yml
+
+
+Required change
+
+Refactor updater state so there is a clear distinction between:
+
+user-facing release track: stable or beta
+
+metadata filename: latest.yml or beta.yml
+
+
+Do not blur those together.
+
+Example shape
+
+channel: 'stable'
+
+and separate internal mapping logic:
+
+function getMetadataFileForChannel(channel) {
+  if (channel === 'beta') return 'beta.yml';
+  return 'latest.yml';
+}
+
+If electron-updater handles this through provider config alone, still keep internal naming and logs honest.
+
+
+---

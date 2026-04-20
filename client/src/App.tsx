@@ -225,9 +225,9 @@ function ElectronAppContent() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [pauseWhenMinimized, realtimeMetricsEnabled]);
 
-  // login_success → next phase: give the success bloom overlay time to breathe
-  // (and give the login exit animation a head start) before the welcome mounts.
-  // 1000ms feels deliberate and premium; 600ms felt rushed.
+  // login_success → next phase: hold on success bloom long enough for the user
+  // to register it, then let the login exit blur develop before the welcome mounts.
+  // 1400ms feels deliberate and premium; 1000ms felt slightly rushed.
   useEffect(() => {
     if (phase !== "login_success") return;
     const t = setTimeout(() => {
@@ -237,7 +237,7 @@ function ElectronAppContent() {
         setPhase("authenticated");
         setLocation("/dashboard");
       }
-    }, 1000);
+    }, 1400);
     return () => clearTimeout(t);
   }, [phase, isFirstLogin]);
 
@@ -269,8 +269,9 @@ function ElectronAppContent() {
       });
   }, [phase, user?.loggedIn, entitlementsAttempted]);
 
-  // Phase-stabilization gate: let the dashboard's 750ms fade-in finish before
-  // any tour overlay is allowed to mount. Resets whenever phase leaves "authenticated".
+  // Phase-stabilization gate: let the dashboard's fade-in finish before any
+  // tour overlay is allowed to mount. 1600ms covers the 1.2s opacity + 0.25s
+  // delay of the app-shell enter animation. Resets whenever phase leaves "authenticated".
   useEffect(() => {
     if (phase !== "authenticated") {
       setIsPhaseStable(false);
@@ -280,7 +281,7 @@ function ElectronAppContent() {
     const t = setTimeout(() => {
       setIsPhaseStable(true);
       console.log('[TourTransition] dashboard stable — tours unblocked');
-    }, 850);
+    }, 1600);
     return () => clearTimeout(t);
   }, [phase]);
 
@@ -855,7 +856,7 @@ function ElectronAppContent() {
             key="login"
             initial={{ opacity: 0, filter: "blur(14px)", scale: 1.014 }}
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 0.95, ease: [0.4, 0, 0.15, 1] } }}
-            exit={{ opacity: 0, filter: "blur(50px)", scale: 0.93, transition: { duration: 1.7, ease: [0.4, 0, 0.6, 1] } }}
+            exit={{ opacity: 0, filter: "blur(60px)", scale: 0.91, transition: { duration: 1.95, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
             style={{ zIndex: 1 }}
           >
@@ -867,15 +868,15 @@ function ElectronAppContent() {
           <motion.div
             key="welcome"
             initial={{ opacity: 0, filter: "blur(28px)", scale: 1.018 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 2.2, delay: 1.0, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, filter: "blur(22px)", scale: 0.974, transition: { duration: 1.25, ease: [0.4, 0, 0.6, 1] } }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 2.4, delay: 0.35, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, filter: "blur(28px)", scale: 0.972, transition: { duration: 1.45, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
             style={{ zIndex: 1 }}
           >
             <WelcomeAnimation 
               userName={user?.username || null}
               isPremium={user?.isPremium}
-              introDelay={1.3}
+              introDelay={1.7}
               onComplete={() => {
                 setPhase("authenticated");
                 setLocation("/dashboard");
@@ -887,16 +888,16 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, scale: 0.987, filter: "blur(10px)" }}
+            initial={{ opacity: 0, scale: 0.985, filter: "blur(22px)" }}
             animate={
               isSigningOut
-                ? { opacity: 0, scale: 0.975, filter: "blur(24px)", transition: { duration: 1.1, ease: [0.4, 0, 0.6, 1] } }
+                ? { opacity: 0, scale: 0.975, filter: "blur(28px)", transition: { duration: 1.2, ease: [0.4, 0, 0.6, 1] } }
                 : { opacity: 1, scale: 1, filter: "blur(0px)", transition: {
-                    // Blur lingers noticeably longer than opacity — dashboard
-                    // emerges through haze rather than simply fading in.
-                    opacity: { duration: 1.1,  ease: [0.22, 1, 0.36, 1] },
-                    scale:   { duration: 1.28, ease: [0.22, 1, 0.36, 1] },
-                    filter:  { duration: 1.65, ease: [0.22, 1, 0.36, 1] },
+                    // Filter starts clearing immediately so the app materialises
+                    // through haze before opacity peaks — cinematic depth handoff.
+                    opacity: { duration: 1.2,  delay: 0.25, ease: [0.22, 1, 0.36, 1] },
+                    scale:   { duration: 1.45, delay: 0.25, ease: [0.22, 1, 0.36, 1] },
+                    filter:  { duration: 2.2,  delay: 0.1,  ease: [0.22, 1, 0.36, 1] },
                   }}
             }
             className="h-full"

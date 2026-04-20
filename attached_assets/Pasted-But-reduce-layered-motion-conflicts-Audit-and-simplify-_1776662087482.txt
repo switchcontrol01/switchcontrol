@@ -1,0 +1,208 @@
+But reduce layered motion conflicts.
+
+Audit and simplify:
+
+HeroTiltContainer
+
+mockup floating
+
+mockup particles
+
+multiple live counters
+
+multiple animated bars
+
+section glows
+
+telemetry overlay
+
+reveal wrappers inside already animated regions
+
+
+Apply this rule:
+
+hero gets one primary ambient motion system
+
+one secondary support motion system
+
+all other hero decoration becomes subtle or static
+
+
+Do not remove the look. Do remove redundant motion competition.
+
+
+---
+
+6. Clean up Download page motion stacking
+
+In pages/Download.tsx:
+
+Keep:
+
+launch-page atmosphere
+
+countdown
+
+premium cinematic look
+
+background richness
+
+topology / ambient tech vibe
+
+
+But reduce simultaneous background systems.
+
+Specifically:
+
+reduce number of large blurred background layers
+
+reduce how many full-screen animated systems run at once
+
+keep topology motion but calm it
+
+keep particles but lighten them
+
+keep parallax feel but avoid heavy state churn
+
+keep the page dramatic, but more controlled
+
+
+The page should feel premium and cinematic, not overloaded.
+
+
+---
+
+7. Keep WebsiteShell premium, but stop adding cost everywhere
+
+In components/website/WebsiteShell.tsx:
+
+Keep:
+
+glass header
+
+premium translucent feel
+
+clean nav behavior
+
+
+But audit:
+
+backdrop blur strength
+
+unnecessary layered shadows
+
+mobile menu transition weight
+
+any repeated glass effects that compound with heavy page backgrounds
+
+
+Do not remove the glass style. Just stop it from contributing unnecessary cost on already heavy pages.
+
+
+---
+
+8. Establish motion hierarchy across all website pages
+
+Across the website, apply this rule:
+
+For each page section:
+
+1 primary motion system
+
+1 secondary accent system max
+
+everything else should be static or very subtle
+
+
+Examples:
+
+if section already has animated graph, then background motion must be restrained
+
+if hero already has floating mockup and sun streaks, then particles must be lighter
+
+if a card already has hover glow, do not also make its container float, blur pulse, and reveal individually unless required
+
+
+This is the key to making the site feel expensive instead of chaotic.
+
+
+---
+
+9. Improve mobile motion behavior
+
+On mobile:
+
+preserve the reveal language
+
+preserve fade + blur in
+
+preserve premium feel
+
+
+But reduce:
+
+particle density
+
+floating amplitude
+
+blur strength where expensive
+
+cursor-style features that do not apply
+
+non-essential layered ambient animation
+
+
+Mobile should feel elegant, not like a cut-down broken version.
+
+
+---
+
+10. Hard performance guardrails
+
+Implement these guardrails during cleanup:
+
+no decorative effect should trigger React re-renders every frame
+
+prefer transform and opacity
+
+reduce simultaneous large blur surfaces
+
+reduce duplicate particle mounts
+
+reduce nested reveal animations
+
+avoid expensive animation stacks inside the first viewport load
+
+preserve visuals, but prioritize frame stability
+
+
+
+---
+
+DO NOT REMOVE
+
+Do not remove any of the following unless technically unavoidable:
+
+graph animations
+
+fade in / blur in reveal style
+
+sun streaks
+
+current font
+
+premium glass feel
+
+hero mockup
+
+landing page identity
+
+download page cinematic tone
+
+overall visual direction
+
+
+This is a cleanup and optimization pass, not a visual downgrade.
+
+
+---

@@ -1,0 +1,243 @@
+downloadUpdate
+
+Allowed only from:
+
+available
+
+
+Blocked from all other states.
+
+quitAndInstall
+
+Allowed only from:
+
+downloaded
+
+
+Blocked from all other states.
+
+Example
+
+If a call is invalid:
+
+log it
+
+do not throw noisy renderer errors
+
+safely return
+
+
+This stops duplicate downloads, bad state transitions, and nonsense clicks.
+
+
+---
+
+7. Add failure recovery behavior
+
+Improve repeated failure handling.
+
+Requirements
+
+If updater errors:
+
+state becomes error
+
+UI can retry
+
+next check clears previous error properly
+
+
+Add optional error counters
+
+Track consecutive updater failures in memory.
+
+If repeated failures occur:
+
+keep showing retry
+
+keep clear human-readable messages
+
+do not soft-lock updater into a broken visual state
+
+
+You do not need a huge recovery framework. You do need clean retry behavior.
+
+
+---
+
+8. Remove GitHub Releases from release automation
+
+Refactor .github/workflows/release.yml.
+
+New rule
+
+This workflow must:
+
+build frontend
+
+build Electron app
+
+generate latest.yml
+
+upload artifacts to R2
+
+stop
+
+
+It must not
+
+create GitHub Releases for updater distribution
+
+rely on GitHub Releases as metadata host
+
+upload updater assets there as a source of truth
+
+
+If you still want GitHub Releases for marketing or changelogs later, that is separate from updater infrastructure. Do not let the app depend on it.
+
+
+---
+
+9. Replace GitHub release upload with R2 upload step
+
+In release workflow, replace GitHub release asset upload with proper R2 upload logic.
+
+Required artifacts to upload to R2
+
+For stable:
+
+installer .exe
+
+latest.yml
+
+
+Optional:
+
+.blockmap if generated and required by your updater strategy
+
+
+If beta exists:
+
+beta installer
+
+beta.yml
+
+
+Requirements
+
+Upload must be atomic in practice:
+
+upload installer first
+
+upload metadata last
+
+
+Why: If latest.yml goes live first and installer is not there yet, clients will see a broken update.
+
+So order matters.
+
+Required sequence
+
+1. build installer
+
+
+2. generate metadata
+
+
+3. upload installer
+
+
+4. upload blockmap if used
+
+
+5. upload latest.yml last
+
+
+
+
+---
+
+10. Keep metadata generator but make it production-clean
+
+Your generate-latest-yml.js is broadly fine. Keep it, but tighten it.
+
+Required improvements
+
+A. Fail if multiple installers are found ambiguously
+
+Right now it grabs the first .exe.
+
+Make this stricter. If more than one valid installer exe is present, either:
+
+choose deterministically by product/version naming
+
+or fail loudly
+
+
+Do not rely on luck.
+
+B. Ensure product filename is logged exactly
+
+Log:
+
+installer filename
+
+size
+
+sha512
+
+version
+
+output yml path
+
+
+C. Stable-only by default
+
+Keep generating:
+
+latest.yml
+
+
+Only generate:
+
+beta.yml
+
+stable.yml
+
+
+if your final architecture explicitly uses them.
+
+Do not generate random compatibility files unless you truly need them.
+
+You currently generate stable.yml as a compat shim. Keep it only if existing installed clients truly require it. Otherwise remove it and simplify.
+
+
+---
+
+11. Decide whether stable.yml stays
+
+Audit whether shipped builds currently request:
+
+latest.yml
+
+or stable.yml
+
+
+This matters.
+
+Rule
+
+If older public builds are already looking for stable.yml, keep the compat shim for now. If not, remove it.
+
+Do not keep compatibility hacks forever without reason.
+
+Final decision must be documented in code comments
+
+Example:
+
+// stable.yml retained only for legacy clients from versions <= 1.0.0
+
+or
+
+// stable.yml removed because all supported clients resolve latest.yml
+

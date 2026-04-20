@@ -1,0 +1,214 @@
+TASK
+
+Optimize the SwitchControl website so it keeps the same visual identity, same premium style, same graph animations, same sun streaks, same typography, and same blur/fade reveal language, but feels much smoother, lighter, and more intentional across desktop and mobile.
+
+This is not a redesign.
+
+Do not remove the current aesthetic direction.
+
+The goal is to preserve the current look while eliminating lag, motion overload, and badly layered effects.
+
+
+---
+
+PROBLEM
+
+The website currently feels visually rich but technically unstable.
+
+User feedback says it feels:
+
+laggy
+
+overly busy
+
+not fully settled together
+
+premium in parts, but messy in motion
+
+
+The issue is not the concept.
+The issue is the implementation.
+
+Right now too many expensive motion systems are running at the same time:
+
+cursor spotlight
+
+particle fields
+
+repeated blur layers
+
+floating wrappers
+
+multiple animated background systems
+
+reveal-on-scroll
+
+live counters
+
+live bars
+
+animated glow surfaces
+
+section transitions
+
+
+This creates:
+
+frame drops
+
+stutter during page load and scroll
+
+visual competition between effects
+
+a website that feels impressive but not controlled
+
+
+
+---
+
+GOAL
+
+Keep the current visual style, but make it feel:
+
+smooth
+
+deliberate
+
+premium
+
+cinematic
+
+technically clean
+
+performant on desktop and mobile
+
+
+Hard requirements:
+
+keep sun streaks
+
+keep current font
+
+keep graph animations
+
+keep fade-in + blur-in language
+
+keep top-to-bottom reveal feeling when entering sections
+
+keep scroll reveal behavior on desktop and mobile
+
+do not flatten the site into something generic
+
+do not remove the premium look
+
+do not remove the mockup or graph motion systems unless absolutely required
+
+
+
+---
+
+SCOPE
+
+Focus on website files, not Electron app files.
+
+Main files to audit and optimize:
+
+pages/Landing.tsx
+
+pages/Download.tsx
+
+pages/Login.tsx
+
+components/SpotlightCursor.tsx
+
+components/LoginParticles.tsx
+
+components/website/WebsiteShell.tsx
+
+hooks/useRevealOnScroll.ts
+
+components/AnimateIn.tsx
+
+
+Do not touch the app-only AppBackground unless needed for shared patterns reference.
+
+
+---
+
+ROOT PROBLEMS TO FIX
+
+1. Too many simultaneous animated systems
+
+Some pages are stacking too many active effects in the same viewport:
+
+ambient glows
+
+particle systems
+
+parallax
+
+floating wrappers
+
+topology / telemetry overlays
+
+spotlight cursor
+
+reveal-on-scroll
+
+counters and live bars
+
+
+This makes the site feel heavy and unsettled.
+
+2. Spotlight cursor is implemented inefficiently
+
+SpotlightCursor currently uses React state updates during pointer motion.
+
+That is too expensive for a decorative effect.
+
+It should use:
+
+requestAnimationFrame
+
+refs
+
+direct transform updates
+
+zero React re-render spam per frame
+
+
+3. Login particles are too heavy
+
+LoginParticles currently renders too many animated particles and is mounted twice on the login page.
+
+That is excessive for a background accent system.
+
+4. Reveal system is too blunt
+
+useRevealOnScroll and AnimateIn are useful, but right now they are too generic and are being applied on top of already animated regions.
+
+This creates stacked motion where:
+
+sections animate in
+
+child components animate in
+
+background layers also animate
+
+counters and bars animate too
+
+
+That is not smooth. That is motion congestion.
+
+5. Motion hierarchy is weak
+
+Every element is trying to be special.
+
+The site needs stronger hierarchy:
+
+one main motion event per section
+
+one support motion layer max
+
+everything else should be calmer
+

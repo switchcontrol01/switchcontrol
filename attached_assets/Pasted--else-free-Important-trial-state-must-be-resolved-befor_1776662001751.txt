@@ -1,0 +1,90 @@
+- else:
+  free
+
+Important:
+trial state must be resolved before generic premium UI if the backend intentionally uses:
+
+- isPremium = true
+- plan = trial
+
+Do not let generic premium branches override active trial UI.
+
+4. Refactor top banner
+
+Remove any local trial computation from the top banner.
+
+It must use only the shared resolved entitlement selector.
+
+5. Refactor sidebar footer
+
+Remove any stale footer-local label or independent trial/premium logic.
+
+The footer must use only the same shared selector and same countdown source.
+
+6. Remove cached display text bugs
+
+Do not store strings like:
+
+- "trial expired"
+- "trial active"
+- "premium active"
+
+in local component state unless they are recomputed directly from the shared selector every render.
+
+No stale badge text may persist between entitlement refreshes.
+
+7. Force synchronized refresh behavior
+
+When entitlement state changes because of:
+
+- admin grant
+- admin revoke
+- trial restart
+- plan refresh
+- focus-based entitlement refresh
+
+all UI surfaces must update from the same resolved selector in the same render cycle.
+
+8. Add debug logging temporarily
+
+For top banner and footer, log:
+
+- resolved entitlement state
+- user.isPremium
+- user.plan
+- user.trialEndsAt
+- entitlementsVerified
+- grace status
+
+Confirm both always resolve to the exact same final state.
+
+9. Investigate the 500 error separately
+
+The failing request to:
+
+- trial-tour-seen
+
+must be fixed, but it should be treated as a separate backend persistence issue unless it is proven to mutate entitlement fields.
+
+Do not assume this 500 is the primary cause of the trial badge mismatch.
+
+CHECKLIST
+
+- one canonical entitlement selector added
+- top banner uses selector only
+- sidebar footer uses selector only
+- active trial and expired trial can no longer disagree
+- trial countdown label and footer badge stay in sync
+- generic premium logic no longer overrides active trial UI
+- stale cached badge text removed
+- verified visually in Electron after admin grant/restart/refresh
+
+FINAL OUTPUT
+
+Return:
+
+1. all components that were using different entitlement logic
+2. the exact shared entitlement selector
+3. the final priority order for trial vs premium vs expired
+4. the exact stale state source that caused the footer mismatch
+5. confirmation that top banner and footer now always match
