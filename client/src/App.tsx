@@ -868,7 +868,7 @@ function ElectronAppContent() {
             key="welcome"
             initial={{ opacity: 0, filter: "blur(28px)", scale: 1.018 }}
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 2.2, delay: 1.0, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, filter: "blur(12px)", scale: 0.98, transition: { duration: 0.65, ease: [0.4, 0, 0.6, 1] } }}
+            exit={{ opacity: 0, filter: "blur(22px)", scale: 0.974, transition: { duration: 1.25, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
             style={{ zIndex: 1 }}
           >
@@ -887,11 +887,17 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, scale: 0.995, filter: "blur(4px)" }}
+            initial={{ opacity: 0, scale: 0.987, filter: "blur(10px)" }}
             animate={
               isSigningOut
                 ? { opacity: 0, scale: 0.975, filter: "blur(24px)", transition: { duration: 1.1, ease: [0.4, 0, 0.6, 1] } }
-                : { opacity: 1, scale: 1,     filter: "blur(0px)",  transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] } }
+                : { opacity: 1, scale: 1, filter: "blur(0px)", transition: {
+                    // Blur lingers noticeably longer than opacity — dashboard
+                    // emerges through haze rather than simply fading in.
+                    opacity: { duration: 1.1,  ease: [0.22, 1, 0.36, 1] },
+                    scale:   { duration: 1.28, ease: [0.22, 1, 0.36, 1] },
+                    filter:  { duration: 1.65, ease: [0.22, 1, 0.36, 1] },
+                  }}
             }
             className="h-full"
             style={{ pointerEvents: isSigningOut ? "none" : undefined }}
