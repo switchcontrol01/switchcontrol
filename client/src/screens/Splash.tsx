@@ -10,17 +10,17 @@ interface SplashProps {
 /* ── Floating dust particles — stable positions, never re-randomise ── */
 const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
   id: i,
-  x: (i * 37 + 11) % 100,          // % across screen
-  y: (i * 53 + 7)  % 100,          // % down screen
-  size: 1.2 + (i % 4) * 0.6,       // 1.2–3.0px
-  opacity: 0.12 + (i % 5) * 0.06,  // 0.12–0.36
-  dur: 6 + (i % 7) * 2.2,          // 6–19s per cycle
-  dx: ((i % 9) - 4) * 18,          // drift X  –72 to +72px
-  dy: ((i % 6) - 3) * 12,          // drift Y  –36 to +36px
-  delay: (i * 0.55) % 8,
+  x: (i * 37 + 11) % 100,
+  y: (i * 53 + 7)  % 100,
+  size: 1.2 + (i % 4) * 0.6,
+  opacity: 0.12 + (i % 5) * 0.06,
+  dur: 6 + (i % 7) * 2.2,
+  dx: ((i % 9) - 4) * 18,
+  dy: ((i % 6) - 3) * 12,
+  delay: (i * 0.28) % 4, // halved max delay so more particles appear early
 }));
 
-/* ── Static sun-streak beams — angled like early light through haze ── */
+/* ── Static sun-streak beams ── */
 const STREAKS = [
   { left: "8%",  top: "-10%", rot: "28deg",  w: "160vw", h: "1.5px", color: "rgba(168,85,247,0.22)",  blur: 1.2, dur: 8,  delay: 0   },
   { left: "18%", top: "15%",  rot: "24deg",  w: "140vw", h: "1px",   color: "rgba(0,200,255,0.18)",   blur: 1.0, dur: 10, delay: 1.2 },
@@ -32,15 +32,26 @@ const STREAKS = [
 export default function Splash({ onComplete }: SplashProps) {
   const [logoReady, setLogoReady] = useState(false);
   const [textReady, setTextReady] = useState(false);
+  const [sweepReady, setSweepReady] = useState(false);
   const [exiting,   setExiting]   = useState(false);
   const [progress,  setProgress]  = useState(0);
   const tagline = useMemo(() => getTagline(), []);
   const [statusText, setStatusText] = useState(tagline);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setLogoReady(true),  320);
-    const t2 = setTimeout(() => setTextReady(true), 1000);
-    const t3 = setTimeout(() => setExiting(true),   3800);
+    // ── Splash owns all timing ──────────────────────────────────────────
+    // Logo first — establishes brand before environment blooms.
+    const t1 = setTimeout(() => setLogoReady(true),  80);
+    // Title/tagline follow quickly after logo appears.
+    const t2 = setTimeout(() => setTextReady(true),  220);
+    // Diagonal reveal sweep begins after foreground is visible.
+    const t3 = setTimeout(() => setSweepReady(true), 380);
+    // Begin exit sequence.
+    const t4 = setTimeout(() => setExiting(true),   3000);
+    // Notify parent exactly when splash has finished — parent is NOT allowed
+    // to set its own splashDone timer; this callback is the single authority.
+    const done = setTimeout(() => onComplete(), 4400);
+
     const si = setInterval(() => setStatusText(getTagline()), 2200);
 
     const pi = setInterval(() => {
@@ -53,9 +64,8 @@ export default function Splash({ onComplete }: SplashProps) {
       });
     }, 36);
 
-    const done = setTimeout(() => onComplete(), 5200);
     return () => {
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(done);
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(done);
       clearInterval(pi); clearInterval(si);
     };
   }, [onComplete]);
@@ -138,10 +148,11 @@ export default function Splash({ onComplete }: SplashProps) {
               background: p.id % 3 === 0 ? 'rgba(168,85,247,1)' : p.id % 3 === 1 ? 'rgba(0,210,255,1)' : 'rgba(210,160,255,1)',
               boxShadow: `0 0 ${p.size * 2}px ${p.size}px ${p.id % 3 === 0 ? 'rgba(168,85,247,0.5)' : p.id % 3 === 1 ? 'rgba(0,210,255,0.5)' : 'rgba(210,160,255,0.5)'}`,
             }}
+            initial={{ opacity: p.opacity * 0.2 }}
             animate={{
               x: [0, p.dx, 0],
               y: [0, p.dy, 0],
-              opacity: [0, p.opacity, p.opacity * 0.4, p.opacity, 0],
+              opacity: [p.opacity * 0.2, p.opacity, p.opacity * 0.35, p.opacity, p.opacity * 0.2],
             }}
             transition={{
               duration: p.dur,
@@ -168,7 +179,6 @@ export default function Splash({ onComplete }: SplashProps) {
 
       {/* ── Layer D: center bloom behind logo ────────────────────────────── */}
       <div className="absolute pointer-events-none" style={{ left: "50%", top: "46%", zIndex: 3 }}>
-        {/* Outer soft halo */}
         <motion.div style={{
           width: "640px", height: "640px",
           marginLeft: "-320px", marginTop: "-320px",
@@ -178,7 +188,6 @@ export default function Splash({ onComplete }: SplashProps) {
           animate={{ opacity: [0.45, 0.80, 0.45], scale: [0.96, 1.06, 0.96] }}
           transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Inner warm glow */}
         <motion.div style={{
           position: "absolute",
           width: "280px", height: "280px",
@@ -192,8 +201,39 @@ export default function Splash({ onComplete }: SplashProps) {
         />
       </div>
 
+      {/* ── Layer E: diagonal reveal sweep — fires after logo is visible ──── */}
+      {/* Tells the eye where to look as the scene opens. Soft, atmospheric,
+          not a hard wipe. Sweeps from top-left toward bottom-right once. */}
+      <AnimatePresence>
+        {sweepReady && (
+          <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 4 }}>
+            <motion.div
+              style={{
+                position: "absolute",
+                top: "-80%", left: "-80%",
+                width: "80%", height: "280%",
+                background: [
+                  "linear-gradient(90deg,",
+                  "  transparent 0%,",
+                  "  rgba(168,85,247,0.10) 30%,",
+                  "  rgba(139,92,246,0.14) 48%,",
+                  "  rgba(0,200,255,0.08) 62%,",
+                  "  transparent 80%)",
+                ].join(""),
+                filter: "blur(55px)",
+                transform: "rotate(-28deg)",
+                transformOrigin: "top left",
+              }}
+              initial={{ x: "0%", opacity: 0 }}
+              animate={{ x: "380%", opacity: [0, 0.85, 0.70, 0] }}
+              transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
+            />
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* ── Vignette ─────────────────────────────────────────────────────── */}
-      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 4,
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5,
         background: "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(7,9,13,0.88) 100%)",
       }} />
 
@@ -223,7 +263,7 @@ export default function Splash({ onComplete }: SplashProps) {
                 transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
               />
 
-              {/* Thin glowing rim — single, not spinning */}
+              {/* Thin glowing rim */}
               <motion.div
                 className="absolute rounded-[24%] pointer-events-none"
                 style={{

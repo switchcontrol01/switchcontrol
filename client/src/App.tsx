@@ -552,15 +552,9 @@ function ElectronAppContent() {
       .catch(() => {});
   }, [phase, activeFlow]);
 
-  // ── Splash timers — start immediately on mount ───────────────────────────
-  useEffect(() => {
-    const glowTimer   = setTimeout(() => setShowGlow(true), 3800);
-    const splashTimer = setTimeout(() => setSplashDone(true), 4800);
-    return () => {
-      clearTimeout(glowTimer);
-      clearTimeout(splashTimer);
-    };
-  }, []);
+  // ── Splash completion — Splash.tsx is the sole timing authority ─────────
+  // Splash calls onComplete() when its exit animation finishes.
+  // CameraGlow fires here, not on a raw timer, so it never overlaps the splash.
 
   useEffect(() => {
     if (!isElectron) return;
@@ -681,6 +675,8 @@ function ElectronAppContent() {
 
   useEffect(() => {
     if (!splashDone) return;
+    // Fire CameraGlow exactly as splash completes — not during it
+    setShowGlow(true);
 
     const checkAuth = async () => {
       const hasCredential = !!(token || jwt);
@@ -812,7 +808,7 @@ function ElectronAppContent() {
           Login and Welcome are transparent overlays on top of it, so the
           dark atmosphere continues breathing during the transition instead
           of hard-cutting between two separate background layers. */}
-      {(phase === "splash" || phase === "unauthenticated" || phase === "login_success" || phase === "welcome") && (
+      {(phase === "unauthenticated" || phase === "login_success" || phase === "welcome") && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#080810" }}>
           <motion.div
             className="absolute inset-0"
@@ -850,7 +846,7 @@ function ElectronAppContent() {
             className="h-full"
             style={{ position: "absolute", inset: 0, zIndex: 1 }}
           >
-            <Splash onComplete={() => {}} />
+            <Splash onComplete={() => setSplashDone(true)} />
           </motion.div>
         )}
 
