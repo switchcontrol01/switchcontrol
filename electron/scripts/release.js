@@ -390,15 +390,21 @@ function headRequest(url, redirectsLeft = 3) {
       path:     parsed.pathname + parsed.search,
       method:   'HEAD',
       headers:  { 'user-agent': 'SwitchControl-Release-Script/1.0' },
+      timeout:  15000,
     };
     const req = https.request(options, res => {
       if ((res.statusCode === 301 || res.statusCode === 302) && res.headers.location && redirectsLeft > 0) {
         resolve(headRequest(res.headers.location, redirectsLeft - 1));
         return;
       }
-      resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode, url });
+      const ok = res.statusCode >= 200 && res.statusCode < 300;
+      const contentLength = res.headers['content-length'] != null
+        ? Number(res.headers['content-length'])
+        : null;
+      resolve({ ok, status: res.statusCode, url, contentLength });
     });
-    req.on('error', err => resolve({ ok: false, status: null, url, error: err.message }));
+    req.on('timeout', () => req.destroy());
+    req.on('error', err => resolve({ ok: false, status: null, url, contentLength: null, error: err.message }));
     req.end();
   });
 }
@@ -407,6 +413,74 @@ function headRequest(url, redirectsLeft = 3) {
 // Order: installer → blockmap → stable.yml → latest.yml (metadata last)
 // latest.yml MUST be uploaded last: if it goes live before the installer,
 // clients will see a broken update where the binary is unreachable.
+
+// Errors that are safe to retry (transient network issues)
+const RETRYABLE = new Set([
+  'ECONNRESET', 'ECONNABORTED', 'ETIMEDOUT', 'EPIPE', 'ENOTFOUND',
+  'ECONNREFUSED', 'socket hang up',
+]);
+
+function isRetryable(err) {
+  if (!err) return false;
+  const msg  = String(err.message || '');
+  const code = String(err.code    || '');
+  return RETRYABLE.has(code) || [...RETRYABLE].some(k => msg.includes(k));
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+/**
+ * Upload a single artifact with automatic retry.
+ * - Retries up to MAX_ATTEMPTS times on transient network errors.
+ * - Non-retryable errors (auth, bad request) fail immediately.
+ * - latest.yml is always re-uploaded; other files are skipped if R2 already
+ *   has the exact same size (allows re-running the script after a partial failure
+ *   without re-uploading the 110 MB installer from scratch).
+ */
+async function uploadWithRetry(artifact, alwaysUpload = false) {
+  const MAX_ATTEMPTS = 4;
+  const localSize    = fs.statSync(artifact.localPath).size;
+  const sizeMB       = (localSize / 1024 / 1024).toFixed(1);
+
+  // Pre-flight: check R2 for an existing object of the same size.
+  // latest.yml is always re-uploaded (must reflect the current build).
+  if (!alwaysUpload && !artifact.name.endsWith('.yml')) {
+    const publicUrl = `${PUBLIC_URL}/${encodeURIComponent(artifact.name)}`;
+    const check = await headRequest(publicUrl);
+    if (check.ok) {
+      // R2 returns Content-Length for objects in the bucket
+      // We compare by size — same version build produces identical bytes
+      const remoteSize = check.contentLength;
+      if (remoteSize !== null && Number(remoteSize) === localSize) {
+        console.log(`  ↷ ${artifact.name}  (${sizeMB} MB) — already on R2 at same size, skipping`);
+        return;
+      }
+    }
+  }
+
+  console.log(`  Uploading ${artifact.name}  (${sizeMB} MB)`);
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      await uploadFile(artifact);
+      console.log(`  ✓ ${artifact.name} uploaded`);
+      return;
+    } catch (err) {
+      const retriable = isRetryable(err);
+      if (!retriable || attempt === MAX_ATTEMPTS) {
+        process.stdout.write('\n');
+        console.error(`  ✗ FAILED: ${err.message}`);
+        if (!retriable) console.error('  (non-retryable error — check credentials and bucket access)');
+        process.exit(1);
+      }
+      const wait = attempt * 8; // 8s, 16s, 24s between attempts
+      process.stdout.write('\n');
+      console.log(`  ↺ Connection dropped (${err.message}) — retrying in ${wait}s (attempt ${attempt + 1}/${MAX_ATTEMPTS}) ...`);
+      await sleep(wait * 1000);
+      console.log(`  Uploading ${artifact.name}  (${sizeMB} MB) — attempt ${attempt + 1}`);
+    }
+  }
+}
 
 (async () => {
   const sorted = [
@@ -417,16 +491,8 @@ function headRequest(url, redirectsLeft = 3) {
   ];
 
   for (const artifact of sorted) {
-    const sizeMB = (fs.statSync(artifact.localPath).size / 1024 / 1024).toFixed(1);
-    console.log(`  Uploading ${artifact.name}  (${sizeMB} MB)`);
-    try {
-      await uploadFile(artifact);
-      console.log(`  ✓ ${artifact.name} uploaded`);
-    } catch (err) {
-      process.stdout.write('\n');
-      console.error(`  ✗ FAILED: ${err.message}`);
-      process.exit(1);
-    }
+    // latest.yml is always re-uploaded to ensure it reflects this build
+    await uploadWithRetry(artifact, artifact.name === 'latest.yml');
   }
 
   // ── Post-upload verification ──────────────────────────────────────────────
@@ -468,13 +534,10 @@ function headRequest(url, redirectsLeft = 3) {
   fs.writeFileSync(releaseInfoPath, JSON.stringify(releaseInfo, null, 2) + '\n', 'utf8');
 
   // Upload release-info.json last (informational only — not depended on by updater)
-  console.log('  Uploading release-info.json  (0.0 MB)');
   try {
-    await uploadFile({ name: 'release-info.json', localPath: releaseInfoPath });
-    console.log('  ✓ release-info.json uploaded');
-  } catch (err) {
-    // Non-fatal — updater does not depend on this file
-    console.log(`  ⚠ release-info.json WARN (${err.message}) — optional file, release still valid`);
+    await uploadWithRetry({ name: 'release-info.json', localPath: releaseInfoPath }, true);
+  } catch {
+    // Non-fatal — updater does not depend on this file; uploadWithRetry already logged
   }
 
   console.log('\nAll files live and reachable.');
