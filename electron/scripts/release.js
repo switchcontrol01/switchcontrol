@@ -242,10 +242,24 @@ function getContentType(filename) {
 }
 
 /**
+ * Normalize a query string to SigV4 canonical form.
+ * Every parameter must appear as key=value (empty value → key=).
+ * Parameters are sorted lexicographically.
+ */
+function canonicalQS(qs) {
+  if (!qs) return '';
+  return qs.split('&')
+    .map(p => p.includes('=') ? p : p + '=')
+    .sort()
+    .join('&');
+}
+
+/**
  * Build an AWS Signature V4 Authorization header.
  * Works for any HTTP method, query string, and body.
  */
 function sigV4Auth(method, key, queryString, extraHeaders, bodyHash) {
+  queryString = canonicalQS(queryString);
   const now       = new Date();
   const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, '');
   const amzDate   = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
