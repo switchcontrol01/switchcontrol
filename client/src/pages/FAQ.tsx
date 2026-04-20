@@ -434,7 +434,7 @@ function InfoCard({
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function FAQPage() {
-  const [activeCategory, setActiveCategory] = useState<CategoryId | "all">("all");
+  const [activeCategory, setActiveCategory] = useState<CategoryId | "all">("general");
 
   const filteredItems =
     activeCategory === "all"
