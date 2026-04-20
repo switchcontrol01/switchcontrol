@@ -102,7 +102,7 @@ export function useNetworkDiagnostics(): DiagnosticsState {
   const fetchSample = useCallback(async () => {
     try {
       const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), 8000);
+      const tid = setTimeout(() => controller.abort(), 12000);
       const resp = await fetch("/api/network/ping-sample", { signal: controller.signal });
       clearTimeout(tid);
 

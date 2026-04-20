@@ -12,18 +12,28 @@ const TARGETS: PingTarget[] = [
   { host: "208.67.222.222", port: 53, label: "OpenDNS" },
 ];
 
-function tcpPing(host: string, port: number, timeoutMs = 1500): Promise<number | null> {
+function tcpPing(host: string, port: number, timeoutMs = 2000): Promise<number | null> {
   return new Promise((resolve) => {
     const start = performance.now();
     const socket = new net.Socket();
-    socket.setTimeout(timeoutMs);
-    socket.connect(port, host, () => {
-      const ms = parseFloat((performance.now() - start).toFixed(2));
+    let settled = false;
+
+    const finish = (ms: number | null) => {
+      if (settled) return;
+      settled = true;
       socket.destroy();
       resolve(ms);
+    };
+
+    // Wall-clock deadline — fires even if TCP SYN is dropped and never ACK'd
+    const wall = setTimeout(() => finish(null), timeoutMs);
+
+    socket.connect(port, host, () => {
+      clearTimeout(wall);
+      finish(parseFloat((performance.now() - start).toFixed(2)));
     });
-    socket.on("timeout", () => { socket.destroy(); resolve(null); });
-    socket.on("error", () => { socket.destroy(); resolve(null); });
+    socket.on("error",   () => { clearTimeout(wall); finish(null); });
+    socket.on("timeout", () => { clearTimeout(wall); finish(null); });
   });
 }
 
