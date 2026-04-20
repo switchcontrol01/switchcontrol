@@ -237,22 +237,33 @@ function getContentType(filename) {
 /**
  * AWS Signature V4 PUT for a single file.
  * R2 is S3-compatible so no SDK is required.
+ *
+ * Streams the file body in 1 MB chunks so progress is visible and the
+ * socket does not appear frozen for large uploads.  The full body hash
+ * is still computed upfront (required by SigV4) but the bytes are not
+ * held in memory while the network transfer is in progress.
  */
 function uploadFile(artifact) {
   return new Promise((resolve, reject) => {
-    const body      = fs.readFileSync(artifact.localPath);
-    const bodyHash  = hash(body);
-    const key       = artifact.name;
-    const now       = new Date();
-    const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const amzDate   = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
-    const service   = 's3';
-    const region    = 'auto';
-    const host      = `${BUCKET}.${ACCOUNT_ID}.r2.cloudflarestorage.com`;
+    const fileStat   = fs.statSync(artifact.localPath);
+    const totalBytes = fileStat.size;
+    const totalMB    = (totalBytes / 1024 / 1024).toFixed(1);
+
+    // SigV4 requires the SHA-256 of the entire body before the request starts.
+    // For files up to ~500 MB this is fast enough to be synchronous.
+    const bodyHash    = crypto.createHash('sha256').update(fs.readFileSync(artifact.localPath)).digest('hex');
+
+    const key         = artifact.name;
+    const now         = new Date();
+    const dateStamp   = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const amzDate     = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
+    const service     = 's3';
+    const region      = 'auto';
+    const host        = `${BUCKET}.${ACCOUNT_ID}.r2.cloudflarestorage.com`;
     const contentType = getContentType(key);
 
     // Manifest files must never be cached; binaries are immutable once uploaded.
-    const isManifest = key.endsWith('.yml');
+    const isManifest   = key.endsWith('.yml');
     const cacheControl = isManifest
       ? 'no-cache, no-store, must-revalidate'
       : 'public, max-age=31536000, immutable';
@@ -260,32 +271,25 @@ function uploadFile(artifact) {
     const headers = {
       host,
       'content-type':         contentType,
-      'content-length':       String(body.length),
+      'content-length':       String(totalBytes),
       'cache-control':        cacheControl,
       'x-amz-date':           amzDate,
       'x-amz-content-sha256': bodyHash,
     };
 
-    const signedHeaders = Object.keys(headers).sort().join(';');
+    const signedHeaders    = Object.keys(headers).sort().join(';');
     const canonicalHeaders = Object.keys(headers).sort()
       .map(k => `${k}:${headers[k]}\n`).join('');
-    const canonicalUri = `/${encodeURIComponent(key)}`;
+    const canonicalUri     = `/${encodeURIComponent(key)}`;
 
     const canonicalRequest = [
-      'PUT',
-      canonicalUri,
-      '',
-      canonicalHeaders,
-      signedHeaders,
-      bodyHash,
+      'PUT', canonicalUri, '',
+      canonicalHeaders, signedHeaders, bodyHash,
     ].join('\n');
 
     const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
     const stringToSign = [
-      'AWS4-HMAC-SHA256',
-      amzDate,
-      credentialScope,
-      hash(canonicalRequest),
+      'AWS4-HMAC-SHA256', amzDate, credentialScope, hash(canonicalRequest),
     ].join('\n');
 
     const kDate    = hmacBuf(`AWS4${KEY_SECRET}`, dateStamp);
@@ -309,23 +313,70 @@ function uploadFile(artifact) {
       path:     `/${encodedKey}`,
       method:   'PUT',
       headers:  reqHeaders,
+      // 15-minute total timeout — generous for slow connections, fails fast on hang
+      timeout:  15 * 60 * 1000,
     };
 
     const req = https.request(options, res => {
-      let body = '';
-      res.on('data', d => { body += d; });
+      let respBody = '';
+      res.on('data', d => { respBody += d; });
       res.on('end', () => {
+        process.stdout.write('\n');
         if (res.statusCode >= 200 && res.statusCode < 300) {
           resolve();
         } else {
-          reject(new Error(`Upload failed (${res.statusCode}): ${body}`));
+          reject(new Error(`Upload failed (${res.statusCode}): ${respBody}`));
         }
       });
     });
 
-    req.on('error', reject);
-    req.write(body);
-    req.end();
+    req.on('timeout', () => {
+      req.destroy(new Error('Upload timed out after 15 minutes'));
+    });
+    req.on('error', err => {
+      process.stdout.write('\n');
+      reject(err);
+    });
+
+    // ── Stream file body with live progress bar ───────────────────────────────
+    const CHUNK = 1024 * 1024; // 1 MB per write
+    let sent    = 0;
+    const start = Date.now();
+    const fd    = fs.openSync(artifact.localPath, 'r');
+
+    function printProgress() {
+      const pct    = ((sent / totalBytes) * 100).toFixed(1);
+      const mbSent = (sent / 1024 / 1024).toFixed(1);
+      const secs   = (Date.now() - start) / 1000;
+      const speed  = secs > 0 ? (sent / 1024 / 1024 / secs).toFixed(1) : '-';
+      const filled = Math.floor((sent / totalBytes) * 20);
+      const bar    = '█'.repeat(filled) + '░'.repeat(20 - filled);
+      process.stdout.write(`\r    [${bar}] ${pct}%  ${mbSent}/${totalMB} MB  ${speed} MB/s  `);
+    }
+
+    function writeChunk() {
+      // All bytes queued — finalise the request
+      if (sent >= totalBytes) {
+        fs.closeSync(fd);
+        req.end();
+        return;
+      }
+      const len  = Math.min(CHUNK, totalBytes - sent);
+      const buf  = Buffer.alloc(len);
+      const read = fs.readSync(fd, buf, 0, len, sent);
+      if (read === 0) { fs.closeSync(fd); req.end(); return; }
+      const slice = buf.slice(0, read);
+      sent += read;
+      printProgress();
+      const canContinue = req.write(slice);
+      if (canContinue) {
+        setImmediate(writeChunk); // yield to event loop then continue
+      } else {
+        req.once('drain', writeChunk); // wait for socket buffer to clear
+      }
+    }
+
+    writeChunk();
   });
 }
 
@@ -366,13 +417,14 @@ function headRequest(url, redirectsLeft = 3) {
   ];
 
   for (const artifact of sorted) {
-    process.stdout.write(`  Uploading ${artifact.name} ... `);
+    const sizeMB = (fs.statSync(artifact.localPath).size / 1024 / 1024).toFixed(1);
+    console.log(`  Uploading ${artifact.name}  (${sizeMB} MB)`);
     try {
       await uploadFile(artifact);
-      console.log('OK');
+      console.log(`  ✓ ${artifact.name} uploaded`);
     } catch (err) {
-      console.log('FAILED');
-      console.error(`  ${err.message}`);
+      process.stdout.write('\n');
+      console.error(`  ✗ FAILED: ${err.message}`);
       process.exit(1);
     }
   }
@@ -416,13 +468,13 @@ function headRequest(url, redirectsLeft = 3) {
   fs.writeFileSync(releaseInfoPath, JSON.stringify(releaseInfo, null, 2) + '\n', 'utf8');
 
   // Upload release-info.json last (informational only — not depended on by updater)
-  process.stdout.write('  Uploading release-info.json ... ');
+  console.log('  Uploading release-info.json  (0.0 MB)');
   try {
     await uploadFile({ name: 'release-info.json', localPath: releaseInfoPath });
-    console.log('OK');
+    console.log('  ✓ release-info.json uploaded');
   } catch (err) {
     // Non-fatal — updater does not depend on this file
-    console.log(`WARN (${err.message}) — release-info.json is optional`);
+    console.log(`  ⚠ release-info.json WARN (${err.message}) — optional file, release still valid`);
   }
 
   console.log('\nAll files live and reachable.');
