@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -8,73 +8,84 @@ import { Badge } from "@/components/ui/badge";
 import {
   Trash2, HardDrive, Clock, Shield, Zap, RefreshCw, CheckCircle,
   AlertTriangle, Info, ChevronDown, ChevronUp, History, X, AlertCircle,
-  MemoryStick, Layers, Eye, Timer, Play, Minus, TrendingDown,
+  MemoryStick, Layers, Eye, Timer, Play, Minus, TrendingDown, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMotion, Reveal } from "@/lib/motion";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+import { CleanerSummaryCards }  from "@/components/cleaner/CleanerSummaryCards";
+import { CleanerCharts }        from "@/components/cleaner/CleanerCharts";
+import { CleanerOffenders, getPriority, PRIORITY_CONFIG } from "@/components/cleaner/CleanerOffenders";
+import { CleanerHistoryPanel }  from "@/components/cleaner/CleanerHistoryPanel";
+import { CleanerFilters }       from "@/components/cleaner/CleanerFilters";
+import type { ItemFilterType }  from "@/components/cleaner/CleanerFilters";
+import type {
+  ScanHistoryEntry, ScanFinding as SF, HistoryEntry as HE,
+} from "@/components/cleaner/CleanerSummaryCards";
 
-type CleanMode   = "safe" | "advanced";
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+type CleanMode     = "safe" | "advanced";
 type CleanCategory = "storage" | "privacy" | "latency" | "performance";
 type CleanItemRisk = "safe" | "moderate" | "advanced";
-type CleanStatus = "cleaned" | "partial" | "nothing" | "failed" | "verification-failed" | "unsupported";
-type ScanStatus  = "idle" | "scanning" | "done" | "error";
-type Phase       = "scan" | "clean" | "result" | "history";
+type CleanStatus   = "cleaned" | "partial" | "nothing" | "failed" | "verification-failed" | "unsupported";
+type ScanStatus    = "idle" | "scanning" | "done" | "error";
+type Phase         = "scan" | "clean" | "result" | "history";
 
 interface CleanItemDef {
-  id: string;
-  name: string;
-  description: string;
-  category: CleanCategory;
-  risk: CleanItemRisk;
-  impactRam: number;
-  impactBootSec: number;
-  requiresAdmin: boolean;
-  requiresRestart: boolean;
-  estimateBasis: string;
-  diskBased: boolean;
-  defaultSelected: boolean;
+  id:               string;
+  name:             string;
+  description:      string;
+  category:         CleanCategory;
+  risk:             CleanItemRisk;
+  impactRam:        number;
+  impactBootSec:    number;
+  requiresAdmin:    boolean;
+  requiresRestart:  boolean;
+  estimateBasis:    string;
+  diskBased:        boolean;
+  defaultSelected:  boolean;
 }
 
 interface ScanFinding {
-  id: string;
-  sizeBytes: number;
-  fileCount: number;
-  found: boolean;
-  scanStatus: "pending" | "scanned" | "error";
-  error?: string;
+  id:            string;
+  sizeBytes:     number;
+  fileCount:     number;
+  found:         boolean;
+  scanStatus:    "pending" | "scanned" | "error";
+  error?:        string;
   impactBootSec: number;
-  impactRamMb: number;
+  impactRamMb:   number;
 }
 
 interface CleanResult {
-  id: string;
-  status: CleanStatus;
-  bytesRemoved: number;
-  filesRemoved: number;
-  error?: string;
+  id:            string;
+  status:        CleanStatus;
+  bytesRemoved:  number;
+  filesRemoved:  number;
+  error?:        string;
 }
 
 interface CleanSession {
-  results: Record<string, CleanResult>;
-  summary: { totalBytesRemoved: number; totalFilesRemoved: number; successCount: number; nothingCount: number; errors: number };
-  mode: CleanMode;
-  ranAt: string;
+  results:    Record<string, CleanResult>;
+  summary:    { totalBytesRemoved: number; totalFilesRemoved: number; successCount: number; nothingCount: number; errors: number };
+  mode:       CleanMode;
+  ranAt:      string;
   beforeBytes: number;
 }
 
 interface HistoryEntry {
-  id: number;
-  scan_mode: string;
-  item_ids: string[];
+  id:            number;
+  scan_mode:     string;
+  item_ids:      string[];
   bytes_removed: number;
   files_removed: number;
-  status: string;
-  errors: number;
-  ran_at: string;
+  status:        string;
+  errors:        number;
+  ran_at:        string;
+  clean_results?: Record<string, { id: string; status: string; bytesRemoved: number; filesRemoved: number }>;
 }
 
 // ── Category metadata ─────────────────────────────────────────────────────────
@@ -83,10 +94,10 @@ const CAT_META: Record<CleanCategory, {
   label: string; icon: React.ComponentType<{ className?: string }>;
   color: string; bg: string; border: string;
 }> = {
-  storage:     { label: "Storage Noise",      icon: HardDrive,  color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/25" },
-  privacy:     { label: "Privacy Residue",    icon: Eye,        color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/25" },
-  latency:     { label: "Latency Killers",    icon: Timer,      color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/25" },
-  performance: { label: "Performance Waste",  icon: Zap,        color: "text-green-400",   bg: "bg-green-500/10",   border: "border-green-500/25" },
+  storage:     { label: "Storage Noise",     icon: HardDrive, color: "text-purple-400",  bg: "bg-purple-500/10",  border: "border-purple-500/25" },
+  privacy:     { label: "Privacy Residue",   icon: Eye,       color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/25" },
+  latency:     { label: "Latency Killers",   icon: Timer,     color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/25" },
+  performance: { label: "Performance Waste", icon: Zap,       color: "text-green-400",   bg: "bg-green-500/10",   border: "border-green-500/25" },
 };
 
 const CAT_ORDER: CleanCategory[] = ["storage", "latency", "performance", "privacy"];
@@ -98,12 +109,30 @@ const RISK_META: Record<CleanItemRisk, { label: string; color: string; bg: strin
 };
 
 const STATUS_META: Record<CleanStatus, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  cleaned:              { label: "Cleaned",          icon: CheckCircle,  color: "text-emerald-400" },
-  partial:              { label: "Partial",           icon: AlertTriangle, color: "text-amber-400" },
-  nothing:              { label: "Nothing found",     icon: Minus,        color: "text-muted-foreground" },
-  failed:               { label: "Failed",            icon: X,            color: "text-red-400" },
-  "verification-failed": { label: "Verify failed",   icon: AlertCircle,  color: "text-orange-400" },
-  unsupported:          { label: "Not supported",     icon: AlertTriangle, color: "text-muted-foreground" },
+  cleaned:               { label: "Cleaned",        icon: CheckCircle,   color: "text-emerald-400" },
+  partial:               { label: "Partial",         icon: AlertTriangle, color: "text-amber-400" },
+  nothing:               { label: "Nothing found",   icon: Minus,         color: "text-muted-foreground" },
+  failed:                { label: "Failed",           icon: X,             color: "text-red-400" },
+  "verification-failed": { label: "Verify failed",   icon: AlertCircle,   color: "text-orange-400" },
+  unsupported:           { label: "Not supported",   icon: AlertTriangle, color: "text-muted-foreground" },
+};
+
+// ── Insight tags per item ─────────────────────────────────────────────────────
+
+const ITEM_TAGS: Record<string, string[]> = {
+  windows_temp:         ["Safe", "Worth Cleaning"],
+  update_downloads:     ["Safe", "Admin Required", "Worth Cleaning"],
+  crash_dumps:          ["Safe", "Post-crash Only"],
+  wer_reports:          ["Safe"],
+  thumbcache:           ["Rebuilds Automatically", "Privacy Relevant"],
+  recent_files:         ["Privacy Relevant", "Low Value"],
+  discord_cache:        ["Rebuilds Automatically", "Latency Relevant"],
+  steam_htmlcache:      ["Rebuilds Automatically"],
+  shader_cache:         ["Rebuilds Automatically", "Stutter Risk", "Latency Relevant"],
+  anticheat_temp:       ["Rebuilds Automatically", "Safe"],
+  dns_cache:            ["Low Value", "RAM Minor"],
+  dead_startup_entries: ["Boot Relevant", "Safe"],
+  event_logs_old:       ["Admin Required", "Advanced Mode"],
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -116,47 +145,34 @@ function fmtBytes(b: number): string {
   return `${(b / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
-// ── Animated counter component ────────────────────────────────────────────────
+// ── Animated counter ──────────────────────────────────────────────────────────
 
 function AnimCounter({ value, duration = 800, suffix = "", prefix = "", className = "" }: {
   value: number; duration?: number; suffix?: string; prefix?: string; className?: string;
 }) {
   const [display, setDisplay] = useState(0);
-  const ref = useRef<number>(0);
+  const ref    = useRef<number>(0);
   const rafRef = useRef<number>(0);
-
   useEffect(() => {
-    const start = ref.current;
-    const end = value;
-    const startTime = performance.now();
-
+    const start = ref.current, end = value, startTime = performance.now();
     function tick(now: number) {
-      const elapsed = now - startTime;
-      const t = Math.min(elapsed / duration, 1);
-      // easeOutExpo
-      const eased = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
+      const t      = Math.min((now - startTime) / duration, 1);
+      const eased  = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
       const current = Math.round(start + (end - start) * eased);
-      setDisplay(current);
-      ref.current = current;
+      setDisplay(current); ref.current = current;
       if (t < 1) rafRef.current = requestAnimationFrame(tick);
     }
-
     rafRef.current = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(rafRef.current);
   }, [value, duration]);
-
-  return (
-    <span className={className}>
-      {prefix}{display.toLocaleString()}{suffix}
-    </span>
-  );
+  return <span className={className}>{prefix}{display.toLocaleString()}{suffix}</span>;
 }
 
 // ── Storage breakdown bar ─────────────────────────────────────────────────────
 
 function StorageBreakdown({ categories, findings }: {
   categories: Record<CleanCategory, CleanItemDef[]>;
-  findings: Record<string, ScanFinding>;
+  findings:   Record<string, ScanFinding>;
 }) {
   const catBytes: Record<CleanCategory, number> = { storage: 0, privacy: 0, latency: 0, performance: 0 };
   for (const [cat, items] of Object.entries(categories) as [CleanCategory, CleanItemDef[]][]) {
@@ -166,11 +182,9 @@ function StorageBreakdown({ categories, findings }: {
   }
   const total = Object.values(catBytes).reduce((a, b) => a + b, 0);
   if (total === 0) return null;
-
   const colorMap: Record<CleanCategory, string> = {
     storage: "bg-purple-400", privacy: "bg-cyan-400", latency: "bg-orange-400", performance: "bg-green-400",
   };
-
   return (
     <div className="space-y-2">
       <div className="flex h-2 rounded-full overflow-hidden gap-px">
@@ -178,11 +192,8 @@ function StorageBreakdown({ categories, findings }: {
           const pct = (catBytes[cat] / total) * 100;
           if (pct < 1) return null;
           return (
-            <motion.div
-              key={cat}
-              className={cn("h-full", colorMap[cat])}
-              initial={{ width: 0 }}
-              animate={{ width: `${pct}%` }}
+            <motion.div key={cat} className={cn("h-full", colorMap[cat])}
+              initial={{ width: 0 }} animate={{ width: `${pct}%` }}
               transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
               title={`${CAT_META[cat].label}: ${fmtBytes(catBytes[cat])}`}
             />
@@ -192,8 +203,7 @@ function StorageBreakdown({ categories, findings }: {
       <div className="flex flex-wrap gap-3">
         {CAT_ORDER.map(cat => {
           if (catBytes[cat] === 0) return null;
-          const meta = CAT_META[cat];
-          const Icon = meta.icon;
+          const meta = CAT_META[cat]; const Icon = meta.icon;
           return (
             <div key={cat} className={cn("flex items-center gap-1 text-[10px]", meta.color)}>
               <Icon className="size-2.5" />{meta.label} · {fmtBytes(catBytes[cat])}
@@ -205,27 +215,23 @@ function StorageBreakdown({ categories, findings }: {
   );
 }
 
-// ── Before / After comparison card ───────────────────────────────────────────
+// ── Before / After ────────────────────────────────────────────────────────────
 
 function BeforeAfterCard({ beforeBytes, removedBytes }: { beforeBytes: number; removedBytes: number }) {
   const afterBytes = Math.max(0, beforeBytes - removedBytes);
-  const pctBefore = 100;
-  const pctAfter = beforeBytes > 0 ? Math.round((afterBytes / beforeBytes) * 100) : 0;
-
+  const pctAfter   = beforeBytes > 0 ? Math.round((afterBytes / beforeBytes) * 100) : 0;
   return (
     <div className="grid grid-cols-2 gap-4">
       {[
-        { label: "Before", bytes: beforeBytes, pct: pctBefore, color: "bg-red-500/50" },
-        { label: "After",  bytes: afterBytes,  pct: pctAfter,  color: "bg-emerald-500/60" },
+        { label: "Before", bytes: beforeBytes, pct: 100,     color: "bg-red-500/50" },
+        { label: "After",  bytes: afterBytes,  pct: pctAfter, color: "bg-emerald-500/60" },
       ].map(({ label, bytes, pct, color }) => (
         <div key={label} className="space-y-2">
           <div className="text-xs text-muted-foreground font-medium">{label}</div>
           <div className="text-xl font-bold text-white font-mono">{fmtBytes(bytes)}</div>
           <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-            <motion.div
-              className={cn("h-full rounded-full", color)}
-              initial={{ width: "100%" }}
-              animate={{ width: `${pct}%` }}
+            <motion.div className={cn("h-full rounded-full", color)}
+              initial={{ width: "100%" }} animate={{ width: `${pct}%` }}
               transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.2 }}
             />
           </div>
@@ -237,28 +243,23 @@ function BeforeAfterCard({ beforeBytes, removedBytes }: { beforeBytes: number; r
 
 // ── Electron detection ────────────────────────────────────────────────────────
 
-declare global {
-  interface Window {
-    electronAPI?: {
-      cleaner?: {
-        scan:   (itemIds: string[]) => Promise<{ ok: boolean; reason?: string; results: Record<string, any> }>;
-        clean:  (itemIds: string[]) => Promise<{ ok: boolean; reason?: string; results: Record<string, any> }>;
-        verify: (itemIds: string[]) => Promise<{ ok: boolean; results: Record<string, any> }>;
-      };
-    };
-  }
-}
+type ElectronCleaner = {
+  scan:   (itemIds: string[]) => Promise<{ ok: boolean; reason?: string; results: Record<string, any> }>;
+  clean:  (itemIds: string[]) => Promise<{ ok: boolean; reason?: string; results: Record<string, any> }>;
+  verify: (itemIds: string[]) => Promise<{ ok: boolean; results: Record<string, any> }>;
+};
 
-const isElectron = () => typeof window !== "undefined" && !!window.electronAPI?.cleaner;
+const isElectron = () => typeof window !== "undefined" && !!(window.electronAPI as any)?.cleaner;
+const getElectronCleaner = (): ElectronCleaner | undefined => (window.electronAPI as any)?.cleaner;
 
-// ── Main component ─────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
 
 export default function SystemCleaner() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
 
-  const [mode, setMode] = useState<CleanMode>("safe");
+  const [mode,  setMode]  = useState<CleanMode>("safe");
   const [phase, setPhase] = useState<Phase>("scan");
 
   // Category definitions from backend
@@ -268,43 +269,44 @@ export default function SystemCleaner() {
   const [loadingCats, setLoadingCats] = useState(true);
 
   // Scan state
-  const [scanStatus, setScanStatus] = useState<ScanStatus>("idle");
+  const [scanStatus,  setScanStatus]  = useState<ScanStatus>("idle");
   const [scanningIds, setScanningIds] = useState<string[]>([]);
-  const [findings, setFindings] = useState<Record<string, ScanFinding>>({});
+  const [findings,    setFindings]    = useState<Record<string, ScanFinding>>({});
   const [scanSummary, setScanSummary] = useState<{
     totalBytes: number; totalFiles: number; totalBootSec: number; totalRamMb: number; foundCount: number;
   } | null>(null);
+  const [categoryTotals, setCategoryTotals] = useState<Record<string, { sizeBytes: number; fileCount: number; itemCount: number }> | null>(null);
 
   // Selection state
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [expandedCats, setExpandedCats] = useState<Set<CleanCategory>>(
-    new Set<CleanCategory>(["storage", "latency"])
-  );
+  const [selected,     setSelected]     = useState<Set<string>>(new Set());
+  const [expandedCats, setExpandedCats] = useState<Set<CleanCategory>>(new Set<CleanCategory>(["storage", "latency"]));
 
   // Clean state
-  const [cleaning, setCleaning] = useState(false);
+  const [cleaning,       setCleaning]       = useState(false);
   const [currentCleanId, setCurrentCleanId] = useState<string | null>(null);
-  const [session, setSession] = useState<CleanSession | null>(null);
+  const [session,        setSession]        = useState<CleanSession | null>(null);
 
-  // History
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  // History + scan history
+  const [history,        setHistory]        = useState<HistoryEntry[]>([]);
+  const [scanHistory,    setScanHistory]    = useState<ScanHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
-  // ── Load category definitions ────────────────────────────────────────────────
+  // Filters for item list
+  const [search,     setSearch]     = useState("");
+  const [filterType, setFilterType] = useState<ItemFilterType>("all");
+
+  // ── Load categories ───────────────────────────────────────────────────────
 
   const loadCategories = useCallback(async (m: CleanMode) => {
     setLoadingCats(true);
     try {
-      const res = await fetch(`/api/cleaner/categories?mode=${m}`);
+      const res  = await fetch(`/api/cleaner/categories?mode=${m}`);
       const data = await res.json();
       if (data.ok) {
         setCategories(data.categories as Record<CleanCategory, CleanItemDef[]>);
-        // Default select safe items
         const defaults = new Set<string>(
           Object.values(data.categories as Record<string, CleanItemDef[]>)
-            .flat()
-            .filter(i => (i as CleanItemDef).defaultSelected)
-            .map(i => (i as CleanItemDef).id)
+            .flat().filter(i => (i as CleanItemDef).defaultSelected).map(i => (i as CleanItemDef).id)
         );
         setSelected(defaults);
       }
@@ -314,44 +316,45 @@ export default function SystemCleaner() {
 
   useEffect(() => { loadCategories(mode); }, [mode, loadCategories]);
 
-  // ── Load history ─────────────────────────────────────────────────────────────
+  // ── Load history ──────────────────────────────────────────────────────────
 
   const loadHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
-      const res = await fetch("/api/cleaner/history");
-      const data = await res.json();
-      if (data.ok) setHistory(data.history);
+      const [hRes, shRes] = await Promise.all([
+        fetch("/api/cleaner/history"),
+        fetch("/api/cleaner/scan-history"),
+      ]);
+      const [hData, shData] = await Promise.all([hRes.json(), shRes.json()]);
+      if (hData.ok)  setHistory(hData.history);
+      if (shData.ok) setScanHistory(shData.history);
     } catch {} finally { setLoadingHistory(false); }
   }, []);
 
   useEffect(() => { loadHistory(); }, [loadHistory]);
 
-  // ── Scan ──────────────────────────────────────────────────────────────────────
+  // ── Scan ──────────────────────────────────────────────────────────────────
 
   const runScan = useCallback(async () => {
     const allItems = Object.values(categories).flat();
-    const itemIds = allItems.map(i => i.id);
+    const itemIds  = allItems.map(i => i.id);
 
     setScanStatus("scanning");
     setScanningIds(itemIds);
     setFindings({});
     setScanSummary(null);
+    setCategoryTotals(null);
 
     let electronResults: Record<string, any> = {};
-
     if (isElectron()) {
       try {
-        const result = await window.electronAPI!.cleaner!.scan(itemIds);
+        const result = await getElectronCleaner()!.scan(itemIds);
         if (result.ok) electronResults = result.results;
-      } catch (e: any) {
-        console.warn("[Cleaner] scan IPC error", e);
-      }
+      } catch (e: any) { console.warn("[Cleaner] scan IPC error", e); }
     }
 
-    // Post to backend to compute structured findings
     try {
-      const res = await fetch("/api/cleaner/scan", {
+      const res  = await fetch("/api/cleaner/scan", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, electronResults }),
@@ -360,10 +363,13 @@ export default function SystemCleaner() {
       if (data.ok) {
         setFindings(data.findings);
         setScanSummary(data.summary);
+        setCategoryTotals(data.categoryTotals ?? null);
         setScanStatus("done");
-      } else {
-        setScanStatus("error");
-      }
+        // Refresh scan history after a successful scan
+        fetch("/api/cleaner/scan-history").then(r => r.json()).then(d => {
+          if (d.ok) setScanHistory(d.history);
+        }).catch(() => {});
+      } else { setScanStatus("error"); }
     } catch {
       setScanStatus("error");
       toast({ title: "Scan failed", variant: "destructive" });
@@ -371,7 +377,7 @@ export default function SystemCleaner() {
     setScanningIds([]);
   }, [categories, mode, toast]);
 
-  // ── Clean ─────────────────────────────────────────────────────────────────────
+  // ── Clean ─────────────────────────────────────────────────────────────────
 
   const runClean = useCallback(async () => {
     const selectedIds = Array.from(selected);
@@ -381,24 +387,18 @@ export default function SystemCleaner() {
     }
 
     const beforeBytes = selectedIds
-      .filter(id => {
-        const item = Object.values(categories).flat().find(i => i.id === id);
-        return item?.diskBased;
-      })
+      .filter(id => Object.values(categories).flat().find(i => i.id === id)?.diskBased)
       .reduce((a, id) => a + (findings[id]?.sizeBytes ?? 0), 0);
 
     setCleaning(true);
-
     let electronResults: Record<string, any> = {};
 
     if (isElectron()) {
       for (const id of selectedIds) {
         setCurrentCleanId(id);
         try {
-          const res = await window.electronAPI!.cleaner!.clean([id]);
-          if (res.ok && res.results[id]) {
-            electronResults[id] = res.results[id];
-          }
+          const res = await getElectronCleaner()!.clean([id]);
+          if (res.ok && res.results[id]) electronResults[id] = res.results[id];
         } catch (e: any) {
           electronResults[id] = { bytesRemoved: 0, filesRemoved: 0, failed: 1, error: e.message };
         }
@@ -406,42 +406,28 @@ export default function SystemCleaner() {
     }
     setCurrentCleanId(null);
 
-    // POST to backend
     try {
-      const res = await fetch("/api/cleaner/clean", {
+      const res  = await fetch("/api/cleaner/clean", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, itemIds: selectedIds, electronResults }),
       });
       const data = await res.json();
       if (data.ok) {
-        setSession({
-          results: data.results,
-          summary: data.summary,
-          mode,
-          ranAt: new Date().toISOString(),
-          beforeBytes,
-        });
+        setSession({ results: data.results, summary: data.summary, mode, ranAt: new Date().toISOString(), beforeBytes });
         setPhase("result");
         loadHistory();
-
         toast({
-          title: isElectron()
-            ? `${data.summary.successCount} items cleaned`
-            : "Clean logged — execute in Electron app",
-          description: isElectron()
-            ? `${fmtBytes(data.summary.totalBytesRemoved)} reclaimed`
-            : "Running on Windows will execute real deletion.",
+          title: isElectron() ? `${data.summary.successCount} items cleaned` : "Clean logged — execute in Electron app",
+          description: isElectron() ? `${fmtBytes(data.summary.totalBytesRemoved)} reclaimed` : "Running on Windows will execute real deletion.",
         });
       }
     } catch {
       toast({ title: "Clean failed", variant: "destructive" });
-    } finally {
-      setCleaning(false);
-    }
+    } finally { setCleaning(false); }
   }, [selected, categories, findings, mode, toast, loadHistory]);
 
-  // ── Selection helpers ─────────────────────────────────────────────────────────
+  // ── Selection helpers ─────────────────────────────────────────────────────
 
   const allItems = Object.values(categories).flat();
 
@@ -454,22 +440,60 @@ export default function SystemCleaner() {
   });
 
   const selectAllSafe = () => setSelected(new Set(allItems.filter(i => i.risk === "safe").map(i => i.id)));
-  const clearAll = () => setSelected(new Set());
+  const clearAll      = () => setSelected(new Set());
 
-  // ── Stats ─────────────────────────────────────────────────────────────────────
+  // ── Filtered items ────────────────────────────────────────────────────────
 
-  const selectedItems = allItems.filter(i => selected.has(i.id));
-  const selectedBytes = selectedItems
-    .filter(i => i.diskBased)
-    .reduce((a, i) => a + (findings[i.id]?.sizeBytes ?? 0), 0);
-  const selectedFiles = selectedItems.reduce((a, i) => a + (findings[i.id]?.fileCount ?? 0), 0);
-  const selectedBootSec = selectedItems.reduce((a, i) => a + (findings[i.id]?.impactBootSec ?? 0), 0);
-  const selectedRamMb = selectedItems.reduce((a, i) => a + (findings[i.id]?.impactRamMb ?? 0), 0);
+  const filteredAllItems = useMemo(() => {
+    const PORDER = { "clean-now": 0, "good-opportunity": 1, "rebuilds-quickly": 2, "minor": 3, "not-found": 4 } as const;
+    let items = allItems.filter(item => {
+      if (search) {
+        const q = search.toLowerCase();
+        if (!item.name.toLowerCase().includes(q) && !item.description.toLowerCase().includes(q)) return false;
+      }
+      const f = findings[item.id];
+      if (filterType === "found"    && !f?.found)             return false;
+      if (filterType === "selected" && !selected.has(item.id)) return false;
+      if (filterType === "safe"     && item.risk !== "safe")   return false;
+      if (filterType === "admin"    && !item.requiresAdmin)    return false;
+      return true;
+    });
+    if (filterType === "biggest") {
+      items = [...items].sort((a, b) => {
+        const fa = findings[a.id], fb = findings[b.id];
+        const va  = (fa?.sizeBytes ?? 0) > 0 ? (fa?.sizeBytes ?? 0) : (fa?.fileCount ?? 0) * 1024;
+        const vb  = (fb?.sizeBytes ?? 0) > 0 ? (fb?.sizeBytes ?? 0) : (fb?.fileCount ?? 0) * 1024;
+        return vb - va;
+      });
+    }
+    if (filterType === "priority") {
+      items = [...items].sort((a, b) =>
+        PORDER[getPriority(a as any, findings[a.id] as any)] - PORDER[getPriority(b as any, findings[b.id] as any)]
+      );
+    }
+    return items;
+  }, [allItems, findings, selected, search, filterType]);
 
-  const totalScanBytes = scanSummary?.totalBytes ?? 0;
-  const foundCount = Object.values(findings).filter(f => f.found).length;
+  // ── Stats ─────────────────────────────────────────────────────────────────
 
-  // ── Render ─────────────────────────────────────────────────────────────────────
+  const selectedItems    = allItems.filter(i => selected.has(i.id));
+  const selectedBytes    = selectedItems.filter(i => i.diskBased).reduce((a, i) => a + (findings[i.id]?.sizeBytes ?? 0), 0);
+  const selectedFiles    = selectedItems.reduce((a, i) => a + (findings[i.id]?.fileCount ?? 0), 0);
+  const selectedBootSec  = selectedItems.reduce((a, i) => a + (findings[i.id]?.impactBootSec ?? 0), 0);
+  const selectedRamMb    = selectedItems.reduce((a, i) => a + (findings[i.id]?.impactRamMb ?? 0), 0);
+  const totalScanBytes   = scanSummary?.totalBytes ?? 0;
+  const foundCount       = Object.values(findings).filter(f => f.found).length;
+
+  // ── Group filtered items by category (preserving order for cards) ─────────
+
+  const groupedFiltered = useMemo(() => {
+    const m: Record<string, CleanItemDef[]> = {};
+    for (const cat of CAT_ORDER) m[cat] = [];
+    for (const item of filteredAllItems) m[item.category].push(item);
+    return m;
+  }, [filteredAllItems]);
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <AppLayout>
@@ -481,14 +505,14 @@ export default function SystemCleaner() {
           title="System Cleaner"
           subtitle="Real scan-based cleaning. Every size is from an actual file system scan. No fake estimates."
           actions={
-            <Badge variant="outline" className={cn(
-              "text-xs",
+            <Badge variant="outline" className={cn("text-xs",
               mode === "safe"
                 ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
                 : "bg-orange-500/15 text-orange-400 border-orange-500/25"
             )}>
-              {mode === "safe" ? <Shield className="size-3 mr-1 inline" /> : <Zap className="size-3 mr-1 inline" />}
-              {mode === "safe" ? "Safe Mode" : "Advanced Mode"}
+              {mode === "safe"
+                ? <><Shield className="size-3 mr-1 inline" />Safe Mode</>
+                : <><Zap className="size-3 mr-1 inline" />Advanced Mode</>}
             </Badge>
           }
         />
@@ -515,6 +539,20 @@ export default function SystemCleaner() {
           </motion.div>
         )}
 
+        {/* Summary cards — always visible outside history */}
+        {phase !== "history" && (
+          <CleanerSummaryCards
+            scanSummary={scanSummary}
+            findings={findings}
+            categoryTotals={categoryTotals}
+            history={history}
+            scanHistory={scanHistory}
+            categories={categories}
+            selectedBytes={selectedBytes}
+            scanStatus={scanStatus}
+          />
+        )}
+
         {/* Mode + action bar */}
         <motion.div
           className="flex items-center justify-between gap-4"
@@ -525,7 +563,7 @@ export default function SystemCleaner() {
             {(["safe", "advanced"] as CleanMode[]).map(m => (
               <button
                 key={m}
-                onClick={() => { setMode(m); setFindings({}); setScanStatus("idle"); setScanSummary(null); }}
+                onClick={() => { setMode(m); setFindings({}); setScanStatus("idle"); setScanSummary(null); setCategoryTotals(null); }}
                 data-testid={`mode-${m}`}
                 className={cn(
                   "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200",
@@ -536,7 +574,9 @@ export default function SystemCleaner() {
                     : "bg-white/3 border-white/10 text-muted-foreground hover:text-white hover:bg-white/6"
                 )}
               >
-                {m === "safe" ? <><Shield className="size-3 mr-1 inline" />Safe</> : <><Zap className="size-3 mr-1 inline" />Advanced</>}
+                {m === "safe"
+                  ? <><Shield className="size-3 mr-1 inline" />Safe</>
+                  : <><Zap className="size-3 mr-1 inline" />Advanced</>}
               </button>
             ))}
           </div>
@@ -558,22 +598,18 @@ export default function SystemCleaner() {
               </button>
             )}
             <Button
-              variant="outline"
-              size="sm"
+              variant="outline" size="sm"
               onClick={runScan}
               disabled={scanStatus === "scanning" || loadingCats}
-              className="gap-2"
-              data-testid="button-scan"
+              className="gap-2" data-testid="button-scan"
             >
               <RefreshCw className={cn("size-3.5", scanStatus === "scanning" && "animate-spin")} />
               {scanStatus === "scanning" ? "Scanning…" : scanStatus === "done" ? "Rescan" : "Scan System"}
             </Button>
             <Button
-              size="sm"
-              onClick={runClean}
+              size="sm" onClick={runClean}
               disabled={cleaning || selected.size === 0 || scanStatus !== "done"}
-              className="bg-primary hover:bg-primary/90 gap-2"
-              data-testid="button-clean"
+              className="bg-primary hover:bg-primary/90 gap-2" data-testid="button-clean"
             >
               {cleaning
                 ? <><RefreshCw className="size-3.5 animate-spin" />Cleaning…</>
@@ -585,14 +621,10 @@ export default function SystemCleaner() {
         {/* Impact summary */}
         <Reveal delay={0}>
           <Card
-            className={cn(
-              "border overflow-hidden",
-              scanStatus === "done" ? "border-primary/30" : "border-white/10"
-            )}
+            className={cn("border overflow-hidden", scanStatus === "done" ? "border-primary/30" : "border-white/10")}
             style={{
               background: "linear-gradient(135deg, rgba(255,255,255,0.10) 0%, rgba(220,220,255,0.06) 50%, rgba(255,255,255,0.09) 100%)",
-              backdropFilter: "blur(24px)",
-              WebkitBackdropFilter: "blur(24px)",
+              backdropFilter: "blur(24px)", WebkitBackdropFilter: "blur(24px)",
               boxShadow: "0 4px 32px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.07) inset",
             }}
           >
@@ -607,7 +639,6 @@ export default function SystemCleaner() {
                       {scanStatus === "done" ? "Scan results" : scanStatus === "scanning" ? "Scanning…" : "Ready to scan"}
                     </span>
                   </div>
-
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <div className="text-2xl font-bold text-white font-mono">
@@ -626,11 +657,9 @@ export default function SystemCleaner() {
                       <div className="text-[10px] text-muted-foreground mt-0.5">Files / entries</div>
                     </div>
                   </div>
-
                   {scanStatus === "done" && totalScanBytes > 0 && (
                     <StorageBreakdown categories={categories} findings={findings} />
                   )}
-
                   {scanStatus === "idle" && (
                     <p className="text-xs text-muted-foreground/70">
                       Hit Scan System to measure real file sizes. No data is deleted during scanning.
@@ -642,39 +671,27 @@ export default function SystemCleaner() {
                 <div className="col-span-4 space-y-3">
                   <div className="text-xs text-muted-foreground font-medium mb-3">Performance estimates</div>
                   <div className="space-y-2.5">
-
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <Timer className="size-3" />Boot saved
                       </div>
-                      <span className={cn("font-mono font-semibold",
-                        selectedBootSec > 0 ? "text-cyan-400" : "text-muted-foreground"
-                      )}>
-                        {scanStatus === "done" && selectedBootSec > 0
-                          ? `-${selectedBootSec.toFixed(1)}s est.`
-                          : "—"}
+                      <span className={cn("font-mono font-semibold", selectedBootSec > 0 ? "text-cyan-400" : "text-muted-foreground")}>
+                        {scanStatus === "done" && selectedBootSec > 0 ? `-${selectedBootSec.toFixed(1)}s est.` : "—"}
                       </span>
                     </div>
-
                     <div className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <MemoryStick className="size-3" />RAM freed
                       </div>
-                      <span className={cn("font-mono font-semibold",
-                        selectedRamMb > 0 ? "text-purple-400" : "text-muted-foreground"
-                      )}>
-                        {scanStatus === "done" && selectedRamMb > 0
-                          ? `~${selectedRamMb} MB est.`
-                          : "—"}
+                      <span className={cn("font-mono font-semibold", selectedRamMb > 0 ? "text-purple-400" : "text-muted-foreground")}>
+                        {scanStatus === "done" && selectedRamMb > 0 ? `~${selectedRamMb} MB est.` : "—"}
                       </span>
                     </div>
-
                     {scanStatus !== "done" && (
                       <p className="text-[10px] text-muted-foreground/50 mt-2">
                         Boot and RAM impact estimates only shown after scan when there is a credible basis.
                       </p>
                     )}
-
                     {scanStatus === "done" && selectedBootSec === 0 && selectedRamMb === 0 && (
                       <p className="text-[10px] text-muted-foreground/50 mt-2">
                         Selected items are disk-only cleanups. No credible boot or RAM impact to report.
@@ -704,6 +721,7 @@ export default function SystemCleaner() {
                     )}
                   </div>
                 </div>
+
               </div>
             </CardContent>
           </Card>
@@ -714,18 +732,37 @@ export default function SystemCleaner() {
 
           {/* Scan / Items view */}
           {(phase === "scan" || phase === "clean") && (
-            <motion.div
-              key="scan"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
-              className="space-y-3"
+            <motion.div key="scan"
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}
+              className="space-y-4"
             >
+
+              {/* Offenders + recommendations — only when scan done */}
+              {scanStatus === "done" && (
+                <CleanerOffenders
+                  allItems={allItems as any[]}
+                  findings={findings as any}
+                  selected={selected}
+                  onToggle={toggleItem}
+                  getPriority={getPriority as any}
+                />
+              )}
+
+              {/* Filters + search */}
+              <CleanerFilters
+                search={search}
+                filter={filterType}
+                onSearch={setSearch}
+                onFilter={setFilterType}
+                foundCount={foundCount}
+                totalCount={allItems.length}
+              />
+
               {/* Selection controls */}
               <div className="flex items-center justify-between">
                 <div className="text-xs text-muted-foreground">
-                  {loadingCats ? "Loading…" : `${allItems.length} items in ${mode} mode`}
+                  {loadingCats ? "Loading…" : `${filteredAllItems.length} items shown`}
                 </div>
                 <div className="flex items-center gap-2">
                   <button onClick={selectAllSafe} className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors" data-testid="button-select-safe">Safe only</button>
@@ -735,14 +772,14 @@ export default function SystemCleaner() {
 
               {/* Category cards */}
               {CAT_ORDER.map(cat => {
-                const items = categories[cat] ?? [];
+                const items = (filterType === "all" && !search) ? (categories[cat] ?? []) : (groupedFiltered[cat] ?? []);
                 if (items.length === 0) return null;
-                const meta = CAT_META[cat];
-                const Icon = meta.icon;
+                const meta       = CAT_META[cat];
+                const Icon       = meta.icon;
                 const isExpanded = expandedCats.has(cat);
-                const selCount = items.filter(i => selected.has(i.id)).length;
-                const catBytes = items.filter(i => i.diskBased).reduce((a, i) => a + (findings[i.id]?.sizeBytes ?? 0), 0);
-                const catFound = items.filter(i => findings[i.id]?.found).length;
+                const selCount   = items.filter(i => selected.has(i.id)).length;
+                const catBytes   = items.filter(i => i.diskBased).reduce((a, i) => a + (findings[i.id]?.sizeBytes ?? 0), 0);
+                const catFound   = items.filter(i => findings[i.id]?.found).length;
 
                 return (
                   <Card key={cat} className={cn("overflow-hidden border", meta.border, meta.bg)}>
@@ -789,22 +826,23 @@ export default function SystemCleaner() {
                     <AnimatePresence>
                       {isExpanded && (
                         <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }}
                           className="overflow-hidden"
                         >
                           <CardContent className="pt-0 pb-3 px-3 space-y-1.5">
                             {items.map(item => {
-                              const isSelected = selected.has(item.id);
-                              const finding = findings[item.id];
+                              const isSelected  = selected.has(item.id);
+                              const finding     = findings[item.id];
                               const isProcessing = currentCleanId === item.id;
-                              const risk = RISK_META[item.risk];
-                              const hasResult = !!finding;
-                              const itemBytes = finding?.sizeBytes ?? 0;
-                              const itemCount = finding?.fileCount ?? 0;
-                              const notFound = hasResult && !finding.found;
+                              const risk        = RISK_META[item.risk];
+                              const hasResult   = !!finding;
+                              const itemBytes   = finding?.sizeBytes ?? 0;
+                              const itemCount   = finding?.fileCount ?? 0;
+                              const notFound    = hasResult && !finding.found;
+                              const priority    = getPriority(item as any, finding as any);
+                              const pcfg        = PRIORITY_CONFIG[priority];
+                              const tags        = ITEM_TAGS[item.id] ?? [];
 
                               return (
                                 <motion.div
@@ -837,12 +875,17 @@ export default function SystemCleaner() {
                                       <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5", risk.bg, risk.color)}>
                                         {risk.label}
                                       </Badge>
+                                      {/* Priority badge — only when scan done */}
+                                      {scanStatus === "done" && priority !== "not-found" && (
+                                        <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5 border", pcfg.bg, pcfg.border, pcfg.color)}>
+                                          {pcfg.label}
+                                        </Badge>
+                                      )}
                                       {item.requiresAdmin && (
                                         <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-amber-500/10 border-amber-500/20 text-amber-400">
                                           Admin
                                         </Badge>
                                       )}
-                                      {/* Scan result state */}
                                       {hasResult && finding.found && (
                                         <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-red-500/12 border-red-500/20 text-red-400">
                                           Found
@@ -859,7 +902,20 @@ export default function SystemCleaner() {
                                         </Badge>
                                       )}
                                     </div>
+
                                     <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{item.description}</p>
+
+                                    {/* Insight tags */}
+                                    {tags.length > 0 && (
+                                      <div className="flex flex-wrap gap-1 mt-1.5">
+                                        {tags.map(tag => (
+                                          <span key={tag} className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.05] text-muted-foreground/50 border border-white/[0.07]">
+                                            {tag}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
+
                                     {item.requiresRestart && (
                                       <p className="text-[10px] text-orange-400/80 mt-1 flex items-center gap-1">
                                         <RefreshCw className="size-2.5" />Restart may be required
@@ -907,12 +963,9 @@ export default function SystemCleaner() {
 
           {/* Results view */}
           {phase === "result" && session && (
-            <motion.div
-              key="result"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
+            <motion.div key="result"
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}
               className="space-y-4"
             >
               <button
@@ -973,7 +1026,7 @@ export default function SystemCleaner() {
                 </CardHeader>
                 <CardContent className="pt-0 space-y-1.5">
                   {Object.values(session.results).map(result => {
-                    const cfg = STATUS_META[result.status] ?? STATUS_META.failed;
+                    const cfg  = STATUS_META[result.status] ?? STATUS_META.failed;
                     const Icon = cfg.icon;
                     return (
                       <div
@@ -981,18 +1034,15 @@ export default function SystemCleaner() {
                         data-testid={`result-${result.id}`}
                         className={cn(
                           "flex items-center justify-between px-3 py-2.5 rounded-lg border text-xs",
-                          result.status === "cleaned"
-                            ? "bg-emerald-500/6 border-emerald-500/15"
-                            : result.status === "failed"
-                            ? "bg-red-500/6 border-red-500/15"
-                            : result.status === "nothing"
-                            ? "bg-white/2 border-white/6 opacity-60"
-                            : "bg-white/4 border-white/10"
+                          result.status === "cleaned"  ? "bg-emerald-500/6 border-emerald-500/15" :
+                          result.status === "failed"   ? "bg-red-500/6 border-red-500/15" :
+                          result.status === "nothing"  ? "bg-white/2 border-white/6 opacity-60" :
+                                                         "bg-white/4 border-white/10"
                         )}
                       >
                         <div className="flex items-center gap-2">
                           <Icon className={cn("size-3.5 shrink-0", cfg.color)} />
-                          <span className="text-white font-medium">
+                          <span className="font-medium text-white">
                             {allItems.find(i => i.id === result.id)?.name ?? result.id}
                           </span>
                         </div>
@@ -1022,54 +1072,34 @@ export default function SystemCleaner() {
             </motion.div>
           )}
 
-          {/* History view */}
+          {/* History view — upgraded with charts + panel */}
           {phase === "history" && (
-            <motion.div
-              key="history"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.25 }}
+            <motion.div key="history"
+              initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.25 }}
+              className="space-y-5"
             >
-              <Card className="border-border/40">
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <History className="size-4 text-muted-foreground" />Clean History
-                    </CardTitle>
-                    <button onClick={() => setPhase("scan")} className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5">← Back</button>
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-0 space-y-1.5">
-                  {loadingHistory ? (
-                    <div className="text-sm text-muted-foreground py-4 text-center">Loading…</div>
-                  ) : history.length === 0 ? (
-                    <div className="text-sm text-muted-foreground py-6 text-center">No clean history yet.</div>
-                  ) : (
-                    history.map(entry => (
-                      <div key={entry.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/3 border border-white/6 text-xs">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5 border-white/10 uppercase",
-                            entry.scan_mode === "safe" ? "text-emerald-400" : "text-orange-400"
-                          )}>
-                            {entry.scan_mode}
-                          </Badge>
-                          <span className="text-muted-foreground">{Array.isArray(entry.item_ids) ? entry.item_ids.length : 0} items</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          {entry.bytes_removed > 0 && (
-                            <span className="font-mono text-emerald-400">{fmtBytes(Number(entry.bytes_removed))}</span>
-                          )}
-                          <span className={cn(
-                            entry.status === "cleaned" ? "text-emerald-400" : "text-amber-400"
-                          )}>{entry.status}</span>
-                          <span className="text-muted-foreground/50">{new Date(entry.ran_at).toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <History className="size-4 text-muted-foreground" />
+                  <span className="text-sm font-semibold text-white">Cleaner Intelligence</span>
+                </div>
+                <button onClick={() => setPhase("scan")} className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors">← Back</button>
+              </div>
+
+              {/* Charts section */}
+              <CleanerCharts
+                scanHistory={scanHistory}
+                cleanHistory={history}
+                categoryTotals={categoryTotals}
+              />
+
+              {/* History session list */}
+              <CleanerHistoryPanel
+                history={history}
+                scanHistory={scanHistory}
+                loading={loadingHistory}
+              />
             </motion.div>
           )}
 
@@ -1079,9 +1109,7 @@ export default function SystemCleaner() {
         <Reveal delay={0.24}>
           <div className={cn(
             "px-4 py-3 rounded-xl border text-xs flex items-start gap-3",
-            mode === "safe"
-              ? "bg-emerald-500/8 border-emerald-500/20"
-              : "bg-orange-500/8 border-orange-500/20"
+            mode === "safe" ? "bg-emerald-500/8 border-emerald-500/20" : "bg-orange-500/8 border-orange-500/20"
           )}>
             <Info className={cn("size-4 shrink-0 mt-0.5", mode === "safe" ? "text-emerald-400" : "text-orange-400")} />
             <div>
@@ -1095,8 +1123,7 @@ export default function SystemCleaner() {
               </span>
               {!isElectron() && (
                 <span className="ml-2 text-amber-500/70">
-                  All sizes shown are real when run in the Electron desktop app.
-                  In the browser, scan results are pending (no file system access).
+                  All sizes shown are real when run in the Electron desktop app. In the browser, scan results are pending (no file system access).
                 </span>
               )}
             </div>

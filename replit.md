@@ -315,6 +315,35 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 - **Post-Build Secret Scan**: `scripts/security-scan.cjs` scans dist output for leaked API keys, JWT tokens, and connection strings with credentials. Run with `node scripts/security-scan.cjs`.
 - **Security Docs**: `docs/security-checklist.md`, `docs/security-summary.md`, `docs/security-assumptions.md`.
 
+### System Cleaner — Premium Intelligence Upgrade (April 2026)
+**Files**: `client/src/pages/SystemCleaner.tsx` (main page), `client/src/components/cleaner/` (5 new components), `server/routes/cleaner.ts` (updated routes + scan history)
+
+**New components**:
+- `CleanerSummaryCards.tsx` — 6 animated stat cards: Junk Found, Selected, Files Found, Top Category, Last Scan, Total Cleaned (all time)
+- `CleanerCharts.tsx` — 4 Recharts visualizations: Junk Found Over Time (AreaChart), Bytes Removed Per Session (BarChart), Category Breakdown (PieChart), Recurring Junk Sources (horizontal BarChart)
+- `CleanerOffenders.tsx` — Largest Offenders (top 5 by size, click-to-select) + Recommended Now (priority-sorted, 4 items with why-descriptions); exports `getPriority()` + `PRIORITY_CONFIG`
+- `CleanerHistoryPanel.tsx` — Upgraded history with filter bar (mode/status), date grouping (Today/Yesterday/This Week/Month), expandable session rows showing per-item results
+- `CleanerFilters.tsx` — Search input + filter chips for items: All/Found/Selected/Safe only/Admin/Biggest first/Priority
+
+**Priority scoring** (rule-based, from real scan data only):
+- `clean-now` (red) — bytes ≥100 MB, non-rebuilding
+- `good-opportunity` (violet) — bytes ≥10 MB, or rebuilders ≥50 MB, or 5+ non-disk entries
+- `rebuilds-quickly` (amber) — shader/discord/thumbcache/steam/anticheat caches
+- `minor` (gray) — bytes <1 MB disk or <5 non-disk entries
+- `not-found` — item not detected in scan
+
+**Insight tags** — per-item static config in `SystemCleaner.tsx` (`ITEM_TAGS`): e.g. "Rebuilds Automatically", "Latency Relevant", "Stutter Risk", "Boot Relevant", "Privacy Relevant", "Worth Cleaning", shown as small chips below item description
+
+**Server changes** (`server/routes/cleaner.ts`):
+- New `cleaner_scan_history` table (auto-created): scan_mode, total_bytes, total_files, found_count, category_totals JSONB, ran_at
+- `POST /api/cleaner/scan` now also persists scan summary to `cleaner_scan_history` (async, non-blocking)
+- `GET /api/cleaner/scan-history` — returns up to 30 scan records for trend charts
+- `GET /api/cleaner/history` — now also returns `clean_results` JSONB for per-item analysis in charts
+
+**History phase** is now a full analytics center: scan trend charts + clean session charts + filterable session list with drill-down
+
+**Item filters** (scan phase): full-text search across name + description, filter chips, sort by biggest/priority
+
 ### External Links
 - Discord community link
 - TikTok social link
