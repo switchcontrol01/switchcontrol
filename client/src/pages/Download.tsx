@@ -7,20 +7,10 @@ import { WebsiteShell } from "@/components/website/WebsiteShell";
 import faviconImg from "@/assets/favicon.png";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
-const LAUNCH_UTC = new Date("2026-04-14T02:00:00Z").getTime();
 const SILK = [0.22, 1, 0.36, 1] as const;
 
-function getTimeLeft() {
-  const diff = Math.max(0, LAUNCH_UTC - Date.now());
-  const totalSecs = Math.floor(diff / 1000);
-  const d = Math.floor(totalSecs / 86400);
-  const h = Math.floor((totalSecs % 86400) / 3600);
-  const m = Math.floor((totalSecs % 3600) / 60);
-  const s = totalSecs % 60;
-  return { d, h, m, s, launched: diff === 0 };
-}
-
-function pad(n: number) { return String(n).padStart(2, "0"); }
+/** Static countdown label shown on the website download page. */
+const STATIC_TIME_LEFT = "1h left";
 
 // ── Animated flip digit block — UNCHANGED visual style ────────────────────────
 function CountBlock({ value, label }: { value: string; label: string }) {
@@ -232,7 +222,7 @@ function PatchNotesCard() {
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function DownloadPage() {
   const { user } = useAuth();
-  const [time, setTime] = useState(getTimeLeft);
+  const launched = false;
   const [sceneReady, setSceneReady] = useState(false);
   const rafRef = useRef<number | null>(null);
 
@@ -243,10 +233,6 @@ export default function DownloadPage() {
   const glow3Ref = useRef<HTMLDivElement>(null);
   const glow4Ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const id = setInterval(() => setTime(getTimeLeft()), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (rafRef.current !== null) return;
@@ -278,8 +264,6 @@ export default function DownloadPage() {
     const t = setTimeout(() => setSceneReady(true), 80);
     return () => clearTimeout(t);
   }, []);
-
-  const launched = time.launched;
 
   const stagger = (i: number) => ({
     initial: { opacity: 0, y: 20, filter: "blur(10px)" },
@@ -654,36 +638,21 @@ export default function DownloadPage() {
               </h1>
             </motion.div>
 
-            {/* Countdown blocks (or launched rocket) */}
+            {/* Countdown — static "1h left" */}
             <motion.div {...stagger(2)} style={{ width: "100%" }}>
-              {launched ? (
-                <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
-                  <span style={{ fontSize: "clamp(40px,7vw,64px)", lineHeight: 1, animation: "logoFloat 3s ease-in-out infinite" }}>🚀</span>
-                  <p style={{ fontSize: "clamp(18px,3vw,26px)", fontWeight: 700, color: "rgba(255,255,255,0.88)", margin: 0 }}>
-                    We&apos;re live!
-                  </p>
-                </div>
-              ) : (
-                <div style={{ position: "relative" }}>
-                  <div style={{
-                    position: "relative",
-                    display: "flex", alignItems: "flex-end",
-                    gap: "clamp(4px,0.7vw,7px)",
-                  }}>
-                    <CountBlock value={pad(time.d)} label="Days" />
-                    <Colon />
-                    <CountBlock value={pad(time.h)} label="Hours" />
-                    <Colon />
-                    <CountBlock value={pad(time.m)} label="Min" />
-                    <Colon />
-                    <CountBlock value={pad(time.s)} label="Sec" />
-                  </div>
-                  {/* Seconds progress bar */}
-                  <div style={{ marginTop: "10px", maxWidth: "340px" }}>
-                    <SecondsBar s={time.s} />
-                  </div>
-                </div>
-              )}
+              <p style={{
+                fontSize: "clamp(36px,5.5vw,60px)",
+                fontWeight: 800,
+                letterSpacing: "-0.02em",
+                lineHeight: 1,
+                margin: 0,
+                background: "linear-gradient(135deg,#a78bfa,#67e8f9)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}>
+                {STATIC_TIME_LEFT}
+              </p>
             </motion.div>
 
             {/* Release date */}
