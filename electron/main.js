@@ -399,7 +399,12 @@ if (!gotTheLock) {
       console.log('[DeepLink] ✗ NO protocol URL in commandLine');
       if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
+        if (!mainWindow.isVisible()) mainWindow.show();
         mainWindow.focus();
+      } else {
+        // Previous instance crashed without creating a window — create one now
+        console.warn('[DeepLink] mainWindow=null on second-instance — re-creating window');
+        createWindow();
       }
     }
     console.log('[DeepLink] ====================================');
@@ -620,7 +625,17 @@ function createWindow() {
     }
   });
 
+  // Fallback: if ready-to-show never fires (backend stall, renderer crash, etc.)
+  // force the window visible after 8 seconds so the user isn't left with nothing.
+  const showFallback = setTimeout(() => {
+    if (mainWindow && !mainWindow.isVisible()) {
+      console.warn('[SwitchControl] ready-to-show never fired — force showing window');
+      mainWindow.show();
+    }
+  }, 8000);
+
   mainWindow.once('ready-to-show', () => {
+    clearTimeout(showFallback);
     console.log('[SwitchControl] Window ready-to-show');
     mainWindow.show();
   });
