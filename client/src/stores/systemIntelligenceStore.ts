@@ -245,9 +245,23 @@ export function formatCpu(p: SystemIntelligenceProfile | null): string {
   return p.cpu.brand;
 }
 
+const _DISCRETE_SIG = ["nvidia", "amd", "radeon", "geforce", "rx ", "rtx ", "gtx "];
+
+/** Returns the name of the active GPU using the same discrete-preference
+ *  priority as GpuModal: NVIDIA/AMD → highest VRAM → first controller. */
 export function formatGpu(p: SystemIntelligenceProfile | null): string {
   if (!p?.gpu.controllers.length) return "Unknown";
-  return p.gpu.controllers[0].name ?? "Unknown";
+  const ctrls = p.gpu.controllers;
+  if (ctrls.length === 1) return ctrls[0].name ?? "Unknown";
+
+  const discrete = ctrls.find(c => {
+    const sig = `${c.vendor ?? ""} ${c.name ?? ""}`.toLowerCase();
+    return _DISCRETE_SIG.some(d => sig.includes(d));
+  });
+  if (discrete) return discrete.name ?? "Unknown";
+
+  const byVram = [...ctrls].sort((a, b) => (b.vramMb ?? 0) - (a.vramMb ?? 0));
+  return byVram[0].name ?? "Unknown";
 }
 
 export function formatRam(p: SystemIntelligenceProfile | null): string {

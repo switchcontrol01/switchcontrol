@@ -10,6 +10,13 @@
  * Hard rule: every value displayed here comes from a real backend source.
  * No fake metrics, no hardcoded placeholders, no guessed values.
  * Fields not available from the backend are simply omitted.
+ *
+ * GPU resolution — both sections must reference the same physical GPU:
+ *   1. Exact model-name match against telemetry.gpu.name
+ *   2. Fuzzy name match (one name contains the other)
+ *   3. Prefer discrete GPU (NVIDIA / AMD / Radeon)
+ *   4. Controller with the most VRAM
+ *   5. controllers[0]
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -26,6 +33,69 @@ interface GpuModalProps {
 }
 
 const SPARKLINE_MAX = 60;
+const IS_DEV = import.meta.env.DEV;
+
+// ── GPU resolution ────────────────────────────────────────────────────────────
+
+type MatchType = "exact" | "fuzzy" | "discrete_pref" | "vram_fallback" | "first" | "none";
+
+interface ResolvedGpu {
+  ctrl: SipController | null;
+  matchType: MatchType;
+}
+
+const DISCRETE_SIG = ["nvidia", "amd", "radeon", "geforce", "rx ", "rtx ", "gtx "];
+
+function normalizeModel(s: string | null | undefined): string {
+  if (!s) return "";
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Resolves which static SipController corresponds to the currently active
+ * GPU reported by the telemetry stream. Tries name matching first, then falls
+ * back to discrete-GPU preference, then VRAM, then first controller.
+ */
+function resolveGpu(
+  controllers: SipController[],
+  telemetryName: string | null,
+): ResolvedGpu {
+  if (!controllers.length) return { ctrl: null, matchType: "none" };
+  if (controllers.length === 1) return { ctrl: controllers[0], matchType: "first" };
+
+  const telNorm = normalizeModel(telemetryName);
+
+  // 1. Exact name match
+  if (telNorm) {
+    const exact = controllers.find(c => normalizeModel(c.name) === telNorm);
+    if (exact) return { ctrl: exact, matchType: "exact" };
+  }
+
+  // 2. Fuzzy name match — one name fully contains the other
+  if (telNorm) {
+    const fuzzy = controllers.find(c => {
+      const cn = normalizeModel(c.name);
+      return cn.length > 0 && (cn.includes(telNorm) || telNorm.includes(cn));
+    });
+    if (fuzzy) return { ctrl: fuzzy, matchType: "fuzzy" };
+  }
+
+  // 3. Prefer discrete GPU (NVIDIA / AMD / Radeon)
+  const discrete = controllers.find(c => {
+    const sig = `${c.vendor ?? ""} ${c.name ?? ""}`.toLowerCase();
+    return DISCRETE_SIG.some(d => sig.includes(d));
+  });
+  if (discrete) return { ctrl: discrete, matchType: "discrete_pref" };
+
+  // 4. Highest VRAM
+  const sorted = [...controllers].sort((a, b) => (b.vramMb ?? 0) - (a.vramMb ?? 0));
+  if ((sorted[0].vramMb ?? 0) > 0) return { ctrl: sorted[0], matchType: "vram_fallback" };
+
+  // 5. First controller
+  return { ctrl: controllers[0], matchType: "first" };
+}
+
+// ── UI primitives ─────────────────────────────────────────────────────────────
 
 function GpuIcon({ className }: { className?: string }) {
   return (
@@ -73,12 +143,13 @@ function MiniSparkline({ samples, color }: { samples: number[]; color: string })
 }
 
 function LiveBar({ pct, color, criticalColor, critical }: { pct: number; color: string; criticalColor?: string; critical?: boolean }) {
+  const safePct = Number.isFinite(pct) ? Math.min(Math.max(pct, 0), 100) : 0;
   return (
     <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mt-1">
       <motion.div
         className={cn("h-full rounded-full", critical && criticalColor ? criticalColor : color)}
         initial={{ width: 0 }}
-        animate={{ width: `${Math.min(pct, 100)}%` }}
+        animate={{ width: `${safePct}%` }}
         transition={{ type: "spring", stiffness: 120, damping: 20 }}
       />
     </div>
@@ -87,21 +158,21 @@ function LiveBar({ pct, color, criticalColor, critical }: { pct: number; color: 
 
 // Format VRAM — show in MB if < 1024, else GB
 function fmtVram(mb: number | null): string {
-  if (mb === null) return "—";
+  if (mb === null || mb === undefined || !Number.isFinite(mb)) return "—";
   if (mb >= 1024) return `${(mb / 1024).toFixed(1)} GB`;
   return `${mb} MB`;
 }
 
-function fmtNum(v: number | null, unit: string): string {
-  if (v === null || v === undefined) return "—";
+function fmtNum(v: number | null | undefined, unit: string): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return "—";
   return `${Math.round(v)}${unit}`;
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export function GpuModal({ open, onOpenChange }: GpuModalProps) {
   // ── Sources of truth ────────────────────────────────────────────────────────
-  // Static identity: systemIntelligenceStore (cached, fetched once on open)
   const { profile, fetch: fetchProfile, loading: profileLoading } = useSystemIntelligenceStore();
-  // Live telemetry: already streaming via WebSocket — no extra polling needed
   const { telemetry } = useTelemetryStore();
 
   // Sparkline history — accumulate GPU load samples while modal is open
@@ -133,19 +204,44 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
     }
   }, [open, telemetry?.gpu?.load]);
 
+  // ── GPU resolution ───────────────────────────────────────────────────────────
+  const controllers = profile?.gpu.controllers ?? [];
+  const telGpu = telemetry?.gpu ?? null;
+
+  const { ctrl, matchType } = resolveGpu(controllers, telGpu?.name ?? null);
+
+  // Dev-mode logging so mismatches are immediately visible during development
+  useEffect(() => {
+    if (!IS_DEV || !open) return;
+    console.group("[GpuModal] GPU resolution");
+    console.log("Controllers (%d):", controllers.length, controllers.map(c => c.name));
+    console.log("Telemetry GPU name:", telGpu?.name ?? "(none)");
+    console.log("Selected controller:", ctrl?.name ?? "(none)");
+    console.log("Match type:", matchType);
+    console.groupEnd();
+  }, [open, controllers.length, telGpu?.name, ctrl?.name, matchType]);
+
   // ── Derived data ─────────────────────────────────────────────────────────────
-  const ctrl: SipController | null = profile?.gpu.controllers[0] ?? null;
-  const gpu = telemetry?.gpu ?? null;
+  const gpu = telGpu;
 
   const loadPct = gpu?.load != null && Number.isFinite(gpu.load) ? Math.round(gpu.load) : null;
   const vramUsed = gpu?.vramUsedMb ?? null;
   const vramTotal = gpu?.vramTotalMb ?? ctrl?.vramMb ?? null;
-  const vramPct = gpu?.vramPercent ?? (vramUsed != null && vramTotal ? (vramUsed / vramTotal) * 100 : null);
-  const isVramCritical = vramPct != null && vramPct > 90;
+  const vramPct = gpu?.vramPercent ?? (
+    vramUsed != null && vramTotal != null && vramTotal > 0
+      ? (vramUsed / vramTotal) * 100
+      : null
+  );
+  const isVramCritical = vramPct != null && Number.isFinite(vramPct) && vramPct > 90;
   const gpuName = ctrl?.name ?? gpu?.name ?? null;
 
-  // ── Determine if any live metrics are available ───────────────────────────────
+  // Whether the controller uses shared/dynamic memory (iGPU or eGPU with shared RAM)
+  const isSharedMemory = ctrl?.vramDynamic === true;
+
+  // ── Modal state detection ────────────────────────────────────────────────────
+  const hasStatic = ctrl !== null;
   const hasLiveTelemetry = loadPct !== null || vramUsed !== null || gpu?.tempC != null || gpu?.clockMhz != null;
+  const hasNoGpuAtAll = !hasStatic && !hasLiveTelemetry && !profileLoading;
 
   return (
     <GlassModalLayout
@@ -162,7 +258,9 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
           )}
         </>
       }
-      description={gpuName ?? (profileLoading ? "Loading…" : "No GPU detected")}
+      description={
+        gpuName ?? (profileLoading ? "Loading…" : "No GPU detected")
+      }
       testId="modal-gpu"
     >
       <AnimatePresence mode="wait">
@@ -177,6 +275,24 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             <GpuIcon className="size-8 text-muted-foreground/50 animate-pulse" />
             <div className="text-sm text-muted-foreground">Loading GPU info…</div>
           </motion.div>
+
+        ) : hasNoGpuAtAll ? (
+          <motion.div
+            key="no-gpu"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="py-10 flex flex-col items-center justify-center gap-2 text-center"
+          >
+            <GpuIcon className="size-8 text-white/20" />
+            <p className="text-[13px] text-white/40">No GPU data available</p>
+            <p className="text-[11px] text-white/25 max-w-xs">
+              No GPU controllers were detected and no live telemetry is active.
+              This is normal on headless servers or virtual machines.
+            </p>
+          </motion.div>
+
         ) : (
           <motion.div
             key="content"
@@ -190,29 +306,39 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             <div>
               <SectionLabel>GPU Identity</SectionLabel>
               <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 py-1">
-                {ctrl ? (
+                {hasStatic ? (
                   <>
-                    {ctrl.name    && <InfoRow label="Model"      value={ctrl.name} />}
-                    {ctrl.vendor  && <InfoRow label="Vendor"     value={ctrl.vendor} />}
-                    {ctrl.subVendor && <InfoRow label="Sub-vendor" value={ctrl.subVendor} />}
-                    {ctrl.vendorId  && <InfoRow label="Vendor ID"  value={ctrl.vendorId.toUpperCase()} mono />}
-                    {ctrl.deviceId  && <InfoRow label="Device ID"  value={ctrl.deviceId.toUpperCase()} mono />}
-                    {ctrl.bus     && <InfoRow label="Bus"        value={ctrl.bus} />}
-                    {ctrl.vramMb != null && (
+                    {ctrl!.name      && <InfoRow label="Model"      value={ctrl!.name} />}
+                    {ctrl!.vendor    && <InfoRow label="Vendor"     value={ctrl!.vendor} />}
+                    {ctrl!.subVendor && <InfoRow label="Sub-vendor" value={ctrl!.subVendor} />}
+                    {ctrl!.vendorId  && <InfoRow label="Vendor ID"  value={ctrl!.vendorId.toUpperCase()} mono />}
+                    {ctrl!.deviceId  && <InfoRow label="Device ID"  value={ctrl!.deviceId.toUpperCase()} mono />}
+                    {ctrl!.bus       && <InfoRow label="Bus"        value={ctrl!.bus} />}
+                    {ctrl!.vramMb != null && (
                       <InfoRow
-                        label="VRAM (static)"
+                        label={isSharedMemory ? "Memory" : "VRAM"}
                         value={
                           <>
-                            {fmtVram(ctrl.vramMb)}
-                            {ctrl.vramDynamic && (
-                              <span className="ml-1.5 text-[9px] text-amber-400/70 border border-amber-400/20 bg-amber-400/[0.08] px-1 rounded">Shared</span>
+                            {fmtVram(ctrl!.vramMb)}
+                            {isSharedMemory && (
+                              <span className="ml-1.5 text-[9px] text-amber-400/70 border border-amber-400/20 bg-amber-400/[0.08] px-1 rounded">Shared / dynamic</span>
                             )}
                           </>
                         }
                       />
                     )}
-                    {ctrl.external === true && (
+                    {ctrl!.external === true && (
                       <InfoRow label="Type" value={<span className="text-purple-300/80">External GPU (eGPU)</span>} />
+                    )}
+                    {/* Multi-GPU notice when more than one controller exists */}
+                    {controllers.length > 1 && (
+                      <div className="pt-2 pb-1 flex items-center gap-1.5">
+                        <Info className="size-3 text-white/20 shrink-0" />
+                        <span className="text-[10px] text-white/25">
+                          {controllers.length} GPU{controllers.length > 1 ? "s" : ""} detected
+                          {matchType !== "first" && matchType !== "none" && ` · showing active GPU (matched by ${matchType.replace("_", " ")})`}
+                        </span>
+                      </div>
                     )}
                   </>
                 ) : (
@@ -241,7 +367,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                     </div>
                   )}
 
-                  {/* VRAM */}
+                  {/* VRAM / Shared Memory */}
                   {(vramUsed !== null || vramTotal !== null) && (
                     <div className={cn(
                       "rounded-xl border px-4 py-3",
@@ -250,12 +376,15 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                         : "border-cyan-500/20 bg-cyan-500/[0.025]"
                     )}>
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-white/40 uppercase tracking-wider">VRAM Usage</span>
+                        <span className="text-[11px] text-white/40 uppercase tracking-wider">
+                          {isSharedMemory ? "Shared Memory" : "VRAM Usage"}
+                        </span>
                         <span className={cn("text-sm font-bold tabular-nums", isVramCritical ? "text-red-400" : "text-white/80")}>
-                          {vramUsed !== null ? fmtVram(vramUsed) : "?"} {vramTotal !== null ? `/ ${fmtVram(vramTotal)}` : ""}
+                          {vramUsed !== null ? fmtVram(vramUsed) : "—"}
+                          {vramTotal !== null ? ` / ${fmtVram(vramTotal)}` : ""}
                         </span>
                       </div>
-                      {vramPct !== null && (
+                      {vramPct !== null && Number.isFinite(vramPct) && (
                         <LiveBar
                           pct={vramPct}
                           color="bg-gradient-to-r from-cyan-500 to-teal-400"
@@ -263,7 +392,10 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                           critical={isVramCritical}
                         />
                       )}
-                      {isVramCritical && (
+                      {isSharedMemory && (
+                        <p className="text-[10px] text-amber-400/50 mt-1.5">Shared / dynamic memory — allocated from system RAM.</p>
+                      )}
+                      {isVramCritical && !isSharedMemory && (
                         <p className="text-[10px] text-red-400/70 mt-1.5">VRAM pressure is critically high. Close unused applications.</p>
                       )}
                     </div>
@@ -272,7 +404,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                   {/* Temperature + Clock — inline tiles */}
                   {(gpu?.tempC != null || gpu?.clockMhz != null) && (
                     <div className="grid grid-cols-2 gap-2">
-                      {gpu?.tempC != null && (
+                      {gpu?.tempC != null && Number.isFinite(gpu.tempC) && (
                         <motion.div
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -283,7 +415,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                           <div className="text-[9px] text-muted-foreground mt-0.5">Temperature</div>
                         </motion.div>
                       )}
-                      {gpu?.clockMhz != null && (
+                      {gpu?.clockMhz != null && Number.isFinite(gpu.clockMhz) && (
                         <motion.div
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -314,6 +446,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                 Static identity is read once from the OS via <span className="font-mono">systeminformation.graphics()</span>.
                 Live metrics (load, VRAM, temperature, clock) are streamed from the telemetry pipeline and depend on driver support.
                 Fan speed, power draw, and driver version are not collected and are not shown.
+                {isSharedMemory && " Memory values reflect dynamic allocation from system RAM."}
               </p>
             </div>
           </motion.div>

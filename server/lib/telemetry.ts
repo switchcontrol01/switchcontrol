@@ -74,6 +74,34 @@ let cachedGpu: GpuTelemetry = {
 let lastGpuPollTs = 0;
 const GPU_POLL_INTERVAL_MS = 1000;
 
+// ── GPU selection ─────────────────────────────────────────────────────────────
+// Priority: NVIDIA/AMD discrete with VRAM → highest VRAM → first valid controller.
+// This must stay consistent across calls so telemetry always references the same
+// physical GPU that systemIntelligence.ts reports in the static identity section.
+
+const DISCRETE_VENDORS = ["nvidia", "amd", "radeon", "geforce", "rx ", "rtx ", "gtx "];
+
+function selectActiveController(controllers: any[]): any | null {
+  if (!controllers.length) return null;
+  if (controllers.length === 1) return controllers[0];
+
+  // 1. Prefer NVIDIA/AMD with dedic VRAM
+  const discrete = controllers.find(c => {
+    const sig = `${c.vendor ?? ""} ${c.model ?? ""}`.toLowerCase();
+    return DISCRETE_VENDORS.some(d => sig.includes(d)) && (c.vram ?? 0) > 0;
+  });
+  if (discrete) return discrete;
+
+  // 2. Any controller with the most VRAM
+  const withVram = controllers.filter(c => (c.vram ?? 0) > 0);
+  if (withVram.length) {
+    return withVram.sort((a, b) => (b.vram ?? 0) - (a.vram ?? 0))[0];
+  }
+
+  // 3. First controller
+  return controllers[0];
+}
+
 // ── GPU polling ──────────────────────────────────────────────────────────────
 
 async function pollGpu(): Promise<GpuTelemetry> {
@@ -82,7 +110,7 @@ async function pollGpu(): Promise<GpuTelemetry> {
 
   try {
     const gfx = await si.graphics();
-    const ctrl = gfx.controllers.find(c => c.vram && c.vram > 0) ?? gfx.controllers[0];
+    const ctrl = selectActiveController(gfx.controllers);
     if (!ctrl) {
       lastGpuPollTs = now;
       return cachedGpu;
