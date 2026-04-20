@@ -184,7 +184,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   // onAnimationComplete — which fires exactly when Framer Motion confirms the
   // new page's enter animation is done. This is deterministic and frame-perfect:
   // no timeouts, no DOM class polling.
-  const { isTourNavigating, setTourNavigating } = useTourStore();
+  //
+  // isTourActive drives the page key: while the tour is running we keep a
+  // stable "tour-stable-page" key so AnimatePresence NEVER unmounts the page
+  // subtree during step navigation.  Without this, mode="wait" exits the old
+  // element and leaves a blank gap before the new element mounts — the tour
+  // backdrop is transparent at that moment and the user sees the blank.
+  const { isTourNavigating, isTourActive, setTourNavigating } = useTourStore();
   const shouldAnimate = !prefersReducedMotion && !isTourNavigating;
 
   // After the page-enter animation finishes:
@@ -243,7 +249,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={location}
+            key={isTourActive ? "tour-stable-page" : location}
             ref={pageRef}
             className="container max-w-7xl mx-auto p-8"
             initial={shouldAnimate ? { opacity: 0, y: 10, scale: 0.993, filter: "blur(6px)" } : { opacity: 1, y: 0, scale: 1 }}

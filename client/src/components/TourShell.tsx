@@ -392,14 +392,23 @@ export function TourShell({
       }, TOUR_STEP_TIMING.highlightScrollDelayMs);
     }
     if (s?.route) {
-      // Raise the guard BEFORE navigate() so AppLayout's very first re-render
-      // after the location change already sees isTourNavigating=true (via the
-      // Zustand subscription) and suppresses the page transition.
-      // The guard is cleared deterministically by AppLayout's onAnimationComplete
-      // callback — which fires exactly when Framer Motion confirms the new page's
-      // enter animation is done. No timeout is involved.
+      // Raise the guard BEFORE navigate() so AppLayout's key expression already
+      // sees isTourNavigating=true on its very next render and keeps the stable
+      // "tour-stable-page" key (preventing AnimatePresence from unmounting the
+      // page subtree).
+      //
+      // We clear the guard ourselves via double-rAF (two paint frames) so that
+      // the new route's layout is fully committed before isTourNavigating resets.
+      // We no longer rely on AppLayout's onAnimationComplete for this cleanup —
+      // that callback only fires when the motion.div key actually changes (normal
+      // navigation), not during tour navigation where the key stays stable.
       setTourNavigating(true);
       navigate(s.route);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setTourNavigating(false);
+        });
+      });
     }
   }, [steps, setTourHighlight, navigate, setTourNavigating]);
 
