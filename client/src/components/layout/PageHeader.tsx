@@ -1,4 +1,4 @@
-import { motion, Variants } from "framer-motion";
+import { motion } from "framer-motion";
 import { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -69,35 +69,3 @@ export function PageHeader({
   );
 }
 
-export const sectionVariants: Variants = {
-  hidden: { opacity: 0, y: 18, scale: 0.98 },
-  visible: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.45, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] },
-  }),
-};
-
-export function AnimatedSection({
-  children,
-  index = 0,
-  className,
-}: {
-  children: React.ReactNode;
-  index?: number;
-  className?: string;
-}) {
-  return (
-    <motion.div
-      className={className}
-      variants={sectionVariants}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, margin: "-40px" }}
-      custom={index}
-    >
-      {children}
-    </motion.div>
-  );
-}

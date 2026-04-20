@@ -22,8 +22,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
 import { TWEAKS_DATA } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion } from "@/lib/motion";
-import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
+import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion, Reveal } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
 import { AnimatedCrown, PremiumBadge } from "@/components/ui/animated-crown";
 import { PremiumCardOverlay } from "@/components/ui/premium-page-overlay";
@@ -359,7 +358,6 @@ export default function Home() {
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
   const sysIntel = useSystemIntelligence();
-  useRevealOnScroll();
   const liveStatus = useLiveStatus();
   const timeOfDay = useMemo(() => getTimeOfDay(), []);
 
@@ -662,17 +660,17 @@ export default function Home() {
         <PredictiveWarnings telemetry={liveTel} />
 
         {/* System State Bar — real-time derived anchor */}
-        <div data-reveal>
+        <Reveal>
           <SystemStateBar />
-        </div>
+        </Reveal>
 
         {/* Detected Issues — real evidence-backed problems only */}
-        <div data-reveal>
+        <Reveal>
           <DetectedIssues />
-        </div>
+        </Reveal>
 
         {/* Activity Monitor Grid */}
-        <div className="space-y-4" data-reveal>
+        <Reveal className="space-y-4">
           <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
             <Activity className="size-5 text-primary" />
             Activity Monitor
@@ -772,24 +770,24 @@ export default function Home() {
               />
             </motion.div>
           </div>
-        </div>
+        </Reveal>
 
         {/* Live Graph */}
-        <div data-reveal data-delay="1">
+        <Reveal delay={0.06}>
           <LiveGraph
             onTelemetryUpdate={handleTelemetryUpdate}
             selectedDiskMount={selectedDisk?.mount ?? null}
           />
-        </div>
+        </Reveal>
 
         {/* Performance Lab — intelligence hub */}
-        <div data-reveal data-delay="1">
+        <Reveal delay={0.06}>
           <PerformanceLab onClearRAM={() => setMemCleanerOpen(true)} />
-        </div>
+        </Reveal>
 
         {/* System Pipeline — Latency Map */}
         {liveTel && (
-          <div data-reveal data-delay="1">
+          <Reveal delay={0.06}>
             <GlassCard className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Wifi className="size-4 text-primary" />
@@ -798,17 +796,17 @@ export default function Home() {
               </div>
               <LatencyMap />
             </GlassCard>
-          </div>
+          </Reveal>
         )}
 
         {/* Storage Section */}
-        <div data-reveal data-delay="2">
+        <Reveal delay={0.12}>
           <StorageCards ssds={ssdData} />
-        </div>
+        </Reveal>
 
         {/* System Intelligence Hardware Grid */}
         {sysIntel.profile && (
-          <div className="space-y-4" data-reveal data-delay="2">
+          <Reveal className="space-y-4" delay={0.12}>
             <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
               <MonitorCog className="size-5 text-violet-400" />
               System Intelligence
@@ -1069,7 +1067,7 @@ export default function Home() {
               )}
 
             </div>
-          </div>
+          </Reveal>
         )}
 
         {/* ── Telemetry Analytics ────────────────────────────────────── */}
@@ -1200,9 +1198,9 @@ export default function Home() {
         </div>
 
         {/* Dashboard Insights — scroll-depth section with real system intelligence */}
-        <div data-reveal data-delay="3">
+        <Reveal delay={0.18}>
           <DashboardInsights />
-        </div>
+        </Reveal>
       </div>
 
       <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />

@@ -27,7 +27,6 @@ import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
 import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
 import { useAuth } from "@/components/ProtectedRoute";
-import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useMomentumScroll } from "@/hooks/useMomentumScroll";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlassPanel } from "@/components/website/GlassPanel";
@@ -632,7 +631,6 @@ function AnimatedLockIcon({ className }: { className?: string }) {
 export default function Landing() {
   const { prefersReducedMotion } = useMotion();
   const { user } = useAuth();
-  useRevealOnScroll();
   useMomentumScroll();
 
   const handleAuthAwareClick = (e: MouseEvent) => {
@@ -758,7 +756,8 @@ export default function Landing() {
         </section>
 
         {/* ──── Feature Strip + Stats (unified section) ──── */}
-        <section className="relative pb-12 md:pb-16 -mt-24 pt-24" data-reveal>
+        <Reveal>
+        <section className="relative pb-12 md:pb-16 -mt-24 pt-24">
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 20%, hsl(270 50% 45% / 0.05) 0%, transparent 70%)" }} />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8 relative z-[1]">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12 text-center">
@@ -791,11 +790,13 @@ export default function Landing() {
             </p>
           </div>
         </section>
+        </Reveal>
 
         <SectionDivider glow />
 
         {/* ──── Features ──── */}
-        <section id="features" className="py-24 md:py-32 relative ws-section-glow" data-reveal>
+        <Reveal>
+        <section id="features" className="py-24 md:py-32 relative ws-section-glow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
               title="Everything You Need"
@@ -841,11 +842,13 @@ export default function Landing() {
             <ModuleShowcase />
           </div>
         </section>
+        </Reveal>
 
         <SectionDivider />
 
         {/* ──── BIOS Advisor ──── */}
-        <section className="py-24 md:py-32 relative overflow-hidden" data-reveal>
+        <Reveal>
+        <section className="py-24 md:py-32 relative overflow-hidden">
           <SectionGlow color="mixed" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 60% 40%, hsl(270 55% 45% / 0.04) 0%, transparent 70%)" }} />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-primary/[0.05] blur-[180px] pointer-events-none" />
@@ -968,11 +971,13 @@ export default function Landing() {
             </div>
           </div>
         </section>
+        </Reveal>
 
         <SectionDivider glow />
 
         {/* ──── Comparison Sliders ──── */}
-        <section className="py-24 md:py-32 relative" data-reveal>
+        <Reveal>
+        <section className="py-24 md:py-32 relative">
           <SectionGlow color="cyan" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 50%, hsl(190 70% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -985,11 +990,13 @@ export default function Landing() {
             <LandingPerformanceCharts />
           </div>
         </section>
+        </Reveal>
 
         <SectionDivider />
 
         {/* ──── Social Proof ──── */}
-        <section className="py-20 relative" data-reveal>
+        <Reveal>
+        <section className="py-20 relative">
           <SectionGlow color="purple" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(270 50% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1006,6 +1013,7 @@ export default function Landing() {
             <SocialProofCharts />
           </div>
         </section>
+        </Reveal>
 
         {/* ──── What is SwitchControl ──── */}
         <WhatIsSwitchControl />
@@ -1013,7 +1021,8 @@ export default function Landing() {
         <SectionDivider glow />
 
         {/* ──── Pricing Preview ──── */}
-        <section id="pricing" className="py-28 md:py-36 relative ws-section-glow" data-reveal>
+        <Reveal>
+        <section id="pricing" className="py-28 md:py-36 relative ws-section-glow">
           <div id="pricing-top" />
 
           {/* Section background glow */}
@@ -1032,7 +1041,7 @@ export default function Landing() {
             <div className="grid md:grid-cols-2 gap-5 mt-14">
 
               {/* ── Free card ── */}
-              <Reveal direction="left">
+              <Reveal>
                 <div className="rounded-2xl border border-white/[0.07] p-8 h-full flex flex-col relative overflow-hidden group transition-all duration-500 hover:border-white/[0.12]"
                   style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%)", backdropFilter: "blur(24px)" }}>
 
@@ -1072,7 +1081,7 @@ export default function Landing() {
               </Reveal>
 
               {/* ── Premium card — animated border ── */}
-              <Reveal direction="right">
+              <Reveal>
                 <div className="relative h-full rounded-[18px] p-px overflow-hidden"
                   style={{ background: "linear-gradient(135deg, hsl(270,40%,55%,0.35) 0%, hsl(200,45%,55%,0.25) 50%, hsl(270,40%,55%,0.35) 100%)" }}>
 
@@ -1164,11 +1173,13 @@ export default function Landing() {
             </motion.div>
           </div>
         </section>
+        </Reveal>
 
         <SectionDivider glow />
 
         {/* ──── Final CTA ──── */}
-        <section className="py-24 md:py-32 relative" data-reveal>
+        <Reveal>
+        <section className="py-24 md:py-32 relative">
           <SectionGlow color="cyan" intensity="strong" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent pointer-events-none" />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
@@ -1192,6 +1203,7 @@ export default function Landing() {
             </Reveal>
           </div>
         </section>
+        </Reveal>
       </main>
     </WebsiteShell>
   );

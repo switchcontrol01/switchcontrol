@@ -1,5 +1,5 @@
-import { motion, AnimatePresence, Variants } from "framer-motion";
-import { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
+import { motion, AnimatePresence, Variants, useInView } from "framer-motion";
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 const MotionContext = createContext({ prefersReducedMotion: false, hasLoaded: false });
@@ -247,101 +247,104 @@ export const pillIndicator: Variants = {
   animate: { opacity: 1 },
 };
 
-interface RevealProps {
+interface RevealProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children'> {
   children: ReactNode;
-  className?: string;
   delay?: number;
-  duration?: number;
-  direction?: 'up' | 'down' | 'left' | 'right';
-  distance?: number;
+  y?: number;
+  blur?: number;
+  once?: boolean;
 }
 
-export function Reveal({ 
-  children, 
+export function Reveal({
+  children,
   className,
   delay = 0,
-  duration = 0.65,
-  direction = 'up',
-  distance = 20
+  y = 14,
+  blur = 6,
+  once = true,
+  ...rest
 }: RevealProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [isVisible, setIsVisible] = useState(false);
-  const { prefersReducedMotion } = useMotion();
-  const hasChecked = useRef(false);
-
-  useEffect(() => {
-    if (hasChecked.current) return;
-    hasChecked.current = true;
-
-    const el = ref.current;
-    if (!el) {
-      setIsVisible(true);
-      return;
-    }
-
-    // CRITICAL FIX: Check if element is already in viewport on mount
-    const rect = el.getBoundingClientRect();
-    const inViewport = (
-      rect.top < window.innerHeight &&
-      rect.bottom > 0
-    );
-
-    if (inViewport) {
-      // Already visible, animate in
-      setIsVisible(true);
-      return;
-    }
-
-    // Use IntersectionObserver for scroll reveal
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-          observer.disconnect();
-        }
-      },
-      { 
-        threshold: 0.05, 
-        rootMargin: "50px 0px 0px 0px"
-      }
-    );
-
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  // When reduced motion is preferred, never hide content — show immediately
-  if (prefersReducedMotion) {
-    return <div ref={ref} className={cn(className)}>{children}</div>;
-  }
-
-  const reducedDistance = distance;
-
-  const getTransform = () => {
-    if (isVisible) return 'translate(0, 0)';
-    switch (direction) {
-      case 'up': return `translateY(${reducedDistance}px)`;
-      case 'down': return `translateY(-${reducedDistance}px)`;
-      case 'left': return `translateX(${reducedDistance}px)`;
-      case 'right': return `translateX(-${reducedDistance}px)`;
-      default: return `translateY(${reducedDistance}px)`;
-    }
-  };
+  const ref = useRef<HTMLDivElement | null>(null);
+  const inView = useInView(ref, {
+    once,
+    margin: "0px 0px -8% 0px",
+    amount: 0.12,
+  });
 
   return (
-    <div
+    <motion.div
       ref={ref}
       className={cn(className)}
-      style={{
-        opacity: isVisible ? 1 : 0,
-        transform: getTransform(),
-        filter: isVisible ? 'blur(0px)' : 'blur(3px)',
-        transition: `opacity ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, transform ${duration}s cubic-bezier(0.22,1,0.36,1) ${delay}s, filter ${(duration * 0.8).toFixed(2)}s cubic-bezier(0.22,1,0.36,1) ${delay}s`,
-        willChange: 'opacity, transform, filter',
+      initial={{ opacity: 0, y, filter: `blur(${blur}px)` }}
+      animate={
+        inView
+          ? { opacity: 1, y: 0, filter: "blur(0px)" }
+          : { opacity: 0, y, filter: `blur(${blur}px)` }
+      }
+      transition={{
+        duration: 0.55,
+        delay,
+        ease: [0.22, 1, 0.36, 1],
+      }}
+      {...(rest as object)}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+export function RevealGroup({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      className={cn(className)}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: "0px 0px -8% 0px", amount: 0.1 }}
+      variants={{
+        hidden: {},
+        visible: {
+          transition: {
+            staggerChildren: 0.08,
+          },
+        },
       }}
     >
       {children}
-    </div>
+    </motion.div>
+  );
+}
+
+export function RevealItem({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <motion.div
+      className={cn(className)}
+      variants={{
+        hidden: { opacity: 0, y: 14, filter: "blur(6px)" },
+        visible: {
+          opacity: 1,
+          y: 0,
+          filter: "blur(0px)",
+          transition: {
+            duration: 0.55,
+            ease: [0.22, 1, 0.36, 1],
+          },
+        },
+      }}
+    >
+      {children}
+    </motion.div>
   );
 }
 

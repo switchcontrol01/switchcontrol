@@ -32,7 +32,7 @@ import {
   TweakLevel,
   ImpactLevel,
 } from "@/lib/network-tweaks-data";
-import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion } from "@/lib/motion";
+import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal } from "@/lib/motion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/use-auth";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
@@ -675,7 +675,7 @@ export default function NetworkTweaks() {
 
   return (
     <AppLayout>
-      <div className={cn("p-8 space-y-8", !isPremium && "opacity-60 blur-[2px]")} data-tour="network-content" data-reveal>
+      <Reveal className={cn("p-8 space-y-8", !isPremium && "opacity-60 blur-[2px]")} data-tour="network-content">
         <motion.div
           className="space-y-2"
           initial={{ opacity: 0, y: -14 }}
@@ -861,7 +861,7 @@ export default function NetworkTweaks() {
         </motion.div>
 
         <NetworkDiagnosticsFooter {...diagnostics} />
-      </div>
+      </Reveal>
 
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />

@@ -290,9 +290,9 @@ export function WhatIsSwitchControl() {
   }
 
   return (
-    <section className="py-20 md:py-24 relative" data-reveal>
+    <section className="py-20 md:py-24 relative">
       <div className="container mx-auto px-4 max-w-4xl">
-        <Reveal duration={0.7} distance={32}>
+        <Reveal y={32}>
           <div
             className="relative rounded-2xl overflow-hidden"
             style={{ border: '1px solid rgba(255,255,255,0.10)' }}
@@ -347,7 +347,7 @@ export function WhatIsSwitchControl() {
               <div className="mb-7">
                 <div className="grid grid-cols-2 gap-2.5">
                   {pillars.map((pillar, index) => (
-                    <Reveal key={index} delay={0.1 + index * 0.07} duration={0.5}>
+                    <Reveal key={index} delay={0.1 + index * 0.07}>
                       <div
                         className="flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 group cursor-default"
                         style={{

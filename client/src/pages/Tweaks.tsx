@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
+import { Reveal } from "@/lib/motion";
 import { TweaksList } from "@/components/tweaks/TweaksList";
 import { TweakIntelligenceLayer } from "@/components/tweaks/TweakIntelligenceLayer";
 import { Zap, ShieldAlert, X } from "lucide-react";
@@ -23,7 +24,7 @@ export default function Tweaks() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 h-full" data-reveal>
+      <Reveal className="space-y-6 h-full">
         <motion.div
           initial={{ opacity: 0, y: -16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -90,7 +91,7 @@ export default function Tweaks() {
         <div data-tour="advanced-premium-tweaks">
           <TweaksList />
         </div>
-      </div>
+      </Reveal>
     </AppLayout>
   );
 }

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
-import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMotion } from "@/lib/motion";
+import { useMotion, Reveal } from "@/lib/motion";
 import { useFocusStore, type FocusSettings } from "@/lib/focusStore";
 import { MetricSparkCard } from "@/components/SparklineChart";
 
@@ -581,7 +581,7 @@ export default function FocusMode() {
 
   return (
     <AppLayout>
-      <div className="space-y-5" data-reveal>
+      <Reveal className="space-y-5">
 
         {/* Header */}
         <PageHeader
@@ -1120,7 +1120,7 @@ export default function FocusMode() {
         </AnimatePresence>
 
         {/* Safety strip */}
-        <AnimatedSection index={4}>
+        <Reveal delay={0.24}>
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/3 text-xs">
             <Shield className="size-4 text-emerald-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -1139,9 +1139,9 @@ export default function FocusMode() {
               </div>
             </div>
           </div>
-        </AnimatedSection>
+        </Reveal>
 
-      </div>
+      </Reveal>
     </AppLayout>
   );
 }

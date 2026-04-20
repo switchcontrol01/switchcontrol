@@ -1,0 +1,162 @@
+TASK
+
+Fix the full first-time user transition chain so it feels cinematic, fluid, intentional, and slow enough to read as premium.
+
+PROBLEM
+
+The new-user flow is visually broken.
+
+Current issues:
+
+1. After login, the app transitions into the Welcome animation too abruptly.
+2. The fade-out / blur-out and fade-in / blur-in are either missing, too weak, or too fast.
+3. The Welcome animation contains a random lightning bolt visual that feels out of place and should be removed.
+4. The final "You're all set" screen does not exit smoothly into the dashboard.
+5. The dashboard and app shell do not properly blur in and fade in after the intro completes.
+6. The entire sequence feels rushed instead of cinematic.
+
+This is not a small polish issue.
+It breaks the premium feel of the whole onboarding flow.
+
+GOAL
+
+Make the entire first-time user flow feel like one connected premium sequence:
+
+Login success
+→ Welcome intro enters smoothly
+→ Welcome content plays cleanly
+→ "You're all set" screen exits smoothly
+→ Dashboard / full app shell enters with a visible, elegant blur-and-fade reveal
+
+Everything must feel:
+
+- smooth
+- premium
+- slow enough to register
+- intentional
+- emotionally satisfying
+
+IMPLEMENTATION
+
+1. Audit the full transition chain
+
+Inspect the full first-time flow across:
+
+- login success state
+- phase changes into welcome
+- WelcomeAnimation mount animation
+- final "You're all set" screen
+- phase change from welcome to authenticated
+- dashboard/app shell enter animation
+
+Find all places where:
+
+- transitions are too short
+- transitions overlap badly
+- one screen disappears before the next is visually ready
+- blur values are too weak
+- opacity timing is too abrupt
+
+2. Remove the lightning bolt from the Welcome animation
+
+There is a visual lightning bolt / electric accent in the welcome sequence.
+Remove it entirely.
+
+Do not replace it with another gimmick.
+Keep the welcome screen cleaner and more premium.
+
+3. Strengthen login success → welcome transition
+
+When login succeeds:
+
+- login screen must blur out and fade out more clearly
+- welcome screen must fade in and blur in more clearly
+- there must be a soft overlap, not a hard handoff
+
+Required feel:
+
+- outgoing screen dissolves
+- incoming screen resolves into focus
+
+Target direction:
+
+- outgoing blur: around 18px to 30px
+- incoming blur: around 14px to 20px
+- transition duration: around 1.1s to 1.6s
+- ease: premium smooth curve, not linear
+
+4. Slow down welcome entrance
+
+The welcome screen itself should not appear instantly sharp.
+
+It should:
+
+- come in slightly soft
+- settle into focus
+- give the logo and text room to breathe
+
+The user must feel like they have entered a special sequence, not just another page mount.
+
+5. Fix "You're all set" exit
+
+At the end of the intro tour / welcome flow:
+
+- the "You're all set" screen must fade out smoothly
+- the "You're all set" screen must blur out smoothly
+- the dashboard must not appear too early underneath
+- the dashboard must not snap in hard
+
+This is the most important handoff in the whole sequence.
+
+Required behavior:
+
+- final welcome screen holds briefly
+- then dissolves out with blur
+- then dashboard/app shell resolves in with matching blur-in and fade-in
+
+6. Strengthen dashboard/app shell entry after intro
+
+After welcome completes:
+
+- the entire app shell must fade in
+- the entire app shell must blur in
+- not just pieces of the dashboard
+- not just cards
+- the whole app frame should feel like it is materializing
+
+That includes:
+
+- sidebar
+- top banners
+- dashboard hero
+- main content container
+
+Use one coordinated enter animation at the authenticated app level.
+
+7. Increase transition timing across the full onboarding chain
+
+Current transitions feel too short and too rushed.
+
+Adjust to premium pacing.
+
+Target pacing guidance:
+
+- login success hold before next phase: longer than current
+- welcome enter: around 1.2s to 1.8s effective feel
+- final welcome exit: around 1.0s to 1.4s
+- app shell enter: around 0.9s to 1.3s
+
+Important:
+Do not make it sluggish.
+Make it elegant and readable.
+
+8. Ensure transitions are chained, not fighting
+
+Do not let:
+
+- old screen disappear instantly
+- new screen appear before old screen has visually exited
+- welcome and app both fight for opacity at the same time
+- background snap independently from foreground
+
+Use one coordinated sequence where each stage finishes properly before the next fully resolves.

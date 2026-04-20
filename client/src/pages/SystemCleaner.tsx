@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
-import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMotion } from "@/lib/motion";
+import { useMotion, Reveal } from "@/lib/motion";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -473,7 +473,7 @@ export default function SystemCleaner() {
 
   return (
     <AppLayout>
-      <div className="space-y-5" data-reveal>
+      <Reveal className="space-y-5">
 
         {/* Header */}
         <PageHeader
@@ -583,7 +583,7 @@ export default function SystemCleaner() {
         </motion.div>
 
         {/* Impact summary */}
-        <AnimatedSection index={0}>
+        <Reveal delay={0}>
           <Card
             className={cn(
               "border overflow-hidden",
@@ -707,7 +707,7 @@ export default function SystemCleaner() {
               </div>
             </CardContent>
           </Card>
-        </AnimatedSection>
+        </Reveal>
 
         {/* Main content views */}
         <AnimatePresence mode="wait">
@@ -1076,7 +1076,7 @@ export default function SystemCleaner() {
         </AnimatePresence>
 
         {/* Mode info strip */}
-        <AnimatedSection index={4}>
+        <Reveal delay={0.24}>
           <div className={cn(
             "px-4 py-3 rounded-xl border text-xs flex items-start gap-3",
             mode === "safe"
@@ -1101,9 +1101,9 @@ export default function SystemCleaner() {
               )}
             </div>
           </div>
-        </AnimatedSection>
+        </Reveal>
 
-      </div>
+      </Reveal>
     </AppLayout>
   );
 }

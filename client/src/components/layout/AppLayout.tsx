@@ -8,7 +8,6 @@ import { NetworkStatusChip } from "@/components/NetworkStatusChip";
 import { useLocation, Link } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
 import { Loader2, Moon, Timer } from "lucide-react";
-import { useRevealOnScroll } from "@/hooks/useRevealOnScroll";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useFocusStore } from "@/lib/focusStore";
 import { useTourStore } from "@/lib/tour-store";
@@ -194,8 +193,6 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const [location] = useLocation();
   useNetworkStatus(); // boot network listeners + heartbeat once
 
-  // Central reveal system — re-fires on every navigation so all pages get blur-in reveals
-  useRevealOnScroll({ locationKey: location });
 
   // Reactive subscription to the tour navigation guard. The TourShell sets this
   // to true immediately before calling navigate(), and we clear it here in

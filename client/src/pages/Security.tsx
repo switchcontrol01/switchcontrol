@@ -9,7 +9,7 @@ import { useAuthStore } from "@/lib/auth-store";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
 import { AnimatePresence } from "framer-motion";
-import { motion, useMotion } from "@/lib/motion";
+import { motion, useMotion, Reveal } from "@/lib/motion";
 import {
   Shield, ShieldCheck, ShieldAlert, ShieldOff,
   Scan, Zap, CheckCircle2, AlertTriangle, AlertCircle, Info,
@@ -350,7 +350,7 @@ export default function Security() {
 
   return (
     <AppLayout>
-      <div className="relative" data-reveal>
+      <Reveal className="relative">
         <div className="flex flex-col gap-5 pb-10">
           {/* Header */}
           <motion.div
@@ -884,7 +884,7 @@ export default function Security() {
           </motion.div>
         </div>
 
-      </div>
+      </Reveal>
     </AppLayout>
   );
 }

@@ -1,5 +1,5 @@
 import { AppLayout } from "@/components/layout/AppLayout";
-import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useStore } from "@/lib/store";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -18,6 +18,7 @@ import { LicenseManagementModal } from "@/components/LicenseManagementModal";
 import { useState, useEffect } from "react";
 import { Sparkles, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { Reveal } from "@/lib/motion";
 import { PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
 
 interface PatchNotes {
@@ -170,7 +171,7 @@ export default function Settings() {
 
   return (
     <AppLayout>
-      <div className="space-y-6 max-w-4xl" data-reveal>
+      <Reveal className="space-y-6 max-w-4xl">
         <PageHeader
           icon={SettingsIcon}
           title="Settings"
@@ -180,7 +181,7 @@ export default function Settings() {
         <PatchNotesSection />
 
         <div className="space-y-6">
-          <AnimatedSection index={0}>
+          <Reveal delay={0}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
               <CardTitle>General</CardTitle>
@@ -276,10 +277,10 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
-          </AnimatedSection>
+          </Reveal>
 
           {/* Account Settings */}
-          <AnimatedSection index={1}>
+          <Reveal delay={0.06}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
               <CardTitle>Account</CardTitle>
@@ -327,17 +328,17 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
-          </AnimatedSection>
+          </Reveal>
 
           {/* Software Update — Electron only */}
           {isElectron && (
-            <AnimatedSection index={3}>
+            <Reveal delay={0.18}>
               <UpdateCard />
-            </AnimatedSection>
+            </Reveal>
           )}
 
           {isPremium && (
-            <AnimatedSection index={2}>
+            <Reveal delay={0.12}>
             <Card className="bg-card/50 border-emerald-500/20" data-tour="settings-email">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -383,11 +384,11 @@ export default function Settings() {
                 <p className="text-xs text-muted-foreground mt-2">We typically reply within 24 hours.</p>
               </CardContent>
             </Card>
-            </AnimatedSection>
+            </Reveal>
           )}
 
           {/* Data Management */}
-          <AnimatedSection index={3}>
+          <Reveal delay={0.18}>
           <Card className="bg-red-500/5 border-red-500/10">
             <CardHeader>
               <CardTitle className="text-red-400">Data Management</CardTitle>
@@ -455,11 +456,11 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
-          </AnimatedSection>
+          </Reveal>
 
           {/* Admin Panel — only visible to admin users */}
           {isAdmin && (
-            <AnimatedSection index={4}>
+            <Reveal delay={0.24}>
             <Card className="border-orange-500/20" style={{ background: "rgba(251,146,60,0.04)" }}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-orange-300">
@@ -494,11 +495,11 @@ export default function Settings() {
                 </div>
               </CardContent>
             </Card>
-            </AnimatedSection>
+            </Reveal>
           )}
 
           {/* Join the Community */}
-          <AnimatedSection index={4}>
+          <Reveal delay={0.24}>
           <Card className="bg-card/50 border-border/50">
             <CardHeader>
               <CardTitle>Join the Community</CardTitle>
@@ -569,9 +570,9 @@ export default function Settings() {
               </div>
             </CardContent>
           </Card>
-          </AnimatedSection>
+          </Reveal>
         </div>
-      </div>
+      </Reveal>
 
       <LicenseManagementModal
         open={licenseModalOpen}

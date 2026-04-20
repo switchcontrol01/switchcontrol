@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
-import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { useMotion } from "@/lib/motion";
+import { useMotion, Reveal } from "@/lib/motion";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -624,7 +624,7 @@ export default function Debloater() {
 
   return (
     <AppLayout>
-      <div className="space-y-5" data-reveal>
+      <Reveal className="space-y-5">
 
         {/* Header */}
         <PageHeader
@@ -763,7 +763,7 @@ export default function Debloater() {
         </motion.div>
 
         {/* Impact summary panel */}
-        <AnimatedSection index={0}>
+        <Reveal delay={0}>
           <Card
             className={cn("border overflow-hidden", currentLevel.border)}
             style={{
@@ -890,7 +890,7 @@ export default function Debloater() {
               )}
             </CardContent>
           </Card>
-        </AnimatedSection>
+        </Reveal>
 
         {/* View: items */}
         <AnimatePresence mode="wait">
@@ -1293,7 +1293,7 @@ export default function Debloater() {
         </AnimatePresence>
 
         {/* Mode info strip */}
-        <AnimatedSection index={3}>
+        <Reveal delay={0.18}>
           <div className={cn(
             "px-4 py-3 rounded-xl border text-xs flex items-start gap-3",
             currentLevel.bg, currentLevel.border
@@ -1314,9 +1314,9 @@ export default function Debloater() {
               )}
             </div>
           </div>
-        </AnimatedSection>
+        </Reveal>
 
-      </div>
+      </Reveal>
     </AppLayout>
   );
 }

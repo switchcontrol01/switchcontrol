@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
-import { PageHeader, AnimatedSection } from "@/components/layout/PageHeader";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "@/lib/motionTokens";
+import { motion, AnimatePresence, Reveal } from "@/lib/motionTokens";
 import { cn } from "@/lib/utils";
 import {
   List, Zap, Timer, Ban, Clock, ChevronDown, ChevronUp,
@@ -786,15 +786,15 @@ export default function StartupApps() {
         )}
 
         {/* ── Boot Timeline ──────────────────────────────────────────────────── */}
-        <AnimatedSection index={0}>
+        <Reveal delay={0}>
           {timeline
             ? <BootTimeline timeline={timeline} />
             : <div className="h-40 rounded-xl border border-white/8 bg-card/30 animate-pulse" />
           }
-        </AnimatedSection>
+        </Reveal>
 
         {/* ── Startup Profiles ───────────────────────────────────────────────── */}
-        <AnimatedSection index={1}>
+        <Reveal delay={0.06}>
           <Card className="bg-card/40 border-border/50">
             <CardHeader className="pb-3 pt-4 px-5">
               <div className="flex items-center justify-between">
@@ -847,10 +847,10 @@ export default function StartupApps() {
               </div>
             </CardContent>
           </Card>
-        </AnimatedSection>
+        </Reveal>
 
         {/* ── App categories ─────────────────────────────────────────────────── */}
-        <AnimatedSection index={2}>
+        <Reveal delay={0.12}>
           <div className="space-y-2">
             {loading ? (
               Array.from({ length: 4 }).map((_, i) => (
@@ -869,7 +869,7 @@ export default function StartupApps() {
               ))
             )}
           </div>
-        </AnimatedSection>
+        </Reveal>
 
         {/* ── History panel ──────────────────────────────────────────────────── */}
         <AnimatePresence>
@@ -880,7 +880,7 @@ export default function StartupApps() {
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <AnimatedSection index={3}>
+              <Reveal delay={0.18}>
                 <Card className="bg-card/40 border-border/50">
                   <CardHeader className="pb-3 pt-4 px-5">
                     <CardTitle className="text-sm font-semibold text-white/80 flex items-center gap-2">
@@ -920,7 +920,7 @@ export default function StartupApps() {
                     )}
                   </CardContent>
                 </Card>
-              </AnimatedSection>
+              </Reveal>
             </motion.div>
           )}
         </AnimatePresence>
