@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
+import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { GlassCard } from "@/components/ui/glass-card";
@@ -356,6 +357,10 @@ export default function PowerPlan() {
       return;
     }
 
+    // ── Ownership: capture current active plan before applying ────────────────
+    const prevGuid: string = backendState?.activeScheme?.guid ?? '';
+    const prevName: string = backendState?.activeScheme?.name ?? backendState?.activeScheme?.guid ?? 'Unknown';
+
     setApplying(frontendId);
     setApplyResult(null);
     try {
@@ -390,6 +395,16 @@ export default function PowerPlan() {
         toast({ title: "Profile Applied", description: `${profile.name} active. ${mismatchCount} setting(s) may be blocked by policy.` });
       } else {
         toast({ title: "Profile Activated", description: `${profile.name} set as active. Some settings may need a restart to take effect.` });
+      }
+
+      // ── Ownership: record which plan was replaced ───────────────────────────
+      if (prevGuid && prevGuid.toLowerCase() !== (result.activeScheme?.guid ?? '').toLowerCase()) {
+        useTweakOwnershipStore.getState().recordPowerPlanApply(
+          prevGuid,
+          prevName,
+          result.activeScheme?.guid ?? profile.backendId,
+          profile.name,
+        );
       }
 
       applyAction(`Activated ${profile.name}`, "Power Plan", "Backend-verified");

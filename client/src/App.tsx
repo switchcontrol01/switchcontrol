@@ -22,6 +22,8 @@ import { UpgradeModalProvider } from "@/contexts/UpgradeModalContext";
 import { PatchNotesModal, PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
 import { DeviceLockModal } from "@/components/DeviceLockModal";
 import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
+import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
+import { PremiumRevertModal } from "@/components/PremiumRevertModal";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -167,6 +169,23 @@ function ElectronAppContent() {
     isChecking: isDeviceLockChecking,
     retry: retryDeviceLock,
   } = usePremiumDeviceLock(isElectron, isPremiumVerified, user?.loggedIn ?? false);
+
+  // Premium expiry — detects trial/premium→free transition, triggers safe revert
+  const {
+    revertModalOpen,
+    revertReport,
+    closeRevertModal,
+    retryRevert,
+  } = usePremiumExpiry({
+    isPremium:            user?.isPremium ?? false,
+    plan:                 user?.plan,
+    trialEndsAt:          user?.trialEndsAt,
+    isLoggedIn:           user?.loggedIn ?? false,
+    entitlementsVerified,
+  });
+
+  // First-run baseline scan — records pre-existing applied state before the app touches anything
+  useBaselineScan();
 
   const { realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
 
@@ -1005,6 +1024,14 @@ function ElectronAppContent() {
           onDismiss={() => setShowPatchNotes(false)}
         />
       )}
+
+      {/* Premium expiry revert — shows after trial/premium lapses and revert runs */}
+      <PremiumRevertModal
+        open={revertModalOpen}
+        onClose={closeRevertModal}
+        report={revertReport}
+        onRetry={retryRevert}
+      />
 
       {/* Premium device lock — must be last (highest z-order), not dismissible */}
       {isElectron && deviceLockStatus === "locked" && (

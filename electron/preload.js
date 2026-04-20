@@ -117,9 +117,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Power plan management
   powerPlans: {
-    getState:     ()           => ipcRenderer.invoke('powerPlans:getState'),
-    applyProfile: (profileId)  => ipcRenderer.invoke('powerPlans:applyProfile', profileId),
-    listSchemes:  ()           => ipcRenderer.invoke('powerPlans:listSchemes'),
+    getState:       ()          => ipcRenderer.invoke('powerPlans:getState'),
+    applyProfile:   (profileId) => ipcRenderer.invoke('powerPlans:applyProfile', profileId),
+    listSchemes:    ()          => ipcRenderer.invoke('powerPlans:listSchemes'),
+    activateByGuid: (guid)      => ipcRenderer.invoke('powerPlans:activateByGuid', guid),
   },
 
   // Packaged config store — persisted secrets (e.g. OPENAI_API_KEY)

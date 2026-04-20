@@ -1800,6 +1800,28 @@ ipcMain.handle('powerPlans:listSchemes', async () => {
   }
 });
 
+ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
+  console.log(`[IPC] powerPlans:activateByGuid: ${guid}`);
+  if (typeof guid !== 'string' || !guid.trim()) {
+    return { success: false, error: 'Invalid GUID' };
+  }
+  try {
+    const { execSync } = require('child_process');
+    execSync(`powercfg /setactive "${guid.trim()}"`, { stdio: 'pipe' });
+    // Verify the plan is now active
+    const verifyState = await powerPlanManager.getPowerPlanState();
+    const activeGuid = verifyState?.activeScheme?.guid ?? '';
+    if (activeGuid.toLowerCase() !== guid.trim().toLowerCase()) {
+      return { success: false, error: `Plan set but verification failed — active=${activeGuid}` };
+    }
+    console.log(`[IPC] powerPlans:activateByGuid success — active="${activeGuid}"`);
+    return { success: true, activeScheme: verifyState.activeScheme };
+  } catch (e) {
+    console.error('[IPC] powerPlans:activateByGuid error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
 // ── App Booster: per-game system actions ──────────────────────────────────────
 
 ipcMain.handle('appBooster:scanGames', async (event, games) => {

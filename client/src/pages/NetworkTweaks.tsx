@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
+import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
@@ -567,6 +568,11 @@ export default function NetworkTweaks() {
     // Mark as applying (do NOT flip the toggle yet)
     setStateMap(prev => ({ ...prev, [tweak.id]: { status: "applying" } }));
 
+    // ── Ownership: capture current status before toggling ───────────────────────
+    const previousStatus: 'on' | 'off' | 'unknown' =
+      current.status === 'enabled' || current.status === 'enabled_unverified' || current.status === 'staged'
+        ? 'on' : 'off';
+
     try {
       if (isElectron) {
         // Real execution via Electron IPC
@@ -589,6 +595,19 @@ export default function NetworkTweaks() {
           ...prev,
           [tweak.id]: { status: newStatus, message: result.message },
         }));
+
+        // ── Ownership recording ──────────────────────────────────────────────
+        if (result.success && !result.disabled) {
+          const ownership = useTweakOwnershipStore.getState();
+          if (action === 'enable') {
+            ownership.recordNetworkTweakApply(tweak.id, previousStatus, tweak.name);
+          } else {
+            const rec = ownership.networkTweaks[tweak.id];
+            if (rec?.appliedByApp) {
+              ownership.recordNetworkTweakRevertSuccess(tweak.id);
+            }
+          }
+        }
 
         addToast(tweak.id, result.success, result.message);
       } else {

@@ -1,5 +1,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
+import { isTweakPremium } from '@/lib/premium-config';
+import { TWEAKS_DATA } from '@/lib/mock-data';
 
 // ── Failure types ────────────────────────────────────────────────────────────
 export type FailureType =
@@ -132,6 +135,17 @@ export function useTweakExecutor() {
     setExecuting(tweakId);
     const action = currentlyEnabled ? 'revert' : 'apply';
 
+    // ── Ownership: capture previous state before apply ─────────────────────────
+    let previousIsApplied: boolean | null = null;
+    if (action === 'apply') {
+      try {
+        const preStatus: TweakStatus = await getTweaksAPI().checkStatus(tweakId);
+        previousIsApplied = preStatus?.isApplied ?? false;
+      } catch {
+        previousIsApplied = false; // conservative fallback
+      }
+    }
+
     try {
       const result: TweakResult = await getTweaksAPI().execute(tweakId, action);
 
@@ -185,6 +199,25 @@ export function useTweakExecutor() {
       if (!succeeded) {
         // Verification mismatch after backend reported success — edge case
         return FAIL('verification_failed', 'Setting Could Not Be Verified', 'The change was applied but the system state still reads as unchanged.');
+      }
+
+      // ── Ownership recording ───────────────────────────────────────────────────
+      const ownership = useTweakOwnershipStore.getState();
+      if (action === 'apply' && previousIsApplied !== null) {
+        const tweakMeta = TWEAKS_DATA.find(t => t.id === tweakId);
+        ownership.recordTweakApply(
+          tweakId,
+          previousIsApplied,
+          actualState,
+          tweakMeta?.title ?? tweakId,
+          isTweakPremium(tweakId),
+        );
+      } else if (action === 'revert') {
+        // User manually reverted — clear the ownership record if it was app-applied
+        const rec = ownership.appliedTweaks[tweakId];
+        if (rec?.appliedByApp) {
+          ownership.recordTweakRevertSuccess(tweakId);
+        }
       }
 
       return { success: true, requiresReboot: result.requiresReboot };
