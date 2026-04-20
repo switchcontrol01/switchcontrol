@@ -1,0 +1,175 @@
+TASK
+
+Fix premium and free trial entitlement sync in the Electron app.
+
+I manually granted myself premium and free trial access, then opened the app, and it did not fire instantly.
+
+It did not unlock premium.
+It did not show the free trial state.
+It still did not work even after restarting the app.
+
+This is not acceptable.
+
+Entitlement changes must reflect instantly or near-instantly in the installed app without needing weird retries, stale sessions, or app restarts.
+
+PROBLEM
+
+Current behavior is broken.
+
+What happened:
+
+1. premium and/or free trial was granted on the backend
+2. I opened the installed app
+3. the app still behaved like nothing changed
+4. I restarted the app
+5. it still did not reflect the new entitlement correctly
+
+That means the entitlement pipeline is stale somewhere.
+
+Possible failure points:
+
+1. app is caching old /api/me or subscription state and not invalidating it
+2. Electron app is not forcing a fresh entitlement fetch on startup
+3. login/session/user fetch happens before entitlement data is ready
+4. premium state is stored locally and overriding fresh backend truth
+5. free trial status is not included or not mapped correctly in the response
+6. auth state updates but premium state store does not update
+7. the UI unlock logic is reading old Zustand/local state instead of fresh server entitlement
+8. startup race condition between auth restore and premium/trial restore
+9. trial/premium flags may exist on backend but are not reaching the renderer consistently
+10. no instant refresh path exists after account changes
+
+GOAL
+
+Make premium and free trial entitlement state update instantly and reliably in the Electron app.
+
+Required behavior:
+
+1. when premium is granted on backend, app should reflect it immediately
+2. when free trial is granted on backend, app should reflect it immediately
+3. app startup must always fetch fresh entitlement state
+4. stale cached premium/trial state must never override backend truth
+5. unlocks should apply to UI instantly after fetch completes
+6. restart should not be required, but if app is restarted it must definitely load the correct state
+7. entitlement state should be treated as critical identity data, not optional decoration
+
+IMPLEMENTATION
+
+1. Audit the full entitlement pipeline end to end
+   Trace the exact flow for:
+
+backend user/session response
+premium fields
+trial fields
+Electron startup auth restore
+renderer auth store
+premium store / access checks
+UI lock/unlock rendering
+
+I want the exact place where fresh backend truth is getting lost, delayed, or overridden.
+
+2. Force fresh entitlement fetch on Electron startup
+   On app launch, after auth/session restore, force a fresh fetch of the current user and entitlement state from the backend.
+
+Do not rely on stale local storage or old persisted Zustand state.
+
+On startup:
+session restore
+fresh /api/me or equivalent
+update auth + entitlement stores from fresh server result
+render premium/trial UI from that fresh result
+
+Backend truth must win every time.
+
+3. Remove stale local override behavior
+   If premium or trial state is persisted locally anywhere, it must not override server truth.
+
+Local persistence can be used as temporary UI memory only, but not as source of truth.
+
+If there is any code path like:
+load premium from local state
+render locks immediately
+never refresh correctly
+or
+refresh comes later but UI never fully updates
+
+fix it.
+
+Server entitlement must be authoritative.
+
+4. Make entitlement update reactive in renderer
+   When fresh entitlement data arrives, all premium-gated and trial-gated UI must update immediately.
+
+That includes:
+premium badges
+locked/unlocked cards
+trial banners
+feature access
+upgrade CTAs
+gated routes or actions
+
+No manual reload.
+No logout/login requirement.
+No app restart requirement.
+
+5. Add a dedicated entitlement refresh path
+   Create one clean function for something like:
+
+refreshEntitlements()
+or
+refreshCurrentUserAndAccess()
+
+This should:
+fetch fresh user/account state
+update all relevant stores
+recompute premium/trial flags
+trigger UI rerender immediately
+
+Use this on:
+app startup
+post-login success
+post-deep-link auth success
+post-purchase / upgrade / restore flow
+manual account refresh if needed
+
+6. Fix startup race conditions
+   Check whether the app is rendering locked state before auth fetch completes, then never reconciling properly.
+
+If needed:
+add a short entitlement loading state
+delay premium gating render until fresh auth/account state is resolved
+or explicitly rerender after entitlement fetch succeeds
+
+Do not let the app hard-lock into stale false values early in startup.
+
+7. Verify backend response shape
+   Confirm the backend is actually returning all needed entitlement fields to the Electron app.
+
+I need the exact fields exposed clearly and consistently, such as:
+isPremium
+trialActive
+trialEndsAt
+subscriptionStatus
+plan
+role/access flags if relevant
+
+If the backend currently returns partial info, fix it.
+
+The renderer should not have to guess premium/trial state from vague fields.
+
+8. Add logs for debugging
+   Add temporary logs around:
+   startup auth restore
+   fresh user fetch
+   returned entitlement payload
+   store update
+   final renderer premium/trial values
+
+Examples:
+[Entitlements] startup restore begin
+[Entitlements] fetched user: ...
+[Entitlements] premium=true trial=true
+[Entitlements] store updated
+[Entitlements] UI unlocked
+
+This needs to be easy to verify fast.

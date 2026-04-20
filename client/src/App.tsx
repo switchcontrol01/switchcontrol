@@ -883,16 +883,17 @@ function ElectronAppContent() {
         {phase === "authenticated" && (
           <motion.div
             key="app"
-            initial={{ opacity: 0, scale: 0.985, filter: "blur(22px)" }}
+            initial={{ opacity: 0, scale: 0.988, filter: "blur(14px)" }}
             animate={
               isSigningOut
                 ? { opacity: 0, scale: 0.975, filter: "blur(28px)", transition: { duration: 1.2, ease: [0.4, 0, 0.6, 1] } }
                 : { opacity: 1, scale: 1, filter: "blur(0px)", transition: {
-                    // Filter starts clearing immediately so the app materialises
-                    // through haze before opacity peaks — cinematic depth handoff.
-                    opacity: { duration: 1.2,  delay: 0.25, ease: [0.22, 1, 0.36, 1] },
-                    scale:   { duration: 1.45, delay: 0.25, ease: [0.22, 1, 0.36, 1] },
-                    filter:  { duration: 2.2,  delay: 0.1,  ease: [0.22, 1, 0.36, 1] },
+                    // Opacity and scale lead — they carry the reveal feel.
+                    // Filter clears after a deliberate pause so card animations
+                    // don't fight an active parent blur during the handoff.
+                    opacity: { duration: 1.0,  delay: 0.35, ease: [0.22, 1, 0.36, 1] },
+                    scale:   { duration: 1.2,  delay: 0.35, ease: [0.22, 1, 0.36, 1] },
+                    filter:  { duration: 1.6,  delay: 0.30, ease: [0.22, 1, 0.36, 1] },
                   }}
             }
             className="h-full"

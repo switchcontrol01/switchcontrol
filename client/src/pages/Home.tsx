@@ -564,6 +564,19 @@ export default function Home() {
   const totalCleaners = 50;
   const totalStartup = 24;
 
+  // ── Dashboard content staging ────────────────────────────────────────────────
+  // Wait until the App-level entry blur has partially cleared before revealing
+  // card animations. This prevents dozens of simultaneous per-card blur filters
+  // from compounding with the parent container blur during the handoff, which
+  // is the root cause of the startup roughness. Reveal items run their blur
+  // animations in the background while the wrapper is transparent, so by the
+  // time the wrapper fades in the cards are already in their final clean state.
+  const [contentReady, setContentReady] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setContentReady(true), 380);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <AppLayout>
       <div className="space-y-8">
@@ -655,6 +668,16 @@ export default function Home() {
             </motion.div>
           </div>
         </div>
+
+        {/* ── Staged content reveal — fades in after parent blur clears ─────── */}
+        {/* contentReady delays card animations so per-card blur filters don't  */}
+        {/* compound with the App-level entry blur during the handoff window.   */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={contentReady ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+          transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+          className="space-y-8"
+        >
 
         {/* Predictive warnings strip — only renders when there are real warnings */}
         <PredictiveWarnings telemetry={liveTel} />
@@ -1201,6 +1224,8 @@ export default function Home() {
         <Reveal delay={0.18}>
           <DashboardInsights />
         </Reveal>
+
+        </motion.div>{/* end staged content reveal */}
       </div>
 
       <MemoryCleanerModal open={memCleanerOpen} onOpenChange={setMemCleanerOpen} />

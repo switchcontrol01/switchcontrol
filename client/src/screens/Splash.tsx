@@ -45,7 +45,7 @@ export default function Splash({ onComplete }: SplashProps) {
     // Title/tagline follow quickly after logo appears.
     const t2 = setTimeout(() => setTextReady(true),  220);
     // Diagonal reveal sweep begins after foreground is visible.
-    const t3 = setTimeout(() => setSweepReady(true), 380);
+    const t3 = setTimeout(() => setSweepReady(true), 520);
     // Begin exit sequence.
     const t4 = setTimeout(() => setExiting(true),   3000);
     // Notify parent exactly when splash has finished — parent is NOT allowed
@@ -225,8 +225,8 @@ export default function Splash({ onComplete }: SplashProps) {
                 transformOrigin: "top left",
               }}
               initial={{ x: "0%", opacity: 0 }}
-              animate={{ x: "380%", opacity: [0, 0.85, 0.70, 0] }}
-              transition={{ duration: 2.2, ease: [0.22, 1, 0.36, 1] }}
+              animate={{ x: "340%", opacity: [0, 0.92, 0.78, 0.40, 0] }}
+              transition={{ duration: 3.8, ease: [0.40, 0, 0.20, 1] }}
             />
           </div>
         )}
