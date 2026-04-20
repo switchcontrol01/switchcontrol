@@ -1,15 +1,15 @@
 {
-  "version": "1.0.0",
-  "title": "Performance + Stability Update",
-  "headline": "Cleaner motion, faster telemetry, and tighter reliability across every surface.",
-  "date": "2026-04-03",
+  "version": "1.0.1",
+  "title": "Performance + Auth Update",
+  "headline": "Lower idle CPU, smoother animations, and a hardened auth gate.",
+  "date": "2026-04-20",
   "changes": [
-    "Fixed update pipeline — future updates will install without interruption",
-    "Improved animation smoothness across key UI surfaces",
-    "Resolved disk telemetry loading inconsistency on startup",
-    "Hardened scroll performance on the Tweaks page",
-    "Security image analysis now routes correctly through the cloud",
-    "General performance and polish across the app"
+    "Reduced dashboard idle CPU by 6× — telemetry now batches into one render pass per tick",
+    "Server telemetry broadcast interval raised to 2 s — halves frontend render budget",
+    "Stripped all hot-path console logs from telemetry, LiveGraph, and disk polling",
+    "Fixed auth gate: expired JWT now forces logout instead of silently opening dashboard",
+    "Improved entrance animations — removed blur transitions that caused paint-thread jank",
+    "Auth timeout and network-error paths now correctly use grace-store fallback"
   ],
-  "type": "minor"
+  "type": "patch"
 }

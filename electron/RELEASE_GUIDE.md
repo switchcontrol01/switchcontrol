@@ -44,9 +44,10 @@ The token needs **Object Read & Write** permission scoped to the `switchcontrol-
 
 ### 3. Note on versioning
 
-We are staying on **v1.0.0** for now. `npm run release` uploads whatever
-`electron/dist/` contains — it does **not** bump the version. Do not change
-`electron/package.json` version unless you are intentionally cutting a new release.
+Current release is **v1.0.1**. `npm run release` uploads whatever
+`electron/dist/` contains — it does **not** bump the version automatically. To
+cut a new release, bump the version in both `package.json` (root) and
+`electron/package.json`, then rebuild on Windows before uploading.
 
 ---
 
@@ -291,5 +292,6 @@ The release script will verify the new URL automatically after upload.
 | Version | Date | Notes |
 |---------|------|-------|
 | 1.0.0 | — | Initial release |
+| 1.0.1 | 2026-04-20 | Auth hardening, 6× idle-CPU reduction, animation jank fix |
 
 Add each release here as you ship it.

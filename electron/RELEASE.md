@@ -27,9 +27,11 @@ Renderer (use-updater.ts hook)
 ```
 
 - `electron-builder --publish always` generates:
-  - `SwitchControl-Setup-{version}.exe` — NSIS installer
+  - `SwitchControl Setup {version}.exe` — NSIS installer
+  - `SwitchControl Setup {version}.exe.blockmap` — delta update blockmap
   - `latest.yml` — update metadata consumed by electron-updater in installed apps
-- Both artifacts must be uploaded to `https://releases.switchcontrol.org/`
+  - `stable.yml` — stable-channel alias (identical to latest.yml)
+- Both installer and YML artifacts must be uploaded to `https://releases.switchcontrol.org/`
 
 ## Release channels
 
@@ -54,7 +56,7 @@ Renderer (use-updater.ts hook)
 3. CI (`release.yml`) triggers:
    - Builds React frontend
    - Runs `electron-builder --win --publish always`
-   - Generates `SwitchControl-Setup-1.2.4.exe` + `latest.yml`
+   - Generates `SwitchControl Setup 1.2.4.exe` + `latest.yml`
    - Uploads both to GitHub Release + release server
 4. Installed apps check `https://releases.switchcontrol.org/latest.yml` on startup (after 8s)
 5. If `latest.yml` version > installed version → update-available event fires
@@ -96,7 +98,7 @@ releaseNotes: |
    ```yaml
    version: 99.9.9
    releaseDate: '2026-04-03'
-   path: SwitchControl-Setup-99.9.9.exe
+   path: SwitchControl Setup 99.9.9.exe
    sha512: FAKEHASH
    size: 1000
    releaseNotes: '[RECOMMENDED] Test release.'
