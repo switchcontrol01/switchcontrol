@@ -310,6 +310,8 @@ export default function PowerPlan() {
   const [planError,      setPlanError]      = useState<string | null>(null);
   const [applying,       setApplying]       = useState<string | null>(null); // frontend profileId
   const [applyResult,    setApplyResult]    = useState<{ profileId: string; success: boolean; match: string } | null>(null);
+  const [applyingCustom, setApplyingCustom] = useState(false);
+  const [customApplied,  setCustomApplied]  = useState(false);
   const hasFetched = useRef(false);
 
   // ── Fetch real power state on mount ────────────────────────────────────────
@@ -414,6 +416,40 @@ export default function PowerPlan() {
       setApplying(null);
     }
   }, [isElectron, applyAction, toast]);
+
+  // ── Apply custom settings ──────────────────────────────────────────────────
+  const applyCustomProfile = useCallback(async () => {
+    setApplyingCustom(true);
+    setCustomApplied(false);
+    try {
+      if (!isElectron) {
+        await new Promise(r => setTimeout(r, 700));
+        toast({ title: "Custom Profile Applied (Demo)", description: "Your custom power settings would be applied on the Windows desktop app." });
+        setCustomApplied(true);
+        return;
+      }
+      const api = (window as any).electronAPI?.powerPlans;
+      if (api?.applyCustom) {
+        const result = await api.applyCustom(localState.customSettings);
+        if (result?.success) {
+          toast({ title: "Custom Profile Applied", description: "Your custom power configuration is now active." });
+          setCustomApplied(true);
+          fetchPowerState();
+        } else {
+          toast({ title: "Apply Failed", description: result?.error ?? "Could not apply custom settings.", variant: "destructive" });
+        }
+      } else {
+        // Agent API not yet present — save and notify
+        await new Promise(r => setTimeout(r, 500));
+        toast({ title: "Settings Saved", description: "Custom settings saved. Update the agent to apply them directly." });
+        setCustomApplied(true);
+      }
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? "Unexpected error applying custom profile.", variant: "destructive" });
+    } finally {
+      setApplyingCustom(false);
+    }
+  }, [isElectron, localState.customSettings, toast, fetchPowerState]);
 
   // ── Intent mode → profile mapping ─────────────────────────────────────────
   const INTENT_TO_PROFILE: Record<IntentMode, FrontendProfileId> = {
@@ -650,6 +686,70 @@ export default function PowerPlan() {
                     </motion.div>
                   );
                 })}
+
+                {/* ── Custom profile card ──────────────────────────────── */}
+                <motion.div
+                  variants={staggerItem}
+                  whileHover={{ scale: 1.025, y: -4, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
+                  whileTap={{ scale: 0.975, y: 0 }}
+                >
+                  <GlassCard
+                    className={cn(
+                      "p-5 transition-all duration-300 bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-violet-500/30",
+                      customApplied && "ring-2 ring-primary shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]"
+                    )}
+                    data-testid="card-profile-custom"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className={cn("size-10 rounded-lg flex items-center justify-center", customApplied ? "bg-primary/30 text-primary" : "bg-white/10 text-white/70")}>
+                        <Settings2 className="size-5" />
+                      </div>
+                      <div className="flex gap-1">
+                        <span className="size-6 rounded bg-white/10 flex items-center justify-center" title="Desktop"><Monitor className="size-3 text-white/60" /></span>
+                        <span className="size-6 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-3 text-white/60" /></span>
+                      </div>
+                    </div>
+                    <h3 className="font-semibold text-white mb-1">Custom</h3>
+                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2">Your personal power configuration. Tune CPU, USB, sleep, and frequency settings manually.</p>
+                    <div className="flex gap-2 mb-4">
+                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="CPU"><Cpu className="size-2.5 text-white/50" /></span>
+                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="USB"><Usb className="size-2.5 text-white/50" /></span>
+                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Sleep"><Moon className="size-2.5 text-white/50" /></span>
+                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Settings"><Settings2 className="size-2.5 text-white/50" /></span>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={applyCustomProfile}
+                        disabled={applyingCustom || !!applying}
+                        className={cn(
+                          "flex-1",
+                          customApplied
+                            ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
+                            : "bg-white/10 hover:bg-white/20 text-white"
+                        )}
+                        data-testid="button-activate-custom"
+                      >
+                        {applyingCustom ? (
+                          <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
+                        ) : customApplied ? (
+                          <><Check className="size-4 mr-2" /> Active</>
+                        ) : (
+                          "Activate Profile"
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setActiveTab("custom")}
+                        className="size-9 shrink-0 bg-white/5 hover:bg-white/10 border border-white/10"
+                        title="Edit custom settings"
+                        data-testid="button-edit-custom"
+                      >
+                        <Settings2 className="size-4" />
+                      </Button>
+                    </div>
+                  </GlassCard>
+                </motion.div>
               </motion.div>
             )}
 
@@ -887,6 +987,30 @@ export default function PowerPlan() {
                     ))}
                   </motion.div>
                 </div>
+              </div>
+
+              {/* ── Apply button ─────────────────────────────────────── */}
+              <div className="pt-4 border-t border-white/10 mt-6 flex items-center justify-between gap-4">
+                <p className="text-xs text-muted-foreground">Changes are saved locally. Press Apply to activate this configuration on your system.</p>
+                <Button
+                  onClick={applyCustomProfile}
+                  disabled={applyingCustom}
+                  className={cn(
+                    "shrink-0 min-w-[160px]",
+                    customApplied
+                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
+                      : "bg-primary text-white hover:bg-primary/90"
+                  )}
+                  data-testid="button-apply-custom"
+                >
+                  {applyingCustom ? (
+                    <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
+                  ) : customApplied ? (
+                    <><Check className="size-4 mr-2" /> Applied</>
+                  ) : (
+                    <><Zap className="size-4 mr-2" /> Apply Custom Profile</>
+                  )}
+                </Button>
               </div>
             </GlassCard>
             </Reveal>
