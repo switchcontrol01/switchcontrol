@@ -1,3 +1,16 @@
+/**
+ * Login — Electron-only sign-in screen.
+ *
+ * Performance rules:
+ *  · Never animate the `background` CSS property — use opacity/transform only.
+ *  · No scaleY/scaleX on large blurred elements — compositor can't handle it.
+ *  · Conic-gradient stack replaced by single linear-gradient beam.
+ *  · Particle count: 22 (was 90). Glow only on 4 bright particles.
+ *  · All full-screen layers use `will-change: opacity` implicitly via Framer opacity.
+ *  · Topo SVG is static — no animated transform.
+ *  · Card halos use opacity-only; rim lines unchanged.
+ */
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -6,6 +19,8 @@ import logoImg from "@/assets/logo.webp";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
 const OAUTH_TIMEOUT_MS = 120_000;
+
+// ── SVG icons ─────────────────────────────────────────────────────────────────
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -26,47 +41,55 @@ function DiscordIcon({ className }: { className?: string }) {
   );
 }
 
-function FloatingParticle({ delay, duration, startX, startY, size = 1, hue, dx, dy }: { delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number; dx: number; dy: number }) {
-  const alpha = 0.75 + (size > 1.8 ? 0.25 : size > 1.2 ? 0.15 : 0);
-  const color = hue !== undefined
-    ? `hsla(${hue}, 90%, 72%, ${alpha})`
-    : `rgba(139,92,246,${alpha})`;
-  const glowPx = size * 11;
-  const glow = size > 0.9
-    ? `0 0 ${glowPx}px ${color}, 0 0 ${glowPx * 2}px ${color.replace(/[\d.]+\)$/, '0.35)')}`
-    : undefined;
+// ── Static particle data — defined once at module level, never re-randomised ──
+// 22 particles total. Only the 4 "glow" ones get a box-shadow.
+
+const PARTICLES = Array.from({ length: 22 }, (_, i) => ({
+  id: i,
+  startX: (i * 4.7 + i * i * 0.11) % 94 + 3,
+  startY: (i * 6.3 + i * 0.8) % 90 + 5,
+  size: 0.9 + (i % 4) * 0.35,
+  hue: [250, 258, 265, 272, 280, 195, 185][i % 7],
+  delay: (i * 0.19) % 2.6,
+  duration: 3.4 + (i % 6) * 0.55,
+  dx: (i % 5 === 0 ? -1 : 1) * (9 + (i % 4) * 8),
+  dy: 58 + (i % 5) * 20,
+  glow: i % 6 === 0,   // ~4 bright particles
+}));
+
+// ── Floating particle ─────────────────────────────────────────────────────────
+// Cheap: only opacity + transform. Box-shadow only on glow particles.
+
+function FloatingParticle({ startX, startY, size, hue, delay, duration, dx, dy, glow }: {
+  startX: number; startY: number; size: number; hue: number;
+  delay: number; duration: number; dx: number; dy: number; glow: boolean;
+}) {
+  const alpha = 0.55 + (size > 1.5 ? 0.25 : 0.1);
+  const color = `hsla(${hue}, 80%, 72%, ${alpha})`;
+  const px = Math.round(size * 4.2);
   return (
     <motion.div
       className="absolute rounded-full"
       style={{
         left: `${startX}%`,
         top: `${startY}%`,
-        width: `${size * 4.5}px`,
-        height: `${size * 4.5}px`,
+        width: px,
+        height: px,
         background: color,
-        boxShadow: glow,
+        ...(glow ? { boxShadow: `0 0 ${Math.round(size * 7)}px ${color}` } : {}),
       }}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{
-        y: [0, -dy * 0.5, -dy],
-        x: [0, dx * 0.5, dx],
-        opacity: [0, alpha, 0],
-        scale: [0.2, 1 + (size > 1.5 ? 0.4 : 0.2), 0.1],
-      }}
-      transition={{
-        duration,
-        delay,
-        repeat: Infinity,
-        ease: "easeOut",
-      }}
+      initial={{ opacity: 0 }}
+      animate={{ y: -dy, x: dx, opacity: [0, alpha, alpha * 0.5, 0] }}
+      transition={{ duration, delay, repeat: Infinity, ease: "easeOut" }}
     />
   );
 }
 
+// ── Component ─────────────────────────────────────────────────────────────────
+
 export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [particles, setParticles] = useState<Array<{ id: number; delay: number; duration: number; startX: number; startY: number; size?: number; hue?: number; dx: number; dy: number }>>([]);
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { electronAuthState, oauthError } = useAuthStore();
 
@@ -97,26 +120,8 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   }, [oauthError, clearAllTimers]);
 
   useEffect(() => {
-    return () => {
-      clearAllTimers();
-    };
+    return () => { clearAllTimers(); };
   }, [clearAllTimers]);
-
-  useEffect(() => {
-    const hues = [250, 258, 265, 272, 280, 290, 310, 330, 185, 195, 340];
-    const newParticles = Array.from({ length: 90 }, (_, i) => ({
-      id: i,
-      delay: (i / 90) * 1.2,                    // evenly spread 0–1.2s, all visible fast
-      duration: 2.8 + (i % 9) * 0.4,            // 2.8–6.0s, deterministic
-      startX: 3 + ((i * 4.7 + i * i * 0.11) % 94),
-      startY: 5 + ((i * 6.3 + i * 0.8)       % 90),
-      size: 0.9 + (i % 7) * 0.35,               // 0.9–3.2px radius factor
-      hue: hues[i % hues.length],
-      dx: (i % 5 === 0 ? -1 : 1) * (10 + (i % 5) * 9),
-      dy: 55 + (i % 6) * 20,                    // 55–155px upward drift
-    }));
-    setParticles(newParticles);
-  }, []);
 
   const handleCancel = useCallback(() => {
     console.log('[Login] User cancelled login');
@@ -130,10 +135,10 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     setIsLoading(provider);
     setError(null);
     useAuthStore.getState().setElectronAuthState('opening_browser');
-    
+
     const api = (window as any).electronAPI;
     const isElectron = api?.isElectron && api?.openExternal;
-    
+
     if (isElectron) {
       const authUrl = `${AUTH_DOMAIN}/auth/${provider}?source=electron`;
       console.log('[Login] Opening external auth URL:', authUrl);
@@ -163,229 +168,194 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     } else {
       setError("This app must be run inside the SwitchControl desktop app.");
       setIsLoading(null);
-      return;
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-[#0a0a0f] overflow-hidden flex items-center justify-center">
-      <motion.div 
-        className="absolute inset-0 pointer-events-none"
-        animate={{
-          background: [
-            "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.08) 30%, transparent 55%)",
-            "radial-gradient(ellipse 70% 50% at 45% 45%, rgba(139, 92, 246, 0.28) 0%, rgba(168, 85, 247, 0.1) 30%, transparent 55%)",
-            "radial-gradient(ellipse 90% 60% at 55% 52%, rgba(139, 92, 246, 0.22) 0%, rgba(139, 92, 246, 0.08) 30%, transparent 55%)",
-          ]
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
+    <div className="fixed inset-0 bg-[#080810] overflow-hidden flex items-center justify-center">
 
+      {/*
+        ── BACKGROUND LAYER STACK ────────────────────────────────────────────
+        All layers use only opacity + slow translate for animation.
+        No animated `background`, no scaleY/scaleX on large blurred elements.
+        Each blur is pre-applied via static `filter` — never animated.
+      */}
+
+      {/* A: Purple centre haze — static gradient, slow opacity pulse */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          inset: 0,
+          background: "radial-gradient(ellipse 85% 58% at 50% 48%, rgba(139,92,246,0.23) 0%, rgba(139,92,246,0.08) 32%, transparent 56%)",
+        }}
+      >
+        <motion.div
+          className="absolute inset-0"
+          animate={{ opacity: [0.6, 1, 0.6] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          style={{
+            background: "radial-gradient(ellipse 85% 58% at 50% 48%, rgba(139,92,246,0.23) 0%, rgba(139,92,246,0.08) 32%, transparent 56%)",
+          }}
+        />
+      </div>
+
+      {/* B: Pink corner — static, opacity only */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at 50% 45%, rgba(139, 92, 246, 0.18) 0%, rgba(168, 85, 247, 0.06) 35%, transparent 60%)",
+          background: "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.12) 0%, transparent 38%)",
         }}
-        animate={{
-          opacity: [0.6, 1, 0.6],
-          scale: [1, 1.05, 1],
-        }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          background: "radial-gradient(circle at 30% 20%, rgba(236, 72, 153, 0.12) 0%, transparent 40%)",
-        }}
-        animate={{
-          opacity: [0.4, 0.7, 0.4],
-        }}
+        animate={{ opacity: [0.45, 0.75, 0.45] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       />
 
+      {/* C: Cyan corner — static, opacity only */}
       <motion.div
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: "radial-gradient(circle at 70% 75%, rgba(59, 130, 246, 0.1) 0%, transparent 40%)",
+          background: "radial-gradient(circle at 72% 76%, rgba(59,130,246,0.10) 0%, transparent 38%)",
         }}
-        animate={{
-          opacity: [0.3, 0.6, 0.3],
-        }}
+        animate={{ opacity: [0.3, 0.58, 0.3] }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
 
+      {/* D: Left atmospheric beam — single layer, no conic, no scaleY.
+          blur(18px) applied once via static style, not animated. */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div
+          className="absolute"
+          style={{
+            left: 0,
+            top: "30%",
+            width: "55%",
+            height: "40%",
+            background: "linear-gradient(90deg, rgba(168,85,247,0.22) 0%, rgba(139,92,246,0.10) 55%, transparent 100%)",
+            filter: "blur(18px)",
+          }}
+          animate={{ opacity: [0.5, 0.9, 0.5] }}
+          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Specular glint on left edge */}
+        <motion.div
+          className="absolute"
+          style={{
+            left: 0,
+            top: "40%",
+            width: "16%",
+            height: "20%",
+            background: "radial-gradient(ellipse at 0% 50%, rgba(216,180,254,0.40) 0%, rgba(192,132,252,0.14) 45%, transparent 80%)",
+            filter: "blur(5px)",
+          }}
+          animate={{ opacity: [0.45, 0.9, 0.45] }}
+          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
+        />
+      </div>
+
+      {/* E: Two thin diagonal beam lines — opacity only, no scaleY */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {[
-          { angle: -25, left: '35%', top: '40%', width: 2, length: '140%', opacity: 0.06, delay: 0 },
-          { angle: -15, left: '55%', top: '35%', width: 3, length: '160%', opacity: 0.05, delay: 1.5 },
-          { angle: -35, left: '25%', top: '45%', width: 1.5, length: '120%', opacity: 0.04, delay: 3 },
-          { angle: -8, left: '65%', top: '38%', width: 2.5, length: '150%', opacity: 0.05, delay: 0.8 },
-          { angle: -20, left: '45%', top: '42%', width: 1, length: '130%', opacity: 0.03, delay: 2.2 },
-        ].map((beam, i) => (
+          { angle: -22, left: "38%", top: "38%", width: 2, length: "150%", opacity: 0.055, delay: 0, dur: 6 },
+          { angle: -10, left: "60%", top: "34%", width: 1.5, length: "140%", opacity: 0.04, delay: 2, dur: 8 },
+        ].map((b, i) => (
           <motion.div
-            key={`beam-${i}`}
+            key={i}
             className="absolute origin-center"
             style={{
-              left: beam.left,
-              top: beam.top,
-              width: `${beam.width}px`,
-              height: beam.length,
-              background: `linear-gradient(180deg, transparent 0%, rgba(139,92,246,${beam.opacity * 3}) 20%, rgba(168,85,247,${beam.opacity * 2}) 50%, transparent 100%)`,
-              transform: `rotate(${beam.angle}deg)`,
-              filter: `blur(${beam.width * 3}px)`,
+              left: b.left,
+              top: b.top,
+              width: `${b.width}px`,
+              height: b.length,
+              background: `linear-gradient(180deg, transparent 0%, rgba(139,92,246,${b.opacity * 3}) 20%, rgba(168,85,247,${b.opacity * 2}) 50%, transparent 100%)`,
+              transform: `rotate(${b.angle}deg)`,
+              filter: `blur(${b.width * 3}px)`,
             }}
-            animate={{
-              opacity: [beam.opacity, beam.opacity * 2.5, beam.opacity],
-              scaleY: [0.9, 1.1, 0.9],
-            }}
-            transition={{
-              duration: 4 + i * 0.7,
-              delay: beam.delay,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            animate={{ opacity: [b.opacity, b.opacity * 2.2, b.opacity] }}
+            transition={{ duration: b.dur, delay: b.delay, repeat: Infinity, ease: "easeInOut" }}
           />
         ))}
       </div>
 
-      {/* Left-side beacon glow aimed at login card */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {/* Wide ambient beam from left wall */}
-        <motion.div
-          className="absolute"
-          style={{
-            left: '-10%',
-            top: '0%',
-            width: '75%',
-            height: '100%',
-            background: 'conic-gradient(from 0deg at 0% 50%, transparent 0deg, rgba(139,92,246,0.18) 18deg, rgba(168,85,247,0.28) 28deg, rgba(139,92,246,0.18) 38deg, transparent 55deg)',
-            filter: 'blur(28px)',
-          }}
-          animate={{ opacity: [0.55, 1, 0.55] }}
-          transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* Bright core beam */}
-        <motion.div
-          className="absolute"
-          style={{
-            left: '-5%',
-            top: '15%',
-            width: '60%',
-            height: '70%',
-            background: 'conic-gradient(from 0deg at 0% 50%, transparent 0deg, rgba(168,85,247,0.12) 22deg, rgba(192,132,252,0.22) 30deg, rgba(168,85,247,0.12) 38deg, transparent 52deg)',
-            filter: 'blur(16px)',
-          }}
-          animate={{ opacity: [0.4, 0.9, 0.4], scaleY: [0.95, 1.05, 0.95] }}
-          transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut', delay: 0.8 }}
-        />
-        {/* Sharp inner light ray */}
-        <motion.div
-          className="absolute"
-          style={{
-            left: 0,
-            top: '38%',
-            width: '52%',
-            height: '24%',
-            background: 'linear-gradient(90deg, rgba(192,132,252,0.22) 0%, rgba(168,85,247,0.10) 55%, transparent 100%)',
-            filter: 'blur(8px)',
-            transformOrigin: 'left center',
-          }}
-          animate={{ opacity: [0.3, 0.8, 0.3], scaleX: [0.92, 1.04, 0.92] }}
-          transition={{ duration: 4.2, repeat: Infinity, ease: 'easeInOut', delay: 1.6 }}
-        />
-        {/* Specular glint on the left edge */}
-        <motion.div
-          className="absolute"
-          style={{
-            left: 0,
-            top: '42%',
-            width: '18%',
-            height: '16%',
-            background: 'radial-gradient(ellipse at 0% 50%, rgba(216,180,254,0.45) 0%, rgba(192,132,252,0.18) 40%, transparent 80%)',
-            filter: 'blur(6px)',
-          }}
-          animate={{ opacity: [0.5, 1, 0.5] }}
-          transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut', delay: 0.4 }}
-        />
-      </div>
-
-      <div 
-        className="absolute inset-0 overflow-hidden pointer-events-none" 
-        style={{ transform: 'rotate(-12deg) scale(1.4)' }}
+      {/* F: Topo SVG — static, no animated transform */}
+      <div
+        className="absolute inset-0 overflow-hidden pointer-events-none"
+        style={{ transform: "rotate(-12deg) scale(1.4)", opacity: 0.10 }}
       >
-        <motion.div 
-          className="absolute inset-0" 
-          style={{ opacity: 0.12 }}
-          animate={{ y: [0, -20, 0] }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        >
-          <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <pattern id="loginTopo" x="0" y="0" width="200" height="150" patternUnits="userSpaceOnUse">
-                <path d="M0 50 Q50 25 100 50 T200 50" fill="none" stroke="hsl(270 50% 55%)" strokeWidth="0.8" opacity="0.6"/>
-                <path d="M0 100 Q50 75 100 100 T200 100" fill="none" stroke="hsl(280 45% 60%)" strokeWidth="0.6" opacity="0.5"/>
-                <path d="M0 25 Q50 0 100 25 T200 25" fill="none" stroke="hsl(260 55% 50%)" strokeWidth="0.5" opacity="0.4"/>
-                <path d="M0 125 Q50 100 100 125 T200 125" fill="none" stroke="hsl(270 50% 45%)" strokeWidth="0.4" opacity="0.3"/>
-              </pattern>
-            </defs>
-            <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#loginTopo)"/>
-          </svg>
-        </motion.div>
+        <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="loginTopo" x="0" y="0" width="200" height="150" patternUnits="userSpaceOnUse">
+              <path d="M0 50 Q50 25 100 50 T200 50" fill="none" stroke="hsl(270 50% 55%)" strokeWidth="0.8" opacity="0.6"/>
+              <path d="M0 100 Q50 75 100 100 T200 100" fill="none" stroke="hsl(280 45% 60%)" strokeWidth="0.6" opacity="0.5"/>
+              <path d="M0 25 Q50 0 100 25 T200 25" fill="none" stroke="hsl(260 55% 50%)" strokeWidth="0.5" opacity="0.4"/>
+              <path d="M0 125 Q50 100 100 125 T200 125" fill="none" stroke="hsl(270 50% 45%)" strokeWidth="0.4" opacity="0.3"/>
+            </pattern>
+          </defs>
+          <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#loginTopo)"/>
+        </svg>
       </div>
 
+      {/* G: 22 floating particles — glow only on 4 bright ones */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {particles.map((p) => (
+        {PARTICLES.map(p => (
           <FloatingParticle key={p.id} {...p} />
         ))}
       </div>
 
-      <div className="absolute inset-0 bg-gradient-to-t from-[#0a0a0f] via-transparent to-[#0a0a0f]/80 pointer-events-none" />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,#0a0a0f_75%)] pointer-events-none" />
+      {/* H: Static vignettes — no animation needed */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#080810] via-transparent to-[#080810]/75 pointer-events-none" />
+      <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse at center, transparent 0%, #080810 76%)" }} />
 
+      {/*
+        ── LOGIN CARD ────────────────────────────────────────────────────────
+        Card-level halos use opacity-only. No scaleY or scaleX.
+        Outer halo blur reduced from 24px → 14px.
+        Blazes kept but scaleY removed.
+      */}
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        initial={{ opacity: 0, y: 18, scale: 0.96 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10 w-full max-w-md mx-4"
       >
-        {/* Wide outer halo */}
+        {/* Wide outer halo — blur 14px (was 24px), opacity only */}
         <motion.div
-          className="absolute -inset-6 rounded-3xl"
+          className="absolute -inset-6 rounded-3xl pointer-events-none"
           style={{
-            background: "radial-gradient(ellipse 120% 110% at 50% 50%, rgba(139,92,246,0.22) 0%, rgba(168,85,247,0.10) 45%, transparent 70%)",
-            filter: "blur(24px)",
+            background: "radial-gradient(ellipse 120% 110% at 50% 50%, rgba(139,92,246,0.20) 0%, rgba(168,85,247,0.08) 45%, transparent 70%)",
+            filter: "blur(14px)",
           }}
-          animate={{ opacity: [0.55, 1, 0.55] }}
-          transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ opacity: [0.5, 0.95, 0.5] }}
+          transition={{ duration: 4.2, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Left-edge blaze */}
+
+        {/* Left-edge blaze — opacity only (no scaleY) */}
         <motion.div
-          className="absolute rounded-3xl"
+          className="absolute rounded-3xl pointer-events-none"
           style={{
             top: "10%", bottom: "10%",
-            left: "-28px", width: "56px",
-            background: "radial-gradient(ellipse 100% 80% at 0% 50%, rgba(192,132,252,0.90) 0%, rgba(168,85,247,0.55) 35%, rgba(139,92,246,0.18) 65%, transparent 90%)",
+            left: "-26px", width: "52px",
+            background: "radial-gradient(ellipse 100% 80% at 0% 50%, rgba(192,132,252,0.88) 0%, rgba(168,85,247,0.50) 35%, rgba(139,92,246,0.16) 65%, transparent 90%)",
             filter: "blur(10px)",
           }}
-          animate={{ opacity: [0.6, 1, 0.6], scaleY: [0.9, 1.08, 0.9] }}
+          animate={{ opacity: [0.55, 0.95, 0.55] }}
           transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Right-edge blaze */}
+
+        {/* Right-edge blaze — opacity only (no scaleY) */}
         <motion.div
-          className="absolute rounded-3xl"
+          className="absolute rounded-3xl pointer-events-none"
           style={{
             top: "10%", bottom: "10%",
-            right: "-28px", width: "56px",
-            background: "radial-gradient(ellipse 100% 80% at 100% 50%, rgba(96,165,250,0.85) 0%, rgba(59,130,246,0.50) 35%, rgba(99,102,241,0.18) 65%, transparent 90%)",
+            right: "-26px", width: "52px",
+            background: "radial-gradient(ellipse 100% 80% at 100% 50%, rgba(96,165,250,0.82) 0%, rgba(59,130,246,0.48) 35%, rgba(99,102,241,0.16) 65%, transparent 90%)",
             filter: "blur(10px)",
           }}
-          animate={{ opacity: [0.5, 0.9, 0.5], scaleY: [0.9, 1.1, 0.9] }}
+          animate={{ opacity: [0.45, 0.88, 0.45] }}
           transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
         />
-        {/* Bright left rim line */}
+
+        {/* Left rim line */}
         <motion.div
-          className="absolute"
+          className="absolute pointer-events-none"
           style={{
             top: "20%", bottom: "20%",
             left: "-4px", width: "3px",
@@ -393,12 +363,13 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             background: "linear-gradient(180deg, transparent 0%, rgba(216,180,254,0.95) 30%, rgba(192,132,252,1) 50%, rgba(216,180,254,0.95) 70%, transparent 100%)",
             filter: "blur(2px)",
           }}
-          animate={{ opacity: [0.65, 1, 0.65] }}
+          animate={{ opacity: [0.6, 1, 0.6] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         />
-        {/* Bright right rim line */}
+
+        {/* Right rim line */}
         <motion.div
-          className="absolute"
+          className="absolute pointer-events-none"
           style={{
             top: "20%", bottom: "20%",
             right: "-4px", width: "3px",
@@ -406,43 +377,46 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             background: "linear-gradient(180deg, transparent 0%, rgba(147,197,253,0.95) 30%, rgba(96,165,250,1) 50%, rgba(147,197,253,0.95) 70%, transparent 100%)",
             filter: "blur(2px)",
           }}
-          animate={{ opacity: [0.55, 0.95, 0.55] }}
+          animate={{ opacity: [0.5, 0.92, 0.5] }}
           transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}
         />
-        
+
         <div
           className="relative bg-card/90 backdrop-blur-2xl rounded-2xl p-8 overflow-hidden"
           style={{
-            border: "1px solid rgba(255,255,255,0.12)",
-            borderLeft: "1px solid rgba(192,132,252,0.45)",
-            borderRight: "1px solid rgba(96,165,250,0.40)",
-            boxShadow: "-8px 0 32px rgba(168,85,247,0.28), 8px 0 32px rgba(59,130,246,0.22), 0 25px 50px rgba(0,0,0,0.6)",
+            border: "1px solid rgba(255,255,255,0.11)",
+            borderLeft: "1px solid rgba(192,132,252,0.42)",
+            borderRight: "1px solid rgba(96,165,250,0.38)",
+            boxShadow: "-8px 0 28px rgba(168,85,247,0.24), 8px 0 28px rgba(59,130,246,0.18), 0 22px 48px rgba(0,0,0,0.58)",
           }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-violet-500/8 via-transparent to-blue-500/8 pointer-events-none" />
-          
+
           <div className="relative flex flex-col items-center gap-6 mb-8">
-            <motion.div
-              animate={{
-                boxShadow: [
-                  "0 0 20px rgba(139, 92, 246, 0.2)",
-                  "0 0 40px rgba(139, 92, 246, 0.4)",
-                  "0 0 20px rgba(139, 92, 246, 0.2)",
-                ]
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-              className="rounded-[22%]"
-            >
+            {/*
+              Logo glow: animate opacity of the glow wrapper, not boxShadow.
+              Static shadow on the wrapper + opacity pulse = compositor-only work.
+            */}
+            <div className="relative">
+              <motion.div
+                className="absolute inset-0 rounded-[22%] pointer-events-none"
+                style={{
+                  boxShadow: "0 0 36px rgba(139,92,246,0.55), 0 0 70px rgba(139,92,246,0.22)",
+                }}
+                animate={{ opacity: [0.45, 1, 0.45] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+              />
               <motion.img
                 src={logoImg}
                 alt="SwitchControl"
                 className="w-20 h-20 max-w-[80px] max-h-[80px] object-contain rounded-[22%]"
-                animate={{ rotate: [0, 2, -2, 0] }}
-                transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+                animate={{ rotate: [0, 1.5, -1.5, 0] }}
+                transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
               />
-            </motion.div>
+            </div>
+
             <div className="text-center">
-              <motion.h1 
+              <motion.h1
                 className="text-2xl font-bold text-white mb-2"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -450,7 +424,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
               >
                 Welcome to <span className="bg-gradient-to-r from-primary to-pink-400 bg-clip-text text-transparent">SwitchControl</span>
               </motion.h1>
-              <motion.p 
+              <motion.p
                 className="text-muted-foreground text-sm"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -463,10 +437,10 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
 
           <AnimatePresence>
             {error && (
-              <motion.div 
-                initial={{ opacity: 0, y: -10, height: 0 }}
-                animate={{ opacity: 1, y: 0, height: 'auto' }}
-                exit={{ opacity: 0, y: -10, height: 0 }}
+              <motion.div
+                initial={{ opacity: 0, y: -8, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: "auto" }}
+                exit={{ opacity: 0, y: -8, height: 0 }}
                 transition={{ duration: 0.2 }}
                 className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center"
               >
@@ -477,7 +451,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
 
           <div className="relative space-y-3">
             <AnimatePresence mode="wait">
-              {(electronAuthState === 'exchanging' || electronAuthState === 'callback_received') ? (
+              {(electronAuthState === "exchanging" || electronAuthState === "callback_received") ? (
                 <motion.div
                   key="exchanging"
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -493,11 +467,12 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                       animate={{ rotate: 360 }}
                       transition={{ duration: 1.4, repeat: Infinity, ease: "linear" }}
                     />
-                    <div className="absolute inset-2 rounded-full border border-primary/20" style={{ boxShadow: "0 0 12px rgba(168,85,247,0.3)" }} />
+                    <div className="absolute inset-2 rounded-full border border-primary/20" style={{ boxShadow: "0 0 12px rgba(168,85,247,0.28)" }} />
                   </div>
                   <span className="text-sm text-white/70 font-medium">Verifying your account...</span>
                   <p className="text-[11px] text-white/35">Securely connecting · this may take a moment</p>
                 </motion.div>
+
               ) : isLoading ? (
                 <motion.div
                   key="loading"
@@ -529,6 +504,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                     Cancel
                   </motion.button>
                 </motion.div>
+
               ) : (
                 <motion.div
                   key="buttons"
@@ -541,7 +517,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: -18 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4 }}
                   >
@@ -558,7 +534,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                   <motion.div
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    initial={{ opacity: 0, x: -20 }}
+                    initial={{ opacity: 0, x: -18 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.5 }}
                   >
@@ -576,7 +552,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             </AnimatePresence>
           </div>
 
-          <motion.p 
+          <motion.p
             className="text-center text-xs text-muted-foreground mt-6"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -587,32 +563,29 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         </div>
       </motion.div>
 
+      {/* Bottom indicator dots */}
       <motion.div
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1 }}
+        transition={{ delay: 0.9 }}
       >
         {[0, 1, 2, 3, 4].map((i) => (
           <motion.div
             key={i}
             className="w-1.5 h-1.5 rounded-full bg-primary/40"
-            animate={{
-              scale: [1, 1.5, 1],
-              opacity: [0.3, 0.8, 0.3],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              delay: i * 0.2,
-            }}
+            animate={{ scale: [1, 1.45, 1], opacity: [0.3, 0.75, 0.3] }}
+            transition={{ duration: 2.2, repeat: Infinity, delay: i * 0.22 }}
           />
         ))}
       </motion.div>
 
-      {/* Success overlay — expands from center when login succeeds, before the
-          parent motion.div blurs/fades the whole screen away. Keeps the scene
-          feeling alive instead of instantly freezing on success. */}
+      {/*
+        ── SUCCESS OVERLAY ───────────────────────────────────────────────────
+        Simplified: one expanding bloom + vignette.
+        The inner core pulse removed (was two overlapping full-screen scale
+        animations running simultaneously with the parent's blur exit).
+      */}
       <AnimatePresence>
         {succeeded && (
           <motion.div
@@ -621,33 +594,23 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
           >
-            {/* Expanding radial bloom from center */}
+            {/* Single expanding radial bloom */}
             <motion.div
               className="absolute inset-0"
               style={{
-                background: "radial-gradient(ellipse 70% 55% at 50% 50%, rgba(168,85,247,0.38) 0%, rgba(139,92,246,0.18) 35%, rgba(59,130,246,0.08) 60%, transparent 80%)",
+                background: "radial-gradient(ellipse 68% 52% at 50% 50%, rgba(168,85,247,0.34) 0%, rgba(139,92,246,0.16) 38%, rgba(59,130,246,0.06) 62%, transparent 80%)",
               }}
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1.35, opacity: 1 }}
-              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ scale: 0.65, opacity: 0 }}
+              animate={{ scale: 1.3, opacity: 1 }}
+              transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
             />
-            {/* Bright inner core pulse */}
+            {/* Vignette deepening */}
             <motion.div
               className="absolute inset-0"
               style={{
-                background: "radial-gradient(ellipse 30% 22% at 50% 50%, rgba(216,180,254,0.28) 0%, rgba(192,132,252,0.12) 50%, transparent 75%)",
-              }}
-              initial={{ opacity: 0, scale: 0.5 }}
-              animate={{ opacity: [0, 1, 0.6], scale: [0.5, 1.1, 1.4] }}
-              transition={{ duration: 0.75, ease: "easeOut" }}
-            />
-            {/* Soft white vignette that deepens the blur feel */}
-            <motion.div
-              className="absolute inset-0"
-              style={{
-                background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 30%, rgba(10,10,15,0.55) 100%)",
+                background: "radial-gradient(ellipse 100% 100% at 50% 50%, transparent 28%, rgba(8,8,16,0.52) 100%)",
               }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

@@ -854,9 +854,9 @@ function ElectronAppContent() {
         {(phase === "unauthenticated" || phase === "login_success") && (
           <motion.div
             key="login"
-            initial={{ opacity: 0, filter: "blur(14px)", scale: 1.014 }}
+            initial={{ opacity: 0, filter: "blur(14px)", scale: 1.012 }}
             animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 0.95, ease: [0.4, 0, 0.15, 1] } }}
-            exit={{ opacity: 0, filter: "blur(60px)", scale: 0.91, transition: { duration: 1.95, ease: [0.4, 0, 0.6, 1] } }}
+            exit={{ opacity: 0, filter: "blur(24px)", scale: 0.96, transition: { duration: 1.1, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
             style={{ zIndex: 1 }}
           >
