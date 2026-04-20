@@ -267,10 +267,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// Wrap a promise so it never blocks longer than `ms` milliseconds.
+// On timeout it resolves (not rejects) so the caller can continue.
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T | void> {
+  return Promise.race([
+    promise,
+    new Promise<void>(resolve =>
+      setTimeout(() => {
+        console.warn(`[Startup] ${label} timed out after ${ms}ms — continuing without it`);
+        resolve();
+      }, ms)
+    ),
+  ]);
+}
+
 (async () => {
   runJwtSelfTest();
-  await initStripe();
-  await ensureAdminUsers();
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -318,5 +331,13 @@ app.use((req, res, next) => {
 
   httpServer.listen(listenOptions, () => {
     log(`serving on ${host}:${port}`);
+
+    // Run potentially-slow startup tasks AFTER the server is already listening.
+    // Each is wrapped in a timeout so a hung network/DB call can never prevent
+    // the health endpoint from responding or the Electron health-check from passing.
+    Promise.all([
+      withTimeout(initStripe(),        8_000, "initStripe"),
+      withTimeout(ensureAdminUsers(),  8_000, "ensureAdminUsers"),
+    ]).catch(e => console.error("[Startup] Background init error:", e));
   });
 })();
