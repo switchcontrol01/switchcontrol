@@ -21,7 +21,7 @@ Renderer (use-updater.ts hook)
 ```json
 {
   "provider": "generic",
-  "url": "https://releases.switchcontrol.org",
+  "url": "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev",
   "channel": "stable"
 }
 ```
@@ -31,7 +31,7 @@ Renderer (use-updater.ts hook)
   - `SwitchControl Setup {version}.exe.blockmap` — delta update blockmap
   - `latest.yml` — update metadata consumed by electron-updater in installed apps
   - `stable.yml` — stable-channel alias (identical to latest.yml)
-- Both installer and YML artifacts must be uploaded to `https://releases.switchcontrol.org/`
+- Both installer and YML artifacts must be uploaded to `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/`
 
 ## Release channels
 
@@ -58,7 +58,7 @@ Renderer (use-updater.ts hook)
    - Runs `electron-builder --win --publish always`
    - Generates `SwitchControl Setup 1.2.4.exe` + `latest.yml`
    - Uploads both to GitHub Release + release server
-4. Installed apps check `https://releases.switchcontrol.org/latest.yml` on startup (after 8s)
+4. Installed apps check `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml` on startup (after 8s)
 5. If `latest.yml` version > installed version → update-available event fires
 6. User sees UpdateBanner (top of screen) + UpdateCard (Settings page)
 7. User downloads → progress bar shown
@@ -113,7 +113,7 @@ Build a real versioned installer, serve it locally, and verify the full flow end
 
 1. Tag and push `v{next}` (follows semver strictly).
 2. Wait for CI to complete — verify GitHub Release has `.exe` + `latest.yml`.
-3. Upload both to `https://releases.switchcontrol.org/` if not auto-deployed.
+3. Upload both to `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/` via `npm run release` if not auto-deployed.
 4. On a machine with the previous version installed, launch SwitchControl.
 5. Observe: after ~8 seconds, UpdateBanner appears (if update detected).
 6. Click Download → verify progress bar.

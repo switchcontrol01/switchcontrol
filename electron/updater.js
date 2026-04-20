@@ -38,7 +38,7 @@
  * ── Publish config ───────────────────────────────────────────────────────────
  * See electron/package.json → build.publish
  * Provider: generic
- * URL:      https://releases.switchcontrol.org
+ * URL:      https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
  */
 
 const { app, BrowserWindow } = require('electron');
@@ -47,7 +47,7 @@ const { app, BrowserWindow } = require('electron');
 // Single source of truth — never hardcode these strings elsewhere in this file.
 
 const UPDATE_PROVIDER = 'generic';
-const UPDATE_BASE_URL = 'https://releases.switchcontrol.org';
+const UPDATE_BASE_URL = 'https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev';
 
 // ── Release track configuration ───────────────────────────────────────────────
 
@@ -210,6 +210,16 @@ function initUpdater(isDev = false) {
   autoUpdater.allowDowngrade        = false;
   autoUpdater.forceDevUpdateConfig  = false;
   autoUpdater.channel               = electronChannel;
+
+  // ── Explicit feed URL override ─────────────────────────────────────────────
+  // setFeedURL overrides the app-update.yml baked into the installer at build
+  // time. This guarantees the correct R2 host is used regardless of which
+  // package.json was in effect when the installer was produced.
+  autoUpdater.setFeedURL({
+    provider: UPDATE_PROVIDER,
+    url:      UPDATE_BASE_URL,
+    channel:  electronChannel,
+  });
 
   // ── Runtime proof log ─────────────────────────────────────────────────────
   // Printed on every packaged startup so future debugging is never guesswork.

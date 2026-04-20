@@ -2,15 +2,11 @@
 
 ## Current Update Host
 
-> **Temporary bridge in effect.**
-> Auto-updates are currently served from the Cloudflare R2 public dev URL:
->
-> `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev`
->
-> This is a working production path. The custom domain (`releases.switchcontrol.org`) is on hold
-> until DNS control for the domain is sorted out (see [DNS Bridge → Custom Domain](#switching-to-the-custom-domain) below).
+Auto-updates are served from the Cloudflare R2 public URL:
 
-The Electron updater checks the configured URL for `latest.yml` on every launch.
+`https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev`
+
+The Electron updater checks this URL for `latest.yml` on every launch.
 
 ---
 
@@ -70,15 +66,18 @@ Do this once. After that, every release is just build → upload.
 2. Under **Public access** → click **Allow access**
 3. Confirm
 
-### 3. Connect the custom domain
+### 3. Verify public access URL
 
-1. Inside the bucket → **Settings** → **Custom Domains**
-2. Click **Connect Domain**
-3. Enter: `releases.switchcontrol.org`
-4. Cloudflare will auto-add the DNS record (your domain must be on Cloudflare)
-5. Wait for status to show **Active** (usually under a minute)
+The bucket's public dev URL is already the configured update host:
 
-That's it. `https://releases.switchcontrol.org` now serves the bucket publicly.
+`https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev`
+
+No custom domain is needed. Confirm the URL is reachable after setup:
+
+```powershell
+curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml"
+# Expected: HTTP/2 200
+```
 
 ### 4. Set Cache Rules for latest.yml
 
@@ -180,9 +179,9 @@ Found 3 artifact(s) to upload:
   Uploading latest.yml ... OK
 
 Verifying public URLs ...
-  https://releases.switchcontrol.org/latest.yml ... 200 OK
-  https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe ... 200 OK
-  https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe.blockmap ... 200 OK
+  https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml ... 200 OK
+  https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.1.exe ... 200 OK
+  https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.1.exe.blockmap ... 200 OK
 
 All files live and reachable.
 ```
@@ -196,10 +195,10 @@ The script already verifies everything, but if you want to check manually:
 
 ```powershell
 # latest.yml — always use unencoded (plain text, no spaces)
-curl -s https://releases.switchcontrol.org/latest.yml
+curl -s https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml
 
 # installer — quote the URL or use encoded form to handle spaces
-curl -I "https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe"
+curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.1.exe"
 ```
 
 `latest.yml` should return something like:
@@ -223,16 +222,16 @@ After every release confirm these URLs respond with 200:
 
 | URL | Expected |
 |-----|----------|
-| `https://releases.switchcontrol.org/latest.yml` | YAML metadata |
-| `https://releases.switchcontrol.org/SwitchControl%20Setup%20x.y.z.exe` | Binary download |
-| `https://releases.switchcontrol.org/SwitchControl%20Setup%20x.y.z.exe.blockmap` | Blockmap file |
+| `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml` | YAML metadata |
+| `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%20x.y.z.exe` | Binary download |
+| `https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%20x.y.z.exe.blockmap` | Blockmap file |
 
 Quick check (PowerShell / curl — note `%20` for spaces):
 
 ```powershell
-curl -I https://releases.switchcontrol.org/latest.yml
-curl -I "https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe"
-curl -I "https://releases.switchcontrol.org/SwitchControl%20Setup%201.0.1.exe.blockmap"
+curl -I https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml
+curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.1.exe"
+curl -I "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.1.exe.blockmap"
 ```
 
 All three should return `HTTP/2 200`.
@@ -256,34 +255,6 @@ All three should return `HTTP/2 200`.
 - `provider: generic` — works with any static file host (R2, S3, etc.)
 - `url` — must match the public host the bucket is served from
 - `channel: stable` — maps to `latest.yml` (beta would use `beta.yml`)
-
----
-
-## Switching to the Custom Domain
-
-Once `releases.switchcontrol.org` is available (after domain transfer or DNS delegation),
-switching back requires **two changes** and a rebuild:
-
-**1. `electron/package.json` — `build.publish.url`**
-
-```json
-"url": "https://releases.switchcontrol.org"
-```
-
-**2. `electron/.env` — `R2_PUBLIC_URL`** (controls release script verification output)
-
-```
-R2_PUBLIC_URL=https://releases.switchcontrol.org
-```
-
-That's it. No other files need to change. Then rebuild and release normally:
-
-```powershell
-npm run dist:win
-npm run release
-```
-
-The release script will verify the new URL automatically after upload.
 
 ---
 
