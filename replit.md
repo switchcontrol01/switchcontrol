@@ -117,6 +117,7 @@ Real systeminformation-powered backend with no fake or randomized data:
 - **Power Plan**: IntentModeSelector for competitive/balanced/silent/max-fps modes.
 - **AI Advisor**: Live telemetry wired into AI context (real CPU load %, CPU/GPU temps, RAM usage from WebSocket).
 - **Security, FocusMode, SystemCleaner, StartupApps, Debloater, AppBooster**: Live resource strip showing real CPU%, RAM%, process count from WebSocket data.
+- **Debloater — Installed Apps Manager**: Second tab alongside Curated Removals. Electron IPC `installedApps:scan` (PowerShell reads HKLM+HKCU Uninstall registry keys, dedupes by name, classifies trust: microsoft/user-installed/protected/unknown) and `installedApps:uninstall` (MSI via `msiexec /x {GUID} /qn`, EXE via QuietUninstallString/UninstallString, 90s timeout, exit 3010 = restart-required). Protected patterns block Defender/Firewall/Windows Update. `InstalledAppsPanel.tsx` provides search, 6 filter chips, 4 sort modes, expandable rows, confirm dialog, per-row result badges. Uninstalls log to history store + `POST /api/debloat/apps/log`.
 - **History**: Logs simulated actions with JSON export.
 - **Settings**: Manages account preferences and app configuration.
 

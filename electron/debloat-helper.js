@@ -261,4 +261,188 @@ async function verifyItem(item) {
   return false;
 }
 
+// ── Installed Apps: protected name patterns ──────────────────────────────────
+const PROTECTED_APP_PATTERNS = [
+  /windows defender/i,
+  /microsoft defender/i,
+  /windows security/i,
+  /windows firewall/i,
+  /malicious software removal tool/i,
+  /^microsoft windows$/i,
+  /windows update/i,
+  /windows subsystem for linux/i,
+];
+
+function isAppProtected(name) {
+  if (!name) return true;
+  for (const pat of PROTECTED_APP_PATTERNS) {
+    if (pat.test(String(name))) return true;
+  }
+  return false;
+}
+
+// ── IPC: installedApps:scan ───────────────────────────────────────────────────
+// Returns { ok, apps, scannedAt }
+// apps = array of { id, name, publisher, version, sizeMb, installDate,
+//                   installLocation, uninstallString, source, isProtected,
+//                   canUninstall, uninstallMethod, trustLabel }
+
+ipcMain.handle('installedApps:scan', async (event) => {
+  if (process.platform !== 'win32') return { ok: false, reason: 'not-windows', apps: [] };
+
+  const cmd = `
+$ErrorActionPreference = 'SilentlyContinue'
+$paths = @(
+  'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+  'HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*',
+  'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*'
+)
+$seen = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+$apps = [System.Collections.ArrayList]::new()
+foreach ($p in $paths) {
+  $items = Get-ItemProperty $p -ErrorAction SilentlyContinue |
+    Where-Object { $_.DisplayName -and ($_.DisplayName.Trim() -ne '') -and ($_.SystemComponent -ne 1) }
+  foreach ($item in $items) {
+    $key = $item.DisplayName.Trim()
+    if ($seen.Add($key)) {
+      [void]$apps.Add([PSCustomObject]@{
+        N  = $item.DisplayName
+        Pb = $item.Publisher
+        V  = $item.DisplayVersion
+        Sz = $item.EstimatedSize
+        D  = $item.InstallDate
+        IL = $item.InstallLocation
+        US = $item.UninstallString
+        QS = $item.QuietUninstallString
+      })
+    }
+  }
+}
+$apps | ConvertTo-Json -Compress -Depth 1
+  `;
+
+  try {
+    const raw = await runPS(cmd, 45000);
+    if (!raw || raw.trim() === '' || raw.trim() === 'null') {
+      return { ok: true, apps: [], scannedAt: new Date().toISOString() };
+    }
+
+    let parsed;
+    try { parsed = JSON.parse(raw); } catch {
+      return { ok: false, error: 'json-parse-failed', apps: [] };
+    }
+    if (!Array.isArray(parsed)) parsed = [parsed];
+
+    const apps = parsed
+      .filter(a => a && a.N)
+      .map(a => {
+        const name      = String(a.N  || '').trim();
+        const publisher = String(a.Pb || '').trim();
+        const unStr     = String(a.US || '').trim();
+        const quietStr  = String(a.QS || '').trim();
+        const protected_ = isAppProtected(name);
+
+        let method = 'none';
+        let canUninstall = false;
+        if (!protected_) {
+          if (/msiexec/i.test(unStr) && /\{[A-F0-9\-]+\}/i.test(unStr)) {
+            method = 'msi'; canUninstall = true;
+          } else if (quietStr.length > 3) {
+            method = 'exe'; canUninstall = true;
+          } else if (unStr.length > 3) {
+            method = 'exe'; canUninstall = true;
+          }
+        }
+
+        let trustLabel = 'user-installed';
+        if (protected_)                                     trustLabel = 'protected';
+        else if (/microsoft/i.test(publisher))              trustLabel = 'microsoft';
+        else if (!publisher)                                trustLabel = 'unknown';
+
+        const sizeMb = a.Sz ? Math.round(Number(a.Sz) / 1024) : 0;
+        const crypto = require('crypto');
+        const id = crypto.createHash('md5').update(name + publisher).digest('hex').slice(0, 16);
+
+        return {
+          id, name, publisher,
+          version:         String(a.V  || '').trim(),
+          sizeMb,
+          installDate:     String(a.D  || '').trim(),
+          installLocation: String(a.IL || '').trim(),
+          uninstallString: unStr,
+          quietUninstall:  quietStr,
+          source:          'registry',
+          isProtected:     protected_,
+          canUninstall,
+          uninstallMethod: method,
+          trustLabel,
+        };
+      });
+
+    return { ok: true, apps, scannedAt: new Date().toISOString() };
+  } catch (err) {
+    console.warn('[InstalledApps] scan error:', err.message);
+    return { ok: false, error: err.message, apps: [] };
+  }
+});
+
+// ── IPC: installedApps:uninstall ──────────────────────────────────────────────
+// Returns { ok, status, exitCode?, requiresRestart?, error? }
+
+ipcMain.handle('installedApps:uninstall', async (event, app) => {
+  if (process.platform !== 'win32') return { ok: false, reason: 'not-windows' };
+  if (!app || typeof app !== 'object' || !app.name) return { ok: false, reason: 'invalid-input' };
+
+  if (isAppProtected(app.name)) {
+    return { ok: false, status: 'blocked', error: 'App is protected and cannot be removed.' };
+  }
+  if (!app.canUninstall) {
+    return { ok: false, status: 'unsupported', error: 'No supported uninstall method.' };
+  }
+
+  const unStr   = String(app.uninstallString  || '');
+  const quietStr = String(app.quietUninstall  || '');
+
+  try {
+    let cmd = '';
+
+    if (app.uninstallMethod === 'msi') {
+      const guidMatch = unStr.match(/\{[A-F0-9\-]+\}/i);
+      if (!guidMatch) return { ok: false, status: 'unsupported', error: 'No product GUID.' };
+      cmd = `
+        $p = Start-Process 'msiexec.exe' -ArgumentList '/x ${guidMatch[0]} /qn /norestart' -Wait -PassThru -ErrorAction Stop
+        Write-Output "exitcode:$($p.ExitCode)"
+      `;
+    } else {
+      const exeStr = (quietStr.length > 3 ? quietStr : unStr).trim();
+      if (exeStr.length < 3) return { ok: false, status: 'unsupported' };
+
+      // Parse quoted executable path + args
+      let exe = exeStr, argStr = '';
+      const m = exeStr.match(/^"([^"]+)"\s*(.*)/s);
+      if (m) { exe = m[1]; argStr = m[2]; }
+      else {
+        const sp = exeStr.indexOf(' ');
+        if (sp > 0) { exe = exeStr.slice(0, sp); argStr = exeStr.slice(sp + 1); }
+      }
+      const safeExe  = exe.replace(/'/g, "''");
+      const safeArgs = argStr.replace(/'/g, "''");
+      cmd = `
+        $p = Start-Process '${safeExe}' -ArgumentList '${safeArgs}' -Wait -PassThru -ErrorAction Stop
+        Write-Output "exitcode:$($p.ExitCode)"
+      `;
+    }
+
+    const out    = await runPS(cmd, 90000);
+    const match  = out.match(/exitcode:(\d+)/);
+    const code   = match ? parseInt(match[1], 10) : -1;
+    const ok     = code === 0 || code === 3010;
+
+    return { ok, status: ok ? 'removed' : 'failed', exitCode: code, requiresRestart: code === 3010 };
+  } catch (err) {
+    console.warn(`[InstalledApps] uninstall "${app.name}" error:`, err.message);
+    return { ok: false, status: 'failed', error: err.message };
+  }
+});
+
 console.log('[Debloat] IPC handlers registered');

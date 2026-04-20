@@ -11,8 +11,9 @@ import {
   RefreshCw, CheckCircle, AlertTriangle, Info, ChevronDown, ChevronUp,
   RotateCcw, Play, Trash2, History, Clock, X, AlertCircle,
   MemoryStick, HardDrive, Eye, TrendingDown, BarChart3, Layers,
-  Minus, PcCase, Radio, Settings2,
+  Minus, PcCase, Radio, Settings2, Package,
 } from "lucide-react";
+import { InstalledAppsPanel } from "@/components/debloater/InstalledAppsPanel";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -221,6 +222,8 @@ export default function Debloater() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
+
+  const [mainTab, setMainTab] = useState<"curated" | "installed">("curated");
 
   const [role, setRole] = useState<SystemRole>("gaming");
   const [level, setLevel] = useState<DebloatLevel>("safe");
@@ -632,6 +635,39 @@ export default function Debloater() {
           title="Debloater"
           subtitle="Role-based system reduction with real Windows integration. Items are removed via PowerShell — honest results only."
         />
+
+        {/* ── Main tab bar ─────────────────────────────────────────────────── */}
+        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.07] w-fit">
+          {([
+            { id: "curated",   label: "Curated Removals",  icon: ShieldCheck },
+            { id: "installed", label: "Installed Apps",     icon: Package },
+          ] as const).map(tab => {
+            const Icon = tab.icon;
+            const active = mainTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setMainTab(tab.id)}
+                data-testid={`tab-debloat-${tab.id}`}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+                  active
+                    ? "bg-primary/15 text-primary border border-primary/25 shadow-sm"
+                    : "text-muted-foreground hover:text-foreground/80 hover:bg-white/[0.04]"
+                )}
+              >
+                <Icon className="size-4 shrink-0" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* ── Installed Apps tab content ───────────────────────────────────── */}
+        {mainTab === "installed" && <InstalledAppsPanel />}
+
+        {/* ── Curated Removals tab content ─────────────────────────────────── */}
+        {mainTab === "curated" && (<>
 
         {/* Live telemetry strip */}
         {liveTel && (
@@ -1315,6 +1351,8 @@ export default function Debloater() {
             </div>
           </div>
         </Reveal>
+
+        </>)}
 
       </Reveal>
     </AppLayout>

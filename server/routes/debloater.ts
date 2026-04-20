@@ -807,6 +807,33 @@ router.post("/scan", (req, res) => {
   res.json({ ok: true, state: stateMap });
 });
 
+// POST /api/debloat/apps/log
+// Body: { appName, publisher?, version?, method?, status, source? }
+router.post("/apps/log", async (req, res) => {
+  const { appName, publisher, version, method, status, source } = req.body as {
+    appName: string; publisher?: string; version?: string;
+    method?: string; status?: string; source?: string;
+  };
+  if (!appName || typeof appName !== "string") {
+    return res.status(400).json({ ok: false, error: "appName required" });
+  }
+  const itemId = `installed-app:${appName.slice(0, 80)}`;
+  const finalStatus = status ?? "removed";
+  const notes = [publisher && `pub:${publisher}`, version && `v${version}`, method && `method:${method}`, source && `src:${source}`].filter(Boolean).join(" ");
+
+  if (!isNoDbMode && db) {
+    await db.execute(sql`
+      INSERT INTO debloat_applied_items
+        (item_id, item_name, action, status, role, level, verification, restart_req, signout_req)
+      VALUES
+        (${itemId}, ${appName}, 'uninstall-installed', ${finalStatus},
+         null, null, 'electron', false, false)
+    `).catch(e => console.warn("[Debloater/AppsLog] insert failed:", e.message));
+  }
+
+  res.json({ ok: true, notes });
+});
+
 // GET /api/debloat/history
 router.get("/history", async (req, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, history: [] });

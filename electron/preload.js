@@ -246,6 +246,14 @@ contextBridge.exposeInMainWorld('electronAPI', {
     verifyItem:  (item)  => ipcRenderer.invoke('debloat:verifyItem', item),
   },
 
+  installedApps: {
+    scan: () => ipcRenderer.invoke('installedApps:scan'),
+    uninstall: (app) => {
+      if (!app || typeof app !== 'object') throw new Error('Invalid app payload');
+      return ipcRenderer.invoke('installedApps:uninstall', app);
+    },
+  },
+
   startup: {
     setEnabled:  (params) => ipcRenderer.invoke('startup:setEnabled', params),
     setDelay:    (params) => ipcRenderer.invoke('startup:setDelay', params),
