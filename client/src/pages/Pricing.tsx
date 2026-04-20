@@ -28,7 +28,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
 import { GlowButton } from "@/components/website/GlowButton";
-import { installerUrl } from "@shared/downloadConfig";
 
 interface IconItem {
   icon: ElementType;
@@ -467,7 +466,7 @@ export default function Pricing() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const handleGetStarted = () => {
-    window.open(installerUrl("pricing"), "_blank", "noopener,noreferrer");
+    window.location.href = "/download";
   };
 
   const handlePurchase = async () => {

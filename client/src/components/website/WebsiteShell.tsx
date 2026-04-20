@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef, type ReactNode } from "react";
 import { Link } from "wouter";
-import { installerUrl } from "@shared/downloadConfig";
 import { BrandLogo } from "@/components/BrandLogo";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { brand } from "@/config/brand";
@@ -106,7 +105,7 @@ function FullHeader() {
                 <GlowButton
                   variant="primary"
                   data-testid="button-header-download"
-                  onClick={() => { window.open(installerUrl("navbar"), "_blank", "noopener,noreferrer"); }}
+                  onClick={() => { window.location.href = "/download"; }}
                 >
                   <Download className="size-4" />
                   Download
@@ -194,7 +193,7 @@ function FullHeader() {
                     className="w-full"
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      window.open(installerUrl("navbar"), "_blank", "noopener,noreferrer");
+                      window.location.href = "/download";
                     }}
                   >
                     <Download className="size-4" />
