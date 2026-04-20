@@ -1,0 +1,268 @@
+r details.
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   peer react@">=16.8.0" from @floating-ui/react-dom@2.1.7
+npm warn   node_modules/@floating-ui/react-dom
+npm warn     @floating-ui/react-dom@"^2.0.0" from @radix-ui/react-popper@1.2.8
+npm warn     node_modules/@radix-ui/react-popper
+npm warn   83 more (@radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+added 2 packages, and audited 396 packages in 2s
+
+53 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: react-side-effect@2.1.2
+npm warn Found: react@19.2.4
+npm warn node_modules/react
+npm warn   react@"^19.2.0" from the root project
+npm warn   83 more (@floating-ui/react-dom, @radix-ui/react-accordion, ...)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn node_modules/react-helmet/node_modules/react-side-effect
+npm warn   react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn   node_modules/react-helmet
+npm warn
+npm warn Conflicting peer dependency: react@18.3.1
+npm warn node_modules/react
+npm warn   peer react@"^16.3.0 || ^17.0.0 || ^18.0.0" from react-side-effect@2.1.2
+npm warn   node_modules/react-helmet/node_modules/react-side-effect
+npm warn     react-side-effect@"^2.1.0" from react-helmet@6.1.0
+npm warn     node_modules/react-helmet
+
+> switchcontrol@1.0.0 postinstall
+> cd electron && npm install
+
+
+up to date, audited 416 packages in 918ms
+
+64 packages are looking for funding
+  run `npm fund` for details
+
+12 vulnerabilities (2 low, 10 high)
+
+To address issues that do not require attention, run:
+  npm audit fix
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+up to date, audited 396 packages in 2s
+
+53 packages are looking for funding
+  run `npm fund` for details
+
+4 moderate severity vulnerabilities
+
+To address all issues (including breaking changes), run:
+  npm audit fix --force
+
+Run `npm audit` for details.
+
+> switchcontrol@1.0.0 build
+> npx tsx script/build.ts
+
+building client...
+vite v7.3.2 building client environment for production...
+✓ 3362 modules transformed.
+[plugin vite:reporter]
+(!) C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/api.ts is dynamically imported by C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/store.ts but also statically imported by C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/components/layout/AppLayout.tsx, C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/lib/cloud-api.ts, C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/main.tsx, C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/pages/AiAdvisor.tsx, C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/pages/AppBooster.tsx, C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/client/src/pages/BiosAdvisor.tsx, dynamic import will not move module into another chunk.
+
+../dist/index.html                                2.49 kB │ gzip:   0.86 kB
+../dist/assets/fortnite-DrcFSly3.png             15.87 kB
+../dist/assets/wordmark-C34wmMGH.png             21.20 kB
+../dist/assets/icon-DMCvc4YE.webp                29.87 kB
+../dist/assets/perf-dashboard-CT6EtPGf.webp      50.50 kB
+../dist/assets/hero-backdrop-BD2Xdkfz.webp       51.18 kB
+../dist/assets/circuit-tech-D_a5ePob.webp        58.29 kB
+../dist/assets/hardware-detail-CMl8NhvE.webp     64.34 kB
+../dist/assets/favicon-BRJw6V6x.png              66.31 kB
+../dist/assets/minecraft-BN8Y9AuC.png            83.08 kB
+../dist/assets/network-flow-DOMS0sSZ.webp       139.66 kB
+../dist/assets/index-BfvpQiLk.css               359.69 kB │ gzip:  46.18 kB
+../dist/assets/credit-card-3-C-V-uO.js            0.21 kB │ gzip:   0.19 kB
+../dist/assets/SectionHeader-Ce1z7zy7.js          1.65 kB │ gzip:   0.83 kB
+../dist/assets/GlassPanel-BFoxcu1J.js             2.22 kB │ gzip:   1.10 kB
+../dist/assets/Login-DChHPQHq.js                  9.52 kB │ gzip:   3.50 kB
+../dist/assets/WebsiteShell-DQqXGh1K.js           9.77 kB │ gzip:   2.84 kB
+../dist/assets/Success-BrULtNRu.js               10.83 kB │ gzip:   3.51 kB
+../dist/assets/Privacy-COlzL4_B.js               11.04 kB │ gzip:   3.01 kB
+../dist/assets/PremiumSuccess-DzmWUxTI.js        11.70 kB │ gzip:   3.85 kB
+../dist/assets/Terms-Dk1hweCc.js                 12.01 kB │ gzip:   3.55 kB
+../dist/assets/WebsiteBackground-D74FH5Yd.js     22.15 kB │ gzip:   5.15 kB
+../dist/assets/Download-C3ZX7sAn.js              23.36 kB │ gzip:   5.88 kB
+../dist/assets/FAQ-mtUBd-CU.js                   25.00 kB │ gzip:   8.01 kB
+../dist/assets/Admin-DOOjtE2n.js                 37.44 kB │ gzip:   8.63 kB
+../dist/assets/Features-Bz06xXqo.js              40.26 kB │ gzip:  10.59 kB
+../dist/assets/Pricing-DukpWaS0.js               48.95 kB │ gzip:  14.74 kB
+../dist/assets/Landing-BLUf7Who.js               79.47 kB │ gzip:  20.79 kB
+../dist/assets/index-BvBDq2c7.js              2,155.89 kB │ gzip: 589.41 kB
+
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.60s
+building server (fully bundled — no external npm deps)...
+
+  dist\index.cjs  2.8mb
+
+Done in 83ms
+server bundle written to dist/index.cjs
+
+> switchcontrol@1.0.0 electron:build
+> cd electron && npm run dist:win
+
+
+> switchcontrol-electron@1.0.1 dist:win
+> npm run prebuild && npm run build:native && electron-builder --win
+
+
+> switchcontrol-electron@1.0.1 prebuild
+> node scripts/ensure-assets.js && node scripts/ensure-dist.js
+
+[ensure-assets] Checking build assets...
+[ensure-assets] icon.ico present (728 KB)
+[ensure-dist] Checking frontend build...
+[ensure-dist] Frontend dist copied to electron/dist-frontend
+[ensure-dist] Verified: index.html present in electron/dist-frontend
+[ensure-dist] Removed website-only: og-image.png (75KB)
+[ensure-dist] Removed website-only: opengraph.jpg (61KB)
+[ensure-dist] Removed website-only: android-chrome-512x512.png (255KB)
+[ensure-dist] Removed website-only: android-chrome-192x192.png (39KB)
+[ensure-dist] Removed website-only: apple-touch-icon.png (35KB)
+[ensure-dist] Removed website-only: googlef20cb2a861878cbe.html (0KB)
+[ensure-dist] Removed website-only: robots.txt (0KB)
+[ensure-dist] Removed website-only: sitemap.xml (0KB)
+[ensure-dist] Removed website-only: site.webmanifest (0KB)
+[ensure-dist] Removed website-only: icon.ico (169KB)
+[ensure-dist] Stripped 636KB of website-only assets
+[ensure-dist] Removed duplicate PNG (WebP exists): bp-chip.png (245KB)
+[ensure-dist] Removed duplicate PNG (WebP exists): bp-graphs.png (2259KB)
+[ensure-dist] Removed duplicate PNG (WebP exists): bp-parts.png (362KB)
+[ensure-dist] Deduplicated 3 PNG file(s) vs WebP (2865KB freed)
+[ensure-dist] Done — dist-frontend is clean and ready for packaging
+
+> switchcontrol-electron@1.0.1 build:native
+> node scripts/build-native.js
+
+[build-native] Rust toolchain found — compiling sc_memory...
+    Updating crates.io index
+     Locking 25 packages to latest compatible versions
+      Adding windows v0.56.0 (available: v0.62.2)
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.45
+   Compiling unicode-ident v1.0.24
+   Compiling windows_x86_64_msvc v0.52.6
+   Compiling serde_core v1.0.228
+   Compiling zmij v1.0.21
+   Compiling serde_json v1.0.149
+   Compiling serde v1.0.228
+   Compiling itoa v1.0.18
+   Compiling memchr v2.8.0
+   Compiling windows-targets v0.52.6
+   Compiling windows-result v0.1.2
+   Compiling syn v2.0.117
+   Compiling windows-interface v0.56.0
+   Compiling windows-implement v0.56.0
+   Compiling serde_derive v1.0.228
+   Compiling windows-core v0.56.0
+   Compiling windows v0.56.0
+   Compiling sc_memory v1.0.0 (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\native\sc_memory)
+    Finished `release` profile [optimized] target(s) in 5.34s
+[build-native] sc_memory.exe built and copied to bin/
+  • electron-builder  version=25.1.8 os=10.0.26200
+  • loaded configuration  file=package.json ("build" field)
+  • writing effective config  file=dist\builder-effective-config.yaml
+  • executing @electron/rebuild  electronVersion=33.4.11 arch=x64 buildFromSource=false appDir=./
+  • installing native dependencies  arch=x64
+  • completed installing native dependencies
+  • packaging       platform=win32 arch=x64 electron=33.4.11 appOutDir=dist\win-unpacked
+  • updating asar integrity executable resource  executablePath=dist\win-unpacked\SwitchControl.exe
+  • signing with signtool.exe  path=dist\win-unpacked\resources\bin\sc_memory.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=dist\win-unpacked\resources\bin\SensorsHelper.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=dist\win-unpacked\SwitchControl.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • building        target=nsis file=dist\SwitchControl Setup 1.0.1.exe archs=x64 oneClick=false perMachine=true
+  • signing with signtool.exe  path=dist\win-unpacked\resources\elevate.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=dist\__uninstaller-nsis-switchcontrol-electron.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • signing with signtool.exe  path=dist\SwitchControl Setup 1.0.1.exe
+  • no signing info identified, signing is skipped  signHook=false cscInfo=null
+  • building block map  blockMapFile=dist\SwitchControl Setup 1.0.1.exe.blockmap
+
+> switchcontrol-electron@1.0.1 release
+> node scripts/release.js
+
+
+Version sync: root/package.json is 1.0.0, electron is 1.0.1 — auto-correcting...
+Version sync OK: root/package.json updated to 1.0.1
+stable.yml written as compat shim (copy of latest.yml)
+
+Validating artifacts...
+  OK   latest.yml  (0.0 MB)
+  OK   SwitchControl Setup 1.0.1.exe  (110.6 MB)
+  OK   SwitchControl Setup 1.0.1.exe.blockmap  (0.1 MB)
+
+All validations passed.
+
+Found 3 artifact(s) to upload:
+  latest.yml  (0.0 MB)
+  SwitchControl Setup 1.0.1.exe  (110.6 MB)
+  SwitchControl Setup 1.0.1.exe.blockmap  (0.1 MB)
+
+Bucket : switchcontrol-releases
+Host   : https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+
+  Uploading SwitchControl Setup 1.0.1.exe  (110.6 MB)
+    (multipart: 12 parts × 10 MB each)
+
+  ✗ FAILED: CreateMultipartUpload failed (403): <?xml version="1.0" encoding="UTF-8"?><Error><Code>SignatureDoesNotMatch</Code><Message>The request signature we calculated does not match the signature you provided. Check your secret access key and signing method.</Message><StringToSign>AWS4-HMAC-SHA256
+20260420T123602Z
+20260420/auto/s3/aws4_request
+63f2dc74aeda8d4a7e15b0f5866754cd2600ba1adbea32029c3b8a327dce1140</StringToSign><StringToSignBytes>41 57 53 34 2d 48 4d 41 43 2d 53 48 41 32 35 36 0a 32 30 32 36 30 34 32 30 54 31 32 33 36 30 32 5a 0a 32 30 32 36 30 34 32 30 2f 61 75 74 6f 2f 73 33 2f 61 77 73 34 5f 72 65 71 75 65 73 74 0a 36 33 66 32 64 63 37 34 61 65 64 61 38 64 34 61 37 65 31 35 62 30 66 35 38 36 36 37 35 34 63 64 32 36 30 30 62 61 31 61 64 62 65 61 33 32 30 32 39 63 33 62 38 61 33 32 37 64 63 65 31 31 34 30</StringToSignBytes><CanonicalRequest>POST
+/SwitchControl%20Setup%201.0.1.exe
+uploads=
+cache-control:public, max-age=31536000, immutable
+content-length:0
+content-type:application/octet-stream
+host:switchcontrol-releases.7be6aa6727b674563d4646c7ac8bfec9.r2.cloudflarestorage.com
+x-amz-content-sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+x-amz-date:20260420T123602Z
+
+cache-control;content-length;content-type;host;x-amz-content-sha256;x-amz-date
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</CanonicalRequest><CanonicalRequestBytes>50 4f 53 54 0a 2f 53 77 69 74 63 68 43 6f 6e 74 72 6f 6c 25 32 30 53 65 74 75 70 25 32 30 31 2e 30 2e 31 2e 65 78 65 0a 75 70 6c 6f 61 64 73 3d 0a 63 61 63 68 65 2d 63 6f 6e 74 72 6f 6c 3a 70 75 62 6c 69 63 2c 20 6d 61 78 2d 61 67 65 3d 33 31 35 33 36 30 30 30 2c 20 69 6d 6d 75 74 61 62 6c 65 0a 63 6f 6e 74 65 6e 74 2d 6c 65 6e 67 74 68 3a 30 0a 63 6f 6e 74 65 6e 74 2d 74 79 70 65 3a 61 70 70 6c 69 63 61 74 69 6f 6e 2f 6f 63 74 65 74 2d 73 74 72 65 61 6d 0a 68 6f 73 74 3a 73 77 69 74 63 68 63 6f 6e 74 72 6f 6c 2d 72 65 6c 65 61 73 65 73 2e 37 62 65 36 61 61 36 37 32 37 62 36 37 34 35 36 33 64 34 36 34 36 63 37 61 63 38 62 66 65 63 39 2e 72 32 2e 63 6c 6f 75 64 66 6c 61 72 65 73 74 6f 72 61 67 65 2e 63 6f 6d 0a 78 2d 61 6d 7a 2d 63 6f 6e 74 65 6e 74 2d 73 68 61 32 35 36 3a 65 33 62 30 63 34 34 32 39 38 66 63 31 63 31 34 39 61 66 62 66 34 63 38 39 39 36 66 62 39 32 34 32 37 61 65 34 31 65 34 36 34 39 62 39 33 34 63 61 34 39 35 39 39 31 62 37 38 35 32 62 38 35 35 0a 78 2d 61 6d 7a 2d 64 61 74 65 3a 32 30 32 36 30 34 32 30 54 31 32 33 36 30 32 5a 0a 0a 63 61 63 68 65 2d 63 6f 6e 74 72 6f 6c 3b 63 6f 6e 74 65 6e 74 2d 6c 65 6e 67 74 68 3b 63 6f 6e 74 65 6e 74 2d 74 79 70 65 3b 68 6f 73 74 3b 78 2d 61 6d 7a 2d 63 6f 6e 74 65 6e 74 2d 73 68 61 32 35 36 3b 78 2d 61 6d 7a 2d 64 61 74 65 0a 65 33 62 30 63 34 34 32 39 38 66 63 31 63 31 34 39 61 66 62 66 34 63 38 39 39 36 66 62 39 32 34 32 37 61 65 34 31 65 34 36 34 39 62 39 33 34 63 61 34 39 35 39 39 31 62 37 38 35 32 62 38 35 35</CanonicalRequestBytes><SignatureProvided>98b17b0959f4637413352879df6160b64b616dec8b6459e0920f589f34f42914</SignatureProvided></Error>
+  (non-retryable error — check credentials and bucket access)
+PS C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron>
+
+
+
+
