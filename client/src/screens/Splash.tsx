@@ -47,10 +47,10 @@ export default function Splash({ onComplete }: SplashProps) {
     // Diagonal reveal sweep begins after foreground is visible.
     const t3 = setTimeout(() => setSweepReady(true), 520);
     // Begin exit sequence.
-    const t4 = setTimeout(() => setExiting(true),   3000);
+    const t4 = setTimeout(() => setExiting(true),   5000);
     // Notify parent exactly when splash has finished — parent is NOT allowed
     // to set its own splashDone timer; this callback is the single authority.
-    const done = setTimeout(() => onComplete(), 4400);
+    const done = setTimeout(() => onComplete(), 6400);
 
     const si = setInterval(() => setStatusText(getTagline()), 2200);
 
