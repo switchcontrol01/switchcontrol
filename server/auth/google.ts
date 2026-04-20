@@ -24,6 +24,17 @@ declare global {
   }
 }
 
+// Emails that always receive admin access on login.
+// Populated from ADMIN_EMAILS env var (comma-separated).
+function getAdminEmailSet(): Set<string> {
+  return new Set(
+    (process.env.ADMIN_EMAILS || "")
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean)
+  );
+}
+
 async function findOrCreateUser(profile: {
   googleId: string;
   email: string | null;
@@ -41,6 +52,9 @@ async function findOrCreateUser(profile: {
       isPremium: false,
     };
   }
+
+  const adminEmails = getAdminEmailSet();
+  const isAdminEmail = !!(profile.email && adminEmails.has(profile.email.toLowerCase()));
 
   const existingUsers = await db
     .select()
@@ -60,6 +74,12 @@ async function findOrCreateUser(profile: {
         updatedAt: new Date(),
       })
       .where(eq(users.id, user.id));
+
+    // Ensure admin flag is set if this email is in the admin list.
+    if (isAdminEmail && !user.isAdmin) {
+      await storage.setUserAdmin(user.id, true);
+      console.log(`[AUTH] Admin granted on login to ${profile.email} (${user.id})`);
+    }
 
     return {
       id: user.id,
@@ -82,10 +102,16 @@ async function findOrCreateUser(profile: {
       lastName: profile.lastName,
       profileImageUrl: profile.profileImageUrl,
       isPremium: false,
+      isAdmin: isAdminEmail,
     })
     .returning();
 
   const newUser = newUsers[0];
+
+  if (isAdminEmail) {
+    console.log(`[AUTH] Admin granted on first login to ${profile.email} (${newUser.id})`);
+  }
+
   return {
     id: newUser.id,
     email: newUser.email,
