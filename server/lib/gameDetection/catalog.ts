@@ -29,7 +29,11 @@ export const CATALOG: CatalogEntry[] = [
     ],
     logoUrl: "/games/fortnite.png",
     coverUrl: "/games/fortnite.png",
-    aliases: ["fortnite battle royale", "fn"],
+    aliases: [
+      "fortnite battle royale", "fn",
+      "fortniteclient-win64-shipping", "fortnitelauncher",
+      "epic fortnite", "fortnite game",
+    ],
   },
 
   {
@@ -356,7 +360,11 @@ export const CATALOG: CatalogEntry[] = [
     ],
     logoUrl: "/games/minecraft.png",
     coverUrl: "/games/minecraft.png",
-    aliases: ["minecraft", "mc", "minecraft java", "minecraft bedrock", "minecraft windows 10"],
+    aliases: [
+      "minecraft", "mc", "minecraft java", "minecraft bedrock", "minecraft windows 10",
+      "minecraft launcher", "minecraftlauncher", "minecraft for windows",
+      "minecraft-for-windows", "microsoft minecraftuwp",
+    ],
   },
 ];
 

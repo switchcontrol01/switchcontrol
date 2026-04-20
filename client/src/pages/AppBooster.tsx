@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { resolveGameIcon, canonicalSlug } from "@/lib/gameIconResolver";
 import { motion, AnimatePresence, staggerContainer, staggerItem, useMotion, Reveal, pageTransition } from "@/lib/motion";
 import { apiGet, apiPost } from "@/lib/api";
 import { useStore } from "@/lib/store";
@@ -190,24 +191,47 @@ function LauncherBadge({ launcher }: { launcher: string | null }) {
 }
 
 function GameLogo({
-  logoUrl, name, genre, size = "sm",
-}: { logoUrl: string | null; name: string; genre: string; size?: "sm" | "lg" }) {
+  logoUrl, name, genre, size = "sm", slug,
+}: { logoUrl: string | null; name: string; genre: string; size?: "sm" | "lg"; slug?: string }) {
+  // Resolve through the shared icon resolver:
+  //  • Vite-bundled local asset (packaged Electron safe) takes priority
+  //  • Server-provided URL (Steam CDN, etc.) is the fallback
+  const resolvedUrl = slug
+    ? resolveGameIcon(slug, logoUrl)
+    : logoUrl;
+
   const [failed, setFailed] = useState(false);
   const dim = size === "lg" ? "w-14 h-14 rounded-2xl" : "w-8 h-8 rounded-lg";
+  const canon = slug ? canonicalSlug(slug) : null;
+  const isDebugGame = canon === "fortnite" || canon === "minecraft";
 
-  if (!failed && logoUrl) {
+  if (!failed && resolvedUrl) {
     return (
       <div className={cn("shrink-0 overflow-hidden shadow-md", dim)}>
         <img
-          src={logoUrl}
+          src={resolvedUrl}
           alt={name}
           className="w-full h-full object-cover"
-          onError={() => setFailed(true)}
+          onError={() => {
+            if (isDebugGame) {
+              console.warn(`[GameIcon] LOAD FAILED — slug="${slug}" canon="${canon}" src="${resolvedUrl}"`);
+            }
+            setFailed(true);
+          }}
+          onLoad={() => {
+            if (isDebugGame) {
+              console.log(`[GameIcon] LOAD OK — slug="${slug}" canon="${canon}" src="${resolvedUrl}"`);
+            }
+          }}
         />
       </div>
     );
   }
 
+  // Gradient-badge fallback — renders when image is unavailable or failed to load.
+  if (isDebugGame && (failed || !resolvedUrl)) {
+    console.warn(`[GameIcon] FALLBACK BADGE — slug="${slug}" canon="${canon}" resolvedUrl="${resolvedUrl}" failed=${failed}`);
+  }
   return (
     <div className={cn(
       "shrink-0 flex items-center justify-center text-white font-bold shadow-md bg-gradient-to-br",
@@ -299,7 +323,7 @@ function GameListItem({
       transition={{ duration: 0.15 }}
     >
       <div className="flex items-center gap-3">
-        <GameLogo logoUrl={game.logoUrl ?? null} name={game.name} genre={game.genre} size="sm" />
+        <GameLogo logoUrl={game.logoUrl ?? null} name={game.name} genre={game.genre} size="sm" slug={game.slug} />
         <div className="flex-1 min-w-0">
           <p className="font-medium text-sm truncate leading-none">{game.name}</p>
           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
@@ -1103,6 +1127,7 @@ export default function AppBooster() {
                             name={gameDetail.name}
                             genre={gameDetail.genre}
                             size="lg"
+                            slug={gameDetail.slug}
                           />
                           <div>
                             <h2 className="text-xl font-bold leading-tight">{gameDetail.name}</h2>

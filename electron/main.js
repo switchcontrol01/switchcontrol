@@ -464,29 +464,37 @@ function createWindow() {
     }
   );
 
-  // In packaged mode the frontend loads via file://, so absolute-path asset URLs like
-  // /games/fortnite.png resolve to the filesystem root instead of the dist bundle.
-  // Intercept those file:// requests and redirect them to the correct bundled location.
   if (!isDev) {
+    // In packaged mode the frontend loads via file://, so absolute-path asset URLs
+    // like /games/fortnite.png resolve incorrectly.  Vite-imported assets (in
+    // gameIconResolver.ts) are the primary fix — this handler is belt-and-suspenders
+    // for any legacy or server-provided logoUrl strings that still use /games/* paths.
+    //
+    // URL patterns covered:
+    //  • file:///games/x.png           (linux / mac — / is filesystem root)
+    //  • file:///C:/games/x.png        (windows — drive letter after triple-slash)
+    //  • file:///C:/any/path/games/x.png (windows — any depth before /games/)
     electronSession.defaultSession.webRequest.onBeforeRequest(
-      { urls: ['file:///games/*', 'file://*/*/games/*'] },
+      { urls: ['file:///games/*', 'file://*/*/games/*', 'file:///*/games/*'] },
       (details, callback) => {
         try {
           const url = details.url;
-          // Match file:// requests whose pathname ends in /games/<filename>.
-          // When the frontend loads via file://, <img src="/games/x.png"> resolves
-          // to file:///games/x.png (filesystem root) instead of dist/games/x.png.
-          const m = url.match(/\/games\/([a-zA-Z0-9_\-]+\.(png|jpg|jpeg|webp|svg))(?:[?#]|$)/i);
+          // Extract just the filename from any /games/<filename> path segment.
+          const m = url.match(/\/games\/([a-zA-Z0-9_\-.]+\.(png|jpg|jpeg|webp|svg))(?:[?#]|$)/i);
           if (m) {
             const filename = m[1];
             const distGamesPath = path.join(process.resourcesPath, 'dist', 'games', filename);
-            // Build a valid file:// URL (forward slashes, ensure triple-slash on Windows)
-            const redirectURL = 'file:///' + distGamesPath.replace(/\\/g, '/').replace(/^\/+/, '');
-            console.log(`[Assets] Redirecting ${url} → ${redirectURL}`);
+            // Normalise to forward slashes and ensure exactly three leading slashes
+            // so the URL is valid on all platforms.
+            const normalised = distGamesPath.replace(/\\/g, '/').replace(/^\/+/, '');
+            const redirectURL = 'file:///' + normalised;
+            console.log(`[Assets] /games/* redirect: ${url} → ${redirectURL}`);
             callback({ redirectURL });
             return;
           }
-        } catch {}
+        } catch (err) {
+          console.warn('[Assets] /games/* redirect error:', err);
+        }
         callback({ cancel: false });
       }
     );
