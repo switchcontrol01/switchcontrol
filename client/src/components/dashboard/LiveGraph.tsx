@@ -170,6 +170,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
+  const diskLogTickRef = useRef(0); // throttle per-tick disk logs
   const onTelemetryUpdateRef = useRef(onTelemetryUpdate);
   onTelemetryUpdateRef.current = onTelemetryUpdate;
   const selectedDiskMountRef = useRef(selectedDiskMount);
@@ -286,6 +287,17 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     const diskReadKBps = snap.disk?.readKBps ?? null;
     const diskWriteKBps = snap.disk?.writeKBps ?? null;
 
+    diskLogTickRef.current += 1;
+    if (diskLogTickRef.current <= 3 || diskLogTickRef.current % 10 === 0) {
+      console.log(`[LiveGraph][Disk] WS path tick#${diskLogTickRef.current} →`, {
+        activeTimePct: snap.disk?.activeTimePct,
+        readKBps: diskReadKBps,
+        writeKBps: diskWriteKBps,
+        available: diskAvailable,
+        "→ diskActiveTime (dataset)": diskActiveTime,
+      });
+    }
+
     const telemetryState: LatestState = {
       cpuLoad, cpuTemp,
       gpuTemp, gpuLoad,
@@ -364,20 +376,27 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       // Electron path: disk from IPC.
       const netRxSec = typeof live.network?.rxKBps === "number" ? safeNumber(live.network.rxKBps) : null;
       const netTxSec = typeof live.network?.txKBps === "number" ? safeNumber(live.network.txKBps) : null;
-      // Only show disk activity when the backend explicitly confirms the source is valid.
-      // A fake zero (source: warming / unavailable) must NOT be treated as real data.
-      const diskElectronAvailable = live.disk?.available === true;
-      const diskActiveTime = diskElectronAvailable && live.disk?.activeTimePct != null ? safeNumber(live.disk.activeTimePct) : null;
-      const diskReadKBps   = diskElectronAvailable && live.disk?.readKBps   != null ? safeNumber(live.disk.readKBps)   : null;
-      const diskWriteKBps  = diskElectronAvailable && live.disk?.writeKBps  != null ? safeNumber(live.disk.writeKBps)  : null;
+      // Always read raw disk values — do NOT gate on the available flag.
+      // Matches the web (WS) path: "never suppress based on available flag alone."
+      // available=false only occurs during the first-tick warm-up window; the values
+      // (even 0.0) are still real and must reach the dataset so the chart line renders.
+      const diskElectronAvailable = live.disk?.available ?? false;
+      const diskActiveTime = live.disk?.activeTimePct != null ? safeNumber(live.disk.activeTimePct) : null;
+      const diskReadKBps   = live.disk?.readKBps   != null ? safeNumber(live.disk.readKBps)   : null;
+      const diskWriteKBps  = live.disk?.writeKBps  != null ? safeNumber(live.disk.writeKBps)  : null;
 
-      console.log("[LiveGraph][Disk]", {
-        activeTimePct: live.disk?.activeTimePct,
-        readKBps: live.disk?.readKBps,
-        writeKBps: live.disk?.writeKBps,
-        available: live.disk?.available,
-        source: live.disk?.source,
-      });
+      diskLogTickRef.current += 1;
+      if (diskLogTickRef.current <= 3 || diskLogTickRef.current % 10 === 0) {
+        console.log(`[LiveGraph][Disk] IPC raw tick#${diskLogTickRef.current} →`, {
+          activeTimePct: live.disk?.activeTimePct,
+          readKBps: live.disk?.readKBps,
+          writeKBps: live.disk?.writeKBps,
+          available: live.disk?.available,
+          source: live.disk?.source,
+          "→ diskActiveTime (dataset)": diskActiveTime,
+          "→ diskReadKBps (dataset)": diskReadKBps,
+        });
+      }
 
       const telemetryState: LatestState = {
         cpuLoad, cpuTemp, gpuTemp, gpuLoad,
@@ -484,6 +503,14 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       `Disk:${hasDiskData ? "yes" : "no"}`,
       `Net:${hasNetRx || hasNetTx ? "yes" : "no"}`
     );
+    // Final dataset disk confirmation — confirms disk survived the full pipeline
+    console.log("[LiveGraph][Disk] FINAL DATASET first point →", {
+      diskActiveTime: first.diskActiveTime,
+      diskReadKBps: first.diskReadKBps,
+      diskWriteKBps: first.diskWriteKBps,
+      hasDiskData,
+      "Line renders": hasDiskData && toggles.disk,
+    });
   }
 
   const netPeak = Math.max(...data.map(d => Math.max(d.netRx ?? 0, d.netTx ?? 0)), 10);
