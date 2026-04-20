@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { TweakCard } from "./TweakCard";
+import { TweakSliderCard } from "./TweakSliderCard";
 import { TWEAKS_DATA, TweakCategory, TweakLevel } from "@/lib/mock-data";
 import { useStore } from "@/lib/store";
 import { Input } from "@/components/ui/input";
@@ -7,19 +8,22 @@ import { Button } from "@/components/ui/button";
 import { Search, SlidersHorizontal, RotateCcw, CheckCircle2, AlertTriangle, ShieldCheck, FlaskConical, Cpu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useTweakExecutor, isElectronWithTweaks, isRealTweak } from "@/hooks/use-tweak-executor";
+import { useTweakExecutor, isElectronWithTweaks, isRealTweak, isSliderTweak, SLIDER_TWEAKS } from "@/hooks/use-tweak-executor";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 
-const CATEGORIES = ["Performance", "Latency", "Visuals", "Services", "Aesthetics"];
+const CATEGORIES = ["Performance", "Latency", "Input", "Visuals", "Services", "Privacy", "Aesthetics", "Sliders"];
 
 const CATEGORY_MAP: Record<string, TweakCategory[]> = {
   "Performance": ["System and Power", "Memory and Storage", "GPU and Graphics"],
-  "Latency":     ["Gaming and Latency", "Network"],
+  "Latency":     ["Gaming and Latency"],
+  "Input":       ["Input"],
   "Visuals":     ["GPU and Graphics", "Windows UX"],
   "Services":    ["Debloat and Apps", "System and Power"],
+  "Privacy":     ["Privacy and Telemetry"],
   "Aesthetics":  ["Windows UX"],
+  "Sliders":     [], // special — handled by controlType filter below
 };
 
 // ── Level tab config ─────────────────────────────────────────────────────────
@@ -122,7 +126,14 @@ export function TweaksList() {
     return TWEAKS_DATA.filter((t) => {
       const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.description.toLowerCase().includes(search.toLowerCase());
-      const matchesChip   = activeChip === "All" || (CATEGORY_MAP[activeChip]?.includes(t.category));
+      let matchesChip: boolean;
+      if (activeChip === "All") {
+        matchesChip = true;
+      } else if (activeChip === "Sliders") {
+        matchesChip = t.controlType === "slider";
+      } else {
+        matchesChip = CATEGORY_MAP[activeChip]?.includes(t.category) ?? false;
+      }
       const matchesRisk   = showRisky ? true : t.risk !== "Risky";
       const matchesLevel  = activeLevel === "All" || t.level === activeLevel;
       return matchesSearch && matchesChip && matchesRisk && matchesLevel;
@@ -318,11 +329,15 @@ export function TweaksList() {
               }}
               style={{ willChange: "opacity, transform" }}
             >
-              <TweakCard
-                tweak={tweak}
-                isEnabled={getTweakEnabled(tweak.id)}
-                onToggle={() => toggleTweak(tweak.id)}
-              />
+              {tweak.controlType === "slider" ? (
+                <TweakSliderCard tweak={tweak} />
+              ) : (
+                <TweakCard
+                  tweak={tweak}
+                  isEnabled={getTweakEnabled(tweak.id)}
+                  onToggle={() => toggleTweak(tweak.id)}
+                />
+              )}
             </motion.div>
           ))}
         </AnimatePresence>

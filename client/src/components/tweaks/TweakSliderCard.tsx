@@ -1,0 +1,610 @@
+import { useState, useCallback } from "react";
+import {
+  ChevronDown, ChevronUp, Loader2, CheckCircle2, XCircle,
+  RefreshCw, ShieldCheck, AlertTriangle, Info, RotateCcw,
+  CornerDownLeft, Terminal, ShieldAlert, Zap,
+} from "lucide-react";
+import { GlassCard } from "@/components/ui/glass-card";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Tweak, SliderConfig } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  useSliderTweak,
+  resolveSliderValue,
+  valueToSliderPos,
+  getPresetLabel,
+  getPreset,
+} from "@/hooks/use-slider-tweak";
+import { isElectronWithTweaks, isAdminTweak } from "@/hooks/use-tweak-executor";
+import { isTweakPremium } from "@/lib/premium-config";
+import { TrustLayer } from "@/components/intelligence/TrustLayer";
+
+interface TweakSliderCardProps {
+  tweak: Tweak;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function formatValue(value: number | null, unit?: string): string {
+  if (value === null) return "—";
+  if (value === 4294967295) return "Disabled";
+  return unit ? `${value} ${unit}` : String(value);
+}
+
+function getRangeZone(value: number | null, config: SliderConfig): "safe" | "caution" | "extreme" | null {
+  if (value === null || config.stepped) return null;
+  if (config.extremeMin !== undefined && value <= config.extremeMin) return "extreme";
+  if (config.extremeMax !== undefined && value >= config.extremeMax) return "extreme";
+  if (config.safeMin !== undefined && value < config.safeMin) return "caution";
+  if (config.safeMax !== undefined && value > config.safeMax) return "caution";
+  return "safe";
+}
+
+// ── Badges ────────────────────────────────────────────────────────────────────
+
+const FreeBadge = () => (
+  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+    Free
+  </span>
+);
+
+const AdminBadge = () => (
+  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-orange-500/10 text-orange-400 border-orange-500/20">
+    Admin
+  </span>
+);
+
+const RestartBadge = () => (
+  <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
+    <RefreshCw className="inline-block size-3 mr-0.5 -mt-0.5" /> Restart
+  </span>
+);
+
+const LevelBadge = ({ level }: { level: string }) => {
+  const cls =
+    level === "Recommended"
+      ? "bg-primary/10 text-primary border-primary/20"
+      : level === "Advanced"
+      ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+      : "bg-amber-500/10 text-amber-400 border-amber-500/20";
+  return (
+    <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider", cls)}>
+      {level === "Recommended" && <ShieldCheck className="inline-block size-3 mr-1 -mt-0.5" />}
+      {level}
+    </span>
+  );
+};
+
+// ── Stepped selector (segmented control) ────────────────────────────────────
+
+function SteppedSelector({
+  config,
+  currentValue,
+  pendingValue,
+  disabled,
+  onSelect,
+}: {
+  config: SliderConfig;
+  currentValue: number | null;
+  pendingValue: number | null;
+  disabled: boolean;
+  onSelect: (value: number) => void;
+}) {
+  const presets = config.presets ?? [];
+  return (
+    <div className="grid gap-2" style={{ gridTemplateColumns: `repeat(${presets.length}, 1fr)` }}>
+      {presets.map((preset) => {
+        const isSelected = pendingValue === preset.value;
+        const isCurrent = currentValue === preset.value;
+        return (
+          <button
+            key={preset.value}
+            onClick={() => !disabled && onSelect(preset.value)}
+            disabled={disabled}
+            data-testid={`slider-preset-${preset.value}`}
+            className={cn(
+              "relative flex flex-col items-center gap-1 px-2 py-3 rounded-xl border text-center transition-all duration-200",
+              "text-[11px] font-medium leading-tight",
+              isSelected
+                ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(168,85,247,0.2)]"
+                : "bg-white/[0.04] border-white/[0.08] text-white/50 hover:border-white/20 hover:text-white/70 hover:bg-white/[0.06]",
+              disabled && "opacity-50 cursor-not-allowed",
+            )}
+          >
+            {/* Live indicator for currently applied value */}
+            {isCurrent && (
+              <span className="absolute -top-1 -right-1 size-2 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.7)]" />
+            )}
+            <span className="leading-snug">{preset.label}</span>
+            {(preset.isDefault || preset.isRecommended) && (
+              <span className={cn(
+                "text-[9px] px-1.5 py-0.5 rounded-full",
+                preset.isRecommended ? "bg-cyan-500/15 text-cyan-400" : "bg-white/10 text-white/40"
+              )}>
+                {preset.isRecommended ? "Recommended" : "Default"}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Continuous slider with markers ───────────────────────────────────────────
+
+function ContinuousSlider({
+  config,
+  pendingValue,
+  disabled,
+  onChange,
+}: {
+  config: SliderConfig;
+  pendingValue: number | null;
+  disabled: boolean;
+  onChange: (value: number) => void;
+}) {
+  const val = pendingValue ?? config.defaultValue;
+  const zone = getRangeZone(val, config);
+
+  const thumbColor =
+    zone === "extreme"   ? "data-[state=active]:shadow-[0_0_12px_rgba(248,113,113,0.6)]"
+    : zone === "caution" ? "data-[state=active]:shadow-[0_0_12px_rgba(251,191,36,0.6)]"
+    : "data-[state=active]:shadow-[0_0_12px_rgba(34,211,238,0.5)]";
+
+  const rangeColor =
+    zone === "extreme"   ? "[&_.range]:bg-red-500"
+    : zone === "caution" ? "[&_.range]:bg-yellow-500"
+    : "[&_.range]:bg-cyan-500";
+
+  return (
+    <div className="space-y-3">
+      <div className={cn("relative pt-1 pb-4", disabled && "opacity-60 pointer-events-none")}>
+        <Slider
+          min={config.min}
+          max={config.max}
+          step={config.step}
+          value={[val]}
+          onValueChange={([v]) => onChange(v)}
+          disabled={disabled}
+          className={cn("w-full cursor-pointer", rangeColor)}
+        />
+
+        {/* Track marker overlay */}
+        <div className="relative w-full h-0 mt-1">
+          {/* Default marker */}
+          {config.defaultValue >= config.min && config.defaultValue <= config.max && (
+            <div
+              className="absolute top-0 -translate-x-1/2"
+              style={{ left: `${((config.defaultValue - config.min) / (config.max - config.min)) * 100}%` }}
+            >
+              <div className="w-0.5 h-2.5 bg-white/25 rounded-full" />
+              <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-white/30 whitespace-nowrap">
+                Default
+              </span>
+            </div>
+          )}
+          {/* Recommended marker */}
+          {config.recommendedValue !== undefined && config.recommendedValue >= config.min && config.recommendedValue <= config.max && config.recommendedValue !== config.defaultValue && (
+            <div
+              className="absolute top-0 -translate-x-1/2"
+              style={{ left: `${((config.recommendedValue - config.min) / (config.max - config.min)) * 100}%` }}
+            >
+              <div className="w-0.5 h-2.5 bg-cyan-400/50 rounded-full" />
+              <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-cyan-400/60 whitespace-nowrap">
+                Rec.
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Min / Max labels */}
+      <div className="flex justify-between text-[10px] text-white/25 select-none -mt-1">
+        <span>{config.min}{config.unit ? ` ${config.unit}` : ""}</span>
+        <span>{config.max}{config.unit ? ` ${config.unit}` : ""}</span>
+      </div>
+    </div>
+  );
+}
+
+// ── Verify result banner ──────────────────────────────────────────────────────
+
+function VerifyBanner({ ok, error, actualValue, unit, onDismiss }: {
+  ok: boolean;
+  error: string | null;
+  actualValue: number | null;
+  unit?: string;
+  onDismiss: () => void;
+}) {
+  if (ok) {
+    return (
+      <motion.div
+        initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+        exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }}
+        className="overflow-hidden"
+      >
+        <div className="flex items-center gap-2 mx-4 mb-3 px-3 py-2 rounded-lg border border-emerald-500/25 bg-emerald-500/10 text-emerald-300 text-xs">
+          <CheckCircle2 className="size-3.5 shrink-0" />
+          <span className="flex-1 font-medium">
+            Verified{actualValue !== null ? ` — read back: ${formatValue(actualValue, unit)}` : ""}
+          </span>
+          <button onClick={onDismiss} className="text-emerald-300/40 hover:text-emerald-300 transition-colors text-[10px]">✕</button>
+        </div>
+      </motion.div>
+    );
+  }
+  return (
+    <motion.div
+      initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+      exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.18 }}
+      className="overflow-hidden"
+    >
+      <div className="flex items-center gap-2 mx-4 mb-3 px-3 py-2 rounded-lg border border-red-500/25 bg-red-500/10 text-red-300 text-xs">
+        <XCircle className="size-3.5 shrink-0" />
+        <span className="flex-1">{error ?? "Verification failed."}</span>
+        <button onClick={onDismiss} className="text-red-300/40 hover:text-red-300 transition-colors text-[10px]">✕</button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ── Advanced details drawer ───────────────────────────────────────────────────
+
+function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: number | null }) {
+  const d = tweak.detailsConfig;
+  if (!d && !tweak.whoShouldAvoid) return null;
+
+  return (
+    <div className="mx-4 mb-4 p-3 rounded-xl bg-black/30 border border-white/[0.06] space-y-2.5">
+      {d?.registryPath && (
+        <div className="flex items-start gap-2">
+          <Terminal className="size-3 text-white/30 mt-0.5 shrink-0" />
+          <div className="min-w-0">
+            <div className="text-[10px] text-white/30 mb-0.5">Registry Path</div>
+            <code className="text-[10px] text-cyan-300/70 break-all leading-relaxed">{d.registryPath}</code>
+            {d.registryName && (
+              <code className="text-[10px] text-cyan-300/50 block">→ {d.registryName} ({d.registryType ?? "DWORD"})</code>
+            )}
+          </div>
+        </div>
+      )}
+
+      {currentValue !== null && (
+        <div className="flex items-center gap-2">
+          <Info className="size-3 text-white/30 shrink-0" />
+          <div>
+            <span className="text-[10px] text-white/30">Current raw value: </span>
+            <code className="text-[10px] text-white/60">{currentValue}</code>
+            {currentValue === 4294967295 && (
+              <code className="text-[10px] text-white/40 ml-1">(0xFFFFFFFF)</code>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tweak.whoShouldAvoid && (
+        <div className="flex items-start gap-2">
+          <AlertTriangle className="size-3 text-yellow-400/60 mt-0.5 shrink-0" />
+          <div>
+            <div className="text-[10px] text-yellow-400/70 font-medium mb-0.5">Who should avoid this</div>
+            <p className="text-[10px] text-white/40 leading-relaxed">{tweak.whoShouldAvoid}</p>
+          </div>
+        </div>
+      )}
+
+      {d?.technicalNote && (
+        <div className="flex items-start gap-2">
+          <Info className="size-3 text-white/30 mt-0.5 shrink-0" />
+          <p className="text-[10px] text-white/35 leading-relaxed">{d.technicalNote}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main card ─────────────────────────────────────────────────────────────────
+
+export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [trustOpen, setTrustOpen] = useState(false);
+  const isElectron = isElectronWithTweaks();
+  const needsAdmin = isAdminTweak(tweak.id);
+  const isPremium = isTweakPremium(tweak.id);
+
+  const config = tweak.sliderConfig!;
+
+  const { state, isDirty, setPending, apply, reset, revert, dismissResult } = useSliderTweak(tweak.id, config);
+
+  const isLoading   = state.status === 'loading';
+  const isApplying  = state.status === 'applying' || state.status === 'resetting';
+  const disabled    = isLoading || isApplying;
+
+  const pendingZone = getRangeZone(state.pendingValue, config);
+
+  // Compute display pending value (for stepped, pendingValue IS the registry value)
+  const handleSliderChange = useCallback((value: number) => {
+    if (config.stepped && config.presets) {
+      const resolved = resolveSliderValue(value, config);
+      setPending(resolved);
+    } else {
+      setPending(value);
+    }
+  }, [config, setPending]);
+
+  // For stepped slider position (index), convert currentValue to index
+  const steppedIndex = config.stepped && state.pendingValue !== null
+    ? valueToSliderPos(state.pendingValue, config)
+    : 0;
+
+  const pendingPreset = config.stepped && state.pendingValue !== null
+    ? getPreset(state.pendingValue, config)
+    : undefined;
+
+  const pendingLabel = state.pendingValue !== null
+    ? (config.stepped ? getPresetLabel(state.pendingValue, config) : formatValue(state.pendingValue, config.unit))
+    : "—";
+
+  return (
+    <GlassCard
+      blur="sm"
+      hoverEffect={false}
+      className={cn(
+        "group flex flex-col transition-all duration-500",
+        isDirty && "border-cyan-500/20 bg-cyan-500/[0.02]",
+        state.verifyResult?.ok && "border-emerald-500/20",
+        state.verifyResult?.ok === false && "border-red-500/20",
+      )}
+    >
+      {/* Header */}
+      <div className="p-4 space-y-2">
+        <div className="flex items-start gap-3 flex-wrap">
+          <div className="flex-1 min-w-0">
+            <h3 className="font-medium text-sm text-foreground group-hover:text-white transition-colors leading-tight">
+              {tweak.title}
+            </h3>
+            <div className="flex items-center gap-1.5 flex-wrap mt-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+              <FreeBadge />
+              {isElectron && needsAdmin && <AdminBadge />}
+              {tweak.requiresReboot && <RestartBadge />}
+              <LevelBadge level={tweak.level} />
+              <span className={cn(
+                "text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wider",
+                tweak.risk === "Safe"     ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                : tweak.risk === "Moderate" ? "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"
+                : "bg-red-500/10 text-red-400 border-red-500/20"
+              )}>
+                {tweak.risk}
+              </span>
+              {isElectron && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-cyan-500/10 text-cyan-400 border-cyan-500/20">
+                  <Zap className="inline-block size-3 mr-0.5 -mt-0.5" /> Real
+                </span>
+              )}
+            </div>
+          </div>
+
+          <button
+            onClick={() => setTrustOpen(!trustOpen)}
+            data-testid={`button-trust-${tweak.id}`}
+            className={cn(
+              "size-8 rounded-full flex items-center justify-center transition-all hover:bg-white/10",
+              trustOpen ? "text-primary" : "text-muted-foreground opacity-0 group-hover:opacity-100"
+            )}
+            title="Show impact details"
+          >
+            <Info className="size-3.5" />
+          </button>
+        </div>
+
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {tweak.description}
+        </p>
+      </div>
+
+      {/* TrustLayer */}
+      <TrustLayer tweak={tweak} isOpen={trustOpen} />
+
+      {/* Loading state */}
+      {isLoading && (
+        <div className="flex items-center gap-2 px-4 pb-3 text-xs text-muted-foreground">
+          <Loader2 className="size-3.5 animate-spin" />
+          Reading current value from system…
+        </div>
+      )}
+
+      {/* Control area */}
+      {!isLoading && (
+        <div className="px-4 pb-4 space-y-4">
+          {/* Value display row */}
+          <div className="flex items-center gap-4 text-xs">
+            <div className="flex-1">
+              <span className="text-white/30 block mb-0.5 text-[10px]">Current (system)</span>
+              <span className={cn("font-medium tabular-nums", isElectron ? "text-white/80" : "text-white/40")}>
+                {formatValue(state.currentValue, config.unit)}
+              </span>
+              {state.isUsingDefault && isElectron && (
+                <span className="text-[9px] text-white/25 ml-1">(key absent, using default)</span>
+              )}
+            </div>
+            <div className="flex-1">
+              <span className="text-white/30 block mb-0.5 text-[10px]">Pending</span>
+              <span className={cn(
+                "font-medium tabular-nums transition-colors",
+                isDirty ? "text-cyan-400" : "text-white/40"
+              )}>
+                {isDirty ? pendingLabel : "—"}
+              </span>
+            </div>
+            <div>
+              <span className="text-white/30 block mb-0.5 text-[10px]">Default</span>
+              <span className="text-white/35 tabular-nums">{formatValue(config.defaultValue, config.unit)}</span>
+            </div>
+            {config.recommendedValue !== undefined && (
+              <div>
+                <span className="text-white/30 block mb-0.5 text-[10px]">Recommended</span>
+                <span className="text-cyan-400/60 tabular-nums">{formatValue(config.recommendedValue, config.unit)}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Stepped selector OR continuous slider */}
+          {config.stepped ? (
+            <SteppedSelector
+              config={config}
+              currentValue={state.currentValue}
+              pendingValue={state.pendingValue}
+              disabled={disabled}
+              onSelect={setPending}
+            />
+          ) : (
+            <ContinuousSlider
+              config={config}
+              pendingValue={state.pendingValue}
+              disabled={disabled}
+              onChange={setPending}
+            />
+          )}
+
+          {/* Selected preset description (stepped only) */}
+          <AnimatePresence>
+            {config.stepped && pendingPreset?.description && (
+              <motion.p
+                key={state.pendingValue}
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.18 }}
+                className="text-[11px] text-white/40 leading-relaxed"
+              >
+                {pendingPreset.description}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          {/* Range warning */}
+          <AnimatePresence>
+            {pendingZone === "extreme" && config.extremeLabel && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2 p-2.5 rounded-lg border border-red-500/25 bg-red-500/10 text-red-300 text-xs">
+                  <AlertTriangle className="size-3.5 shrink-0" />
+                  <span>{config.extremeLabel}</span>
+                </div>
+              </motion.div>
+            )}
+            {pendingZone === "caution" && config.cautionLabel && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }}
+                className="overflow-hidden"
+              >
+                <div className="flex items-center gap-2 p-2.5 rounded-lg border border-yellow-500/25 bg-yellow-500/10 text-yellow-300 text-xs">
+                  <AlertTriangle className="size-3.5 shrink-0" />
+                  <span>{config.cautionLabel}</span>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Action buttons */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              onClick={apply}
+              disabled={disabled || !isDirty}
+              data-testid={`button-apply-slider-${tweak.id}`}
+              className={cn(
+                "h-8 px-4 text-xs gap-2 transition-all",
+                isDirty
+                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
+                  : "bg-white/5 text-white/30 border border-white/10"
+              )}
+            >
+              {isApplying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
+              Apply
+            </Button>
+
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={reset}
+              disabled={disabled || state.currentValue === config.defaultValue}
+              data-testid={`button-reset-slider-${tweak.id}`}
+              className="h-8 px-3 text-xs gap-2 text-white/40 hover:text-white/70 hover:bg-white/5 border border-white/[0.06]"
+            >
+              <RotateCcw className="size-3" />
+              Reset to Default
+            </Button>
+
+            {state.previousValue !== null && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={revert}
+                disabled={disabled}
+                data-testid={`button-revert-slider-${tweak.id}`}
+                className="h-8 px-3 text-xs gap-2 text-white/40 hover:text-amber-300 hover:bg-amber-500/10 border border-white/[0.06]"
+                title={`Revert to ${formatValue(state.previousValue, config.unit)}`}
+              >
+                <CornerDownLeft className="size-3" />
+                Revert
+              </Button>
+            )}
+          </div>
+
+          {/* Restart hint */}
+          {tweak.requiresReboot && isDirty && (
+            <p className="text-[11px] text-yellow-400/60 flex items-center gap-1.5">
+              <RefreshCw className="size-3" />
+              Restart required for this change to take full effect.
+            </p>
+          )}
+
+          {/* Advanced details toggle */}
+          <button
+            onClick={() => setAdvancedOpen(!advancedOpen)}
+            data-testid={`button-advanced-${tweak.id}`}
+            className="flex items-center gap-1.5 text-[10px] text-white/25 hover:text-white/50 transition-colors"
+          >
+            {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+            {advancedOpen ? "Hide" : "Show"} advanced details
+          </button>
+        </div>
+      )}
+
+      {/* Verify result banner */}
+      <AnimatePresence>
+        {state.verifyResult && (
+          <VerifyBanner
+            ok={state.verifyResult.ok}
+            error={state.verifyResult.error}
+            actualValue={state.verifyResult.actualValue}
+            unit={config.unit}
+            onDismiss={dismissResult}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Advanced details drawer */}
+      <AnimatePresence>
+        {advancedOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <AdvancedDetails tweak={tweak} currentValue={state.currentValue} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </GlassCard>
+  );
+}

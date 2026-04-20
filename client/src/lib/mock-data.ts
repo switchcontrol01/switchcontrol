@@ -14,6 +14,8 @@ export type TweakCategory =
 
 export type ImpactLevel = "None" | "Low" | "Medium" | "High";
 
+export type TweakControlType = "toggle" | "slider";
+
 export interface TweakExpected {
   cpu?: ImpactLevel;
   gpu?: ImpactLevel;
@@ -22,6 +24,60 @@ export interface TweakExpected {
   network?: ImpactLevel;
   latency?: ImpactLevel;
   stabilityRisk?: ImpactLevel;
+}
+
+/** A named preset value for a stepped slider */
+export interface SliderPreset {
+  value: number;
+  label: string;
+  description?: string;
+  isDefault?: boolean;
+  isRecommended?: boolean;
+}
+
+/** Configuration for a slider-type tweak control */
+export interface SliderConfig {
+  /** Absolute minimum value shown on the slider */
+  min: number;
+  /** Absolute maximum value shown on the slider */
+  max: number;
+  /** Step increment for continuous sliders */
+  step: number;
+  /** System default value (shown with a marker on the track) */
+  defaultValue: number;
+  /** Recommended value for gaming/performance (shown with a marker) */
+  recommendedValue?: number;
+  /** Unit suffix displayed next to the value (e.g. "ms", "entries", "%") */
+  unit?: string;
+  /**
+   * If true, only the preset values in `presets` are valid.
+   * The slider snaps to these steps rather than being continuous.
+   */
+  stepped?: boolean;
+  presets?: SliderPreset[];
+  /**
+   * Lower bound of the "safe" range.
+   * Values below this trigger a caution warning.
+   */
+  safeMin?: number;
+  /**
+   * Upper bound of the "safe" range.
+   * Values above this trigger a caution warning.
+   */
+  safeMax?: number;
+  cautionLabel?: string;
+  extremeMin?: number;
+  extremeMax?: number;
+  extremeLabel?: string;
+}
+
+/** Extra technical detail shown in the advanced drawer */
+export interface TweakDetailsConfig {
+  registryPath?: string;
+  registryName?: string;
+  registryType?: string;
+  whoShouldAvoid?: string;
+  technicalNote?: string;
 }
 
 export interface Tweak {
@@ -35,6 +91,14 @@ export interface Tweak {
   risk: RiskLevel;
   requiresAgent?: boolean;
   requiresReboot?: boolean;
+  /** "toggle" (default) or "slider" for numeric registry controls */
+  controlType?: TweakControlType;
+  /** Required when controlType === "slider" */
+  sliderConfig?: SliderConfig;
+  /** Optional extra info shown in the advanced drawer */
+  detailsConfig?: TweakDetailsConfig;
+  /** Plain-language who should avoid this tweak */
+  whoShouldAvoid?: string;
 }
 
 export const TWEAKS_DATA: Tweak[] = [
@@ -717,6 +781,358 @@ export const TWEAKS_DATA: Tweak[] = [
     category: "Windows UX", 
     level: "Recommended", 
     risk: "Safe" 
+  },
+
+  // ── New toggle tweaks ──────────────────────────────────────────────────────
+
+  {
+    id: "power-throttling",
+    title: "Disable Power Throttling",
+    description: "Prevents Windows from throttling CPU power to background processes when on AC power. Ensures consistent CPU performance for all tasks rather than letting Windows demote background threads.",
+    impact: [
+      "Stops Windows from silently throttling CPU frequency for background apps",
+      "Ensures background compile jobs, streaming encoders, and game launchers get full CPU",
+      "Slightly higher idle power draw — negligible on desktops, more noticeable on laptops",
+      "Does not affect foreground app priority — only removes background demotion"
+    ],
+    expected: { cpu: "Medium", gpu: "None", ram: "None", disk: "None", network: "None", latency: "Low", stabilityRisk: "Low" },
+    category: "System and Power",
+    level: "Advanced",
+    risk: "Safe",
+    whoShouldAvoid: "Laptop users on battery who care about battery life.",
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling",
+      registryName: "PowerThrottlingOff",
+      registryType: "DWORD",
+      technicalNote: "Sets PowerThrottlingOff = 1 globally. Power throttling was introduced in Windows 10 1709 and uses EcoQoS / Quality of Service hints to demote background thread CPU priority.",
+    },
+  },
+
+  {
+    id: "ntfs-last-access",
+    title: "Disable NTFS Last Access Updates",
+    description: "Stops the NTFS driver from updating the 'last access' timestamp every time a file is read. This eliminates thousands of silent write operations on read-heavy workloads.",
+    impact: [
+      "Eliminates write amplification from read-only file access (indexing, game asset streaming)",
+      "Reduces disk I/O overhead on SSDs and HDDs during sequential read workloads",
+      "Last accessed timestamps are no longer updated in file metadata",
+      "Tools that rely on last-access timestamps (rare) may not work correctly"
+    ],
+    expected: { disk: "Medium", cpu: "Low", ram: "None", gpu: "None", network: "None", latency: "Low", stabilityRisk: "Low" },
+    category: "Memory and Storage",
+    level: "Advanced",
+    risk: "Safe",
+    whoShouldAvoid: "Users running backup software that depends on last-access timestamps for incremental backups.",
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem",
+      registryName: "NtfsDisableLastAccessUpdate",
+      registryType: "DWORD",
+      technicalNote: "Sets NtfsDisableLastAccessUpdate = 1. This is the registry equivalent of 'fsutil behavior set DisableLastAccess 1'. Takes effect immediately without a reboot.",
+    },
+  },
+
+  {
+    id: "disable-transparency",
+    title: "Disable Transparency Effects",
+    description: "Turns off frosted-glass blur/transparency effects in the taskbar, Start menu, and Action Center. Reduces DWM GPU compositing work and can improve responsiveness on low-VRAM systems.",
+    impact: [
+      "Reduces DWM (Desktop Window Manager) GPU compositing overhead",
+      "Taskbar, Start, and notification panel become solid-color instead of translucent",
+      "Can reduce micro-stutters on GPUs with limited VRAM or weak video encoders",
+      "Purely visual — no effect on game performance on modern discrete GPUs"
+    ],
+    expected: { gpu: "Low", cpu: "None", ram: "None", disk: "None", network: "None", latency: "None", stabilityRisk: "None" },
+    category: "Windows UX",
+    level: "Recommended",
+    risk: "Safe",
+    whoShouldAvoid: "Nobody — this is purely cosmetic and fully reversible.",
+    detailsConfig: {
+      registryPath: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+      registryName: "EnableTransparency",
+      registryType: "DWORD",
+      technicalNote: "Sets EnableTransparency = 0 in Personalize. Takes effect immediately via Personalization settings. No restart needed.",
+    },
+  },
+
+  {
+    id: "disable-animations",
+    title: "Disable Window Animations",
+    description: "Turns off minimize/maximize/open/close window animations and visual transitions. Makes the desktop feel more instant and reduces DWM work per frame.",
+    impact: [
+      "Windows open and close instantly instead of animating",
+      "Taskbar previews and tooltip fades are disabled",
+      "Reduces DWM frame compositing budget on low-end systems",
+      "Noticeably faster-feeling desktop responsiveness on older hardware"
+    ],
+    expected: { gpu: "Low", cpu: "Low", ram: "None", disk: "None", network: "None", latency: "Low", stabilityRisk: "None" },
+    category: "Windows UX",
+    level: "Recommended",
+    risk: "Safe",
+    whoShouldAvoid: "Nobody — this is a purely visual preference and is fully reversible.",
+    detailsConfig: {
+      registryPath: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects",
+      registryName: "VisualFXSetting",
+      registryType: "DWORD",
+      technicalNote: "Sets VisualFXSetting = 3 (Custom/Minimum) and MinAnimate = 0 under HKCU\\Control Panel\\Desktop\\WindowMetrics. No restart needed.",
+    },
+  },
+
+  // ── Slider-based tweaks ────────────────────────────────────────────────────
+
+  {
+    id: "win32-priority-sep",
+    title: "Foreground / Background Priority Balance",
+    description: "Adjusts how aggressively Windows favors the active foreground application for CPU scheduler quanta. This is the Win32PrioritySeparation DWORD — a real 6-bit bitfield controlling quantum type, quantum length, and foreground boost. Only stepped presets based on real values are exposed — no fake percentage scale.",
+    impact: [
+      "Foreground-biased presets give the active app more of every CPU scheduler quantum",
+      "Higher foreground priority can reduce input latency and improve frame consistency in games",
+      "Aggressive settings may starve background tasks (encoders, downloads) during heavy loads",
+      "Changes take effect immediately — no restart required"
+    ],
+    expected: { latency: "Medium", cpu: "Medium", gpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency",
+    level: "Advanced",
+    risk: "Moderate",
+    controlType: "slider",
+    whoShouldAvoid: "Video editors, streamers, and developers who run CPU-intensive background tasks alongside foreground apps.",
+    sliderConfig: {
+      min: 0,
+      max: 3,
+      step: 1,
+      defaultValue: 2,
+      recommendedValue: 26,
+      stepped: true,
+      presets: [
+        { value: 2,  label: "Balanced (Default)",      description: "Windows default for workstations. Variable quanta, short, foreground boost.",       isDefault: true },
+        { value: 22, label: "Favor Foreground",        description: "Fixed quanta, foreground boost. More CPU time for the active window.",               isRecommended: false },
+        { value: 26, label: "Gaming (Recommended)",    description: "Fixed short quanta, foreground boost. Common gaming/low-latency recommendation.",    isRecommended: true },
+        { value: 38, label: "Maximum Foreground Bias", description: "Fixed long quanta, foreground boost. Most aggressive foreground prioritization.",    isRecommended: false },
+      ],
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Control\\PriorityControl",
+      registryName: "Win32PrioritySeparation",
+      registryType: "DWORD",
+      technicalNote: "6-bit bitfield: bits[1:0] = priority boost, bits[3:2] = quantum type (fixed/variable), bits[5:4] = quantum length (short/long). Valid gaming preset 26 = 011010 binary.",
+    },
+  },
+
+  {
+    id: "mouse-queue-size",
+    title: "Mouse Input Queue Depth",
+    description: "Controls how many mouse input events the mouclass kernel driver buffers before processing them. Lower values reduce buffering and can improve perceived input latency. The default of 16 is conservative. 8 is a common gaming recommendation. Going below 4 risks missing inputs under CPU load.",
+    impact: [
+      "Lower values reduce mouse input buffering — events are processed sooner",
+      "Too low (below 4) may cause missed mouse events under high CPU load",
+      "Too high (above 16) adds unnecessary buffering with no practical benefit",
+      "Restart required for the driver change to take effect"
+    ],
+    expected: { latency: "Medium", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Low" },
+    category: "Input",
+    level: "Advanced",
+    risk: "Moderate",
+    requiresReboot: true,
+    controlType: "slider",
+    whoShouldAvoid: "Users on low-end CPUs where full CPU saturation is common — missed inputs become more likely at very low queue depths.",
+    sliderConfig: {
+      min: 1,
+      max: 20,
+      step: 1,
+      defaultValue: 16,
+      recommendedValue: 8,
+      unit: "entries",
+      safeMin: 4,
+      safeMax: 16,
+      cautionLabel: "Below 4 may cause missed inputs under CPU load",
+      extremeMin: 1,
+      extremeMax: 3,
+      extremeLabel: "Risk of dropped mouse events — not recommended",
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Services\\mouclass\\Parameters",
+      registryName: "MouseDataQueueSize",
+      registryType: "DWORD",
+      technicalNote: "Controls the mouclass.sys kernel driver input queue. Restart required. Applies to all PS/2 and USB HID mice.",
+    },
+  },
+
+  {
+    id: "kbd-queue-size",
+    title: "Keyboard Input Queue Depth",
+    description: "Controls how many keyboard input events the kbdclass kernel driver buffers. Lower values reduce key-press buffering. The default of 16 is conservative for gaming. 8 is a common gaming recommendation. Risks are similar to mouse queue — going too low on a loaded system may drop keystrokes.",
+    impact: [
+      "Lower values reduce keyboard buffering — key events are processed more promptly",
+      "Too low (below 4) may cause dropped keystrokes under high CPU load",
+      "Practically only affects very high polling rate keyboards or loaded systems",
+      "Restart required for the driver change to take effect"
+    ],
+    expected: { latency: "Low", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Low" },
+    category: "Input",
+    level: "Advanced",
+    risk: "Moderate",
+    requiresReboot: true,
+    controlType: "slider",
+    whoShouldAvoid: "Typists on CPU-heavy workloads where brief drops in keyboard processing could cause missed keystrokes.",
+    sliderConfig: {
+      min: 1,
+      max: 20,
+      step: 1,
+      defaultValue: 16,
+      recommendedValue: 8,
+      unit: "entries",
+      safeMin: 4,
+      safeMax: 16,
+      cautionLabel: "Below 4 may cause missed keystrokes under CPU load",
+      extremeMin: 1,
+      extremeMax: 3,
+      extremeLabel: "Risk of dropped key events — not recommended",
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SYSTEM\\CurrentControlSet\\Services\\kbdclass\\Parameters",
+      registryName: "KeyboardDataQueueSize",
+      registryType: "DWORD",
+      technicalNote: "Controls the kbdclass.sys kernel driver queue. Restart required. Applies to all USB HID and PS/2 keyboards.",
+    },
+  },
+
+  {
+    id: "sys-responsiveness",
+    title: "MMCSS System Responsiveness",
+    description: "Controls what percentage of CPU time the Multimedia Class Scheduler Service (MMCSS) reserves for background non-multimedia tasks. 0% gives everything to foreground multimedia/gaming. 20% is the Windows default. Setting to 0 is the standard gaming recommendation — it does not require a restart.",
+    impact: [
+      "0% gives MMCSS full CPU reservation authority to games and audio — the standard gaming setting",
+      "20% is the Windows default — balanced for general desktop use",
+      "Setting above 20% reserves more CPU for background tasks, useful for production workloads",
+      "Takes effect when the next MMCSS-registered app (game, audio, video) starts — no restart needed"
+    ],
+    expected: { latency: "Medium", cpu: "Medium", gpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency",
+    level: "Advanced",
+    risk: "Safe",
+    controlType: "slider",
+    whoShouldAvoid: "Audio producers and video editors who run background renders — setting to 0 may starve background encoder processes.",
+    sliderConfig: {
+      min: 0,
+      max: 100,
+      step: 10,
+      defaultValue: 20,
+      recommendedValue: 0,
+      unit: "%",
+      safeMin: 0,
+      safeMax: 50,
+      cautionLabel: "Above 50% reserves significant CPU for background tasks",
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
+      registryName: "SystemResponsiveness",
+      registryType: "DWORD",
+      technicalNote: "MMCSS (Multimedia Class Scheduler) uses this value to determine how much CPU bandwidth to yield to non-multimedia threads. A value of 0 means MMCSS games tasks may claim all available CPU time.",
+    },
+  },
+
+  {
+    id: "net-throttle-index",
+    title: "Network Throttling Index",
+    description: "Controls multimedia-oriented network packet throttling behavior in MMCSS. When set to the default (10), Windows limits network throughput for multimedia apps. Disabling it (0xFFFFFFFF) removes this limit — the standard recommendation for gaming and low-latency workloads.",
+    impact: [
+      "Disabled (4294967295): removes multimedia network throttling — full bandwidth available at all times",
+      "Default (10): Windows limits multimedia app throughput to prevent network floods",
+      "Higher values increase throttling — useful for bandwidth-constrained media production environments",
+      "Does not affect browser or general Windows network traffic — only MMCSS-registered processes"
+    ],
+    expected: { network: "Medium", latency: "Low", cpu: "None", ram: "None", disk: "None", gpu: "None", stabilityRisk: "Low" },
+    category: "Gaming and Latency",
+    level: "Advanced",
+    risk: "Safe",
+    controlType: "slider",
+    whoShouldAvoid: "Users on shared or bandwidth-constrained networks where unrestricted game network traffic could cause issues.",
+    sliderConfig: {
+      min: 0,
+      max: 3,
+      step: 1,
+      defaultValue: 10,
+      recommendedValue: 4294967295,
+      stepped: true,
+      presets: [
+        { value: 4294967295, label: "Disabled (Gaming)",  description: "No throttling — full network bandwidth available for MMCSS processes.", isRecommended: true },
+        { value: 10,         label: "Standard (Default)", description: "Windows default — limits multimedia process network throughput to ~10 packets/ms.", isDefault: true },
+        { value: 50,         label: "Moderate",           description: "Moderate throttling — suitable for multimedia production environments." },
+        { value: 100,        label: "Heavy",              description: "Heavy throttling — limits multimedia process bandwidth significantly." },
+      ],
+    },
+    detailsConfig: {
+      registryPath: "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Multimedia\\SystemProfile",
+      registryName: "NetworkThrottlingIndex",
+      registryType: "DWORD",
+      technicalNote: "0xFFFFFFFF (4294967295) is the special value that disables throttling entirely. Any other value is treated as a packets-per-millisecond limit for MMCSS-registered network activity.",
+    },
+  },
+
+  {
+    id: "menu-show-delay",
+    title: "Menu Show Delay",
+    description: "Controls the delay in milliseconds before Windows shows cascading menus when you hover over them. The default is 400ms. Setting to 0 makes menus appear instantly on hover. This is stored in HKCU and does not require admin or a restart.",
+    impact: [
+      "0ms makes menus open instantly when hovered — feels much more responsive",
+      "400ms is the Windows default — deliberate delay before cascading sub-menus open",
+      "No performance impact — purely a responsiveness and UX preference",
+      "Takes effect immediately — no restart needed"
+    ],
+    expected: { cpu: "None", gpu: "None", ram: "None", disk: "None", network: "None", latency: "None", stabilityRisk: "None" },
+    category: "Windows UX",
+    level: "Advanced",
+    risk: "Safe",
+    controlType: "slider",
+    whoShouldAvoid: "Nobody — this is a purely cosmetic and reversible change.",
+    sliderConfig: {
+      min: 0,
+      max: 400,
+      step: 50,
+      defaultValue: 400,
+      recommendedValue: 0,
+      unit: "ms",
+    },
+    detailsConfig: {
+      registryPath: "HKCU\\Control Panel\\Desktop",
+      registryName: "MenuShowDelay",
+      registryType: "REG_SZ",
+      technicalNote: "Stored as a string (REG_SZ) despite being a numeric value. Windows reads it as a decimal integer. No admin rights needed. Effect is immediate.",
+    },
+  },
+
+  {
+    id: "hung-app-timeout",
+    title: "Hung Application Timeout",
+    description: "Controls how many milliseconds Windows waits before declaring a non-responding application 'hung' and offering to close it. The default is 5000ms. Reducing this makes the 'Not Responding' dialog appear faster when an app freezes, allowing quicker recovery. Raising it gives apps more time before Windows marks them as hung.",
+    impact: [
+      "Lower values: the 'End Task' dialog appears faster when apps freeze — quicker recovery",
+      "Default 5000ms means you wait 5 seconds before Windows offers to force-close a frozen app",
+      "Recommendation of 2000ms is a common usability improvement without risking false positives",
+      "No performance impact — only affects how quickly the Not Responding state triggers"
+    ],
+    expected: { cpu: "None", gpu: "None", ram: "None", disk: "None", network: "None", latency: "None", stabilityRisk: "Low" },
+    category: "Windows UX",
+    level: "Advanced",
+    risk: "Safe",
+    controlType: "slider",
+    whoShouldAvoid: "Users running very heavy apps (large game levels, complex spreadsheets) that may legitimately take >2s to respond to a message pump.",
+    sliderConfig: {
+      min: 1000,
+      max: 15000,
+      step: 500,
+      defaultValue: 5000,
+      recommendedValue: 2000,
+      unit: "ms",
+      safeMin: 1500,
+      safeMax: 10000,
+      cautionLabel: "Below 1500ms risks false 'Not Responding' on legitimately busy apps",
+    },
+    detailsConfig: {
+      registryPath: "HKCU\\Control Panel\\Desktop",
+      registryName: "HungAppTimeout",
+      registryType: "REG_SZ",
+      technicalNote: "Stored as a string (REG_SZ). Windows reads it as a decimal millisecond value. Takes effect after re-login or Windows Explorer restart.",
+    },
   },
 ];
 

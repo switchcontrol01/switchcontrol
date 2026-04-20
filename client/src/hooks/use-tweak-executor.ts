@@ -59,6 +59,8 @@ const HKCU_TWEAKS = [
   'gaming-mode', 'notifications', 'copilot', 'cortana', 'search-highlights',
   'storage-sense', 'compact-explorer', 'recent-files', 'xbox-bar', 'bg-apps',
   'disable-fso', 'disable-pointer-precision',
+  // New HKCU toggle tweaks
+  'disable-transparency', 'disable-animations',
 ];
 
 const ADMIN_TWEAKS = [
@@ -69,7 +71,21 @@ const ADMIN_TWEAKS = [
   'synth-timers', 'preemption',
   'disable-mpo', 'usb-selective-suspend', 'pcie-link-state', 'mmcss-gaming',
   'disable-delivery-opt', 'disable-wer', 'win-search-index', 'disable-activity-history',
+  // New admin toggle tweaks
+  'power-throttling', 'ntfs-last-access',
 ];
+
+/**
+ * Slider tweaks use a separate IPC path (readSliderValue / applySliderValue).
+ * They are NOT in REAL_TWEAKS (toggle path) — TweakSliderCard handles them.
+ */
+export const SLIDER_TWEAKS = [
+  'win32-priority-sep', 'mouse-queue-size', 'kbd-queue-size',
+  'sys-responsiveness', 'net-throttle-index',
+  'menu-show-delay', 'hung-app-timeout',
+] as const;
+
+export type SliderTweakId = typeof SLIDER_TWEAKS[number];
 
 export const UNSUPPORTED_TWEAKS: Record<string, string> = {
   'p-states':     'Requires a runtime agent process for CPU P-state control. Cannot be applied persistently via registry.',
@@ -86,6 +102,7 @@ export function isUnsupportedTweak(tweakId: string): boolean { return tweakId in
 export function isTierATweak(tweakId: string): boolean { return HKCU_TWEAKS.includes(tweakId); }
 export function isTierBTweak(tweakId: string): boolean { return ADMIN_TWEAKS.includes(tweakId); }
 export function isAdminTweak(tweakId: string): boolean { return ADMIN_TWEAKS.includes(tweakId); }
+export function isSliderTweak(tweakId: string): boolean { return (SLIDER_TWEAKS as readonly string[]).includes(tweakId); }
 
 export function isElectronWithTweaks(): boolean {
   return typeof window !== 'undefined' && !!(window as any).electronAPI?.tweaks;

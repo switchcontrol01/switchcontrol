@@ -17,6 +17,7 @@ const path = require('path');
 const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
+const sliderTweakExecutor = require('./slider-tweak-executor');
 let networkTweakExecutor;
 try {
   networkTweakExecutor = require('./network-tweak-executor');
@@ -1773,6 +1774,33 @@ ipcMain.handle('tweak:getLocalState', () => {
 
 ipcMain.handle('tweak:getInfo', () => {
   return tweakExecutor.getTweakInfo();
+});
+
+// Slider tweak IPC handlers
+ipcMain.handle('tweak:readValue', async (event, tweakId) => {
+  if (typeof tweakId !== 'string') return { value: null, error: 'Invalid tweakId' };
+  return await sliderTweakExecutor.readSliderValue(tweakId);
+});
+
+ipcMain.handle('tweak:applyValue', async (event, tweakId, value) => {
+  if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
+  if (value === undefined || value === null) return { ok: false, error: 'Value required' };
+  return await sliderTweakExecutor.applySliderValue(tweakId, value);
+});
+
+ipcMain.handle('tweak:verifyValue', async (event, tweakId, expectedValue) => {
+  if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
+  return await sliderTweakExecutor.verifySliderValue(tweakId, expectedValue);
+});
+
+ipcMain.handle('tweak:resetValue', async (event, tweakId) => {
+  if (typeof tweakId !== 'string') return { ok: false, error: 'Invalid tweakId' };
+  return await sliderTweakExecutor.resetSliderValue(tweakId);
+});
+
+ipcMain.handle('tweak:getSliderMeta', (event, tweakId) => {
+  if (typeof tweakId !== 'string') return null;
+  return sliderTweakExecutor.getSliderTweakMeta(tweakId);
 });
 
 // Power Plan handlers

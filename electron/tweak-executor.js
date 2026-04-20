@@ -363,6 +363,22 @@ const HKCU_TWEAKS = {
     revert: `Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseSpeed" -Value "1" -Type String -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold1" -Value "6" -Type String -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseThreshold2" -Value "10" -Type String -Force`,
     check:  `(Get-ItemProperty -Path "HKCU:\\Control Panel\\Mouse" -Name "MouseSpeed" -EA SilentlyContinue).MouseSpeed -eq "0"`,
   },
+  'disable-transparency': {
+    name: 'Disable Transparency Effects',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" -Name "EnableTransparency" -Value 0 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" -Name "EnableTransparency" -Value 1 -Type DWord -Force`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" -Name "EnableTransparency" -EA SilentlyContinue).EnableTransparency -eq 0`,
+  },
+  'disable-animations': {
+    name: 'Disable Window Animations',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects" -Name "VisualFXSetting" -Value 3 -Type DWord -Force; New-Item -Path "HKCU:\\Control Panel\\Desktop\\WindowMetrics" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop\\WindowMetrics" -Name "MinAnimate" -Value "0" -Type String -Force`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects" -Name "VisualFXSetting" -Value 0 -Type DWord -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop\\WindowMetrics" -Name "MinAnimate" -Value "1" -Type String -Force`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects" -Name "VisualFXSetting" -EA SilentlyContinue).VisualFXSetting -eq 3`,
+  },
 };
 
 // ─── ADMIN tweaks (HKLM / services / bcdedit – require elevation) ──────────────
@@ -603,6 +619,22 @@ const ADMIN_TWEAKS = {
     apply:  `$p = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "EnableActivityFeed" -Value 0 -Type DWord -Force; Set-ItemProperty -Path $p -Name "PublishUserActivities" -Value 0 -Type DWord -Force; Set-ItemProperty -Path $p -Name "UploadUserActivities" -Value 0 -Type DWord -Force`,
     revert: `$p = "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System"; Remove-ItemProperty -Path $p -Name "EnableActivityFeed" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "PublishUserActivities" -EA SilentlyContinue; Remove-ItemProperty -Path $p -Name "UploadUserActivities" -EA SilentlyContinue`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\System" -Name "EnableActivityFeed" -EA SilentlyContinue).EnableActivityFeed -eq 0`,
+  },
+  'power-throttling': {
+    name: 'Disable Power Throttling',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "PowerThrottlingOff" -Value 1 -Type DWord -Force`,
+    revert: `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling"; Remove-ItemProperty -Path $p -Name "PowerThrottlingOff" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Power\\PowerThrottling" -Name "PowerThrottlingOff" -EA SilentlyContinue).PowerThrottlingOff -eq 1`,
+  },
+  'ntfs-last-access': {
+    name: 'Disable NTFS Last Access Updates',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "NtfsDisableLastAccessUpdate" -Value 1 -Type DWord -Force`,
+    revert: `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem"; Set-ItemProperty -Path $p -Name "NtfsDisableLastAccessUpdate" -Value 0 -Type DWord -Force`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem" -Name "NtfsDisableLastAccessUpdate" -EA SilentlyContinue).NtfsDisableLastAccessUpdate -eq 1`,
   },
 };
 

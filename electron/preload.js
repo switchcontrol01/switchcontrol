@@ -191,6 +191,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLocalState: () => ipcRenderer.invoke('tweak:getLocalState'),
     getInfo:       () => ipcRenderer.invoke('tweak:getInfo'),
     getLog:        () => ipcRenderer.invoke('tweak:getLog'),
+    // Slider-specific APIs
+    readValue: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('tweak:readValue', tweakId);
+    },
+    applyValue: (tweakId, value) => {
+      assertString(tweakId, 'tweakId');
+      if (typeof value !== 'number') throw new TypeError('tweaks.applyValue: value must be a number');
+      return ipcRenderer.invoke('tweak:applyValue', tweakId, value);
+    },
+    verifyValue: (tweakId, expectedValue) => {
+      assertString(tweakId, 'tweakId');
+      if (typeof expectedValue !== 'number') throw new TypeError('tweaks.verifyValue: expectedValue must be a number');
+      return ipcRenderer.invoke('tweak:verifyValue', tweakId, expectedValue);
+    },
+    resetValue: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('tweak:resetValue', tweakId);
+    },
+    getSliderMeta: (tweakId) => {
+      assertString(tweakId, 'tweakId');
+      return ipcRenderer.invoke('tweak:getSliderMeta', tweakId);
+    },
   },
 
   memory: {
