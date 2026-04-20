@@ -25,7 +25,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTourStore } from "@/lib/tour-store";
-import { isTrialActive, formatTrialCountdown } from "@/lib/trialCountdown";
+import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 
 function DiscordIcon({ className }: { className?: string }) {
   return (
@@ -351,14 +351,8 @@ function NavItemRow({
 
 export function Sidebar() {
   const [location, setLocation] = useLocation();
-  const { user, isPremium, logout, isSigningOut } = useAuth();
-  const trialOn = isTrialActive(user?.plan ?? "free", user?.trialEndsAt ?? null);
-  const [trialLabel, setTrialLabel] = useState(() => formatTrialCountdown(user?.trialEndsAt ?? null));
-  useEffect(() => {
-    if (!trialOn || !user?.trialEndsAt) return;
-    const id = setInterval(() => setTrialLabel(formatTrialCountdown(user.trialEndsAt)), 60_000);
-    return () => clearInterval(id);
-  }, [trialOn, user?.trialEndsAt]);
+  const { user, logout, isSigningOut } = useAuth();
+  const ent = useEntitlementUiState();
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
   useEffect(() => {
@@ -471,7 +465,7 @@ export function Sidebar() {
               <div
                 className="absolute inset-0 rounded-full pointer-events-none"
                 style={{
-                  boxShadow: isPremium
+                  boxShadow: ent.showPremiumBadge
                     ? "0 0 0 1.5px rgba(139,92,246,0.35), 0 0 6px rgba(139,92,246,0.2)"
                     : "0 0 0 1.5px rgba(255,255,255,0.1)",
                 }}
@@ -481,7 +475,7 @@ export function Sidebar() {
             {/* User info */}
             <div className="flex flex-col flex-1 min-w-0 gap-0.5">
               <span className="text-sm font-medium text-white truncate">{userName}</span>
-              {trialOn ? (
+              {ent.showTrialBadge ? (
                 <motion.div
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-full w-fit"
                   style={{
@@ -493,10 +487,10 @@ export function Sidebar() {
                 >
                   <Clock className="size-2.5 shrink-0" style={{ color: "rgba(6,182,212,0.9)" }} />
                   <span className="text-[9px] font-bold truncate" style={{ color: "rgba(6,182,212,0.9)", maxWidth: 80 }}>
-                    {trialLabel}
+                    {ent.countdownLabel}
                   </span>
                 </motion.div>
-              ) : isPremium ? (
+              ) : ent.showPremiumBadge ? (
                 <div className="premium-badge">
                   <span className="crown-animated">
                     <Crown className="size-2.5" style={{ color: "hsl(48 95% 70%)" }} />

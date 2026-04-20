@@ -11,8 +11,7 @@ import { Loader2, Moon, Timer } from "lucide-react";
 import { useNetworkStatus } from "@/hooks/use-network-status";
 import { useFocusStore } from "@/lib/focusStore";
 import { useTourStore } from "@/lib/tour-store";
-import { useAuth } from "@/hooks/use-auth";
-import { isTrialActive, formatTrialCountdown, getTrialTimeRemaining } from "@/lib/trialCountdown";
+import { useEntitlementUiState } from "@/hooks/useEntitlementUiState";
 
 function FocusModeBanner() {
   const { active, profileName, expiresAt } = useFocusStore();
@@ -60,26 +59,10 @@ function FocusModeBanner() {
 }
 
 function TrialCountdownBanner() {
-  const { user } = useAuth();
-  const trialOn = isTrialActive(user?.plan ?? "free", user?.trialEndsAt ?? null);
-  const [label, setLabel] = useState(() => formatTrialCountdown(user?.trialEndsAt ?? null));
-  const [rem, setRem] = useState(() => getTrialTimeRemaining(user?.trialEndsAt ?? null));
+  const ent = useEntitlementUiState();
   const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    if (!trialOn || !user?.trialEndsAt) return;
-    const tick = () => {
-      setLabel(formatTrialCountdown(user.trialEndsAt));
-      setRem(getTrialTimeRemaining(user.trialEndsAt));
-    };
-    tick();
-    const id = setInterval(tick, 60_000);
-    return () => clearInterval(id);
-  }, [trialOn, user?.trialEndsAt]);
-
-  if (!trialOn || dismissed) return null;
-
-  const isUrgent = rem.days < 2;
+  if (!ent.showTrialBanner || dismissed) return null;
 
   return (
     <motion.div
@@ -89,17 +72,20 @@ function TrialCountdownBanner() {
       transition={{ duration: 0.3 }}
       className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 backdrop-blur"
       style={{
-        background: isUrgent
+        background: ent.isTrialUrgent
           ? "linear-gradient(90deg, rgba(220,38,38,0.18) 0%, rgba(168,85,247,0.14) 100%)"
           : "linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(139,92,246,0.12) 100%)",
-        borderBottom: isUrgent
+        borderBottom: ent.isTrialUrgent
           ? "1px solid rgba(220,38,38,0.3)"
           : "1px solid rgba(6,182,212,0.25)",
       }}
       data-testid="trial-countdown-banner"
     >
-      <div className="flex items-center gap-2 text-xs font-medium" style={{ color: isUrgent ? "rgba(248,113,113,0.95)" : "rgba(6,182,212,0.95)" }}>
-        {isUrgent ? (
+      <div
+        className="flex items-center gap-2 text-xs font-medium"
+        style={{ color: ent.isTrialUrgent ? "rgba(248,113,113,0.95)" : "rgba(6,182,212,0.95)" }}
+      >
+        {ent.isTrialUrgent ? (
           <motion.div animate={{ opacity: [1, 0.5, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
             <div className="size-1.5 rounded-full bg-red-400" />
           </motion.div>
@@ -108,9 +94,8 @@ function TrialCountdownBanner() {
         )}
         <Timer className="size-3" />
         <span>
-          {isUrgent ? "Trial ending soon — " : "Free trial active — "}
-          <span className="font-bold font-mono">{label}</span>
-          {" remaining"}
+          {ent.isTrialUrgent ? "Trial ending soon — " : "Free trial active — "}
+          <span className="font-bold font-mono">{ent.countdownLabel}</span>
         </span>
       </div>
       <div className="flex items-center gap-3">
