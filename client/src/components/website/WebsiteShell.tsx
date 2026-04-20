@@ -106,7 +106,7 @@ function FullHeader() {
                 <GlowButton
                   variant="primary"
                   data-testid="button-header-download"
-                  onClick={() => { window.location.href = installerUrl("navbar"); }}
+                  onClick={() => { window.open(installerUrl("navbar"), "_blank", "noopener,noreferrer"); }}
                 >
                   <Download className="size-4" />
                   Download
@@ -194,7 +194,7 @@ function FullHeader() {
                     className="w-full"
                     onClick={() => {
                       setMobileMenuOpen(false);
-                      window.location.href = installerUrl("navbar");
+                      window.open(installerUrl("navbar"), "_blank", "noopener,noreferrer");
                     }}
                   >
                     <Download className="size-4" />

@@ -467,7 +467,7 @@ export default function Pricing() {
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
   const handleGetStarted = () => {
-    window.location.href = installerUrl("pricing");
+    window.open(installerUrl("pricing"), "_blank", "noopener,noreferrer");
   };
 
   const handlePurchase = async () => {

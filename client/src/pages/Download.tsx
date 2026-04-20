@@ -665,7 +665,7 @@ export default function DownloadPage() {
 
                 {/* CTA */}
                 <button
-                  onClick={() => { window.location.href = installerUrl("download_page"); }}
+                  onClick={() => { window.open(installerUrl("download_page"), "_blank", "noopener,noreferrer"); }}
                   data-testid="button-download-windows"
                   style={{
                     width: "100%", padding: "15px 20px", borderRadius: "12px",

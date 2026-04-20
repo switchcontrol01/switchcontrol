@@ -635,7 +635,7 @@ export default function Landing() {
   useMomentumScroll();
 
   const handleAuthAwareClick = (_e: MouseEvent) => {
-    window.location.href = installerUrl("hero");
+    window.open(installerUrl("hero"), "_blank", "noopener,noreferrer");
   };
 
   return (
