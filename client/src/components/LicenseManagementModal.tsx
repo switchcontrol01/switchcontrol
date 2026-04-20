@@ -22,6 +22,16 @@ interface LicenseManagementModalProps {
   userId: string;
 }
 
+// ── Verified snapshot — set only after a live network check OR confirmed offline grace ──
+type VerifiedStatus = "active" | "grace" | "expired" | "free" | "unknown";
+interface VerifiedLicense {
+  status: VerifiedStatus;
+  plan: string | null;
+  isPremium: boolean;
+  lastVerifiedAt: number | null;
+  graceRemainingMs: number;
+}
+
 function generateDeviceHash(userId: string): string {
   let hash = 0;
   const seed = `${userId}-${navigator.userAgent}-${screen.width}x${screen.height}`;
@@ -64,24 +74,68 @@ function formatLastVerified(ts: number | null): string {
 
 export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }: LicenseManagementModalProps) {
   const { toast } = useToast();
-  const { safeRefreshEntitlements, entitlementsVerified } = useAppAuth();
+  const { safeRefreshEntitlements } = useAppAuth();
   const grace = usePremiumGraceStore();
   const { isBackendReachable, networkState } = useNetworkStore();
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const isOffline = networkState === 'offline' || networkState === 'degraded';
+
+  // ── Modal-local verified state — the ONLY source of truth for the status block ──
+  // Never read directly from grace store for display until after one of these paths completes:
+  //   a) live refresh   → result from server
+  //   b) offline        → confirmed valid offline-grace entry from grace store
+  const [licenseLoading, setLicenseLoading] = useState(false);
+  const [verifiedLicense, setVerifiedLicense] = useState<VerifiedLicense | null>(null);
+
   const [isRestoring, setIsRestoring] = useState(false);
   const [appVersion, setAppVersion] = useState("1.0.0");
   const [platform, setPlatform] = useState("Web");
   const [deviceId, setDeviceId] = useState(() => generateDeviceHash(userId));
 
-  const verificationStatus = grace.getStatus(isBackendReachable);
-  const graceRemaining = grace.graceRemainingMs();
-  const isOffline = networkState === 'offline' || networkState === 'degraded';
+  // ── Resolve offline grace — reads grace store to confirm a real grace window ──
+  function resolveOfflineGrace(): VerifiedLicense {
+    const graceStatus = grace.getStatus(false); // pass false — we know we're offline
+    const graceMs = grace.graceRemainingMs();
 
+    if (graceStatus === 'grace' && graceMs > 0) {
+      // Confirmed valid offline grace — premium remains accessible in the window
+      return {
+        status: 'grace',
+        plan: grace.plan,
+        isPremium: true,
+        lastVerifiedAt: grace.lastVerifiedAt,
+        graceRemainingMs: graceMs,
+      };
+    }
+    if (graceStatus === 'expired') {
+      return {
+        status: 'expired',
+        plan: grace.plan,
+        isPremium: false,
+        lastVerifiedAt: grace.lastVerifiedAt,
+        graceRemainingMs: 0,
+      };
+    }
+    // Anything else (unknown, active-but-unverifiable offline, free) → treat as free
+    // This prevents stale 'active' from a previous premium session flashing through.
+    return {
+      status: 'free',
+      plan: null,
+      isPremium: false,
+      lastVerifiedAt: grace.lastVerifiedAt,
+      graceRemainingMs: 0,
+    };
+  }
+
+  // ── On open: strict loading lock, then resolve the single source of truth ────
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      // Reset when modal closes so next open always starts clean
+      setVerifiedLicense(null);
+      setLicenseLoading(false);
+      return;
+    }
 
-    console.log('[PremiumTruth] modal opened — status:', verificationStatus, 'backendReachable:', isBackendReachable);
-
+    // Fetch device info (Electron only) — does not affect status display
     if (isElectron) {
       const api = (window as any).electronAPI;
       if (api?.system?.getInfo) {
@@ -96,18 +150,58 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       if (api?.getDeviceId) api.getDeviceId().then((id: string) => { if (id) setDeviceId(id); });
     }
 
-    if (isOffline) return;
+    // Enter strict loading — status block renders nothing premium until this resolves.
+    setLicenseLoading(true);
+    setVerifiedLicense(null);
 
-    setIsRefreshing(true);
+    if (isOffline) {
+      // Offline path: read grace store's confirmed offline-grace data.
+      // No server call possible — but we only pass through valid grace window state,
+      // not raw stale 'active' which could be from a previous premium session.
+      const offlineResult = resolveOfflineGrace();
+      console.log('[PremiumTruth] modal opened offline — resolved:', offlineResult.status);
+      setVerifiedLicense(offlineResult);
+      setLicenseLoading(false);
+      return;
+    }
+
+    // Online path: live server verification is the only truth.
+    console.log('[PremiumTruth] modal opened online — starting strict load, ignoring stale grace store');
     safeRefreshEntitlements()
       .then((result) => {
         if (result.user) {
+          // Write verified data back to grace store (persistence layer only)
           grace.setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
+
+          const verified: VerifiedLicense = {
+            status: result.user.isPremium ? 'active' : 'free',
+            plan: result.user.plan ?? null,
+            isPremium: result.user.isPremium,
+            lastVerifiedAt: Date.now(),
+            graceRemainingMs: 0,
+          };
+          console.log('[PremiumTruth] modal auto-refresh done — isPremium:', result.user.isPremium, 'status:', verified.status);
+          setVerifiedLicense(verified);
+        } else {
+          // Server responded but no user data — default to free
+          setVerifiedLicense({
+            status: 'free',
+            plan: null,
+            isPremium: false,
+            lastVerifiedAt: null,
+            graceRemainingMs: 0,
+          });
         }
-        console.log('[PremiumTruth] modal auto-refresh — isPremium:', result.user?.isPremium ?? 'null');
       })
-      .catch((err) => console.warn('[PremiumTruth] modal auto-refresh failed:', err))
-      .finally(() => setIsRefreshing(false));
+      .catch((err) => {
+        console.warn('[PremiumTruth] modal auto-refresh failed:', err);
+        // Network error during online path — fall back to offline grace resolution
+        // (same conservative logic: only pass through a confirmed grace window)
+        const fallback = resolveOfflineGrace();
+        console.log('[PremiumTruth] fallback after error — status:', fallback.status);
+        setVerifiedLicense(fallback);
+      })
+      .finally(() => setLicenseLoading(false));
   }, [open]);
 
   const handleRefreshLicense = async () => {
@@ -115,21 +209,32 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       toast({ title: "Offline", description: "Cannot verify license while offline.", variant: "destructive" });
       return;
     }
-    setIsRefreshing(true);
+    setLicenseLoading(true);
+    setVerifiedLicense(null);
     try {
       const result = await safeRefreshEntitlements();
       if (result.user) {
         grace.setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
-      }
-      if (result.user?.isPremium) {
-        toast({ title: "License Verified", description: "Your Premium license is active and up to date." });
-      } else {
-        toast({ title: "License Status", description: "No active premium license found.", variant: "destructive" });
+        const verified: VerifiedLicense = {
+          status: result.user.isPremium ? 'active' : 'free',
+          plan: result.user.plan ?? null,
+          isPremium: result.user.isPremium,
+          lastVerifiedAt: Date.now(),
+          graceRemainingMs: 0,
+        };
+        setVerifiedLicense(verified);
+        if (result.user.isPremium) {
+          toast({ title: "License Verified", description: "Your Premium license is active and up to date." });
+        } else {
+          toast({ title: "License Status", description: "No active premium license found.", variant: "destructive" });
+        }
       }
     } catch {
       toast({ title: "Refresh Failed", description: "Could not verify license. Please try again.", variant: "destructive" });
+      const fallback = resolveOfflineGrace();
+      setVerifiedLicense(fallback);
     } finally {
-      setIsRefreshing(false);
+      setLicenseLoading(false);
     }
   };
 
@@ -139,20 +244,33 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       return;
     }
     setIsRestoring(true);
+    setLicenseLoading(true);
+    setVerifiedLicense(null);
     try {
       const result = await safeRefreshEntitlements();
       if (result.user) {
         grace.setVerified(result.user.isPremium, result.user.plan ?? null, result.user.id ?? null);
-      }
-      if (result.user?.isPremium) {
-        toast({ title: "Purchase Restored", description: "Your Premium license has been restored successfully." });
-      } else {
-        toast({ title: "No License Found", description: "No active Premium license found for this account.", variant: "destructive" });
+        const verified: VerifiedLicense = {
+          status: result.user.isPremium ? 'active' : 'free',
+          plan: result.user.plan ?? null,
+          isPremium: result.user.isPremium,
+          lastVerifiedAt: Date.now(),
+          graceRemainingMs: 0,
+        };
+        setVerifiedLicense(verified);
+        if (result.user.isPremium) {
+          toast({ title: "Purchase Restored", description: "Your Premium license has been restored successfully." });
+        } else {
+          toast({ title: "No License Found", description: "No active Premium license found for this account.", variant: "destructive" });
+        }
       }
     } catch {
       toast({ title: "Restore Failed", description: "Could not connect to the license server. Please try again later.", variant: "destructive" });
+      const fallback = resolveOfflineGrace();
+      setVerifiedLicense(fallback);
     } finally {
       setIsRestoring(false);
+      setLicenseLoading(false);
     }
   };
 
@@ -178,10 +296,13 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     return () => window.removeEventListener("keydown", onKey);
   }, [open]);
 
-  const busy = isRefreshing || isRestoring;
+  const busy = licenseLoading || isRestoring;
 
+  // ── Status block — rendered ONLY from modal-local verified state ──────────────
+  // Hard rule: while licenseLoading is true, never render any plan/status.
   const statusBlock = () => {
-    if (isRefreshing && verificationStatus === 'unknown') {
+    // Strict loading gate — never bypassed by stale grace store state.
+    if (licenseLoading || verifiedLicense === null) {
       return (
         <div className="relative rounded-xl border border-white/[0.08] bg-white/[0.025] flex items-center justify-center py-6 gap-2">
           <Loader2 className="size-4 animate-spin text-white/40" />
@@ -190,14 +311,15 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       );
     }
 
-    if (verificationStatus === 'active') {
+    // Render from verified modal-local snapshot — not from grace store.
+    if (verifiedLicense.status === 'active') {
       return (
         <div className="relative rounded-xl overflow-hidden border border-emerald-500/[0.22] bg-emerald-500/[0.04] shadow-[inset_0_0_28px_rgba(16,185,129,0.07)]">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent" />
           <div className="px-4 py-3.5 divide-y divide-emerald-500/[0.1]">
             <InfoRow label="Plan">
               <Badge className="bg-emerald-500/15 text-emerald-300 border-emerald-500/25 text-[10px] font-medium px-2.5 py-0.5">
-                {grace.plan === 'premium' ? 'Premium Lifetime' : (grace.plan || 'Premium')}
+                {verifiedLicense.plan === 'premium' ? 'Premium Lifetime' : (verifiedLicense.plan || 'Premium')}
               </Badge>
             </InfoRow>
             <InfoRow label="Status">
@@ -211,14 +333,14 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               </div>
             </InfoRow>
             <InfoRow label="Last Verified">
-              <span className="text-[12px] text-white/55">{formatLastVerified(grace.lastVerifiedAt)}</span>
+              <span className="text-[12px] text-white/55">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
             </InfoRow>
           </div>
         </div>
       );
     }
 
-    if (verificationStatus === 'grace') {
+    if (verifiedLicense.status === 'grace') {
       return (
         <div className="relative rounded-xl overflow-hidden border border-amber-500/25 bg-amber-500/[0.04]">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-400/25 to-transparent" />
@@ -235,10 +357,10 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               </div>
             </InfoRow>
             <InfoRow label="Grace Window">
-              <span className="text-[12px] text-amber-300/70">{formatGraceRemaining(graceRemaining)}</span>
+              <span className="text-[12px] text-amber-300/70">{formatGraceRemaining(verifiedLicense.graceRemainingMs)}</span>
             </InfoRow>
             <InfoRow label="Last Verified">
-              <span className="text-[12px] text-white/55">{formatLastVerified(grace.lastVerifiedAt)}</span>
+              <span className="text-[12px] text-white/55">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
             </InfoRow>
           </div>
           <div className="px-4 pb-3 text-[11px] text-amber-400/60">
@@ -248,7 +370,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       );
     }
 
-    if (verificationStatus === 'expired') {
+    if (verifiedLicense.status === 'expired') {
       return (
         <div className="relative rounded-xl overflow-hidden border border-red-500/25 bg-red-500/[0.04]">
           <div className="px-4 py-3.5 divide-y divide-red-500/[0.1]">
@@ -259,7 +381,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               </div>
             </InfoRow>
             <InfoRow label="Last Verified">
-              <span className="text-[12px] text-white/55">{formatLastVerified(grace.lastVerifiedAt)}</span>
+              <span className="text-[12px] text-white/55">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
             </InfoRow>
           </div>
           <div className="px-4 pb-3 text-[11px] text-red-400/70">
@@ -269,6 +391,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       );
     }
 
+    // 'free' or 'unknown' — render no-license state
     return (
       <div className="relative rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.02]">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
@@ -330,7 +453,6 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {/* Network indicator */}
                   <div className={cn(
                     "flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-medium border",
                     isOffline
@@ -405,7 +527,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                     data-testid="button-refresh-license"
                     title={isOffline ? "Offline — cannot verify" : undefined}
                   >
-                    {isRefreshing ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RefreshCw className="size-3.5 shrink-0" />}
+                    {licenseLoading ? <Loader2 className="size-3.5 animate-spin shrink-0" /> : <RefreshCw className="size-3.5 shrink-0" />}
                     {isOffline ? "Unavailable Offline" : "Refresh License"}
                   </button>
 
