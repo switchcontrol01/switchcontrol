@@ -379,6 +379,25 @@ const HKCU_TWEAKS = {
     revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects" -Name "VisualFXSetting" -Value 0 -Type DWord -Force; Set-ItemProperty -Path "HKCU:\\Control Panel\\Desktop\\WindowMetrics" -Name "MinAnimate" -Value "1" -Type String -Force`,
     check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VisualEffects" -Name "VisualFXSetting" -EA SilentlyContinue).VisualFXSetting -eq 3`,
   },
+  // ── New Pass 2 HKCU toggles ───────────────────────────────────────────────────
+  'show-file-extensions': {
+    // HideFileExt = 0 means extensions ARE shown (inverse of the key name)
+    name: 'Show File Extensions',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 0 -Type DWord -Force; & Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 800; Start-Process explorer`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -Value 1 -Type DWord -Force; & Stop-Process -Name explorer -Force -EA SilentlyContinue; Start-Sleep -Milliseconds 800; Start-Process explorer`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "HideFileExt" -EA SilentlyContinue).HideFileExt -eq 0`,
+  },
+  'explorer-separate-process': {
+    // SeparateProcess = 1 means each Explorer window runs in its own process
+    name: 'Explorer — Separate Process per Window',
+    requiresAdmin:  false,
+    requiresReboot: false,
+    apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "SeparateProcess" -Value 1 -Type DWord -Force`,
+    revert: `Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "SeparateProcess" -Value 0 -Type DWord -Force`,
+    check:  `(Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Advanced" -Name "SeparateProcess" -EA SilentlyContinue).SeparateProcess -eq 1`,
+  },
 };
 
 // ─── ADMIN tweaks (HKLM / services / bcdedit – require elevation) ──────────────
@@ -635,6 +654,17 @@ const ADMIN_TWEAKS = {
     apply:  `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "NtfsDisableLastAccessUpdate" -Value 1 -Type DWord -Force`,
     revert: `$p = "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem"; Set-ItemProperty -Path $p -Name "NtfsDisableLastAccessUpdate" -Value 0 -Type DWord -Force`,
     check:  `(Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem" -Name "NtfsDisableLastAccessUpdate" -EA SilentlyContinue).NtfsDisableLastAccessUpdate -eq 1`,
+  },
+  // ── New Pass 2 ADMIN toggles ──────────────────────────────────────────────────
+  'disable-auto-restart-apps': {
+    // RestartApps = 0 prevents Windows from silently restarting Store apps after sign-in.
+    // Keeps startup cleaner for gaming and performance-focused systems.
+    name: 'Disable Auto-Restart Apps After Sign-In',
+    requiresAdmin:  true,
+    requiresReboot: false,
+    apply:  `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "RestartApps" -Value 0 -Type DWord -Force`,
+    revert: `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon"; Remove-ItemProperty -Path $p -Name "RestartApps" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon" -Name "RestartApps" -EA SilentlyContinue).RestartApps -eq 0`,
   },
 };
 

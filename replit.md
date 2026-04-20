@@ -352,6 +352,57 @@ Both onboarding and premium guided tours utilize a shared `TourShell` component,
 
 **Item filters** (scan phase): full-text search across name + description, filter chips, sort by biggest/priority
 
+### Tweaks — Pass 2 Expansion (April 2026)
+
+**New Sliders** (both `HKCU\Control Panel\Desktop`, REG_SZ, slider-tweak-executor.js):
+- `low-level-hooks-timeout` — LowLevelHooksTimeout, 500–20000ms. Reduces input latency from slow WH_KEYBOARD_LL/WH_MOUSE_LL hook consumers. Rec: 1000ms. Free.
+- `wait-to-kill-app` — WaitToKillAppTimeout, 1000–20000ms. Controls how long shutdown waits before force-killing slow apps. Rec: 5000ms. Free.
+
+**New Toggles** (tweak-executor.js):
+- `show-file-extensions` — `HideFileExt=0` (HKCU Explorer\Advanced). Shows file extensions. Explorer restart required. Free, Recommended.
+- `explorer-separate-process` — `SeparateProcess=1` (HKCU Explorer\Advanced). Each folder window in its own process. Free, Advanced.
+- `disable-auto-restart-apps` — `RestartApps=0` (HKLM Winlogon). Prevents auto-relaunch of Store/registered apps at sign-in. Requires admin. Free, Advanced.
+
+All 5 tweaks added to `FREE_EXCEPTION_IDS` and `TWEAK_TIER_MAP` in `shared/tweak-tiers.ts`, and as full mock-data entries in `client/src/lib/mock-data.ts`.
+
+`SLIDER_TWEAKS` array in `client/src/hooks/use-tweak-executor.ts` updated to include both new slider IDs.
+
+### NIC Adapter Tuning System (April 2026)
+
+**Backend**: `electron/nic-executor.js`
+- `getNetAdapters()` — PowerShell `Get-NetAdapter`, returns physical adapters (filters out loopback, Bluetooth, Hyper-V, VPN, Tunnel, vEthernet).
+- `getAdapterCapabilities(adapterName)` — Queries all supported advanced properties for a named adapter; maps them to internal property keys by matching `RegistryKeyword` and `DisplayName` case-insensitively. Returns per-key `{ supported, currentValue }`.
+- `readNicProperty(adapterName, propertyKey)` — Reads current value via `Get-NetAdapterAdvancedProperty`.
+- `setNicProperty(adapterName, propertyKey, value)` — Sets value via `Set-NetAdapterAdvancedProperty`. Requires admin (spawns elevated PowerShell via UAC). Reads back actual value for verification.
+- `resetNicProperty(adapterName, propertyKey)` — Resets to driver default via `Reset-NetAdapterAdvancedProperty`. Reads back new value.
+- `getNicPropertyMeta()` — Returns full metadata for all 8 tunable properties (see below).
+
+**8 NIC properties** with their `displayName` registry keyword and type:
+| Key | Display Name | Type | Notes |
+|-----|--------------|------|-------|
+| receiveBuffers | `*ReceiveBuffers` | numeric 64–4096 | Adapter ingress queue depth |
+| transmitBuffers | `*TransmitBuffers` | numeric 64–4096 | Adapter egress queue depth |
+| rss | `*RSS` | toggle (Enabled/Disabled) | Receive-Side Scaling |
+| rssQueues | `*NumRssQueues` | stepped (1,2,4,8) | RSS queue count |
+| interruptModeration | `*InterruptModeration` | toggle | Coalesce interrupts (latency vs CPU) |
+| eee | `*EEE` | toggle | Energy Efficient Ethernet |
+| flowControl | `*FlowControl` | stepped (Disabled/Tx/Rx/Rx+Tx) | 802.3x pause frames |
+| greenEthernet | `*GreenEthernet` | toggle | Green Ethernet power saving |
+
+**IPC handlers** (electron/main.js): `nic:getAdapters`, `nic:getCapabilities`, `nic:readProperty`, `nic:setProperty`, `nic:resetProperty`, `nic:getPropertyMeta`.
+
+**Frontend API** (electron/preload.js): `window.electronAPI.nic.{getAdapters, getPropertyMeta, getCapabilities, readProperty, setProperty, resetProperty}`. All inputs validated with `assertString`. `setProperty` coerces value to string.
+
+**UI Component**: `client/src/components/tweaks/NicTuning.tsx`
+- Collapsible section at bottom of Tweaks page (below TweaksList).
+- Adapter selector: each adapter expands as a `GlassCard` with status badge and supported property count.
+- Per-property `PropertyControl` component: capability-gated — unsupported properties show "Not supported on this adapter" label without a live control.
+- Control types: toggle (Enabled/Disabled buttons), stepped (preset buttons), numeric (Slider).
+- Apply button is disabled unless value is dirty. Reset restores driver default.
+- Verify result banner shows read-back value after apply.
+- Non-Electron browsers see an informational card explaining desktop-only capability.
+- Warning banner: property changes require admin and take effect immediately.
+
 ### External Links
 - Discord community link
 - TikTok social link

@@ -83,6 +83,8 @@ export const SLIDER_TWEAKS = [
   'win32-priority-sep', 'mouse-queue-size', 'kbd-queue-size',
   'sys-responsiveness', 'net-throttle-index',
   'menu-show-delay', 'hung-app-timeout',
+  // Pass 2 sliders
+  'low-level-hooks-timeout', 'wait-to-kill-app',
 ] as const;
 
 export type SliderTweakId = typeof SLIDER_TWEAKS[number];

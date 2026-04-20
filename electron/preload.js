@@ -216,6 +216,31 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  nic: {
+    getAdapters:      () => ipcRenderer.invoke('nic:getAdapters'),
+    getPropertyMeta:  () => ipcRenderer.invoke('nic:getPropertyMeta'),
+    getCapabilities: (adapterName) => {
+      assertString(adapterName, 'adapterName');
+      return ipcRenderer.invoke('nic:getCapabilities', adapterName);
+    },
+    readProperty: (adapterName, propertyKey) => {
+      assertString(adapterName, 'adapterName');
+      assertString(propertyKey, 'propertyKey');
+      return ipcRenderer.invoke('nic:readProperty', adapterName, propertyKey);
+    },
+    setProperty: (adapterName, propertyKey, value) => {
+      assertString(adapterName, 'adapterName');
+      assertString(propertyKey, 'propertyKey');
+      if (value === undefined || value === null) throw new TypeError('nic.setProperty: value required');
+      return ipcRenderer.invoke('nic:setProperty', adapterName, propertyKey, String(value));
+    },
+    resetProperty: (adapterName, propertyKey) => {
+      assertString(adapterName, 'adapterName');
+      assertString(propertyKey, 'propertyKey');
+      return ipcRenderer.invoke('nic:resetProperty', adapterName, propertyKey);
+    },
+  },
+
   memory: {
     clean: (mode) => {
       const m = assertString(mode, 'mode');

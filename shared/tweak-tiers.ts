@@ -30,6 +30,12 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "disable-transparency",
   "disable-animations",
   "ntfs-last-access",
+  // Pass 2 additions — all free
+  "low-level-hooks-timeout",
+  "wait-to-kill-app",
+  "show-file-extensions",
+  "explorer-separate-process",
+  "disable-auto-restart-apps",
 ]);
 
 interface TweakTierInfo {
@@ -71,10 +77,15 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
   "timer-res":                { level: "Advanced",     category: "Gaming and Latency" },
   "mouse-queue-size":         { level: "Advanced",     category: "Input" },
   "kbd-queue-size":           { level: "Advanced",     category: "Input" },
-  "menu-show-delay":          { level: "Advanced",     category: "Windows UX" },
-  "hung-app-timeout":         { level: "Advanced",     category: "Windows UX" },
-  "disable-transparency":     { level: "Recommended",  category: "Windows UX" },
-  "disable-animations":       { level: "Recommended",  category: "Windows UX" },
+  "menu-show-delay":           { level: "Advanced",     category: "Windows UX" },
+  "hung-app-timeout":          { level: "Advanced",     category: "Windows UX" },
+  "disable-transparency":      { level: "Recommended",  category: "Windows UX" },
+  "disable-animations":        { level: "Recommended",  category: "Windows UX" },
+  "low-level-hooks-timeout":   { level: "Advanced",     category: "Input" },
+  "wait-to-kill-app":          { level: "Advanced",     category: "Windows UX" },
+  "show-file-extensions":      { level: "Recommended",  category: "Windows UX" },
+  "explorer-separate-process": { level: "Advanced",     category: "Windows UX" },
+  "disable-auto-restart-apps": { level: "Advanced",     category: "System and Power" },
   "desktop-comp":             { level: "Experimental", category: "GPU and Graphics" },
   "hdcp":                     { level: "Experimental", category: "GPU and Graphics" },
   "preemption":               { level: "Advanced",     category: "GPU and Graphics" },

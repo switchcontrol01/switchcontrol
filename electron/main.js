@@ -18,6 +18,7 @@ const os = require('os');
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
 const sliderTweakExecutor = require('./slider-tweak-executor');
+const nicExecutor = require('./nic-executor');
 let networkTweakExecutor;
 try {
   networkTweakExecutor = require('./network-tweak-executor');
@@ -1801,6 +1802,46 @@ ipcMain.handle('tweak:resetValue', async (event, tweakId) => {
 ipcMain.handle('tweak:getSliderMeta', (event, tweakId) => {
   if (typeof tweakId !== 'string') return null;
   return sliderTweakExecutor.getSliderTweakMeta(tweakId);
+});
+
+// NIC tuning IPC handlers
+ipcMain.handle('nic:getAdapters', async () => {
+  return await nicExecutor.getNetAdapters();
+});
+
+ipcMain.handle('nic:getCapabilities', async (event, adapterName) => {
+  if (typeof adapterName !== 'string' || !adapterName.trim()) {
+    return { capabilities: {}, error: 'adapterName required' };
+  }
+  return await nicExecutor.getAdapterCapabilities(adapterName);
+});
+
+ipcMain.handle('nic:readProperty', async (event, adapterName, propertyKey) => {
+  if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
+    return { value: null, supported: false, error: 'adapterName and propertyKey required' };
+  }
+  return await nicExecutor.readNicProperty(adapterName, propertyKey);
+});
+
+ipcMain.handle('nic:setProperty', async (event, adapterName, propertyKey, value) => {
+  if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
+    return { ok: false, error: 'adapterName and propertyKey required' };
+  }
+  if (value === undefined || value === null) {
+    return { ok: false, error: 'value required' };
+  }
+  return await nicExecutor.setNicProperty(adapterName, propertyKey, value);
+});
+
+ipcMain.handle('nic:resetProperty', async (event, adapterName, propertyKey) => {
+  if (typeof adapterName !== 'string' || typeof propertyKey !== 'string') {
+    return { ok: false, error: 'adapterName and propertyKey required' };
+  }
+  return await nicExecutor.resetNicProperty(adapterName, propertyKey);
+});
+
+ipcMain.handle('nic:getPropertyMeta', () => {
+  return nicExecutor.getNicPropertyMeta();
 });
 
 // Power Plan handlers

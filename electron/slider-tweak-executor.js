@@ -232,6 +232,47 @@ const SLIDER_TWEAKS = {
     writeCommand:  (v) => `Set-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'HungAppTimeout' -Value '${v}' -Type String -Force`,
     verifyCommand: (v) => `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'HungAppTimeout' -EA SilentlyContinue).HungAppTimeout -eq '${v}'`,
   },
+
+  /**
+   * LowLevelHooksTimeout — milliseconds Windows waits for a low-level keyboard or
+   * mouse hook (e.g. from antivirus, screen readers, recording software) to process
+   * an input event before timing it out. Default is 5000ms on Win10/11.
+   * Lowering this value makes Windows give up on slow hooks faster, reducing input
+   * stutter caused by misbehaving hook consumers. REG_SZ in HKCU, no admin required.
+   * Extreme low values (<500ms) may cause legitimate hooks to fire incorrectly.
+   */
+  'low-level-hooks-timeout': {
+    name:          'Low-Level Hook Timeout',
+    requiresAdmin: false,
+    requiresReboot: false,
+    regPath:       'HKCU:\\Control Panel\\Desktop',
+    regName:       'LowLevelHooksTimeout',
+    regType:       'String',
+    defaultValue:  5000,
+    readCommand:   () => `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'LowLevelHooksTimeout' -EA SilentlyContinue).LowLevelHooksTimeout`,
+    writeCommand:  (v) => `Set-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'LowLevelHooksTimeout' -Value '${v}' -Type String -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'LowLevelHooksTimeout' -EA SilentlyContinue).LowLevelHooksTimeout -eq '${v}'`,
+  },
+
+  /**
+   * WaitToKillAppTimeout — milliseconds Windows waits for an application to respond
+   * to WM_QUERYENDSESSION during shutdown before force-killing it.
+   * Default is 20000ms (20 seconds). Lowering to 5000ms makes shutdown snappier.
+   * Too low (<1000ms) risks killing apps that need time to write buffers to disk.
+   * REG_SZ in HKCU. No admin required. Takes effect on next shutdown.
+   */
+  'wait-to-kill-app': {
+    name:          'Wait to Kill App on Shutdown',
+    requiresAdmin: false,
+    requiresReboot: false,
+    regPath:       'HKCU:\\Control Panel\\Desktop',
+    regName:       'WaitToKillAppTimeout',
+    regType:       'String',
+    defaultValue:  20000,
+    readCommand:   () => `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'WaitToKillAppTimeout' -EA SilentlyContinue).WaitToKillAppTimeout`,
+    writeCommand:  (v) => `Set-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'WaitToKillAppTimeout' -Value '${v}' -Type String -Force`,
+    verifyCommand: (v) => `(Get-ItemProperty -Path 'HKCU:\\Control Panel\\Desktop' -Name 'WaitToKillAppTimeout' -EA SilentlyContinue).WaitToKillAppTimeout -eq '${v}'`,
+  },
 };
 
 // ─── Public API ────────────────────────────────────────────────────────────────
