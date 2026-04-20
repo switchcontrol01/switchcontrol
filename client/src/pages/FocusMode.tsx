@@ -256,6 +256,15 @@ export default function FocusMode() {
   const [timeRemaining, setTimeRemaining] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // ── Auto-trigger protection — stable refs readable inside effect closures ──────
+  // These are intentionally refs (not state) so they never cause re-renders and
+  // are always current inside the onTriggerFired closure even after activation changes.
+  const activationRef = useRef<ActivationState>("idle");        // mirrors activation state
+  const cooldownUntilRef = useRef<number>(0);                   // epoch ms — auto triggers blocked until this time
+  const manualDisabledAtRef = useRef<number>(0);                // epoch ms — user manually disabled
+  const isHydratingRef = useRef<boolean>(true);                 // blocks triggers during app startup
+  const lastTriggerIdRef = useRef<string | null>(null);          // last trigger that fired (edge detection)
+
   // History
   const [history, setHistory] = useState<HistoryEntry[]>([]);
 
@@ -295,6 +304,20 @@ export default function FocusMode() {
     }).catch(() => {});
   }, []);
 
+  // Keep activationRef in sync so closures always read fresh state without stale closure capture.
+  useEffect(() => { activationRef.current = activation; }, [activation]);
+
+  // Hydration guard: block auto-triggers for 5 s after mount so the initial
+  // backend-state load + entitlement refresh don't accidentally re-fire a trigger
+  // that was active in a previous session.
+  useEffect(() => {
+    const id = setTimeout(() => {
+      isHydratingRef.current = false;
+      console.log('[FocusMode] Hydration complete — auto-triggers now armed');
+    }, 5000);
+    return () => clearTimeout(id);
+  }, []);
+
   // ── Timer countdown ───────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -320,6 +343,10 @@ export default function FocusMode() {
   };
 
   // ── Trigger monitor ────────────────────────────────────────────────────────────
+  // IMPORTANT: `activation` is intentionally NOT in the dep array.
+  // Adding it caused the monitor to tear down and re-register every time Focus Mode
+  // was toggled, which immediately re-fired the trigger for a still-running game.
+  // We use activationRef.current inside the closure instead (always fresh).
 
   useEffect(() => {
     if (!isElectron()) return;
@@ -328,27 +355,83 @@ export default function FocusMode() {
     if (!anyEnabled) return;
 
     window.electronAPI!.focus!.startTriggerMonitor({ triggers: triggerEnabled });
-    const unsub = window.electronAPI!.focus!.onTriggerFired(({ triggerId, meta }) => {
+
+    const unsub = window.electronAPI!.focus!.onTriggerFired(({ triggerId, meta }: { triggerId: string; meta?: any }) => {
+      const now = Date.now();
+
+      // ── Guard 1: hydration — system just started, do not auto-trigger ──────
+      if (isHydratingRef.current) {
+        console.log(`[FocusMode] Trigger blocked: hydrating (${triggerId})`);
+        return;
+      }
+
+      // ── Guard 2: already active — do not double-activate ────────────────────
+      if (activationRef.current === "active" || activationRef.current === "partial") {
+        console.log(`[FocusMode] Trigger blocked: already active (${triggerId})`);
+        return;
+      }
+
+      // ── Guard 3: processing — activation or deactivation in flight ──────────
+      if (activationRef.current === "activating" || activationRef.current === "deactivating") {
+        console.log(`[FocusMode] Trigger blocked: processing (${triggerId})`);
+        return;
+      }
+
+      // ── Guard 4: cooldown — both manual and auto respect this window ─────────
+      if (now < cooldownUntilRef.current) {
+        const remaining = Math.round((cooldownUntilRef.current - now) / 1000);
+        console.log(`[FocusMode] Trigger blocked: cooldown ${remaining}s remaining (${triggerId})`);
+        return;
+      }
+
+      // ── Guard 5: manual override — user explicitly turned it off ─────────────
+      const MANUAL_LOCK_MS = 60_000; // 60 s after manual disable
+      if (manualDisabledAtRef.current > 0 && now - manualDisabledAtRef.current < MANUAL_LOCK_MS) {
+        const remaining = Math.round((MANUAL_LOCK_MS - (now - manualDisabledAtRef.current)) / 1000);
+        console.log(`[FocusMode] Trigger blocked: manual override lock ${remaining}s remaining (${triggerId})`);
+        return;
+      }
+
+      // ── Guard 6: same trigger already fired recently (edge detection) ─────────
+      // Only react to a trigger when it transitions from "not seen" → "seen".
+      // If the same game was already the last trigger and Focus Mode just toggled,
+      // do not fire again immediately.
+      if (lastTriggerIdRef.current === triggerId) {
+        console.log(`[FocusMode] Trigger blocked: same trigger already handled (${triggerId})`);
+        return;
+      }
+
+      // ── All guards passed — arm cooldown and activate ─────────────────────────
+      console.log(`[FocusMode] Activated by auto — trigger: ${triggerId}`);
+      lastTriggerIdRef.current = triggerId;
+      cooldownUntilRef.current = now + 10_000; // 10 s minimum between auto activations
+
       setTriggerFired(triggerId);
       toast({
         title: `Trigger: ${TRIGGER_DEFS.find(t => t.id === triggerId)?.name ?? triggerId}`,
         description: "Focus Mode will activate automatically.",
       });
-      // Auto-activate on trigger
-      if (activation !== "active") {
-        setTimeout(() => handleActivate("trigger:" + triggerId), 800);
-      }
+
+      setTimeout(() => handleActivate("trigger:" + triggerId), 800);
     });
 
-    // Schedule trigger polling
+    // Schedule trigger polling — runs on a slow 60 s tick, independent of event listeners
     const scheduleId = setInterval(() => {
       if (!triggerEnabled.schedule) return;
       const trigger = TRIGGER_DEFS.find(t => t.id === "schedule");
       if (!trigger) return;
       const now = new Date();
-      if (now.getHours() === trigger.scheduleHour && now.getMinutes() === trigger.scheduleMinute) {
+      if (
+        now.getHours() === trigger.scheduleHour &&
+        now.getMinutes() === trigger.scheduleMinute &&
+        !isHydratingRef.current &&
+        activationRef.current !== "active" &&
+        activationRef.current !== "partial" &&
+        Date.now() >= cooldownUntilRef.current
+      ) {
         setTriggerFired("schedule");
-        if (activation !== "active") handleActivate("trigger:schedule");
+        console.log('[FocusMode] Activated by auto — trigger: schedule');
+        handleActivate("trigger:schedule");
       }
     }, 60000);
 
@@ -357,7 +440,9 @@ export default function FocusMode() {
       clearInterval(scheduleId);
       window.electronAPI?.focus?.stopTriggerMonitor();
     };
-  }, [triggerEnabled, activation]); // eslint-disable-line
+  }, [triggerEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  // NOTE: `activation` intentionally omitted — use activationRef.current in closure.
+  // `handleActivate` intentionally omitted — it is useCallback-stable.
 
   // ── Activate ──────────────────────────────────────────────────────────────────
 
@@ -441,6 +526,16 @@ export default function FocusMode() {
   const handleDeactivate = useCallback(async () => {
     setActivation("deactivating");
     if (timerRef.current) clearInterval(timerRef.current);
+
+    // ── Manual override protection ────────────────────────────────────────────
+    // Record that the user explicitly disabled Focus Mode and set a 60 s lock.
+    // Also clear lastTriggerIdRef so that after the lock expires, the same trigger
+    // (same game still running) can re-fire — but only once the full 60 s has passed.
+    const now = Date.now();
+    manualDisabledAtRef.current = now;
+    cooldownUntilRef.current = now + 60_000;
+    lastTriggerIdRef.current = null;   // allow same trigger to re-fire after lock expires
+    console.log('[FocusMode] Deactivated by manual — auto-trigger locked for 60s');
 
     let revertResults: Record<string, ActionResult> = {};
 
