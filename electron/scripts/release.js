@@ -210,12 +210,18 @@ for (const a of artifacts) {
 console.log(`\nBucket : ${BUCKET}`);
 console.log(`Host   : ${PUBLIC_URL}\n`);
 
-// ── Upload ────────────────────────────────────────────────────────────────────
+// ── Upload engine (S3-compatible, multipart-capable) ──────────────────────────
 
 const https  = require('https');
 const crypto = require('crypto');
 
-const R2_ENDPOINT = `https://${ACCOUNT_ID}.r2.cloudflarestorage.com`;
+const R2_HOST = `${BUCKET}.${ACCOUNT_ID}.r2.cloudflarestorage.com`;
+
+// Files larger than this threshold are uploaded via S3 multipart.
+// Each part is PART_SIZE bytes — a short enough request to survive slow hotspot
+// connections without R2 resetting the TCP socket.
+const MULTIPART_THRESHOLD = 20 * 1024 * 1024;  //  20 MB
+const PART_SIZE           = 10 * 1024 * 1024;  //  10 MB per part
 
 function hmacBuf(key, data) {
   return crypto.createHmac('sha256', key).update(data, 'utf8').digest();
@@ -223,7 +229,7 @@ function hmacBuf(key, data) {
 function hmacHex(key, data) {
   return crypto.createHmac('sha256', key).update(data, 'utf8').digest('hex');
 }
-function hash(data) {
+function sha256hex(data) {
   return crypto.createHash('sha256').update(data).digest('hex');
 }
 
@@ -231,153 +237,293 @@ function getContentType(filename) {
   if (filename.endsWith('.yml'))      return 'text/plain; charset=utf-8';
   if (filename.endsWith('.exe'))      return 'application/octet-stream';
   if (filename.endsWith('.blockmap')) return 'application/octet-stream';
+  if (filename.endsWith('.json'))     return 'application/json';
   return 'application/octet-stream';
 }
 
 /**
- * AWS Signature V4 PUT for a single file.
- * R2 is S3-compatible so no SDK is required.
- *
- * Streams the file body in 1 MB chunks so progress is visible and the
- * socket does not appear frozen for large uploads.  The full body hash
- * is still computed upfront (required by SigV4) but the bytes are not
- * held in memory while the network transfer is in progress.
+ * Build an AWS Signature V4 Authorization header.
+ * Works for any HTTP method, query string, and body.
  */
-function uploadFile(artifact) {
+function sigV4Auth(method, key, queryString, extraHeaders, bodyHash) {
+  const now       = new Date();
+  const dateStamp = now.toISOString().slice(0, 10).replace(/-/g, '');
+  const amzDate   = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
+  const region    = 'auto';
+  const service   = 's3';
+
+  const headers = {
+    host:                  R2_HOST,
+    'x-amz-date':          amzDate,
+    'x-amz-content-sha256': bodyHash,
+    ...extraHeaders,
+  };
+
+  const signedHeaders    = Object.keys(headers).sort().join(';');
+  const canonicalHeaders = Object.keys(headers).sort()
+    .map(k => `${k}:${headers[k]}\n`).join('');
+  const canonicalUri     = `/${encodeURIComponent(key)}`;
+  const canonicalRequest = [
+    method, canonicalUri, queryString,
+    canonicalHeaders, signedHeaders, bodyHash,
+  ].join('\n');
+
+  const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
+  const stringToSign = [
+    'AWS4-HMAC-SHA256', amzDate, credentialScope, sha256hex(canonicalRequest),
+  ].join('\n');
+
+  const kDate    = hmacBuf(`AWS4${KEY_SECRET}`, dateStamp);
+  const kRegion  = hmacBuf(kDate,    region);
+  const kService = hmacBuf(kRegion,  service);
+  const kSigning = hmacBuf(kService, 'aws4_request');
+  const signature = hmacHex(kSigning, stringToSign);
+
+  const authorization = [
+    `AWS4-HMAC-SHA256 Credential=${KEY_ID}/${credentialScope}`,
+    `SignedHeaders=${signedHeaders}`,
+    `Signature=${signature}`,
+  ].join(', ');
+
+  // Return all headers the caller should send (minus 'host' which Node handles)
+  const reqHeaders = {
+    'x-amz-date':          headers['x-amz-date'],
+    'x-amz-content-sha256': bodyHash,
+    ...extraHeaders,
+    authorization,
+  };
+  return reqHeaders;
+}
+
+/**
+ * Generic HTTPS request against R2 bucket.
+ * Returns { statusCode, headers, body }.
+ */
+function r2Request(method, key, queryString, reqHeaders, body) {
   return new Promise((resolve, reject) => {
-    const fileStat   = fs.statSync(artifact.localPath);
-    const totalBytes = fileStat.size;
-    const totalMB    = (totalBytes / 1024 / 1024).toFixed(1);
+    const path = `/${encodeURIComponent(key)}${queryString ? '?' + queryString : ''}`;
+    const options = {
+      hostname: R2_HOST,
+      path,
+      method,
+      headers:  reqHeaders,
+      timeout:  5 * 60 * 1000, // 5-minute timeout per individual request
+    };
+    const req = https.request(options, res => {
+      const chunks = [];
+      res.on('data', d => chunks.push(d));
+      res.on('end', () => resolve({
+        statusCode: res.statusCode,
+        headers:    res.headers,
+        body:       Buffer.concat(chunks).toString('utf8'),
+      }));
+    });
+    req.on('timeout', () => req.destroy(new Error('Request timed out')));
+    req.on('error', reject);
+    if (body) req.write(body);
+    req.end();
+  });
+}
 
-    // SigV4 requires the SHA-256 of the entire body before the request starts.
-    // For files up to ~500 MB this is fast enough to be synchronous.
-    const bodyHash    = crypto.createHash('sha256').update(fs.readFileSync(artifact.localPath)).digest('hex');
+// ── Single-PUT upload (used for small files < MULTIPART_THRESHOLD) ─────────
 
-    const key         = artifact.name;
-    const now         = new Date();
-    const dateStamp   = now.toISOString().slice(0, 10).replace(/-/g, '');
-    const amzDate     = now.toISOString().replace(/[:\-]|\.\d{3}/g, '');
-    const service     = 's3';
-    const region      = 'auto';
-    const host        = `${BUCKET}.${ACCOUNT_ID}.r2.cloudflarestorage.com`;
-    const contentType = getContentType(key);
-
-    // Manifest files must never be cached; binaries are immutable once uploaded.
-    const isManifest   = key.endsWith('.yml');
+function uploadSinglePut(artifact, totalBytes, totalMB, startTime) {
+  return new Promise((resolve, reject) => {
+    const bodyBuf  = fs.readFileSync(artifact.localPath);
+    const bodyHash = sha256hex(bodyBuf);
+    const isManifest   = artifact.name.endsWith('.yml');
     const cacheControl = isManifest
       ? 'no-cache, no-store, must-revalidate'
       : 'public, max-age=31536000, immutable';
 
-    const headers = {
-      host,
-      'content-type':         contentType,
-      'content-length':       String(totalBytes),
-      'cache-control':        cacheControl,
-      'x-amz-date':           amzDate,
-      'x-amz-content-sha256': bodyHash,
+    const extraHeaders = {
+      'content-type':   getContentType(artifact.name),
+      'content-length': String(totalBytes),
+      'cache-control':  cacheControl,
     };
+    const signed = sigV4Auth('PUT', artifact.name, '', extraHeaders, bodyHash);
 
-    const signedHeaders    = Object.keys(headers).sort().join(';');
-    const canonicalHeaders = Object.keys(headers).sort()
-      .map(k => `${k}:${headers[k]}\n`).join('');
-    const canonicalUri     = `/${encodeURIComponent(key)}`;
-
-    const canonicalRequest = [
-      'PUT', canonicalUri, '',
-      canonicalHeaders, signedHeaders, bodyHash,
-    ].join('\n');
-
-    const credentialScope = `${dateStamp}/${region}/${service}/aws4_request`;
-    const stringToSign = [
-      'AWS4-HMAC-SHA256', amzDate, credentialScope, hash(canonicalRequest),
-    ].join('\n');
-
-    const kDate    = hmacBuf(`AWS4${KEY_SECRET}`, dateStamp);
-    const kRegion  = hmacBuf(kDate,    region);
-    const kService = hmacBuf(kRegion,  service);
-    const kSigning = hmacBuf(kService, 'aws4_request');
-    const signature = hmacHex(kSigning, stringToSign);
-
-    const authorization = [
-      `AWS4-HMAC-SHA256 Credential=${KEY_ID}/${credentialScope}`,
-      `SignedHeaders=${signedHeaders}`,
-      `Signature=${signature}`,
-    ].join(', ');
-
-    const reqHeaders = { ...headers, authorization };
-    delete reqHeaders.host;
-
-    const encodedKey = encodeURIComponent(key);
     const options = {
-      hostname: host,
-      path:     `/${encodedKey}`,
+      hostname: R2_HOST,
+      path:     `/${encodeURIComponent(artifact.name)}`,
       method:   'PUT',
-      headers:  reqHeaders,
-      // 15-minute total timeout — generous for slow connections, fails fast on hang
-      timeout:  15 * 60 * 1000,
+      headers:  signed,
+      timeout:  5 * 60 * 1000,
     };
-
     const req = https.request(options, res => {
-      let respBody = '';
-      res.on('data', d => { respBody += d; });
+      let rb = '';
+      res.on('data', d => { rb += d; });
       res.on('end', () => {
         process.stdout.write('\n');
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          resolve();
-        } else {
-          reject(new Error(`Upload failed (${res.statusCode}): ${respBody}`));
-        }
+        if (res.statusCode >= 200 && res.statusCode < 300) resolve();
+        else reject(new Error(`PUT failed (${res.statusCode}): ${rb}`));
       });
     });
+    req.on('timeout', () => req.destroy(new Error('PUT timed out')));
+    req.on('error', err => { process.stdout.write('\n'); reject(err); });
 
-    req.on('timeout', () => {
-      req.destroy(new Error('Upload timed out after 15 minutes'));
-    });
-    req.on('error', err => {
-      process.stdout.write('\n');
-      reject(err);
-    });
-
-    // ── Stream file body with live progress bar ───────────────────────────────
-    const CHUNK = 1024 * 1024; // 1 MB per write
-    let sent    = 0;
-    const start = Date.now();
-    const fd    = fs.openSync(artifact.localPath, 'r');
-
-    function printProgress() {
+    // Stream body in 512 KB writes with progress
+    let sent = 0;
+    let offset = 0;
+    const WRITE_CHUNK = 512 * 1024;
+    function write() {
+      if (offset >= totalBytes) { req.end(); return; }
+      const slice = bodyBuf.slice(offset, offset + WRITE_CHUNK);
+      offset += slice.length;
+      sent   += slice.length;
       const pct    = ((sent / totalBytes) * 100).toFixed(1);
       const mbSent = (sent / 1024 / 1024).toFixed(1);
-      const secs   = (Date.now() - start) / 1000;
+      const secs   = (Date.now() - startTime) / 1000;
       const speed  = secs > 0 ? (sent / 1024 / 1024 / secs).toFixed(1) : '-';
-      const filled = Math.floor((sent / totalBytes) * 20);
-      const bar    = '█'.repeat(filled) + '░'.repeat(20 - filled);
+      const bar    = '█'.repeat(Math.floor(sent/totalBytes*20)) + '░'.repeat(20-Math.floor(sent/totalBytes*20));
       process.stdout.write(`\r    [${bar}] ${pct}%  ${mbSent}/${totalMB} MB  ${speed} MB/s  `);
+      const ok = req.write(slice);
+      if (ok) setImmediate(write);
+      else req.once('drain', write);
     }
-
-    function writeChunk() {
-      // All bytes queued — finalise the request
-      if (sent >= totalBytes) {
-        fs.closeSync(fd);
-        req.end();
-        return;
-      }
-      const len  = Math.min(CHUNK, totalBytes - sent);
-      const buf  = Buffer.alloc(len);
-      const read = fs.readSync(fd, buf, 0, len, sent);
-      if (read === 0) { fs.closeSync(fd); req.end(); return; }
-      const slice = buf.slice(0, read);
-      sent += read;
-      printProgress();
-      const canContinue = req.write(slice);
-      if (canContinue) {
-        setImmediate(writeChunk); // yield to event loop then continue
-      } else {
-        req.once('drain', writeChunk); // wait for socket buffer to clear
-      }
-    }
-
-    writeChunk();
+    write();
   });
+}
+
+// ── S3 Multipart upload (used for large files >= MULTIPART_THRESHOLD) ──────
+//
+// R2 fully supports the S3 multipart upload API.
+// Each part is an independent HTTPS request, so a slow hotspot can never cause
+// a full-file ECONNRESET — the worst that happens is one 10 MB part retries.
+
+async function initiateMultipartUpload(key, contentType, cacheControl) {
+  const bodyHash = sha256hex('');
+  const extraHeaders = {
+    'content-type':  contentType,
+    'cache-control': cacheControl,
+    'content-length': '0',
+  };
+  const signed = sigV4Auth('POST', key, 'uploads', extraHeaders, bodyHash);
+  const res = await r2Request('POST', key, 'uploads', signed, null);
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw new Error(`CreateMultipartUpload failed (${res.statusCode}): ${res.body}`);
+  }
+  const match = res.body.match(/<UploadId>([^<]+)<\/UploadId>/);
+  if (!match) throw new Error(`No UploadId in response: ${res.body}`);
+  return match[1];
+}
+
+async function uploadPart(key, uploadId, partNumber, chunk) {
+  const bodyHash = sha256hex(chunk);
+  const qs = `partNumber=${partNumber}&uploadId=${encodeURIComponent(uploadId)}`;
+  const extraHeaders = {
+    'content-length': String(chunk.length),
+    'content-type':   'application/octet-stream',
+  };
+  const signed = sigV4Auth('PUT', key, qs, extraHeaders, bodyHash);
+  const res = await r2Request('PUT', key, qs, signed, chunk);
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw new Error(`UploadPart ${partNumber} failed (${res.statusCode}): ${res.body}`);
+  }
+  const etag = res.headers.etag || res.headers['etag'];
+  if (!etag) throw new Error(`No ETag in UploadPart ${partNumber} response`);
+  return etag.replace(/"/g, '');
+}
+
+async function completeMultipartUpload(key, uploadId, parts) {
+  const xmlParts = parts.map(({ partNumber, etag }) =>
+    `<Part><PartNumber>${partNumber}</PartNumber><ETag>${etag}</ETag></Part>`
+  ).join('');
+  const xmlBody = `<CompleteMultipartUpload>${xmlParts}</CompleteMultipartUpload>`;
+  const bodyBuf  = Buffer.from(xmlBody, 'utf8');
+  const bodyHash = sha256hex(bodyBuf);
+  const qs = `uploadId=${encodeURIComponent(uploadId)}`;
+  const extraHeaders = {
+    'content-type':   'application/xml',
+    'content-length': String(bodyBuf.length),
+  };
+  const signed = sigV4Auth('POST', key, qs, extraHeaders, bodyHash);
+  const res = await r2Request('POST', key, qs, signed, bodyBuf);
+  if (res.statusCode < 200 || res.statusCode >= 300) {
+    throw new Error(`CompleteMultipartUpload failed (${res.statusCode}): ${res.body}`);
+  }
+}
+
+async function abortMultipartUpload(key, uploadId) {
+  const bodyHash = sha256hex('');
+  const qs = `uploadId=${encodeURIComponent(uploadId)}`;
+  const signed = sigV4Auth('DELETE', key, qs, { 'content-length': '0' }, bodyHash);
+  await r2Request('DELETE', key, qs, signed, null).catch(() => {});
+}
+
+async function uploadMultipart(artifact, totalBytes, totalMB, startTime) {
+  const isManifest   = artifact.name.endsWith('.yml');
+  const cacheControl = isManifest
+    ? 'no-cache, no-store, must-revalidate'
+    : 'public, max-age=31536000, immutable';
+  const contentType  = getContentType(artifact.name);
+
+  const numParts = Math.ceil(totalBytes / PART_SIZE);
+  process.stdout.write(`    (multipart: ${numParts} parts × ${(PART_SIZE/1024/1024).toFixed(0)} MB each)\n`);
+
+  const uploadId = await initiateMultipartUpload(artifact.name, contentType, cacheControl);
+  const parts    = [];
+  let   bytesDone = 0;
+
+  const fd = fs.openSync(artifact.localPath, 'r');
+  try {
+    for (let i = 1; i <= numParts; i++) {
+      const offset = (i - 1) * PART_SIZE;
+      const len    = Math.min(PART_SIZE, totalBytes - offset);
+      const chunk  = Buffer.alloc(len);
+      fs.readSync(fd, chunk, 0, len, offset);
+
+      // Per-part retry (up to 4 attempts) so a hotspot blip only retries 10 MB
+      let etag;
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        try {
+          process.stdout.write(`\r    Part ${i}/${numParts}  [uploading...]  `);
+          etag = await uploadPart(artifact.name, uploadId, i, chunk);
+          break;
+        } catch (err) {
+          if (!isRetryable(err) || attempt === 4) throw err;
+          const wait = attempt * 5;
+          process.stdout.write(`\r    Part ${i}/${numParts}  [retry in ${wait}s: ${err.message}]  `);
+          await sleep(wait * 1000);
+        }
+      }
+
+      bytesDone += len;
+      parts.push({ partNumber: i, etag });
+
+      const pct    = ((bytesDone / totalBytes) * 100).toFixed(1);
+      const mbDone = (bytesDone / 1024 / 1024).toFixed(1);
+      const secs   = (Date.now() - startTime) / 1000;
+      const speed  = secs > 0 ? (bytesDone / 1024 / 1024 / secs).toFixed(1) : '-';
+      const bar    = '█'.repeat(Math.floor(bytesDone/totalBytes*20)) + '░'.repeat(20-Math.floor(bytesDone/totalBytes*20));
+      process.stdout.write(`\r    [${bar}] ${pct}%  ${mbDone}/${totalMB} MB  ${speed} MB/s  `);
+    }
+    fs.closeSync(fd);
+  } catch (err) {
+    fs.closeSync(fd);
+    await abortMultipartUpload(artifact.name, uploadId);
+    throw err;
+  }
+
+  process.stdout.write('\n    Completing upload... ');
+  await completeMultipartUpload(artifact.name, uploadId, parts);
+  process.stdout.write('done\n');
+}
+
+/**
+ * Upload a single artifact.
+ * Routes to multipart (large files) or single PUT (small files) automatically.
+ */
+async function uploadFile(artifact) {
+  const totalBytes = fs.statSync(artifact.localPath).size;
+  const totalMB    = (totalBytes / 1024 / 1024).toFixed(1);
+  const startTime  = Date.now();
+
+  if (totalBytes >= MULTIPART_THRESHOLD) {
+    await uploadMultipart(artifact, totalBytes, totalMB, startTime);
+  } else {
+    await uploadSinglePut(artifact, totalBytes, totalMB, startTime);
+  }
 }
 
 // ── Verification ─────────────────────────────────────────────────────────────
