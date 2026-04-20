@@ -42,6 +42,8 @@
       "updater.js",
       "tweak-executor.js",
       "network-tweak-executor.js",
+      "slider-tweak-executor.js",
+      "nic-executor.js",
       "power-plan-manager.js",
       "backend-launcher.js",
       "config-store.js",
