@@ -756,7 +756,6 @@ export default function Landing() {
         </section>
 
         {/* ──── Feature Strip + Stats (unified section) ──── */}
-        <Reveal>
         <section className="relative pb-12 md:pb-16 -mt-24 pt-24">
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 80% 60% at 50% 20%, hsl(270 50% 45% / 0.05) 0%, transparent 70%)" }} />
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 md:pt-8 relative z-[1]">
@@ -790,12 +789,10 @@ export default function Landing() {
             </p>
           </div>
         </section>
-        </Reveal>
 
         <SectionDivider glow />
 
         {/* ──── Features ──── */}
-        <Reveal>
         <section id="features" className="py-24 md:py-32 relative ws-section-glow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <SectionHeader
@@ -842,12 +839,10 @@ export default function Landing() {
             <ModuleShowcase />
           </div>
         </section>
-        </Reveal>
 
         <SectionDivider />
 
         {/* ──── BIOS Advisor ──── */}
-        <Reveal>
         <section className="py-24 md:py-32 relative overflow-hidden">
           <SectionGlow color="mixed" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 60% 40%, hsl(270 55% 45% / 0.04) 0%, transparent 70%)" }} />
@@ -971,12 +966,10 @@ export default function Landing() {
             </div>
           </div>
         </section>
-        </Reveal>
 
         <SectionDivider glow />
 
         {/* ──── Comparison Sliders ──── */}
-        <Reveal>
         <section className="py-24 md:py-32 relative">
           <SectionGlow color="cyan" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 70% 40% at 50% 50%, hsl(190 70% 40% / 0.03) 0%, transparent 70%)" }} />
@@ -990,12 +983,10 @@ export default function Landing() {
             <LandingPerformanceCharts />
           </div>
         </section>
-        </Reveal>
 
         <SectionDivider />
 
         {/* ──── Social Proof ──── */}
-        <Reveal>
         <section className="py-20 relative">
           <SectionGlow color="purple" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(270 50% 40% / 0.03) 0%, transparent 70%)" }} />
@@ -1013,7 +1004,6 @@ export default function Landing() {
             <SocialProofCharts />
           </div>
         </section>
-        </Reveal>
 
         {/* ──── What is SwitchControl ──── */}
         <WhatIsSwitchControl />
@@ -1021,7 +1011,6 @@ export default function Landing() {
         <SectionDivider glow />
 
         {/* ──── Pricing Preview ──── */}
-        <Reveal>
         <section id="pricing" className="py-28 md:py-36 relative ws-section-glow">
           <div id="pricing-top" />
 
@@ -1173,12 +1162,10 @@ export default function Landing() {
             </motion.div>
           </div>
         </section>
-        </Reveal>
 
         <SectionDivider glow />
 
         {/* ──── Final CTA ──── */}
-        <Reveal>
         <section className="py-24 md:py-32 relative">
           <SectionGlow color="cyan" intensity="strong" />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-primary/[0.03] to-transparent pointer-events-none" />
@@ -1203,7 +1190,6 @@ export default function Landing() {
             </Reveal>
           </div>
         </section>
-        </Reveal>
       </main>
     </WebsiteShell>
   );

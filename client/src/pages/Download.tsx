@@ -233,9 +233,15 @@ function PatchNotesCard() {
 export default function DownloadPage() {
   const { user } = useAuth();
   const [time, setTime] = useState(getTimeLeft);
-  const [mouse, setMouse] = useState({ x: 0.5, y: 0.5 });
   const [sceneReady, setSceneReady] = useState(false);
   const rafRef = useRef<number | null>(null);
+
+  // Mouse parallax driven entirely via refs — no React state, zero re-renders per frame
+  const mouseRef = useRef({ x: 0.5, y: 0.5 });
+  const glow1Ref = useRef<HTMLDivElement>(null);
+  const glow2Ref = useRef<HTMLDivElement>(null);
+  const glow3Ref = useRef<HTMLDivElement>(null);
+  const glow4Ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const id = setInterval(() => setTime(getTimeLeft()), 1000);
@@ -245,7 +251,17 @@ export default function DownloadPage() {
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (rafRef.current !== null) return;
     rafRef.current = requestAnimationFrame(() => {
-      setMouse({ x: e.clientX / window.innerWidth, y: e.clientY / window.innerHeight });
+      const x = e.clientX / window.innerWidth;
+      const y = e.clientY / window.innerHeight;
+      mouseRef.current = { x, y };
+      if (glow1Ref.current)
+        glow1Ref.current.style.transform = `translate(calc(-50% + ${(x - 0.5) * 18}px), ${(y - 0.5) * 12}px)`;
+      if (glow2Ref.current)
+        glow2Ref.current.style.transform = `translate(${(x - 0.5) * -14}px, ${(y - 0.5) * -10}px)`;
+      if (glow3Ref.current)
+        glow3Ref.current.style.transform = `translate(${(x - 0.5) * 22}px, ${(y - 0.5) * 16}px)`;
+      if (glow4Ref.current)
+        glow4Ref.current.style.transform = `translate(-50%, ${(y - 0.5) * 8}px)`;
       rafRef.current = null;
     });
   }, []);
@@ -362,50 +378,50 @@ export default function DownloadPage() {
           transition: "opacity 1.2s ease",
         }}>
 
-          {/* Layer 1: Primary center glow — mouse parallax */}
-          <div style={{
+          {/* Layer 1: Primary center glow — mouse parallax via ref */}
+          <div ref={glow1Ref} style={{
             position: "absolute", top: "8%", left: "50%",
             width: "clamp(700px,90vw,1300px)", height: "clamp(420px,58vw,820px)",
             borderRadius: "50%",
             background: "radial-gradient(ellipse,rgba(109,40,217,0.30) 0%,rgba(139,92,246,0.10) 42%,transparent 70%)",
             filter: "blur(56px)",
-            transform: `translate(calc(-50% + ${(mouse.x - 0.5) * 18}px), ${(mouse.y - 0.5) * 12}px)`,
+            transform: "translate(-50%, 0)",
             transition: "transform 0.9s ease-out",
             animation: "ambientBreathe 9s ease-in-out infinite",
           }} />
 
-          {/* Layer 2: Secondary offset glow bottom-right — mouse parallax */}
-          <div style={{
+          {/* Layer 2: Secondary offset glow bottom-right — mouse parallax via ref */}
+          <div ref={glow2Ref} style={{
             position: "absolute", bottom: "6%", right: "4%",
             width: "clamp(260px,36vw,500px)", height: "clamp(160px,24vw,320px)",
             borderRadius: "50%",
             background: "radial-gradient(ellipse,rgba(6,182,212,0.14) 0%,rgba(103,232,249,0.05) 55%,transparent 75%)",
             filter: "blur(52px)",
-            transform: `translate(${(mouse.x - 0.5) * -14}px, ${(mouse.y - 0.5) * -10}px)`,
+            transform: "translate(0, 0)",
             transition: "transform 1.1s ease-out",
             animation: "blobDrift2 14s ease-in-out infinite",
           }} />
 
-          {/* Layer 3: Upper-left ghost glow — mouse parallax */}
-          <div style={{
+          {/* Layer 3: Upper-left ghost glow — mouse parallax via ref */}
+          <div ref={glow3Ref} style={{
             position: "absolute", top: "5%", left: "2%",
             width: "clamp(200px,28vw,400px)", height: "clamp(150px,22vw,300px)",
             borderRadius: "50%",
             background: "radial-gradient(ellipse,rgba(139,92,246,0.10) 0%,transparent 70%)",
             filter: "blur(60px)",
-            transform: `translate(${(mouse.x - 0.5) * 22}px, ${(mouse.y - 0.5) * 16}px)`,
+            transform: "translate(0, 0)",
             transition: "transform 1.3s ease-out",
             animation: "blobDrift3 18s ease-in-out infinite",
           }} />
 
           {/* Layer 4: Lower mid glow — fills dead lower zone */}
-          <div style={{
+          <div ref={glow4Ref} style={{
             position: "absolute", bottom: "22%", left: "50%",
             width: "clamp(400px,55vw,800px)", height: "clamp(200px,28vw,400px)",
             borderRadius: "50%",
             background: "radial-gradient(ellipse,rgba(88,28,220,0.12) 0%,rgba(139,92,246,0.04) 55%,transparent 75%)",
             filter: "blur(70px)",
-            transform: `translate(-50%, ${(mouse.y - 0.5) * 8}px)`,
+            transform: "translate(-50%, 0)",
             transition: "transform 1.0s ease-out",
             animation: "blobDrift1 20s ease-in-out infinite 4s",
           }} />

@@ -8,18 +8,19 @@ interface Particle {
   opacity: number;
   speed: number;
   delay: number;
+  opacityDuration: number;
   colorIndex: number;
   tier: 'dot' | 'orb' | 'blob';
 }
 
 const PARTICLE_COLORS = [
-  `rgba(168, 85, 247, {o})`,   // violet
-  `rgba(139, 92, 246, {o})`,   // purple
-  `rgba(34, 211, 238, {o})`,   // cyan
-  `rgba(192, 132, 252, {o})`,  // lavender
-  `rgba(255, 255, 255, {o})`,  // white
-  `rgba(236, 72, 153, {o})`,   // pink
-  `rgba(99, 179, 237, {o})`,   // sky
+  `rgba(168, 85, 247, {o})`,
+  `rgba(139, 92, 246, {o})`,
+  `rgba(34, 211, 238, {o})`,
+  `rgba(192, 132, 252, {o})`,
+  `rgba(255, 255, 255, {o})`,
+  `rgba(236, 72, 153, {o})`,
+  `rgba(99, 179, 237, {o})`,
 ];
 
 function randomBetween(min: number, max: number) {
@@ -39,8 +40,8 @@ export function LoginParticles() {
   const particles = useMemo<Particle[]>(() => {
     const list: Particle[] = [];
 
-    // Tier 1 — small sharp dots (many)
-    const dotCount = isMobile ? 32 : 90;
+    // Tier 1 — small sharp dots
+    const dotCount = isMobile ? 10 : 22;
     for (let i = 0; i < dotCount; i++) {
       list.push({
         id: i,
@@ -50,13 +51,14 @@ export function LoginParticles() {
         opacity: randomBetween(0.22, 0.55),
         speed: randomBetween(12, 28),
         delay: Math.random() * 10,
+        opacityDuration: randomBetween(3, 6),
         colorIndex: Math.floor(Math.random() * PARTICLE_COLORS.length),
         tier: 'dot',
       });
     }
 
-    // Tier 2 — medium glowing orbs (fewer)
-    const orbCount = isMobile ? 12 : 32;
+    // Tier 2 — medium glowing orbs
+    const orbCount = isMobile ? 3 : 7;
     for (let i = 0; i < orbCount; i++) {
       list.push({
         id: dotCount + i,
@@ -66,13 +68,14 @@ export function LoginParticles() {
         opacity: randomBetween(0.16, 0.38),
         speed: randomBetween(18, 38),
         delay: Math.random() * 12,
+        opacityDuration: randomBetween(3, 6),
         colorIndex: Math.floor(Math.random() * PARTICLE_COLORS.length),
         tier: 'orb',
       });
     }
 
-    // Tier 3 — large soft blobs (very few, big radial glow)
-    const blobCount = isMobile ? 4 : 10;
+    // Tier 3 — large soft blobs (very few)
+    const blobCount = isMobile ? 2 : 3;
     for (let i = 0; i < blobCount; i++) {
       list.push({
         id: dotCount + orbCount + i,
@@ -82,6 +85,7 @@ export function LoginParticles() {
         opacity: randomBetween(0.06, 0.14),
         speed: randomBetween(25, 55),
         delay: Math.random() * 15,
+        opacityDuration: randomBetween(4, 7),
         colorIndex: [0, 1, 2, 5, 6][i % 5],
         tier: 'blob',
       });
@@ -117,7 +121,7 @@ export function LoginParticles() {
               height: p.size,
               background,
               '--particle-speed': `${p.speed}s`,
-              animationDuration: `${p.speed}s, ${randomBetween(3, 6).toFixed(1)}s`,
+              animationDuration: `${p.speed}s, ${p.opacityDuration.toFixed(1)}s`,
               animationDelay: `${p.delay}s, ${(p.delay * 0.5).toFixed(1)}s`,
             } as React.CSSProperties}
           />

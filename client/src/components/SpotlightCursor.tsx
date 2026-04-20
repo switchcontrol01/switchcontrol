@@ -1,106 +1,80 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMotion } from '@/lib/motion';
 
 export function SpotlightCursor() {
-  const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isVisible, setIsVisible] = useState<boolean>(false);
-  const [isMobile, setIsMobile] = useState<boolean>(true);
+  const spotRef = useRef<HTMLDivElement>(null);
+  const isMobileRef = useRef(true);
   const { prefersReducedMotion } = useMotion();
   const rafRef = useRef<number | undefined>(undefined);
-  const targetRef = useRef({ x: 0, y: 0 });
+  const cur = useRef({ x: 0, y: 0 });
+  const targ = useRef({ x: 0, y: 0 });
+  const visibleRef = useRef(false);
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+      isMobileRef.current = window.innerWidth < 768 || 'ontouchstart' in window;
     };
-    
     checkMobile();
     window.addEventListener('resize', checkMobile);
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
+    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   useEffect(() => {
-    if (isMobile) return;
+    const el = spotRef.current;
+    if (!el) return;
 
-    let isTabVisible = true;
+    let running = true;
+    const smoothness = prefersReducedMotion ? 0.15 : 0.08;
 
     const handleMouseMove = (e: MouseEvent) => {
-      targetRef.current = { x: e.clientX, y: e.clientY };
-      if (!isVisible) setIsVisible(true);
-    };
-
-    const handleMouseLeave = () => {
-      setIsVisible(false);
-    };
-
-    const handleVisibilityChange = () => {
-      isTabVisible = document.visibilityState === 'visible';
-      if (isTabVisible) {
-        rafRef.current = requestAnimationFrame(animate);
+      if (isMobileRef.current) return;
+      targ.current.x = e.clientX;
+      targ.current.y = e.clientY;
+      if (!visibleRef.current) {
+        visibleRef.current = true;
+        el.style.opacity = '1';
       }
     };
 
-    const smoothness = prefersReducedMotion ? 0.15 : 0.08;
-    
-    const animate = () => {
-      if (!isTabVisible) return;
-      
-      setPosition(prev => ({
-        x: prev.x + (targetRef.current.x - prev.x) * smoothness,
-        y: prev.y + (targetRef.current.y - prev.y) * smoothness,
-      }));
-      rafRef.current = requestAnimationFrame(animate);
+    const handleMouseLeave = () => {
+      visibleRef.current = false;
+      el.style.opacity = '0';
+    };
+
+    const tick = () => {
+      if (!running) return;
+      if (!isMobileRef.current) {
+        cur.current.x += (targ.current.x - cur.current.x) * smoothness;
+        cur.current.y += (targ.current.y - cur.current.y) * smoothness;
+        el.style.transform = `translate3d(calc(${cur.current.x.toFixed(1)}px - 50%), calc(${cur.current.y.toFixed(1)}px - 50%), 0)`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseleave', handleMouseLeave);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    rafRef.current = requestAnimationFrame(animate);
+    rafRef.current = requestAnimationFrame(tick);
 
     return () => {
+      running = false;
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      if (rafRef.current !== undefined) cancelAnimationFrame(rafRef.current);
     };
-  }, [isMobile, prefersReducedMotion]);
-
-  if (isMobile) return null;
-
-  if (prefersReducedMotion) {
-    return (
-      <div
-        className="fixed pointer-events-none"
-        style={{
-          left: position.x,
-          top: position.y,
-          width: 600,
-          height: 600,
-          transform: 'translate(-50%, -50%)',
-          background: 'radial-gradient(circle, rgba(139, 92, 246, 0.04) 0%, rgba(139, 92, 246, 0.01) 30%, transparent 70%)',
-          opacity: isVisible ? 0.7 : 0,
-          zIndex: 1,
-          transition: 'left 0.5s ease-out, top 0.5s ease-out, opacity 0.5s',
-        }}
-        aria-hidden="true"
-      />
-    );
-  }
+  }, [prefersReducedMotion]);
 
   return (
     <div
-      className="fixed pointer-events-none transition-opacity duration-500"
+      ref={spotRef}
+      className="fixed top-0 left-0 pointer-events-none"
       style={{
-        left: position.x,
-        top: position.y,
         width: 600,
         height: 600,
-        transform: 'translate(-50%, -50%)',
         background: 'radial-gradient(circle, rgba(139, 92, 246, 0.06) 0%, rgba(139, 92, 246, 0.02) 30%, transparent 70%)',
-        opacity: isVisible ? 1 : 0,
+        opacity: 0,
         zIndex: 1,
+        transition: 'opacity 0.5s',
+        willChange: 'transform',
       }}
       aria-hidden="true"
     />
