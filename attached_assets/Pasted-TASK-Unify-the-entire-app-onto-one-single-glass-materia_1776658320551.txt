@@ -1,0 +1,114 @@
+TASK
+
+Unify the entire app onto one single glass material system and remove the secondary milky white glass style everywhere.
+
+PROBLEM
+
+The app currently has multiple competing glass implementations.
+
+Some surfaces use the correct dark translucent premium glass look.
+Other surfaces use a milkier white semi-opaque glass look.
+
+This creates visual inconsistency and causes obvious bugs during transitions, especially when opening tweak details, network tweak cards, modals, dashboard widgets, and other overlays.
+
+The darker translucent glass that appears briefly during transition is the correct one.
+That is the material system we want to keep.
+
+The whiter milky overlay style must be removed.
+
+GOAL
+
+Use one glass system across the full app.
+
+Keep the clean dark translucent glass look.
+Remove the heavier milky white variant.
+Apply the same visual material language to:
+
+- tweak cards
+- tweak detail modals
+- network tweak detail cards
+- dashboard stat cards
+- dashboard intelligence cards
+- icon cards on dashboard
+- popups
+- overlays
+- shared panels
+- any other glass surface using a conflicting material
+
+The app should feel like one premium surface system, not multiple overlapping themes.
+
+IMPORTANT
+
+The correct glass is the darker translucent one that briefly appears before the milky layer takes over.
+Keep that one.
+Remove the other one.
+
+Do not just patch one modal.
+Do a full audit.
+
+IMPLEMENTATION
+
+1. Create one shared glass surface standard and use it everywhere.
+
+Use a darker translucent premium glass style as the source of truth.
+
+Target direction:
+
+- subtle dark translucent fill
+- low white alpha
+- soft border
+- blur, but not heavy milkiness
+- no bright white gradient slabs
+
+Example direction:
+
+- "bg-white/[0.03]" or "bg-white/[0.04]"
+- "border-white/[0.08]" to "border-white/[0.10]"
+- "backdrop-blur-xl"
+- subtle inner highlight only
+- subtle shadow only
+
+Do not use the brighter milky style as a base.
+
+2. Audit and normalize these components first:
+
+- "GlassCard.tsx"
+- "GlassPanel.tsx"
+- "GlassModalLayout.tsx"
+- custom modal surface inside "TweakCard.tsx"
+
+3. Remove any surface classes that push the UI into a whiter frosted look.
+
+Especially remove or replace things like:
+
+- "from-white/[0.18]"
+- "via-white/[0.12]"
+- "to-white/[0.08]"
+- "border-white/[0.22]"
+
+These values are too bright and create the milky overlay effect.
+
+4. Build one reusable shared class or token pattern for glass surfaces.
+
+For example:
+
+- standard card glass
+- standard elevated glass
+- standard modal glass
+
+But all three must clearly belong to the same material family.
+
+Difference should only be depth and shadow, not a completely different color language.
+
+5. Apply the unified glass system to all visible major surfaces, including:
+
+- tweak cards
+- tweak detail modal
+- dashboard stat cards
+- dashboard intelligence cards
+- AI advisor and BIOS advisor preview cards
+- network tweak surfaces
+- card-based popups
+- modal wrappers
+- any panel where the old milky style still appears
+

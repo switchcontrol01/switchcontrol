@@ -9,8 +9,6 @@ interface DiskData {
   size: number;
   used: number;
   usePercent: number;
-  readBytes?: number;
-  writeBytes?: number;
 }
 
 interface IOSample {
@@ -92,10 +90,11 @@ function DualSparkline({ samples, maxVal }: { samples: IOSample[]; maxVal: numbe
 export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: DiskTelemetryModalProps) {
   const [data, setData] = useState<DiskData | null>(null);
   const [ioHistory, setIoHistory] = useState<IOSample[]>([]);
+  const [ioAvailable, setIoAvailable] = useState<boolean | null>(null);
+  const [ioSource, setIoSource] = useState<string>('none');
   const [fetchError, setFetchError] = useState<string | null>(null);
   const errorCountRef = useRef(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const prevIORef = useRef<{ readBytes: number; writeBytes: number; ts: number } | null>(null);
   const mountedRef = useRef(true);
   const selectedDiskMountRef = useRef(selectedDiskMount);
   selectedDiskMountRef.current = selectedDiskMount;
@@ -117,18 +116,16 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
         return;
       }
 
-      // Backend now returns { selected, disks, io } — use `selected` directly
+      // Backend returns { selected, disks, io } — use `selected` for capacity data
       let diskEntry: any = null;
       if (raw.selected) {
         diskEntry = raw.selected;
       } else if (raw.disks && Array.isArray(raw.disks)) {
-        // Fallback: find selected mount or C: or first
         const mount = selectedDiskMountRef.current;
         diskEntry = (mount ? raw.disks.find((d: any) => d.mount === mount) : null)
           ?? raw.disks.find((d: any) => d.mount === 'C:' || d.mount === '/')
           ?? raw.disks[0];
       } else {
-        // Legacy flat shape
         diskEntry = raw;
       }
 
@@ -138,46 +135,41 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
         return;
       }
 
-      console.log(`[DiskModal] selectedDiskMount=${selectedDiskMountRef.current} resolved=${diskEntry.mount} use=${diskEntry.use}%`);
-
-      let diskData: DiskData;
-      {
-        const size = safeBytes(diskEntry.size);
-        const used = safeBytes(diskEntry.used);
-        diskData = {
-          size,
-          used: Math.min(used, size),
-          usePercent: safePct(diskEntry.use ?? diskEntry.usePercent ?? safeDivide(used, size) * 100),
-          readBytes: safeBytes(raw.io?.rIO ?? diskEntry.readBytes),
-          writeBytes: safeBytes(raw.io?.wIO ?? diskEntry.writeBytes),
-        };
-      }
+      const size = safeBytes(diskEntry.size);
+      const used = safeBytes(diskEntry.used);
+      const diskData: DiskData = {
+        size,
+        used: Math.min(used, size),
+        usePercent: safePct(diskEntry.use ?? diskEntry.usePercent ?? safeDivide(used, size) * 100),
+      };
 
       if (!mountedRef.current) return;
       setData(diskData);
       setFetchError(null);
       errorCountRef.current = 0;
 
-      const now = Date.now();
-      const curRead = diskData.readBytes ?? 0;
-      const curWrite = diskData.writeBytes ?? 0;
+      // ── Live I/O: backend rIO/wIO are already KB/s rates — NOT cumulative counters.
+      // Convert directly to MB/s. Delta math here is wrong and must not be used.
+      const io = raw.io;
+      const ioAvail = io?.available === true;
+      setIoAvailable(ioAvail);
+      setIoSource(io?.source || 'none');
 
-      if (prevIORef.current) {
-        const dtSec = (now - prevIORef.current.ts) / 1000;
-        if (dtSec > 0.1) {
-          const readDelta = curRead - prevIORef.current.readBytes;
-          const writeDelta = curWrite - prevIORef.current.writeBytes;
-          const readMBs = readDelta >= 0 ? readDelta / 1024 / 1024 / dtSec : 0;
-          const writeMBs = writeDelta >= 0 ? writeDelta / 1024 / 1024 / dtSec : 0;
-          if (Number.isFinite(readMBs) && Number.isFinite(writeMBs)) {
-            setIoHistory(prev => {
-              const next = [...prev, { readMBs: Math.min(readMBs, 10000), writeMBs: Math.min(writeMBs, 10000) }];
-              return next.length > BUFFER_SIZE ? next.slice(-BUFFER_SIZE) : next;
-            });
-          }
+      console.log('[DiskModal][io]', {
+        rIO: io?.rIO, wIO: io?.wIO, available: ioAvail, source: io?.source,
+      });
+
+      if (ioAvail && io?.rIO != null && io?.wIO != null) {
+        // rIO / wIO are KB/s from backend — divide by 1024 to get MB/s
+        const readMBs = Math.max(0, (io.rIO as number) / 1024);
+        const writeMBs = Math.max(0, (io.wIO as number) / 1024);
+        if (Number.isFinite(readMBs) && Number.isFinite(writeMBs)) {
+          setIoHistory(prev => {
+            const next = [...prev, { readMBs, writeMBs }];
+            return next.length > BUFFER_SIZE ? next.slice(-BUFFER_SIZE) : next;
+          });
         }
       }
-      prevIORef.current = { readBytes: curRead, writeBytes: curWrite, ts: now };
 
     } catch (err) {
       errorCountRef.current += 1;
@@ -206,9 +198,10 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
     mountedRef.current = true;
     setData(null);
     setIoHistory([]);
+    setIoAvailable(null);
+    setIoSource('none');
     setFetchError(null);
     errorCountRef.current = 0;
-    prevIORef.current = null;
     console.log(`[DiskModal] Starting poll for disk: ${selectedDiskMount ?? 'default'}`);
     fetchDisk();
     intervalRef.current = setInterval(fetchDisk, POLL_MS);
@@ -232,8 +225,9 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
   const handleRetry = () => {
     setFetchError(null);
     errorCountRef.current = 0;
-    prevIORef.current = null;
     setIoHistory([]);
+    setIoAvailable(null);
+    setIoSource('none');
     fetchDisk();
   };
 
@@ -315,25 +309,46 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
             <StatTile label="Usage" value={`${usePct}`} unit="%" delay={0.27} />
           </div>
 
-          {ioHistory.length > 1 && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.15, type: "spring", stiffness: 400, damping: 28 }}
-              className="space-y-2"
-            >
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15, type: "spring", stiffness: 400, damping: 28 }}
+            className="space-y-2"
+          >
+            <div className="flex items-center justify-between">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Disk Activity</p>
-              <div className="p-3 rounded-lg bg-white/[0.06] border border-white/[0.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                <DualSparkline samples={ioHistory} maxVal={ioMax} />
-                {latestIO && (
-                  <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
-                    <span>Read: <span className="text-cyan-400 font-bold tabular-nums">{latestIO.readMBs.toFixed(1)} MB/s</span></span>
-                    <span>Write: <span className="text-amber-400 font-bold tabular-nums">{latestIO.writeMBs.toFixed(1)} MB/s</span></span>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
+              {ioAvailable === false && ioSource !== 'none' && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-white/30">
+                  {ioSource === 'warming' ? 'Warming up…' : 'Unavailable'}
+                </span>
+              )}
+            </div>
+            <div className="p-3 rounded-lg bg-white/[0.06] border border-white/[0.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              {ioHistory.length > 1 ? (
+                <>
+                  <DualSparkline samples={ioHistory} maxVal={ioMax} />
+                  {latestIO && (
+                    <div className="flex items-center justify-between mt-2 text-[10px] text-muted-foreground">
+                      <span>Read: <span className="text-cyan-400 font-bold tabular-nums">{latestIO.readMBs.toFixed(2)} MB/s</span></span>
+                      <span>Write: <span className="text-amber-400 font-bold tabular-nums">{latestIO.writeMBs.toFixed(2)} MB/s</span></span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="h-10 flex items-center justify-center">
+                  <span className="text-[10px] text-white/25">
+                    {ioAvailable === null
+                      ? 'Collecting data…'
+                      : ioSource === 'warming'
+                        ? 'Warming up disk telemetry…'
+                        : ioSource === 'unavailable'
+                          ? 'Live disk I/O not available on this system'
+                          : 'Waiting for first sample…'}
+                  </span>
+                </div>
+              )}
+            </div>
+          </motion.div>
         </div>
       ) : (
         <div className="py-8 flex flex-col items-center justify-center gap-2">

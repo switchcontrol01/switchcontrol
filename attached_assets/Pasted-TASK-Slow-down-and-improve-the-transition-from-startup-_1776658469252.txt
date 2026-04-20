@@ -1,0 +1,135 @@
+TASK
+
+Slow down and improve the transition from startup / welcome animation into the authenticated dashboard so it feels cinematic, fluid, and intentional instead of fast.
+
+PROBLEM
+
+The current handoff into the dashboard is technically smooth but visually too short.
+
+Right now:
+
+- the welcome screen exits too quickly
+- the dashboard fades and de-blurs in too quickly
+- the transition does not have enough atmospheric hold
+- the result feels like a polished fast swap instead of a premium cinematic handoff
+
+GOAL
+
+Make the transition from startup / welcome into dashboard feel:
+
+- slower
+- more deliberate
+- more atmospheric
+- more cinematic
+- more satisfying
+
+The transition should feel like:
+
+1. welcome screen dissolves and blurs away with weight
+2. a soft atmospheric handoff happens
+3. dashboard emerges from haze
+4. dashboard settles into clarity
+
+IMPLEMENTATION
+
+1. Slow down welcome exit in "App.tsx"
+
+Current welcome exit is too short:
+
+- duration is around 0.65s
+- blur is too weak
+- scale change is too small to feel cinematic
+
+Update the "phase === "welcome"" exit transition so it has:
+
+- longer duration, around 1.15s to 1.35s
+- stronger blur during exit
+- slightly deeper scale-down
+- premium easing curve
+
+Target direction:
+
+- opacity to 0
+- blur around 20px to 24px
+- scale around 0.972 to 0.98
+- duration around 1.2s
+
+2. Slow down authenticated app enter in "App.tsx"
+
+Current authenticated enter is too fast:
+
+- duration is around 0.75s
+- blur starts too low
+- dashboard sharpens too quickly
+
+Update the "phase === "authenticated"" enter animation so it has:
+
+- longer duration, around 1.15s to 1.35s
+- stronger initial blur
+- slightly lower initial scale
+- smoother settle
+
+Target direction:
+
+- initial opacity 0
+- initial blur around 8px to 12px
+- initial scale around 0.985 to 0.99
+- animate to full opacity, no blur, scale 1
+- duration around 1.2s to 1.3s
+
+3. Make blur clear slightly slower than opacity
+
+The destination should not become sharp too early.
+
+Either:
+
+- separate opacity and blur timing
+  or
+- tune the overall motion so blur lingers slightly longer than the basic fade
+
+This is important.
+The dashboard should feel like it is emerging through atmosphere, not just fading in.
+
+4. Review "AnimatePresence mode="sync""
+
+Current mode may be making the transition feel too compressed.
+
+Test whether:
+
+- "mode="wait""
+  or
+- a more controlled overlap setup
+
+produces a better cinematic result.
+
+Do not blindly change it everywhere.
+Only change this transition flow if it improves the startup handoff.
+
+5. Preserve current visual identity
+
+Do not redesign the welcome screen.
+Do not remove current effects.
+Do not flatten the motion.
+
+Keep the existing style, but make the timing more premium and intentional.
+
+CHECKLIST
+
+- welcome exit duration increased
+- welcome blur-out strengthened
+- dashboard enter duration increased
+- dashboard initial blur increased
+- dashboard settle feels slower and more premium
+- blur does not disappear too early
+- transition feels cinematic instead of rushed
+- visual identity preserved
+
+FINAL OUTPUT
+
+Return:
+
+1. old and new welcome exit values
+2. old and new dashboard enter values
+3. whether "AnimatePresence mode" was changed
+4. what was done to make blur linger longer
+5. confirmation that the handoff now feels slower and more cinematic

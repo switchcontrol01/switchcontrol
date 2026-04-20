@@ -364,10 +364,20 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       // Electron path: disk from IPC.
       const netRxSec = typeof live.network?.rxKBps === "number" ? safeNumber(live.network.rxKBps) : null;
       const netTxSec = typeof live.network?.txKBps === "number" ? safeNumber(live.network.txKBps) : null;
-      const diskActiveTime = live.disk?.activeTimePct != null ? safeNumber(live.disk.activeTimePct) : null;
-      const diskReadKBps = live.disk?.readKBps != null ? safeNumber(live.disk.readKBps) : null;
-      const diskWriteKBps = live.disk?.writeKBps != null ? safeNumber(live.disk.writeKBps) : null;
-      const diskElectronAvailable = diskActiveTime != null || diskReadKBps != null || diskWriteKBps != null;
+      // Only show disk activity when the backend explicitly confirms the source is valid.
+      // A fake zero (source: warming / unavailable) must NOT be treated as real data.
+      const diskElectronAvailable = live.disk?.available === true;
+      const diskActiveTime = diskElectronAvailable && live.disk?.activeTimePct != null ? safeNumber(live.disk.activeTimePct) : null;
+      const diskReadKBps   = diskElectronAvailable && live.disk?.readKBps   != null ? safeNumber(live.disk.readKBps)   : null;
+      const diskWriteKBps  = diskElectronAvailable && live.disk?.writeKBps  != null ? safeNumber(live.disk.writeKBps)  : null;
+
+      console.log("[LiveGraph][Disk]", {
+        activeTimePct: live.disk?.activeTimePct,
+        readKBps: live.disk?.readKBps,
+        writeKBps: live.disk?.writeKBps,
+        available: live.disk?.available,
+        source: live.disk?.source,
+      });
 
       const telemetryState: LatestState = {
         cpuLoad, cpuTemp, gpuTemp, gpuLoad,

@@ -1,0 +1,125 @@
+TASK
+
+Fix the disk telemetry system end to end so it is truthful, correctly typed, and visually reliable across:
+
+- Electron main telemetry polling
+- "telemetry:getLive"
+- "telemetry:getDisk"
+- "DiskTelemetryModal.tsx"
+- "LiveGraph.tsx"
+
+This is a real bug fix pass, not a cosmetic patch.
+
+PROBLEM
+
+Disk telemetry is currently inconsistent and partially misleading.
+
+There are 3 core issues:
+
+1. "DiskTelemetryModal.tsx" is mathematically wrong.
+   It treats "raw.io.rIO" and "raw.io.wIO" as cumulative byte counters and calculates deltas over time, but the backend is already returning rates in KB/s. That means the modal is doing rate-of-rate math on the wrong unit.
+
+2. The backend disk telemetry path collapses "real idle disk" and "disk telemetry unavailable" into the same fake zero output.
+   In "pollTelemetry()", when "si.disksIO()" is unavailable or rates are not actually computed, the code emits "0" for disk values. That makes the frontend think disk telemetry is valid even when the source failed.
+
+3. The dashboard graph cannot reliably distinguish:
+
+- real disk activity = 0
+- unavailable disk telemetry
+  So the graph may show a flat 0% line even when the backend never got real disk I/O data.
+
+GOAL
+
+Make disk telemetry accurate, honest, and deterministic.
+
+After this fix:
+
+- The disk modal must display correct read and write throughput
+- The dashboard graph must only show disk activity when real disk telemetry exists
+- Backend must explicitly expose whether disk telemetry is available
+- Unavailable telemetry must stay unavailable, not be faked as zero
+- Real idle disk may still show 0, but only when the source is actually valid
+
+IMPLEMENTATION
+
+1. Fix the modal units in "DiskTelemetryModal.tsx"
+
+Current problem:
+"raw.io.rIO" and "raw.io.wIO" are already rates from backend, but the modal treats them like cumulative counters.
+
+Current wrong pattern:
+
+- store previous values
+- subtract previous from current
+- divide by time
+- convert as if bytes
+
+That is incorrect.
+
+Replace that logic with direct usage of backend throughput.
+
+Requirements:
+
+- treat "raw.io.rIO" as read KB/s
+- treat "raw.io.wIO" as write KB/s
+- convert directly to MB/s by dividing by 1024
+- push those direct values into "ioHistory"
+- remove delta logic and "prevIORef" for this path
+
+Target behavior:
+
+- modal sparkline updates immediately
+- modal read and write values reflect backend rates directly
+- no fake accumulation logic
+
+2. Fix backend disk cache shape in "electron/main.js"
+
+Right now "diskIO" only exposes values, not truthfulness.
+
+Change disk cache shape to:
+
+let diskIO = {
+  activeTimePct: null,
+  readKBps: null,
+  writeKBps: null,
+  available: false,
+  source: 'none',
+};
+
+Then update "pollTelemetry()" logic so the backend clearly distinguishes states.
+
+A. When real disk rates were successfully computed:
+
+- set "available = true"
+- set "source = 'disksio'"
+
+B. When this is only the warmup window and the differential API has not yet produced a valid delta:
+
+- set "available = false"
+- set "source = 'warming'"
+- do not pretend this is real disk data
+
+C. When "si.disksIO()" is unavailable or failed:
+
+- keep disk values as "null"
+- set "available = false"
+- set "source = 'unavailable'"
+
+Important:
+Do not emit fake permanent zeros for unavailable disk telemetry.
+A real 0 is only valid when the source itself is valid.
+
+3. Fix disk delta computation in "pollTelemetry()"
+
+Keep the existing sector-based delta math when "rIO" and "wIO" cumulative values exist.
+
+But only mark data as available when the computation truly succeeded.
+
+For example:
+
+- if you have a valid prior snapshot and valid delta time, compute read/write KB/s and activeTimePct
+- then set "available = true"
+- otherwise leave values null and unavailable
+
+If systeminformation exposes per-second rates directly on some systems, use them.
+Still mark that path as available only when the values are actually valid.

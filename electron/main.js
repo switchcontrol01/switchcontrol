@@ -124,8 +124,15 @@ async function pollTelemetry() {
     // ── Disk delta computation ────────────────────────────────────────────────
     // disksIO() returns cumulative rIO/wIO (sectors, 512 bytes each) and ms (ms busy).
     // We compute per-second rates from consecutive snapshots, matching server/lib/telemetry.ts.
+    //
+    // available: true  → real rates were successfully computed (safe to display)
+    // available: false → warming up, unavailable, or source failed (must NOT fake as zero)
+    // source: 'disksio'        — computed from cumulative sector delta
+    // source: 'disksio-persec' — platform supplied per-second rates directly
+    // source: 'warming'        — first call, no prior snapshot to diff against
+    // source: 'unavailable'    — si.disksIO() rejected or returned null
     const diskNow = Date.now();
-    let diskIO = { activeTimePct: null, readKBps: null, writeKBps: null };
+    let diskIO = { activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'none' };
 
     if (rawDiskIO) {
       const d = rawDiskIO;
@@ -147,15 +154,20 @@ async function pollTelemetry() {
           if (msSec != null && msSec >= 0) {
             diskIO.activeTimePct = parseFloat(Math.min(msSec / 10, 100).toFixed(1));
           } else if (msTotal != null && msTotal > 0) {
-            // msTotal > 0 confirms the kernel is tracking ms-busy; if stuck at 0 fall through
             const deltaMs = Math.max(0, msTotal - lastDiskSnapshot.ms);
             diskIO.activeTimePct = parseFloat(Math.min((deltaMs / (dt_s * 1000)) * 100, 100).toFixed(1));
           } else {
-            // ms data missing or stuck at 0 — estimate from throughput (matches server/lib/telemetry.ts).
-            // Always produces a value (even 0 when idle) so hasDiskData is true in the client.
+            // ms data missing — estimate from throughput
             const combined = (diskIO.readKBps ?? 0) + (diskIO.writeKBps ?? 0);
             diskIO.activeTimePct = parseFloat(Math.min(combined / 100, 100).toFixed(1));
           }
+          // Real rates successfully computed
+          diskIO.available = true;
+          diskIO.source = 'disksio';
+        } else {
+          // dt too small — warming, do not emit values
+          diskIO.available = false;
+          diskIO.source = 'warming';
         }
       } else if (rIO == null && (d.rIO_sec != null || d.wIO_sec != null)) {
         // Platform only gives per-second rates, no cumulative — use them directly
@@ -166,33 +178,30 @@ async function pollTelemetry() {
         diskIO.activeTimePct = msSec != null
           ? parseFloat(Math.min(msSec / 10, 100).toFixed(1))
           : parseFloat(Math.min((rSec + wSec) / 50, 100).toFixed(1));
+        diskIO.available = true;
+        diskIO.source = 'disksio-persec';
+      } else {
+        // Strategy C: rawDiskIO responded but no prior snapshot to diff yet (first call warmup)
+        diskIO.available = false;
+        diskIO.source = 'warming';
       }
 
       if (rIO != null && wIO != null) {
         lastDiskSnapshot = { rIO, wIO, ms: msTotal != null ? msTotal : 0, ts: diskNow };
       }
-
-      // Strategy C: rawDiskIO responded but rates couldn't be computed yet
-      // (first call, no lastDiskSnapshot, or WMI couldn't provide rates).
-      // Emit zeros so the disk line always appears in the graph rather than "disk unavailable".
-      if (diskIO.activeTimePct == null) {
-        diskIO.readKBps    = 0;
-        diskIO.writeKBps   = 0;
-        diskIO.activeTimePct = 0;
-        console.log('[telemetry:poll] disk strategy C: zero baseline (rawDiskIO present but rates pending)');
-      }
+    } else {
+      // Strategy D: si.disksIO() rejected entirely — PDH counter unavailable on this system
+      diskIO.available = false;
+      diskIO.source = 'unavailable';
     }
 
-    // Strategy D: si.disksIO() rejected entirely (rawDiskIO = null).
-    // This happens on some Windows builds when the PDH disk counter is unavailable.
-    // Emit zeros unconditionally so the disk line always shows in the graph.
-    // A flat 0% line is better than "disk unavailable" — the user can see the axis exists.
-    if (diskIO.activeTimePct == null) {
-      diskIO.readKBps    = 0;
-      diskIO.writeKBps   = 0;
-      diskIO.activeTimePct = 0;
-      console.log('[telemetry:poll] disk strategy D: disksIO() returned null — emitting zero baseline');
-    }
+    console.log('[Disk][poll]', {
+      activeTimePct: diskIO.activeTimePct,
+      readKBps: diskIO.readKBps,
+      writeKBps: diskIO.writeKBps,
+      available: diskIO.available,
+      source: diskIO.source,
+    });
 
     // ── GPU polling (runs in parallel with disk, does not block cache update) ──
     // Primary: Windows Performance Counters — works for AMD, NVIDIA, Intel.
@@ -1344,7 +1353,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
         ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
         gpu:     { available: gpuExistsOnHardware, model: null, usagePct: gpuExistsOnHardware ? 0 : null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
-        disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null },
+        disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'warming' },
         network: { rxKBps: 0, txKBps: 0 },
         ssds:    [],
       };
@@ -1375,6 +1384,8 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     const gpuClockMhz = gpuPollCache.clockMhz;
 
     // --- Disk: resolve selected disk, fall back to C: then first ---
+    // usagePct is always available (from fsSize — capacity, not activity).
+    // activeTimePct / readKBps / writeKBps are only emitted when diskIO.available is true.
     const disks = fsData || [];
     let selectedDisk = null;
     if (selectedDiskMount) {
@@ -1384,9 +1395,20 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       selectedDisk = disks.find(d => d.mount === 'C:' || d.mount === '/') || disks[0];
     }
     const diskPercent = selectedDisk ? safeNum(selectedDisk.use, 0) : 0;
-    const diskActiveTimePct = diskIO.activeTimePct != null ? diskIO.activeTimePct : null;
-    const diskReadKBps = diskIO.readKBps != null ? diskIO.readKBps : null;
-    const diskWriteKBps = diskIO.writeKBps != null ? diskIO.writeKBps : null;
+    // Only expose activity values when the source is confirmed valid
+    const diskActiveTimePct = diskIO.available ? diskIO.activeTimePct : null;
+    const diskReadKBps      = diskIO.available ? diskIO.readKBps      : null;
+    const diskWriteKBps     = diskIO.available ? diskIO.writeKBps     : null;
+
+    console.log('[Disk][getLive]', {
+      mount: selectedDisk?.mount || null,
+      usagePct: diskPercent,
+      activeTimePct: diskActiveTimePct,
+      readKBps: diskReadKBps,
+      writeKBps: diskWriteKBps,
+      available: diskIO.available,
+      source: diskIO.source,
+    });
 
     // --- Network: always return 0 (not null) when idle ---
     let netRxSec = 0;
@@ -1447,6 +1469,8 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         activeTimePct:  diskActiveTimePct,
         readKBps:       diskReadKBps,
         writeKBps:      diskWriteKBps,
+        available:      !!diskIO.available,
+        source:         diskIO.source || 'none',
       },
       network: {
         rxKBps: netRxKBs,
@@ -1491,7 +1515,7 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
       cpu:     { usagePct: 0, tempC: null, coreCount: 0 },
       ram:     { usedGb: 0, totalGb: 0, usagePct: 0 },
       gpu:     { available: false, model: null, usagePct: null, tempC: null, vramUsedMb: null, vramTotalMb: null, vramUsagePct: null, powerW: null, clockMhz: null },
-      disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null },
+      disk:    { selectedMount: null, usagePct: 0, activeTimePct: null, readKBps: null, writeKBps: null, available: false, source: 'unavailable' },
       network: { rxKBps: 0, txKBps: 0 },
       ssds:    [],
     };
@@ -1658,7 +1682,9 @@ ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
     }
 
     // Use cached disk IO — disksIO() is a differential API; fresh calls return 0 without a baseline.
-    const cachedIO = liveTelemetryCache?.diskIO || { rIO_sec: 0, wIO_sec: 0 };
+    // diskIO shape: { readKBps, writeKBps, activeTimePct, available, source }
+    // rIO_sec / wIO_sec do NOT exist on this object — the cache stores computed KB/s already.
+    const cachedIO = liveTelemetryCache?.diskIO || { readKBps: null, writeKBps: null, activeTimePct: null, available: false, source: 'none' };
 
     const allDisks = (fsData || []).map(d => ({
       fs: d.fs,
@@ -1678,15 +1704,24 @@ ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
       selected = allDisks.find(d => d.mount === 'C:' || d.mount === '/') || allDisks[0] || null;
     }
 
-    console.log(`[telemetry:getDisk] requested=${selectedDiskMount} resolved=${selected?.mount} use=${selected?.use}% disks=${allDisks.length} fromCache=${!!liveTelemetryCache}`);
+    console.log(`[telemetry:getDisk] requested=${selectedDiskMount} resolved=${selected?.mount} use=${selected?.use}% disks=${allDisks.length} available=${cachedIO.available} source=${cachedIO.source}`);
     return {
       disks: allDisks,
       selected,
-      io: { rIO: cachedIO.rIO_sec || 0, wIO: cachedIO.wIO_sec || 0, tIO: 0 }
+      // rIO = read KB/s (NOT cumulative sectors — already a rate from pollTelemetry)
+      // wIO = write KB/s
+      // tIO = active time percent
+      io: {
+        rIO:       cachedIO.available ? cachedIO.readKBps      : null,
+        wIO:       cachedIO.available ? cachedIO.writeKBps     : null,
+        tIO:       cachedIO.available ? cachedIO.activeTimePct : null,
+        available: !!cachedIO.available,
+        source:    cachedIO.source || 'none',
+      },
     };
   } catch (e) {
     console.error('[telemetry:getDisk] error:', e.message);
-    return { disks: [], selected: null, io: { rIO: 0, wIO: 0, tIO: 0 } };
+    return { disks: [], selected: null, io: { rIO: null, wIO: null, tIO: null, available: false, source: 'unavailable' } };
   }
 });
 
