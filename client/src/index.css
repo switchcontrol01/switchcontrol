@@ -2456,3 +2456,21 @@ button, a, nav, header, footer, label {
 .toggle-bg {
   transition: background-color 0.22s cubic-bezier(0.22,1,0.36,1);
 }
+
+/* ── Glass modal surface ──────────────────────────────────────────────────────
+   Fallback (no backdrop-filter): opaque dark panel — readable without blur.
+   With backdrop-filter: near-transparent so the 40px blur shows through,
+   creating the frosted-glass / milky overlay effect.
+   Applied to: GlassModalSurface, GlassModalLayout content, DialogContent,
+   LicenseManagementModal, PendingActivationModal.
+   ─────────────────────────────────────────────────────────────────────────── */
+.glass-surface-bg {
+  /* Fallback: opaque dark panel when backdrop-filter is unsupported */
+  background: rgba(14, 10, 22, 0.82);
+}
+@supports (backdrop-filter: blur(1px)) {
+  /* Glass: near-transparent so backdrop-blur-2xl (already on the element) shows through */
+  .glass-surface-bg {
+    background: rgba(255, 255, 255, 0.06);
+  }
+}

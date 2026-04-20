@@ -98,7 +98,7 @@ export function PendingActivationModal({ show, onUpgradeDetected, onDismiss }: P
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-sm bg-[#0c0c14]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl shadow-black/40"
+          className="relative w-full max-w-sm glass-surface-bg backdrop-blur-2xl border border-white/[0.12] rounded-2xl p-6 shadow-2xl shadow-black/40"
         >
           <div className="text-center space-y-4">
             {status === 'syncing' && (
