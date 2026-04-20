@@ -1879,7 +1879,8 @@ ipcMain.handle('powerPlans:listSchemes', async () => {
 
 ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
   console.log(`[IPC] powerPlans:activateByGuid: ${guid}`);
-  if (typeof guid !== 'string' || !guid.trim()) {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (typeof guid !== 'string' || !UUID_RE.test(guid.trim())) {
     return { success: false, error: 'Invalid GUID' };
   }
   try {
