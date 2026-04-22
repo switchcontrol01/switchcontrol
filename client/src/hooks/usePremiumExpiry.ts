@@ -97,9 +97,15 @@ export function usePremiumExpiry({
     const wasActive = prevWasActive.current;
 
     if (wasActive === null) {
-      // First verified read — just record current state without triggering revert
+      // First verified read — record state and handle "opened after expiry" case.
+      // If the trial already expired while the app was closed and there are
+      // app-owned items to revert, trigger the revert immediately on first open.
       prevWasActive.current = isCurrentlyActive;
       console.log(`[PremiumExpiry] Initial state recorded — active=${isCurrentlyActive}`);
+      if (!isCurrentlyActive && hasPremiumItemsToRevert()) {
+        console.log('[PremiumExpiry] Opened post-expiry with owned items — triggering revert');
+        triggerRevert();
+      }
       return;
     }
 
