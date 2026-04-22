@@ -894,12 +894,29 @@ function ElectronAppContent() {
       <UpgradeModalProvider>
       <CameraGlow active={showGlow} onComplete={() => setShowGlow(false)} />
 
+      {/* ── Resetting overlay — covers the blank while factory reset runs ── */}
+      {isResetting && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center" style={{ background: "#07090D" }}>
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: "radial-gradient(ellipse 70% 55% at 50% 48%, rgba(139,92,246,0.18) 0%, rgba(99,102,241,0.06) 40%, transparent 65%)" }}
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <div className="relative z-10 flex flex-col items-center gap-5">
+            <div className="w-10 h-10 rounded-full border-2 border-purple-400/30 border-t-purple-400 animate-spin" />
+            <p className="text-sm text-white/40 tracking-widest uppercase" style={{ letterSpacing: "0.18em" }}>Resetting…</p>
+          </div>
+        </div>
+      )}
+
       {/* ── Persistent atmospheric background ─────────────────────────────
           This layer lives OUTSIDE AnimatePresence. It never unmounts.
           Login and Welcome are transparent overlays on top of it, so the
           dark atmosphere continues breathing during the transition instead
-          of hard-cutting between two separate background layers. */}
-      {(phase === "unauthenticated" || phase === "login_success" || phase === "welcome") && (
+          of hard-cutting between two separate background layers.
+          Also shown during post-splash auth check to prevent a blank gap. */}
+      {(phase === "unauthenticated" || phase === "login_success" || phase === "welcome" || (splashDone && phase === "splash")) && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#080810" }}>
           <motion.div
             className="absolute inset-0"
@@ -925,6 +942,23 @@ function ElectronAppContent() {
             transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
           />
         </div>
+      )}
+
+      {/* ── Post-splash auth-check loading indicator ───────────────────────
+          Lives OUTSIDE AnimatePresence so it never blocks phase transitions.
+          Shown after the splash finishes but before checkAuth() resolves
+          (up to 8 s during refreshEntitlements). Atmospheric background at
+          z-0 is already visible; this spinner sits on top at z-2. */}
+      {splashDone && phase === "splash" && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.35, delay: 0.05 }}
+          className="fixed inset-0 flex items-center justify-center pointer-events-none"
+          style={{ zIndex: 2 }}
+        >
+          <div className="w-8 h-8 rounded-full border-2 border-purple-400/25 border-t-purple-400/70 animate-spin" />
+        </motion.div>
       )}
 
       <AnimatePresence mode="sync">
