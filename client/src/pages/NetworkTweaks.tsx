@@ -35,7 +35,7 @@ import {
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal } from "@/lib/motion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/use-auth";
-import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
+import { PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 import { useNetworkDiagnostics } from "@/hooks/useNetworkDiagnostics";
 import { NetworkDiagnosticsHero, NetworkDiagnosticsFooter } from "@/components/network/NetworkDiagnosticsPanel";
 
@@ -558,6 +558,11 @@ export default function NetworkTweaks() {
   const toggleTweak = useCallback(async (tweak: NetworkTweak) => {
     if (tweak.unavailable) return;
 
+    if (!isPremium) {
+      addToast(tweak.id, false, "Premium required — upgrade at switchcontrol.org/pricing");
+      return;
+    }
+
     const current = stateMap[tweak.id] ?? { status: "idle" };
     if (current.status === "applying") return;
 
@@ -641,7 +646,7 @@ export default function NetworkTweaks() {
       }));
       addToast(tweak.id, false, msg);
     }
-  }, [stateMap]);
+  }, [stateMap, isPremium]);
 
   const toggleCategory = useCallback((category: NetworkCategory) => {
     setExpandedCategories(prev => {
@@ -681,7 +686,7 @@ export default function NetworkTweaks() {
 
   return (
     <AppLayout>
-      <Reveal className={cn("p-8 space-y-8", !isPremium && "opacity-60 blur-[2px]")} data-tour="network-content">
+      <Reveal className="p-8 space-y-8" data-tour="network-content">
         <motion.div
           className="space-y-2"
           initial={{ opacity: 0, y: -14 }}
@@ -872,13 +877,6 @@ export default function NetworkTweaks() {
       <InfoPanel tweak={selectedTweak} onClose={closePanel} />
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
-      {!isPremium && (
-        <PremiumPageOverlay
-          featureName="Network Tweaks is a Premium Feature"
-          buttonText="Unlock Network Tweaks"
-          description="Advanced latency, TCP/IP, and throughput optimizations are available with SwitchControl Premium."
-        />
-      )}
     </AppLayout>
   );
 }
