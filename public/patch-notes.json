@@ -1,15 +1,12 @@
 {
-  "version": "1.0.1",
-  "title": "Performance + Auth Update",
-  "headline": "Lower idle CPU, smoother animations, and a hardened auth gate.",
-  "date": "2026-04-20",
+  "version": "1.0.2",
+  "title": "Bug Fix Update",
+  "headline": "Premium Revert modal close button fixed and TCP Wait-Time revert now correctly clears.",
+  "date": "2026-04-22",
   "changes": [
-    "Reduced dashboard idle CPU by 6× — telemetry now batches into one render pass per tick",
-    "Server telemetry broadcast interval raised to 2 s — halves frontend render budget",
-    "Stripped all hot-path console logs from telemetry, LiveGraph, and disk polling",
-    "Fixed auth gate: expired JWT now forces logout instead of silently opening dashboard",
-    "Improved entrance animations — removed blur transitions that caused paint-thread jank",
-    "Auth timeout and network-error paths now correctly use grace-store fallback"
+    "Fixed X button on Premium Revert modal being unclickable due to z-index overlap",
+    "Fixed Decrease Wait-Time State revert always showing as failed after a successful revert",
+    "TCP wait-time check now correctly treats absent registry property as not applied"
   ],
   "type": "patch"
 }
