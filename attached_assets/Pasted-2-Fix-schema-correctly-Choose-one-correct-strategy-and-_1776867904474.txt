@@ -1,0 +1,155 @@
+2. Fix schema correctly
+Choose one correct strategy and implement it fully:
+A. true composite unique/index support for `(user_id, slug)` and `(user_id, game_slug)`
+or
+B. simplify SQL to match actual current schema if composite per-user storage is intentionally not supported
+
+But because code already uses per-user isolation, the likely correct fix is:
+- keep per-user model
+- create correct unique constraints/indexes
+- update migrations/init logic safely and idempotently
+
+3. Make migration safe for existing production DBs
+- no destructive migration that risks wiping user data
+- migration must be idempotent
+- if legacy rows exist with `__legacy__`, preserve them safely
+- ensure future upserts work consistently
+
+4. Verify all relevant tables
+At minimum:
+- `app_booster_games`
+- `app_booster_state`
+- `app_booster_history`
+
+Deliverable for this section:
+- actual schema before
+- actual schema after
+- exact migration/index/constraint changes
+- proof that `upsertGameRow` and `upsertStateRow` work with real SQL conflict targets
+
+================================================================
+SECTION 4 — VERIFY APPLY / REVERT END TO END ON ONE REAL GAME
+================================================================
+
+This must be a real functional verification pass, not “code looks good”.
+
+Required outcome:
+One real detected game must complete:
+- detect
+- load detail
+- apply
+- report-result
+- status update
+- revert
+- report-result
+- status update
+
+Do all of the following:
+
+1. Use one real installed detected game
+- do not test with fake slug only
+- if multiple detected games exist, choose one stable one
+- document which game was used
+
+2. Verify apply flow end to end
+- `/games`
+- `/games/:slug/status`
+- `/games/:slug/apply`
+- actual Electron action execution
+- `/games/:slug/report-result`
+- status persisted to backend
+- UI reflects final status correctly
+
+3. Verify revert flow end to end
+Same standard:
+- revert preparation
+- actual execution
+- report-result
+- final state persisted
+- UI reflects final reverted state correctly
+
+4. Verify logs
+- no fake success
+- no swallowed action failures
+- no mismatched final state
+- no apply returning success when nothing really ran
+
+5. If any action is non-reversible or admin-required
+- handle it intentionally
+- make final status logic correct
+- do not call full revert successful if only partial revert happened
+
+Deliverable for this section:
+- exact game tested
+- exact requests hit
+- action execution result summary
+- final apply status
+- final revert status
+- any remaining known limitation, if real
+
+================================================================
+SECTION 5 — VERIFY REOPEN PERSISTENCE
+================================================================
+
+Required outcome:
+After closing and reopening the packaged app, App Booster state must still show the correct game status.
+
+Do all of the following:
+
+1. Test after a real apply or revert
+- close app fully
+- reopen packaged app
+- wait for auth hydration
+- re-open App Booster
+- verify selected game status and detail state are restored correctly
+
+2. Verify both storage modes intentionally
+- DB mode: state must come back from DB
+- no-DB Electron mode: decide what behavior is intended and implement it deliberately
+
+3. Frontend must not briefly show wrong state and then flip late if avoidable
+- reduce stale cache confusion
+- do not present fake “applied” if backend truth is different
+- if cache is used, reconcile cleanly with backend
+
+Deliverable for this section:
+- exact persistence source used
+- whether reopen state is correct
+- any cache invalidation changes made
+- proof from logs or screenshots
+
+================================================================
+SECTION 6 — DECIDE AND IMPLEMENT HISTORY BEHAVIOR FOR OFFLINE / NO-DB MODE
+================================================================
+
+Right now history is undefined in no-DB mode because `addHistory()` early-returns and `/history` returns empty.
+
+That is not acceptable as accidental behavior. Decide it and implement it.
+
+Pick one and implement it cleanly:
+
+OPTION A — Explicit no-DB local history support
+- add in-memory or file-backed history store for Electron offline mode
+- `/history` should return meaningful session or persisted local history
+- reopen behavior must be defined
+
+OPTION B — Explicitly disable history in no-DB mode
+- return a clear supported response such as:
+  - `history: []`
+  - `historyAvailable: false`
+  - reason explaining local offline mode limitation
+- frontend must render a correct message, not pretend history is broken
+
+Recommended:
+- if easy and safe, implement file-backed local history persistence in Electron userData
+- if not, explicitly disable and communicate clearly
+
+Unacceptable:
+- leaving empty history with no explanation
+- pretending history works when it does not
+
+Deliverable for this section:
+- chosen behavior
+- backend changes
+- frontend changes
+- final UX behavior in offline mode

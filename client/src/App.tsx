@@ -60,7 +60,7 @@ const AdminPage = lazy(() => import("@/pages/Admin"));
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 
-type AppPhase = "splash" | "unauthenticated" | "login_success" | "welcome" | "authenticated";
+type AppPhase = "splash" | "booting" | "unauthenticated" | "login_success" | "welcome" | "authenticated";
 
 interface AppAuthContextValue {
   user: AuthUser | null;
@@ -228,11 +228,12 @@ function ElectronAppContent() {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [pauseWhenMinimized, realtimeMetricsEnabled]);
 
-  // login_success → next phase: hold on success bloom long enough for the user
-  // to register it, then let the login exit blur develop before the welcome mounts.
-  // 1400ms feels deliberate and premium; 1000ms felt slightly rushed.
+  // login_success → next phase.
+  // First-time users: 900ms (welcome animation plays next, no need to hold long).
+  // Returning users: 600ms (get to dashboard quickly, no welcome to wait for).
   useEffect(() => {
     if (phase !== "login_success") return;
+    const delay = isFirstLogin ? 900 : 600;
     const t = setTimeout(() => {
       if (isFirstLogin) {
         setPhase("welcome");
@@ -240,7 +241,7 @@ function ElectronAppContent() {
         setPhase("authenticated");
         setLocation("/dashboard");
       }
-    }, 1400);
+    }, delay);
     return () => clearTimeout(t);
   }, [phase, isFirstLogin]);
 
@@ -300,15 +301,17 @@ function ElectronAppContent() {
   // causing the WelcomeAnimation to bleed through the 82%-opaque tour
   // backdrop. 2400ms gives a comfortable 950ms buffer after that exit.
   //
-  // For all other flows the existing 1600ms (covers 1.15s opacity + 0.25s
-  // delay of the app-shell enter) is preserved so repeat-users see tours
-  // promptly.
+  // Returning users: 900ms (dashboard fade-in is 0.9s+0.25s delay = 1.15s total;
+  // 900ms starts tours slightly before full opacity — acceptable since they overlap
+  // the tail of the fade, not the start).
+  // First-time users: 1800ms (welcome animation exit is 1450ms; need 350ms buffer
+  // for the compositing layer to settle before the tour backdrop mounts).
   useEffect(() => {
     if (phase !== "authenticated") {
       setIsPhaseStable(false);
       return;
     }
-    const delay = isFirstLogin ? 2400 : 1600;
+    const delay = isFirstLogin ? 1800 : 900;
     console.log(`[TourTransition] phase entered authenticated — waiting ${delay}ms for dashboard to stabilize`);
     const t = setTimeout(() => {
       setIsPhaseStable(true);
@@ -957,8 +960,8 @@ function ElectronAppContent() {
           Login and Welcome are transparent overlays on top of it, so the
           dark atmosphere continues breathing during the transition instead
           of hard-cutting between two separate background layers.
-          Also shown during post-splash auth check to prevent a blank gap. */}
-      {(phase === "unauthenticated" || phase === "login_success" || phase === "welcome" || (splashDone && phase === "splash")) && (
+          Shown from booting onward so there is never a blank gap after splash. */}
+      {(phase === "booting" || phase === "unauthenticated" || phase === "login_success" || phase === "welcome") && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#080810" }}>
           <motion.div
             className="absolute inset-0"
@@ -997,7 +1000,43 @@ function ElectronAppContent() {
             className="h-full"
             style={{ position: "absolute", inset: 0, zIndex: 1 }}
           >
-            <Splash onComplete={() => setSplashDone(true)} />
+            <Splash onComplete={() => {
+              setPhase("booting");
+              setSplashDone(true);
+            }} />
+          </motion.div>
+        )}
+
+        {phase === "booting" && (
+          <motion.div
+            key="booting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { duration: 0.35, ease: "easeOut" } }}
+            exit={{ opacity: 0, transition: { duration: 0.45, ease: "easeIn" } }}
+            style={{ position: "absolute", inset: 0, zIndex: 1 }}
+            className="h-full flex items-center justify-center"
+          >
+            <div className="flex flex-col items-center gap-5">
+              <div className="relative flex items-center justify-center w-8 h-8">
+                <motion.div
+                  className="absolute w-8 h-8 rounded-full border border-purple-400/20"
+                  animate={{ scale: [1, 1.7, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <motion.div
+                  className="w-2 h-2 rounded-full bg-purple-400/60"
+                  animate={{ opacity: [0.4, 1, 0.4] }}
+                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                />
+              </div>
+              <motion.p
+                className="text-[10px] text-white/20 tracking-[0.28em] uppercase"
+                animate={{ opacity: [0.3, 0.65, 0.3] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
+              >
+                Starting
+              </motion.p>
+            </div>
           </motion.div>
         )}
 
