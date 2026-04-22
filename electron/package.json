@@ -42,6 +42,8 @@
       "slider-tweak-executor.js",
       "nic-executor.js",
       "power-plan-manager.js",
+      "premium-revert-pipeline.js",
+      "ownership-store.js",
       "backend-launcher.js",
       "config-store.js",
       "security-helper.js",
