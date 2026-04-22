@@ -26,6 +26,8 @@ interface UsePremiumExpiryReturn {
   revertReport: PremiumRevertReport | null;
   closeRevertModal: () => void;
   retryRevert: () => void;
+  /** True when the user currently has active premium/trial access (client-side truth). */
+  isActive: boolean;
 }
 
 export function usePremiumExpiry({
@@ -154,6 +156,7 @@ export function usePremiumExpiry({
     revertReport,
     closeRevertModal: () => setModalOpen(false),
     retryRevert,
+    isActive: isCurrentlyActive,
   };
 }
 

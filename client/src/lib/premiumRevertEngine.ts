@@ -267,8 +267,9 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
   const networkResults: RevertItemResult[] = [];
 
   // ── Tweaks ──────────────────────────────────────────────────────────────────
+  // Only revert premium tweaks — free tweaks remain intact when the trial ends.
   const tweakEntries = Object.entries(store.appliedTweaks)
-    .filter(([, rec]) => rec.appliedByApp); // only app-applied
+    .filter(([, rec]) => rec.appliedByApp && rec.isPremium);
 
   for (const [tweakId, rec] of tweakEntries) {
     console.log(`[Revert] processing tweak "${tweakId}" label="${rec.label}"`);
@@ -316,8 +317,8 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();
-  const hasTweaks = Object.values(store.appliedTweaks).some(r => r.appliedByApp);
+  const hasTweaks  = Object.values(store.appliedTweaks).some(r => r.appliedByApp && r.isPremium);
   const hasNetwork = Object.values(store.networkTweaks).some(r => r.appliedByApp);
-  const hasPlan = store.powerPlan?.appliedByApp === true;
+  const hasPlan    = store.powerPlan?.appliedByApp === true;
   return hasTweaks || hasNetwork || hasPlan;
 }

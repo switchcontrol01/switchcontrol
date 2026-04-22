@@ -178,6 +178,7 @@ function ElectronAppContent() {
     revertReport,
     closeRevertModal,
     retryRevert,
+    isActive: premiumIsActive,
   } = usePremiumExpiry({
     isPremium:            user?.isPremium ?? false,
     plan:                 user?.plan,
@@ -912,9 +913,16 @@ function ElectronAppContent() {
     }
   };
 
+  // Resolve effective premium status: server value is authoritative for paid plans,
+  // but for trial users we also gate on the local trial-end timestamp so the UI
+  // locks immediately when the timer fires — without waiting for a server round-trip.
+  const _isTrialUser      = user?.plan === 'trial';
+  const _trialStillValid  = isTrialActive(user?.plan ?? '', user?.trialEndsAt ?? null);
+  const _resolvedIsPremium = (user?.isPremium ?? false) && (!_isTrialUser || _trialStillValid);
+
   const authContextValue: AppAuthContextValue = {
     user: user,
-    isPremium: entitlementsVerified && (user?.isPremium ?? false),
+    isPremium: entitlementsVerified && _resolvedIsPremium,
     entitlementsVerified,
     isSigningOut,
     logout: handleLogout,

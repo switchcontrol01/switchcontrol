@@ -1,0 +1,111 @@
+TASK
+Fix the blank dead-time between splash ending and dashboard/login appearing in the Electron app startup flow.
+
+PROBLEM
+After the startup animation ends, the app shows a visible blank pause before the next screen mounts. This makes the app feel broken or laggy even though the transitions themselves are animated.
+
+ROOT CAUSE
+App.tsx currently allows a dead zone between:
+- splash exit
+- auth/bootstrap async work
+- next phase mount
+
+The current flow is:
+1. Splash finishes
+2. setSplashDone(true)
+3. async checkAuth() starts
+4. during auth/bootstrap, phase is not yet transitioned to a visible next screen
+5. user sees only background / blank empty scene
+6. then dashboard/login/welcome fades in later
+
+There are also excessive stacked delays after auth:
+- login_success delay = 1400ms
+- authenticated stabilization delay = 1600ms returning users / 2400ms first login
+- dashboard fade timing on top of that
+
+This creates a sluggish startup and obvious blank pause.
+
+GOAL
+Make startup feel immediate and premium:
+- no blank screen after splash
+- always show a visible booting/transition layer while auth resolves
+- returning users should land much faster
+- keep first-time flow polished, but not slow
+
+FILES
+- client/src/App.tsx
+- any related animation/layout component only if strictly necessary
+
+IMPLEMENTATION
+
+1. Add an explicit intermediate phase:
+type AppPhase =
+  | "splash"
+  | "booting"
+  | "unauthenticated"
+  | "login_success"
+  | "welcome"
+  | "authenticated";
+
+2. When Splash completes, do NOT only set splashDone.
+Immediately transition to booting:
+- setPhase("booting")
+- setSplashDone(true)
+
+3. Add a visible booting layer in AnimatePresence:
+- must render immediately after splash exits
+- must not be blank
+- use the existing dark atmospheric visual system
+- include a subtle branded loading state, not a generic ugly spinner
+- can be simple: soft glow + loading pulse/text
+- must feel intentional and premium
+
+4. checkAuth() should run during booting phase.
+When auth resolves:
+- go to unauthenticated
+- or welcome
+- or authenticated
+But never allow a phase where nothing visible is mounted.
+
+5. Reduce unnecessary startup delays:
+- login_success delay:
+  - first login can stay polished but shorten it
+  - returning users should be much faster
+- authenticated stabilization delay:
+  - returning users: cut aggressively
+  - first login: still shorter than current 2400ms
+
+Target:
+- returning users should feel nearly immediate after splash
+- first-time users can have slightly more theatrical timing, but no dead air
+
+6. Do NOT break:
+- onboarding flow
+- premium unlock flow
+- trial flow
+- patch notes
+- entitlement fetch logic
+- existing welcome animation
+
+7. Keep the motion quality high:
+- no abrupt hard cut
+- no flash of login for already-authenticated users
+- no blank black screen
+- no overlapping broken layers
+
+CHECKLIST
+- after splash exits, a visible booting layer appears immediately
+- there is no empty/blank pause anymore
+- returning authenticated users reach dashboard much faster
+- first-time users still get welcome flow cleanly
+- no regression in activeFlow logic
+- no regression in entitlement startup logic
+- no regression in login transition
+- no regression in onboarding or premium/trial tour triggers
+
+FINAL OUTPUT
+Return:
+1. exact lines changed in App.tsx
+2. old startup phase flow vs new startup phase flow
+3. exact delays before vs after
+4. confirmation that the blank post-splash pause is removed
