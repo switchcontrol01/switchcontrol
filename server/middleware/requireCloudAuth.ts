@@ -19,6 +19,8 @@ declare global {
   }
 }
 
+const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
+
 export const requireJwt: RequestHandler = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -31,6 +33,23 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
       // blocking users who have a valid session cookie.
       console.warn(`[CloudAuth] Invalid/expired JWT — falling through to session check | ip=${req.ip}`);
     } else {
+      // ── Electron local backend: no DB available, trust the verified JWT directly ──
+      // The JWT was issued by switchcontrol.org using the shared JWT_SECRET.
+      // A valid HS256 signature + non-expired payload is sufficient proof of identity.
+      // We cannot do a DB user lookup here because DATABASE_URL is stripped in Electron mode.
+      if (isElectronBackend) {
+        req.cloudUser = {
+          id: payload.sub,
+          isPremium: false,
+          plan: 'free',
+          trialEndsAt: null,
+          email: null,
+          isAdmin: false,
+          premiumBoundDeviceId: null,
+        };
+        return next();
+      }
+
       try {
         const user = await storage.getUser(payload.sub);
         if (!user) {
@@ -47,7 +66,6 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
             isAdmin: user.isAdmin ?? false,
             premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
           };
-          console.log(`[CloudAuth] JWT OK | user=${user.id} effectivePlan=${effectivePlan} isPremium=${req.cloudUser.isPremium}`);
           return next();
         }
       } catch (e) {

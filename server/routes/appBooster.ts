@@ -148,6 +148,18 @@ async function initTables() {
     }
   }
 
+  // ── Composite unique indexes — required for ON CONFLICT (user_id, slug) ─────
+  // The tables have single-column PKs (slug / game_slug) for migration safety,
+  // but all upserts target (user_id, slug) / (user_id, game_slug) conflict
+  // clauses. PostgreSQL requires a matching unique index for those targets.
+  // CREATE UNIQUE INDEX IF NOT EXISTS is idempotent and safe on existing data.
+  await runStep('app_booster_games: add (user_id, slug) unique index',
+    `CREATE UNIQUE INDEX IF NOT EXISTS app_booster_games_user_slug_idx
+     ON app_booster_games (user_id, slug)`);
+  await runStep('app_booster_state: add (user_id, game_slug) unique index',
+    `CREATE UNIQUE INDEX IF NOT EXISTS app_booster_state_user_slug_idx
+     ON app_booster_state (user_id, game_slug)`);
+
   console.log('[AppBooster] tables ready');
 }
 
@@ -719,7 +731,7 @@ router.get("/history", async (req: Request, res: Response) => {
   try {
     const limit = Math.min(parseInt(String(req.query.limit ?? "20"), 10), 50);
 
-    if (isNoDbMode || !db) return res.json({ history: [] });
+    if (isNoDbMode || !db) return res.json({ history: [], historyAvailable: false });
 
     const { rows } = await db.execute(
       sql`SELECT h.id, h.game_slug, h.operation, h.status, h.details, h.created_at,

@@ -435,6 +435,7 @@ export default function AppBooster() {
   const [isReverting,   setIsReverting]   = useState(false);
   const [loadingGames,  setLoadingGames]  = useState(!cachedGames);
   const [showHistory,   setShowHistory]   = useState(false);
+  const [historyAvailable, setHistoryAvailable] = useState(true);
   const [expandActions, setExpandActions] = useState(true);
   const [loadError,     setLoadError]     = useState<string | null>(null);
   const [showManualAdd, setShowManualAdd] = useState(false);
@@ -478,8 +479,10 @@ export default function AppBooster() {
   }, []);
 
   // auto-scan once on first open in Electron if no games have been detected yet
+  // deps: [user?.loggedIn] — retries if component mounts before auth completes
   useEffect(() => {
     if (!user?.loggedIn) return;
+    if (hasAutoScanned.current) return;
     let cancelled = false;
     console.log("[AppBooster] mounted — isElectron:", isElectron, "appBoosterEnabled:", appBoosterEnabled);
     (async () => {
@@ -515,7 +518,7 @@ export default function AppBooster() {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [user?.loggedIn]);
 
   const loadDetail = useCallback(async (slug: string) => {
     try {
@@ -533,8 +536,9 @@ export default function AppBooster() {
 
   const loadHistory = useCallback(async () => {
     try {
-      const data = await apiGet<{ history: HistoryEntry[] }>("/app-booster/history");
+      const data = await apiGet<{ history: HistoryEntry[]; historyAvailable?: boolean }>("/app-booster/history");
       setHistory(data.history);
+      if (data.historyAvailable === false) setHistoryAvailable(false);
     } catch {}
   }, []);
 
@@ -1333,7 +1337,9 @@ export default function AppBooster() {
                   </button>
                 </div>
                 <div className="px-4 py-4">
-                  {history.length === 0 ? (
+                  {!historyAvailable ? (
+                    <p className="text-sm text-muted-foreground py-4 text-center">History is not stored in local app mode.</p>
+                  ) : history.length === 0 ? (
                     <p className="text-sm text-muted-foreground py-4 text-center">No history yet. Apply a profile to see results.</p>
                   ) : (
                     <motion.div className="space-y-2" variants={staggerContainer} initial="initial" animate="animate">
