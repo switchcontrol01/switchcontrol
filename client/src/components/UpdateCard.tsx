@@ -9,6 +9,7 @@ import { useNetworkStatus } from '@/hooks/use-network-status';
 import { Button } from '@/components/ui/button';
 import { GlassCard } from '@/components/ui/glass-card';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RenderMarkdown } from '@/lib/render-markdown';
 
 function formatBytes(bytes: number): string {
   if (!bytes) return '0 B';
@@ -229,11 +230,9 @@ export function UpdateCard() {
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mt-2 p-3 rounded-lg bg-black/20 border border-white/[0.06]"
+                      className="mt-2 p-3 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 max-h-40 overflow-y-auto"
                     >
-                      <pre className="text-xs text-white/60 whitespace-pre-wrap font-sans leading-relaxed max-h-40 overflow-y-auto">
-                        {releaseNotes}
-                      </pre>
+                      <RenderMarkdown markdown={releaseNotes} />
                     </motion.div>
                   )}
                 </div>

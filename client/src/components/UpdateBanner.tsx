@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, RefreshCw, ArrowUpCircle, AlertTriangle, CheckCircle2, X } from 'lucide-react';
+import { Download, RefreshCw, ArrowUpCircle, AlertTriangle, CheckCircle2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useUpdater } from '@/hooks/use-updater';
 import { Button } from '@/components/ui/button';
+import { RenderMarkdown } from '@/lib/render-markdown';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
@@ -47,15 +48,11 @@ const URGENCY_STYLES = {
 export function UpdateBanner() {
   const { state, download, install } = useUpdater();
 
-  // Track the last version the user dismissed.
-  // If a new version appears (different version string), the banner re-shows
-  // even if the user previously dismissed an older version.
   const [dismissedVersion, setDismissedVersion] = useState<string | null>(null);
+  const [showNotes, setShowNotes] = useState(false);
 
-  const { status, availableVersion, downloadPercent, bytesPerSecond, transferred, total, urgency } = state;
+  const { status, availableVersion, downloadPercent, bytesPerSecond, transferred, total, urgency, releaseNotes } = state;
 
-  // While downloading, dismissal is blocked so the user can see progress.
-  // Once a new availableVersion is seen, clear any dismissal of a prior version.
   useEffect(() => {
     if (availableVersion && dismissedVersion && availableVersion !== dismissedVersion) {
       setDismissedVersion(null);
@@ -70,6 +67,8 @@ export function UpdateBanner() {
 
   const style = URGENCY_STYLES[urgency as keyof typeof URGENCY_STYLES] ?? URGENCY_STYLES.normal;
 
+  const hasNotes = !!(releaseNotes && releaseNotes.trim());
+
   return (
     <AnimatePresence>
       {visible && (
@@ -78,23 +77,53 @@ export function UpdateBanner() {
           animate={{ opacity: 1, y: 0, scaleY: 1 }}
           exit={{ opacity: 0, y: -10, scaleY: 0.9 }}
           transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className={`relative flex items-center gap-3 px-4 py-2.5 border rounded-xl mx-4 mb-2
+          className={`relative flex items-start gap-3 px-4 py-2.5 border rounded-xl mx-4 mb-2
             backdrop-blur-md ${style.border} ${style.bg} ${style.glow}`}
           data-testid="update-banner"
         >
           {/* Icon */}
-          <div className="shrink-0">{style.icon}</div>
+          <div className="shrink-0 mt-0.5">{style.icon}</div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
             {status === 'available' && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${style.badge}`}>
-                  {style.badgeLabel}
-                </span>
-                <span className="text-sm text-white/80">
-                  SwitchControl <span className={`font-semibold ${style.accent}`}>{availableVersion}</span> is ready.
-                </span>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${style.badge}`}>
+                    {style.badgeLabel}
+                  </span>
+                  <span className="text-sm text-white/80">
+                    SwitchControl <span className={`font-semibold ${style.accent}`}>{availableVersion}</span> is ready.
+                  </span>
+                </div>
+                {hasNotes && (
+                  <div>
+                    <button
+                      onClick={() => setShowNotes(v => !v)}
+                      data-testid="button-banner-toggle-notes"
+                      className="flex items-center gap-1 text-xs text-white/40 hover:text-white/60 transition-colors"
+                    >
+                      {showNotes ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                      {showNotes ? 'Hide' : 'See what\'s new'}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {showNotes && (
+                        <motion.div
+                          key="banner-notes"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 max-h-40 overflow-y-auto">
+                            <RenderMarkdown markdown={releaseNotes!} />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
             )}
 
@@ -120,17 +149,47 @@ export function UpdateBanner() {
             )}
 
             {status === 'downloaded' && (
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
-                <span className="text-sm text-white/80">
-                  <span className="font-semibold text-emerald-400">{availableVersion}</span> downloaded — restart to apply.
-                </span>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
+                  <span className="text-sm text-white/80">
+                    <span className="font-semibold text-emerald-400">{availableVersion}</span> downloaded — restart to apply.
+                  </span>
+                </div>
+                {hasNotes && (
+                  <div>
+                    <button
+                      onClick={() => setShowNotes(v => !v)}
+                      data-testid="button-banner-toggle-notes"
+                      className="flex items-center gap-1 text-xs text-white/40 hover:text-white/60 transition-colors"
+                    >
+                      {showNotes ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
+                      {showNotes ? 'Hide' : 'See what\'s new'}
+                    </button>
+                    <AnimatePresence initial={false}>
+                      {showNotes && (
+                        <motion.div
+                          key="banner-notes-downloaded"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          exit={{ opacity: 0, height: 0 }}
+                          transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                          className="overflow-hidden"
+                        >
+                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-white/5 border border-white/10 max-h-40 overflow-y-auto">
+                            <RenderMarkdown markdown={releaseNotes!} />
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
               </div>
             )}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 shrink-0">
+          {/* Actions — always top-aligned so they don't shift when notes expand */}
+          <div className="flex items-center gap-2 shrink-0 mt-0.5">
             {status === 'available' && (
               <Button
                 size="sm"
@@ -154,7 +213,6 @@ export function UpdateBanner() {
                 Restart & Install
               </Button>
             )}
-            {/* Dismiss is blocked during active download so progress stays visible */}
             {status !== 'downloading' && (
               <button
                 onClick={() => setDismissedVersion(availableVersion)}
