@@ -220,7 +220,7 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $v = (Get-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\Tcpip\\Parameters" -Name "TcpTimedWaitDelay" -EA SilentlyContinue).TcpTimedWaitDelay;
-      if ($v -le 60) { "true" } else { "false" }
+      if ($v -ne $null -and [int]$v -le 60) { "true" } else { "false" }
     `,
   },
 
