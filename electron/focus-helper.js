@@ -253,6 +253,7 @@ let lastTriggerState = {
   gameProcess: null,
   fullscreen: false,
   controllerConnected: false,
+  headsetConnected: false,
 };
 let enabledTriggers = {};
 let triggerWindow = null; // renderer window for sending events
@@ -449,7 +450,7 @@ ipcMain.handle('focus:startTriggerMonitor', async (event, { triggers }) => {
   enabledTriggers = Object.fromEntries(
     Object.entries(triggers).filter(([, v]) => v)
   );
-  lastTriggerState = { gameProcess: null, fullscreen: false, controllerConnected: false };
+  lastTriggerState = { gameProcess: null, fullscreen: false, controllerConnected: false, headsetConnected: false };
   triggerWindow = event.sender;
 
   if (triggerIntervalId) clearInterval(triggerIntervalId);

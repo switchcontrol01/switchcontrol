@@ -242,6 +242,9 @@ export default function FocusMode() {
   const [triggerEnabled, setTriggerEnabled] = useState<Record<string, boolean>>({
     game_launch: true, fullscreen: true, controller: false, headset: false, schedule: false,
   });
+  // monitorArmed: MUST start false — never auto-arm on mount.
+  // Only explicit user action (Arm Monitor button) may set this to true.
+  const [monitorArmed, setMonitorArmed] = useState(false);
   const [expandedToggles, setExpandedToggles] = useState(false);
 
   // Runtime state
@@ -351,6 +354,10 @@ export default function FocusMode() {
   useEffect(() => {
     if (!isElectron()) return;
 
+    // HARD GUARD: never start the monitor automatically on mount.
+    // monitorArmed starts false and is only set true by explicit user action.
+    if (!monitorArmed) return;
+
     const anyEnabled = Object.values(triggerEnabled).some(Boolean);
     if (!anyEnabled) return;
 
@@ -440,9 +447,11 @@ export default function FocusMode() {
       clearInterval(scheduleId);
       window.electronAPI?.focus?.stopTriggerMonitor();
     };
-  }, [triggerEnabled]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [triggerEnabled, monitorArmed]); // eslint-disable-line react-hooks/exhaustive-deps
   // NOTE: `activation` intentionally omitted — use activationRef.current in closure.
   // `handleActivate` intentionally omitted — it is useCallback-stable.
+  // `monitorArmed` IS in the dep array: when armed→true the monitor starts;
+  // when armed→false the cleanup teardown runs and stopTriggerMonitor is called.
 
   // ── Activate ──────────────────────────────────────────────────────────────────
 
@@ -1019,7 +1028,25 @@ export default function FocusMode() {
                         </div>
                       ))}
                     </div>
-                    {triggerFired && (
+                    {/* Arm / Disarm monitor — explicit user action required, never auto-armed */}
+                    <div className="mt-3 flex items-center justify-between px-1">
+                      <div>
+                        <p className="text-xs font-medium text-white">
+                          Monitor {monitorArmed ? <span className="text-emerald-400">Armed</span> : <span className="text-muted-foreground">Disarmed</span>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {monitorArmed ? "Watching for enabled triggers — will auto-activate Focus Mode." : "Monitoring is off. Arm to enable automatic activation."}
+                        </p>
+                      </div>
+                      <Switch
+                        checked={monitorArmed}
+                        onCheckedChange={setMonitorArmed}
+                        disabled={!isElectron()}
+                        data-testid="switch-monitor-armed"
+                      />
+                    </div>
+
+                    {triggerFired && monitorArmed && (
                       <div className="mt-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-xs text-primary flex items-center gap-2">
                         <Zap className="size-3" />
                         Last trigger: {TRIGGER_DEFS.find(t => t.id === triggerFired)?.name ?? triggerFired}

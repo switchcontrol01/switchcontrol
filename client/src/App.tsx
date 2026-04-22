@@ -518,40 +518,17 @@ function ElectronAppContent() {
     
     const api = (window as any).electronAPI;
     
-    const resetUIState = () => {
-      if (activeFlow !== "none") {
-        console.log('[App] Focus reset skipped — flow active:', activeFlow);
-        return;
-      }
-      const authState = useAuthStore.getState().electronAuthState;
-      if (authState !== 'idle' && authState !== 'authenticated' && authState !== 'failed') {
-        console.log('[App] Focus reset skipped — auth in progress:', authState);
-        return;
-      }
-      // Only run the reset if the window was out of focus long enough to indicate a real app-switch
-      // (not a brief dialog like a file picker that returns focus in < 3 seconds)
-      const awayMs = Date.now() - lastBlurTimeRef.current;
-      if (awayMs < FOCUS_AWAY_THRESHOLD_MS && lastBlurTimeRef.current > 0) {
-        console.log(`[App] Focus reset skipped — brief focus-loss (${awayMs}ms), likely child dialog`);
-        return;
-      }
-      console.log('[App] Resetting UI state on focus');
-      
-      // Clear stuck overlay elements — do NOT blur activeElement to avoid visual jump
-      document.querySelectorAll('[data-overlay]').forEach(el => {
-        (el as HTMLElement).style.pointerEvents = '';
-        (el as HTMLElement).style.opacity = '';
-      });
-    };
-    
     if (api?.onWindowFocus) {
+      // Passive handler only — must not reinitialize app state, clear auth,
+      // reset routing, remount layout trees, or destroy active page state.
+      // Overlay clearing (data-overlay DOM mutations) was causing blank-screen
+      // regressions on Alt-Tab return; removed entirely.
       const unsub = api.onWindowFocus(() => {
-        console.log('[App] Electron window focus');
-        resetUIState();
+        console.log('[App] Electron window focus (passive)');
       });
       return unsub;
     }
-  }, [activeFlow]);
+  }, []);
 
   useEffect(() => {
     if (phase !== "authenticated") return;
