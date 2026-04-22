@@ -1761,7 +1761,7 @@ ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
     return { error: true, message: 'Invalid action. Use apply or revert.' };
   }
   console.log(`[SwitchControl] Executing tweak: ${tweakId}, action: ${action}`);
-  return await tweakExecutor.executeTweak(tweakId, action);
+  return await tweakExecutor.executeTweakWithOwnership(tweakId, action);
 });
 
 ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
@@ -1846,7 +1846,7 @@ ipcMain.handle('nic:setProperty', async (event, adapterName, propertyKey, value)
   if (value === undefined || value === null) {
     return { ok: false, error: 'value required' };
   }
-  return await nicExecutor.setNicProperty(adapterName, propertyKey, value);
+  return await nicExecutor.setNicPropertyWithOwnership(adapterName, propertyKey, value);
 });
 
 ipcMain.handle('nic:resetProperty', async (event, adapterName, propertyKey) => {
@@ -1877,7 +1877,7 @@ ipcMain.handle('powerPlans:applyProfile', async (event, profileId) => {
   const valid = Object.keys(powerPlanManager.POWER_PROFILES);
   if (!valid.includes(profileId)) return { success: false, error: `Unknown profileId "${profileId}". Valid: ${valid.join(', ')}` };
   try {
-    return await powerPlanManager.applyPowerProfile(profileId);
+    return await powerPlanManager.applyPowerProfileWithOwnership(profileId);
   } catch (e) {
     console.error('[IPC] powerPlans:applyProfile error:', e.message);
     return { success: false, error: e.message };
@@ -2179,7 +2179,7 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
 ipcMain.handle('networkTweaks:execute', async (event, tweakId, action) => {
   console.log(`[IPC] networkTweaks:execute id=${tweakId} action=${action}`);
   try {
-    const result = await networkTweakExecutor.executeNetworkTweak(tweakId, action);
+    const result = await networkTweakExecutor.executeNetworkTweakWithOwnership(tweakId, action);
     console.log(`[IPC] networkTweaks:execute result:`, result.success, result.verified, result.message?.slice(0, 80));
     return result;
   } catch (e) {
@@ -2207,6 +2207,50 @@ ipcMain.handle('networkTweaks:checkAll', async () => {
 
 ipcMain.handle('networkTweaks:getDisabled', () => {
   return networkTweakExecutor.getDisabledTweaks();
+});
+
+// ── Premium expiry / ownership ────────────────────────────────────────────────
+
+const premiumRevertPipeline = require('./premium-revert-pipeline');
+const ownershipStore        = require('./ownership-store');
+
+/**
+ * Revert all app-owned premium changes when a trial expires or subscription ends.
+ * Returns a full result report ({ total, reverted, skipped, failed, details }).
+ */
+ipcMain.handle('premium:revertAll', async () => {
+  console.log('[IPC] premium:revertAll — starting expiry revert pipeline');
+  try {
+    const result = await premiumRevertPipeline.revertAllAppOwned();
+    console.log(`[IPC] premium:revertAll done — reverted=${result.reverted} skipped=${result.skipped} failed=${result.failed}`);
+    return { success: true, ...result };
+  } catch (e) {
+    console.error('[IPC] premium:revertAll error:', e.message);
+    return { success: false, error: e.message, total: 0, reverted: 0, skipped: 0, failed: 0, details: {} };
+  }
+});
+
+/**
+ * Preview what would be reverted without executing anything.
+ * Use before showing a confirmation dialog to the user.
+ */
+ipcMain.handle('premium:previewRevert', () => {
+  try {
+    return { success: true, items: premiumRevertPipeline.previewRevert() };
+  } catch (e) {
+    return { success: false, error: e.message, items: [] };
+  }
+});
+
+/**
+ * Return all ownership records — app-owned + non-owned — for display and debugging.
+ */
+ipcMain.handle('premium:getOwnership', () => {
+  try {
+    return { success: true, records: ownershipStore.getAllRecords() };
+  } catch (e) {
+    return { success: false, error: e.message, records: [] };
+  }
 });
 
 // Auth: Clear cookies for the backend domain

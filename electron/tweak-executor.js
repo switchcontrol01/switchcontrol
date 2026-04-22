@@ -1023,8 +1023,61 @@ function getTweakInfo() {
   return [...all, ...unsupported];
 }
 
+// ── Ownership-aware wrapper ────────────────────────────────────────────────────
+
+const ownershipStore = require('./ownership-store');
+
+/**
+ * Execute a tweak AND maintain the ownership / baseline record.
+ *
+ * Order:
+ *   1. Read current real system state via verifyTweak (baseline read)
+ *   2. Store baseline ONLY if not already captured (immutable first-capture)
+ *   3. Run the tweak command (existing executeTweak)
+ *   4. Record appliedByApp=true ONLY after confirmed success
+ *
+ * The baseline stores a boolean: was the tweak applied BEFORE we touched it?
+ * This lets the revert pipeline restore the exact prior state, not just toggle off.
+ */
+async function executeTweakWithOwnership(tweakId, action) {
+  const scopeKey = ownershipStore.buildScopeKey('tweak', tweakId);
+
+  // Step 1+2: capture baseline if first time touching this tweak
+  const existing = ownershipStore.getOwnershipRecord(scopeKey);
+  if (!existing || !existing.baselineCaptured) {
+    try {
+      const status = await verifyTweak(tweakId);
+      // status.isApplied = boolean | undefined; null means inconclusive
+      const previousValue = (status && typeof status.isApplied === 'boolean')
+        ? status.isApplied
+        : null;
+      ownershipStore.captureBaseline(scopeKey, {
+        itemType:      'tweak',
+        itemId:        tweakId,
+        previousValue,
+      });
+    } catch (e) {
+      console.warn('[TweakExecutor] baseline capture failed for', tweakId, '—', e.message);
+    }
+  }
+
+  // Step 3: execute
+  const result = await executeTweak(tweakId, action);
+
+  // Step 4: record ownership only after confirmed success
+  if (result.success) {
+    ownershipStore.recordApply(scopeKey, {
+      appliedValue:      action === 'apply',
+      verificationState: result.verified ? 'verified' : 'unverified',
+    });
+  }
+
+  return result;
+}
+
 module.exports = {
   executeTweak,
+  executeTweakWithOwnership,
   checkTweakStatus,
   verifyTweak,
   getLocalState,

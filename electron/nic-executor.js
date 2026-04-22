@@ -618,11 +618,76 @@ function getNicPropertyMeta() {
   }, {});
 }
 
+// ── Ownership-aware wrapper ────────────────────────────────────────────────────
+
+const ownershipStore = require('./ownership-store');
+
+/**
+ * Set a NIC property AND maintain the ownership / baseline record.
+ *
+ * Order:
+ *   1. Read current real property value from the adapter (baseline read)
+ *   2. Store baseline ONLY if not already captured for this adapter+property pair
+ *      (immutable first-capture — repeated toggles never overwrite the original)
+ *   3. Set the property (existing setNicProperty)
+ *   4. Record appliedByApp=true ONLY after the set reports success
+ *
+ * previousValue stores { registryValue, displayValue } so the revert pipeline
+ * can restore the exact adapter-specific registry value rather than guessing.
+ * If the adapter does not support the property, no baseline is captured and
+ * ownership is NOT recorded.
+ */
+async function setNicPropertyWithOwnership(adapterName, propertyKey, value) {
+  const scopeKey = ownershipStore.buildScopeKey('nic', propertyKey, adapterName);
+
+  // Step 1+2: capture baseline if first time touching this adapter+property pair
+  const existing = ownershipStore.getOwnershipRecord(scopeKey);
+  if (!existing || !existing.baselineCaptured) {
+    try {
+      const current = await readNicProperty(adapterName, propertyKey);
+      if (current.supported === false) {
+        // Unsupported on this adapter — do not record ownership
+        console.log(`[NicExecutor] ${propertyKey} unsupported on "${adapterName}" — skipping ownership`);
+      } else {
+        ownershipStore.captureBaseline(scopeKey, {
+          itemType:        'nic',
+          itemId:          propertyKey,
+          adapterName,
+          registryKeyword: current.registryKeyword || null,
+          previousValue: {
+            registryValue: current.registryValue  ?? null,
+            displayValue:  current.displayValue   ?? null,
+          },
+        });
+      }
+    } catch (e) {
+      console.warn('[NicExecutor] baseline capture failed for', adapterName, propertyKey, '—', e.message);
+    }
+  }
+
+  // Step 3: execute
+  const result = await setNicProperty(adapterName, propertyKey, value);
+
+  // Step 4: record ownership only after confirmed success
+  if (result.ok) {
+    const record = ownershipStore.getOwnershipRecord(scopeKey);
+    if (record && record.baselineCaptured) {
+      ownershipStore.recordApply(scopeKey, {
+        appliedValue:      value,
+        verificationState: result.verified ? 'verified' : 'unverified',
+      });
+    }
+  }
+
+  return result;
+}
+
 module.exports = {
   getNetAdapters,
   getAdapterCapabilities,
   readNicProperty,
   setNicProperty,
+  setNicPropertyWithOwnership,
   resetNicProperty,
   getNicPropertyMeta,
   NIC_PROPERTY_DEFS,

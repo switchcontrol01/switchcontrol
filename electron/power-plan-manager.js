@@ -568,12 +568,111 @@ async function listSchemesForFrontend() {
   return result;
 }
 
+// ── Low-level plan activation ─────────────────────────────────────────────────
+
+/**
+ * Activate a power plan by exact GUID.
+ * Used by the premium-expiry revert pipeline to restore the user's original plan.
+ *
+ * @param {string} guid — must pass UUID format check
+ * @returns {{ success, activeScheme?, error? }}
+ */
+async function activatePlanByGuid(guid) {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!guid || !UUID_RE.test(guid.trim())) {
+    return { success: false, error: `Invalid GUID: ${guid}` };
+  }
+  const cleanGuid = guid.trim().toLowerCase();
+  const isAdmin = await checkIsAdmin();
+
+  try {
+    if (isAdmin) {
+      const { execFileSync } = require('child_process');
+      execFileSync('powercfg', ['/setactive', cleanGuid], { stdio: 'pipe' });
+    } else {
+      // Needs UAC
+      const result = await runElevatedCommands([`powercfg /setactive ${cleanGuid}`]);
+      if (!result.ok) {
+        return { success: false, error: result.error || 'Elevation failed.' };
+      }
+    }
+
+    // Verify
+    const verifyResult = await getActivePowerScheme();
+    const activeGuid = verifyResult.scheme?.guid ?? '';
+    if (activeGuid !== cleanGuid) {
+      return { success: false, error: `Set GUID but verification failed — active=${activeGuid}` };
+    }
+    return { success: true, activeScheme: verifyResult.scheme };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ── Ownership-aware wrapper ────────────────────────────────────────────────────
+
+const ownershipStore = require('./ownership-store');
+
+/**
+ * Apply a power profile AND maintain the ownership / baseline record.
+ *
+ * Order:
+ *   1. Read current active GUID from Windows (baseline read)
+ *   2. Store baseline ONLY if not already captured (immutable first-capture)
+ *   3. Apply the power profile (existing applyPowerProfile)
+ *   4. Record appliedByApp=true ONLY after confirmed success
+ *
+ * previousPlanGuid = exact active GUID before SwitchControl changed it.
+ * On revert, the pipeline calls activatePlanByGuid(previousPlanGuid) to restore.
+ * This handles custom user plans correctly — it restores the exact GUID, not
+ * a generic "Balanced" or "High Performance".
+ */
+async function applyPowerProfileWithOwnership(profileId) {
+  const scopeKey = ownershipStore.buildScopeKey('power_plan', 'active-scheme');
+
+  // Step 1+2: capture baseline if first time applying a plan
+  const existing = ownershipStore.getOwnershipRecord(scopeKey);
+  if (!existing || !existing.baselineCaptured) {
+    try {
+      const active = await getActivePowerScheme();
+      if (active.success && active.scheme) {
+        ownershipStore.captureBaseline(scopeKey, {
+          itemType:        'power_plan',
+          itemId:          'active-scheme',
+          previousPlanGuid: active.scheme.guid,
+          previousValue:   { guid: active.scheme.guid, name: active.scheme.name },
+        });
+      } else {
+        console.warn('[PowerPlan] could not read active scheme for baseline:', active.error);
+      }
+    } catch (e) {
+      console.warn('[PowerPlan] baseline capture failed —', e.message);
+    }
+  }
+
+  // Step 3: execute
+  const result = await applyPowerProfile(profileId);
+
+  // Step 4: record ownership only after confirmed success
+  if (result.success) {
+    ownershipStore.recordApply(scopeKey, {
+      appliedValue:      { profileId, guid: result.activeScheme?.guid || null },
+      appliedPlanGuid:   result.activeScheme?.guid || null,
+      verificationState: result.verified ? 'verified' : 'unverified',
+    });
+  }
+
+  return result;
+}
+
 // ── Exports ───────────────────────────────────────────────────────────────────
 
 module.exports = {
   POWER_PROFILES,
   getPowerPlanState,
   applyPowerProfile,
+  applyPowerProfileWithOwnership,
+  activatePlanByGuid,
   listSchemesForFrontend,
   getActivePowerScheme,
 };

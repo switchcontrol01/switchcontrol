@@ -739,8 +739,61 @@ function getDisabledTweaks() {
   return out;
 }
 
+// ── Ownership-aware wrapper ────────────────────────────────────────────────────
+
+const ownershipStore = require('./ownership-store');
+
+/**
+ * Execute a network tweak AND maintain the ownership / baseline record.
+ *
+ * Order:
+ *   1. Read current real system state via checkNetworkTweakStatus (baseline read)
+ *   2. Store baseline ONLY if not already captured (immutable first-capture)
+ *   3. Run the tweak command (existing executeNetworkTweak)
+ *   4. Record appliedByApp=true ONLY after confirmed success
+ *
+ * previousValue is the tri-state result of the check script:
+ *   true  = tweak was already applied before we touched it
+ *   false = tweak was not applied
+ *   null  = inconclusive — revert pipeline will skip this item (fail-safe)
+ */
+async function executeNetworkTweakWithOwnership(tweakId, action) {
+  const scopeKey = ownershipStore.buildScopeKey('network_tweak', tweakId);
+
+  // Step 1+2: capture baseline if first time
+  const existing = ownershipStore.getOwnershipRecord(scopeKey);
+  if (!existing || !existing.baselineCaptured) {
+    try {
+      const status = await checkNetworkTweakStatus(tweakId);
+      // status.applied: boolean | null (null = inconclusive or disabled)
+      const previousValue = (typeof status.applied === 'boolean') ? status.applied : null;
+      ownershipStore.captureBaseline(scopeKey, {
+        itemType:      'network_tweak',
+        itemId:        tweakId,
+        previousValue,
+      });
+    } catch (e) {
+      console.warn('[NetworkTweak] baseline capture failed for', tweakId, '—', e.message);
+    }
+  }
+
+  // Step 3: execute
+  const result = await executeNetworkTweak(tweakId, action);
+
+  // Step 4: record ownership only after confirmed success
+  if (result.success) {
+    ownershipStore.recordApply(scopeKey, {
+      appliedValue:      action === 'apply',
+      verificationState: result.verified ? 'verified' : 'unverified',
+    });
+  }
+
+  return result;
+}
+
 module.exports = {
   executeNetworkTweak,
+  executeNetworkTweakWithOwnership,
   checkNetworkTweakStatus,
   checkAllNetworkTweakStatus,
   getDisabledTweaks,

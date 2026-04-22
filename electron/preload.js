@@ -335,6 +335,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
   },
 
+  // ── Premium expiry / ownership ──────────────────────────────────────────────
+  // Invoke premium:revertAll when a trial expires or subscription is cancelled.
+  // Invoke premium:previewRevert before showing a confirmation dialog.
+  // Invoke premium:getOwnership for display or debugging.
+  premium: {
+    revertAll:     () => ipcRenderer.invoke('premium:revertAll'),
+    previewRevert: () => ipcRenderer.invoke('premium:previewRevert'),
+    getOwnership:  () => ipcRenderer.invoke('premium:getOwnership'),
+  },
+
   // ── Updater — renderer reads state, main process owns all logic ─────────────
   updater: {
     getState: () => ipcRenderer.invoke('updater:getState'),

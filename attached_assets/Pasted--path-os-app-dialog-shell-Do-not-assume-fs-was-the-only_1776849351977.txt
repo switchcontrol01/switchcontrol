@@ -1,0 +1,185 @@
+- "path"
+- "os"
+- "app"
+- "dialog"
+- "shell"
+
+Do not assume "fs" was the only one.
+
+4. Make non-critical startup code impossible to kill startup
+
+Any audit or restore scan must be wrapped in its own safe function:
+
+async function runStartupAuditSafe() {
+  try {
+    await runStartupAudit();
+    console.log('[STARTUP] audit complete');
+  } catch (err) {
+    console.error('[STARTUP] audit failed', err);
+  }
+}
+
+Important:
+
+- do not inline risky async blocks directly in "whenReady()"
+- no large anonymous try/catch blobs mixed into the startup body
+- keep critical and non-critical steps visibly separated
+
+5. Stop renderer infinite polling spam
+
+Audit all renderer polling for:
+
+- backend port polling
+- updater state polling
+- auth/backend readiness polling
+- any "setInterval(... invoke(...))"
+- any fixed retry loops calling Electron IPC repeatedly
+
+If IPC is unavailable or backend is unavailable, renderer must NOT keep hammering every second forever.
+
+Replace fixed interval spam with safe polling using backoff.
+
+Pattern to use:
+
+let retryDelay = 1000;
+let stopped = false;
+
+async function safePoll() {
+  if (stopped) return;
+
+  try {
+    const ipcReady = await window.electronAPI?.isIPCReady?.();
+    if (!ipcReady) throw new Error('IPC not ready');
+
+    await doPoll();
+    retryDelay = 1000;
+  } catch (err) {
+    retryDelay = Math.min(retryDelay * 2, 15000);
+  }
+
+  if (!stopped) {
+    setTimeout(safePoll, retryDelay);
+  }
+}
+
+Requirements:
+
+- no blind fixed-interval polling for backend port / updater / backend error
+- use exponential backoff
+- add cleanup on unmount
+- if the app knows the backend is unavailable, do not keep spamming the same failed call
+
+6. Tighten "telemetryManager" startup/backoff
+
+Audit "telemetryManager" and any similar polling manager.
+
+Required:
+
+- only one active telemetry connection ever
+- no duplicate starts
+- no reconnect every 3 seconds forever with no escalation
+- backoff reconnect attempts
+- if backend port is not ready, do not poll at aggressive 200ms forever
+
+Make readiness retry intervals sane and progressive, for example:
+
+- fast for first few attempts
+- then slower
+- hard cap
+- stop duplicate concurrent loops
+
+7. Audit "App.tsx" for renderer startup churn
+
+Your "App.tsx" has many startup-triggered effects.
+
+Check specifically for:
+
+- repeated entitlement refreshes
+- focus-based refresh loops
+- visibility-based refresh loops
+- Electron auth callback registration duplication
+- repeated startup checks after phase changes
+- any polling that continues during unavailable states
+
+Do not break auth flow, but reduce pointless repeated work.
+
+Requirements:
+
+- only one deep-link callback registration
+- no repeated entitlement refresh storm during startup transitions
+- no focus-triggered refresh if startup is still unstable
+- no refresh loops while a modal/tour/transition is already active
+- any app-focus refresh must be cooldown-limited and fail safely
+
+8. Add hard startup checkpoints in logs
+
+Add explicit logs that prove startup order:
+
+- "[STARTUP] whenReady fired"
+- "[STARTUP] critical IPC registered"
+- "[STARTUP] main window created"
+- "[STARTUP] backend startup begin"
+- "[STARTUP] backend startup success" or fail
+- "[STARTUP] non-critical audit begin"
+- "[STARTUP] non-critical audit failed safely"
+- "[STARTUP] app ready"
+
+Important:
+
+- keep logs useful
+- do not put noisy per-tick logging in hot telemetry/renderer paths
+- startup logs should prove order clearly
+
+9. Packaged verification required
+
+Test packaged build, not just dev mode.
+
+Verify all of these:
+
+- first launch gets single-instance lock correctly
+- no "fs is not defined"
+- no missing handler errors
+- "app:isIPCReady" returns true after startup
+- "app:getBackendPort" works
+- "updater:getState" works
+- renderer does not spam errors if backend is down
+- app opens on first click reliably
+- non-critical audit failure does not break app startup
+
+RETURN
+
+Return all of this clearly:
+
+1. exact source file containing the original "fs" crash
+2. exact broken code
+3. exact fix made
+4. exact location where critical IPC registration now happens
+5. exact renderer polling loops changed to backoff
+6. exact startup functions created/refactored
+7. exact duplicate handler registrations removed
+8. packaged startup log from the fixed build proving:
+   - critical IPC registered before risky code
+   - no fs crash
+   - no missing handler errors
+   - backend/renderer startup is stable
+
+CHECKLIST
+
+- [ ] split startup into critical and non-critical layers
+- [ ] register critical IPC first
+- [ ] add "app:isIPCReady"
+- [ ] fix missing "fs" import at source
+- [ ] isolate audit in safe async wrapper
+- [ ] remove duplicate IPC registrations
+- [ ] replace renderer fixed polling with backoff
+- [ ] tighten telemetry/backoff logic
+- [ ] audit "App.tsx" startup effects for churn
+- [ ] verify packaged build with fresh logs
+
+IMPORTANT
+
+Do not stop after the fs fix alone.
+
+That fixed one regression, but the real issue is fragile startup design plus unsafe renderer polling.
+
+The final result must make the app resilient even if another non-critical startup block fails later.
