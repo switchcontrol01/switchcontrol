@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { boolean, index, integer, jsonb, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, real, text, timestamp, varchar } from "drizzle-orm/pg-core";
 
 // Session storage table.
 // (IMPORTANT) This table is mandatory for Replit Auth, don't drop it.
@@ -36,7 +36,7 @@ export const users = pgTable("users", {
   plan: text("plan").default("free"),
   trialStartedAt: timestamp("trial_started_at"),
   trialEndsAt: timestamp("trial_ends_at"),
-  trialDurationHours: integer("trial_duration_hours"),
+  trialDurationHours: real("trial_duration_hours"),
   trialGrantedByAdminId: varchar("trial_granted_by_admin_id"),
   trialReason: text("trial_reason"),
   hasUsedTrial: boolean("has_used_trial").notNull().default(false),
