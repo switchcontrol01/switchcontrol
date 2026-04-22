@@ -1237,6 +1237,7 @@ function ElectronAppContent() {
           userId={user?.id ?? null}
           onRetry={retryDeviceLock}
           isRetrying={isDeviceLockChecking}
+          onLogout={handleLogout}
         />
       )}
       </UpgradeModalProvider>

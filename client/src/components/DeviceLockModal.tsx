@@ -24,6 +24,7 @@ interface DeviceLockModalProps {
   userId?: string | null;
   onRetry: () => void;
   isRetrying: boolean;
+  onLogout?: () => void;
 }
 
 const SUPPORT_EMAIL = "support@switchcontrol.gg";
@@ -70,7 +71,7 @@ function useDeviceId(): string {
   return deviceId;
 }
 
-export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying }: DeviceLockModalProps) {
+export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogout }: DeviceLockModalProps) {
   const deviceId = useDeviceId();
 
   function handleContactSupport() {
@@ -220,6 +221,24 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying }: Devi
                   "Retry"
                 )}
               </motion.button>
+
+              {/* Log Out / Switch Account */}
+              {onLogout && (
+                <motion.button
+                  onClick={onLogout}
+                  className="w-full rounded-xl py-3 px-4 text-sm font-medium tracking-wide transition-all"
+                  style={{
+                    background: "transparent",
+                    color: "rgba(255,255,255,0.45)",
+                    border: "1px solid rgba(255,255,255,0.08)",
+                  }}
+                  whileHover={{ scale: 1.015, color: "rgba(255,255,255,0.7)" }}
+                  whileTap={{ scale: 0.985 }}
+                  data-testid="device-lock-logout"
+                >
+                  Log Out / Switch Account
+                </motion.button>
+              )}
 
               {/* Exit App */}
               <motion.button
