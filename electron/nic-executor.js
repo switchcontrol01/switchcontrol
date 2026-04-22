@@ -87,7 +87,7 @@ async function runElevated(command) {
   } catch (err) {
     const msg = (err && err.message) || String(err);
     if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
-      return { ok: false, error: 'UAC prompt was cancelled or access was denied.' };
+      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
     }
     return { ok: false, error: `Elevation failed: ${msg}` };
   } finally {

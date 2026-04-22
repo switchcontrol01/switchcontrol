@@ -72,12 +72,14 @@ const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
 // ── Admin / elevation state ───────────────────────────────────────────────────
-// Cached once at startup. True when the process has admin privileges.
-// In packaged builds the manifest is embedded via:
-//   electron/package.json build.win.requestedExecutionLevel = "requireAdministrator"
-//   electron/build/app.manifest (belt-and-suspenders)
-// Both are read by electron-builder when run from the electron/ directory.
-// NOTE: root electron-builder.json is NOT used — build runs from electron/ subdir.
+// Cached once at startup. Reflects whether the process was launched as admin
+// (e.g. the user manually ran "Run as administrator").
+// The app manifest uses asInvoker — the app starts as a standard user.
+// Privileged actions (tweaks, NIC settings, power plans, network tweaks) each
+// request per-action UAC elevation via Start-Process -Verb RunAs rather than
+// requiring install-wide admin.
+// electron/package.json build.win.requestedExecutionLevel = "asInvoker"
+// electron/build/app.manifest  requestedExecutionLevel level="asInvoker"
 let _appIsAdmin = null;
 
 function checkWindowsAdmin() {
@@ -2407,22 +2409,18 @@ app.whenReady().then(async () => {
   console.log('[BOOT] app.getPath("userData"):', app.getPath('userData'));
   console.log('[BOOT] app.getPath("exe"):', app.getPath('exe'));
   console.log('[BOOT] process.argv:', JSON.stringify(process.argv));
-  console.log('[BOOT] UAC manifest applied via: electron/package.json build.win.requestedExecutionLevel + electron/build/app.manifest');
+  console.log('[BOOT] UAC config: asInvoker — privileged actions request per-action elevation via Start-Process -Verb RunAs');
   console.log('====================================\n');
 
   // ── Admin status check (Windows only) ─────────────────────────────────────
-  // electron/package.json build.win.requestedExecutionLevel = "requireAdministrator"
-  // ensures the packaged EXE manifest is embedded by electron-builder via rcedit.
-  // electron/build/app.manifest provides belt-and-suspenders manifest embedding.
-  // Windows will show UAC prompt on every launch for the installed EXE.
-  // We verify here so the renderer can read it via app:isAdmin IPC.
+  // The app runs as a standard user (asInvoker manifest). Being non-admin at
+  // startup is the EXPECTED state. Privileged actions use per-action UAC
+  // elevation (Start-Process -Verb RunAs) inside each executor.
+  // This check simply caches the result so the renderer can read it via
+  // the app:isAdmin IPC (used for UI hints, not gating).
   checkWindowsAdmin().then(v => {
     _appIsAdmin = v;
-    if (app.isPackaged && !v) {
-      console.error('[UAC] ⚠️  PACKAGED but NOT admin — manifest may not have been embedded. Check rcedit output during build.');
-    } else {
-      console.log('[UAC] isAdmin:', v, app.isPackaged ? '(packaged — manifest should guarantee this)' : '(dev mode)');
-    }
+    console.log('[UAC] isAdmin:', v, app.isPackaged ? '(packaged — asInvoker, per-action elevation expected)' : '(dev mode)');
   }).catch((err) => {
     _appIsAdmin = false;
     console.error('[UAC] Admin check failed:', err?.message);

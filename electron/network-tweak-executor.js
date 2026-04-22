@@ -8,6 +8,9 @@
 'use strict';
 
 const { execFile } = require('child_process');
+const fs   = require('fs');
+const os   = require('os');
+const path = require('path');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -623,6 +626,83 @@ const TWEAK_REGISTRY = {
   },
 };
 
+// ── per-action UAC elevation helpers ─────────────────────────────────────────
+
+let _isAdminCache = null;
+async function checkIsAdmin() {
+  if (_isAdminCache !== null) return _isAdminCache;
+  try {
+    _isAdminCache = await new Promise(resolve => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command',
+          '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)'],
+        { windowsHide: true, timeout: 6000 },
+        (err, stdout) => resolve(!err && stdout.trim().toLowerCase() === 'true')
+      );
+    });
+  } catch { _isAdminCache = false; }
+  return _isAdminCache;
+}
+
+/**
+ * Run a single-line PowerShell command in an elevated process via
+ * Start-Process -Verb RunAs. Returns { ok, error, cancelled }.
+ */
+async function runElevated(command) {
+  const id         = `sc_net_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const scriptPath = path.join(os.tmpdir(), `${id}.ps1`);
+  const resultPath = path.join(os.tmpdir(), `${id}_result.json`);
+  const safeScript = scriptPath.replace(/'/g, "''");
+  const safeResult = resultPath.replace(/'/g, "''");
+
+  const scriptContent = [
+    `$ErrorActionPreference = 'Stop'`,
+    `try {`,
+    `  ${command}`,
+    `  $r = @{ ok = $true; error = $null }`,
+    `} catch {`,
+    `  $r = @{ ok = $false; error = $_.Exception.Message }`,
+    `}`,
+    `try { [System.IO.File]::WriteAllText('${safeResult}', ($r | ConvertTo-Json -Compress)) } catch { $r | ConvertTo-Json -Compress | Out-File -FilePath '${safeResult}' -Encoding ascii -Force }`,
+  ].join('\r\n');
+
+  fs.writeFileSync(scriptPath, scriptContent, 'utf8');
+
+  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
+
+  try {
+    await new Promise((resolve, reject) => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
+        { timeout: 120_000, windowsHide: true },
+        (err) => err ? reject(err) : resolve()
+      );
+    });
+
+    const deadline = Date.now() + 5000;
+    while (!fs.existsSync(resultPath) && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    if (fs.existsSync(resultPath)) {
+      const raw = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim();
+      try { return JSON.parse(raw); } catch { return { ok: false, error: `Bad result JSON: ${raw.slice(0, 100)}` }; }
+    }
+    return { ok: false, error: 'Result file not produced — elevated script may have crashed.' };
+  } catch (err) {
+    const msg = err?.message || String(err);
+    if (/cancel|denied|elevat|access|uac/i.test(msg) || err?.code === 1) {
+      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
+    }
+    return { ok: false, error: `Elevation failed: ${msg}` };
+  } finally {
+    try { fs.unlinkSync(scriptPath); } catch {}
+    try { fs.unlinkSync(resultPath); } catch {}
+  }
+}
+
 // ── executor API ──────────────────────────────────────────────────────────────
 
 /**
@@ -656,48 +736,68 @@ async function executeNetworkTweak(tweakId, action) {
 
   const script = action === 'apply' ? entry.apply : entry.revert;
 
-  try {
-    const output = await execPowerShell(script);
+  // ── Write step: use per-action elevation when not already admin ──────────────
+  let rawOutput = '';
+  const alreadyAdmin = await checkIsAdmin();
 
-    let verified = false;
-    if (entry.check) {
-      try {
-        const checkOut = await execPowerShell(entry.check);
-        // normalizePSBoolOutput returns true/false/null (null = inconclusive)
-        const isEnabled = normalizePSBoolOutput(checkOut);
-        if (isEnabled === null) {
-          // Inconclusive — check script could not determine state; do NOT mark as failed
-          verified = false;
-        } else {
-          verified = action === 'apply' ? isEnabled : !isEnabled;
-        }
-      } catch (verifyErr) {
-        // Verification threw — treat as inconclusive, not failure
-        console.warn(`[NetworkTweak] Verification inconclusive for ${tweakId}:`, verifyErr.message);
-        verified = false;
-      }
+  if (alreadyAdmin) {
+    try {
+      rawOutput = await execPowerShell(script);
+    } catch (err) {
+      return {
+        tweakId, action,
+        success: false, verified: false,
+        message: err.message,
+        requiresRestart: false,
+        error: 'execution_error',
+      };
     }
-
-    const verb = action === 'apply' ? 'Enabled' : 'Disabled';
-    return {
-      tweakId, action,
-      success: true,
-      verified,
-      message: verified ? `${verb} and verified` : `${verb} (verification inconclusive)`,
-      requiresRestart: false,
-      rawOutput: output,
-    };
-  } catch (err) {
-    const isAdmin = err.message?.toLowerCase().includes('access denied') ||
-                    err.message?.toLowerCase().includes('elevation');
-    return {
-      tweakId, action,
-      success: false, verified: false,
-      message: isAdmin ? 'Admin privileges required — run SwitchControl as Administrator.' : err.message,
-      requiresRestart: false,
-      error: isAdmin ? 'requires_admin' : 'execution_error',
-    };
+  } else {
+    console.log(`[NetworkTweak] Requesting UAC elevation for ${tweakId} (${action})`);
+    const elevResult = await runElevated(script);
+    if (elevResult.cancelled) {
+      return {
+        tweakId, action,
+        success: false, verified: false,
+        message: 'Admin permission was canceled. No system changes were made.',
+        requiresRestart: false,
+        error: 'uac_cancelled',
+      };
+    }
+    if (!elevResult.ok) {
+      return {
+        tweakId, action,
+        success: false, verified: false,
+        message: elevResult.error || 'Elevated command failed.',
+        requiresRestart: false,
+        error: 'elevation_failed',
+      };
+    }
   }
+
+  // ── Verification step (read-only, no elevation needed) ─────────────────────
+  let verified = false;
+  if (entry.check) {
+    try {
+      const checkOut = await execPowerShell(entry.check);
+      const isEnabled = normalizePSBoolOutput(checkOut);
+      if (isEnabled !== null) {
+        verified = action === 'apply' ? isEnabled : !isEnabled;
+      }
+    } catch (verifyErr) {
+      console.warn(`[NetworkTweak] Verification inconclusive for ${tweakId}:`, verifyErr.message);
+    }
+  }
+
+  const verb = action === 'apply' ? 'Enabled' : 'Disabled';
+  return {
+    tweakId, action,
+    success: true,
+    verified,
+    message: verified ? `${verb} and verified` : `${verb} (verification inconclusive)`,
+    requiresRestart: false,
+    rawOutput,
+  };
 }
 
 /**

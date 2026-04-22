@@ -211,7 +211,7 @@ async function runElevated(command) {
     const msg = (err && err.message) || String(err);
     // execFile exits non-zero when UAC is declined — detect it by keyword
     if (/cancel|denied|elevat|access|uac/i.test(msg) || (err && err.code === 1)) {
-      return { ok: false, error: 'UAC prompt was cancelled or access was denied.' };
+      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
     }
     return { ok: false, error: `Elevation failed: ${msg}` };
   } finally {
@@ -796,7 +796,7 @@ async function executeTweak(tweakId, action) {
           requiresReboot: tweak.requiresReboot || false,
           commandsRun:    [],
           message:        null,
-          error:          'This tweak requires SwitchControl to be run as Administrator.',
+          error:          'This tweak requires elevated permissions. Please right-click SwitchControl and choose "Run as administrator".',
         }, 'requires_admin');
         logEntry({ tweakId, action, result, ms: Date.now() - startTime });
         return result;

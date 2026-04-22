@@ -1,0 +1,80 @@
+TASK
+
+Audit the current SwitchControl auto-updater flow and explain exactly how it works right now.
+
+I need a real answer based on the actual code, not assumptions.
+
+GOAL
+
+Tell me what happens today when I publish a new version of SwitchControl.
+
+Specifically I need to know:
+
+1. Does an older installed version of the app automatically detect a newer release?
+2. What source does it check?
+   - GitHub releases
+   - custom update server
+   - release latest.yml
+   - installer URL from website
+   - something else
+3. Does it use:
+   - electron-updater
+   - autoUpdater
+   - custom updater logic
+4. What exact files control the updater flow?
+5. What exact event chain happens from:
+   - app start
+   - checking for updates
+   - detecting update
+   - showing UI
+   - downloading update
+   - installing update
+6. Does the current app show a Windows popup or in-app modal when an update is found?
+7. Does it currently support showing release notes or a list of fixes?
+8. If I upload a new installer to the website and publish a new release yml, will old installed versions detect it automatically or not?
+9. What is missing right now for a proper production updater flow?
+
+REQUIRED CODE AUDIT
+
+Find and inspect all updater-related code, including anything related to:
+- updater
+- autoUpdater
+- electron-updater
+- latest.yml
+- app-update.yml
+- publish config
+- release config
+- nsis updater config
+- update modal UI
+- release notes UI
+- backend routes if they are involved
+
+Check at minimum:
+- main Electron process
+- preload
+- renderer UI
+- electron-builder config
+- package.json
+- any updater helper files
+
+RETURN FORMAT
+
+Return all of this clearly:
+
+1. exact updater system currently used
+2. exact files involved
+3. exact startup check flow
+4. whether old installed builds detect new releases automatically
+5. whether latest.yml is actually being used
+6. whether website installer link matters to auto-update detection
+7. whether release notes / fix list popup exists right now
+8. if not, what exact pieces are missing
+9. final verdict:
+   - fully working updater
+   - partially wired updater
+   - fake / incomplete updater
+
+IMPORTANT
+
+Do not just tell me what should happen.
+Tell me what the current code actually does right now.

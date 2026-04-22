@@ -243,7 +243,7 @@ async function runElevatedCommands(commands) {
   } catch (err) {
     const msg = err?.message || String(err);
     if (/cancel|denied|elevat|access|uac/i.test(msg) || err?.code === 1) {
-      return { ok: false, cancelled: true, error: 'UAC prompt was cancelled or access was denied.' };
+      return { ok: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
     }
     return { ok: false, error: `Elevation failed: ${msg}` };
   } finally {
@@ -502,7 +502,7 @@ async function applyPowerProfile(profileId) {
   } else {
     applyResult = await runElevatedCommands(settingCmds);
     if (applyResult.cancelled) {
-      return { success: false, cancelled: true, error: 'UAC prompt was cancelled.' };
+      return { success: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
     }
     if (!applyResult.ok) {
       return { success: false, error: applyResult.error || 'Elevation failed.' };
