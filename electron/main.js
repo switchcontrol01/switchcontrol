@@ -64,14 +64,40 @@ app.setName('SwitchControl');
 const isDev = !app.isPackaged;
 const isProd = !isDev;
 const allowDebug = process.env.DEBUG_MODE === 'true';
-// DEBUG_DEVTOOLS=true  → auto-open DevTools on launch in packaged builds.
-// Also honoured by DEBUG_MODE=true for backward compat.
-const allowDevTools = process.env.DEBUG_DEVTOOLS === 'true' || allowDebug;
 console.log('[BOOT] app.isPackaged:', app.isPackaged);
 console.log('[BOOT] isDev:', isDev);
 console.log('[BOOT] isProd:', isProd);
 console.log('[BOOT] allowDebug (DEBUG_MODE):', allowDebug);
-console.log('[BOOT] allowDevTools (DEBUG_DEVTOOLS):', allowDevTools);
+
+/**
+ * lockDevTools — harden a BrowserWindow against DevTools access in production.
+ * In dev mode this is a no-op so normal debugging continues to work.
+ */
+function lockDevTools(win) {
+  if (isDev) return; // dev builds: no restrictions
+
+  // 1. Immediately close DevTools if somehow opened
+  win.webContents.on('devtools-opened', () => {
+    win.webContents.closeDevTools();
+    console.log('[Security] DevTools open attempt blocked in production.');
+  });
+
+  // 2. Block all keyboard shortcuts that open DevTools
+  win.webContents.on('before-input-event', (event, input) => {
+    const key = input.key.toLowerCase();
+    const isDevToolsShortcut =
+      key === 'f12' ||
+      (input.control && input.shift && key === 'i') ||
+      (input.control && input.shift && key === 'j') ||
+      (input.control && key === 'u');
+    if (isDevToolsShortcut) event.preventDefault();
+  });
+
+  // 3. Block right-click context-menu (removes the Inspect Element option)
+  win.webContents.on('context-menu', (event) => {
+    event.preventDefault();
+  });
+}
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
@@ -418,7 +444,7 @@ app.on('open-url', (event, url) => {
 
 function createWindow() {
   console.log('[STARTUP:5] createWindow() ENTRY');
-  console.log('[BOOT] Creating window — devTools: always enabled | isDev:', isDev, '| allowDevTools:', allowDevTools);
+  console.log('[BOOT] Creating window — devTools:', isDev ? 'enabled (dev)' : 'disabled (prod)');
   mainWindow = new BrowserWindow({
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
@@ -432,34 +458,36 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: true, // Always enabled — shortcuts and IPC open/close on demand
+      devTools: isDev, // Disabled at Chromium level in production builds
       backgroundThrottling: false, // Prevent timer throttling when window loses focus
+      additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
     }
   });
   console.log('[STARTUP:5] BrowserWindow constructed — show:true, isVisible:', mainWindow.isVisible());
 
-  // ── DevTools keyboard shortcut — always active ────────────────────────────────
-  // F12, Ctrl+Shift+I, Ctrl+Shift+J all toggle DevTools in every build.
-  // No production blocking — DevTools are a debugging tool, not a security boundary.
-  mainWindow.webContents.on('before-input-event', (event, input) => {
-    const key = input.key.toLowerCase();
-    const isDevToolsShortcut =
-      key === 'f12' ||
-      (input.control && input.shift && key === 'i') ||
-      (input.control && input.shift && key === 'j');
+  // ── DevTools access hardening ─────────────────────────────────────────────────
+  // In dev: F12 / Ctrl+Shift+I toggle DevTools normally.
+  // In production: lockDevTools() blocks all entry points (shortcuts, context-menu,
+  // devtools-opened event, Chromium-level via webPreferences.devTools:false).
+  if (isDev) {
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+      const key = input.key.toLowerCase();
+      const isDevToolsShortcut =
+        key === 'f12' ||
+        (input.control && input.shift && key === 'i') ||
+        (input.control && input.shift && key === 'j');
+      if (!isDevToolsShortcut) return;
+      console.log('[DevTools] Shortcut pressed — toggling DevTools (dev mode)');
+      mainWindow.webContents.toggleDevTools();
+      event.preventDefault();
+    });
+  }
+  lockDevTools(mainWindow); // no-op in dev; full lockdown in production
 
-    if (!isDevToolsShortcut) return;
-
-    console.log('[DevTools] Shortcut pressed — toggling DevTools');
-    mainWindow.webContents.toggleDevTools();
-    event.preventDefault();
-  });
-
-  // ── Auto-open DevTools on launch ──────────────────────────────────────────────
-  // Always in dev mode. In packaged builds: only when DEBUG_DEVTOOLS=true or DEBUG_MODE=true.
-  if (isDev || allowDevTools) {
+  // ── Auto-open DevTools on launch (dev only) ───────────────────────────────────
+  if (isDev) {
     mainWindow.webContents.once('did-finish-load', () => {
-      console.log('[DevTools] Auto-opening DevTools (isDev:', isDev, '| allowDevTools:', allowDevTools, ')');
+      console.log('[DevTools] Auto-opening DevTools (dev mode)');
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     });
   }
@@ -2485,9 +2513,13 @@ app.whenReady().then(async () => {
     console.log('[STARTUP] backend startup begin (dev mode — using dev server proxy)');
   }
 
-  // Register DevTools IPC handler (always available for debugging)
+  // Register DevTools IPC handler — dev mode only
   ipcMain.handle('app:openDevTools', (event) => {
-    console.log('[DevTools] IPC handler called - opening DevTools');
+    if (!isDev) {
+      console.warn('[Security] app:openDevTools IPC call blocked in production.');
+      return { success: false, reason: 'production' };
+    }
+    console.log('[DevTools] IPC handler called - opening DevTools (dev mode)');
     if (mainWindow) {
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     }

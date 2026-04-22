@@ -1,5 +1,26 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// ─── Production detection ─────────────────────────────────────────────────────
+// Main process passes --switchcontrol-prod via additionalArguments in production.
+// This is reliable across dev/packaged builds without depending on NODE_ENV.
+const isProdBuild = process.argv.includes('--switchcontrol-prod');
+
+// ─── Secondary DevTools lockdown (production only) ───────────────────────────
+// Primary protection is in the main process (webPreferences.devTools:false +
+// lockDevTools() event listeners). This is belt-and-suspenders in the renderer.
+if (isProdBuild) {
+  window.addEventListener('keydown', (e) => {
+    if (
+      e.key === 'F12' ||
+      (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J')) ||
+      (e.ctrlKey && e.key === 'U')
+    ) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true);
+}
+
 // ─── Input validation helpers ─────────────────────────────────────────────────
 // Lightweight guards that reject garbage before it crosses the privilege boundary.
 // Main process remains the final authority — these are a first filter only.
@@ -54,7 +75,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isBackendReady:  () => ipcRenderer.invoke('app:isBackendReady'),
   getBackendError: () => ipcRenderer.invoke('app:getBackendError'),
   debugCookies:    () => ipcRenderer.invoke('auth:debugCookies'),
-  openDevTools:    () => ipcRenderer.invoke('app:openDevTools'),
   openLogs:        () => ipcRenderer.invoke('app:openLogs'),
 
   // ── Controlled privileged actions ───────────────────────────────────────────
