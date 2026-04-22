@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, CheckCircle2, AlertTriangle, SkipForward, RefreshCw, Cpu } from "lucide-react";
+import { X, CheckCircle2, AlertTriangle, SkipForward, RefreshCw, Cpu, Zap } from "lucide-react";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 import { cn } from "@/lib/utils";
 import type { PremiumRevertReport, RevertItemResult, PowerPlanRevertResult } from "@/lib/premiumRevertEngine";
@@ -104,13 +104,24 @@ export function PremiumRevertModal({ open, onClose, report, onRetry }: PremiumRe
                 {/* Header */}
                 <div className="space-y-1.5 pr-8">
                   <h2 className="text-sm font-semibold text-white">
-                    Premium optimizations reverted
+                    Your free trial has ended
                   </h2>
                   <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Optimizations applied during your trial have been reverted. Your original
-                    system configuration has been preserved.
+                    Premium optimizations applied during your trial have been reverted and your
+                    original system configuration has been restored.
                   </p>
                 </div>
+
+                {/* Upgrade CTA */}
+                <a
+                  href="/pricing"
+                  onClick={onClose}
+                  className="flex items-center gap-2.5 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600/80 to-indigo-600/80 hover:from-violet-500/90 hover:to-indigo-500/90 border border-violet-500/30 text-white text-xs font-medium transition-all duration-200 shadow-lg shadow-violet-900/30"
+                  data-testid="button-revert-upgrade"
+                >
+                  <Zap className="size-3.5 shrink-0 text-yellow-300" />
+                  <span className="flex-1">Upgrade to Premium — keep your optimizations active</span>
+                </a>
 
                 {/* Result breakdown */}
                 {hasAnything && report && (

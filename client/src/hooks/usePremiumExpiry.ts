@@ -47,18 +47,17 @@ export function usePremiumExpiry({
   const triggerRevert = useCallback(async () => {
     if (revertRunning.current) return;
     if (!isElectronWithTweaks()) {
-      // Non-Electron: nothing to revert — show modal only if there were items
-      if (hasPremiumItemsToRevert()) {
-        setRevertReport({
-          tweakResults: [],
-          networkResults: [],
-          powerPlan: { status: 'not_applicable' },
-          anyFailed: false,
-          anyConflict: false,
-          revertedCount: 0,
-        });
-        setModalOpen(true);
-      }
+      // Non-Electron: nothing real to revert — always show the modal so the
+      // user is informed their trial ended, even if no tweaks were applied.
+      setRevertReport({
+        tweakResults: [],
+        networkResults: [],
+        powerPlan: { status: 'not_applicable' },
+        anyFailed: false,
+        anyConflict: false,
+        revertedCount: 0,
+      });
+      setModalOpen(true);
       return;
     }
 
@@ -67,19 +66,27 @@ export function usePremiumExpiry({
     try {
       const report = await runPremiumRevert();
       setRevertReport(report);
-      // Show modal if anything was attempted or if there were any app-applied items
-      const hadItems = report.tweakResults.length > 0 || report.networkResults.length > 0 ||
-        report.powerPlan.status !== 'not_applicable';
-      if (hadItems) {
-        setModalOpen(true);
-      }
+      // Always show the modal so the user is informed their trial ended.
+      setModalOpen(true);
     } catch (err) {
       console.error('[PremiumExpiry] Revert sequence threw', err);
+      // Still show modal even if revert failed — user must know trial ended
+      setRevertReport({
+        tweakResults: [],
+        networkResults: [],
+        powerPlan: { status: 'not_applicable' },
+        anyFailed: true,
+        anyConflict: false,
+        revertedCount: 0,
+      });
+      setModalOpen(true);
     } finally {
       revertRunning.current = false;
     }
   }, []);
 
+  // ── State-change watcher ───────────────────────────────────────────────────
+  // Detects when isPremium flips from true→false (e.g. server-side cancellation).
   useEffect(() => {
     // Wait until we have verified entitlements and the user is logged in
     if (!isLoggedIn || !entitlementsVerified) {
@@ -104,6 +111,32 @@ export function usePremiumExpiry({
 
     prevWasActive.current = isCurrentlyActive;
   }, [isCurrentlyActive, isLoggedIn, entitlementsVerified, triggerRevert]);
+
+  // ── Countdown timer watcher ────────────────────────────────────────────────
+  // The state-change watcher above only fires when React props change.
+  // For trial expiry by time (trialEndsAt passes), we need an explicit timer.
+  useEffect(() => {
+    if (!isLoggedIn || !entitlementsVerified) return;
+    if (plan !== 'trial' || !trialEndsAt) return;
+
+    const msUntilExpiry = new Date(trialEndsAt).getTime() - Date.now();
+
+    // Already expired before we even mounted — prevWasActive handles this
+    if (msUntilExpiry <= 0) return;
+
+    console.log(`[PremiumExpiry] Trial timer armed — fires in ${Math.round(msUntilExpiry / 1000)}s`);
+
+    const timerId = setTimeout(() => {
+      console.log('[PremiumExpiry] Trial timer fired — triggering revert');
+      // Only fire if prevWasActive still says we were active (avoid double-trigger)
+      if (prevWasActive.current !== false) {
+        prevWasActive.current = false;
+        triggerRevert();
+      }
+    }, msUntilExpiry + 500); // +500ms buffer so the clock is definitely past end
+
+    return () => clearTimeout(timerId);
+  }, [isLoggedIn, entitlementsVerified, plan, trialEndsAt, triggerRevert]);
 
   const retryRevert = useCallback(async () => {
     revertRunning.current = false; // allow retry
