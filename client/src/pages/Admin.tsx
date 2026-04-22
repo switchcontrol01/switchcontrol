@@ -46,6 +46,10 @@ function buildHeaders(): HeadersInit {
   const jwt = useAuthStore.getState().jwt;
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
+  try {
+    const m = document.cookie.match(/(?:^|;\s*)_csrf=([^;]*)/);
+    if (m) headers["x-csrf-token"] = decodeURIComponent(m[1]);
+  } catch {}
   return headers;
 }
 
@@ -232,6 +236,7 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
 type PlanOption = "free" | "trial" | "premium";
 
 const TRIAL_PRESETS = [
+  { label: "1m", hours: 1 / 60 },
   { label: "30m", hours: 0.5 },
   { label: "1h", hours: 1 },
   { label: "1 Day", hours: 24 },
@@ -249,8 +254,8 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const trialHours = useCustom ? (parseFloat(customHours) || 1) : trialPreset;
-  const trialHoursInt = Math.max(1, Math.round(trialHours * 10) / 10);
+  const trialHours = useCustom ? (parseFloat(customHours) || 1 / 60) : trialPreset;
+  const trialHoursInt = Math.max(1 / 60, Math.round(trialHours * 10000) / 10000);
 
   const previewEnd = selectedPlan === "trial"
     ? new Date(Date.now() + trialHours * 3600000)
@@ -310,7 +315,7 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
         {selectedPlan === "trial" && (
           <div className="mb-4 space-y-3">
             <label className="block text-xs text-white/50">Trial Duration</label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {TRIAL_PRESETS.map((p) => (
                 <button
                   key={p.label}

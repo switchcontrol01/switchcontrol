@@ -141,7 +141,7 @@ router.get("/users/:id/activity", requireAdmin, readLimiter, async (req, res) =>
 
 const setPlanSchema = z.object({
   plan: z.enum(["free", "trial", "premium"]),
-  trialDurationHours: z.number().int().min(1).max(8760).optional(),
+  trialDurationHours: z.number().min(1 / 60).max(8760).optional(),
   reason: z.string().max(500).optional(),
 });
 
