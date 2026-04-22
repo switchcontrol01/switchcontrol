@@ -64,6 +64,7 @@ export interface IStorage {
   // Device binding
   bindPremiumDevice(userId: string, deviceId: string): Promise<User>;
   clearPremiumDevice(userId: string): Promise<User>;
+  findUserByBoundDeviceId(deviceId: string): Promise<User | undefined>;
 
   // Admin
   listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
@@ -231,6 +232,10 @@ class MockStorage implements IStorage {
 
   async clearPremiumDevice(_userId: string): Promise<User> {
     throw new Error("Database not available in NO-DB mode");
+  }
+
+  async findUserByBoundDeviceId(_deviceId: string): Promise<User | undefined> {
+    return undefined;
   }
 
   async listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }> {
@@ -664,6 +669,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, userId))
       .returning();
     return updated;
+  }
+
+  async findUserByBoundDeviceId(deviceId: string): Promise<User | undefined> {
+    const [user] = await db!
+      .select()
+      .from(users)
+      .where(eq(users.premiumBoundDeviceId, deviceId))
+      .limit(1);
+    return user;
   }
 }
 

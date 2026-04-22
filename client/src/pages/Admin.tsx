@@ -29,6 +29,8 @@ interface AdminUser {
   hasSeenPremiumUnlock: boolean;
   hasSeenPremiumTour: boolean;
   createdAt: string | null;
+  premiumBoundDeviceId: string | null;
+  premiumBoundAt: string | null;
 }
 
 interface AdminLog {
@@ -744,6 +746,31 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     },
   });
 
+  const resetDeviceLock = () => setConfirm({
+    title: "Reset Device Lock",
+    description: (
+      <>
+        Clear the device binding for <strong className="text-white/80">{localUser.displayName}</strong>?
+        {localUser.premiumBoundDeviceId && (
+          <span className="block mt-1 text-xs text-white/40 font-mono">{localUser.premiumBoundDeviceId}</span>
+        )}
+        {" "}Their premium will re-bind to whichever machine they next log in from.
+      </>
+    ),
+    confirmLabel: "Clear Device Lock",
+    danger: true,
+    action: async () => {
+      const r = await fetch(`/api/admin/users/${localUser.id}/reset-premium-device`, {
+        method: "POST",
+        headers: buildHeaders() as any,
+        body: JSON.stringify({}),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Failed");
+      update({ ...localUser, premiumBoundDeviceId: null, premiumBoundAt: null });
+    },
+  });
+
   const toggleAdmin = async () => {
     setSettingAdmin(true);
     setAdminError(null);
@@ -849,6 +876,31 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                     <button onClick={resetTrial} data-testid="button-reset-expired-trial"
                       className="text-xs rounded-lg px-3 py-1.5 border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 transition-all">
                       Clear Trial Data
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Device Binding */}
+            {localUser.isPremium && (
+              <div className={`rounded-xl border p-4 ${localUser.premiumBoundDeviceId ? "border-amber-500/20" : "border-white/8"}`}
+                style={{ background: localUser.premiumBoundDeviceId ? "rgba(245,158,11,0.04)" : "rgba(255,255,255,0.03)" }}>
+                <div className="flex items-center justify-between mb-3">
+                  <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Device Lock</p>
+                  {localUser.premiumBoundDeviceId && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300/80 font-medium">Locked</span>
+                  )}
+                </div>
+                <div className="space-y-2.5 text-sm">
+                  <Row label="Bound Device ID" value={localUser.premiumBoundDeviceId ? <span className="font-mono text-amber-300/80">{localUser.premiumBoundDeviceId}</span> : <span className="text-white/30">None</span>} />
+                  <Row label="Bound At" value={localUser.premiumBoundAt ? fmtFull(localUser.premiumBoundAt) : "—"} />
+                </div>
+                {localUser.premiumBoundDeviceId && (
+                  <div className="mt-3">
+                    <button onClick={resetDeviceLock} data-testid="button-reset-device-lock"
+                      className="text-xs rounded-lg px-3 py-1.5 border border-amber-500/25 bg-amber-500/10 text-amber-300/80 hover:bg-amber-500/20 transition-all">
+                      Clear Device Lock
                     </button>
                   </div>
                 )}
@@ -1005,6 +1057,30 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [selectedLogs, setSelectedLogs] = useState<AdminLog[]>([]);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  // Device lock lookup
+  const [deviceLookupId, setDeviceLookupId] = useState("");
+  const [deviceLookupResult, setDeviceLookupResult] = useState<AdminUser | null>(null);
+  const [deviceLookupError, setDeviceLookupError] = useState<string | null>(null);
+  const [deviceLookupLoading, setDeviceLookupLoading] = useState(false);
+
+  const lookupByDeviceId = async () => {
+    const id = deviceLookupId.trim();
+    if (!id) return;
+    setDeviceLookupLoading(true);
+    setDeviceLookupError(null);
+    setDeviceLookupResult(null);
+    try {
+      const r = await fetch(`/api/admin/devices/by-device-id/${encodeURIComponent(id)}`, { headers: buildHeaders() as any });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || "Not found");
+      setDeviceLookupResult(data.user);
+    } catch (e: any) {
+      setDeviceLookupError(e.message);
+    } finally {
+      setDeviceLookupLoading(false);
+    }
+  };
 
   const checkAdmin = useCallback(async () => {
     try {
@@ -1175,6 +1251,48 @@ export default function AdminPage() {
           >
             Refresh
           </button>
+        </div>
+
+        {/* Device Lock Lookup */}
+        <div className="mb-6 rounded-xl border border-amber-500/20 p-4" style={{ background: "rgba(245,158,11,0.04)" }}>
+          <p className="text-xs font-semibold text-amber-300/60 uppercase tracking-wider mb-3">Device Lock Lookup</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Paste device ID (e.g. 29818AA82C374727)…"
+              value={deviceLookupId}
+              onChange={(e) => setDeviceLookupId(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && lookupByDeviceId()}
+              data-testid="input-device-lookup"
+              className="flex-1 rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-sm text-white font-mono placeholder-white/25 outline-none focus:border-amber-500/50 transition-colors"
+            />
+            <button
+              onClick={lookupByDeviceId}
+              disabled={deviceLookupLoading || !deviceLookupId.trim()}
+              data-testid="button-device-lookup"
+              className="rounded-xl px-4 py-2 text-sm font-medium bg-amber-500/15 border border-amber-500/25 text-amber-300/80 hover:bg-amber-500/25 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              {deviceLookupLoading ? "…" : "Find"}
+            </button>
+          </div>
+          {deviceLookupError && (
+            <p className="mt-2 text-xs text-red-400">{deviceLookupError}</p>
+          )}
+          {deviceLookupResult && (
+            <div className="mt-3 flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+              <div>
+                <p className="text-sm font-medium text-white">{deviceLookupResult.displayName}</p>
+                <p className="text-xs text-white/40">{deviceLookupResult.email || deviceLookupResult.id}</p>
+              </div>
+              <button
+                onClick={() => { setSelectedUser(deviceLookupResult); setSelectedLogs([]); }}
+                data-testid="button-open-device-user"
+                className="text-xs rounded-lg px-3 py-1.5 border border-amber-500/25 bg-amber-500/10 text-amber-300/80 hover:bg-amber-500/20 transition-all"
+              >
+                Open User
+              </button>
+            </div>
+          )}
         </div>
 
         {error && (

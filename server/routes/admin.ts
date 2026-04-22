@@ -54,6 +54,8 @@ function serializeUser(u: User) {
     hasSeenPremiumTour: u.hasSeenPremiumTour,
     createdAt: u.createdAt,
     updatedAt: u.updatedAt,
+    premiumBoundDeviceId: u.premiumBoundDeviceId ?? null,
+    premiumBoundAt: u.premiumBoundAt ?? null,
   };
 }
 
@@ -416,6 +418,22 @@ router.delete("/users/:id", requireAdmin, writeLimiter, async (req, res) => {
   } catch (err) {
     console.error("[admin] deleteUser error:", err);
     res.status(500).json({ error: "Failed to delete user." });
+  }
+});
+
+// ─── Device Lock Lookup ───────────────────────────────────────────────────────
+
+// GET /api/admin/devices/by-device-id/:deviceId
+// Find whichever user has this device ID bound (either bound or last-seen)
+router.get("/devices/by-device-id/:deviceId", requireAdmin, readLimiter, async (req, res) => {
+  const { deviceId } = req.params;
+  try {
+    const user = await storage.findUserByBoundDeviceId(deviceId);
+    if (!user) return res.status(404).json({ error: "No user found with that device ID bound." });
+    res.json({ user: serializeUser(user) });
+  } catch (err) {
+    console.error("[admin] findUserByBoundDeviceId error:", err);
+    res.status(500).json({ error: "Lookup failed." });
   }
 });
 
