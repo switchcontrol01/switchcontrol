@@ -2107,6 +2107,14 @@ const EXEC_NAME_RE = /^[A-Za-z0-9 ._\-]+\.(?:exe|bat|cmd)$/i;
 // Game name: printable alphanumerics, spaces, apostrophes, hyphens, periods, colons.
 const GAME_NAME_RE = /^[A-Za-z0-9 .':\-_&]+$/;
 
+// Escape a value for safe interpolation inside a PowerShell double-quoted string.
+// In PS, `"` inside `"..."` must be doubled to `""`.  This is defense-in-depth on top of
+// the allowlist validation above — both layers must be defeated for injection to occur.
+function escapePsString(s) {
+  if (!s) return s;
+  return s.replace(/"/g, '""');
+}
+
 ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executable, installPath, gameName }) => {
   console.log(`[IPC] appBooster:executeAction type=${type} mode=${mode} exe=${executable}`);
 
@@ -2120,26 +2128,31 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
 
   const exePath = installPath ? require('path').join(installPath, executable) : executable;
 
+  // Escape all user-supplied values before interpolation into PowerShell double-quoted strings.
+  const safeExe      = escapePsString(executable);
+  const safeExePath  = escapePsString(exePath);
+  const safeGameName = escapePsString(gameName);
+
   const scripts = {
     'cpu-priority': {
-      apply: `New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Name "CpuPriorityClass" -Value 6 -Type DWord -Force; Write-Output "ok"`,
-      revert: `Remove-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Recurse -Force -EA SilentlyContinue; Write-Output "ok"`,
-      check:  `$v = (Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${executable}\\PerfOptions" -Name "CpuPriorityClass" -EA SilentlyContinue).CpuPriorityClass; if ($v -eq 6) { "true" } else { "false" }`,
+      apply: `New-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${safeExe}\\PerfOptions" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${safeExe}\\PerfOptions" -Name "CpuPriorityClass" -Value 6 -Type DWord -Force; Write-Output "ok"`,
+      revert: `Remove-Item -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${safeExe}\\PerfOptions" -Recurse -Force -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Image File Execution Options\\${safeExe}\\PerfOptions" -Name "CpuPriorityClass" -EA SilentlyContinue).CpuPriorityClass; if ($v -eq 6) { "true" } else { "false" }`,
     },
     'fso-disable': {
-      apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${exePath}" -Value "~ DISABLEDXMAXIMIZEDWINDOWEDMODE" -Type String -Force; Write-Output "ok"`,
-      revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${exePath}" -EA SilentlyContinue; Write-Output "ok"`,
-      check:  `$v = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${exePath}" -EA SilentlyContinue)."${exePath}"; if ($v -eq "~ DISABLEDXMAXIMIZEDWINDOWEDMODE") { "true" } else { "false" }`,
+      apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${safeExePath}" -Value "~ DISABLEDXMAXIMIZEDWINDOWEDMODE" -Type String -Force; Write-Output "ok"`,
+      revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${safeExePath}" -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers" -Name "${safeExePath}" -EA SilentlyContinue)."${safeExePath}"; if ($v -eq "~ DISABLEDXMAXIMIZEDWINDOWEDMODE") { "true" } else { "false" }`,
     },
     'gpu-preference': {
-      apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${exePath}" -Value "GpuPreference=2;" -Type String -Force; Write-Output "ok"`,
-      revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${exePath}" -EA SilentlyContinue; Write-Output "ok"`,
-      check:  `$v = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${exePath}" -EA SilentlyContinue)."${exePath}"; if ($v -like "*GpuPreference=2*") { "true" } else { "false" }`,
+      apply:  `New-Item -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${safeExePath}" -Value "GpuPreference=2;" -Type String -Force; Write-Output "ok"`,
+      revert: `Remove-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${safeExePath}" -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `$v = (Get-ItemProperty -Path "HKCU:\\Software\\Microsoft\\DirectX\\UserGpuPreferences" -Name "${safeExePath}" -EA SilentlyContinue)."${safeExePath}"; if ($v -like "*GpuPreference=2*") { "true" } else { "false" }`,
     },
     'network-qos': {
-      apply:  `$pn = "${gameName} SC-Boost"; if (!(Get-NetQosPolicy -Name $pn -EA SilentlyContinue)) { New-NetQosPolicy -Name $pn -AppPathNameMatchCondition "${exePath}" -IPProtocolMatchCondition Both -DSCPAction 46 -NetworkProfile All -Confirm:$false -EA SilentlyContinue }; Write-Output "ok"`,
-      revert: `Remove-NetQosPolicy -Name "${gameName} SC-Boost" -Confirm:$false -EA SilentlyContinue; Write-Output "ok"`,
-      check:  `if (Get-NetQosPolicy -Name "${gameName} SC-Boost" -EA SilentlyContinue) { "true" } else { "false" }`,
+      apply:  `$pn = "${safeGameName} SC-Boost"; if (!(Get-NetQosPolicy -Name $pn -EA SilentlyContinue)) { New-NetQosPolicy -Name $pn -AppPathNameMatchCondition "${safeExePath}" -IPProtocolMatchCondition Both -DSCPAction 46 -NetworkProfile All -Confirm:$false -EA SilentlyContinue }; Write-Output "ok"`,
+      revert: `Remove-NetQosPolicy -Name "${safeGameName} SC-Boost" -Confirm:$false -EA SilentlyContinue; Write-Output "ok"`,
+      check:  `if (Get-NetQosPolicy -Name "${safeGameName} SC-Boost" -EA SilentlyContinue) { "true" } else { "false" }`,
     },
   };
 
