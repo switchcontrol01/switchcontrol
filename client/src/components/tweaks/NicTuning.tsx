@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Wifi, ChevronDown, Loader2, CheckCircle2, XCircle,
   AlertTriangle, RefreshCw, RotateCcw, Zap, Info,
-  ChevronRight, Network,
+  ChevronRight, Network, Ban,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -59,10 +59,25 @@ interface PropertyMeta {
   disabledValue?: string | null;
 }
 
+type NicOutcome =
+  | 'write_succeeded_verified'
+  | 'write_succeeded_verify_failed'
+  | 'write_failed'
+  | 'unsupported_on_adapter'
+  | 'elevation_denied'
+  | 'reset_verified'
+  | 'reset_failed';
+
 interface PropertyState {
   pending: string | null;
   applying: boolean;
-  result: { ok: boolean; error: string | null; actualValue: string | null } | null;
+  result: {
+    ok: boolean;
+    outcome: NicOutcome | null;
+    verified: boolean;
+    error: string | null;
+    actualValue: string | null;
+  } | null;
 }
 
 function getNicAPI() {
@@ -136,17 +151,34 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     setState(s => ({ ...s, applying: true, result: null }));
     const api = getNicAPI();
     if (!api || !isElectron) {
-      setState(s => ({ ...s, applying: false, result: { ok: true, error: null, actualValue: state.pending } }));
+      setState(s => ({ ...s, applying: false, result: { ok: true, outcome: 'write_succeeded_verified', verified: true, error: null, actualValue: state.pending } }));
       scheduleResultDismiss();
       return;
     }
     const res = await api.setProperty(adapterName, propKey, state.pending);
-    setState(s => ({ ...s, applying: false, result: { ok: res.ok, error: res.error, actualValue: res.actualValue } }));
+    setState(s => ({ ...s, applying: false, result: {
+      ok:          res.ok,
+      outcome:     (res.outcome ?? null) as NicOutcome | null,
+      verified:    res.verified ?? false,
+      error:       res.error,
+      actualValue: res.actualValue,
+    }}));
     if (res.ok) {
-      toast({ title: `${meta.label} Applied`, description: `Set to ${state.pending} on ${adapterName}.` });
+      const verified = res.outcome === 'write_succeeded_verified';
+      toast({
+        title:       verified ? `${meta.label} Applied & Verified` : `${meta.label} Applied`,
+        description: verified
+          ? `Registry confirmed ${res.actualValue} on ${adapterName}.`
+          : `Written to adapter. Readback pending driver confirmation.`,
+      });
       scheduleResultDismiss();
     } else {
-      toast({ title: 'Apply Failed', description: sanitizeNicError(res.error) ?? 'Could not set property.', variant: 'destructive' });
+      const outcomeMsg: Record<string, string> = {
+        unsupported_on_adapter: 'Property not supported on this NIC driver.',
+        elevation_denied:       'Access denied — run as administrator.',
+        write_failed:           sanitizeNicError(res.error),
+      };
+      toast({ title: 'Apply Failed', description: outcomeMsg[res.outcome] ?? sanitizeNicError(res.error), variant: 'destructive' });
     }
   }, [adapterName, propKey, meta.label, state.pending, isElectron, toast, scheduleResultDismiss]);
 
@@ -154,18 +186,23 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     setState(s => ({ ...s, applying: true, result: null }));
     const api = getNicAPI();
     if (!api || !isElectron) {
-      setState(s => ({ ...s, applying: false, pending: meta.defaultValue ?? null, result: { ok: true, error: null, actualValue: meta.defaultValue ?? null } }));
+      setState(s => ({ ...s, applying: false, pending: meta.defaultValue ?? null, result: { ok: true, outcome: 'reset_verified', verified: true, error: null, actualValue: meta.defaultValue ?? null } }));
       scheduleResultDismiss();
       return;
     }
     const res = await api.resetProperty(adapterName, propKey);
     if (res.ok) {
-      setState(s => ({ ...s, applying: false, pending: res.actualValue ?? null, result: { ok: true, error: null, actualValue: res.actualValue } }));
+      setState(s => ({ ...s, applying: false, pending: res.actualValue ?? null, result: { ok: true, outcome: (res.outcome ?? 'reset_verified') as NicOutcome, verified: true, error: null, actualValue: res.actualValue } }));
       toast({ title: 'Reset to Default', description: `${meta.label} restored to driver default.` });
       scheduleResultDismiss();
     } else {
-      setState(s => ({ ...s, applying: false, result: { ok: false, error: res.error, actualValue: null } }));
-      toast({ title: 'Reset Failed', description: sanitizeNicError(res.error) ?? 'Could not reset.', variant: 'destructive' });
+      const outcomeMsg: Record<string, string> = {
+        unsupported_on_adapter: 'Property not supported on this NIC driver.',
+        elevation_denied:       'Access denied — run as administrator.',
+        reset_failed:           sanitizeNicError(res.error),
+      };
+      setState(s => ({ ...s, applying: false, result: { ok: false, outcome: (res.outcome ?? 'reset_failed') as NicOutcome, verified: false, error: res.error, actualValue: null } }));
+      toast({ title: 'Reset Failed', description: outcomeMsg[res.outcome] ?? sanitizeNicError(res.error), variant: 'destructive' });
     }
   }, [adapterName, propKey, meta.label, meta.defaultValue, isElectron, toast, scheduleResultDismiss]);
 
@@ -294,21 +331,42 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
             exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.15 }}
             className="overflow-hidden"
           >
-            <div className={cn(
-              "flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg text-xs border",
-              state.result.ok
-                ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
-                : "border-red-500/20 bg-red-500/10 text-red-300"
-            )}>
-              {state.result.ok
-                ? <CheckCircle2 className="size-3 shrink-0" />
-                : <XCircle className="size-3 shrink-0" />}
-              <span className="flex-1">
-                {state.result.ok
-                  ? `Verified${state.result.actualValue ? ` — read back: ${state.result.actualValue}` : ''}`
-                  : sanitizeNicError(state.result.error)}
-              </span>
-            </div>
+            {(() => {
+              const r = state.result;
+              const isWarnVerify = r.outcome === 'write_succeeded_verify_failed';
+              const colorCls = r.ok
+                ? isWarnVerify
+                  ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-300"
+                  : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300"
+                : r.outcome === 'elevation_denied'
+                  ? "border-orange-500/20 bg-orange-500/10 text-orange-300"
+                  : r.outcome === 'unsupported_on_adapter'
+                    ? "border-white/10 bg-white/[0.04] text-white/40"
+                    : "border-red-500/20 bg-red-500/10 text-red-300";
+              const icon = r.ok
+                ? isWarnVerify
+                  ? <AlertTriangle className="size-3 shrink-0" />
+                  : <CheckCircle2 className="size-3 shrink-0" />
+                : r.outcome === 'unsupported_on_adapter'
+                  ? <Ban className="size-3 shrink-0" />
+                  : <XCircle className="size-3 shrink-0" />;
+              const OUTCOME_LABELS: Record<string, string> = {
+                write_succeeded_verified:    `Verified — registry confirmed ${r.actualValue ?? ''}`,
+                write_succeeded_verify_failed: `Written — readback pending driver confirmation (read: ${r.actualValue ?? '?'})`,
+                write_failed:                sanitizeNicError(r.error),
+                unsupported_on_adapter:      'Property not supported on this NIC driver.',
+                elevation_denied:            'Access denied — run as administrator.',
+                reset_verified:              `Reset to default${r.actualValue ? ` — read back: ${r.actualValue}` : ''}`,
+                reset_failed:                sanitizeNicError(r.error),
+              };
+              const msg = r.outcome ? OUTCOME_LABELS[r.outcome] : (r.ok ? `Done — ${r.actualValue ?? ''}` : sanitizeNicError(r.error));
+              return (
+                <div className={cn("flex items-center gap-2 mt-2 px-2.5 py-1.5 rounded-lg text-xs border", colorCls)}>
+                  {icon}
+                  <span className="flex-1">{msg}</span>
+                </div>
+              );
+            })()}
           </motion.div>
         )}
       </AnimatePresence>

@@ -7,6 +7,15 @@
  * { supported: false } rather than errors.
  *
  * Requires admin for Set operations. Read operations do not require elevation.
+ *
+ * Outcome codes returned by setNicProperty / resetNicProperty:
+ *   write_succeeded_verified    — write ok, readback RegistryValue matched
+ *   write_succeeded_verify_failed — write ok, readback did not confirm (driver may need restart)
+ *   write_failed                — Set-NetAdapterAdvancedProperty threw or returned error
+ *   unsupported_on_adapter      — property keyword not present on this adapter
+ *   elevation_denied            — UAC prompt cancelled or access denied
+ *   reset_verified              — Reset-NetAdapterAdvancedProperty ok
+ *   reset_failed                — Reset-NetAdapterAdvancedProperty threw
  */
 const { execFile } = require('child_process');
 const os = require('os');
@@ -88,8 +97,6 @@ async function runElevated(command) {
 }
 
 // ── NIC property definitions ──────────────────────────────────────────────────
-// These map to Get/Set-NetAdapterAdvancedProperty DisplayName values.
-// Not every adapter supports all of these — the capability check gates each one.
 
 const NIC_PROPERTY_DEFS = {
   'ReceiveBuffers': {
@@ -189,14 +196,111 @@ const NIC_PROPERTY_DEFS = {
   },
 };
 
+// ── Value normalization ───────────────────────────────────────────────────────
+//
+// Windows NIC drivers return human-readable DisplayValue text that varies by
+// driver vendor, localization, and Windows version. When we write RegistryValue
+// '0' the driver may read back 'Disabled'; '1' → 'Enabled'; '3' → 'Rx & Tx Enabled'.
+//
+// This table maps each RegistryValue string to all known DisplayValue variants.
+// Comparison is case-insensitive + trimmed.
+
+const REGISTRY_DISPLAY_ALIASES = {
+  '0': ['0', 'disabled', 'no', 'off', 'false', 'none'],
+  '1': ['1', 'enabled', 'yes', 'on', 'true'],
+  // FlowControl stepped values
+  '2': ['2', 'rx enabled', 'receive enabled', 'rx only', 'receive only'],
+  '3': ['3', 'rx & tx enabled', 'tx & rx enabled', 'rx and tx enabled',
+              'tx and rx enabled', 'both enabled', 'enabled'],
+  // Numeric / queue counts — exact match suffices, handled by registryValue path
+  '4': ['4'],
+  '8': ['8'],
+  '16': ['16'],
+  '32': ['32'],
+  '64': ['64'],
+  '128': ['128'],
+  '256': ['256'],
+  '512': ['512'],
+  '1024': ['1024'],
+  '2048': ['2048'],
+  '4096': ['4096'],
+};
+
+/**
+ * Returns true if the value we wrote matches what was read back.
+ *
+ * Strategy (in priority order):
+ *   1. If readback has a RegistryValue, compare it directly (most reliable).
+ *   2. If readback only has a DisplayValue, normalize against REGISTRY_DISPLAY_ALIASES.
+ *
+ * This prevents false failures when a driver returns 'Disabled' for a written '0'.
+ */
+function verifyNicValue(writtenValue, readback) {
+  const wv = String(writtenValue).trim();
+
+  // 1. RegistryValue direct comparison — most reliable across all vendors
+  if (readback.registryValue !== null && readback.registryValue !== undefined) {
+    if (String(readback.registryValue).trim() === wv) return true;
+  }
+
+  // 2. DisplayValue normalization fallback
+  if (readback.displayValue !== null && readback.displayValue !== undefined) {
+    const dv = String(readback.displayValue).toLowerCase().trim();
+    const aliases = REGISTRY_DISPLAY_ALIASES[wv] || [wv.toLowerCase()];
+    if (aliases.some(a => dv === a || dv === a.toLowerCase())) return true;
+  }
+
+  return false;
+}
+
+// ── Adapter property discovery ────────────────────────────────────────────────
+
+/**
+ * Discover the actual RegistryKeyword AND DisplayName present on an adapter
+ * for a given property def.
+ *
+ * Returns { registryKeyword: string, displayName: string } if found, or null.
+ *
+ * Why both?
+ *  - RegistryKeyword is used for Set-NetAdapterAdvancedProperty -RegistryKeyword
+ *  - DisplayName is used for Reset-NetAdapterAdvancedProperty -DisplayName
+ *    The real DisplayName from the driver is NOT always RegistryKeyword minus '*'.
+ *    Intel uses "Receive Side Scaling", Realtek uses "RSS". We must use
+ *    the actual value the driver registered, not a derived guess.
+ */
+async function discoverProperty(safeAdapter, def) {
+  const allNames     = [def.displayName, ...def.fallbackNames];
+  const displayNames = allNames.map(n => n.replace(/^\*/, ''));
+  const regFilter    = allNames.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
+  const dispFilter   = displayNames.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
+
+  const cmd = [
+    `$p = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue`,
+    `      | Where-Object { @(${regFilter}) -contains $_.RegistryKeyword -or @(${dispFilter}) -contains $_.DisplayName };`,
+    `if ($p) { $x = $p | Select-Object -First 1; $x | Select-Object RegistryKeyword,DisplayName | ConvertTo-Json -Compress }`,
+    `else { 'null' }`,
+  ].join(' ');
+
+  const raw = await queryPS(cmd);
+  if (!raw || raw === 'null') return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    const rk = (parsed.RegistryKeyword || '').trim();
+    const dn = (parsed.DisplayName || '').trim();
+    if (!rk) return null;
+    return { registryKeyword: rk, displayName: dn || rk.replace(/^\*/, '') };
+  } catch {
+    return null;
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
  * List physical (non-virtual) Ethernet and Wi-Fi adapters.
- * Returns array of { name, description, status, mediaType, macAddress }
  */
 async function getNetAdapters() {
-  // Get physical adapters that are not virtual/loopback
   const raw = await queryPS(
     `Get-NetAdapter | Where-Object { $_.Virtual -eq $false -and $_.MediaType -ne 'Unsupported' } | Select-Object Name, InterfaceDescription, Status, MediaType, MacAddress | ConvertTo-Json -Compress`
   );
@@ -223,14 +327,13 @@ async function getNetAdapters() {
 
 /**
  * For a given adapter name, check which NIC properties it supports.
- * Returns { capabilities: Record<propertyKey, { supported, currentValue }> }
+ * Returns { capabilities: Record<propertyKey, { supported, currentValue, registryKeyword, displayName }> }
  */
 async function getAdapterCapabilities(adapterName) {
   if (!adapterName) return { capabilities: {}, error: 'adapterName required' };
 
   const safeAdapter = adapterName.replace(/'/g, "''");
 
-  // Fetch all advanced properties for this adapter
   const raw = await queryPS(
     `$props = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue; if ($props) { $props | Select-Object DisplayName, RegistryKeyword, DisplayValue, RegistryValue | ConvertTo-Json -Compress } else { '[]' }`
   );
@@ -248,7 +351,6 @@ async function getAdapterCapabilities(adapterName) {
   const capabilities = {};
 
   for (const [key, def] of Object.entries(NIC_PROPERTY_DEFS)) {
-    // Try to find the property by DisplayName or fallback names
     const allNames = [def.displayName, ...def.fallbackNames];
     const match = props.find(p =>
       allNames.some(n => n && p.RegistryKeyword &&
@@ -261,10 +363,13 @@ async function getAdapterCapabilities(adapterName) {
 
     if (match) {
       capabilities[key] = {
-        supported:     true,
-        currentValue:  match.DisplayValue ?? match.RegistryValue ?? null,
+        supported:       true,
+        // Prefer RegistryValue for currentValue so controls initialise to stable raw values
+        currentValue:    match.RegistryValue !== undefined && match.RegistryValue !== null
+                           ? String(match.RegistryValue)
+                           : (match.DisplayValue ?? null),
         registryKeyword: match.RegistryKeyword,
-        displayName:   match.DisplayName,
+        displayName:     match.DisplayName,
       };
     } else {
       capabilities[key] = { supported: false, currentValue: null };
@@ -276,95 +381,175 @@ async function getAdapterCapabilities(adapterName) {
 
 /**
  * Read the current value of a single NIC property for a given adapter.
+ *
+ * Returns:
+ *   {
+ *     value:           string | null  — RegistryValue if available, else DisplayValue (stable identifier for comparison)
+ *     registryValue:   string | null  — raw RegistryValue from the driver
+ *     displayValue:    string | null  — human-readable DisplayValue
+ *     registryKeyword: string | null  — actual RegistryKeyword on this adapter
+ *     displayName:     string | null  — actual DisplayName on this adapter
+ *     supported:       boolean
+ *     error:           string | null
+ *   }
  */
 async function readNicProperty(adapterName, propertyKey) {
   const def = NIC_PROPERTY_DEFS[propertyKey];
-  if (!def) return { value: null, supported: false, error: `Unknown property: ${propertyKey}` };
+  if (!def) return { value: null, registryValue: null, displayValue: null, registryKeyword: null, displayName: null, supported: false, error: `Unknown property: ${propertyKey}` };
 
   const safeAdapter = adapterName.replace(/'/g, "''");
   const allNames    = [def.displayName, ...def.fallbackNames];
   const nameFilter  = allNames.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
 
+  // Return all four fields as JSON so callers can do stable RegistryValue comparison
   const raw = await queryPS(
-    `$p = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue | Where-Object { @(${nameFilter}) -contains $_.RegistryKeyword -or @(${nameFilter}) -contains $_.DisplayName }; if ($p) { ($p | Select-Object -First 1).DisplayValue } else { $null }`
+    `$p = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue | Where-Object { @(${nameFilter}) -contains $_.RegistryKeyword -or @(${nameFilter}) -contains $_.DisplayName }; if ($p) { $x = $p | Select-Object -First 1; $x | Select-Object RegistryValue,DisplayValue,RegistryKeyword,DisplayName | ConvertTo-Json -Compress } else { 'null' }`
   );
 
-  if (raw === null || raw === '') return { value: null, supported: false, error: null };
-  return { value: raw, supported: true, error: null };
-}
+  if (!raw || raw === 'null' || raw === '') {
+    return { value: null, registryValue: null, displayValue: null, registryKeyword: null, displayName: null, supported: false, error: null };
+  }
 
-/**
- * Discover the actual RegistryKeyword present on an adapter for a given property def.
- * Some NICs store '*GreenEthernet' as 'GreenEthernet' (no asterisk) or with different casing.
- * Returns the real keyword string, or null if not found.
- */
-async function discoverKeyword(safeAdapter, def) {
-  const allNames      = [def.displayName, ...def.fallbackNames];
-  const displayNames  = allNames.map(n => n.replace(/^\*/, ''));
-  const regFilter     = allNames.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
-  const dispFilter    = displayNames.map(n => `'${n.replace(/'/g, "''")}'`).join(',');
-  const cmd = `$p = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue | Where-Object { @(${regFilter}) -contains $_.RegistryKeyword -or @(${dispFilter}) -contains $_.DisplayName }; if ($p) { ($p | Select-Object -First 1).RegistryKeyword } else { '' }`;
-  const raw = await queryPS(cmd);
-  return (raw && raw.trim()) ? raw.trim() : null;
+  try {
+    const parsed = JSON.parse(raw);
+    // RegistryValue from PS can be an integer — convert to string for consistency
+    const rv = parsed.RegistryValue !== undefined && parsed.RegistryValue !== null
+      ? String(parsed.RegistryValue)
+      : null;
+    const dv = parsed.DisplayValue ?? null;
+    const rk = parsed.RegistryKeyword ?? null;
+    const dn = parsed.DisplayName ?? null;
+    return {
+      value:           rv ?? dv ?? null,   // RegistryValue preferred; DisplayValue as fallback
+      registryValue:   rv,
+      displayValue:    dv,
+      registryKeyword: rk,
+      displayName:     dn,
+      supported:       true,
+      error:           null,
+    };
+  } catch (e) {
+    return { value: null, registryValue: null, displayValue: null, registryKeyword: null, displayName: null, supported: false, error: `Parse error: ${e.message}` };
+  }
 }
 
 /**
  * Set a NIC property value. Requires admin (UAC).
- * Returns { ok, verified, actualValue, error }
+ *
+ * Returns:
+ *   {
+ *     ok:          boolean
+ *     outcome:     'write_succeeded_verified' | 'write_succeeded_verify_failed' |
+ *                  'write_failed' | 'unsupported_on_adapter' | 'elevation_denied'
+ *     verified:    boolean
+ *     actualValue: string | null  — RegistryValue read back after write
+ *     error:       string | null
+ *   }
  */
 async function setNicProperty(adapterName, propertyKey, value) {
   const def = NIC_PROPERTY_DEFS[propertyKey];
-  if (!def) return { ok: false, error: `Unknown property: ${propertyKey}` };
+  if (!def) return { ok: false, outcome: 'write_failed', verified: false, actualValue: null, error: `Unknown property: ${propertyKey}` };
 
   const safeAdapter = adapterName.replace(/'/g, "''");
   const safeValue   = String(value).replace(/'/g, "''");
 
-  // Discover the real RegistryKeyword on this adapter (avoids WMI errors when keyword differs from def)
-  const realKeyword = await discoverKeyword(safeAdapter, def);
-  if (!realKeyword) {
-    return { ok: false, verified: false, actualValue: null, error: `Property "${def.label}" not found on adapter — your NIC driver may not support it.` };
+  // Discover the real RegistryKeyword and DisplayName from the driver
+  const prop = await discoverProperty(safeAdapter, def);
+  if (!prop) {
+    return {
+      ok:          false,
+      outcome:     'unsupported_on_adapter',
+      verified:    false,
+      actualValue: null,
+      error:       `Property "${def.label}" not found on adapter — your NIC driver may not support it.`,
+    };
   }
 
-  const command = `Set-NetAdapterAdvancedProperty -Name '${safeAdapter}' -RegistryKeyword '${realKeyword.replace(/'/g, "''")}' -RegistryValue '${safeValue}' -EA Stop`;
+  const command = `Set-NetAdapterAdvancedProperty -Name '${safeAdapter}' -RegistryKeyword '${prop.registryKeyword.replace(/'/g, "''")}' -RegistryValue '${safeValue}' -EA Stop`;
 
   const result = await runElevated(command);
-  if (!result.ok) return { ok: false, verified: false, actualValue: null, error: result.error };
+  if (!result.ok) {
+    const isUac = /cancel|denied|elevat|access|uac/i.test(result.error || '');
+    return {
+      ok:          false,
+      outcome:     isUac ? 'elevation_denied' : 'write_failed',
+      verified:    false,
+      actualValue: null,
+      error:       result.error,
+    };
+  }
 
-  // Verify
+  // Read back using the full readNicProperty (returns both RegistryValue and DisplayValue)
   const readback = await readNicProperty(adapterName, propertyKey);
-  const matches  = readback.value !== null && String(readback.value) === String(value);
+  const verified = verifyNicValue(value, readback);
+
   return {
-    ok:          result.ok,
-    verified:    matches,
-    actualValue: readback.value,
-    error:       matches ? null : `Value did not persist (read back: ${readback.value})`,
+    ok:          true,
+    outcome:     verified ? 'write_succeeded_verified' : 'write_succeeded_verify_failed',
+    verified,
+    actualValue: readback.registryValue ?? readback.displayValue ?? null,
+    error:       verified
+      ? null
+      : `Value written but readback did not confirm (RegistryValue: ${readback.registryValue}, DisplayValue: ${readback.displayValue}). Driver may require a network adapter restart.`,
   };
 }
 
 /**
- * Reset a NIC property to its default.
- * Uses Reset-NetAdapterAdvancedProperty which restores the driver default.
+ * Reset a NIC property to its driver default.
+ * Uses Reset-NetAdapterAdvancedProperty with the ACTUAL DisplayName from the adapter,
+ * not a derived name from stripping '*' off the RegistryKeyword.
+ *
+ * Returns:
+ *   {
+ *     ok:          boolean
+ *     outcome:     'reset_verified' | 'reset_failed' | 'unsupported_on_adapter' | 'elevation_denied'
+ *     actualValue: string | null
+ *     error:       string | null
+ *   }
  */
 async function resetNicProperty(adapterName, propertyKey) {
   const def = NIC_PROPERTY_DEFS[propertyKey];
-  if (!def) return { ok: false, error: `Unknown property: ${propertyKey}` };
+  if (!def) return { ok: false, outcome: 'reset_failed', actualValue: null, error: `Unknown property: ${propertyKey}` };
 
   const safeAdapter = adapterName.replace(/'/g, "''");
 
-  // Discover the real RegistryKeyword on this adapter
-  const realKeyword = await discoverKeyword(safeAdapter, def);
-  if (!realKeyword) {
-    return { ok: false, error: `Property "${def.label}" not found on adapter — your NIC driver may not support it.` };
+  // Discover both RegistryKeyword and actual DisplayName from the driver
+  const prop = await discoverProperty(safeAdapter, def);
+  if (!prop) {
+    return {
+      ok:          false,
+      outcome:     'unsupported_on_adapter',
+      actualValue: null,
+      error:       `Property "${def.label}" not found on adapter — your NIC driver may not support it.`,
+    };
   }
-  const displayName = realKeyword.replace(/^\*/, '');
 
-  const command = `Reset-NetAdapterAdvancedProperty -Name '${safeAdapter}' -DisplayName '${displayName.replace(/'/g, "''")}' -EA Stop`;
+  // Use the real DisplayName returned by the driver.
+  // This is critical: Intel reports "Receive Side Scaling", Realtek reports "RSS".
+  // Both have RegistryKeyword '*RSS', but Reset-NetAdapterAdvancedProperty -DisplayName
+  // must match what the driver registered. Never derive this by stripping '*'.
+  const realDisplayName = prop.displayName;
+
+  const command = `Reset-NetAdapterAdvancedProperty -Name '${safeAdapter}' -DisplayName '${realDisplayName.replace(/'/g, "''")}' -EA Stop`;
 
   const result = await runElevated(command);
-  if (!result.ok) return { ok: false, error: result.error };
+  if (!result.ok) {
+    const isUac = /cancel|denied|elevat|access|uac/i.test(result.error || '');
+    return {
+      ok:          false,
+      outcome:     isUac ? 'elevation_denied' : 'reset_failed',
+      actualValue: null,
+      error:       result.error,
+    };
+  }
 
   const readback = await readNicProperty(adapterName, propertyKey);
-  return { ok: true, error: null, actualValue: readback.value };
+  return {
+    ok:          true,
+    outcome:     'reset_verified',
+    actualValue: readback.registryValue ?? readback.displayValue ?? null,
+    error:       null,
+  };
 }
 
 /**
