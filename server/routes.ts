@@ -94,18 +94,20 @@ export async function registerRoutes(
     res.json({ token });
   });
 
-  app.get("/api/settings", async (req, res) => {
+  app.get("/api/settings", requireJwt, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch settings" });
     }
   });
 
-  app.patch("/api/settings", csrfProtection, async (req, res) => {
+  app.patch("/api/settings", requireJwt, csrfProtection, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       const updated = await storage.updateSettings(settings.id, req.body);
       res.json(updated);
     } catch (error) {
@@ -113,9 +115,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/tweaks", async (req, res) => {
+  app.get("/api/tweaks", requireJwt, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       const tweaks = await storage.getTweaks(settings.id);
       const tweaksMap: Record<string, boolean> = {};
       tweaks.forEach(t => { tweaksMap[t.tweakId] = t.enabled; });
@@ -125,22 +128,15 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tweaks/:tweakId", csrfProtection, async (req, res) => {
+  app.post("/api/tweaks/:tweakId", requireJwt, csrfProtection, async (req, res) => {
     try {
       const tweakId = req.params.tweakId as string;
       const { enabled, tweakTitle } = req.body;
-      
+      const cloudUser = req.cloudUser!;
+
       // Server-side premium enforcement for premium tweaks (uses canonical server-side lookup)
       if (enabled && isPremiumTweakById(tweakId)) {
-        const user = (req as any).user;
-        if (!user) {
-          return res.status(401).json({ 
-            error: "premium_required", 
-            message: "Authentication required for premium tweaks" 
-          });
-        }
-        const dbUser = await storage.getUser(user.id);
-        if (!dbUser?.isPremium) {
+        if (!cloudUser.isPremium) {
           return res.status(403).json({ 
             error: "premium_required",
             message: "Premium subscription required for this tweak",
@@ -149,7 +145,7 @@ export async function registerRoutes(
         }
       }
       
-      const settings = await storage.getOrCreateSettings();
+      const settings = await storage.getOrCreateSettings(cloudUser.id);
       const tweak = await storage.setTweak(settings.id, String(tweakId), enabled);
       
       const currentCount = settings.tweaksApplied || 0;
@@ -172,9 +168,10 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tweaks/reset", csrfProtection, async (req, res) => {
+  app.post("/api/tweaks/reset", requireJwt, csrfProtection, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       await storage.resetTweaks(settings.id);
       await storage.updateSettings(settings.id, { 
         tweaksApplied: 0,
@@ -192,10 +189,22 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tweaks/apply-recommended", csrfProtection, async (req, res) => {
+  app.post("/api/tweaks/apply-recommended", requireJwt, csrfProtection, async (req, res) => {
     try {
       const { tweakIds } = req.body;
-      const settings = await storage.getOrCreateSettings();
+      const cloudUser = req.cloudUser!;
+
+      // Premium enforcement: reject if any of the requested tweaks are premium-only
+      const hasPremiumTweaks = Array.isArray(tweakIds) && tweakIds.some((id: string) => isPremiumTweakById(id));
+      if (hasPremiumTweaks && !cloudUser.isPremium) {
+        return res.status(403).json({
+          error: "premium_required",
+          message: "Premium subscription required for premium tweaks",
+          upgradeUrl: "/pricing"
+        });
+      }
+
+      const settings = await storage.getOrCreateSettings(cloudUser.id);
       
       for (const tweakId of tweakIds) {
         await storage.setTweak(settings.id, tweakId, true);
@@ -219,9 +228,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/history", async (req, res) => {
+  app.get("/api/history", requireJwt, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       const history = await storage.getHistory(settings.id);
       res.json(history);
     } catch (error) {
@@ -229,9 +239,10 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/history", csrfProtection, async (req, res) => {
+  app.delete("/api/history", requireJwt, csrfProtection, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       await storage.clearHistory(settings.id);
       res.json({ success: true });
     } catch (error) {
@@ -239,12 +250,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/history", csrfProtection, async (req, res) => {
+  app.post("/api/history", requireJwt, csrfProtection, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       const entry = await storage.addHistory({
+        ...req.body,
         settingsId: settings.id,
-        ...req.body
       });
       res.json(entry);
     } catch (error) {
@@ -252,9 +264,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/ai-scan", async (req, res) => {
+  app.get("/api/ai-scan", requireJwt, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       const scan = await storage.getLatestAIScan(settings.id);
       res.json(scan || null);
     } catch (error) {
@@ -271,9 +284,17 @@ export async function registerRoutes(
   }).optional();
 
   // Premium-only: AI Scan with cooldown and dynamic messages
-  app.post("/api/ai-scan", csrfProtection, requirePremium, async (req, res) => {
+  app.post("/api/ai-scan", requireJwt, csrfProtection, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const cloudUser = req.cloudUser!;
+      if (!cloudUser.isPremium) {
+        return res.status(403).json({
+          error: "premium_required",
+          message: "Premium subscription required for AI scans",
+          upgradeUrl: "/pricing"
+        });
+      }
+      const settings = await storage.getOrCreateSettings(cloudUser.id);
       
       // Cooldown check - 60 seconds between AI scans (using latest AI scan timestamp)
       const latestAIScan = await storage.getLatestAIScan(settings.id);
@@ -383,9 +404,10 @@ export async function registerRoutes(
   startTelemetryPolling(1000);
   setupWebSocketServer(httpServer);
 
-  app.post("/api/clear-ram", csrfProtection, async (req, res) => {
+  app.post("/api/clear-ram", requireJwt, csrfProtection, async (req, res) => {
     try {
-      const settings = await storage.getOrCreateSettings();
+      const userId = req.cloudUser!.id;
+      const settings = await storage.getOrCreateSettings(userId);
       const currentRam = settings.usedRamGb || 9.5;
       const freedAmount = Math.random() * 2 + 1;
       const newRam = Math.max(3.0, currentRam - freedAmount);

@@ -5,6 +5,7 @@ import { z } from "zod";
 
 export const userSettings = pgTable("user_settings", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().unique(),
   tier: text("tier").notNull().default("Premium"),
   email: text("email").default("user@example.com"),
   licenseStatus: text("license_status").notNull().default("Active"),

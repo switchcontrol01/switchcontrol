@@ -36,7 +36,7 @@ export interface SetPlanOpts {
 }
 
 export interface IStorage {
-  getOrCreateSettings(): Promise<UserSettings>;
+  getOrCreateSettings(userId: string): Promise<UserSettings>;
   updateSettings(id: string, data: Partial<InsertUserSettings>): Promise<UserSettings>;
   
   getTweaks(settingsId: string): Promise<AppliedTweak[]>;
@@ -79,52 +79,70 @@ export interface IStorage {
 }
 
 class MockStorage implements IStorage {
-  private mockSettings: UserSettings = {
-    id: "mock-settings-id",
-    tier: "Premium",
-    email: "demo@example.com",
-    licenseStatus: "Active",
-    tweaksApplied: 0,
-    servicesDisabled: 0,
-    cleanersRun: 0,
-    startupAppsDisabled: 0,
-    usedRamGb: 8.5,
-    lastScan: null,
-  };
-  private mockTweaks: Map<string, AppliedTweak> = new Map();
-  private mockHistory: HistoryEntry[] = [];
-  private mockAiScans: AIScan[] = [];
+  private mockSettingsMap: Map<string, UserSettings> = new Map();
+  private mockTweaksMap: Map<string, Map<string, AppliedTweak>> = new Map();
+  private mockHistoryMap: Map<string, HistoryEntry[]> = new Map();
+  private mockAiScansMap: Map<string, AIScan[]> = new Map();
 
-  async getOrCreateSettings(): Promise<UserSettings> {
-    return this.mockSettings;
+  private getOrInitSettings(userId: string): UserSettings {
+    if (!this.mockSettingsMap.has(userId)) {
+      this.mockSettingsMap.set(userId, {
+        id: `mock-settings-${userId}`,
+        userId,
+        tier: "Premium",
+        email: "demo@example.com",
+        licenseStatus: "Active",
+        tweaksApplied: 0,
+        servicesDisabled: 0,
+        cleanersRun: 0,
+        startupAppsDisabled: 0,
+        usedRamGb: 8.5,
+        lastScan: null,
+      });
+    }
+    return this.mockSettingsMap.get(userId)!;
+  }
+
+  async getOrCreateSettings(userId: string): Promise<UserSettings> {
+    return this.getOrInitSettings(userId);
   }
 
   async updateSettings(id: string, data: Partial<InsertUserSettings>): Promise<UserSettings> {
-    this.mockSettings = { ...this.mockSettings, ...data };
-    return this.mockSettings;
+    for (const [userId, settings] of this.mockSettingsMap) {
+      if (settings.id === id) {
+        const updated = { ...settings, ...data };
+        this.mockSettingsMap.set(userId, updated);
+        return updated;
+      }
+    }
+    throw new Error(`Settings not found: ${id}`);
   }
 
   async getTweaks(settingsId: string): Promise<AppliedTweak[]> {
-    return Array.from(this.mockTweaks.values());
+    const tweaks = this.mockTweaksMap.get(settingsId);
+    return tweaks ? Array.from(tweaks.values()) : [];
   }
 
   async setTweak(settingsId: string, tweakId: string, enabled: boolean): Promise<AppliedTweak> {
+    if (!this.mockTweaksMap.has(settingsId)) {
+      this.mockTweaksMap.set(settingsId, new Map());
+    }
     const tweak: AppliedTweak = {
-      id: `mock-tweak-${tweakId}`,
+      id: `mock-tweak-${settingsId}-${tweakId}`,
       settingsId,
       tweakId,
       enabled,
     };
-    this.mockTweaks.set(tweakId, tweak);
+    this.mockTweaksMap.get(settingsId)!.set(tweakId, tweak);
     return tweak;
   }
 
   async resetTweaks(settingsId: string): Promise<void> {
-    this.mockTweaks.clear();
+    this.mockTweaksMap.delete(settingsId);
   }
 
   async getHistory(settingsId: string, limit = 50): Promise<HistoryEntry[]> {
-    return this.mockHistory.slice(0, limit);
+    return (this.mockHistoryMap.get(settingsId) || []).slice(0, limit);
   }
 
   async addHistory(entry: InsertHistoryEntry): Promise<HistoryEntry> {
@@ -137,16 +155,19 @@ class MockStorage implements IStorage {
       notes: entry.notes || null,
       timestamp: new Date(),
     };
-    this.mockHistory.unshift(historyEntry);
+    if (!this.mockHistoryMap.has(entry.settingsId)) {
+      this.mockHistoryMap.set(entry.settingsId, []);
+    }
+    this.mockHistoryMap.get(entry.settingsId)!.unshift(historyEntry);
     return historyEntry;
   }
 
   async clearHistory(settingsId: string): Promise<void> {
-    this.mockHistory = [];
+    this.mockHistoryMap.delete(settingsId);
   }
 
   async getLatestAIScan(settingsId: string): Promise<AIScan | undefined> {
-    return this.mockAiScans[0];
+    return (this.mockAiScansMap.get(settingsId) || [])[0];
   }
 
   async addAIScan(scan: InsertAIScan): Promise<AIScan> {
@@ -157,7 +178,10 @@ class MockStorage implements IStorage {
       recommendations: scan.recommendations as any,
       timestamp: new Date(),
     };
-    this.mockAiScans.unshift(aiScan);
+    if (!this.mockAiScansMap.has(scan.settingsId)) {
+      this.mockAiScansMap.set(scan.settingsId, []);
+    }
+    this.mockAiScansMap.get(scan.settingsId)!.unshift(aiScan);
     return aiScan;
   }
 
@@ -251,11 +275,18 @@ class MockStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
-  async getOrCreateSettings(): Promise<UserSettings> {
-    const [existing] = await db!.select().from(userSettings).limit(1);
+  async getOrCreateSettings(userId: string): Promise<UserSettings> {
+    const [existing] = await db!
+      .select()
+      .from(userSettings)
+      .where(eq(userSettings.userId, userId))
+      .limit(1);
     if (existing) return existing;
-    
-    const [created] = await db!.insert(userSettings).values({}).returning();
+
+    const [created] = await db!
+      .insert(userSettings)
+      .values({ userId })
+      .returning();
     return created;
   }
 
