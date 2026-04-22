@@ -42,6 +42,7 @@
  */
 
 const { app, BrowserWindow } = require('electron');
+const { isDebug } = require('./file-logger');
 
 // ── Provider constants ────────────────────────────────────────────────────────
 // Single source of truth — never hardcode these strings elsewhere in this file.
@@ -222,18 +223,21 @@ function initUpdater(isDev = false) {
   });
 
   // ── Runtime proof log ─────────────────────────────────────────────────────
-  // Printed on every packaged startup so future debugging is never guesswork.
-  console.log('[Updater] ========== UPDATER INIT ==========');
-  console.log('[Updater] Provider     :', UPDATE_PROVIDER);
-  console.log('[Updater] Base URL     :', UPDATE_BASE_URL);
-  console.log('[Updater] Channel      :', state.channel, '(user-facing)');
-  console.log('[Updater] Metadata     :', metadataFile);
-  console.log('[Updater] Feed URL     :', UPDATE_BASE_URL + '/' + metadataFile);
-  console.log('[Updater] Electron ch  :', electronChannel, '(internal, passed to autoUpdater)');
-  console.log('[Updater] Current ver  :', state.currentVersion);
-  console.log('[Updater] autoDownload : false (user-initiated only)');
-  console.log('[Updater] allowDowngr  : false');
-  console.log('[Updater] =====================================');
+  if (isDebug) {
+    console.log('[Updater] ========== UPDATER INIT ==========');
+    console.log('[Updater] Provider     :', UPDATE_PROVIDER);
+    console.log('[Updater] Base URL     :', UPDATE_BASE_URL);
+    console.log('[Updater] Channel      :', state.channel, '(user-facing)');
+    console.log('[Updater] Metadata     :', metadataFile);
+    console.log('[Updater] Feed URL     :', UPDATE_BASE_URL + '/' + metadataFile);
+    console.log('[Updater] Electron ch  :', electronChannel, '(internal, passed to autoUpdater)');
+    console.log('[Updater] Current ver  :', state.currentVersion);
+    console.log('[Updater] autoDownload : false (user-initiated only)');
+    console.log('[Updater] allowDowngr  : false');
+    console.log('[Updater] =====================================');
+  } else {
+    console.log(`[Updater] init — v${state.currentVersion} | channel:${state.channel} | ${UPDATE_BASE_URL}`);
+  }
 
   // ── Events ───────────────────────────────────────────────────────────────
 
@@ -278,7 +282,9 @@ function initUpdater(isDev = false) {
 
   autoUpdater.on('download-progress', (progress) => {
     const pct = Math.round(progress.percent ?? 0);
-    console.log('[Updater] Downloading: ' + pct + '% @ ' + Math.round((progress.bytesPerSecond ?? 0) / 1024) + ' KB/s');
+    if (isDebug) {
+      console.log('[Updater] Downloading: ' + pct + '% @ ' + Math.round((progress.bytesPerSecond ?? 0) / 1024) + ' KB/s');
+    }
     state = {
       ...state,
       status: 'downloading',

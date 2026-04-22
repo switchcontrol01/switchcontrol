@@ -6,20 +6,28 @@
 const fileLogger = require('./file-logger');
 fileLogger.init();
 const _LOG_PATHS = fileLogger.getPaths();
+const isDebug = fileLogger.isDebug;
 
-console.log('========================================');
-console.log('[STARTUP:1] electron main.js TOP — file logger initialized');
-console.log('[STARTUP:1] log directory:', _LOG_PATHS.logDir);
-console.log('[STARTUP:1] startup log:', _LOG_PATHS.startupLog);
-console.log('[STARTUP:1] latest log:', _LOG_PATHS.latestLog);
-console.log('[STARTUP:1] backend log:', _LOG_PATHS.backendLog);
-console.log('[STARTUP:1] __filename:', __filename);
-console.log('[STARTUP:1] process.execPath:', process.execPath);
-console.log('[STARTUP:1] process.cwd():', process.cwd());
-console.log('[STARTUP:1] process.argv:', JSON.stringify(process.argv));
-console.log('[STARTUP:1] NODE_ENV:', process.env.NODE_ENV);
-console.log('[STARTUP:1] timestamp:', new Date().toISOString());
-console.log('========================================');
+/** Log only when DEBUG_MODE=true, LOG_VERBOSE=true, or in a dev (unpackaged) build. */
+function verboseLog(...args) {
+  if (isDebug || !app.isPackaged) console.log(...args);
+}
+
+if (isDebug) {
+  console.log('========================================');
+  console.log('[STARTUP:1] electron main.js TOP — file logger initialized');
+  console.log('[STARTUP:1] log directory:', _LOG_PATHS.logDir);
+  console.log('[STARTUP:1] startup log:', _LOG_PATHS.startupLog);
+  console.log('[STARTUP:1] latest log:', _LOG_PATHS.latestLog);
+  console.log('[STARTUP:1] backend log:', _LOG_PATHS.backendLog);
+  console.log('[STARTUP:1] __filename:', __filename);
+  console.log('[STARTUP:1] process.execPath:', process.execPath);
+  console.log('[STARTUP:1] process.cwd():', process.cwd());
+  console.log('[STARTUP:1] process.argv:', JSON.stringify(process.argv));
+  console.log('[STARTUP:1] NODE_ENV:', process.env.NODE_ENV);
+  console.log('[STARTUP:1] timestamp:', new Date().toISOString());
+  console.log('========================================');
+}
 
 const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu } = require('electron');
 const { exec, execFile } = require('child_process');
@@ -64,10 +72,7 @@ app.setName('SwitchControl');
 const isDev = !app.isPackaged;
 const isProd = !isDev;
 const allowDebug = process.env.DEBUG_MODE === 'true';
-console.log('[BOOT] app.isPackaged:', app.isPackaged);
-console.log('[BOOT] isDev:', isDev);
-console.log('[BOOT] isProd:', isProd);
-console.log('[BOOT] allowDebug (DEBUG_MODE):', allowDebug);
+verboseLog('[BOOT] app.isPackaged:', app.isPackaged, '| isDev:', isDev, '| DEBUG_MODE:', allowDebug);
 
 /**
  * lockDevTools — harden a BrowserWindow against DevTools access in production.
@@ -283,7 +288,7 @@ async function pollTelemetry() {
 }
 
 async function startTelemetryPolling() {
-  console.log('[telemetry:poll] priming differential APIs + pre-warming GPU sources...');
+  verboseLog('[telemetry:poll] priming differential APIs + pre-warming GPU sources...');
 
   // ── GPU pre-warm (fire-and-forget, runs in parallel with CPU/disk prime) ──
   // PowerShell perf counters have a 2-4s cold-start overhead on first call.
@@ -295,7 +300,7 @@ async function startTelemetryPolling() {
     const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
     if (ctrl) {
       gpuExistsOnHardware = true;
-      console.log('[telemetry:poll] GPU presence confirmed (fast path):', ctrl.model || 'unknown');
+      verboseLog('[telemetry:poll] GPU presence confirmed (fast path):', ctrl.model || 'unknown');
       // Also seed VRAM from this call so getGpuStatic() cache is warm
       if (!gpuStaticCache) {
         gpuStaticCache = {
@@ -310,7 +315,7 @@ async function startTelemetryPolling() {
   getGpuPerfCounterLoad().then(load => {
     if (load != null) {
       gpuPollCache = { ...gpuPollCache, load, source: 'perf-counter' };
-      console.log('[telemetry:poll] GPU pre-warm (perf counter) complete: load=' + load + '%');
+      verboseLog('[telemetry:poll] GPU pre-warm (perf counter) complete: load=' + load + '%');
     }
   }).catch(() => {});
 
@@ -321,7 +326,7 @@ async function startTelemetryPolling() {
       if (lhm.gpuTemp  != null && lhm.gpuTemp  > 0) upd.temp  = lhm.gpuTemp;
       if (lhm.gpuPower != null && lhm.gpuPower > 0) upd.power = lhm.gpuPower;
       gpuPollCache = upd;
-      console.log('[telemetry:poll] GPU pre-warm (LHM) complete: load=' + lhm.gpuLoad + ' temp=' + lhm.gpuTemp);
+      verboseLog('[telemetry:poll] GPU pre-warm (LHM) complete: load=' + lhm.gpuLoad + ' temp=' + lhm.gpuTemp);
     }
   }).catch(() => {});
 
@@ -339,10 +344,10 @@ async function startTelemetryPolling() {
     const ms  = typeof d.ms  === 'number' ? d.ms  : 0;
     if (rIO != null && wIO != null) {
       lastDiskSnapshot = { rIO, wIO, ms, ts: Date.now() };
-      console.log('[telemetry:poll] disk baseline seeded from prime: rIO=' + rIO + ' wIO=' + wIO);
+      verboseLog('[telemetry:poll] disk baseline seeded from prime: rIO=' + rIO + ' wIO=' + wIO);
     }
   }
-  console.log('[telemetry:poll] prime done — waiting 1.5s for real readings...');
+  verboseLog('[telemetry:poll] prime done — waiting 1.5s for real readings...');
 
   // Wait 1.5s so differential APIs have a measurement window before the first
   // real poll. This means the first getLive call gets non-zero values.
@@ -350,7 +355,7 @@ async function startTelemetryPolling() {
   await pollTelemetry();
 
   telemetryPollInterval = setInterval(pollTelemetry, 1000);
-  console.log('[telemetry:poll] background poll started (1s interval)');
+  verboseLog('[telemetry:poll] background poll started (1s interval)');
 }
 
 // Register protocol handler BEFORE app is ready
@@ -362,19 +367,14 @@ if (process.defaultApp) {
 } else {
   protocolRegistered = app.setAsDefaultProtocolClient(PROTOCOL_NAME);
 }
-console.log(`[Protocol] ===== PROTOCOL REGISTRATION =====`);
-console.log(`[Protocol] result: ${protocolRegistered}`);
-console.log(`[Protocol] isDefault: ${app.isDefaultProtocolClient(PROTOCOL_NAME)}`);
-console.log(`[Protocol] isDev: ${isDev}`);
-console.log(`[Protocol] isPackaged: ${app.isPackaged}`);
-console.log(`[Protocol] ================================`);
+verboseLog(`[Protocol] registered: ${protocolRegistered} | isDefault: ${app.isDefaultProtocolClient(PROTOCOL_NAME)} | isDev: ${isDev}`);
 
 // Helper: deliver deep link to renderer
 function deliverDeepLink(url) {
-  console.log('[DeepLink] deliverDeepLink() called');
+  verboseLog('[DeepLink] deliverDeepLink() called');
   
   if (!mainWindow) {
-    console.log('[DeepLink] ✗ mainWindow=null, queueing URL');
+    verboseLog('[DeepLink] ✗ mainWindow=null, queueing URL');
     pendingDeepLinkUrl = url;
     return;
   }
@@ -387,64 +387,50 @@ function deliverDeepLink(url) {
   mainWindow.show();
   
   if (!rendererReady) {
-    console.log('[DeepLink] ⏳ rendererReady=false, queueing URL for delivery after load');
+    verboseLog('[DeepLink] ⏳ rendererReady=false, queueing URL for delivery after load');
     pendingDeepLinkUrl = url;
     return;
   }
   
-  console.log('[DeepLink] ✓ sending auth-callback IPC to renderer');
+  verboseLog('[DeepLink] ✓ sending auth-callback IPC to renderer');
   mainWindow.webContents.send('auth-callback', url);
 }
 
 // Single instance lock for Windows deep-link handling
-console.log('[STARTUP:2] requesting single-instance lock...');
 const gotTheLock = app.requestSingleInstanceLock();
-console.log('[STARTUP:2] single-instance lock result:', gotTheLock ? 'GOT_LOCK' : 'ALREADY_HELD');
+verboseLog('[STARTUP:2] single-instance lock:', gotTheLock ? 'GOT_LOCK' : 'ALREADY_HELD');
 
 if (!gotTheLock) {
-  console.log('[STARTUP:2] another instance is running — quitting this one');
+  verboseLog('[STARTUP:2] another instance is running — quitting this one');
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
-    console.log('[STARTUP:second-instance] FIRED — commandLine:', JSON.stringify(commandLine));
-    console.log('[STARTUP:second-instance] mainWindow exists:', !!mainWindow);
-    if (mainWindow) {
-      console.log('[STARTUP:second-instance] mainWindow.isVisible:', mainWindow.isVisible(), '| isMinimized:', mainWindow.isMinimized());
-    }
-    console.log('[DeepLink] ===== SECOND-INSTANCE EVENT =====');
-    console.log('[DeepLink] commandLine:', JSON.stringify(commandLine));
-    
+    verboseLog('[DeepLink] second-instance — commandLine:', JSON.stringify(commandLine));
     const url = commandLine.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
     if (url) {
-      console.log('[DeepLink] ✓ protocol URL FOUND:', url);
+      verboseLog('[DeepLink] ✓ protocol URL found:', url);
       deliverDeepLink(url);
     } else {
-      console.log('[DeepLink] ✗ NO protocol URL in commandLine');
       if (mainWindow) {
         if (mainWindow.isMinimized()) mainWindow.restore();
         if (!mainWindow.isVisible()) mainWindow.show();
         mainWindow.focus();
       } else {
-        // Previous instance crashed without creating a window — create one now
         console.warn('[DeepLink] mainWindow=null on second-instance — re-creating window');
         createWindow();
       }
     }
-    console.log('[DeepLink] ====================================');
   });
 }
 
 app.on('open-url', (event, url) => {
   event.preventDefault();
-  console.log('[DeepLink] ===== OPEN-URL EVENT =====');
-  console.log('[DeepLink] ✓ received URL:', url);
+  verboseLog('[DeepLink] open-url received:', url);
   deliverDeepLink(url);
-  console.log('[DeepLink] ============================');
 });
 
 function createWindow() {
-  console.log('[STARTUP:5] createWindow() ENTRY');
-  console.log('[BOOT] Creating window — devTools:', isDev ? 'enabled (dev)' : 'disabled (prod)');
+  verboseLog('[STARTUP:5] createWindow() ENTRY — devTools:', isDev ? 'enabled (dev)' : 'disabled (prod)');
   mainWindow = new BrowserWindow({
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
@@ -611,14 +597,14 @@ function createWindow() {
 
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
-    console.log('[STARTUP:7] did-finish-load — renderer ready');
+    verboseLog('[STARTUP:7] did-finish-load — renderer ready');
     rendererReady = true;
 
     if (!isDev) {
       // Race: backend became READY before renderer finished loading
       if (backendLauncher.isBackendReady()) {
         const port = backendLauncher.getBackendPort();
-        console.log('[Backend] Sending backend-ready to renderer on did-finish-load, port:', port);
+        verboseLog('[Backend] Sending backend-ready to renderer on did-finish-load, port:', port);
         mainWindow.webContents.send('backend-ready', { port });
       }
       // Race: backend FAILED before renderer finished loading
@@ -630,7 +616,7 @@ function createWindow() {
     }
 
     if (pendingDeepLinkUrl) {
-      console.log('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
+      verboseLog('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
       mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
       pendingDeepLinkUrl = null;
     }
@@ -654,7 +640,7 @@ function createWindow() {
 
   mainWindow.once('ready-to-show', () => {
     clearTimeout(showFallbackTimer);
-    console.log('[SwitchControl] Window ready-to-show fired — showing and focusing window');
+    verboseLog('[SwitchControl] Window ready-to-show — showing window');
     // Show first, then focus so the Windows compositor paints immediately and
     // JS timers are not throttled (Chromium GPU rendering stall on frameless windows).
     mainWindow.show();
@@ -1702,7 +1688,7 @@ ipcMain.handle('telemetry:getGpu', async () => {
     }
 
     // Fail honestly: if temp/load are still null, UI will show "Unavailable" rather than 0
-    console.log(`[telemetry:getGpu] model=${result.model} vendor=${result.vendor} load=${result.load} temp=${result.temperature} vram=${result.vram}MB power=${result.powerDraw}W`);
+    verboseLog(`[telemetry:getGpu] model=${result.model} vendor=${result.vendor} load=${result.load} temp=${result.temperature} vram=${result.vram}MB power=${result.powerDraw}W`);
     return result;
   } catch (e) {
     console.error('[telemetry:getGpu] error:', e.message);
@@ -1743,7 +1729,7 @@ ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
       selected = allDisks.find(d => d.mount === 'C:' || d.mount === '/') || allDisks[0] || null;
     }
 
-    console.log(`[telemetry:getDisk] requested=${selectedDiskMount} resolved=${selected?.mount} use=${selected?.use}% disks=${allDisks.length} available=${cachedIO.available} source=${cachedIO.source}`);
+    verboseLog(`[telemetry:getDisk] requested=${selectedDiskMount} resolved=${selected?.mount} use=${selected?.use}% disks=${allDisks.length} available=${cachedIO.available} source=${cachedIO.source}`);
     return {
       disks: allDisks,
       selected,
@@ -1875,7 +1861,7 @@ ipcMain.handle('nic:getPropertyMeta', () => {
 
 // Power Plan handlers
 ipcMain.handle('powerPlans:getState', async () => {
-  console.log('[IPC] powerPlans:getState');
+  verboseLog('[IPC] powerPlans:getState');
   try {
     return await powerPlanManager.getPowerPlanState();
   } catch (e) {
@@ -1885,7 +1871,7 @@ ipcMain.handle('powerPlans:getState', async () => {
 });
 
 ipcMain.handle('powerPlans:applyProfile', async (event, profileId) => {
-  console.log(`[IPC] powerPlans:applyProfile: ${profileId}`);
+  verboseLog(`[IPC] powerPlans:applyProfile: ${profileId}`);
   if (typeof profileId !== 'string') return { success: false, error: 'Invalid profileId' };
   const valid = Object.keys(powerPlanManager.POWER_PROFILES);
   if (!valid.includes(profileId)) return { success: false, error: `Unknown profileId "${profileId}". Valid: ${valid.join(', ')}` };
@@ -1898,7 +1884,7 @@ ipcMain.handle('powerPlans:applyProfile', async (event, profileId) => {
 });
 
 ipcMain.handle('powerPlans:listSchemes', async () => {
-  console.log('[IPC] powerPlans:listSchemes');
+  verboseLog('[IPC] powerPlans:listSchemes');
   try {
     return await powerPlanManager.listSchemesForFrontend();
   } catch (e) {
@@ -1907,7 +1893,7 @@ ipcMain.handle('powerPlans:listSchemes', async () => {
 });
 
 ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
-  console.log(`[IPC] powerPlans:activateByGuid: ${guid}`);
+  verboseLog(`[IPC] powerPlans:activateByGuid: ${guid}`);
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (typeof guid !== 'string' || !UUID_RE.test(guid.trim())) {
     return { success: false, error: 'Invalid GUID' };
@@ -1921,7 +1907,7 @@ ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
     if (activeGuid.toLowerCase() !== guid.trim().toLowerCase()) {
       return { success: false, error: `Plan set but verification failed — active=${activeGuid}` };
     }
-    console.log(`[IPC] powerPlans:activateByGuid success — active="${activeGuid}"`);
+    verboseLog(`[IPC] powerPlans:activateByGuid success — active="${activeGuid}"`);
     return { success: true, activeScheme: verifyState.activeScheme };
   } catch (e) {
     console.error('[IPC] powerPlans:activateByGuid error:', e.message);
@@ -1932,7 +1918,7 @@ ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
 // ── App Booster: per-game system actions ──────────────────────────────────────
 
 ipcMain.handle('appBooster:scanGames', async (event, games) => {
-  console.log('[AppBooster] scanGames start —', games?.length, 'games');
+  verboseLog('[AppBooster] scanGames start —', games?.length, 'games');
   const fs   = require('fs');
   const path = require('path');
   const os   = require('os');
@@ -1961,7 +1947,7 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
       if (!steamCommonPaths.includes(def)) steamCommonPaths.push(def);
     }
   }
-  console.log('[AppBooster] Steam library paths found:', steamCommonPaths.length);
+  verboseLog('[AppBooster] Steam library paths found:', steamCommonPaths.length);
 
   // ── 2. Epic Games Launcher manifests → map exe basename → install dir ──────
   // Manifests live in %ProgramData%\Epic\EpicGamesLauncher\Data\Manifests\*.item
@@ -2009,7 +1995,7 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
       if (p && !xboxRoots.includes(p)) xboxRoots.push(p);
     }
   } catch { /* registry key may not exist */ }
-  console.log('[AppBooster] Xbox roots found:', xboxRoots.length, xboxRoots);
+  verboseLog('[AppBooster] Xbox roots found:', xboxRoots.length, xboxRoots);
 
   // ── helper: find exe inside a root directory (up to 3 levels deep) ─────────
   function findExeIn(rootDir, exeName, maxDepth = 3) {
@@ -2402,14 +2388,14 @@ function registerCriticalIPC() {
   });
 
   ipcReady = true;
-  console.log('[STARTUP] critical IPC registered — app:getBackendPort, app:isBackendReady, app:getBackendError, app:isAdmin, app:isIPCReady, updater:*');
+  verboseLog('[STARTUP] critical IPC registered');
 }
 
 // ── Non-critical startup audit ────────────────────────────────────────────────
 // Runs completely isolated from the critical path.
 // Any crash here is caught and logged — never reaches whenReady().
 async function runStartupAuditSafe() {
-  console.log('[STARTUP] non-critical audit begin');
+  if (!isDebug && app.isPackaged) return; // skip verbose audit in production
   try {
     const dataFiles = [
       { label: 'tweak-state.json', file: TWEAK_STATE_FILE },
@@ -2419,50 +2405,46 @@ async function runStartupAuditSafe() {
     const found   = dataFiles.filter(d => fs.existsSync(d.file));
     const missing = dataFiles.filter(d => !fs.existsSync(d.file));
     const isRestoredInstall = found.length > 0;
-    console.log(`[UserData] AppData root: ${APPDATA_DIR}`);
-    console.log(`[UserData] Restore status: ${isRestoredInstall ? 'EXISTING DATA FOUND — restoring user state' : 'FRESH INSTALL — no prior user data'}`);
+    verboseLog(`[UserData] AppData root: ${APPDATA_DIR} | ${isRestoredInstall ? 'EXISTING DATA FOUND' : 'FRESH INSTALL'}`);
     found.forEach(d => {
       try {
         const stat = fs.statSync(d.file);
-        console.log(`[UserData]   ✓ ${d.label} (${stat.size} bytes, modified ${stat.mtime.toISOString()})`);
-      } catch { console.log(`[UserData]   ✓ ${d.label}`); }
+        verboseLog(`[UserData]   ✓ ${d.label} (${stat.size} bytes)`);
+      } catch { verboseLog(`[UserData]   ✓ ${d.label}`); }
     });
-    missing.forEach(d => console.log(`[UserData]   · ${d.label} (not yet created — will be written on first use)`));
+    missing.forEach(d => verboseLog(`[UserData]   · ${d.label} (not yet created)`));
 
     if (fs.existsSync(TWEAK_STATE_FILE)) {
       try {
         const ts = JSON.parse(fs.readFileSync(TWEAK_STATE_FILE, 'utf8'));
         const tweakCount   = ts && ts.tweaks ? Object.keys(ts.tweaks).length : 0;
         const enabledCount = ts && ts.tweaks ? Object.values(ts.tweaks).filter(Boolean).length : 0;
-        console.log(`[UserData]   Tweaks persisted: ${tweakCount} total, ${enabledCount} enabled`);
+        verboseLog(`[UserData]   Tweaks persisted: ${tweakCount} total, ${enabledCount} enabled`);
       } catch { /* parse errors handled separately by tweak-executor */ }
     }
-    console.log('[STARTUP] non-critical audit complete');
   } catch (auditErr) {
-    console.error('[STARTUP] non-critical audit failed safely:', auditErr && auditErr.message);
+    console.error('[STARTUP] non-critical audit failed:', auditErr && auditErr.message);
   }
 }
 
-console.log('[STARTUP:3] registering app.whenReady() handler');
 app.whenReady().then(async () => {
-  console.log('[STARTUP] whenReady fired');
   const bootStart = Date.now();
+  console.log(`[STARTUP] whenReady — v${require('./package.json').version} | isDev:${isDev} | pid:${process.pid}`);
 
   // ── A. Register critical IPC handlers — MUST be first, before any risky code ─
   registerCriticalIPC();
-  console.log('[STARTUP] critical IPC registered');
 
-  // ── Hard boot evidence block — proves which EXE is actually running ────────
-  console.log('\n========== BOOT EVIDENCE ==========');
-  console.log('[BOOT] isDev:', isDev, '| isPackaged:', app.isPackaged);
-  console.log('[BOOT] process.execPath:', process.execPath);
-  console.log('[BOOT] process.resourcesPath:', process.resourcesPath);
-  console.log('[BOOT] app.getAppPath():', app.getAppPath());
-  console.log('[BOOT] app.getPath("userData"):', app.getPath('userData'));
-  console.log('[BOOT] app.getPath("exe"):', app.getPath('exe'));
-  console.log('[BOOT] process.argv:', JSON.stringify(process.argv));
-  console.log('[BOOT] UAC config: requireAdministrator — single UAC prompt at launch, all tweak actions inherit elevated token');
-  console.log('====================================\n');
+  if (isDebug) {
+    console.log('\n========== BOOT EVIDENCE ==========');
+    console.log('[BOOT] isDev:', isDev, '| isPackaged:', app.isPackaged);
+    console.log('[BOOT] process.execPath:', process.execPath);
+    console.log('[BOOT] process.resourcesPath:', process.resourcesPath);
+    console.log('[BOOT] app.getAppPath():', app.getAppPath());
+    console.log('[BOOT] app.getPath("userData"):', app.getPath('userData'));
+    console.log('[BOOT] app.getPath("exe"):', app.getPath('exe'));
+    console.log('[BOOT] process.argv:', JSON.stringify(process.argv));
+    console.log('====================================\n');
+  }
 
   // ── Admin status check (Windows only) ─────────────────────────────────────
   // The app uses requireAdministrator — the process is always elevated after
@@ -2470,7 +2452,7 @@ app.whenReady().then(async () => {
   // renderer can confirm elevated status via the app:isAdmin IPC.
   checkWindowsAdmin().then(v => {
     _appIsAdmin = v;
-    console.log('[UAC] isAdmin:', v, app.isPackaged ? '(packaged — requireAdministrator, always elevated)' : '(dev mode)');
+    verboseLog('[UAC] isAdmin:', v, app.isPackaged ? '(packaged)' : '(dev mode)');
   }).catch((err) => {
     _appIsAdmin = false;
     console.error('[UAC] Admin check failed:', err?.message);
@@ -2479,10 +2461,10 @@ app.whenReady().then(async () => {
   // ── B. Non-critical config + audit — failures here never block window creation ─
   const userDataPath = app.getPath('userData');
   configStore.init(userDataPath);
-  console.log('[BOOT] Config store initialized:', userDataPath);
+  verboseLog('[BOOT] Config store initialized:', userDataPath);
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
-  console.log('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));
+  verboseLog('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));
 
   // Fire-and-forget: audit runs in parallel, any crash is caught inside the function
   void runStartupAuditSafe();
@@ -2490,32 +2472,25 @@ app.whenReady().then(async () => {
   // ── C. Create main window ─────────────────────────────────────────────────────
   // Start telemetry poll before window so first getLive call finds a primed cache.
   startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
-  console.log('[STARTUP] main window creating');
   createWindow();
-  console.log('[STARTUP] main window created — isVisible:', mainWindow && mainWindow.isVisible());
 
   // ── D. Start backend safely (packaged mode only) ──────────────────────────────
-  console.log('[STARTUP] backend startup begin');
   if (!isDev) {
-    console.log('[Backend] ===== PACKAGED MODE — Starting embedded backend =====');
     backendLauncher.startBackend(app).then(result => {
-      console.log(`[Backend] startBackend() resolved after ${Date.now() - bootStart}ms`);
       if (result.ready) {
-        console.log(`[STARTUP] backend startup success — port ${result.port} (${Date.now() - bootStart}ms from boot)`);
+        console.log(`[STARTUP] backend ready — port ${result.port} (${Date.now() - bootStart}ms)`);
         if (mainWindow && rendererReady) {
           mainWindow.webContents.send('backend-ready', { port: result.port });
         }
       } else {
-        console.error(`[STARTUP] backend startup failed: ${result.error || 'unknown'}`);
+        console.error(`[STARTUP] backend failed: ${result.error || 'unknown'}`);
         if (mainWindow && rendererReady) {
           mainWindow.webContents.send('backend-error', { error: result.error || 'Backend failed to start' });
         }
       }
     }).catch(err => {
-      console.error('[STARTUP] backend startup error (caught):', err.message);
+      console.error('[STARTUP] backend error:', err.message);
     });
-  } else {
-    console.log('[STARTUP] backend startup begin (dev mode — using dev server proxy)');
   }
 
   // Register DevTools IPC handler — dev mode only
@@ -2524,31 +2499,16 @@ app.whenReady().then(async () => {
       console.warn('[Security] app:openDevTools IPC call blocked in production.');
       return { success: false, reason: 'production' };
     }
-    console.log('[DevTools] IPC handler called - opening DevTools (dev mode)');
-    if (mainWindow) {
-      mainWindow.webContents.openDevTools({ mode: 'detach' });
-    }
+    if (mainWindow) mainWindow.webContents.openDevTools({ mode: 'detach' });
     return { success: true };
   });
 
   // ── Updater boot ─────────────────────────────────────────────────────────
-  // (updater IPC handlers registered at top of whenReady — see [STARTUP:4] block)
-  // In dev mode: no-op. In packaged mode: init then silent check after 8s.
-
   updaterService.initUpdater(isDev);
 
   if (!isDev) {
-    // Sanity assertions for packaged builds. These run after initUpdater so
-    // the autoUpdater module has already been configured.
-    const { version: appVer } = require('./package.json');
-    if (!appVer) {
-      console.error('[Updater] BOOT ASSERTION FAILED: could not read version from electron/package.json');
-    } else {
-      console.log('[Updater] Boot assertion OK — app version:', appVer);
-    }
-
     setTimeout(() => {
-      console.log('[Updater] Startup check (8s after ready)...');
+      verboseLog('[Updater] Startup check (8s after ready)...');
       updaterService.checkForUpdates();
     }, 8000);
   }
@@ -2564,7 +2524,7 @@ app.whenReady().then(async () => {
       cookie.domain.includes('127.0.0.1')
     );
     if (!removed && cookie.session && shouldPersist) {
-      console.log('[Auth] Persisting session cookie:', cookie.name, 'domain:', cookie.domain);
+      verboseLog('[Auth] Persisting session cookie:', cookie.name, 'domain:', cookie.domain);
       // Session cookies (no expiry) don't survive restart — persist them for 30 days
       const isLocalhost = cookie.domain.includes('127.0.0.1');
       const persistedCookie = {
@@ -2581,7 +2541,7 @@ app.whenReady().then(async () => {
         expirationDate: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60),
       };
       ses.cookies.set(persistedCookie)
-        .then(() => console.log('[Auth] Cookie persisted:', cookie.name))
+        .then(() => verboseLog('[Auth] Cookie persisted:', cookie.name))
         .catch(err => console.error('[Auth] Cookie persist failed:', cookie.name, err));
     }
   });

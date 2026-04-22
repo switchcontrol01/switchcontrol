@@ -236,6 +236,8 @@ function sanitizeForLog(obj: unknown): unknown {
   return clone;
 }
 
+const isVerboseHttp = !isProd || process.env.LOG_VERBOSE === "true" || process.env.DEBUG_MODE === "true";
+
 app.use((req, res, next) => {
   const start = Date.now();
   const reqPath = req.path;
@@ -243,23 +245,32 @@ app.use((req, res, next) => {
   (req as any).requestId = requestId;
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
+  if (isVerboseHttp) {
+    const originalResJson = res.json;
+    res.json = function (bodyJson, ...args) {
+      capturedJsonResponse = bodyJson;
+      return originalResJson.apply(res, [bodyJson, ...args]);
+    };
+  }
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (reqPath.startsWith("/api")) {
-      const sanitizedResponse = capturedJsonResponse
-        ? JSON.stringify(sanitizeForLog(capturedJsonResponse))
-        : undefined;
-      let logLine = `[${requestId}] ${new Date().toISOString()} ${req.method} ${reqPath} ${res.statusCode} ${duration}ms`;
-      if (sanitizedResponse) {
-        logLine += ` :: ${sanitizedResponse}`;
-      }
+    if (!reqPath.startsWith("/api")) return;
 
+    const status = res.statusCode;
+    const isError = status >= 500;
+
+    if (!isError && !isVerboseHttp) return;
+
+    const sanitizedResponse = (isVerboseHttp && capturedJsonResponse)
+      ? JSON.stringify(sanitizeForLog(capturedJsonResponse))
+      : undefined;
+    let logLine = `[${requestId}] ${req.method} ${reqPath} ${status} ${duration}ms`;
+    if (sanitizedResponse) logLine += ` :: ${sanitizedResponse}`;
+
+    if (isError) {
+      console.error(`[HTTP] ${logLine}`);
+    } else {
       log(logLine);
     }
   });

@@ -1,23 +1,36 @@
 /**
  * file-logger.js
  *
- * Writes every console.log/warn/error to a real on-disk log file so we can
- * see exactly what the packaged app did, even when no terminal is attached.
+ * Writes console.log/warn/error to on-disk log files so packaged builds
+ * leave a trace even when no terminal is attached.
  *
- * Log location on Windows:
- *   %APPDATA%\SwitchControl\logs\startup-YYYY-MM-DD_HH-MM-SS.log
- *   (e.g. C:\Users\<you>\AppData\Roaming\SwitchControl\logs\startup-2026-04-20_14-22-05.log)
+ * Production log files (written to %APPDATA%\SwitchControl\logs):
+ *   latest.log   — rolling log for the current run (rotated at 5 MB, 3 rolled files kept)
+ *   backend.log  — written by backend-launcher; also rotated
  *
- * Also writes:
- *   %APPDATA%\SwitchControl\logs\latest.log   <- always the most recent run
- *   %APPDATA%\SwitchControl\logs\backend.log  <- written by backend-launcher
+ * Debug / dev log files (only when DEBUG_MODE=true or LOG_VERBOSE=true or in dev build):
+ *   startup-YYYY-MM-DD_HH-MM-SS.log — verbose per-launch file for debugging
+ *
+ * On every startup:
+ *   - Rotates latest.log and backend.log if they exceed MAX_FILE_BYTES
+ *   - Deletes log files older than MAX_AGE_DAYS
+ *   - Enforces MAX_TOTAL_BYTES cap on the entire logs folder (oldest deleted first)
  *
  * MUST be require()d before any other code that calls console.log.
  */
 
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
-const os = require('os');
+const os   = require('os');
+
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const MAX_FILE_BYTES  = 5 * 1024 * 1024;   // 5 MB per log file before rotation
+const MAX_ROLLED      = 3;                  // keep latest.log.1, .2, .3
+const MAX_AGE_MS      = 14 * 24 * 60 * 60 * 1000; // delete files older than 14 days
+const MAX_TOTAL_BYTES = 20 * 1024 * 1024;  // 20 MB cap for entire logs folder
+
+// ── Paths ─────────────────────────────────────────────────────────────────────
 
 const APPDATA_BASE = process.env.APPDATA
   ? path.join(process.env.APPDATA, 'SwitchControl')
@@ -25,16 +38,24 @@ const APPDATA_BASE = process.env.APPDATA
 
 const LOG_DIR = path.join(APPDATA_BASE, 'logs');
 
-let _stream = null;
-let _logFilePath = null;
-let _latestPath = null;
-let _backendPath = null;
-let _initialized = false;
+// ── Debug flag (shared with main.js / updater.js) ────────────────────────────
+
+const isDebug = process.env.DEBUG_MODE === 'true' || process.env.LOG_VERBOSE === 'true';
+
+// ── State ─────────────────────────────────────────────────────────────────────
+
+let _stream       = null;  // stream to timestamped startup file (debug only)
+let _logFilePath  = null;  // timestamped startup file path (debug only)
+let _latestPath   = null;
+let _backendPath  = null;
+let _initialized  = false;
+
+// ── Utilities ─────────────────────────────────────────────────────────────────
 
 function ts() {
   const d = new Date();
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+  const p = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}-${p(d.getSeconds())}`;
 }
 
 function isoMs() {
@@ -43,13 +64,84 @@ function isoMs() {
 
 function ensureDir() {
   try {
-    if (!fs.existsSync(LOG_DIR)) {
-      fs.mkdirSync(LOG_DIR, { recursive: true });
-    }
-  } catch (e) {
-    // Best-effort; we'll fall back to console-only.
-  }
+    if (!fs.existsSync(LOG_DIR)) fs.mkdirSync(LOG_DIR, { recursive: true });
+  } catch (e) {}
 }
+
+// ── Rotation ──────────────────────────────────────────────────────────────────
+
+/**
+ * Rotates `filePath` if it exceeds MAX_FILE_BYTES.
+ * Shifts .1 → .2 → .3, deletes beyond MAX_ROLLED.
+ */
+function rotateIfNeeded(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return;
+    const stat = fs.statSync(filePath);
+    if (stat.size < MAX_FILE_BYTES) return;
+
+    // Shift rolled files up: .2→.3, .1→.2
+    for (let i = MAX_ROLLED - 1; i >= 1; i--) {
+      const src  = `${filePath}.${i}`;
+      const dest = `${filePath}.${i + 1}`;
+      if (fs.existsSync(src)) {
+        // If dest already exists at the cap, delete it first
+        if (i + 1 > MAX_ROLLED && fs.existsSync(dest)) {
+          try { fs.unlinkSync(dest); } catch (e) {}
+        }
+        try { fs.renameSync(src, dest); } catch (e) {}
+      }
+    }
+    // Rotate current file → .1
+    try { fs.renameSync(filePath, `${filePath}.1`); } catch (e) {}
+    // Clean up anything beyond MAX_ROLLED
+    for (let i = MAX_ROLLED + 1; i <= MAX_ROLLED + 3; i++) {
+      const stale = `${filePath}.${i}`;
+      if (fs.existsSync(stale)) try { fs.unlinkSync(stale); } catch (e) {}
+    }
+  } catch (e) {}
+}
+
+// ── Folder pruning ────────────────────────────────────────────────────────────
+
+/**
+ * Runs on startup. Deletes log files older than MAX_AGE_MS, then enforces
+ * the MAX_TOTAL_BYTES cap by removing the oldest files first.
+ */
+function pruneLogDir() {
+  try {
+    const names = fs.readdirSync(LOG_DIR);
+    const now   = Date.now();
+
+    let entries = [];
+    for (const name of names) {
+      const fp = path.join(LOG_DIR, name);
+      try {
+        const stat = fs.statSync(fp);
+        if (stat.isFile()) entries.push({ fp, mtime: stat.mtimeMs, size: stat.size });
+      } catch (e) {}
+    }
+
+    // 1. Delete files older than MAX_AGE_MS
+    entries = entries.filter(e => {
+      if (now - e.mtime > MAX_AGE_MS) {
+        try { fs.unlinkSync(e.fp); } catch (err) {}
+        return false;
+      }
+      return true;
+    });
+
+    // 2. Enforce total size cap — delete oldest first
+    entries.sort((a, b) => a.mtime - b.mtime);
+    let total = entries.reduce((s, e) => s + e.size, 0);
+    for (const e of entries) {
+      if (total <= MAX_TOTAL_BYTES) break;
+      try { fs.unlinkSync(e.fp); total -= e.size; } catch (err) {}
+    }
+  } catch (e) {}
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
 
 function init() {
   if (_initialized) return;
@@ -57,54 +149,72 @@ function init() {
 
   ensureDir();
 
-  _logFilePath = path.join(LOG_DIR, `startup-${ts()}.log`);
-  _latestPath = path.join(LOG_DIR, 'latest.log');
+  _latestPath  = path.join(LOG_DIR, 'latest.log');
   _backendPath = path.join(LOG_DIR, 'backend.log');
 
-  try {
-    _stream = fs.createWriteStream(_logFilePath, { flags: 'a' });
-  } catch (e) {
-    _stream = null;
+  // Rotate persistent logs before opening them for this run
+  rotateIfNeeded(_latestPath);
+  rotateIfNeeded(_backendPath);
+
+  // Prune old/excess log files
+  pruneLogDir();
+
+  // Truncate latest.log at start of each run so it reflects only the current session
+  try { fs.writeFileSync(_latestPath, '', 'utf-8'); } catch (e) {}
+
+  // Truncate backend.log at start of each run
+  try { fs.writeFileSync(_backendPath, '', 'utf-8'); } catch (e) {}
+
+  // In debug/dev mode only: also open a timestamped per-launch log file
+  if (isDebug) {
+    _logFilePath = path.join(LOG_DIR, `startup-${ts()}.log`);
+    try {
+      _stream = fs.createWriteStream(_logFilePath, { flags: 'a' });
+    } catch (e) {
+      _stream = null;
+    }
   }
-
-  // Truncate latest.log at the start of each run so it always reflects the
-  // most recent launch.
-  try {
-    fs.writeFileSync(_latestPath, '', 'utf-8');
-  } catch (e) {}
-
-  // Truncate backend.log at the start of each run too.
-  try {
-    fs.writeFileSync(_backendPath, '', 'utf-8');
-  } catch (e) {}
 
   hookConsole();
 
-  // Header so each log file is self-describing.
+  // Minimal startup header (always)
   const header = [
     '',
-    '================================================================',
-    `  SwitchControl startup log`,
-    `  Started: ${isoMs()}`,
-    `  Log file: ${_logFilePath}`,
-    `  Latest copy: ${_latestPath}`,
-    `  Backend log: ${_backendPath}`,
-    `  Process: ${process.execPath}`,
-    `  PID: ${process.pid}`,
-    `  Platform: ${process.platform} ${process.arch}`,
-    `  Node: ${process.versions.node}  Electron: ${process.versions.electron || '(none)'}`,
-    '================================================================',
+    `[${isoMs()}] [INFO] SwitchControl started — PID:${process.pid} platform:${process.platform}/${process.arch} node:${process.versions.node}`,
     '',
   ].join('\n');
   writeRaw(header);
+
+  // Verbose startup header (debug only)
+  if (isDebug && _stream) {
+    const verboseHeader = [
+      '================================================================',
+      `  SwitchControl startup log (DEBUG MODE)`,
+      `  Started: ${isoMs()}`,
+      `  Log file: ${_logFilePath}`,
+      `  Latest copy: ${_latestPath}`,
+      `  Backend log: ${_backendPath}`,
+      `  Process: ${process.execPath}`,
+      `  PID: ${process.pid}`,
+      `  Platform: ${process.platform} ${process.arch}`,
+      `  Node: ${process.versions.node}  Electron: ${process.versions.electron || '(none)'}`,
+      '================================================================',
+      '',
+    ].join('\n');
+    try { _stream.write(verboseHeader); } catch (e) {}
+  }
 }
 
+// ── Write helpers ─────────────────────────────────────────────────────────────
+
 function writeRaw(line) {
-  if (_stream) {
-    try { _stream.write(line); } catch (e) {}
-  }
+  // Always write to latest.log
   if (_latestPath) {
     try { fs.appendFileSync(_latestPath, line, 'utf-8'); } catch (e) {}
+  }
+  // Debug-only: also write to the per-launch timestamped file
+  if (_stream) {
+    try { _stream.write(line); } catch (e) {}
   }
 }
 
@@ -119,13 +229,15 @@ function format(level, args) {
   return `[${isoMs()}] [${level}] ${parts.join(' ')}\n`;
 }
 
+// ── Console hook ──────────────────────────────────────────────────────────────
+
 let _origLog, _origWarn, _origError, _origInfo;
 
 function hookConsole() {
-  _origLog = console.log.bind(console);
-  _origWarn = console.warn.bind(console);
+  _origLog   = console.log.bind(console);
+  _origWarn  = console.warn.bind(console);
   _origError = console.error.bind(console);
-  _origInfo = console.info.bind(console);
+  _origInfo  = console.info.bind(console);
 
   console.log = (...args) => {
     writeRaw(format('LOG', args));
@@ -146,11 +258,38 @@ function hookConsole() {
 
   process.on('uncaughtException', (err) => {
     writeRaw(format('FATAL', ['uncaughtException:', err.stack || err.message]));
+    writeCrashDump('uncaughtException', err.stack || err.message);
   });
   process.on('unhandledRejection', (reason) => {
-    writeRaw(format('FATAL', ['unhandledRejection:', reason && reason.stack ? reason.stack : String(reason)]));
+    const msg = reason && reason.stack ? reason.stack : String(reason);
+    writeRaw(format('FATAL', ['unhandledRejection:', msg]));
+    writeCrashDump('unhandledRejection', msg);
   });
 }
+
+/**
+ * Write a dedicated crash dump file — only on fatal errors, always, even in production.
+ * Named crash-YYYY-MM-DD_HH-MM-SS.log so they are easy to find.
+ */
+function writeCrashDump(type, message) {
+  try {
+    ensureDir();
+    const crashPath = path.join(LOG_DIR, `crash-${ts()}.log`);
+    const content = [
+      `SwitchControl crash dump`,
+      `Time: ${isoMs()}`,
+      `Type: ${type}`,
+      `PID: ${process.pid}`,
+      `Platform: ${process.platform} ${process.arch}`,
+      `Node: ${process.versions.node}`,
+      ``,
+      message,
+    ].join('\n');
+    fs.writeFileSync(crashPath, content, 'utf-8');
+  } catch (e) {}
+}
+
+// ── Backend log helper ────────────────────────────────────────────────────────
 
 function appendBackend(line) {
   if (!_backendPath) return;
@@ -159,11 +298,13 @@ function appendBackend(line) {
   } catch (e) {}
 }
 
+// ── Path accessor ─────────────────────────────────────────────────────────────
+
 function getPaths() {
   return {
-    logDir: LOG_DIR,
+    logDir:     LOG_DIR,
     startupLog: _logFilePath,
-    latestLog: _latestPath,
+    latestLog:  _latestPath,
     backendLog: _backendPath,
   };
 }
@@ -172,4 +313,5 @@ module.exports = {
   init,
   appendBackend,
   getPaths,
+  isDebug,
 };
