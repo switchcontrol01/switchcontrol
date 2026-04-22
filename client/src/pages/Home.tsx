@@ -354,7 +354,6 @@ export default function Home() {
       window.removeEventListener("offline", goOffline);
     };
   }, []);
-  const ramIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const { prefersReducedMotion } = useMotion();
   const { user, isPremium } = useAuth();
   const sysIntel = useSystemIntelligence();
@@ -523,27 +522,6 @@ export default function Home() {
     }
   }, []);
 
-  useEffect(() => {
-    const api = (window as any).electronAPI;
-    if (api?.system?.getRamUsage) {
-      ramIntervalRef.current = setInterval(() => {
-        api.system.getRamUsage().then((ram: any) => {
-          if (ram && typeof ram.usedGB === 'number' && typeof ram.totalGB === 'number') {
-            setStats({
-              usedRamGb: ram.usedGB,
-              totalRamGb: ram.totalGB
-            });
-          }
-        }).catch(() => {});
-      }, 2000);
-    }
-    return () => {
-      if (ramIntervalRef.current) {
-        clearInterval(ramIntervalRef.current);
-      }
-    };
-  }, []);
-  
   const handleTelemetryUpdate = useCallback((data: TelemetryData) => {
     setSsdData(data.ssds);
   }, []);

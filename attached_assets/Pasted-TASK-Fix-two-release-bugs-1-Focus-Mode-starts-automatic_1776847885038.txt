@@ -1,0 +1,127 @@
+TASK
+
+Fix two release bugs:
+
+1. Focus Mode starts automatically on app launch for some users
+2. App sometimes goes blank after the user leaves and comes back to it
+
+WHAT I VERIFIED
+
+I reviewed focus-helper.js.
+
+That file does NOT auto-apply Focus Mode on startup by itself.
+
+It only registers IPC handlers and only starts monitoring when this IPC is explicitly called:
+
+- focus:startTriggerMonitor
+
+It only applies Focus Mode when this IPC is explicitly called:
+
+- focus:apply
+
+So the auto-start bug is almost certainly in the renderer side, not focus-helper.js.
+
+LIKELY ROOT CAUSE 1: FOCUS MODE AUTO-START
+
+Search all renderer files for:
+
+- focus:startTriggerMonitor
+- focus.apply
+- focus:apply
+- focus.onTriggerFired
+
+I want the exact place where Focus Mode trigger monitoring is started.
+
+Most likely bug patterns:
+
+1. a useEffect on mount automatically starts trigger monitoring from saved config
+2. saved Focus Mode state is treated as active system state and auto-applied on startup
+3. Fortnite is already open, monitor starts automatically, then trigger fires and Focus Mode applies without user clicking Apply
+
+REQUIRED FIX
+
+1. Focus settings may load on startup, but NO system action should run on startup
+
+2. Do NOT call focus:startTriggerMonitor automatically on app launch
+
+3. Do NOT call focus:apply automatically on app launch
+
+4. Only explicit user action should:
+   
+   - apply Focus Mode
+   - start trigger monitor
+
+5. Add a hard guard:
+   
+   - loading saved settings must not mean active session
+   - restore UI state only, not system state
+
+ALSO FIX THIS REAL BUG IN focus-helper.js
+
+lastTriggerState is missing headsetConnected in its initial object.
+
+Current:
+
+let lastTriggerState = {
+  gameProcess: null,
+  fullscreen: false,
+  controllerConnected: false,
+};
+
+and later reset also misses headsetConnected.
+
+Fix both to:
+
+let lastTriggerState = {
+  gameProcess: null,
+  fullscreen: false,
+  controllerConnected: false,
+  headsetConnected: false,
+};
+
+LIKELY ROOT CAUSE 2: APP GOES BLANK AFTER ALT-TAB / RETURNING TO APP
+
+I already identified a strong suspect in main.js:
+
+mainWindow.on('focus', () => {
+  if (rendererReady && mainWindow) {
+    mainWindow.webContents.send('window-focus');
+  }
+});
+
+Search renderer for:
+
+- onWindowFocus(
+- window-focus
+
+I want the exact handler for this event.
+
+Most likely issue:
+the renderer receives window-focus and runs reset / cleanup / auth / route logic that is too aggressive, which causes the app to blank or break until the user ends the task.
+
+REQUIRED FIX
+
+1. Find all renderer listeners for window-focus
+
+2. Remove any heavy reset logic from that path
+
+3. window-focus handler must be passive only
+
+4. It must NOT:
+   
+   - reinitialize app state
+   - clear auth state
+   - reset routing
+   - remount major layout trees
+   - destroy active page state
+
+5. If necessary, temporarily disable window-focus handling completely and verify blank-screen bug disappears
+
+RETURN
+
+- exact renderer file causing Focus Mode auto-start
+- exact renderer file handling window-focus
+- exact broken code
+- exact fix made
+- proof Focus Mode no longer starts on launch without user click
+- proof app no longer blanks when focus returns

@@ -212,14 +212,6 @@ async function pollTelemetry() {
       diskIO.source = 'unavailable';
     }
 
-    console.log('[Disk][poll]', {
-      activeTimePct: diskIO.activeTimePct,
-      readKBps: diskIO.readKBps,
-      writeKBps: diskIO.writeKBps,
-      available: diskIO.available,
-      source: diskIO.source,
-    });
-
     // ── GPU polling (runs in parallel with disk, does not block cache update) ──
     // Primary: Windows Performance Counters — works for AMD, NVIDIA, Intel.
     // Fallback: LHM → si.graphics() (for temp/VRAM when perf counter provides load).
@@ -251,25 +243,6 @@ async function pollTelemetry() {
     if (gpuStatic?.memTotalMb != null) newGpu.memTotalMb = gpuStatic.memTotalMb;
 
     gpuPollCache = newGpu;
-
-    console.log('[GPU:debug] source=' + gpuPollCache.source +
-      ' finalLoad=' + gpuPollCache.load + '%' +
-      ' | engines(sum-per-type)=' + JSON.stringify(lastGpuEngineBreakdown) +
-      ' | lhmLoad=' + (lhm?.gpuLoad ?? null) +
-      ' | temp=' + gpuPollCache.temp + 'C power=' + gpuPollCache.power + 'W' +
-      ' vram=' + gpuPollCache.memUsedMb + '/' + gpuPollCache.memTotalMb + 'MB');
-    console.log('[telemetry:poll] CPU/RAM/Disk:',
-      JSON.stringify({
-        currentLoad: load.currentLoad,
-        cpuCount: (load.cpus || []).length,
-        memTotal: mem.total,
-        memAvailable: mem.available,
-        cpuTemp: temps.main,
-        netIfaceCount: (netStats || []).length,
-        diskIO_computed: diskIO,
-        diskIO_raw: rawDiskIO ? { rIO: rawDiskIO.rIO, wIO: rawDiskIO.wIO, ms: rawDiskIO.ms, rIO_sec: rawDiskIO.rIO_sec, wIO_sec: rawDiskIO.wIO_sec, ms_sec: rawDiskIO.ms_sec } : null,
-      })
-    );
 
     liveTelemetryCache = { load, mem, temps, fsData: fsData || [], netStats: netStats || [], diskIO, timestamp: Date.now() };
   } catch (e) {
@@ -1447,8 +1420,6 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
 
     const { load, mem, temps, fsData, netStats, diskIO } = liveTelemetryCache;
 
-    console.log('[telemetry:getLive] cache age=' + (Date.now() - liveTelemetryCache.timestamp) + 'ms | cpu=' + load.currentLoad + '% gpu=' + gpuPollCache.load + '%(src=' + gpuPollCache.source + ') disk=' + diskIO.activeTimePct + '%');
-
     const cpuLoad = safeNum(load.currentLoad || 0);
     const cpuTemp = safeNum(temps.main || 0);
     const cpuMaxTemp = safeNum(temps.max || 0);
@@ -1485,16 +1456,6 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     const diskActiveTimePct = diskIO.available ? diskIO.activeTimePct : null;
     const diskReadKBps      = diskIO.available ? diskIO.readKBps      : null;
     const diskWriteKBps     = diskIO.available ? diskIO.writeKBps     : null;
-
-    console.log('[Disk][getLive]', {
-      mount: selectedDisk?.mount || null,
-      usagePct: diskPercent,
-      activeTimePct: diskActiveTimePct,
-      readKBps: diskReadKBps,
-      writeKBps: diskWriteKBps,
-      available: diskIO.available,
-      source: diskIO.source,
-    });
 
     // --- Network: always return 0 (not null) when idle ---
     let netRxSec = 0;
@@ -1572,27 +1533,6 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
         })),
     };
 
-    console.log('[telemetry:getLive] FINAL PAYLOAD:', JSON.stringify({
-      cpu_usagePct: result.cpu.usagePct,
-      cpu_tempC: result.cpu.tempC,
-      ram_usagePct: result.ram.usagePct,
-      ram_usedGb: result.ram.usedGb,
-      ram_totalGb: result.ram.totalGb,
-      disk_mount: result.disk.selectedMount,
-      disk_usagePct: result.disk.usagePct,
-      disk_activeTimePct: result.disk.activeTimePct,
-      disk_readKBps: result.disk.readKBps,
-      disk_writeKBps: result.disk.writeKBps,
-      net_rxKBps: result.network.rxKBps,
-      net_txKBps: result.network.txKBps,
-      ssds_count: result.ssds.length,
-      gpu_available: result.gpu.available,
-      gpu_usagePct: result.gpu.usagePct,
-      gpu_tempC: result.gpu.tempC,
-      gpu_source: gpuPollCache.source,
-      gpu_engines: lastGpuEngineBreakdown,
-      gpu_aggregation: 'max-of-engine-sums',
-    }));
     return result;
   } catch (e) {
     console.error('[telemetry:getLive] error:', e.message);

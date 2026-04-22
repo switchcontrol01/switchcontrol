@@ -1,0 +1,91 @@
+TASK
+
+The action mismatch in NetworkTweaks.tsx is already fixed.
+
+Confirmed:
+- UI now correctly translates enable/disable into apply/revert before calling Electron IPC
+- so the mass failure is not caused by the React page sending the wrong action anymore
+
+New conclusion:
+the failures are now lower in the executor / verification layer.
+
+FILES TO FIX
+- electron/network-tweak-executor.js
+- electron/nic-executor.js
+
+ROOT ISSUES
+
+1. Network tweak verification is too fragile
+A lot of tweak checks rely on exact netsh / PowerShell output matching.
+That will fail across different Windows versions, formatting, adapter states, and locales.
+
+Examples:
+- tcp-timestamps
+- tcp-window-heuristics
+- tcp-rss
+- tcp-congestion
+- tcp-port-range
+- tcp-weak-host
+- udp-offloads
+
+Problem:
+the tweak may apply successfully, but the verification regex fails, causing the UI to show failure or unverified incorrectly.
+
+REQUIRED FIX
+- make verification tolerant and based on actual state, not one exact string
+- normalize output with lowercase matching
+- prefer registry/state queries where possible over human-readable netsh text
+- where exact verification is not reliable, return success=true and verified=false, not hard failure
+
+2. NIC executor verification is broken
+In nic-executor.js, setNicProperty() writes RegistryValue but verifies by reading DisplayValue through readNicProperty().
+That means comparisons are mismatched.
+
+Example:
+- write value "1"
+- readback returns "Enabled"
+- verify fails even though setting actually applied
+
+REQUIRED FIX
+- make NIC verification compare normalized semantic values, not raw display text vs raw registry value
+- add mapping layer for toggle and stepped values
+  Examples:
+  - "1" == "Enabled"
+  - "0" == "Disabled"
+  - FlowControl "3" == "Rx & Tx Enabled"
+- for numeric properties, compare numerically
+- for stepped properties, compare against presetLabels and raw values
+
+3. Do not mark all execution failures the same way
+In network-tweak-executor.js:
+- execution failure should only be success=false when the command itself truly failed
+- verification mismatch after successful command should be:
+  success=true
+  verified=false
+  message="Applied but verification inconclusive"
+
+4. Add normalization helpers
+Add shared helper functions in both executors:
+- normalizeBooleanLikeValue()
+- normalizeNetshOutput()
+- normalizeNicDisplayValue()
+- compareSemanticNicValue()
+
+5. Test these specific failing cases
+- tcp-timestamps
+- tcp-window-heuristics
+- tcp-rss
+- GreenEthernet
+- EEE
+- FlowControl
+- RSS
+- InterruptModeration
+
+RETURN
+- exact tweaks that were failing due to verification only
+- exact tweaks that were failing due to command execution
+- exact normalization logic added
+- proof screenshots or logs showing:
+  - command succeeded
+  - verification succeeded or was downgraded to inconclusive instead of failed
+  - UI no longer falsely marks working tweaks as broken

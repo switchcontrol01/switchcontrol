@@ -1,0 +1,65 @@
+Release-critical network tweaks audit.
+
+I reviewed "network-tweak-executor.js" and found a likely shared root cause for why all network tweaks fail with the same error.
+
+Confirmed facts:
+
+- "network-tweak-executor.js" only supports action values:
+  - "apply"
+  - "revert"
+- preload validation for "window.electronAPI.networkTweaks.execute(...)" also only allows:
+  - "apply"
+  - "revert"
+- the backend persistence route for network tweak reporting is written around different action terminology such as:
+  - "enable"
+  - non-enable fallback paths
+
+This means there is likely an action-name mismatch between:
+
+- Network Tweaks frontend UI
+- preload bridge
+- executor
+- report/state persistence route
+
+Likely failure:
+the Network Tweaks page is probably sending "enable", "disable", or "reset" instead of "apply" / "revert", which would cause all tweaks to fail consistently before the executor logic even runs.
+
+Required task:
+
+1. Find the actual Network Tweaks React page/component that renders the tweak cards and Apply / Reset buttons.
+2. Audit every call to:
+   - "window.electronAPI.networkTweaks.execute(...)"
+3. Confirm the exact action strings being passed.
+4. Standardize the whole path so the frontend, preload, executor, and reporting layer all use the same action vocabulary.
+
+Required standard:
+
+- executor input must be exactly:
+  - "apply"
+  - "revert"
+- if persistence wants "enabled" / "disabled" states, translate after execution, not before execution
+
+Also fix verification fragility:
+
+- "tcp-timestamps" currently verifies by regex-matching English "netsh" output
+- this is not portable across all Windows installs and can falsely fail on localized systems
+- replace brittle text matching with a more reliable check where possible, or at minimum fail as:
+  - execution succeeded
+  - verification inconclusive
+    instead of presenting it like a hard execution failure
+
+Also audit NIC advanced-property handling:
+users are seeing property lookup failures on some machines. Ensure:
+
+- unsupported properties are hidden per adapter
+- no property set call is attempted unless capability detection confirmed support
+- adapter matching uses the correct interface identity for that system
+- no hard-coded adapter assumptions like "Ethernet"
+
+Return:
+
+- exact Network Tweaks frontend file
+- exact wrong action strings currently being passed
+- exact fix made
+- confirmation that all tweak buttons now send "apply" / "revert"
+- confirmation that unsupported NIC properties are blocked before execution

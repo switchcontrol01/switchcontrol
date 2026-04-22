@@ -1,0 +1,85 @@
+New task: packaged dashboard CPU usage audit and production optimization.
+
+This is release-critical.
+
+Real issue:
+
+- multiple users report very high CPU usage, including up to 100%
+- users report laggy dashboard behavior
+- stronger CPUs hide the issue, but weaker machines are struggling
+
+Confirmed issues from code review:
+
+1. Duplicate RAM polling in Home.tsx
+   The dashboard already uses useLiveTelemetry(), but also runs a separate setInterval calling system.getRamUsage every 2 seconds.
+   This creates duplicate live updates and unnecessary rerenders.
+   → Remove this and use a single telemetry source.
+
+2. Excessive production logging in main.js
+   Hot-path logs exist in:
+
+- pollTelemetry
+- telemetry:getLive
+- GPU and disk debug
+- full telemetry payload logging
+
+Because logs are written to file, this creates constant string processing and disk I/O.
+→ Remove or gate all hot-path logs in production.
+
+3. LiveGraph.tsx uses its own Electron polling
+
+- setInterval(fetchTelemetry, 1000)
+- api.telemetry.getLive(...)
+
+This bypasses the shared telemetry system and creates extra IPC load and rerenders.
+→ Audit whether this can be unified with the shared telemetry source.
+
+4. Heavy live dashboard components
+
+- PerformanceLab
+- DashboardInsights
+- SystemAura
+- MemoryPressureGraph
+
+These may:
+
+- rerender every tick
+- run expensive calculations
+- use animations on live data
+
+TASK
+
+Do a full CPU optimization pass on the packaged dashboard.
+
+Required:
+
+1. Remove duplicate polling
+
+- eliminate system.getRamUsage interval in Home.tsx
+
+2. Audit live components
+   Check:
+
+- intervals / timers
+- ipcRenderer.invoke usage
+- rerender frequency
+- expensive calculations per tick
+
+3. Optimize LiveGraph
+
+- reduce or remove separate IPC polling
+- avoid unnecessary parent updates
+
+4. Remove production hot-path logging
+
+5. Verify packaged build
+   Return:
+
+- files changed
+- polling removed
+- logs removed
+- before vs after CPU usage
+- confirmation issue is fixed on weaker machines
+
+Important:
+This must be verified in the packaged app, not dev mode.
