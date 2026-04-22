@@ -65,7 +65,7 @@ integrations = ["javascript_database:1.0.0", "javascript_log_in_with_replit:2.0.
 [userenv.shared]
 STRIPE_PRICE_ID = "price_1SmrjQBzGFRke47sVkKhPcaD"
 ADMIN_EMAILS = "switchcontrol67@gmail.com,cooperhagarty353@gmail.com"
-INSTALLER_DOWNLOAD_URL = "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.1.exe"
+INSTALLER_DOWNLOAD_URL = "https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/SwitchControl%20Setup%201.0.2.exe"
 
 [userenv.production]
 GOOGLE_REDIRECT_URI = "https://switchcontrol.org/api/auth/google/callback"
