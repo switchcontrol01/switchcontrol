@@ -64,10 +64,14 @@ app.setName('SwitchControl');
 const isDev = !app.isPackaged;
 const isProd = !isDev;
 const allowDebug = process.env.DEBUG_MODE === 'true';
+// DEBUG_DEVTOOLS=true  → auto-open DevTools on launch in packaged builds.
+// Also honoured by DEBUG_MODE=true for backward compat.
+const allowDevTools = process.env.DEBUG_DEVTOOLS === 'true' || allowDebug;
 console.log('[BOOT] app.isPackaged:', app.isPackaged);
 console.log('[BOOT] isDev:', isDev);
 console.log('[BOOT] isProd:', isProd);
 console.log('[BOOT] allowDebug (DEBUG_MODE):', allowDebug);
+console.log('[BOOT] allowDevTools (DEBUG_DEVTOOLS):', allowDevTools);
 const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
@@ -415,8 +419,7 @@ app.on('open-url', (event, url) => {
 
 function createWindow() {
   console.log('[STARTUP:5] createWindow() ENTRY');
-  const devToolsEnabled = isDev || allowDebug;
-  console.log('[BOOT] Creating window — devToolsEnabled:', devToolsEnabled, '| isProd:', isProd, '| allowDebug:', allowDebug);
+  console.log('[BOOT] Creating window — devTools: always enabled | isDev:', isDev, '| allowDevTools:', allowDevTools);
   mainWindow = new BrowserWindow({
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
@@ -430,14 +433,14 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
-      devTools: devToolsEnabled,
+      devTools: true, // Always enabled — shortcuts and IPC open/close on demand
     }
   });
   console.log('[STARTUP:5] BrowserWindow constructed — show:true, isVisible:', mainWindow.isVisible());
 
-  // ── DevTools keyboard shortcut guard ────────────────────────────────────────
-  // In production: block F12, Ctrl+Shift+I, Ctrl+Shift+J entirely.
-  // In development / DEBUG_MODE=true: pass them through to toggle DevTools normally.
+  // ── DevTools keyboard shortcut — always active ────────────────────────────────
+  // F12, Ctrl+Shift+I, Ctrl+Shift+J all toggle DevTools in every build.
+  // No production blocking — DevTools are a debugging tool, not a security boundary.
   mainWindow.webContents.on('before-input-event', (event, input) => {
     const key = input.key.toLowerCase();
     const isDevToolsShortcut =
@@ -447,35 +450,16 @@ function createWindow() {
 
     if (!isDevToolsShortcut) return;
 
-    if (isProd && !allowDebug) {
-      // Block the shortcut silently in production
-      event.preventDefault();
-      return;
-    }
-
-    // Dev / debug mode — toggle as before
-    console.log('[DevTools] Shortcut pressed - toggling DevTools');
+    console.log('[DevTools] Shortcut pressed — toggling DevTools');
     mainWindow.webContents.toggleDevTools();
     event.preventDefault();
   });
 
-  // ── Block right-click "Inspect" in production ────────────────────────────────
-  mainWindow.webContents.on('context-menu', (e) => {
-    if (isProd && !allowDebug) e.preventDefault();
-  });
-
-  // ── Force-close DevTools if somehow opened in production ─────────────────────
-  mainWindow.webContents.on('devtools-opened', () => {
-    if (isProd && !allowDebug) {
-      console.warn('[DevTools] DevTools opened in production — closing immediately');
-      mainWindow.webContents.closeDevTools();
-    }
-  });
-
-  // ── Auto-open DevTools in detached window when debug override is active ───────
-  if (allowDebug) {
+  // ── Auto-open DevTools on launch ──────────────────────────────────────────────
+  // Always in dev mode. In packaged builds: only when DEBUG_DEVTOOLS=true or DEBUG_MODE=true.
+  if (isDev || allowDevTools) {
     mainWindow.webContents.once('did-finish-load', () => {
-      console.log('[DevTools] DEBUG_MODE=true — opening DevTools in detached mode');
+      console.log('[DevTools] Auto-opening DevTools (isDev:', isDev, '| allowDevTools:', allowDevTools, ')');
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     });
   }
@@ -606,17 +590,6 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     console.log('[STARTUP:7] did-finish-load — renderer ready');
     rendererReady = true;
-
-    if (isDev) {
-      setTimeout(() => {
-        try {
-          mainWindow?.webContents.openDevTools({ mode: 'detach' });
-          console.log('[DevTools] openDevTools called successfully');
-        } catch (err) {
-          console.error('[DevTools] Failed to open DevTools:', err);
-        }
-      }, 500);
-    }
 
     if (!isDev) {
       // Race: backend became READY before renderer finished loading
