@@ -37,7 +37,7 @@ export interface JwtPayload {
 export function signJwt(userId: string): string {
   const token = jwt.sign({ sub: userId }, getSecret(), {
     algorithm: "HS256",
-    expiresIn: "7d",
+    expiresIn: "30d",
     issuer: "switchcontrol",
   });
   return token;

@@ -14,6 +14,7 @@ import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
 import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen } from "@/lib/auth-store";
+import { tryReissueJwt } from "@/lib/api";
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
 import { useStore } from "@/lib/store";
@@ -759,6 +760,29 @@ function ElectronAppContent() {
         }
 
         setEntitlementsAttempted(true);
+
+        // Proactively reissue the JWT if it has expired or is within 1 day of expiry.
+        // This way local API calls (App Booster, etc.) have a fresh token ready before
+        // the user navigates anywhere — avoiding the first-request 401 in Electron.
+        if (isElectron) {
+          const storedJwt = useAuthStore.getState().jwt;
+          if (storedJwt) {
+            try {
+              const parts = storedJwt.split('.');
+              if (parts.length === 3) {
+                const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+                const nowSec = Math.floor(Date.now() / 1000);
+                const oneDaySec = 86400;
+                if (payload.exp && nowSec >= payload.exp - oneDaySec) {
+                  console.log('[Auth] Boot: JWT expired or expiring within 24h — proactive reissue...');
+                  tryReissueJwt().catch(() => {});
+                }
+              }
+            } catch {
+              // Non-critical — api.ts will handle it on first API call
+            }
+          }
+        }
 
         // AUTH GATE: if server explicitly rejected the token, clear all state and
         // force the user back to the login screen — do NOT proceed to dashboard.

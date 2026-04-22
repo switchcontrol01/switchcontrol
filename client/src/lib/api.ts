@@ -13,6 +13,43 @@ let _resolvingPromise: Promise<string> | null = null;
 let _backendReady = !isPackagedElectron;
 let _backendReadyListeners: Array<() => void> = [];
 
+// Tracks an in-flight JWT reissue so parallel expired requests share one round-trip.
+let _jwtReissuePromise: Promise<string | null> | null = null;
+
+/**
+ * Called by packaged Electron when the local JWT has expired.
+ * Requests a fresh JWT from the cloud server using the persisted session cookie.
+ * Returns the new JWT string, or null if the session is also expired/gone.
+ */
+export async function tryReissueJwt(): Promise<string | null> {
+  if (_jwtReissuePromise) return _jwtReissuePromise;
+  _jwtReissuePromise = (async () => {
+    try {
+      const response = await fetch('https://switchcontrol.org/api/auth/reissue-jwt', {
+        method: 'POST',
+        credentials: 'include',
+      });
+      if (!response.ok) {
+        console.warn('[API] JWT reissue failed — status:', response.status);
+        return null;
+      }
+      const data = await response.json();
+      if (data?.jwt) {
+        useAuthStore.getState().setJwt(data.jwt);
+        console.log('[API] JWT silently reissued — fresh token stored');
+        return data.jwt as string;
+      }
+      return null;
+    } catch (err) {
+      console.warn('[API] JWT reissue network error:', err);
+      return null;
+    } finally {
+      _jwtReissuePromise = null;
+    }
+  })();
+  return _jwtReissuePromise;
+}
+
 const ELECTRON_PORT_POLL_TIMEOUT = 50000;
 
 // External resolver: lets the backend-ready push event immediately unblock
@@ -319,8 +356,19 @@ export async function apiFetch(
         const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
         if (payload.exp && Math.floor(Date.now() / 1000) >= payload.exp) {
           jwtOk = false;
-          console.warn('[API] Stored JWT is expired — clearing and falling back to session cookie');
-          useAuthStore.getState().setJwt(null);
+          console.warn('[API] Stored JWT is expired — attempting silent reissue...');
+          if (isPackagedElectron) {
+            const freshJwt = await tryReissueJwt();
+            if (freshJwt) {
+              headers['Authorization'] = `Bearer ${freshJwt}`;
+              jwtOk = true;
+            } else {
+              console.warn('[API] JWT reissue failed — clearing JWT, falling back to session');
+              useAuthStore.getState().setJwt(null);
+            }
+          } else {
+            useAuthStore.getState().setJwt(null);
+          }
         }
       }
     } catch {
@@ -328,7 +376,7 @@ export async function apiFetch(
       console.warn('[API] Stored JWT is malformed — clearing');
       useAuthStore.getState().setJwt(null);
     }
-    if (jwtOk) {
+    if (jwtOk && !headers['Authorization']) {
       headers['Authorization'] = `Bearer ${jwt}`;
     }
   }

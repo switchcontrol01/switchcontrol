@@ -28,6 +28,7 @@ import issueDetectorRouter from "./routes/issueDetector";
 import { getSystemIntelligence } from "./lib/systemIntelligence";
 import { getSnapshot, getSystemSpecs, startTelemetryPolling } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
+import { signJwt } from "./lib/jwt";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -78,6 +79,26 @@ export async function registerRoutes(
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", timestamp: Date.now() });
+  });
+
+  // JWT reissue — Electron clients call this against the cloud server when their
+  // local JWT has expired. The cloud server authenticates via the persisted session
+  // cookie (Passport) and issues a fresh JWT the Electron local backend can verify.
+  app.post("/api/auth/reissue-jwt", async (req, res) => {
+    const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
+    if (isElectronBackend) {
+      return res.status(404).json({ error: 'Not available on local backend' });
+    }
+    if (!(req as any).isAuthenticated?.() || !(req as any).user) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+    const sessionUser = (req as any).user as { id: string };
+    if (!sessionUser?.id) {
+      return res.status(401).json({ error: 'Invalid session user' });
+    }
+    const newJwt = signJwt(sessionUser.id);
+    console.log(`[Auth] JWT reissued via session for user ${sessionUser.id}`);
+    return res.json({ success: true, jwt: newJwt });
   });
 
   app.get("/api/csrf-token", (req, res) => {
