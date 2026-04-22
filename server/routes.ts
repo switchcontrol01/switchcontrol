@@ -41,7 +41,12 @@ export async function registerRoutes(
   app.use("/api/bios", requireJwt, requireCloudPremium, biosRouter);
   app.use("/api/security", securityRouter);
   app.use("/api/network", networkDiagnosticsRouter);
-  app.use("/api/admin", adminRouter);
+  app.use("/api/admin", (req, res, next) => {
+    if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method)) {
+      return csrfProtection(req, res, next);
+    }
+    next();
+  }, adminRouter);
   app.use("/api/app-booster", appBoosterRouter);
   app.use("/api/network-tweaks", networkTweaksRouter);
   app.use("/api/tweak-intelligence", tweakIntelligenceRouter);

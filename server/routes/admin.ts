@@ -507,16 +507,20 @@ router.post("/bootstrap", writeLimiter, async (req, res) => {
   const setupKey = process.env.ADMIN_SETUP_KEY;
   const keyMatches = setupKey && key === setupKey;
 
-  if (!keyMatches) {
-    const adminCount = await storage.countAdmins();
-    if (adminCount > 0) {
+  try {
+    if (keyMatches) {
+      // Privileged bootstrap with setup key — grant regardless of existing admins
+      const updated = await storage.setUserAdmin(userId, true);
+      console.log(`[admin] Bootstrap (key): user=${userId} (${updated.email}) granted admin`);
+      return res.json({ ok: true, message: "Admin access granted.", userId });
+    }
+
+    // Non-privileged first-admin bootstrap — atomically check and grant
+    const result = await storage.bootstrapFirstAdmin(userId);
+    if (!result.granted) {
       return res.status(403).json({ error: "Admin bootstrap disabled — admins already exist." });
     }
-  }
-
-  try {
-    const updated = await storage.setUserAdmin(userId, true);
-    console.log(`[admin] Bootstrap: user=${userId} (${updated.email}) granted admin`);
+    console.log(`[admin] Bootstrap: user=${userId} (${result.user?.email}) granted admin`);
     res.json({ ok: true, message: "Admin access granted.", userId });
   } catch (err) {
     console.error("[admin] bootstrap error:", err);

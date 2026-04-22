@@ -68,6 +68,7 @@ export interface IStorage {
   // Admin
   listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
   countAdmins(): Promise<number>;
+  bootstrapFirstAdmin(userId: string): Promise<{ granted: boolean; user?: User }>;
   setUserPlan(userId: string, opts: SetPlanOpts): Promise<User>;
   extendTrial(userId: string, extraHours: number): Promise<User>;
   resetUserFlags(userId: string, flags: { onboarding?: boolean; premiumTour?: boolean; premiumUnlock?: boolean }): Promise<User>;
@@ -214,6 +215,10 @@ class MockStorage implements IStorage {
 
   async countAdmins(): Promise<number> {
     return 0;
+  }
+
+  async bootstrapFirstAdmin(userId: string): Promise<{ granted: boolean; user?: User }> {
+    throw new Error("Database not available in NO-DB mode");
   }
 
   async setUserPlan(userId: string, opts: SetPlanOpts): Promise<User> {
@@ -544,6 +549,31 @@ export class DatabaseStorage implements IStorage {
       .from(users)
       .where(eq(users.isAdmin, true));
     return Number(value);
+  }
+
+  async bootstrapFirstAdmin(userId: string): Promise<{ granted: boolean; user?: User }> {
+    // Use a session-level advisory lock to serialize concurrent first-admin bootstrap
+    // attempts. pg_advisory_xact_lock blocks until no other transaction holds the same
+    // lock, so only one caller can check-and-grant at a time. The lock is released
+    // automatically when the transaction commits or rolls back.
+    // The two-argument form (int, int) avoids any bigint/int4 ambiguity.
+    return await db!.transaction(async (tx) => {
+      await tx.execute(drizzleSql`SELECT pg_advisory_xact_lock(74112, 90841)`);
+      const [{ value }] = await tx
+        .select({ value: count() })
+        .from(users)
+        .where(eq(users.isAdmin, true));
+      const adminCount = Number(value);
+      if (adminCount > 0) {
+        return { granted: false };
+      }
+      const [updated] = await tx
+        .update(users)
+        .set({ isAdmin: true, updatedAt: new Date() })
+        .where(eq(users.id, userId))
+        .returning();
+      return { granted: true, user: updated };
+    });
   }
 
   async setUserAdmin(userId: string, isAdmin: boolean): Promise<User> {

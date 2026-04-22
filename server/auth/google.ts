@@ -149,6 +149,12 @@ function consumeElectronCode(code: string): string | null {
   return entry.userId;
 }
 
+function isSafeRedirectUrl(url: string): boolean {
+  if (!url) return false;
+  // Must start with '/' but not '//' (protocol-relative) to stay on the same origin
+  return url.startsWith('/') && !url.startsWith('//');
+}
+
 export function setupGoogleAuth(app: Express): void {
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -307,7 +313,9 @@ export function setupGoogleAuth(app: Express): void {
   // OAuth success page for Electron - shows message and tries to close tab
   app.get("/auth/desktop-success", (req, res) => {
     const code = req.query.code as string;
-    const provider = req.query.provider as string || 'google';
+    // Allowlist provider to prevent XSS injection into the inline script
+    const rawProvider = req.query.provider as string || 'google';
+    const provider = rawProvider === 'discord' ? 'discord' : 'google';
     
     if (!code) {
       return res.status(400).send("Missing authentication code");
@@ -646,7 +654,8 @@ export function setupGoogleAuth(app: Express): void {
   });
 
   app.get("/auth/google", (req, res, next) => {
-    const next_url = req.query.next as string || '/';
+    const raw_next = req.query.next as string || '/';
+    const next_url = isSafeRedirectUrl(raw_next) ? raw_next : '/';
     const source = req.query.source as string || 'web';
     
     console.log("[AUTH] Google auth initiated - source:", source);
@@ -705,8 +714,9 @@ export function setupGoogleAuth(app: Express): void {
         console.log("[AUTH] ================================================");
         return res.redirect(redirectUrl);
       } else {
-        console.log("[AUTH] Web auth — redirecting to:", nextUrl);
-        return res.redirect(nextUrl);
+        const safeNextUrl = isSafeRedirectUrl(nextUrl) ? nextUrl : '/';
+        console.log("[AUTH] Web auth — redirecting to:", safeNextUrl);
+        return res.redirect(safeNextUrl);
       }
     }
   );
@@ -1096,26 +1106,9 @@ export function setupGoogleAuth(app: Express): void {
 
       const code = authHeader.substring(7);
       
-      // Try one-time code first (new secure flow)
-      let userId = consumeElectronCode(code);
-      
-      // Fallback: try legacy base64 token for backward compatibility
-      if (!userId) {
-        try {
-          const decoded = JSON.parse(Buffer.from(code, 'base64').toString('utf-8'));
-          if (decoded.id && decoded.ts) {
-            const tokenAge = Date.now() - decoded.ts;
-            if (tokenAge <= 5 * 60 * 1000) {
-              userId = decoded.id;
-              console.log('[AUTH] Exchange using legacy base64 token for user:', userId);
-            } else {
-              return res.status(401).json({ success: false, error: 'Token expired' });
-            }
-          }
-        } catch {
-          return res.status(401).json({ success: false, error: 'Invalid or already-used code' });
-        }
-      } else {
+      // Consume the server-issued one-time code (secure flow only)
+      const userId = consumeElectronCode(code);
+      if (userId) {
         console.log('[AUTH] Exchange using one-time code for user:', userId);
       }
 

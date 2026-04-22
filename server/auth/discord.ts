@@ -6,6 +6,11 @@ import { users } from "@shared/models/auth";
 import { eq, or } from "drizzle-orm";
 import { generateElectronCode } from "./google";
 
+function isSafeRedirectUrl(url: string): boolean {
+  if (!url) return false;
+  return url.startsWith('/') && !url.startsWith('//');
+}
+
 const DISCORD_SCOPES = ["identify", "email"];
 
 async function findOrCreateDiscordUser(profile: {
@@ -149,7 +154,8 @@ export function setupDiscordAuth(app: Express): void {
   );
 
   app.get("/auth/discord", (req, res, next) => {
-    const next_url = req.query.next as string || '/';
+    const raw_next = req.query.next as string || '/';
+    const next_url = isSafeRedirectUrl(raw_next) ? raw_next : '/';
     const source = req.query.source as string || 'web';
     
     console.log("[AUTH] Discord auth initiated - source:", source);
@@ -205,8 +211,9 @@ export function setupDiscordAuth(app: Express): void {
         console.log("[AUTH] ==================================================");
         return res.redirect(redirectUrl);
       } else {
-        console.log("[AUTH] Web auth — redirecting to:", nextUrl);
-        return res.redirect(nextUrl);
+        const safeNextUrl = isSafeRedirectUrl(nextUrl) ? nextUrl : '/';
+        console.log("[AUTH] Web auth — redirecting to:", safeNextUrl);
+        return res.redirect(safeNextUrl);
       }
     }
   );
