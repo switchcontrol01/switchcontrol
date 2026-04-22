@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isPackaged:      () => ipcRenderer.invoke('app:isPackaged'),
   getDeviceId:     () => ipcRenderer.invoke('app:getDeviceId'),
   isAdmin:         () => ipcRenderer.invoke('app:isAdmin'),
+  isIPCReady:      () => ipcRenderer.invoke('app:isIPCReady'),
   getBackendPort:  () => ipcRenderer.invoke('app:getBackendPort'),
   isBackendReady:  () => ipcRenderer.invoke('app:isBackendReady'),
   getBackendError: () => ipcRenderer.invoke('app:getBackendError'),

@@ -13,7 +13,6 @@ let _resolvingPromise: Promise<string> | null = null;
 let _backendReady = !isPackagedElectron;
 let _backendReadyListeners: Array<() => void> = [];
 
-const ELECTRON_PORT_POLL_INTERVAL = 80;
 const ELECTRON_PORT_POLL_TIMEOUT = 50000;
 
 export function isBackendReady(): boolean {
@@ -38,6 +37,10 @@ async function pollForBackendPort(): Promise<number> {
   const start = Date.now();
   const api = (window as any).electronAPI;
   let attempt = 0;
+  // Exponential backoff: 200→400→800→1600→3200→cap at 5000ms
+  // Keeps the first few attempts fast (backend usually starts in <3s) while
+  // preventing spam if the backend is genuinely unavailable.
+  let delay = 200;
 
   while (Date.now() - start < ELECTRON_PORT_POLL_TIMEOUT) {
     attempt++;
@@ -49,11 +52,11 @@ async function pollForBackendPort(): Promise<number> {
       }
     } catch {}
 
-    if (attempt <= 5 || attempt % 10 === 0) {
-      console.log(`[API] Backend port not ready, retrying... (${Date.now() - start}ms)`);
+    if (attempt <= 5 || attempt % 5 === 0) {
+      console.log(`[API] Backend port not ready, retrying in ${delay}ms... (elapsed ${Date.now() - start}ms, attempt ${attempt})`);
     }
-    const delay = attempt <= 10 ? ELECTRON_PORT_POLL_INTERVAL : 300;
     await new Promise(r => setTimeout(r, delay));
+    delay = Math.min(delay * 2, 5_000);
   }
 
   let errorDetail = '';

@@ -31,6 +31,10 @@ let _ws: WebSocket | null = null;
 let _reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let _unavailableTimer: ReturnType<typeof setTimeout> | null = null;
 const _spikeTimers: Record<string, ReturnType<typeof setTimeout>> = {};
+// Reconnect backoff: resets to BASE on successful open, doubles on each failure
+const RECONNECT_BASE_MS = 3_000;
+const RECONNECT_MAX_MS  = 30_000;
+let _reconnectDelay = RECONNECT_BASE_MS;
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -54,10 +58,12 @@ async function buildWsUrl(): Promise<string> {
     try {
       let port: number | null = null;
       const deadline = Date.now() + 30_000;
+      let delay = 200; // exponential backoff: 200→400→800→1600→3200→6400→max 10000
       while (Date.now() < deadline) {
         port = await electronAPI.getBackendPort?.();
         if (typeof port === "number" && port > 0) break;
-        await new Promise((r) => setTimeout(r, 200));
+        await new Promise((r) => setTimeout(r, delay));
+        delay = Math.min(delay * 2, 10_000);
       }
       if (port) return `ws://127.0.0.1:${port}/ws/telemetry`;
     } catch {}
@@ -84,6 +90,7 @@ function connect() {
 
         socket.onopen = () => {
           console.log("[Telemetry] WebSocket connected");
+          _reconnectDelay = RECONNECT_BASE_MS; // reset backoff on successful connect
           useTelemetryStore.getState()._setConnected(true);
         };
 
@@ -147,11 +154,12 @@ function connect() {
         socket.onerror = () => {};
 
         socket.onclose = () => {
-          console.log("[Telemetry] WebSocket closed — scheduling reconnect");
-          useTelemetryStore.getState()._setConnected(false);
           _ws = null;
+          useTelemetryStore.getState()._setConnected(false);
           if (_started) {
-            _reconnectTimer = setTimeout(connect, 3000);
+            console.log(`[Telemetry] WebSocket closed — reconnecting in ${_reconnectDelay}ms`);
+            _reconnectTimer = setTimeout(connect, _reconnectDelay);
+            _reconnectDelay = Math.min(_reconnectDelay * 2, RECONNECT_MAX_MS);
           }
         };
       } catch {
@@ -204,6 +212,7 @@ export const telemetryManager = {
     if (_reconnectTimer) clearTimeout(_reconnectTimer);
     if (_unavailableTimer) clearTimeout(_unavailableTimer);
     if (_ws) { _ws.close(); _ws = null; }
+    _reconnectDelay = RECONNECT_BASE_MS; // reset backoff on explicit user-triggered reset
 
     const st = useTelemetryStore.getState();
     st._setConnected(false);

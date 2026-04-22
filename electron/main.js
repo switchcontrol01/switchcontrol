@@ -25,6 +25,7 @@ const { app, BrowserWindow, ipcMain, shell, globalShortcut, Menu } = require('el
 const { exec, execFile } = require('child_process');
 const path = require('path');
 const os = require('os');
+const fs = require('fs'); // top-level — never undefined, never lost inside a closure
 const si = require('systeminformation');
 const tweakExecutor = require('./tweak-executor');
 const sliderTweakExecutor = require('./slider-tweak-executor');
@@ -2313,19 +2314,18 @@ ipcMain.handle('auth:debugCookies', async () => {
   }));
 });
 
-console.log('[STARTUP:3] registering app.whenReady() handler');
-app.whenReady().then(async () => {
-  console.log('[STARTUP:4] app.whenReady FIRED');
-  const bootStart = Date.now();
-  const fs = require('fs'); // declare here so all code below in this scope can use it
+// ── ipcReady flag — set true only after registerCriticalIPC() completes ───────
+let ipcReady = false;
 
-  // ── Register ALL IPC handlers FIRST — before anything that can throw.
-  // If any code below crashes, these are already live so the renderer never
-  // sees "No handler registered" errors.
+// ── Critical IPC registration ─────────────────────────────────────────────────
+// Called as the very first thing inside whenReady(), before ANY risky code.
+// These handlers must survive even if everything else in startup crashes.
+function registerCriticalIPC() {
   ipcMain.handle('app:getBackendPort',  () => backendLauncher.getBackendPort());
   ipcMain.handle('app:isBackendReady',  () => backendLauncher.isBackendReady());
   ipcMain.handle('app:getBackendError', () => backendLauncher.getLastError ? backendLauncher.getLastError() : null);
   ipcMain.handle('app:isAdmin',         () => _appIsAdmin === true);
+  ipcMain.handle('app:isIPCReady',      () => ipcReady);
 
   ipcMain.handle('updater:getState', () => updaterService.getState());
   ipcMain.handle('updater:check', () => {
@@ -2347,7 +2347,56 @@ app.whenReady().then(async () => {
     return true;
   });
 
-  console.log('[STARTUP:4] all IPC handlers registered (backend, updater, isAdmin)');
+  ipcReady = true;
+  console.log('[STARTUP] critical IPC registered — app:getBackendPort, app:isBackendReady, app:getBackendError, app:isAdmin, app:isIPCReady, updater:*');
+}
+
+// ── Non-critical startup audit ────────────────────────────────────────────────
+// Runs completely isolated from the critical path.
+// Any crash here is caught and logged — never reaches whenReady().
+async function runStartupAuditSafe() {
+  console.log('[STARTUP] non-critical audit begin');
+  try {
+    const dataFiles = [
+      { label: 'tweak-state.json', file: TWEAK_STATE_FILE },
+      { label: 'sc-config.json',   file: CONFIG_FILE       },
+      { label: 'device-id.json',   file: DEVICE_ID_FILE    },
+    ];
+    const found   = dataFiles.filter(d => fs.existsSync(d.file));
+    const missing = dataFiles.filter(d => !fs.existsSync(d.file));
+    const isRestoredInstall = found.length > 0;
+    console.log(`[UserData] AppData root: ${APPDATA_DIR}`);
+    console.log(`[UserData] Restore status: ${isRestoredInstall ? 'EXISTING DATA FOUND — restoring user state' : 'FRESH INSTALL — no prior user data'}`);
+    found.forEach(d => {
+      try {
+        const stat = fs.statSync(d.file);
+        console.log(`[UserData]   ✓ ${d.label} (${stat.size} bytes, modified ${stat.mtime.toISOString()})`);
+      } catch { console.log(`[UserData]   ✓ ${d.label}`); }
+    });
+    missing.forEach(d => console.log(`[UserData]   · ${d.label} (not yet created — will be written on first use)`));
+
+    if (fs.existsSync(TWEAK_STATE_FILE)) {
+      try {
+        const ts = JSON.parse(fs.readFileSync(TWEAK_STATE_FILE, 'utf8'));
+        const tweakCount   = ts && ts.tweaks ? Object.keys(ts.tweaks).length : 0;
+        const enabledCount = ts && ts.tweaks ? Object.values(ts.tweaks).filter(Boolean).length : 0;
+        console.log(`[UserData]   Tweaks persisted: ${tweakCount} total, ${enabledCount} enabled`);
+      } catch { /* parse errors handled separately by tweak-executor */ }
+    }
+    console.log('[STARTUP] non-critical audit complete');
+  } catch (auditErr) {
+    console.error('[STARTUP] non-critical audit failed safely:', auditErr && auditErr.message);
+  }
+}
+
+console.log('[STARTUP:3] registering app.whenReady() handler');
+app.whenReady().then(async () => {
+  console.log('[STARTUP] whenReady fired');
+  const bootStart = Date.now();
+
+  // ── A. Register critical IPC handlers — MUST be first, before any risky code ─
+  registerCriticalIPC();
+  console.log('[STARTUP] critical IPC registered');
 
   // ── Hard boot evidence block — proves which EXE is actually running ────────
   console.log('\n========== BOOT EVIDENCE ==========');
@@ -2379,90 +2428,46 @@ app.whenReady().then(async () => {
     console.error('[UAC] Admin check failed:', err?.message);
   });
 
+  // ── B. Non-critical config + audit — failures here never block window creation ─
   const userDataPath = app.getPath('userData');
   configStore.init(userDataPath);
   console.log('[BOOT] Config store initialized:', userDataPath);
 
-  // ── Persistent user-data restoration audit ────────────────────────────────
-  // Reports which data files were found in %APPDATA%\SwitchControl\ so we can
-  // confirm that data survived uninstall + reinstall on every boot.
-  // Wrapped in try/catch: diagnostic only — must never crash whenReady.
-  try {
-    const dataFiles = [
-      { label: 'tweak-state.json', file: TWEAK_STATE_FILE },
-      { label: 'sc-config.json',   file: CONFIG_FILE       },
-      { label: 'device-id.json',   file: DEVICE_ID_FILE    },
-    ];
-    const found    = dataFiles.filter(d => fs.existsSync(d.file));
-    const missing  = dataFiles.filter(d => !fs.existsSync(d.file));
-    const isRestoredInstall = found.length > 0;
-    console.log(`[UserData] AppData root: ${APPDATA_DIR}`);
-    console.log(`[UserData] Restore status: ${isRestoredInstall ? 'EXISTING DATA FOUND — restoring user state' : 'FRESH INSTALL — no prior user data'}`);
-    found.forEach(d => {
-      try {
-        const stat = fs.statSync(d.file);
-        console.log(`[UserData]   ✓ ${d.label} (${stat.size} bytes, modified ${stat.mtime.toISOString()})`);
-      } catch { console.log(`[UserData]   ✓ ${d.label}`); }
-    });
-    missing.forEach(d => console.log(`[UserData]   · ${d.label} (not yet created — will be written on first use)`));
-
-    // If tweak-state exists, report the count of persisted tweak states
-    if (fs.existsSync(TWEAK_STATE_FILE)) {
-      try {
-        const ts = JSON.parse(fs.readFileSync(TWEAK_STATE_FILE, 'utf8'));
-        const tweakCount = ts && ts.tweaks ? Object.keys(ts.tweaks).length : 0;
-        const enabledCount = ts && ts.tweaks ? Object.values(ts.tweaks).filter(Boolean).length : 0;
-        console.log(`[UserData]   Tweaks persisted: ${tweakCount} total, ${enabledCount} enabled`);
-      } catch { /* parse errors handled separately by tweak-executor */ }
-    }
-  } catch (auditErr) {
-    console.warn('[UserData] Audit block error (non-fatal):', auditErr && auditErr.message);
-  }
-  // ── End restoration audit ─────────────────────────────────────────────────
-
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   console.log('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));
 
-  // (IPC handlers already registered at top of whenReady — see [STARTUP:4] block above)
+  // Fire-and-forget: audit runs in parallel, any crash is caught inside the function
+  void runStartupAuditSafe();
 
-  // Start the background telemetry poll immediately.
-  // This primes differential APIs (currentLoad, networkStats, disksIO) so that
-  // by the time the renderer first calls getLive, the cache has real values.
+  // ── C. Create main window ─────────────────────────────────────────────────────
+  // Start telemetry poll before window so first getLive call finds a primed cache.
   startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
-
-  // Start creating window immediately (shows on ready-to-show)
-  // Backend starts in parallel — renderer polls until ready
-  console.log('[STARTUP:5] calling createWindow()');
+  console.log('[STARTUP] main window creating');
   createWindow();
-  console.log('[STARTUP:5] createWindow() returned — mainWindow.isVisible:', mainWindow && mainWindow.isVisible());
+  console.log('[STARTUP] main window created — isVisible:', mainWindow && mainWindow.isVisible());
 
+  // ── D. Start backend safely (packaged mode only) ──────────────────────────────
+  console.log('[STARTUP] backend startup begin');
   if (!isDev) {
-    console.log('[STARTUP:8] PACKAGED MODE — calling backendLauncher.startBackend()');
     console.log('[Backend] ===== PACKAGED MODE — Starting embedded backend =====');
-    // Fire-and-forget: don't block the app.whenReady() promise.
-    // The window has already been created; the renderer polls getBackendPort()
-    // independently. We notify it when ready via the backend-ready IPC event.
     backendLauncher.startBackend(app).then(result => {
       console.log(`[Backend] startBackend() resolved after ${Date.now() - bootStart}ms`);
-      console.log(`[Backend] Result: ready=${result.ready} port=${result.port} error=${result.error || 'none'}`);
       if (result.ready) {
-        console.log(`[Backend] SUCCESS — port ${result.port} (${Date.now() - bootStart}ms from boot)`);
+        console.log(`[STARTUP] backend startup success — port ${result.port} (${Date.now() - bootStart}ms from boot)`);
         if (mainWindow && rendererReady) {
           mainWindow.webContents.send('backend-ready', { port: result.port });
         }
-        // If renderer finished loading before backend was ready, it missed the push.
-        // did-finish-load handler already covers this race, but send again to be safe.
       } else {
-        console.error('[Backend] FAILED:', result.error || 'unknown');
+        console.error(`[STARTUP] backend startup failed: ${result.error || 'unknown'}`);
         if (mainWindow && rendererReady) {
           mainWindow.webContents.send('backend-error', { error: result.error || 'Backend failed to start' });
         }
       }
     }).catch(err => {
-      console.error('[Backend] Uncaught startup error:', err.message);
+      console.error('[STARTUP] backend startup error (caught):', err.message);
     });
   } else {
-    console.log('[Backend] Dev mode — using dev server proxy');
+    console.log('[STARTUP] backend startup begin (dev mode — using dev server proxy)');
   }
 
   // Register DevTools IPC handler (always available for debugging)
@@ -2554,6 +2559,8 @@ app.whenReady().then(async () => {
         .catch(err => console.error('[Auth] Cookie persist failed:', cookie.name, err));
     }
   });
+
+  console.log(`[STARTUP] app ready — ${Date.now() - bootStart}ms from whenReady`);
 });
 
 app.on('window-all-closed', () => {
