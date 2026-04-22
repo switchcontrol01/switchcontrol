@@ -165,8 +165,13 @@ export function setupDiscordAuth(app: Express): void {
     
     console.log("[AUTH] Discord auth initiated - source:", source);
     
-    // Set cookie to track source (survives OAuth redirect)
-    // path: '/' ensures cookies are sent to /api/auth/discord/callback
+    // Encode source + next in the OAuth state parameter (RFC 6749).
+    // This is more reliable than cookies because some browsers with privacy/
+    // tracking-protection block SameSite=None cookies on cross-domain redirects.
+    // State is carried in the URL so it always arrives at the callback intact.
+    const statePayload = Buffer.from(JSON.stringify({ source, next: next_url })).toString('base64url');
+
+    // Also set cookies as a belt-and-suspenders fallback for older installs.
     const isElectronBE = process.env.ELECTRON_BACKEND === '1';
     const authCookieOpts = {
       maxAge: 5 * 60 * 1000,
@@ -180,7 +185,8 @@ export function setupDiscordAuth(app: Express): void {
     
     passport.authenticate("discord", {
       scope: DISCORD_SCOPES,
-    })(req, res, next);
+      state: statePayload,
+    } as any)(req, res, next);
   });
 
   app.get(
@@ -188,6 +194,21 @@ export function setupDiscordAuth(app: Express): void {
     (req, res, next) => {
       console.log("OAUTH CALLBACK HIT:", req.originalUrl);
       console.log("[AUTH] Cookies received:", req.cookies);
+
+      // Decode source/next from OAuth state parameter before passport consumes it.
+      // State is more reliable than cookies (survives privacy-mode / tracking-protection).
+      try {
+        const rawState = req.query.state as string;
+        if (rawState) {
+          const parsed = JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
+          (req as any)._stateSource = parsed.source || 'web';
+          (req as any)._stateNext = isSafeRedirectUrl(parsed.next) ? parsed.next : '/';
+          console.log("[AUTH] Discord state decoded — source:", (req as any)._stateSource);
+        }
+      } catch (e) {
+        console.warn("[AUTH] Discord state decode failed:", e);
+      }
+
       passport.authenticate("discord", {
         failureRedirect: "/?error=discord_auth_failed",
       })(req, res, next);
@@ -195,9 +216,9 @@ export function setupDiscordAuth(app: Express): void {
     (req, res, next) => {
       const user = req.user as Express.User;
       
-      // Read source from cookie
-      const source = req.cookies?.auth_source || 'web';
-      const nextUrl = req.cookies?.auth_next || '/';
+      // Prefer state-decoded source (survives any cookie blocking), fall back to cookie.
+      const source = (req as any)._stateSource || req.cookies?.auth_source || 'web';
+      const nextUrl = (req as any)._stateNext || req.cookies?.auth_next || '/';
       
       // Clear the tracking cookies (must match path/secure/sameSite from when they were set)
       const isElectronBE = process.env.ELECTRON_BACKEND === '1';
