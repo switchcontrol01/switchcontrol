@@ -22,11 +22,11 @@ const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
 
 /* ── Static sun-streak beams ── */
 const STREAKS = [
-  { left: "8%",  top: "-10%", rot: "28deg",  w: "160vw", h: "1.5px", color: "rgba(168,85,247,0.22)",  blur: 1.2, dur: 8,  delay: 0   },
-  { left: "18%", top: "15%",  rot: "24deg",  w: "140vw", h: "1px",   color: "rgba(0,200,255,0.18)",   blur: 1.0, dur: 10, delay: 1.2 },
-  { left: "5%",  top: "40%",  rot: "20deg",  w: "130vw", h: "2px",   color: "rgba(168,85,247,0.14)",  blur: 1.5, dur: 12, delay: 0.6 },
-  { left: "30%", top: "-5%",  rot: "32deg",  w: "110vw", h: "0.5px", color: "rgba(0,230,255,0.13)",   blur: 0.8, dur: 9,  delay: 2.4 },
-  { left: "0%",  top: "60%",  rot: "18deg",  w: "120vw", h: "1px",   color: "rgba(200,120,255,0.12)", blur: 1.0, dur: 11, delay: 3.5 },
+  { left: "4%",  top: "-8%",  rot: "28deg",  w: "170vw", h: "6px",   color: "rgba(168,85,247,0.55)",  blur: 4,   dur: 18, delay: 0   },
+  { left: "14%", top: "18%",  rot: "24deg",  w: "155vw", h: "4px",   color: "rgba(0,200,255,0.48)",   blur: 3,   dur: 22, delay: 1.4 },
+  { left: "2%",  top: "44%",  rot: "20deg",  w: "145vw", h: "8px",   color: "rgba(168,85,247,0.42)",  blur: 5,   dur: 26, delay: 0.7 },
+  { left: "28%", top: "-4%",  rot: "32deg",  w: "125vw", h: "3px",   color: "rgba(0,230,255,0.45)",   blur: 2.5, dur: 20, delay: 2.8 },
+  { left: "0%",  top: "62%",  rot: "18deg",  w: "135vw", h: "5px",   color: "rgba(200,120,255,0.40)", blur: 3.5, dur: 24, delay: 4.0 },
 ];
 
 export default function Splash({ onComplete }: SplashProps) {
@@ -128,7 +128,7 @@ export default function Splash({ onComplete }: SplashProps) {
               filter: `blur(${s.blur}px)`,
             }}
             initial={{ opacity: 0 }}
-            animate={{ opacity: [0, 0.9, 0.4, 0.9, 0] }}
+            animate={{ opacity: [0, 1, 0.65, 1, 0] }}
             transition={{ duration: s.dur, repeat: Infinity, ease: "easeInOut", delay: s.delay }}
           />
         ))}
