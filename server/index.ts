@@ -316,7 +316,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
     await setupVite(httpServer, app);
   }
 
-  const port = parseInt(process.env.PORT || "5000", 10);
+  const port = parseInt(process.env.PORT || "3000", 10);
   // Electron backend always binds to 127.0.0.1 so health checks and the
   // renderer (both using 127.0.0.1) can reach it without DNS resolution.
   // Windows with "localhost" can resolve to ::1 (IPv6) instead of 127.0.0.1,

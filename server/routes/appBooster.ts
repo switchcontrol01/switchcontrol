@@ -72,14 +72,6 @@ async function columnExists(table: string, column: string): Promise<boolean> {
   } catch { return false; }
 }
 
-async function constraintExists(name: string): Promise<boolean> {
-  try {
-    const { rows } = await db.execute(sql.raw(`
-      SELECT 1 FROM pg_constraint WHERE conname = '${name}' AND contype = 'p'
-    `));
-    return rows.length > 0;
-  } catch { return false; }
-}
 
 async function initTables() {
   if (isNoDbMode || !db) return;
@@ -88,8 +80,8 @@ async function initTables() {
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_games (
+      slug          TEXT PRIMARY KEY,
       user_id       TEXT NOT NULL DEFAULT '__legacy__',
-      slug          TEXT NOT NULL,
       name          TEXT NOT NULL,
       executable    TEXT NOT NULL,
       install_path  TEXT,
@@ -98,23 +90,21 @@ async function initTables() {
       logo_url      TEXT,
       cover_url     TEXT,
       confidence    TEXT,
-      added_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (user_id, slug)
+      added_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_state (
+      game_slug      TEXT PRIMARY KEY,
       user_id        TEXT NOT NULL DEFAULT '__legacy__',
-      game_slug      TEXT NOT NULL,
       status         TEXT NOT NULL DEFAULT 'idle',
       profile_id     TEXT,
       applied_at     TIMESTAMPTZ,
       reverted_at    TIMESTAMPTZ,
       actions_result JSONB NOT NULL DEFAULT '[]',
       install_path   TEXT,
-      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (user_id, game_slug)
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
 
@@ -137,54 +127,25 @@ async function initTables() {
       `ALTER TABLE app_booster_games ADD COLUMN IF NOT EXISTS ${col} TEXT`);
   }
 
-  // ── Per-user migration: app_booster_games ───────────────────────────────────
-  // Step 1: add nullable column (safe on tables with existing rows)
-  if (!(await columnExists('app_booster_games', 'user_id'))) {
-    await runStep('app_booster_games: add nullable user_id',
-      `ALTER TABLE app_booster_games ADD COLUMN user_id TEXT`);
-    // Step 2: backfill existing rows
-    await runStep('app_booster_games: backfill user_id',
-      `UPDATE app_booster_games SET user_id = '__legacy__' WHERE user_id IS NULL`);
-    // Step 3: enforce NOT NULL
-    await runStep('app_booster_games: set user_id NOT NULL',
-      `ALTER TABLE app_booster_games ALTER COLUMN user_id SET NOT NULL`);
-  }
-  // Step 4: migrate PK from (slug) → (user_id, slug) when old single-col PK still exists
-  if (await constraintExists('app_booster_games_pkey')) {
-    await runStep('app_booster_games: drop old PK',
-      `ALTER TABLE app_booster_games DROP CONSTRAINT app_booster_games_pkey`);
-    await runStep('app_booster_games: add composite PK',
-      `ALTER TABLE app_booster_games ADD PRIMARY KEY (user_id, slug)`);
-  }
-
-  // ── Per-user migration: app_booster_state ───────────────────────────────────
-  // Step 1: add nullable column (safe on tables with existing rows)
-  if (!(await columnExists('app_booster_state', 'user_id'))) {
-    await runStep('app_booster_state: add nullable user_id',
-      `ALTER TABLE app_booster_state ADD COLUMN user_id TEXT`);
-    // Step 2: backfill existing rows
-    await runStep('app_booster_state: backfill user_id',
-      `UPDATE app_booster_state SET user_id = '__legacy__' WHERE user_id IS NULL`);
-    // Step 3: enforce NOT NULL
-    await runStep('app_booster_state: set user_id NOT NULL',
-      `ALTER TABLE app_booster_state ALTER COLUMN user_id SET NOT NULL`);
-  }
-  // Step 4: migrate PK from (game_slug) → (user_id, game_slug)
-  if (await constraintExists('app_booster_state_pkey')) {
-    await runStep('app_booster_state: drop old PK',
-      `ALTER TABLE app_booster_state DROP CONSTRAINT app_booster_state_pkey`);
-    await runStep('app_booster_state: add composite PK',
-      `ALTER TABLE app_booster_state ADD PRIMARY KEY (user_id, game_slug)`);
-  }
-
-  // ── Per-user migration: app_booster_history ─────────────────────────────────
-  if (!(await columnExists('app_booster_history', 'user_id'))) {
-    await runStep('app_booster_history: add nullable user_id',
-      `ALTER TABLE app_booster_history ADD COLUMN user_id TEXT`);
-    await runStep('app_booster_history: backfill user_id',
-      `UPDATE app_booster_history SET user_id = '__legacy__' WHERE user_id IS NULL`);
-    await runStep('app_booster_history: set user_id NOT NULL',
-      `ALTER TABLE app_booster_history ALTER COLUMN user_id SET NOT NULL`);
+  // ── Per-user column migration (column-only, no PK changes) ──────────────────
+  // Adds user_id to pre-existing tables that were created without it.
+  // NOTE: We intentionally keep the simple single-column PKs (slug / game_slug)
+  // so that Replit's deployment migration system only sees an ADD COLUMN diff
+  // (which it handles correctly) rather than a PK-swap diff (which it generates
+  // incorrectly, causing deployment failures).
+  for (const [table, col] of [
+    ['app_booster_games',   'user_id'],
+    ['app_booster_state',   'user_id'],
+    ['app_booster_history', 'user_id'],
+  ] as const) {
+    if (!(await columnExists(table, col))) {
+      await runStep(`${table}: add nullable user_id`,
+        `ALTER TABLE ${table} ADD COLUMN user_id TEXT`);
+      await runStep(`${table}: backfill user_id`,
+        `UPDATE ${table} SET user_id = '__legacy__' WHERE user_id IS NULL`);
+      await runStep(`${table}: set user_id NOT NULL`,
+        `ALTER TABLE ${table} ALTER COLUMN user_id SET NOT NULL`);
+    }
   }
 
   console.log('[AppBooster] tables ready');

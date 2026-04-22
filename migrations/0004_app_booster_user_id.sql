@@ -1,6 +1,8 @@
--- Migration: add user_id column to app_booster_* tables and convert PKs
--- Safe for production: each step is idempotent via IF NOT EXISTS / DO $$ guards.
--- Execution order: nullable add → backfill → NOT NULL → drop old PK → new composite PK
+-- Migration: add user_id column to app_booster_* tables
+-- Safe for production: each block is guarded so it only runs when needed.
+-- NOTE: We intentionally do NOT add composite PKs here — the deployment
+-- migration system handles PK diffs incorrectly (it generates ADD CONSTRAINT
+-- before ADD COLUMN). Keeping simple PKs avoids that failure path entirely.
 
 -- ── app_booster_games ────────────────────────────────────────────────────────
 
@@ -16,17 +18,6 @@ DO $$ BEGIN
 END $$;
 --> statement-breakpoint
 
-DO $$ BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'app_booster_games_pkey' AND contype = 'p'
-  ) THEN
-    ALTER TABLE app_booster_games DROP CONSTRAINT app_booster_games_pkey;
-    ALTER TABLE app_booster_games ADD PRIMARY KEY (user_id, slug);
-  END IF;
-END $$;
---> statement-breakpoint
-
 -- ── app_booster_state ────────────────────────────────────────────────────────
 
 DO $$ BEGIN
@@ -37,17 +28,6 @@ DO $$ BEGIN
     ALTER TABLE app_booster_state ADD COLUMN user_id TEXT;
     UPDATE app_booster_state SET user_id = '__legacy__' WHERE user_id IS NULL;
     ALTER TABLE app_booster_state ALTER COLUMN user_id SET NOT NULL;
-  END IF;
-END $$;
---> statement-breakpoint
-
-DO $$ BEGIN
-  IF EXISTS (
-    SELECT 1 FROM pg_constraint
-    WHERE conname = 'app_booster_state_pkey' AND contype = 'p'
-  ) THEN
-    ALTER TABLE app_booster_state DROP CONSTRAINT app_booster_state_pkey;
-    ALTER TABLE app_booster_state ADD PRIMARY KEY (user_id, game_slug);
   END IF;
 END $$;
 --> statement-breakpoint
