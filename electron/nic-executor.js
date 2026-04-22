@@ -375,7 +375,7 @@ async function getAdapterCapabilities(adapterName) {
   const safeAdapter = adapterName.replace(/'/g, "''");
 
   const raw = await queryPS(
-    `$props = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue; if ($props) { $props | Select-Object DisplayName, RegistryKeyword, DisplayValue, RegistryValue | ConvertTo-Json -Compress } else { '[]' }`
+    `$props = Get-NetAdapterAdvancedProperty -Name '${safeAdapter}' -EA SilentlyContinue; if ($props) { $props | Select-Object DisplayName, RegistryKeyword, DisplayValue, RegistryValue, ValidRegistryValues | ConvertTo-Json -Compress } else { '[]' }`
   );
 
   if (!raw) return { capabilities: {}, error: 'Could not query adapter properties.' };
@@ -402,6 +402,13 @@ async function getAdapterCapabilities(adapterName) {
     );
 
     if (match) {
+      // ValidRegistryValues may be an array, a single value, or null depending on property type
+      let validValues = null;
+      if (match.ValidRegistryValues !== undefined && match.ValidRegistryValues !== null) {
+        validValues = Array.isArray(match.ValidRegistryValues)
+          ? match.ValidRegistryValues.map(String)
+          : [String(match.ValidRegistryValues)];
+      }
       capabilities[key] = {
         supported:       true,
         // Prefer RegistryValue for currentValue so controls initialise to stable raw values
@@ -410,9 +417,10 @@ async function getAdapterCapabilities(adapterName) {
                            : (match.DisplayValue ?? null),
         registryKeyword: match.RegistryKeyword,
         displayName:     match.DisplayName,
+        validValues,
       };
     } else {
-      capabilities[key] = { supported: false, currentValue: null };
+      capabilities[key] = { supported: false, currentValue: null, validValues: null };
     }
   }
 
@@ -509,13 +517,15 @@ async function setNicProperty(adapterName, propertyKey, value) {
 
   const result = await runElevated(command);
   if (!result.ok) {
-    const isUac = /cancel|denied|elevat|access|uac/i.test(result.error || '');
+    const errStr = result.error || '';
+    const isUac          = /cancel|denied|elevat|access|uac/i.test(errStr);
+    const isInvalidValue = /no matching keyword value/i.test(errStr);
     return {
       ok:          false,
-      outcome:     isUac ? 'elevation_denied' : 'write_failed',
+      outcome:     isUac ? 'elevation_denied' : isInvalidValue ? 'invalid_value' : 'write_failed',
       verified:    false,
       actualValue: null,
-      error:       result.error,
+      error:       errStr,
     };
   }
 

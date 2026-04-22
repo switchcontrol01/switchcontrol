@@ -39,6 +39,7 @@ interface PropertyCapability {
   currentValue: string | null;
   registryKeyword?: string;
   displayName?: string;
+  validValues?: string[] | null;
 }
 
 interface PropertyMeta {
@@ -63,6 +64,7 @@ type NicOutcome =
   | 'write_succeeded_verified'
   | 'write_succeeded_verify_failed'
   | 'write_failed'
+  | 'invalid_value'
   | 'unsupported_on_adapter'
   | 'elevation_denied'
   | 'reset_verified'
@@ -95,6 +97,14 @@ function sanitizeNicError(err: string | null | undefined): string {
   // WMI "No matching objects" error
   if (/no matching.*MSFT_NetAdapter/i.test(err) || /CIM.*server/i.test(err)) {
     return 'Property not found on this NIC — the driver may not support it.';
+  }
+  // Invalid keyword value — NIC driver only accepts a subset of stepped presets
+  if (/no matching keyword value/i.test(err)) {
+    const m = err.match(/valid keyword values?:\s*([\d,\s]+)/i);
+    if (m) {
+      return `Your NIC doesn't support this option. Supported values: ${m[1].trim()}.`;
+    }
+    return "Your NIC doesn't support this specific value.";
   }
   // Access denied / UAC cancelled
   if (/access.?denied|uac|cancel/i.test(err)) return 'Access denied — run as administrator.';
@@ -181,6 +191,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       const outcomeMsg: Record<string, string> = {
         unsupported_on_adapter: 'Property not supported on this NIC driver.',
         elevation_denied:       'Access denied — run as administrator.',
+        invalid_value:          sanitizeNicError(res.error),
         write_failed:           sanitizeNicError(res.error),
       };
       toast({ title: 'Apply Failed', description: outcomeMsg[res.outcome] ?? sanitizeNicError(res.error), variant: 'destructive' });
@@ -279,21 +290,25 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       {/* Stepped selector */}
       {meta.type === 'stepped' && meta.presets && (
         <div className="flex flex-wrap items-center gap-1.5 mb-1">
-          {meta.presets.map((preset, i) => (
-            <button
-              key={preset}
-              onClick={() => setState(s => ({ ...s, pending: preset }))}
-              disabled={state.applying}
-              className={cn(
-                "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
-                state.pending === preset
-                  ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/25"
-                  : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20 hover:text-white/60"
-              )}
-            >
-              {meta.presetLabels?.[i] ?? preset}
-            </button>
-          ))}
+          {meta.presets.map((preset, i) => {
+            const isHardwareSupported = !capability.validValues || capability.validValues.includes(preset);
+            if (!isHardwareSupported) return null;
+            return (
+              <button
+                key={preset}
+                onClick={() => setState(s => ({ ...s, pending: preset }))}
+                disabled={state.applying}
+                className={cn(
+                  "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
+                  state.pending === preset
+                    ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/25"
+                    : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20 hover:text-white/60"
+                )}
+              >
+                {meta.presetLabels?.[i] ?? preset}
+              </button>
+            );
+          })}
           <span className="text-[10px] text-white/25 ml-1">
             Current: <span className="text-white/40">{capability.currentValue ?? '—'}</span>
           </span>
@@ -359,6 +374,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
                 write_succeeded_verified:    `Verified — registry confirmed ${r.actualValue ?? ''}`,
                 write_succeeded_verify_failed: `Written — readback pending driver confirmation (read: ${r.actualValue ?? '?'})`,
                 write_failed:                sanitizeNicError(r.error),
+                invalid_value:               sanitizeNicError(r.error),
                 unsupported_on_adapter:      'Property not supported on this NIC driver.',
                 elevation_denied:            'Access denied — run as administrator.',
                 reset_verified:              `Reset to default${r.actualValue ? ` — read back: ${r.actualValue}` : ''}`,
