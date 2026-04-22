@@ -28,6 +28,42 @@ function execPowerShell(command) {
   });
 }
 
+// ── normalization helpers ─────────────────────────────────────────────────────
+
+/**
+ * Normalize PowerShell check-script output to a tri-state boolean.
+ *
+ * Returns:
+ *   true  — script definitively reported the tweak is applied
+ *   false — script definitively reported the tweak is NOT applied
+ *   null  — output is inconclusive or unrecognised (never treat as failure)
+ *
+ * This prevents brittle "true"/"false" string matching from masking successful
+ * commands when the check script returns an unexpected but non-fatal value.
+ */
+function normalizePSBoolOutput(output) {
+  if (output === null || output === undefined) return null;
+  const s = String(output).trim().toLowerCase();
+  if (s === 'true'  || s === '1' || s === 'yes' || s === 'enabled')  return true;
+  if (s === 'false' || s === '0' || s === 'no'  || s === 'disabled') return false;
+  // 'inconclusive' or any unrecognised value → inconclusive
+  return null;
+}
+
+/**
+ * Normalize a block of netsh/PowerShell human-readable output for resilient matching.
+ * Lowercases, collapses whitespace, and removes Windows line endings.
+ */
+function normalizeNetshOutput(output) {
+  if (!output) return '';
+  return output
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
+    .toLowerCase()
+    .replace(/[^\S\n]+/g, ' ')  // collapse horizontal whitespace
+    .trim();
+}
+
 // ── tweak definitions ─────────────────────────────────────────────────────────
 
 /**
@@ -266,7 +302,8 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $out = netsh int tcp show heuristics 2>&1;
-      if ($out -match "disabled" -or $out -match "Window Scaling Heuristics State.*:\\s*disabled") { "true" } else { "false" }
+      $line = @($out) | Where-Object { $_ -imatch 'heuristic|scaling' } | Select-Object -First 1;
+      if ($line) { if ($line -imatch ':\s*disabled') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 
@@ -322,8 +359,9 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     check: `
-      $out = netsh int tcp show global;
-      if ($out -match "Receive-Side Scaling State.*:\\s*enabled") { "true" } else { "false" }
+      $out = netsh int tcp show global 2>&1;
+      $line = @($out) | Where-Object { $_ -imatch 'receive.side.scal|rss\b' } | Select-Object -First 1;
+      if ($line) { if ($line -imatch ':\s*enabled') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 
@@ -366,8 +404,8 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       $ifaces = Get-NetIPInterface -AddressFamily IPv4 -EA SilentlyContinue;
-      $enabled = $ifaces | Where-Object { $_.WeakHostSend -eq 'Enabled' };
-      if ($enabled.Count -gt 0) { "true" } else { "false" }
+      $enabled = $ifaces | Where-Object { [string]$_.WeakHostSend -imatch '^true$|^enabled$|^1$' };
+      if ($null -ne $enabled -and @($enabled).Count -gt 0) { 'true' } else { 'false' }
     `,
   },
 
@@ -382,8 +420,9 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     check: `
-      $out = netsh int tcp show global;
-      if ($out -match "Receive Window Auto-Tuning Level.*:\\s*normal") { "true" } else { "false" }
+      $out = netsh int tcp show global 2>&1;
+      $line = @($out) | Where-Object { $_ -imatch 'auto.tun' } | Select-Object -First 1;
+      if ($line) { if ($line -imatch ':\s*normal') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 
@@ -428,9 +467,18 @@ const TWEAK_REGISTRY = {
     `,
     check: `
       try {
-        $out = netsh int tcp show supplemental template=Internet 2>&1;
-        if ($out -match "Congestion.*:\\s*CTCP" -or $out -match "compound") { "true" } else { "false" }
-      } catch { "false" }
+        $s = Get-NetTCPSetting -SettingName Internet -EA SilentlyContinue;
+        if ($s -and [string]$s.CongestionProvider -imatch 'ctcp|compound') { 'true' }
+        else {
+          $out = netsh int tcp show supplemental template=Internet 2>&1;
+          if ($out -imatch 'ctcp|compound') { 'true' } else { 'false' }
+        }
+      } catch {
+        try {
+          $out = netsh int tcp show supplemental template=Internet 2>&1;
+          if ($out -imatch 'ctcp|compound') { 'true' } else { 'false' }
+        } catch { 'false' }
+      }
     `,
   },
 
@@ -457,8 +505,9 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     check: `
-      $out = netsh int ip show dynamicportrange protocol=tcp;
-      if ($out -match "Number of Ports\\s*:\\s*64511") { "true" } else { "false" }
+      $out = netsh int ip show dynamicportrange protocol=tcp 2>&1;
+      $match = @($out) | Where-Object { $_ -match '64511' } | Select-Object -First 1;
+      if ($match) { 'true' } else { 'false' }
     `,
   },
 
@@ -485,9 +534,9 @@ const TWEAK_REGISTRY = {
     check: `
       try {
         $offloads = Get-NetAdapterChecksumOffload -EA SilentlyContinue;
-        $disabled = $offloads | Where-Object { $_.UdpIPv4RxEnabled -eq 'Disabled' };
-        if ($disabled.Count -gt 0) { "true" } else { "false" }
-      } catch { "false" }
+        $disabled = $offloads | Where-Object { [string]$_.UdpIPv4RxEnabled -imatch '^false$|^disabled$|^0$' };
+        if ($null -ne $disabled -and @($disabled).Count -gt 0) { 'true' } else { 'false' }
+      } catch { 'false' }
     `,
   },
 
@@ -614,10 +663,17 @@ async function executeNetworkTweak(tweakId, action) {
     if (entry.check) {
       try {
         const checkOut = await execPowerShell(entry.check);
-        const isEnabled = checkOut.trim().toLowerCase() === 'true';
-        verified = action === 'apply' ? isEnabled : !isEnabled;
+        // normalizePSBoolOutput returns true/false/null (null = inconclusive)
+        const isEnabled = normalizePSBoolOutput(checkOut);
+        if (isEnabled === null) {
+          // Inconclusive — check script could not determine state; do NOT mark as failed
+          verified = false;
+        } else {
+          verified = action === 'apply' ? isEnabled : !isEnabled;
+        }
       } catch (verifyErr) {
-        console.warn(`[NetworkTweak] Verification failed for ${tweakId}:`, verifyErr.message);
+        // Verification threw — treat as inconclusive, not failure
+        console.warn(`[NetworkTweak] Verification inconclusive for ${tweakId}:`, verifyErr.message);
         verified = false;
       }
     }
@@ -657,7 +713,8 @@ async function checkNetworkTweakStatus(tweakId) {
 
   try {
     const out = await execPowerShell(entry.check);
-    return { tweakId, applied: out.trim().toLowerCase() === 'true' };
+    // normalizePSBoolOutput: null = inconclusive → applied: null
+    return { tweakId, applied: normalizePSBoolOutput(out) };
   } catch {
     return { tweakId, applied: null };
   }
@@ -688,4 +745,7 @@ module.exports = {
   checkAllNetworkTweakStatus,
   getDisabledTweaks,
   TWEAK_REGISTRY,
+  // normalization helpers
+  normalizePSBoolOutput,
+  normalizeNetshOutput,
 };

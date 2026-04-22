@@ -207,11 +207,12 @@ const NIC_PROPERTY_DEFS = {
 
 const REGISTRY_DISPLAY_ALIASES = {
   '0': ['0', 'disabled', 'no', 'off', 'false', 'none'],
-  '1': ['1', 'enabled', 'yes', 'on', 'true'],
+  // '1' covers both simple toggle-enabled AND FlowControl "Tx Enabled" (value 1)
+  '1': ['1', 'enabled', 'yes', 'on', 'true', 'tx enabled', 'transmit enabled', 'tx only'],
   // FlowControl stepped values
-  '2': ['2', 'rx enabled', 'receive enabled', 'rx only', 'receive only'],
+  '2': ['2', 'rx enabled', 'receive enabled', 'rx only', 'receive only', 'rx'],
   '3': ['3', 'rx & tx enabled', 'tx & rx enabled', 'rx and tx enabled',
-              'tx and rx enabled', 'both enabled', 'enabled'],
+              'tx and rx enabled', 'tx & rx enabled', 'both enabled', 'enabled'],
   // Numeric / queue counts — exact match suffices, handled by registryValue path
   '4': ['4'],
   '8': ['8'],
@@ -227,15 +228,45 @@ const REGISTRY_DISPLAY_ALIASES = {
 };
 
 /**
- * Returns true if the value we wrote matches what was read back.
+ * Normalize a NIC driver DisplayValue string: lowercase + trim.
+ * Exported so UI layers can apply the same normalization when comparing
+ * human-readable labels.
+ */
+function normalizeNicDisplayValue(raw) {
+  if (raw === null || raw === undefined) return '';
+  return String(raw).toLowerCase().trim();
+}
+
+/**
+ * Normalize PowerShell boolean-like output to a tri-state boolean.
+ *
+ * Returns:
+ *   true  — definitively enabled/present
+ *   false — definitively disabled/absent
+ *   null  — inconclusive (unknown value)
+ *
+ * Shared between nic-executor and network-tweak-executor to guarantee
+ * consistent normalization of PS check output.
+ */
+function normalizeBooleanLikeValue(raw) {
+  if (raw === null || raw === undefined) return null;
+  const s = String(raw).toLowerCase().trim();
+  if (s === 'true'  || s === '1' || s === 'yes' || s === 'enabled')  return true;
+  if (s === 'false' || s === '0' || s === 'no'  || s === 'disabled') return false;
+  return null;
+}
+
+/**
+ * Compare a written RegistryValue string against a readback object.
  *
  * Strategy (in priority order):
- *   1. If readback has a RegistryValue, compare it directly (most reliable).
- *   2. If readback only has a DisplayValue, normalize against REGISTRY_DISPLAY_ALIASES.
+ *   1. If readback.registryValue is present, compare directly (most reliable).
+ *   2. If only readback.displayValue is present, normalize via REGISTRY_DISPLAY_ALIASES.
  *
- * This prevents false failures when a driver returns 'Disabled' for a written '0'.
+ * Exported as `compareSemanticNicValue` so external callers can use the same
+ * comparison logic without going through the full read/write cycle.
  */
-function verifyNicValue(writtenValue, readback) {
+function compareSemanticNicValue(writtenValue, readback) {
   const wv = String(writtenValue).trim();
 
   // 1. RegistryValue direct comparison — most reliable across all vendors
@@ -245,12 +276,21 @@ function verifyNicValue(writtenValue, readback) {
 
   // 2. DisplayValue normalization fallback
   if (readback.displayValue !== null && readback.displayValue !== undefined) {
-    const dv = String(readback.displayValue).toLowerCase().trim();
+    const dv = normalizeNicDisplayValue(readback.displayValue);
     const aliases = REGISTRY_DISPLAY_ALIASES[wv] || [wv.toLowerCase()];
     if (aliases.some(a => dv === a || dv === a.toLowerCase())) return true;
   }
 
   return false;
+}
+
+/**
+ * Returns true if the value we wrote matches what was read back.
+ * Delegates to compareSemanticNicValue — kept for backward compatibility
+ * with existing call sites in setNicProperty().
+ */
+function verifyNicValue(writtenValue, readback) {
+  return compareSemanticNicValue(writtenValue, readback);
 }
 
 // ── Adapter property discovery ────────────────────────────────────────────────
@@ -586,4 +626,9 @@ module.exports = {
   resetNicProperty,
   getNicPropertyMeta,
   NIC_PROPERTY_DEFS,
+  // normalization helpers — exported so callers can use same logic
+  normalizeNicDisplayValue,
+  normalizeBooleanLikeValue,
+  compareSemanticNicValue,
+  REGISTRY_DISPLAY_ALIASES,
 };
