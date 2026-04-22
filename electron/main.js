@@ -449,7 +449,7 @@ function createWindow() {
     title: isDev ? 'SwitchControl DEBUG BUILD' : 'SwitchControl',
     width: 1300,
     height: 800,
-    show: true,
+    show: false,
     backgroundColor: '#07090D',
     frame: false,
     thickFrame: false,
@@ -463,7 +463,7 @@ function createWindow() {
       additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
     }
   });
-  console.log('[STARTUP:5] BrowserWindow constructed — show:true, isVisible:', mainWindow.isVisible());
+  console.log('[STARTUP:5] BrowserWindow constructed — show:false (waiting for ready-to-show), isVisible:', mainWindow.isVisible());
 
   // ── DevTools access hardening ─────────────────────────────────────────────────
   // In dev: F12 / Ctrl+Shift+I toggle DevTools normally.
@@ -648,11 +648,21 @@ function createWindow() {
     }
   });
 
+  // Safety net: if ready-to-show never fires (e.g. GPU stall), force-show after 5 s.
+  const showFallbackTimer = setTimeout(() => {
+    if (mainWindow && !mainWindow.isVisible()) {
+      console.warn('[STARTUP] ready-to-show fallback — showing window after 5 s timeout');
+      mainWindow.show();
+      mainWindow.focus();
+    }
+  }, 5000);
+
   mainWindow.once('ready-to-show', () => {
-    console.log('[SwitchControl] Window ready-to-show fired — focusing window');
-    // Force focus so Windows compositor paints immediately and JS timers are
-    // not throttled. Without this the window can stay visually blank until
-    // the user clicks (Chromium GPU rendering stall on frameless windows).
+    clearTimeout(showFallbackTimer);
+    console.log('[SwitchControl] Window ready-to-show fired — showing and focusing window');
+    // Show first, then focus so the Windows compositor paints immediately and
+    // JS timers are not throttled (Chromium GPU rendering stall on frameless windows).
+    mainWindow.show();
     mainWindow.focus();
   });
   mainWindow.on('closed', () => { 
