@@ -306,9 +306,31 @@ export async function apiFetch(
 
   // Include JWT in Authorization header when the user is authenticated via JWT
   // (e.g. packaged Electron). This lets requireJwt middleware accept local API calls.
+  // Decode the payload client-side first so we never send an expired token —
+  // the backend hard-rejects expired JWTs even when a valid session cookie exists.
   const jwt = useAuthStore.getState().jwt;
   if (jwt && !headers['Authorization'] && !headers['authorization']) {
-    headers['Authorization'] = `Bearer ${jwt}`;
+    let jwtOk = true;
+    try {
+      const parts = jwt.split('.');
+      if (parts.length !== 3) {
+        jwtOk = false;
+      } else {
+        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+        if (payload.exp && Math.floor(Date.now() / 1000) >= payload.exp) {
+          jwtOk = false;
+          console.warn('[API] Stored JWT is expired — clearing and falling back to session cookie');
+          useAuthStore.getState().setJwt(null);
+        }
+      }
+    } catch {
+      jwtOk = false;
+      console.warn('[API] Stored JWT is malformed — clearing');
+      useAuthStore.getState().setJwt(null);
+    }
+    if (jwtOk) {
+      headers['Authorization'] = `Bearer ${jwt}`;
+    }
   }
 
   const deviceId = await getDeviceId();

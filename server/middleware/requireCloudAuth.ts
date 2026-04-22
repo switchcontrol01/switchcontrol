@@ -26,29 +26,34 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
     const token = authHeader.substring(7);
     const payload = verifyJwt(token);
     if (!payload?.sub) {
-      console.warn(`[CloudAuth] Invalid JWT | ip=${req.ip}`);
-      return res.status(401).json({ error: "Invalid or expired session. Please log in again." });
-    }
-    try {
-      const user = await storage.getUser(payload.sub);
-      if (!user) {
-        return res.status(401).json({ error: "User account not found. Please log in again." });
+      // JWT present but invalid/expired — fall through to session cookie check
+      // rather than hard-failing. This prevents stale persisted JWTs from
+      // blocking users who have a valid session cookie.
+      console.warn(`[CloudAuth] Invalid/expired JWT — falling through to session check | ip=${req.ip}`);
+    } else {
+      try {
+        const user = await storage.getUser(payload.sub);
+        if (!user) {
+          // User not found in DB — fall through to session
+          console.warn(`[CloudAuth] JWT user not found in DB — falling through to session check | sub=${payload.sub}`);
+        } else {
+          const effectivePlan = resolveEffectivePlan(user);
+          req.cloudUser = {
+            id: user.id,
+            isPremium: isPlanActive(effectivePlan),
+            plan: effectivePlan,
+            trialEndsAt: user.trialEndsAt ?? null,
+            email: user.email ?? null,
+            isAdmin: user.isAdmin ?? false,
+            premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
+          };
+          console.log(`[CloudAuth] JWT OK | user=${user.id} effectivePlan=${effectivePlan} isPremium=${req.cloudUser.isPremium}`);
+          return next();
+        }
+      } catch (e) {
+        console.error("[CloudAuth] DB error during JWT auth:", e);
+        return res.status(500).json({ error: "Authentication check failed. Please try again." });
       }
-      const effectivePlan = resolveEffectivePlan(user);
-      req.cloudUser = {
-        id: user.id,
-        isPremium: isPlanActive(effectivePlan),
-        plan: effectivePlan,
-        trialEndsAt: user.trialEndsAt ?? null,
-        email: user.email ?? null,
-        isAdmin: user.isAdmin ?? false,
-        premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
-      };
-      console.log(`[CloudAuth] JWT OK | user=${user.id} effectivePlan=${effectivePlan} isPremium=${req.cloudUser.isPremium}`);
-      return next();
-    } catch (e) {
-      console.error("[CloudAuth] DB error during JWT auth:", e);
-      return res.status(500).json({ error: "Authentication check failed. Please try again." });
     }
   }
 
