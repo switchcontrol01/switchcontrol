@@ -594,8 +594,13 @@ export async function registerRoutes(
 
       // Verify the authenticated user owns this checkout session.
       // client_reference_id is set to the user's DB ID when the session is created.
+      // Fail-closed: deny if no ownership mapping is present on the session.
       const sessionUserId = session.client_reference_id || session.metadata?.userId;
-      if (sessionUserId && req.cloudUser!.id !== sessionUserId) {
+      if (!sessionUserId) {
+        console.warn(`[Stripe] /session — no owner mapping on session ${session_id}`);
+        return res.status(403).json({ error: "Access denied." });
+      }
+      if (req.cloudUser!.id !== sessionUserId) {
         console.warn(`[Stripe] /session — ownership mismatch | authed=${req.cloudUser!.id} session_owner=${sessionUserId}`);
         return res.status(403).json({ error: "Access denied." });
       }
