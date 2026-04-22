@@ -46,12 +46,46 @@ function getUserId(req: Request): string {
   return (req as any).cloudUser?.id ?? '__legacy__';
 }
 
-// ── DB init ───────────────────────────────────────────────────────────────────
+// ── DB init and safe migration ────────────────────────────────────────────────
+//
+// Designed to be safe on both fresh and existing production databases.
+// Each step is idempotent; individual step failures are logged but do not
+// abort the rest of the migration.
+
+async function runStep(label: string, query: string): Promise<boolean> {
+  try {
+    await db.execute(sql.raw(query));
+    return true;
+  } catch (e: any) {
+    console.warn(`[AppBooster] migration step "${label}" skipped: ${e.message}`);
+    return false;
+  }
+}
+
+async function columnExists(table: string, column: string): Promise<boolean> {
+  try {
+    const { rows } = await db.execute(sql.raw(`
+      SELECT 1 FROM information_schema.columns
+      WHERE table_name = '${table}' AND column_name = '${column}'
+    `));
+    return rows.length > 0;
+  } catch { return false; }
+}
+
+async function constraintExists(name: string): Promise<boolean> {
+  try {
+    const { rows } = await db.execute(sql.raw(`
+      SELECT 1 FROM pg_constraint WHERE conname = '${name}' AND contype = 'p'
+    `));
+    return rows.length > 0;
+  } catch { return false; }
+}
 
 async function initTables() {
   if (isNoDbMode || !db) return;
 
-  // Create tables with composite (user_id, slug) primary keys.
+  // ── Create tables (new deployments get the correct schema immediately) ──────
+
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_games (
       user_id       TEXT NOT NULL DEFAULT '__legacy__',
@@ -96,59 +130,64 @@ async function initTables() {
     )
   `);
 
-  // Migrate pre-existing tables that used single-column PKs.
-  // Safely add user_id column if missing, then migrate PK.
-  for (const migration of [
-    `ALTER TABLE app_booster_games    ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`,
-    `ALTER TABLE app_booster_state    ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`,
-    `ALTER TABLE app_booster_history  ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`,
-    `ALTER TABLE app_booster_games    ADD COLUMN IF NOT EXISTS launcher    TEXT`,
-    `ALTER TABLE app_booster_games    ADD COLUMN IF NOT EXISTS logo_url    TEXT`,
-    `ALTER TABLE app_booster_games    ADD COLUMN IF NOT EXISTS cover_url   TEXT`,
-    `ALTER TABLE app_booster_games    ADD COLUMN IF NOT EXISTS confidence  TEXT`,
-  ]) {
-    try {
-      await db.execute(sql.raw(migration));
-    } catch (_) { /* column already exists */ }
+  // ── Optional columns added in later releases ────────────────────────────────
+
+  for (const col of ['launcher', 'logo_url', 'cover_url', 'confidence']) {
+    await runStep(`add ${col} to app_booster_games`,
+      `ALTER TABLE app_booster_games ADD COLUMN IF NOT EXISTS ${col} TEXT`);
   }
 
-  // Migrate PK on app_booster_games from (slug) → (user_id, slug)
-  try {
-    await db.execute(sql.raw(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1 FROM pg_constraint
-          WHERE conname = 'app_booster_games_pkey'
-            AND contype = 'p'
-        ) THEN
-          ALTER TABLE app_booster_games DROP CONSTRAINT app_booster_games_pkey;
-          ALTER TABLE app_booster_games ADD PRIMARY KEY (user_id, slug);
-        END IF;
-      END $$
-    `));
-  } catch (e: any) {
-    console.warn('[AppBooster] PK migration for app_booster_games skipped:', e.message);
+  // ── Per-user migration: app_booster_games ───────────────────────────────────
+  // Step 1: add nullable column (safe on tables with existing rows)
+  if (!(await columnExists('app_booster_games', 'user_id'))) {
+    await runStep('app_booster_games: add nullable user_id',
+      `ALTER TABLE app_booster_games ADD COLUMN user_id TEXT`);
+    // Step 2: backfill existing rows
+    await runStep('app_booster_games: backfill user_id',
+      `UPDATE app_booster_games SET user_id = '__legacy__' WHERE user_id IS NULL`);
+    // Step 3: enforce NOT NULL
+    await runStep('app_booster_games: set user_id NOT NULL',
+      `ALTER TABLE app_booster_games ALTER COLUMN user_id SET NOT NULL`);
+  }
+  // Step 4: migrate PK from (slug) → (user_id, slug) when old single-col PK still exists
+  if (await constraintExists('app_booster_games_pkey')) {
+    await runStep('app_booster_games: drop old PK',
+      `ALTER TABLE app_booster_games DROP CONSTRAINT app_booster_games_pkey`);
+    await runStep('app_booster_games: add composite PK',
+      `ALTER TABLE app_booster_games ADD PRIMARY KEY (user_id, slug)`);
   }
 
-  // Migrate PK on app_booster_state from (game_slug) → (user_id, game_slug)
-  try {
-    await db.execute(sql.raw(`
-      DO $$
-      BEGIN
-        IF EXISTS (
-          SELECT 1 FROM pg_constraint
-          WHERE conname = 'app_booster_state_pkey'
-            AND contype = 'p'
-        ) THEN
-          ALTER TABLE app_booster_state DROP CONSTRAINT app_booster_state_pkey;
-          ALTER TABLE app_booster_state ADD PRIMARY KEY (user_id, game_slug);
-        END IF;
-      END $$
-    `));
-  } catch (e: any) {
-    console.warn('[AppBooster] PK migration for app_booster_state skipped:', e.message);
+  // ── Per-user migration: app_booster_state ───────────────────────────────────
+  // Step 1: add nullable column (safe on tables with existing rows)
+  if (!(await columnExists('app_booster_state', 'user_id'))) {
+    await runStep('app_booster_state: add nullable user_id',
+      `ALTER TABLE app_booster_state ADD COLUMN user_id TEXT`);
+    // Step 2: backfill existing rows
+    await runStep('app_booster_state: backfill user_id',
+      `UPDATE app_booster_state SET user_id = '__legacy__' WHERE user_id IS NULL`);
+    // Step 3: enforce NOT NULL
+    await runStep('app_booster_state: set user_id NOT NULL',
+      `ALTER TABLE app_booster_state ALTER COLUMN user_id SET NOT NULL`);
   }
+  // Step 4: migrate PK from (game_slug) → (user_id, game_slug)
+  if (await constraintExists('app_booster_state_pkey')) {
+    await runStep('app_booster_state: drop old PK',
+      `ALTER TABLE app_booster_state DROP CONSTRAINT app_booster_state_pkey`);
+    await runStep('app_booster_state: add composite PK',
+      `ALTER TABLE app_booster_state ADD PRIMARY KEY (user_id, game_slug)`);
+  }
+
+  // ── Per-user migration: app_booster_history ─────────────────────────────────
+  if (!(await columnExists('app_booster_history', 'user_id'))) {
+    await runStep('app_booster_history: add nullable user_id',
+      `ALTER TABLE app_booster_history ADD COLUMN user_id TEXT`);
+    await runStep('app_booster_history: backfill user_id',
+      `UPDATE app_booster_history SET user_id = '__legacy__' WHERE user_id IS NULL`);
+    await runStep('app_booster_history: set user_id NOT NULL',
+      `ALTER TABLE app_booster_history ALTER COLUMN user_id SET NOT NULL`);
+  }
+
+  console.log('[AppBooster] tables ready');
 }
 
 initTables().catch((e) =>
