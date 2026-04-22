@@ -9,6 +9,23 @@ import { db, isNoDbMode } from "../db";
 
 const router = Router();
 
+// ── Allowlist of valid network tweak IDs ─────────────────────────────────────
+// Derived from client/src/lib/network-tweaks-data.ts — must stay in sync.
+
+const VALID_TWEAK_IDS = new Set<string>([
+  "smb-non-best-effort", "smb-v2v3", "smb-live-migration", "smb-congruent-ops",
+  "smb-max-requests", "smb-irp-stack", "smb-incoming-requests", "smb-pipe-data",
+  "smb-request-buffer", "smb-preallocate",
+  "tcp-wait-time", "tcp-bufferlist", "tcp-nagle", "tcp-non-sack-rto",
+  "tcp-task-offload", "tcp-timestamps", "tcp-window-heuristics", "tcp-dca",
+  "tcp-throttling-index", "tcp-pmtu", "tcp-rss", "tcp-chimney", "tcp-sack",
+  "tcp-weak-host", "tcp-winhttp", "tcp-rto-increase", "tcp-connection-timeout",
+  "tcp-congestion", "tcp-ttl", "tcp-connection-limit", "tcp-port-range",
+  "udp-offloads", "udp-fast-send",
+  "sec-llmnr", "sec-mpp", "sec-netbios",
+  "dns-doh", "dns-optimize",
+]);
+
 // ── table init ───────────────────────────────────────────────────────────────
 
 async function initTables(): Promise<void> {
@@ -67,6 +84,11 @@ router.get("/state", async (_req, res) => {
 
 router.post("/:tweakId/report", async (req, res) => {
   const { tweakId } = req.params;
+
+  if (!VALID_TWEAK_IDS.has(tweakId)) {
+    return res.status(400).json({ ok: false, error: `Unknown tweak ID: ${tweakId}` });
+  }
+
   const { action, success, verified, message, disabled } = req.body as {
     action: string;
     success: boolean;

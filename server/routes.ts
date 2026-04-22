@@ -47,15 +47,15 @@ export async function registerRoutes(
     }
     next();
   }, adminRouter);
-  app.use("/api/app-booster", appBoosterRouter);
-  app.use("/api/network-tweaks", networkTweaksRouter);
+  app.use("/api/app-booster", requireJwt, appBoosterRouter);
+  app.use("/api/network-tweaks", requireJwt, networkTweaksRouter);
   app.use("/api/tweak-intelligence", tweakIntelligenceRouter);
   app.use("/api/power-intelligence", powerIntelligenceRouter);
   app.use("/api/dashboard-intelligence", dashboardIntelligenceRouter);
   app.use("/api/startup", startupAppsRouter);
   app.use("/api/debloat", debloaterRouter);
-  app.use("/api/cleaner", cleanerRouter);
-  app.use("/api/focus", focusModeRouter);
+  app.use("/api/cleaner", requireJwt, cleanerRouter);
+  app.use("/api/focus", requireJwt, focusModeRouter);
   app.use("/api/system-intelligence", systemIntelligenceRouter);
   app.use("/api/issues", issueDetectorRouter);
 

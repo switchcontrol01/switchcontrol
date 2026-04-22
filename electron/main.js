@@ -2087,8 +2087,37 @@ ipcMain.handle('appBooster:browseExecutable', async (event, { slug, gameName }) 
   }
 });
 
+// Validate App Booster inputs before interpolating them into PowerShell scripts.
+// Any value that fails is rejected — prevents cloud-poisoned paths from injecting commands.
+function validateAppBoosterInput(value, label, pattern) {
+  if (value === null || value === undefined || value === '') return value;
+  if (typeof value !== 'string') throw new Error(`[AppBooster] ${label} must be a string`);
+  if (!pattern.test(value)) {
+    console.error(`[AppBooster] Rejected dangerous ${label}: ${JSON.stringify(value)}`);
+    throw new Error(`[AppBooster] Invalid characters in ${label} — action aborted`);
+  }
+  return value;
+}
+
+// Allow typical Windows path characters (letters, digits, space, backslash, colon, period,
+// parentheses, hyphen, underscore). Explicitly excludes " ; ` $ & | ( ) { } < > and newlines.
+const WIN_PATH_RE  = /^[A-Za-z0-9 ._\-\\:()\[\]]+$/;
+// Executable filename: simple name + extension, no path separators or shell metacharacters.
+const EXEC_NAME_RE = /^[A-Za-z0-9 ._\-]+\.(?:exe|bat|cmd)$/i;
+// Game name: printable alphanumerics, spaces, apostrophes, hyphens, periods, colons.
+const GAME_NAME_RE = /^[A-Za-z0-9 .':\-_&]+$/;
+
 ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executable, installPath, gameName }) => {
   console.log(`[IPC] appBooster:executeAction type=${type} mode=${mode} exe=${executable}`);
+
+  try {
+    validateAppBoosterInput(installPath, 'installPath', WIN_PATH_RE);
+    validateAppBoosterInput(executable,  'executable',  EXEC_NAME_RE);
+    validateAppBoosterInput(gameName,    'gameName',    GAME_NAME_RE);
+  } catch (e) {
+    return { success: false, error: e.message, verified: false };
+  }
+
   const exePath = installPath ? require('path').join(installPath, executable) : executable;
 
   const scripts = {
