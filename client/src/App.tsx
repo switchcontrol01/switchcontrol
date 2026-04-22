@@ -290,20 +290,30 @@ function ElectronAppContent() {
   }, [phase, user?.loggedIn, entitlementsAttempted]);
 
   // Phase-stabilization gate: let the dashboard's fade-in finish before any
-  // tour overlay is allowed to mount. 1600ms covers the 1.2s opacity + 0.25s
-  // delay of the app-shell enter animation. Resets whenever phase leaves "authenticated".
+  // tour overlay is allowed to mount.
+  //
+  // For first-time users (isFirstLogin=true) the app arrives from the
+  // "welcome" phase whose AnimatePresence exit animation takes 1450ms. Using
+  // 1600ms left only a 150ms gap — not enough on slower Windows machines,
+  // causing the WelcomeAnimation to bleed through the 82%-opaque tour
+  // backdrop. 2400ms gives a comfortable 950ms buffer after that exit.
+  //
+  // For all other flows the existing 1600ms (covers 1.15s opacity + 0.25s
+  // delay of the app-shell enter) is preserved so repeat-users see tours
+  // promptly.
   useEffect(() => {
     if (phase !== "authenticated") {
       setIsPhaseStable(false);
       return;
     }
-    console.log('[TourTransition] phase entered authenticated — waiting for dashboard to stabilize');
+    const delay = isFirstLogin ? 2400 : 1600;
+    console.log(`[TourTransition] phase entered authenticated — waiting ${delay}ms for dashboard to stabilize`);
     const t = setTimeout(() => {
       setIsPhaseStable(true);
       console.log('[TourTransition] dashboard stable — tours unblocked');
-    }, 1600);
+    }, delay);
     return () => clearTimeout(t);
-  }, [phase]);
+  }, [phase, isFirstLogin]);
 
   // When an admin re-grants a trial, the server resets hasSeenTrialActivation
   // and hasSeenTrialTour to false. Clear the matching session-level refs so the
