@@ -355,6 +355,13 @@ export function Sidebar() {
   const ent = useEntitlementUiState();
   const activeItemRef = useRef<HTMLDivElement>(null);
   const { activeTourHighlight, isTourActive } = useTourStore();
+  const [appVersion, setAppVersion] = useState<string | null>(null);
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    if (api?.getVersion) {
+      api.getVersion().then((v: string) => setAppVersion(v)).catch(() => {});
+    }
+  }, []);
   useEffect(() => {
     const handleWindowBlur = () => {
       if (document.activeElement instanceof HTMLElement) {
@@ -536,7 +543,7 @@ export function Sidebar() {
           {/* Bottom bar: version + social icons */}
           <div className="mt-2 flex items-center justify-between px-2">
             <span className="text-[10px] text-muted-foreground/40 font-mono tracking-wide">
-              v1.0.0 · Early Access
+              {appVersion ? `v${appVersion}` : "SwitchControl"}
             </span>
             <div className="flex items-center gap-0.5">
               <Tooltip>
