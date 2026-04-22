@@ -4,6 +4,16 @@ import si from "systeminformation";
 
 const router = Router();
 
+// ── Server-side caches for expensive routes ───────────────────────────────────
+// /ram-analysis: calls si.mem() + si.processes() — 8s TTL
+// /display-signal: calls si.graphics() — 60s TTL (display config rarely changes)
+
+const RAM_ANALYSIS_TTL    = 8_000;
+const DISPLAY_SIGNAL_TTL  = 60_000;
+
+let ramAnalysisCache:   { data: any; ts: number } | null = null;
+let displaySignalCache: { data: any; ts: number } | null = null;
+
 // ── Stability / Instability score ──────────────────────────────────────────────
 
 router.get("/instability", (_req, res) => {
@@ -387,6 +397,11 @@ router.get("/latency-estimate", (_req, res) => {
 
 router.get("/ram-analysis", async (_req, res) => {
   try {
+    // Serve cached result if within TTL — avoids si.processes() on every fast refresh
+    if (ramAnalysisCache && (Date.now() - ramAnalysisCache.ts) < RAM_ANALYSIS_TTL) {
+      return res.json(ramAnalysisCache.data);
+    }
+
     const snap    = getCachedSnapshot();
     const usedGB  = snap.ram.usedGB;
     const totalGB = snap.ram.totalGB;
@@ -479,7 +494,7 @@ router.get("/ram-analysis", async (_req, res) => {
 
     const standbyGb = buffcacheGB;
 
-    res.json({
+    const ramResult = {
       totalGb:          parseFloat(totalGB.toFixed(1)),
       usedGb:           parseFloat(usedGB.toFixed(1)),
       freeGb:           parseFloat(freeGB.toFixed(1)),
@@ -495,7 +510,9 @@ router.get("/ram-analysis", async (_req, res) => {
       recommendation,
       topProcesses,
       ts: Date.now(),
-    });
+    };
+    ramAnalysisCache = { data: ramResult, ts: Date.now() };
+    res.json(ramResult);
   } catch (e: any) {
     res.status(500).json({ error: "Failed to analyze RAM" });
   }
@@ -505,6 +522,11 @@ router.get("/ram-analysis", async (_req, res) => {
 
 router.get("/display-signal", async (_req, res) => {
   try {
+    // Serve cached result if within TTL — display config changes very rarely
+    if (displaySignalCache && (Date.now() - displaySignalCache.ts) < DISPLAY_SIGNAL_TTL) {
+      return res.json(displaySignalCache.data);
+    }
+
     const gfx = await si.graphics();
 
     // Normalize a display from systeminformation — be explicit when data is absent
@@ -637,21 +659,19 @@ router.get("/display-signal", async (_req, res) => {
 
     const profile = rawDisps.length > 0 ? normalizeDisplay(rawDisps[0]) : null;
 
-    if (!profile) {
-      res.json({
-        monitorName: null, resolution: null, refreshHz: null,
-        bitDepth: null, hdrEnabled: null, vrrEnabled: null,
-        connectionType: null, gpuName: null, isNativeMode: null,
-        qualityScore: null,
-        qualityReason: "No display detected",
-        qualityAction: null,
-        notes: [],
-        displayCount: 0,
-        ts: Date.now(),
-      });
-    } else {
-      res.json(profile);
-    }
+    const displayResult = profile ?? {
+      monitorName: null, resolution: null, refreshHz: null,
+      bitDepth: null, hdrEnabled: null, vrrEnabled: null,
+      connectionType: null, gpuName: null, isNativeMode: null,
+      qualityScore: null,
+      qualityReason: "No display detected",
+      qualityAction: null,
+      notes: [],
+      displayCount: 0,
+      ts: Date.now(),
+    };
+    displaySignalCache = { data: displayResult, ts: Date.now() };
+    res.json(displayResult);
   } catch (e: any) {
     res.status(500).json({ error: "Failed to collect display signal data" });
   }

@@ -501,7 +501,8 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
         })
         .catch(() => {});
     load();
-    const timer = setInterval(load, 15_000);
+    // Server caches this for 60s (si.graphics is expensive) — poll at same cadence
+    const timer = setInterval(load, 60_000);
     return () => clearInterval(timer);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

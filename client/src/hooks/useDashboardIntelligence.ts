@@ -208,12 +208,14 @@ export function useDashboardIntelligence(): DashboardIntelligenceState {
     fetchAll();
 
     const intervals = [
-      setInterval(() => fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability").then(setInstability).catch(() => {}),       5_000),
-      setInterval(() => fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna").then(setDna).catch(() => {}),                  12_000),
-      setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}),   8_000),
-      setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),          6_000),
-      setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),              9_000),
-      setInterval(() => fetchJSON<DisplaySignalProfile>("/api/dashboard-intelligence/display-signal").then(setDisplaySignal).catch(() => {}), 15_000),
+      setInterval(() => fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability").then(setInstability).catch(() => {}),           5_000),
+      setInterval(() => fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna").then(setDna).catch(() => {}),                     12_000),
+      setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}),       8_000),
+      setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),              6_000),
+      // /ram-analysis (si.mem + si.processes): server caches 8s — poll at 30s to stay well above TTL
+      setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),                30_000),
+      // /display-signal (si.graphics): server caches 60s — poll at 60s to match, display config is static
+      setInterval(() => fetchJSON<DisplaySignalProfile>("/api/dashboard-intelligence/display-signal").then(setDisplaySignal).catch(() => {}), 60_000),
     ];
     return () => intervals.forEach(clearInterval);
   }, [fetchAll]);
