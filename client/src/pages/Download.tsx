@@ -168,9 +168,10 @@ export default function DownloadPage() {
         }
         @keyframes sunStreakSweep {
           0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
-          8%   { opacity: 1; }
-          92%  { opacity: 1; }
-          100% { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+          4%   { opacity: 1; }
+          36%  { opacity: 1; }
+          40%  { transform: translateX(220%) skewX(-18deg); opacity: 0; }
+          100% { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
         }
         @keyframes topoFlow {
           0%, 100% { transform: translateX(0px) translateY(0px); }
@@ -270,15 +271,15 @@ export default function DownloadPage() {
             width: "70%", height: "120%",
             background: "linear-gradient(108deg, transparent 0%, rgba(139,92,246,0.10) 30%, rgba(103,232,249,0.13) 55%, rgba(139,92,246,0.10) 80%, transparent 100%)",
             filter: "blur(48px)",
-            animation: "sunStreakSweep 16s ease-in-out 1s infinite",
+            animation: "sunStreakSweep 5s linear 0s infinite",
           }} />
-          {/* Layer 5b: Sun-streak tight bright core */}
+          {/* Layer 5b: Sun-streak tight bright core — 0.08s stagger so it trails naturally */}
           <div style={{
             position: "absolute", top: "5%", left: "-25%",
             width: "40%", height: "90%",
             background: "linear-gradient(108deg, transparent 0%, rgba(167,139,250,0.16) 35%, rgba(103,232,249,0.19) 55%, rgba(167,139,250,0.16) 75%, transparent 100%)",
             filter: "blur(22px)",
-            animation: "sunStreakSweep 16s ease-in-out 1s infinite",
+            animation: "sunStreakSweep 5s linear 0.08s infinite",
           }} />
 
           {/* Layer 6: Topology / network SVG lines — staged in after 0.6s */}
