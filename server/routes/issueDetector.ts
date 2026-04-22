@@ -143,7 +143,7 @@ router.post("/detect", (req, res) => {
 
     // ── Processes & Services ──────────────────────────────────────────────────
 
-    if (snapshot && snapshot.processes.total > 200) {
+    if (snapshot?.processes?.total != null && snapshot.processes.total > 200) {
       const count = snapshot.processes.total;
       issues.push({
         id: "high-process-count",
@@ -159,10 +159,10 @@ router.post("/detect", (req, res) => {
       });
     }
 
-    if (snapshot && snapshot.ram.usedPercent > 85) {
+    if (snapshot?.ram?.usedPercent != null && snapshot.ram.usedPercent > 85) {
       const pct = Math.round(snapshot.ram.usedPercent);
-      const usedGB = snapshot.ram.usedGB.toFixed(1);
-      const totalGB = snapshot.ram.totalGB.toFixed(1);
+      const usedGB = snapshot.ram.usedGB?.toFixed(1) ?? "?";
+      const totalGB = snapshot.ram.totalGB?.toFixed(1) ?? "?";
       issues.push({
         id: "high-ram-usage",
         category: "memory",
@@ -272,8 +272,8 @@ router.post("/detect", (req, res) => {
 
     res.json({ issues, detectedAt: Date.now() });
   } catch (err) {
-    console.error("[IssueDetector] Error:", err);
-    res.json({ issues: [], detectedAt: Date.now() });
+    console.error("[IssueDetector] Fatal route error:", err);
+    res.status(500).json({ ok: false, error: "Issue detection failed" });
   }
 });
 

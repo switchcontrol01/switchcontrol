@@ -1,0 +1,163 @@
+SECTION 4: FIX ISSUE DETECTOR FALSE-SUCCESS PATH
+==================================================
+
+PROBLEM
+IssueDetector throws internally but still returns 200 with empty issues. That is fake success.
+
+REQUIRED FIX
+Issue detection must either succeed honestly or fail honestly.
+
+IMPLEMENTATION
+1. Find the code reading `.total` from an undefined object.
+2. Add proper null guards before property access.
+3. Replace broad fake-success fallback behavior with real error handling.
+
+Pattern required:
+
+try {
+  // build issue data safely
+} catch (err) {
+  console.error('[IssueDetector] Fatal route error:', err);
+  return res.status(500).json({
+    ok: false,
+    error: 'Issue detection failed'
+  });
+}
+
+4. Validate every nested object before reading fields.
+5. If some telemetry input is optional, handle it explicitly and degrade gracefully.
+6. Do not swallow exceptions and return a 200.
+
+ACCEPTANCE
+- No IssueDetector TypeErrors in logs
+- No 200 responses when detector crashes
+- Route either returns valid issue data or a real 500
+- Internal undefined access is eliminated
+
+==================================================
+SECTION 5: STOP UNAUTHENTICATED ROUTE POLLING AND 401 SPAM
+==================================================
+
+PROBLEM
+Frontend is calling protected endpoints before auth has finished restoring.
+
+REQUIRED FIX
+All protected route polling must wait for auth readiness.
+
+IMPLEMENTATION
+
+A. Add a real auth readiness state
+Frontend must distinguish between:
+- auth unknown / hydrating
+- authenticated
+- confirmed logged out
+
+Do not let protected polling run while auth is unknown.
+
+B. Protected fetch guard
+For every protected hook/page:
+- if authReady is false, do nothing
+- if user is null, do nothing
+- if token/session is absent, do nothing
+
+C. Audit these surfaces at minimum:
+- FocusMode
+- Network Tweaks
+- Cleaner
+- App Booster
+- any premium endpoints
+- any user-history/state endpoints
+
+D. If using React Query:
+- use enabled: authReady && !!user
+If using manual useEffect:
+- early return unless authReady && user
+
+E. Ensure polling intervals are not even created before auth is ready.
+
+ACCEPTANCE
+- No repeated 401s on cold startup
+- No protected route polling before auth resolves
+- Logs are clean during app boot
+- CPU/network churn is reduced
+
+==================================================
+SECTION 6: STARTUP ORDER HARDENING
+==================================================
+
+PROBLEM
+Parts of the app are starting before required dependencies are ready.
+
+REQUIRED FIX
+Enforce correct boot order.
+
+IMPLEMENTATION
+1. Backend boot order
+- config/env validation
+- DB init
+- auth/provider config snapshot
+- route/module init
+- server listen
+
+2. Frontend boot order
+- splash / bootstrap
+- auth restore
+- backend ready
+- only then mount protected polling consumers
+
+3. Add one central backend readiness flag if needed.
+4. If the renderer relies on backend readiness, do not start polling until backend is confirmed ready.
+
+ACCEPTANCE
+- No route callers racing backend startup
+- No modules initializing against missing dependencies
+- No noisy first-boot request churn
+
+==================================================
+SECTION 7: LOG CLEANUP
+==================================================
+
+PROBLEM
+Logs still contain noise that hides real failures.
+
+REQUIRED FIX
+Clean them up so red logs mean something real.
+
+IMPLEMENTATION
+- Keep startup summary logs
+- Keep one-time config state logs
+- Remove repeated known-benign warnings
+- Downgrade expected dev-only warnings out of production
+- Do not log JWT self-test failures as scary runtime auth failures if they are intentional test cases
+- Separate self-test output clearly from real auth failures
+
+ACCEPTANCE
+- Startup log contains only meaningful warnings/errors
+- No misleading auth failure spam during boot
+- Easier to spot real production issues
+
+==================================================
+SECTION 8: CPU / POLLING / TRUST HARDENING
+==================================================
+
+PROBLEM
+Even when functionality works, startup spam and unnecessary route calls hurt trust and can raise CPU/network load.
+
+REQUIRED FIX
+Reduce wasted work.
+
+IMPLEMENTATION
+- Eliminate all protected route 401 polling
+- Make sure no route is polled before authReady
+- Make sure no route is polled before backendReady
+- Re-check all dashboard and intelligence polling intervals
+- Re-check all tweak pages for mount-time fetch spam
+- Ensure no duplicate startup fetches are happening for the same data
+- Ensure failed auth does not cause retry loops
+
+ACCEPTANCE
+- Cold boot network activity is intentional only
+- No repeated failed fetch loops
+- No startup CPU spikes caused by request spam
+- App feels clean on first launch and after page switches
+

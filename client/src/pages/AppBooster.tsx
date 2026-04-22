@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { createPortal } from "react-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -412,6 +413,7 @@ function writeCache(games: GameSummary[]) {
 }
 
 export default function AppBooster() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const { appBoosterEnabled } = useStore();
   const { prefersReducedMotion } = useMotion();
@@ -477,6 +479,7 @@ export default function AppBooster() {
 
   // auto-scan once on first open in Electron if no games have been detected yet
   useEffect(() => {
+    if (!user?.loggedIn) return;
     let cancelled = false;
     console.log("[AppBooster] mounted — isElectron:", isElectron, "appBoosterEnabled:", appBoosterEnabled);
     (async () => {

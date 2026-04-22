@@ -177,7 +177,7 @@ async function startBackend(app) {
       console.log(`[Backend]   child_env ${k}: ${!!env[k]}`);
     }
     console.log('[Backend] AI_MODEL in child env:', env.AI_MODEL || '(not set, will use gpt-4o-mini)');
-    console.log('[Backend] DATABASE_URL in child env:', env.DATABASE_URL ? `YES (${env.DATABASE_URL.substring(0, 30)}...)` : 'NO — will use in-memory mode');
+    console.log('[Backend] DATABASE_URL in child env:', env.DATABASE_URL ? `YES (${env.DATABASE_URL.substring(0, 30)}...)` : 'NO — Electron offline mode (expected; cloud DB unreachable from user machine)');
     console.log('[Backend] ELECTRON_BACKEND in child env:', env.ELECTRON_BACKEND || '(not set)');
     console.log('[Backend] ==========================================');
 

@@ -12,6 +12,10 @@ const router = Router();
 // ── DB table auto-creation ─────────────────────────────────────────────────────
 
 async function initFocusTable() {
+  if (!db) {
+    console.log('[FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).');
+    return;
+  }
   try {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS focus_sessions (

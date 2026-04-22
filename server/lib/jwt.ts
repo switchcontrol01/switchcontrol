@@ -43,7 +43,7 @@ export function signJwt(userId: string): string {
   return token;
 }
 
-export function verifyJwt(token: string): JwtPayload | null {
+export function verifyJwt(token: string, silent = false): JwtPayload | null {
   if (!token || typeof token !== "string") {
     return null;
   }
@@ -54,7 +54,7 @@ export function verifyJwt(token: string): JwtPayload | null {
     }) as JwtPayload;
     return decoded;
   } catch (err: any) {
-    console.error("[AUTH] JWT verification failed:", err.message);
+    if (!silent) console.error("[AUTH] JWT verification failed:", err.message);
     return null;
   }
 }
@@ -76,7 +76,7 @@ export function runJwtSelfTest(): void {
     console.error("[JWT] FAIL: valid token did not verify correctly");
   }
 
-  const invalidResult = verifyJwt("this.is.not.a.jwt");
+  const invalidResult = verifyJwt("this.is.not.a.jwt", true);
   if (invalidResult === null) {
     console.log("[JWT] PASS: invalid token → null (rejected)");
   } else {
@@ -88,14 +88,14 @@ export function runJwtSelfTest(): void {
     expiresIn: "-1s",
     issuer: "switchcontrol",
   });
-  const expiredResult = verifyJwt(expiredToken);
+  const expiredResult = verifyJwt(expiredToken, true);
   if (expiredResult === null) {
     console.log("[JWT] PASS: expired token → null (rejected)");
   } else {
     console.error("[JWT] FAIL: expired token was NOT rejected");
   }
 
-  const noAuthResult = verifyJwt("");
+  const noAuthResult = verifyJwt("", true);
   if (noAuthResult === null) {
     console.log("[JWT] PASS: empty token → null (fallback to cookie path)");
   } else {
@@ -103,7 +103,7 @@ export function runJwtSelfTest(): void {
   }
 
   const algNoneToken = jwt.sign({ sub: testUserId }, "", { algorithm: "none" as any });
-  const algNoneResult = verifyJwt(algNoneToken);
+  const algNoneResult = verifyJwt(algNoneToken, true);
   if (algNoneResult === null) {
     console.log("[JWT] PASS: alg=none token → null (rejected)");
   } else {
@@ -115,7 +115,7 @@ export function runJwtSelfTest(): void {
     expiresIn: "7d",
     issuer: "malicious-issuer",
   });
-  const wrongIssuerResult = verifyJwt(wrongIssuerToken);
+  const wrongIssuerResult = verifyJwt(wrongIssuerToken, true);
   if (wrongIssuerResult === null) {
     console.log("[JWT] PASS: wrong issuer token → null (rejected)");
   } else {

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -230,6 +231,7 @@ function countEnabled(s: FocusSettings) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function FocusMode() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
@@ -280,9 +282,11 @@ export default function FocusMode() {
 
   const currentProfile = FOCUS_PROFILES.find(p => p.id === profileId)!;
 
-  // ── Load state from backend on mount ──────────────────────────────────────────
+  // ── Load state from backend on mount (only after auth is confirmed) ───────────
 
   useEffect(() => {
+    if (!user?.loggedIn) return;
+
     fetch("/api/focus/state").then(r => r.json()).then(data => {
       if (data.active && data.state) {
         focusStore.setActive(true, {
@@ -305,7 +309,7 @@ export default function FocusMode() {
     fetch("/api/focus/history").then(r => r.json()).then(data => {
       if (data.ok) setHistory(data.history);
     }).catch(() => {});
-  }, []);
+  }, [user?.loggedIn]); // eslint-disable-line
 
   // Keep activationRef in sync so closures always read fresh state without stale closure capture.
   useEffect(() => { activationRef.current = activation; }, [activation]);

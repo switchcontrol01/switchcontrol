@@ -508,7 +508,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
 // ── main page ─────────────────────────────────────────────────────────────────
 
 export default function NetworkTweaks() {
-  const { isPremium } = useAuth();
+  const { isPremium, user } = useAuth();
   const { telemetry: liveTel } = useLiveTelemetry();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<NetworkCategory | "All">("All");
@@ -539,8 +539,9 @@ export default function NetworkTweaks() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }
 
-  // Load persisted state from backend on mount
+  // Load persisted state from backend — only after auth is confirmed
   useEffect(() => {
+    if (!user?.loggedIn) return;
     fetchBackendState().then(backendState => {
       setStateMap(prev => {
         const next = { ...prev };
@@ -552,7 +553,7 @@ export default function NetworkTweaks() {
         return next;
       });
     });
-  }, []);
+  }, [user?.loggedIn]); // eslint-disable-line
 
   const toggleTweak = useCallback(async (tweak: NetworkTweak) => {
     if (tweak.unavailable) return;

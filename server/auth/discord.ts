@@ -119,7 +119,12 @@ export function setupDiscordAuth(app: Express): void {
   const clientSecret = process.env.DISCORD_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    console.warn("[AUTH] Discord OAuth not configured - missing DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET");
+    const isElectron = process.env.ELECTRON_BACKEND === '1';
+    if (isElectron) {
+      console.log("[AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).");
+    } else {
+      console.warn("[AUTH] Discord OAuth not configured - missing DISCORD_CLIENT_ID or DISCORD_CLIENT_SECRET");
+    }
     return;
   }
 

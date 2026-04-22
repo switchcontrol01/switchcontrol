@@ -13,7 +13,12 @@ let stripe: Stripe | null = null;
 if (stripeSecretKeyAtBoot) {
   stripe = new Stripe(stripeSecretKeyAtBoot);
 } else {
-  console.warn('[Stripe] Disabled — STRIPE_SECRET_KEY not set. Billing features will be unavailable.');
+  const isElectron = process.env.ELECTRON_BACKEND === '1';
+  if (isElectron) {
+    console.log('[Stripe] Billing not configured on local backend — expected in Electron mode.');
+  } else {
+    console.warn('[Stripe] Disabled — STRIPE_SECRET_KEY not set. Billing features will be unavailable.');
+  }
 }
 
 /**

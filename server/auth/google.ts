@@ -161,7 +161,12 @@ export function setupGoogleAuth(app: Express): void {
   const redirectUri = process.env.GOOGLE_REDIRECT_URI;
 
   if (!clientId || !clientSecret) {
-    console.warn("[AUTH] Google OAuth not configured - missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET");
+    const isElectron = process.env.ELECTRON_BACKEND === '1';
+    if (isElectron) {
+      console.log("[AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).");
+    } else {
+      console.warn("[AUTH] Google OAuth not configured - missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET");
+    }
   }
 
   app.set("trust proxy", 1);
