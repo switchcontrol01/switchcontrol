@@ -148,6 +148,11 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
 
   const apply = useCallback(async () => {
     if (!state.pending) return;
+    // Runtime guard: never attempt a set if the adapter doesn't expose this property
+    if (!capability.supported) {
+      setState(s => ({ ...s, result: { ok: false, outcome: 'unsupported_on_adapter', verified: false, error: 'Property not supported on this adapter.', actualValue: null } }));
+      return;
+    }
     setState(s => ({ ...s, applying: true, result: null }));
     const api = getNicAPI();
     if (!api || !isElectron) {
@@ -180,7 +185,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       };
       toast({ title: 'Apply Failed', description: outcomeMsg[res.outcome] ?? sanitizeNicError(res.error), variant: 'destructive' });
     }
-  }, [adapterName, propKey, meta.label, state.pending, isElectron, toast, scheduleResultDismiss]);
+  }, [adapterName, propKey, meta.label, state.pending, capability.supported, isElectron, toast, scheduleResultDismiss]);
 
   const reset = useCallback(async () => {
     setState(s => ({ ...s, applying: true, result: null }));

@@ -15,8 +15,8 @@ function execPowerShell(command) {
   return new Promise((resolve, reject) => {
     execFile(
       'powershell',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', command],
-      { timeout: 20000 },
+      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
+      { timeout: 20000, windowsHide: true },
       (error, stdout, stderr) => {
         if (error) {
           reject(new Error((stderr || error.message || 'PowerShell error').trim()));
@@ -248,8 +248,9 @@ const TWEAK_REGISTRY = {
       Write-Output "ok"
     `,
     check: `
-      $out = netsh int tcp show global;
-      if ($out -match "Timestamps\\s*:\\s*disabled") { "true" } else { "false" }
+      $out = netsh int tcp show global 2>&1;
+      $line = @($out) | Where-Object { $_ -imatch 'timestamp' } | Select-Object -First 1;
+      if ($line) { if ($line -imatch ':\s*disabled') { 'true' } else { 'false' } } else { 'false' }
     `,
   },
 

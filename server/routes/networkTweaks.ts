@@ -84,7 +84,7 @@ router.post("/:tweakId/report", async (req, res) => {
     status = "unavailable";
   } else if (!success) {
     status = "failed";
-  } else if (action === "enable") {
+  } else if (action === "apply") {
     status = verified ? "enabled" : "enabled_unverified";
   } else {
     status = "idle";
@@ -96,7 +96,7 @@ router.post("/:tweakId/report", async (req, res) => {
 
   try {
     const resultJson = JSON.stringify({ action, success, verified, message });
-    const appliedAt = success && action === "enable" ? new Date() : null;
+    const appliedAt = success && action === "apply" ? new Date() : null;
 
     await db.execute(sql`
       INSERT INTO network_tweak_state (tweak_id, status, last_result, applied_at, updated_at)

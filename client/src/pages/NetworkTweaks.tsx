@@ -88,7 +88,7 @@ async function callIpc(tweakId: string, action: "enable" | "disable") {
 
 async function reportResult(
   tweakId: string,
-  action: "enable" | "disable",
+  action: "apply" | "revert",
   success: boolean,
   verified: boolean,
   message: string,
@@ -566,6 +566,9 @@ export default function NetworkTweaks() {
       current.status === "staged";
 
     const action: "enable" | "disable" = isCurrentlyEnabled ? "disable" : "enable";
+    // Executor + preload only accept "apply" / "revert" — translate once here
+    // and use ipcAction for all reporting so the DB log uses consistent vocabulary.
+    const ipcAction: "apply" | "revert" = action === "enable" ? "apply" : "revert";
 
     // Mark as applying (do NOT flip the toggle yet)
     setStateMap(prev => ({ ...prev, [tweak.id]: { status: "applying" } }));
@@ -583,7 +586,7 @@ export default function NetworkTweaks() {
           throw new Error("IPC returned no result");
         }
 
-        await reportResult(tweak.id, action, result.success, result.verified, result.message, result.disabled);
+        await reportResult(tweak.id, ipcAction, result.success, result.verified, result.message, result.disabled);
 
         const newStatus: TweakStatus = result.disabled
           ? "unavailable"
@@ -619,7 +622,7 @@ export default function NetworkTweaks() {
           ? "Staged — will apply when running in the desktop app"
           : "Reverted (staged)";
 
-        await reportResult(tweak.id, action, true, false, msg);
+        await reportResult(tweak.id, ipcAction, true, false, msg);
 
         setStateMap(prev => ({
           ...prev,
@@ -630,7 +633,7 @@ export default function NetworkTweaks() {
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Execution error";
-      await reportResult(tweak.id, action, false, false, msg);
+      await reportResult(tweak.id, ipcAction, false, false, msg);
       setStateMap(prev => ({
         ...prev,
         [tweak.id]: { status: "failed", message: msg },
