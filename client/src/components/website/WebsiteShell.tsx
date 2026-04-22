@@ -342,14 +342,25 @@ export function WebsiteShell({ children, variant = "full", bgVariant, showFooter
 
   return (
     <div className="min-h-screen relative bg-[#040508]">
-      <WebsiteBackground variant={resolvedBgVariant} />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.65, ease: "easeOut" }}
+      >
+        <WebsiteBackground variant={resolvedBgVariant} />
+      </motion.div>
 
       {variant === "full" && <FullHeader />}
       {variant === "inner" && <InnerHeader />}
 
-      <div className={cn("relative z-10", variant === "full" && "pt-16", className)}>
+      <motion.div
+        className={cn("relative z-10", variant === "full" && "pt-16", className)}
+        initial={{ opacity: 0, filter: "blur(14px)" }}
+        animate={{ opacity: 1, filter: "blur(0px)" }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: 0.08 }}
+      >
         {children}
-      </div>
+      </motion.div>
 
       {showFooter && <WebsiteFooter />}
     </div>
