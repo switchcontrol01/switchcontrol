@@ -705,7 +705,7 @@ function ElectronAppContent() {
         try {
           let timedOut = false;
           const _timeout = new Promise<{ user: null }>((resolve) =>
-            setTimeout(() => { timedOut = true; resolve({ user: null }); }, 8000)
+            setTimeout(() => { timedOut = true; resolve({ user: null }); }, 2500)
           );
           const result = await Promise.race([refreshEntitlements(), _timeout]);
           if (result.user) {
@@ -954,22 +954,6 @@ function ElectronAppContent() {
         </div>
       )}
 
-      {/* ── Post-splash auth-check loading indicator ───────────────────────
-          Lives OUTSIDE AnimatePresence so it never blocks phase transitions.
-          Shown after the splash finishes but before checkAuth() resolves
-          (up to 8 s during refreshEntitlements). Atmospheric background at
-          z-0 is already visible; this spinner sits on top at z-2. */}
-      {splashDone && phase === "splash" && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.35, delay: 0.05 }}
-          className="fixed inset-0 flex items-center justify-center pointer-events-none"
-          style={{ zIndex: 2 }}
-        >
-          <div className="w-8 h-8 rounded-full border-2 border-purple-400/25 border-t-purple-400/70 animate-spin" />
-        </motion.div>
-      )}
 
       <AnimatePresence mode="sync">
         {phase === "splash" && (
