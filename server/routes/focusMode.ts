@@ -1,8 +1,9 @@
 /**
- * Focus Mode Engine — backend state tracking, DB persistence, action orchestration
+ * Focus Mode Engine — backend state tracking, DB persistence, action orchestration.
+ * State is scoped per authenticated user (userId from requireJwt middleware).
  */
 
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { db } from "../db";
 import { sql } from "drizzle-orm";
 
@@ -15,6 +16,7 @@ async function initFocusTable() {
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS focus_sessions (
         id SERIAL PRIMARY KEY,
+        user_id TEXT NOT NULL DEFAULT '__legacy__',
         profile_id TEXT NOT NULL,
         settings JSONB NOT NULL,
         applied_state JSONB,
@@ -28,6 +30,8 @@ async function initFocusTable() {
         trigger_source TEXT DEFAULT 'manual'
       )
     `);
+    // Add user_id column to any existing tables that predate this migration
+    await db.execute(sql`ALTER TABLE focus_sessions ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`);
     console.log('[FocusMode] focus_sessions table ready');
   } catch (e: any) {
     console.error('[FocusMode] table init error:', e.message);
@@ -36,7 +40,8 @@ async function initFocusTable() {
 
 initFocusTable();
 
-// ── In-memory active state ─────────────────────────────────────────────────────
+// ── Per-user in-memory active state ───────────────────────────────────────────
+// Keyed by userId to prevent one user from affecting another's session.
 
 interface FocusSettings {
   notifications: boolean;
@@ -74,7 +79,7 @@ interface FocusState {
   active: boolean;
   profileId: string;
   settings: FocusSettings;
-  appliedState: Record<string, any>;     // previous values for revert
+  appliedState: Record<string, any>;
   electronResults: Record<string, ActionResult>;
   verification: VerificationResult | null;
   activatedAt: Date;
@@ -82,7 +87,11 @@ interface FocusState {
   triggerSource: string;
 }
 
-let activeState: FocusState | null = null;
+const activeStates = new Map<string, FocusState>();
+
+function getUserId(req: Request): string | null {
+  return (req as any).cloudUser?.id ?? null;
+}
 
 // ── Action descriptors ─────────────────────────────────────────────────────────
 
@@ -140,7 +149,11 @@ const ACTION_DESCRIPTIONS: Record<keyof FocusSettings, {
 // ── Routes ─────────────────────────────────────────────────────────────────────
 
 // GET /api/focus/state
-router.get("/state", async (req, res) => {
+router.get("/state", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
+  const activeState = activeStates.get(userId) ?? null;
   if (!activeState) {
     return res.json({ ok: true, active: false, state: null });
   }
@@ -167,19 +180,23 @@ router.get("/state", async (req, res) => {
 });
 
 // GET /api/focus/actions
-router.get("/actions", (req, res) => {
+router.get("/actions", (req: Request, res: Response) => {
   res.json({ ok: true, actions: ACTION_DESCRIPTIONS });
 });
 
 // POST /api/focus/enable
-router.post("/enable", async (req, res) => {
+router.post("/enable", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
   const { profileId, settings, durationMinutes, electronResults, appliedState, verification, triggerSource } = req.body;
 
   if (!profileId || !settings) {
     return res.status(400).json({ ok: false, error: "profileId and settings required" });
   }
 
-  if (activeState?.active) {
+  const currentState = activeStates.get(userId);
+  if (currentState?.active) {
     return res.status(409).json({ ok: false, error: "Focus Mode already active. Disable first." });
   }
 
@@ -188,21 +205,20 @@ router.post("/enable", async (req, res) => {
     ? new Date(activatedAt.getTime() + durationMinutes * 60 * 1000)
     : null;
 
-  // Determine overall status from electron results
   const successCount = Object.values(electronResults ?? {}).filter((r: any) => r?.ok).length;
   const totalActions = Object.keys(settings).filter(k => settings[k as keyof FocusSettings]).length;
   const status = electronResults
     ? successCount >= totalActions ? 'active' : successCount > 0 ? 'partial' : 'failed'
-    : 'active'; // no Electron = logged only
+    : 'active';
 
-  // Persist to DB
   let sessionId: number | null = null;
   try {
     const row = await db.execute(sql`
       INSERT INTO focus_sessions (
-        profile_id, settings, applied_state, electron_results, verification,
+        user_id, profile_id, settings, applied_state, electron_results, verification,
         status, activated_at, duration_seconds, trigger_source
       ) VALUES (
+        ${userId},
         ${profileId},
         ${JSON.stringify(settings)}::jsonb,
         ${JSON.stringify(appliedState ?? {})}::jsonb,
@@ -220,8 +236,7 @@ router.post("/enable", async (req, res) => {
     console.error('[FocusMode] DB insert error:', e.message);
   }
 
-  // Update in-memory state
-  activeState = {
+  activeStates.set(userId, {
     sessionId,
     active: true,
     profileId,
@@ -232,7 +247,7 @@ router.post("/enable", async (req, res) => {
     activatedAt,
     expiresAt,
     triggerSource: triggerSource ?? 'manual',
-  };
+  });
 
   res.json({
     ok: true,
@@ -246,7 +261,11 @@ router.post("/enable", async (req, res) => {
 });
 
 // POST /api/focus/disable
-router.post("/disable", async (req, res) => {
+router.post("/disable", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
+  const activeState = activeStates.get(userId);
   const { electronRevertResults, verificationAfterRevert } = req.body;
 
   if (!activeState?.active) {
@@ -259,9 +278,8 @@ router.post("/disable", async (req, res) => {
   const successCount = Object.values(electronRevertResults ?? {}).filter((r: any) => r?.ok).length;
   const revertStatus = electronRevertResults
     ? successCount > 0 ? 'reverted' : 'revert_failed'
-    : 'reverted'; // no Electron = logged only
+    : 'reverted';
 
-  // Update DB
   if (sessionId) {
     try {
       await db.execute(sql`
@@ -269,7 +287,7 @@ router.post("/disable", async (req, res) => {
           status = ${revertStatus},
           deactivated_at = ${deactivatedAt.toISOString()},
           duration_seconds = ${Math.round((deactivatedAt.getTime() - activeState.activatedAt.getTime()) / 1000)}
-        WHERE id = ${sessionId}
+        WHERE id = ${sessionId} AND user_id = ${userId}
       `);
     } catch (e: any) {
       console.error('[FocusMode] DB update error:', e.message);
@@ -277,7 +295,7 @@ router.post("/disable", async (req, res) => {
   }
 
   const previousSettings = activeState.settings;
-  activeState = null;
+  activeStates.delete(userId);
 
   res.json({
     ok: true,
@@ -288,12 +306,16 @@ router.post("/disable", async (req, res) => {
 });
 
 // GET /api/focus/history
-router.get("/history", async (req, res) => {
+router.get("/history", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
   try {
     const rows = await db.execute(sql`
       SELECT id, profile_id, settings, status, activated_at, deactivated_at,
              duration_seconds, trigger_source, electron_results
       FROM focus_sessions
+      WHERE user_id = ${userId}
       ORDER BY activated_at DESC
       LIMIT 20
     `);
@@ -304,9 +326,12 @@ router.get("/history", async (req, res) => {
 });
 
 // POST /api/focus/verify
-router.post("/verify", async (req, res) => {
+router.post("/verify", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
   const { electronVerification } = req.body;
-  const state = activeState;
+  const state = activeStates.get(userId) ?? null;
   if (!state) return res.json({ ok: true, active: false });
 
   res.json({
@@ -318,10 +343,12 @@ router.post("/verify", async (req, res) => {
 });
 
 // POST /api/focus/trigger-fired
-router.post("/trigger-fired", async (req, res) => {
+router.post("/trigger-fired", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
   const { triggerId, meta } = req.body;
-  // Log trigger event — actual enable call comes from frontend after user confirms or auto-enabled
-  console.log(`[FocusMode] Trigger fired: ${triggerId}`, meta);
+  console.log(`[FocusMode] Trigger fired: ${triggerId} userId=${userId}`, meta);
   res.json({ ok: true, triggerId, meta });
 });
 

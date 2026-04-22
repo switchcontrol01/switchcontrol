@@ -188,6 +188,7 @@ async function initTable() {
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS cleaner_history (
       id            SERIAL PRIMARY KEY,
+      user_id       TEXT NOT NULL DEFAULT '__legacy__',
       scan_mode     TEXT NOT NULL DEFAULT 'safe',
       item_ids      JSONB NOT NULL DEFAULT '[]',
       bytes_removed BIGINT NOT NULL DEFAULT 0,
@@ -199,9 +200,12 @@ async function initTable() {
       ran_at        TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  // Add user_id to any pre-existing table
+  await db.execute(sql`ALTER TABLE cleaner_history ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`);
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS cleaner_scan_history (
       id              SERIAL PRIMARY KEY,
+      user_id         TEXT NOT NULL DEFAULT '__legacy__',
       scan_mode       TEXT NOT NULL DEFAULT 'safe',
       total_bytes     BIGINT NOT NULL DEFAULT 0,
       total_files     INT NOT NULL DEFAULT 0,
@@ -210,6 +214,7 @@ async function initTable() {
       ran_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  await db.execute(sql`ALTER TABLE cleaner_scan_history ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT '__legacy__'`);
 }
 
 initTable().catch(e => console.error("[Cleaner] table init failed:", e.message));
@@ -237,7 +242,8 @@ router.get("/categories", (req, res) => {
 
 // POST /api/cleaner/scan
 // Body: { mode, electronResults }
-router.post("/scan", async (req, res) => {
+router.post("/scan", async (req: any, res) => {
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
   const { mode = "safe", electronResults = {} } = req.body as {
     mode?: CleanMode;
     electronResults?: Record<string, { sizeBytes?: number; fileCount?: number; found?: boolean; error?: string }>;
@@ -299,9 +305,9 @@ router.post("/scan", async (req, res) => {
   if (!isNoDbMode && db) {
     db.execute(sql`
       INSERT INTO cleaner_scan_history
-        (scan_mode, total_bytes, total_files, found_count, category_totals)
+        (user_id, scan_mode, total_bytes, total_files, found_count, category_totals)
       VALUES
-        (${mode}, ${totalBytes}, ${totalFiles}, ${foundCount}, ${JSON.stringify(categoryTotals)})
+        (${userId}, ${mode}, ${totalBytes}, ${totalFiles}, ${foundCount}, ${JSON.stringify(categoryTotals)})
     `).catch(e => console.warn("[Cleaner] scan history insert failed:", e.message));
   }
 
@@ -316,7 +322,8 @@ router.post("/scan", async (req, res) => {
 });
 
 // POST /api/cleaner/clean
-router.post("/clean", async (req, res) => {
+router.post("/clean", async (req: any, res) => {
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
   const { mode = "safe", itemIds = [], electronResults = {} } = req.body as {
     mode?: CleanMode;
     itemIds?: string[];
@@ -366,9 +373,9 @@ router.post("/clean", async (req, res) => {
   if (!isNoDbMode && db) {
     await db.execute(sql`
       INSERT INTO cleaner_history
-        (scan_mode, item_ids, bytes_removed, files_removed, status, clean_results, errors)
+        (user_id, scan_mode, item_ids, bytes_removed, files_removed, status, clean_results, errors)
       VALUES
-        (${mode}, ${JSON.stringify(itemIds)}, ${totalBytesRemoved}, ${totalFilesRemoved},
+        (${userId}, ${mode}, ${JSON.stringify(itemIds)}, ${totalBytesRemoved}, ${totalFilesRemoved},
          ${errors > 0 ? "partial" : "cleaned"}, ${JSON.stringify(results)}, ${errors})
     `).catch(e => console.error("[Cleaner] history insert failed:", e.message));
   }
@@ -397,14 +404,15 @@ router.post("/verify", (req, res) => {
 });
 
 // GET /api/cleaner/history
-router.get("/history", async (req, res) => {
+router.get("/history", async (req: any, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, history: [] });
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
   try {
     const rows = await db.execute<{
       id: number; scan_mode: string; item_ids: any; bytes_removed: number;
       files_removed: number; status: string; errors: number; ran_at: string; clean_results: any;
     }>(sql`SELECT id, scan_mode, item_ids, bytes_removed, files_removed, status, errors, ran_at, clean_results
-           FROM cleaner_history ORDER BY ran_at DESC LIMIT 50`);
+           FROM cleaner_history WHERE user_id = ${userId} ORDER BY ran_at DESC LIMIT 50`);
     res.json({ ok: true, history: rows.rows });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: e.message });
@@ -412,14 +420,15 @@ router.get("/history", async (req, res) => {
 });
 
 // GET /api/cleaner/scan-history
-router.get("/scan-history", async (req, res) => {
+router.get("/scan-history", async (req: any, res) => {
   if (isNoDbMode || !db) return res.json({ ok: true, history: [] });
+  const userId: string = req.cloudUser?.id ?? '__legacy__';
   try {
     const rows = await db.execute<{
       id: number; scan_mode: string; total_bytes: number; total_files: number;
       found_count: number; category_totals: any; ran_at: string;
     }>(sql`SELECT id, scan_mode, total_bytes, total_files, found_count, category_totals, ran_at
-           FROM cleaner_scan_history ORDER BY ran_at ASC LIMIT 30`);
+           FROM cleaner_scan_history WHERE user_id = ${userId} ORDER BY ran_at ASC LIMIT 30`);
     res.json({ ok: true, history: rows.rows });
   } catch (e: any) {
     res.status(500).json({ ok: false, error: e.message });
