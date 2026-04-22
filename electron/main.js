@@ -2333,6 +2333,37 @@ console.log('[STARTUP:3] registering app.whenReady() handler');
 app.whenReady().then(async () => {
   console.log('[STARTUP:4] app.whenReady FIRED');
   const bootStart = Date.now();
+  const fs = require('fs'); // declare here so all code below in this scope can use it
+
+  // ── Register ALL IPC handlers FIRST — before anything that can throw.
+  // If any code below crashes, these are already live so the renderer never
+  // sees "No handler registered" errors.
+  ipcMain.handle('app:getBackendPort',  () => backendLauncher.getBackendPort());
+  ipcMain.handle('app:isBackendReady',  () => backendLauncher.isBackendReady());
+  ipcMain.handle('app:getBackendError', () => backendLauncher.getLastError ? backendLauncher.getLastError() : null);
+  ipcMain.handle('app:isAdmin',         () => _appIsAdmin === true);
+
+  ipcMain.handle('updater:getState', () => updaterService.getState());
+  ipcMain.handle('updater:check', () => {
+    const { status } = updaterService.getState();
+    if (!updaterService.canCheck(status)) { console.warn('[IPC] updater:check ignored — blocked in state:', status); return false; }
+    updaterService.checkForUpdates();
+    return true;
+  });
+  ipcMain.handle('updater:download', () => {
+    const { status } = updaterService.getState();
+    if (!updaterService.canDownload(status)) { console.warn('[IPC] updater:download ignored — blocked in state:', status); return false; }
+    updaterService.downloadUpdate();
+    return true;
+  });
+  ipcMain.handle('updater:install', () => {
+    const { status } = updaterService.getState();
+    if (!updaterService.canInstall(status)) { console.warn('[IPC] updater:install ignored — blocked in state:', status); return false; }
+    updaterService.quitAndInstall();
+    return true;
+  });
+
+  console.log('[STARTUP:4] all IPC handlers registered (backend, updater, isAdmin)');
 
   // ── Hard boot evidence block — proves which EXE is actually running ────────
   console.log('\n========== BOOT EVIDENCE ==========');
@@ -2371,7 +2402,8 @@ app.whenReady().then(async () => {
   // ── Persistent user-data restoration audit ────────────────────────────────
   // Reports which data files were found in %APPDATA%\SwitchControl\ so we can
   // confirm that data survived uninstall + reinstall on every boot.
-  {
+  // Wrapped in try/catch: diagnostic only — must never crash whenReady.
+  try {
     const dataFiles = [
       { label: 'tweak-state.json', file: TWEAK_STATE_FILE },
       { label: 'sc-config.json',   file: CONFIG_FILE       },
@@ -2399,28 +2431,15 @@ app.whenReady().then(async () => {
         console.log(`[UserData]   Tweaks persisted: ${tweakCount} total, ${enabledCount} enabled`);
       } catch { /* parse errors handled separately by tweak-executor */ }
     }
+  } catch (auditErr) {
+    console.warn('[UserData] Audit block error (non-fatal):', auditErr && auditErr.message);
   }
   // ── End restoration audit ─────────────────────────────────────────────────
 
   app.setAsDefaultProtocolClient(PROTOCOL_NAME);
   console.log('[DeepLink] protocol registered:', app.isDefaultProtocolClient('switchcontrol'));
 
-  // Register backend IPC handlers BEFORE starting the backend
-  // so the renderer can poll immediately while backend boots
-  ipcMain.handle('app:getBackendPort', () => {
-    const port = backendLauncher.getBackendPort();
-    return port;
-  });
-
-  ipcMain.handle('app:isBackendReady', () => {
-    return backendLauncher.isBackendReady();
-  });
-
-  ipcMain.handle('app:getBackendError', () => {
-    return backendLauncher.getLastError ? backendLauncher.getLastError() : null;
-  });
-
-  ipcMain.handle('app:isAdmin', () => _appIsAdmin === true);
+  // (IPC handlers already registered at top of whenReady — see [STARTUP:4] block above)
 
   // Start the background telemetry poll immediately.
   // This primes differential APIs (currentLoad, networkStats, disksIO) so that
@@ -2471,44 +2490,8 @@ app.whenReady().then(async () => {
     return { success: true };
   });
 
-  // ── Auto-Updater IPC ──────────────────────────────────────────────────────
-  // Main process owns all update logic. Renderer only reads state + triggers.
-  // IPC handlers enforce the same state guards as updater.js so stale renderer
-  // clicks (double-click, UI lag) can never cause impossible transitions.
-
-  ipcMain.handle('updater:getState', () => updaterService.getState());
-
-  ipcMain.handle('updater:check', () => {
-    const { status } = updaterService.getState();
-    if (!updaterService.canCheck(status)) {
-      console.warn('[IPC] updater:check ignored — blocked in state:', status);
-      return false;
-    }
-    updaterService.checkForUpdates();
-    return true;
-  });
-
-  ipcMain.handle('updater:download', () => {
-    const { status } = updaterService.getState();
-    if (!updaterService.canDownload(status)) {
-      console.warn('[IPC] updater:download ignored — blocked in state:', status);
-      return false;
-    }
-    updaterService.downloadUpdate();
-    return true;
-  });
-
-  ipcMain.handle('updater:install', () => {
-    const { status } = updaterService.getState();
-    if (!updaterService.canInstall(status)) {
-      console.warn('[IPC] updater:install ignored — blocked in state:', status);
-      return false;
-    }
-    updaterService.quitAndInstall();
-    return true;
-  });
-
   // ── Updater boot ─────────────────────────────────────────────────────────
+  // (updater IPC handlers registered at top of whenReady — see [STARTUP:4] block)
   // In dev mode: no-op. In packaged mode: init then silent check after 8s.
 
   updaterService.initUpdater(isDev);
