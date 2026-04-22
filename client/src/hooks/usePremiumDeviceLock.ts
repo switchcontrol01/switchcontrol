@@ -44,6 +44,21 @@ export function usePremiumDeviceLock(
   const lastCheckRef = useRef(0);
   const checkedRef = useRef(false);
 
+  // Reset all state whenever the user logs out. This is critical for the case
+  // where user A (locked) signs out and user B signs in on the same Electron
+  // session — without this reset the stale "locked" status from A would
+  // immediately show the DeviceLockModal for B before any server check runs.
+  useEffect(() => {
+    if (!loggedIn) {
+      setStatus(null);
+      setIsChecking(false);
+      setIsFirstBind(false);
+      checkedRef.current = false;
+      lastCheckRef.current = 0;
+      console.log("[DeviceLock] loggedIn=false — state reset");
+    }
+  }, [loggedIn]);
+
   const check = useCallback(async () => {
     if (!isElectron || !isPremium || !loggedIn) return;
 
