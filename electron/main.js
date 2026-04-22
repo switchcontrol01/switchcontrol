@@ -76,14 +76,13 @@ const PROTOCOL_NAME = 'switchcontrol';
 let mainWindow = null;
 
 // ── Admin / elevation state ───────────────────────────────────────────────────
-// Cached once at startup. Reflects whether the process was launched as admin
-// (e.g. the user manually ran "Run as administrator").
-// The app manifest uses asInvoker — the app starts as a standard user.
-// Privileged actions (tweaks, NIC settings, power plans, network tweaks) each
-// request per-action UAC elevation via Start-Process -Verb RunAs rather than
-// requiring install-wide admin.
-// electron/package.json build.win.requestedExecutionLevel = "asInvoker"
-// electron/build/app.manifest  requestedExecutionLevel level="asInvoker"
+// Cached once at startup. The app manifest uses requireAdministrator — Windows
+// shows a single UAC prompt when the user launches the app, and the process
+// token is elevated for the entire session. All child processes (PowerShell
+// tweak commands) inherit the elevated token automatically, so no per-action
+// UAC dialogs appear when toggling tweaks.
+// electron/package.json build.win.requestedExecutionLevel = "requireAdministrator"
+// electron/build/app.manifest  requestedExecutionLevel level="requireAdministrator"
 let _appIsAdmin = null;
 
 function checkWindowsAdmin() {
@@ -2429,18 +2428,16 @@ app.whenReady().then(async () => {
   console.log('[BOOT] app.getPath("userData"):', app.getPath('userData'));
   console.log('[BOOT] app.getPath("exe"):', app.getPath('exe'));
   console.log('[BOOT] process.argv:', JSON.stringify(process.argv));
-  console.log('[BOOT] UAC config: asInvoker — privileged actions request per-action elevation via Start-Process -Verb RunAs');
+  console.log('[BOOT] UAC config: requireAdministrator — single UAC prompt at launch, all tweak actions inherit elevated token');
   console.log('====================================\n');
 
   // ── Admin status check (Windows only) ─────────────────────────────────────
-  // The app runs as a standard user (asInvoker manifest). Being non-admin at
-  // startup is the EXPECTED state. Privileged actions use per-action UAC
-  // elevation (Start-Process -Verb RunAs) inside each executor.
-  // This check simply caches the result so the renderer can read it via
-  // the app:isAdmin IPC (used for UI hints, not gating).
+  // The app uses requireAdministrator — the process is always elevated after
+  // the single startup UAC prompt. This check caches the result so the
+  // renderer can confirm elevated status via the app:isAdmin IPC.
   checkWindowsAdmin().then(v => {
     _appIsAdmin = v;
-    console.log('[UAC] isAdmin:', v, app.isPackaged ? '(packaged — asInvoker, per-action elevation expected)' : '(dev mode)');
+    console.log('[UAC] isAdmin:', v, app.isPackaged ? '(packaged — requireAdministrator, always elevated)' : '(dev mode)');
   }).catch((err) => {
     _appIsAdmin = false;
     console.error('[UAC] Admin check failed:', err?.message);

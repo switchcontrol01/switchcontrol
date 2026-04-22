@@ -482,8 +482,8 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                     <div className="flex items-start gap-2 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-300 text-xs">
                       <AlertTriangle className="size-4 shrink-0 mt-0.5" />
                       <div>
-                        <span className="font-medium text-orange-200">Elevation required. </span>
-                        SwitchControl will request UAC elevation when you toggle this tweak.
+                        <span className="font-medium text-orange-200">Administrator access required. </span>
+                        This tweak modifies protected system settings (HKLM registry or Windows services).
                       </div>
                     </div>
                   )}
@@ -547,7 +547,6 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
                         </div>
                         <div className="text-muted-foreground/50">
                           Toggle to apply real Windows changes that will be verified immediately.
-                          {needsAdmin && " A UAC prompt will appear when you apply this tweak."}
                         </div>
                       </div>
                     </div>
