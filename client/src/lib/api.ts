@@ -15,6 +15,13 @@ let _backendReadyListeners: Array<() => void> = [];
 
 const ELECTRON_PORT_POLL_TIMEOUT = 50000;
 
+// External resolver: lets the backend-ready push event immediately unblock
+// pollForBackendPort() without waiting for the next polling interval.
+let _backendPushPortResolve: ((port: number) => void) | null = null;
+const _backendPushPortPromise: Promise<number> = new Promise<number>(resolve => {
+  _backendPushPortResolve = resolve;
+});
+
 export function isBackendReady(): boolean {
   return _backendReady;
 }
@@ -34,37 +41,59 @@ function markBackendReady() {
 }
 
 async function pollForBackendPort(): Promise<number> {
+  // Fast path: if the backend-ready push event already fired before we even
+  // start polling, extract the port from the already-resolved base URL.
+  if (_resolvedApiBase) {
+    const m = _resolvedApiBase.match(/:(\d+)\/api/);
+    if (m) return parseInt(m[1], 10);
+  }
+
   const start = Date.now();
   const api = (window as any).electronAPI;
   let attempt = 0;
-  // Exponential backoff: 200→400→800→1600→3200→cap at 5000ms
-  // Keeps the first few attempts fast (backend usually starts in <3s) while
-  // preventing spam if the backend is genuinely unavailable.
   let delay = 200;
 
-  while (Date.now() - start < ELECTRON_PORT_POLL_TIMEOUT) {
-    attempt++;
-    try {
-      const port = await api.getBackendPort();
-      if (typeof port === 'number' && port > 0) {
-        console.log(`[API] Backend port resolved: ${port} (${Date.now() - start}ms, attempt ${attempt})`);
-        return port;
+  // Wrap the loop in a promise so we can race it against the push notification.
+  const loopPromise = new Promise<number>((res, rej) => {
+    (async () => {
+      while (Date.now() - start < ELECTRON_PORT_POLL_TIMEOUT) {
+        // If the backend-ready push already resolved _resolvedApiBase, bail out.
+        if (_resolvedApiBase) {
+          const m = _resolvedApiBase.match(/:(\d+)\/api/);
+          if (m) { res(parseInt(m[1], 10)); return; }
+        }
+
+        attempt++;
+        try {
+          const port = await api.getBackendPort();
+          if (typeof port === 'number' && port > 0) {
+            console.log(`[API] Backend port resolved via poll: ${port} (${Date.now() - start}ms, attempt ${attempt})`);
+            res(port);
+            return;
+          }
+        } catch {}
+
+        if (attempt <= 5 || attempt % 5 === 0) {
+          console.log(`[API] Backend port not ready, retrying in ${delay}ms… (elapsed ${Date.now() - start}ms, attempt ${attempt})`);
+        }
+        await new Promise(r => setTimeout(r, delay));
+        delay = Math.min(delay * 2, 5_000);
       }
-    } catch {}
 
-    if (attempt <= 5 || attempt % 5 === 0) {
-      console.log(`[API] Backend port not ready, retrying in ${delay}ms... (elapsed ${Date.now() - start}ms, attempt ${attempt})`);
-    }
-    await new Promise(r => setTimeout(r, delay));
-    delay = Math.min(delay * 2, 5_000);
-  }
+      let errorDetail = '';
+      try {
+        const backendErr = await api.getBackendError?.();
+        if (backendErr) errorDetail = ` Error: ${backendErr}`;
+      } catch {}
+      rej(new ApiError(0, `Embedded backend did not start in time.${errorDetail} Please restart the application.`));
+    })();
+  });
 
-  let errorDetail = '';
-  try {
-    const backendErr = await api.getBackendError?.();
-    if (backendErr) errorDetail = ` Error: ${backendErr}`;
-  } catch {}
-  throw new ApiError(0, `Embedded backend did not start in time.${errorDetail} Please restart the application.`);
+  // Race: poll loop vs. backend-ready push notification.
+  // Whichever wins first resolves us immediately.
+  const port = await Promise.race([loopPromise, _backendPushPortPromise]);
+  console.log(`[API] Backend port resolved: ${port} (${Date.now() - start}ms, push or poll)`);
+  return port;
 }
 
 async function resolveApiBaseInternal(): Promise<string> {
@@ -124,10 +153,11 @@ if (typeof window !== 'undefined') {
     (window as any).electronAPI.onBackendReady((data: { port: number }) => {
       if (data?.port) {
         const base = `http://127.0.0.1:${data.port}/api`;
-        // Always update — backend may have restarted on a different port
         console.log(`[API] Backend-ready push: base=${base} (was: ${_resolvedApiBase || 'unset'})`);
         _resolvedApiBase = base;
         _resolvingPromise = null;
+        // Immediately unblock any pollForBackendPort() that is currently racing.
+        _backendPushPortResolve?.(data.port);
         markBackendReady();
       }
     });

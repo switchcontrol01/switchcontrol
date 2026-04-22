@@ -434,6 +434,7 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false, // Required for systeminformation
       devTools: true, // Always enabled — shortcuts and IPC open/close on demand
+      backgroundThrottling: false, // Prevent timer throttling when window loses focus
     }
   });
   console.log('[STARTUP:5] BrowserWindow constructed — show:true, isVisible:', mainWindow.isVisible());
@@ -621,7 +622,11 @@ function createWindow() {
   });
 
   mainWindow.once('ready-to-show', () => {
-    console.log('[SwitchControl] Window ready-to-show fired');
+    console.log('[SwitchControl] Window ready-to-show fired — focusing window');
+    // Force focus so Windows compositor paints immediately and JS timers are
+    // not throttled. Without this the window can stay visually blank until
+    // the user clicks (Chromium GPU rendering stall on frameless windows).
+    mainWindow.focus();
   });
   mainWindow.on('closed', () => { 
     mainWindow = null; 
