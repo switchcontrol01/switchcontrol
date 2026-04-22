@@ -496,11 +496,6 @@ function createWindow() {
   electronSession.defaultSession.webRequest.onHeadersReceived(
     { urls: ['https://switchcontrol.org/*', 'https://*.switchcontrol.org/*'] },
     (details, callback) => {
-      const setCookies = details.responseHeaders?.['set-cookie'] || details.responseHeaders?.['Set-Cookie'];
-      if (setCookies) {
-        console.log('[Auth][MAIN] set-cookie received for', details.url);
-        console.log('[Auth][MAIN] set-cookie values:', setCookies);
-      }
       callback({ cancel: false, responseHeaders: details.responseHeaders });
     }
   );
@@ -2558,37 +2553,11 @@ app.whenReady().then(async () => {
     }, 8000);
   }
 
-  // DEBUG ISSUE 1: Log all cookies on app ready
+  // Persist session cookies across restarts by extending their lifetime
   const { session } = require('electron');
   const ses = session.defaultSession;
 
-  ses.cookies.get({}).then(cookies => {
-    console.log('[DEBUG] COOKIES ON START — total count:', cookies.length);
-    cookies.forEach(c => {
-      console.log('[DEBUG] COOKIE:', JSON.stringify({
-        name: c.name,
-        domain: c.domain,
-        path: c.path,
-        secure: c.secure,
-        httpOnly: c.httpOnly,
-        session: c.session,
-        expirationDate: c.expirationDate,
-        sameSite: c.sameSite
-      }));
-    });
-  }).catch(err => console.error('[DEBUG] COOKIE READ ERROR:', err));
-
-  // Persist session cookies across restarts by extending their lifetime
   ses.cookies.on('changed', (event, cookie, cause, removed) => {
-    // DEBUG ISSUE 1: Log every cookie change
-    console.log('[DEBUG] COOKIE CHANGED:', JSON.stringify({
-      name: cookie.name,
-      domain: cookie.domain,
-      session: cookie.session,
-      cause: cause,
-      removed: removed,
-      expirationDate: cookie.expirationDate
-    }));
 
     const shouldPersist = cookie.domain && (
       cookie.domain.includes('switchcontrol.org') ||

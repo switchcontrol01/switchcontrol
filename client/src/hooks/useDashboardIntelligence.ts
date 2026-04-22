@@ -142,7 +142,6 @@ interface DashboardIntelligenceState {
   problems:      ActiveProblemsData | null;
   latency:       LatencyData | null;
   ram:           SmartRamProfile | null;
-  displaySignal: DisplaySignalProfile | null;
   loading:       boolean;
   causation:     CausationData | null;
   causeLoading:  boolean;
@@ -162,7 +161,6 @@ export function useDashboardIntelligence(): DashboardIntelligenceState {
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
   const [latency,       setLatency]       = useState<LatencyData | null>(null);
   const [ram,           setRam]           = useState<SmartRamProfile | null>(null);
-  const [displaySignal, setDisplaySignal] = useState<DisplaySignalProfile | null>(null);
   const [loading,       setLoading]       = useState(true);
   const [causation,     setCausation]     = useState<CausationData | null>(null);
   const [causeLoading,  setCauseLoading]  = useState(false);
@@ -170,20 +168,18 @@ export function useDashboardIntelligence(): DashboardIntelligenceState {
 
   const fetchAll = useCallback(async () => {
     try {
-      const [inst, d, probs, lat, r, disp] = await Promise.allSettled([
+      const [inst, d, probs, lat, r] = await Promise.allSettled([
         fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability"),
         fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna"),
         fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems"),
         fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate"),
         fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis"),
-        fetchJSON<DisplaySignalProfile>("/api/dashboard-intelligence/display-signal"),
       ]);
       if (inst.status  === "fulfilled") setInstability(inst.value);
       if (d.status     === "fulfilled") setDna(d.value);
       if (probs.status === "fulfilled") setProblems(probs.value);
       if (lat.status   === "fulfilled") setLatency(lat.value);
       if (r.status     === "fulfilled") setRam(r.value);
-      if (disp.status  === "fulfilled") setDisplaySignal(disp.value);
     } catch (_) {}
     setLoading(false);
   }, []);
@@ -213,12 +209,10 @@ export function useDashboardIntelligence(): DashboardIntelligenceState {
       setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}),       8_000),
       setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),              6_000),
       // /ram-analysis (si.mem + si.processes): server caches 8s — poll at 30s to stay well above TTL
-      setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),                30_000),
-      // /display-signal (si.graphics): server caches 60s — poll at 60s to match, display config is static
-      setInterval(() => fetchJSON<DisplaySignalProfile>("/api/dashboard-intelligence/display-signal").then(setDisplaySignal).catch(() => {}), 60_000),
+      setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}), 30_000),
     ];
     return () => intervals.forEach(clearInterval);
   }, [fetchAll]);
 
-  return { instability, dna, problems, latency, ram, displaySignal, loading, causation, causeLoading, analyzeCause, refresh };
+  return { instability, dna, problems, latency, ram, loading, causation, causeLoading, analyzeCause, refresh };
 }

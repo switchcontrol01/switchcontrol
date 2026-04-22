@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMotion, Reveal } from "@/lib/motion";
+import { useAuth } from "@/hooks/use-auth";
 
 import { CleanerSummaryCards }  from "@/components/cleaner/CleanerSummaryCards";
 import { CleanerCharts }        from "@/components/cleaner/CleanerCharts";
@@ -258,6 +259,7 @@ export default function SystemCleaner() {
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
+  const { user } = useAuth();
 
   const [mode,  setMode]  = useState<CleanMode>("safe");
   const [phase, setPhase] = useState<Phase>("scan");
@@ -314,7 +316,7 @@ export default function SystemCleaner() {
     finally { setLoadingCats(false); }
   }, [toast]);
 
-  useEffect(() => { loadCategories(mode); }, [mode, loadCategories]);
+  useEffect(() => { if (!user?.loggedIn) return; loadCategories(mode); }, [mode, loadCategories, user?.loggedIn]); // eslint-disable-line
 
   // ── Load history ──────────────────────────────────────────────────────────
 
@@ -331,7 +333,7 @@ export default function SystemCleaner() {
     } catch {} finally { setLoadingHistory(false); }
   }, []);
 
-  useEffect(() => { loadHistory(); }, [loadHistory]);
+  useEffect(() => { if (!user?.loggedIn) return; loadHistory(); }, [loadHistory, user?.loggedIn]); // eslint-disable-line
 
   // ── Scan ──────────────────────────────────────────────────────────────────
 

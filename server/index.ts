@@ -332,6 +332,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   httpServer.listen(listenOptions, () => {
     log(`serving on ${host}:${port}`);
 
+    // In Electron local backend mode, Stripe and admin bootstrap require
+    // cloud DB / cloud secrets that are intentionally absent.  Skip them
+    // entirely so they cannot time out or emit misleading error logs.
+    if (isElectronBackend) return;
+
     // Run potentially-slow startup tasks AFTER the server is already listening.
     // Each is wrapped in a timeout so a hung network/DB call can never prevent
     // the health endpoint from responding or the Electron health-check from passing.
