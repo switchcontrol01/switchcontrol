@@ -335,7 +335,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/telemetry", async (req, res) => {
+  app.get("/api/telemetry", requireJwt, async (req, res) => {
     try {
       const snap = await getSnapshot();
       res.json({
@@ -355,7 +355,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/specs", async (req, res) => {
+  app.get("/api/specs", requireJwt, async (req, res) => {
     try {
       const specs = await getSystemSpecs();
       res.json(specs);
@@ -582,7 +582,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/stripe/session", async (req, res) => {
+  app.get("/api/stripe/session", requireJwt, async (req, res) => {
     try {
       const { session_id } = req.query;
       if (!session_id || typeof session_id !== 'string') {
@@ -591,6 +591,14 @@ export async function registerRoutes(
 
       const stripe = await getUncachableStripeClient();
       const session = await stripe.checkout.sessions.retrieve(session_id);
+
+      // Verify the authenticated user owns this checkout session.
+      // client_reference_id is set to the user's DB ID when the session is created.
+      const sessionUserId = session.client_reference_id || session.metadata?.userId;
+      if (sessionUserId && req.cloudUser!.id !== sessionUserId) {
+        console.warn(`[Stripe] /session — ownership mismatch | authed=${req.cloudUser!.id} session_owner=${sessionUserId}`);
+        return res.status(403).json({ error: "Access denied." });
+      }
 
       res.json({
         id: session.id,
