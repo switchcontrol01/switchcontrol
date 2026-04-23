@@ -3,7 +3,7 @@ import { Sidebar } from "./Sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { AppBackground } from "@/components/AppBackground";
-import { UpdateBanner } from "@/components/UpdateBanner";
+import { UpdateModal } from "@/components/UpdateModal";
 import { NetworkStatusChip } from "@/components/NetworkStatusChip";
 import { useLocation, Link } from "wouter";
 import { isBackendReady, onBackendReady } from "@/lib/api";
@@ -231,11 +231,9 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
       <AnimatePresence><FocusModeBanner /></AnimatePresence>
       <AnimatePresence><TrialCountdownBanner /></AnimatePresence>
       
+      <UpdateModal />
       <Sidebar />
-      <div className="pl-64 pt-2 flex items-start gap-2 pr-4">
-        <div className="flex-1">
-          <UpdateBanner />
-        </div>
+      <div className="pl-64 pt-2 flex items-start justify-end pr-4">
         <div className="pt-1 shrink-0">
           <NetworkStatusChip />
         </div>
