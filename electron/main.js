@@ -699,15 +699,31 @@ function createWindow() {
     clearTimeout(showFallbackTimer);
     console.log(`[LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | ${launchMs()}`);
     if (!mainWindow || mainWindow.isVisible()) return;
+
+    // ── DWM flash prevention ──────────────────────────────────────────────────
+    // Even with backgroundColor:#07090D and 2-rAF handshake, Windows DWM can
+    // briefly show a white native frame between show() and the moment Chromium
+    // delivers its first GPU texture to the OS compositor.
+    //
+    // Fix: set OS-level window opacity to 0 BEFORE show(), wait one rAF (16ms)
+    // for Chromium to push its already-rendered dark frame to the DWM pipeline,
+    // THEN restore opacity. The html element is at opacity:0 throughout so no
+    // content is visible — only the backgroundColor fills the window surface —
+    // but DWM never gets the chance to flash white.
+    mainWindow.setOpacity(0);
     mainWindow.show();
-    console.log(`[LAUNCH:5] mainWindow.show() called — window now on screen | ${launchMs()}`);
-    // Tell renderer the window is on screen so it can begin the opacity reveal.
-    // Renderer must NOT reveal before this — otherwise the transition starts
-    // while the window is still hidden, wasting the opacity budget.
-    mainWindow.webContents.send('app:window-shown');
-    console.log(`[LAUNCH:5b] app:window-shown sent to renderer | ${launchMs()}`);
-    mainWindow.focus();
-    console.log(`[LAUNCH:6] focus() — launch sequence complete | ${launchMs()}`);
+    console.log(`[LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | ${launchMs()}`);
+
+    setTimeout(() => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      mainWindow.setOpacity(1);
+      console.log(`[LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | ${launchMs()}`);
+      // Tell renderer window is on screen — Splash begins html 0→1 opacity reveal.
+      mainWindow.webContents.send('app:window-shown');
+      console.log(`[LAUNCH:5c] app:window-shown sent to renderer | ${launchMs()}`);
+      mainWindow.focus();
+      console.log(`[LAUNCH:6] focus() — launch sequence complete | ${launchMs()}`);
+    }, 16);
   });
 
   // ready-to-show: DIAGNOSTIC ONLY — do NOT call show() here.
