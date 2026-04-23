@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 import {
   useDashboardIntelligence,
   type InstabilityData,
@@ -965,7 +966,8 @@ function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: numb
 // ── PerformanceLab main export ────────────────────────────────────────────────
 
 export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
-  const { instability, dna, problems, latency, ram, causation, causeLoading, analyzeCause } = useDashboardIntelligence();
+  const { user } = useAuth();
+  const { instability, dna, problems, latency, ram, causation, causeLoading, analyzeCause } = useDashboardIntelligence(!!user?.loggedIn);
   const { prefersReducedMotion } = useMotion();
 
   return (

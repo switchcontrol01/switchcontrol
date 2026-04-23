@@ -155,7 +155,7 @@ async function fetchJSON<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export function useDashboardIntelligence(): DashboardIntelligenceState {
+export function useDashboardIntelligence(enabled = true): DashboardIntelligenceState {
   const [instability,   setInstability]   = useState<InstabilityData | null>(null);
   const [dna,           setDna]           = useState<SystemDNAData | null>(null);
   const [problems,      setProblems]      = useState<ActiveProblemsData | null>(null);
@@ -199,6 +199,7 @@ export function useDashboardIntelligence(): DashboardIntelligenceState {
   }, [fetchAll]);
 
   useEffect(() => {
+    if (!enabled) return;
     if (initRef.current) return;
     initRef.current = true;
     fetchAll();
@@ -211,8 +212,11 @@ export function useDashboardIntelligence(): DashboardIntelligenceState {
       // /ram-analysis (si.mem + si.processes): server caches 8s — poll at 30s to stay well above TTL
       setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}), 30_000),
     ];
-    return () => intervals.forEach(clearInterval);
-  }, [fetchAll]);
+    return () => {
+      intervals.forEach(clearInterval);
+      initRef.current = false; // allow re-arm if disabled then re-enabled
+    };
+  }, [enabled, fetchAll]);
 
   return { instability, dna, problems, latency, ram, loading, causation, causeLoading, analyzeCause, refresh };
 }

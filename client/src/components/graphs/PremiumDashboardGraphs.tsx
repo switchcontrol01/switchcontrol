@@ -12,6 +12,7 @@ import { MemoryStick, HardDrive, Activity, Cpu, Monitor } from "lucide-react";
 import { GlassCard } from "@/components/ui/glass-card";
 import { TelemetrySparkline, type SparklinePoint } from "./TelemetrySparkline";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import type { DisplaySignalProfile } from "@/hooks/useDashboardIntelligence";
 
@@ -486,11 +487,13 @@ function SweepLine({ active }: { active: boolean }) {
 }
 
 export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
+  const { user } = useAuth();
   const [profile, setProfile] = useState<DisplaySignalProfile | null>(null);
   const [prevTs, setPrevTs]   = useState<number>(0);
   const [changed, setChanged] = useState(false);
 
   useEffect(() => {
+    if (!user?.loggedIn) return;
     const load = () =>
       fetch("/api/dashboard-intelligence/display-signal")
         .then(r => r.json())
@@ -504,7 +507,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
     // Server caches this for 60s (si.graphics is expensive) — poll at same cadence
     const timer = setInterval(load, 60_000);
     return () => clearInterval(timer);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.loggedIn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const score = profile?.qualityScore ?? null;
   const scoreColor =

@@ -23,6 +23,7 @@ import {
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import { Link } from "wouter";
 
@@ -236,6 +237,7 @@ interface DetectedIssuesProps {
 
 export function DetectedIssues({ className }: DetectedIssuesProps) {
   const { tweaks } = useStore();
+  const { user } = useAuth();
   const [issues, setIssues] = useState<DetectedIssue[]>([]);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
@@ -294,10 +296,11 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
   }, [tweaks]);
 
   useEffect(() => {
+    if (!user?.loggedIn) return;
     // Small delay so telemetry has time to stabilize after page load
     const t = setTimeout(() => { runDetection(); }, 1200);
     return () => clearTimeout(t);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.loggedIn]); // re-arm when auth resolves — eslint-disable-line react-hooks/exhaustive-deps
 
   const visible = issues.filter((i) => !dismissed.has(i.id));
   const highCount = visible.filter((i) => i.severity === "high").length;
