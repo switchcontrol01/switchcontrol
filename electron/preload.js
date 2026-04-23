@@ -125,6 +125,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeListener('window-focus', handler);
   },
 
+  // ── Launch handshake: main confirms window is now visible ────────────────
+  // Called once after mainWindow.show() so the renderer can start the opacity
+  // reveal ONLY after the OS window is actually on screen (no mid-transition flash).
+  onWindowShown: (callback) => {
+    assertFunction(callback, 'onWindowShown callback');
+    const handler = () => {
+      console.log('[LAUNCH] app:window-shown received — starting opacity reveal');
+      callback();
+    };
+    ipcRenderer.once('app:window-shown', handler);
+    return () => ipcRenderer.removeListener('app:window-shown', handler);
+  },
+
   // ── Auth — deep-link callback ───────────────────────────────────────────────
   auth: {
     onCallback: (callback) => {

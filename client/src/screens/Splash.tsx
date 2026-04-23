@@ -35,22 +35,71 @@ export default function Splash({ onComplete }: SplashProps) {
   const tagline = useMemo(() => getTagline(), []);
 
   // ── Launch handshake ──────────────────────────────────────────────────────
-  // After one rAF, Chromium has composited the first real frame (dark Splash
-  // background + initial state). We then signal main to show the window and
-  // start the CSS opacity fade-in. This ensures the window is NEVER visible
-  // before a dark branded frame is ready.
+  // Sequence:
+  //   1. Splash mounts → fade out the static HTML shell (#startup-shell).
+  //      The React Splash renders underneath it immediately, so the visual
+  //      is seamless — both layers are dark.
+  //   2. After one rAF (Chromium has composited first real React frame):
+  //      signal main via 'app:first-frame-ready'.
+  //   3. Main calls show(), then sends 'app:window-shown' back to renderer.
+  //   4. On 'app:window-shown': set html opacity = 1 so the 200ms CSS fade
+  //      starts AFTER the window is on screen, never before.
+  //      Fallback: if confirmation never arrives within 600ms, reveal anyway.
   useEffect(() => {
-    console.log('[LAUNCH:R2] Splash mounted — queueing first-frame-ready signal');
+    console.log('[LAUNCH:R2] Splash mounted — dismissing static shell');
+
+    // ── Step 1: fade out the static shell ───────────────────────────────
+    let shellRemoveTimer: ReturnType<typeof setTimeout> | undefined;
+    const shell = document.getElementById('startup-shell');
+    if (shell) {
+      shell.style.transition = 'opacity 180ms ease-out';
+      shell.style.opacity = '0';
+      shellRemoveTimer = setTimeout(() => {
+        if (shell.parentNode) shell.parentNode.removeChild(shell);
+      }, 200);
+    }
+
+    // ── Steps 2-4: IPC handshake ─────────────────────────────────────────
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+    let windowShownUnsub: (() => void) | undefined;
+
     const raf = requestAnimationFrame(() => {
-      console.log('[LAUNCH:R3] first-frame-ready: sending IPC + starting opacity reveal');
-      (window as any).electronAPI?.signalFirstFrameReady?.();
-      // Reveal the window content with a 200ms CSS opacity fade (set in index.html).
-      // Uses documentElement so no React wrapper or transform is involved —
-      // position:fixed children are unaffected.
-      document.documentElement.style.opacity = '1';
-      console.log('[LAUNCH:R4] opacity fade-in started');
+      console.log('[LAUNCH:R3] first-frame-ready: sending IPC');
+      const api = (window as any).electronAPI;
+
+      if (api?.signalFirstFrameReady) {
+        api.signalFirstFrameReady();
+
+        let revealed = false;
+        const reveal = () => {
+          if (revealed) return;
+          revealed = true;
+          // 200ms CSS opacity transition defined in index.html on <html>.
+          document.documentElement.style.opacity = '1';
+          console.log('[LAUNCH:R4] opacity reveal started');
+        };
+
+        // Primary: reveal once main confirms window is on screen
+        windowShownUnsub = api.onWindowShown?.(() => {
+          clearTimeout(fallbackTimer);
+          windowShownUnsub = undefined;
+          reveal();
+        });
+
+        // Fallback: if confirmation never arrives (e.g. preload issue), reveal anyway
+        fallbackTimer = setTimeout(reveal, 600);
+      } else {
+        // Non-Electron (website) path — reveal immediately
+        document.documentElement.style.opacity = '1';
+      }
     });
-    return () => cancelAnimationFrame(raf);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(shellRemoveTimer);
+      clearTimeout(fallbackTimer);
+      windowShownUnsub?.();
+    };
   }, []);
 
   useEffect(() => {

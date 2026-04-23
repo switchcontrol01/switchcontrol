@@ -680,6 +680,7 @@ function createWindow() {
     if (mainWindow && !mainWindow.isVisible()) {
       console.warn('[LAUNCH:FALLBACK] first-frame-ready never received — force-showing after 5 s');
       mainWindow.show();
+      mainWindow.webContents.send('app:window-shown');
       mainWindow.focus();
     }
   }, 5000);
@@ -691,6 +692,10 @@ function createWindow() {
     if (!mainWindow || mainWindow.isVisible()) return;
     mainWindow.show();
     console.log('[LAUNCH:5] show() called — window now visible');
+    // Confirm to renderer that the window is on screen so it can start the
+    // opacity reveal transition (prevents reveal starting before show() fires).
+    mainWindow.webContents.send('app:window-shown');
+    console.log('[LAUNCH:5b] app:window-shown sent to renderer');
     mainWindow.focus();
     console.log('[LAUNCH:6] focus() called — launch sequence complete');
   });
