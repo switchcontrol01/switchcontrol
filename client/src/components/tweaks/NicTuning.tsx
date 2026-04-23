@@ -158,11 +158,6 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
 
   const apply = useCallback(async () => {
     if (!state.pending) return;
-    // Runtime guard: never attempt a set if the adapter doesn't expose this property
-    if (!capability.supported) {
-      setState(s => ({ ...s, result: { ok: false, outcome: 'unsupported_on_adapter', verified: false, error: 'Property not supported on this adapter.', actualValue: null } }));
-      return;
-    }
     setState(s => ({ ...s, applying: true, result: null }));
     const api = getNicAPI();
     if (!api || !isElectron) {
@@ -196,7 +191,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       };
       toast({ title: 'Apply Failed', description: outcomeMsg[res.outcome] ?? sanitizeNicError(res.error), variant: 'destructive' });
     }
-  }, [adapterName, propKey, meta.label, state.pending, capability.supported, isElectron, toast, scheduleResultDismiss]);
+  }, [adapterName, propKey, meta.label, state.pending, isElectron, toast, scheduleResultDismiss]);
 
   const reset = useCallback(async () => {
     setState(s => ({ ...s, applying: true, result: null }));
@@ -222,20 +217,6 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
     }
   }, [adapterName, propKey, meta.label, meta.defaultValue, isElectron, toast, scheduleResultDismiss]);
 
-  if (!capability.supported) {
-    return (
-      <div className="flex items-center justify-between py-2.5 px-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-white/30 font-medium">{meta.label}</span>
-          <RiskBadge risk={meta.risk} />
-        </div>
-        <span className="text-[10px] text-white/20 px-2 py-0.5 rounded-full bg-white/[0.04] border border-white/[0.06]">
-          Not supported on this adapter
-        </span>
-      </div>
-    );
-  }
-
   return (
     <div className={cn(
       "py-3 px-3 rounded-xl border transition-all duration-300",
@@ -249,7 +230,10 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
         {meta.requiresAdmin && (
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Admin</span>
         )}
-        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
+        {capability.supported
+          ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
+          : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.08]">Unverified</span>
+        }
       </div>
 
       <p className="text-[11px] text-white/35 mb-3 leading-relaxed">{meta.description}</p>
