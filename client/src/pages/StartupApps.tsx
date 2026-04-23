@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
+import { usePageTiming } from "@/lib/page-timing";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -559,6 +560,7 @@ function CategorySection({
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function StartupApps() {
+  const { mark: timingMark } = usePageTiming("StartupApps");
   const { toast } = useToast();
   const [apps, setApps] = useState<StartupApp[]>([]);
   const [timeline, setTimeline] = useState<TimelineData | null>(null);
@@ -572,6 +574,7 @@ export default function StartupApps() {
 
   // ── Fetch ────────────────────────────────────────────────────────────────────
   const fetchApps = useCallback(async () => {
+    timingMark("fetch-apps");
     try {
       const res = await fetch("/api/startup/apps");
       const data = await res.json();
@@ -579,13 +582,14 @@ export default function StartupApps() {
         setApps(data.apps);
         setTimeline(data.timeline);
         setProfiles(data.profiles ?? []);
+        timingMark("fetch-apps-done");
       }
     } catch (e) {
       console.error("[StartupApps] fetch error:", e);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line
 
   const fetchHistory = useCallback(async () => {
     try {

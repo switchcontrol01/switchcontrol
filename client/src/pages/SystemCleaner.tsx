@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
+import { usePageTiming } from "@/lib/page-timing";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { PageHeader } from "@/components/layout/PageHeader";
@@ -256,6 +257,7 @@ const getElectronCleaner = (): ElectronCleaner | undefined => (window.electronAP
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function SystemCleaner() {
+  const { mark: timingMark } = usePageTiming("SystemCleaner");
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
   const { telemetry: liveTel } = useLiveTelemetry();
@@ -316,7 +318,11 @@ export default function SystemCleaner() {
     finally { setLoadingCats(false); }
   }, [toast]);
 
-  useEffect(() => { if (!user?.loggedIn) return; loadCategories(mode); }, [mode, loadCategories, user?.loggedIn]); // eslint-disable-line
+  useEffect(() => {
+    if (!user?.loggedIn) return;
+    timingMark("fetch-categories");
+    loadCategories(mode);
+  }, [mode, loadCategories, user?.loggedIn]); // eslint-disable-line
 
   // ── Load history ──────────────────────────────────────────────────────────
 
@@ -333,7 +339,11 @@ export default function SystemCleaner() {
     } catch {} finally { setLoadingHistory(false); }
   }, []);
 
-  useEffect(() => { if (!user?.loggedIn) return; loadHistory(); }, [loadHistory, user?.loggedIn]); // eslint-disable-line
+  useEffect(() => {
+    if (!user?.loggedIn) return;
+    timingMark("fetch-history");
+    loadHistory();
+  }, [loadHistory, user?.loggedIn]); // eslint-disable-line
 
   // ── Scan ──────────────────────────────────────────────────────────────────
 

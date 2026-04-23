@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePageTiming, runWhenIdle } from "@/lib/page-timing";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
@@ -748,10 +749,30 @@ export default function Security() {
   const [scanStage,  setScanStage]  = useState(0);
   const scanAbort = useRef(false);
 
+  // ── Timing ──────────────────────────────────────────────────────────────────
+  const { mark: timingMark } = usePageTiming("Security");
+
+  useEffect(() => {
+    // Mark first meaningful paint (shell is visible before any IPC call)
+    timingMark("shell");
+  }, []); // eslint-disable-line
+
+  // Defer the PowerShell IPC call until after the page shell has rendered.
+  // security:getStatus runs Get-MpComputerStatus + Get-NetFirewallProfile via
+  // PowerShell — cold-start alone can take 2-4 s. Deferring to idle means the
+  // page appears instantly and data fills in shortly after.
   useEffect(() => {
     if (!hasSecurity) return;
-    eAPI().security.getStatus().then((r: any) => { if (r?.available && r.data) setSecurityStatus(r.data); }).catch(() => {});
-  }, [hasSecurity]);
+    runWhenIdle(() => {
+      timingMark("getStatus-start");
+      eAPI().security.getStatus()
+        .then((r: any) => {
+          if (r?.available && r.data) setSecurityStatus(r.data);
+          timingMark("getStatus-done");
+        })
+        .catch(() => {});
+    }, 3000);
+  }, [hasSecurity]); // eslint-disable-line
 
   const refreshStatus = useCallback(() => {
     if (!hasSecurity) return;

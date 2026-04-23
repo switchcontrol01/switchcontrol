@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { usePageTiming, runWhenIdle } from "@/lib/page-timing";
 import { useAuth } from "@/hooks/use-auth";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
@@ -231,6 +232,7 @@ function countEnabled(s: FocusSettings) {
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function FocusMode() {
+  const { mark: timingMark } = usePageTiming("FocusMode");
   const { user } = useAuth();
   const { toast } = useToast();
   const { prefersReducedMotion } = useMotion();
@@ -283,10 +285,15 @@ export default function FocusMode() {
   const currentProfile = FOCUS_PROFILES.find(p => p.id === profileId)!;
 
   // ── Load state from backend on mount (only after auth is confirmed) ───────────
+  //
+  // state  — loaded immediately: determines whether Focus is currently active
+  // history — deferred to idle: non-critical, only shown in the history panel
 
   useEffect(() => {
     if (!user?.loggedIn) return;
 
+    // Critical path: active-focus state
+    timingMark("fetch-state");
     fetch("/api/focus/state").then(r => r.json()).then(data => {
       if (data.active && data.state) {
         focusStore.setActive(true, {
@@ -304,11 +311,16 @@ export default function FocusMode() {
           setTimeRemaining(Math.round(ms / 1000));
         }
       }
+      timingMark("fetch-state-done");
     }).catch(() => {});
 
-    fetch("/api/focus/history").then(r => r.json()).then(data => {
-      if (data.ok) setHistory(data.history);
-    }).catch(() => {});
+    // Non-critical path: history panel — defer so state loads first
+    runWhenIdle(() => {
+      fetch("/api/focus/history").then(r => r.json()).then(data => {
+        if (data.ok) setHistory(data.history);
+        timingMark("fetch-history-done");
+      }).catch(() => {});
+    }, 3000);
   }, [user?.loggedIn]); // eslint-disable-line
 
   // Keep activationRef in sync so closures always read fresh state without stale closure capture.

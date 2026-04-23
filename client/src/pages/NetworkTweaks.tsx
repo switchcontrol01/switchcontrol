@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { usePageTiming } from "@/lib/page-timing";
 import { createPortal } from "react-dom";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 import { useTweakOwnershipStore } from "@/stores/tweakOwnershipStore";
@@ -508,6 +509,7 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
 // ── main page ─────────────────────────────────────────────────────────────────
 
 export default function NetworkTweaks() {
+  const { mark: timingMark } = usePageTiming("NetworkTweaks");
   const { isPremium, user } = useAuth();
   const { telemetry: liveTel } = useLiveTelemetry();
   const [search, setSearch] = useState("");
@@ -542,6 +544,7 @@ export default function NetworkTweaks() {
   // Load persisted state from backend — only after auth is confirmed
   useEffect(() => {
     if (!user?.loggedIn) return;
+    timingMark("fetch-state");
     fetchBackendState().then(backendState => {
       setStateMap(prev => {
         const next = { ...prev };
@@ -552,6 +555,7 @@ export default function NetworkTweaks() {
         }
         return next;
       });
+      timingMark("fetch-state-done");
     });
   }, [user?.loggedIn]); // eslint-disable-line
 

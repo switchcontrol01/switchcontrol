@@ -1,0 +1,289 @@
+TASK
+
+Implement a hardened user-log reporting system for SwitchControl so critical runtime failures can be captured, surfaced, and sent back for diagnosis.
+
+PROBLEM
+
+Right now we can inspect local logs manually, but that is not enough for production. If users hit failures, blank screens, backend crashes, broken auth, broken tweaks, updater failures, or route spam, we need a reliable way to identify the critical errors fast.
+
+Current issue:
+
+- users can have errors that only exist on their machine
+- logs are too noisy
+- critical failures are mixed in with harmless info
+- there is no clean user-facing way to collect and export the important parts
+- this slows debugging and damages trust
+
+GOAL
+
+Build a real critical-error log pipeline with these outcomes:
+
+- critical errors are clearly identified and tagged
+- non-critical log spam is filtered from the user-facing report path
+- users can export a clean diagnostic bundle easily
+- we can inspect backend, startup, renderer, updater, auth, IPC, and tweak failures quickly
+- logs remain lightweight and do not increase CPU usage noticeably
+
+FILES TO CHECK
+
+- electron/main.js
+- electron/preload.js
+- any existing file logger / startup logger modules
+- renderer error boundaries / global error handlers
+- updater logging files
+- backend launcher logging
+- client-side auth/bootstrap code
+- any existing diagnostics or support export feature
+
+REQUIRED IMPLEMENTATION
+
+SECTION 1 — DEFINE CRITICAL LOG CATEGORIES
+
+Create a strict classification layer for logs. We only care about critical production-relevant failures in the user export flow.
+
+Must classify at minimum:
+
+1. startup_failure
+
+- backend failed to start
+- missing IPC handlers
+- fatal exception during app boot
+- window failed to load
+- child backend crash on boot
+
+2. backend_failure
+
+- uncaught exception
+- unhandled rejection
+- route handler crash
+- DB init failure
+- auth middleware crash
+- issue detector crash
+- focus mode init crash
+
+3. auth_failure
+
+- invalid JWT in real usage
+- token exchange failure
+- session verification failure
+- login callback failure
+- entitlement refresh hard failure
+
+4. updater_failure
+
+- update check failure
+- feed URL failure
+- latest.yml parse failure
+- download failure
+- install failure
+
+5. tweak_failure
+
+- tweak execution failure
+- verification failure
+- admin elevation failure
+- unsupported NIC property execution attempt
+- power plan apply/revert failure
+- network tweak executor failure
+
+6. renderer_failure
+
+- React error boundary hit
+- blank-screen-causing render exception
+- route mount crash
+- unhandled promise rejection in renderer
+- repeated failed API calls due to broken boot state
+
+7. performance_warning
+
+- only for severe real issues, not noise
+- route spam loops
+- repeated 401 polling
+- repeated hot-path logging
+- duplicate polling loops
+- backend restart churn
+
+These classifications must be machine-readable in logs.
+
+SECTION 2 — ADD STRUCTURED CRITICAL LOG FORMAT
+
+Implement a single structured format for critical log events.
+
+Every critical log entry must include:
+
+- timestamp
+- category
+- severity
+- source
+- message
+- error stack if available
+- app version
+- platform
+- packaged or dev
+- authenticated user id if available
+- route or page if available
+- backend port if relevant
+
+Example structure:
+
+{
+"ts": "...",
+"category": "backend_failure",
+"severity": "error",
+"source": "issueDetector",
+"message": "snapshot.processes.total was undefined",
+"stack": "...",
+"appVersion": "1.0.1",
+"isPackaged": true
+}
+
+Do not rely on loose console text alone.
+
+SECTION 3 — SEPARATE CRITICAL LOGS FROM GENERAL LOGS
+
+Keep normal logs if needed, but create a separate critical log output.
+
+Required files:
+
+- latest.log = full mixed log
+- critical.log = critical-only events
+- startup.log = boot-specific timeline
+
+critical.log must only contain:
+
+- errors
+- fatal boot issues
+- repeated failure conditions that cross a threshold
+- explicitly promoted warnings
+
+Do not dump harmless info logs into critical.log.
+
+SECTION 4 — ADD FAILURE THRESHOLDING
+
+Avoid spam.
+
+If the same error repeats rapidly:
+
+- collapse duplicates
+- count occurrences
+- track firstSeen and lastSeen
+- store occurrence count
+
+Example:
+instead of writing 50 identical 401 route failures, write one grouped event:
+
+- category: auth_failure
+- source: network-tweaks-state
+- message: protected route called before auth ready
+- count: 50
+
+Need dedupe window logic.
+
+SECTION 5 — CAPTURE RENDERER-SIDE FAILURES
+
+Add proper renderer capture for:
+
+- window.onerror
+- unhandledrejection
+- React error boundary failures
+- route mount failures
+- white/blank screen conditions where possible
+
+These must be sent safely to main process and written into critical.log.
+
+Do not create an IPC security mess. Expose one narrow logging bridge through preload for reporting structured critical errors from renderer to main.
+
+SECTION 6 — USER DIAGNOSTIC EXPORT
+
+Add a user-facing support export flow.
+
+Requirements:
+
+- one button in Settings or Support area
+- exports a zipped or grouped diagnostic bundle
+- bundle should include:
+  - startup log
+  - latest log
+  - critical log
+  - backend log
+  - app version
+  - OS version
+  - whether packaged/dev
+  - relevant config flags
+- user should not need to manually browse hidden folders
+
+If zip is harder, at least export to a clean timestamped folder.
+
+SECTION 7 — USER-FACING “REPORT ISSUE” FLOW
+
+Add a clean issue-report helper.
+
+Required:
+
+- button like “Export Diagnostics”
+- optional text box for user notes
+- include recent critical errors summary
+- include a short human-readable summary generated from critical.log such as:
+  - Backend failed to initialize database
+  - 43 repeated auth failures before login completed
+  - Issue detector crashed twice
+  - Network tweak verification failed for tcp-timestamps
+
+This summary should help us diagnose without opening raw logs first.
+
+SECTION 8 — DO NOT INCREASE CPU USAGE
+
+This is critical.
+
+The new logging system must not create new performance problems.
+
+Rules:
+
+- no hot-path JSON stringify every second
+- no writing full telemetry payloads repeatedly
+- no expensive sync disk writes in loops
+- buffer or batch where reasonable
+- only write critical events when they actually happen
+- dedupe repeated failures before disk write when possible
+
+Audit the implementation specifically for CPU impact.
+
+SECTION 9 — VERIFY REAL FAILURE SOURCES ARE INCLUDED
+
+Make sure the pipeline catches these real classes of errors we have already seen:
+
+- NO-DB startup mode
+- OAuth/Stripe missing in production when unexpected
+- FocusMode table init errors
+- IssueDetector runtime exceptions
+- repeated 401 route spam before auth
+- backend readiness failures
+- updater check/download failures
+- tweak executor failures
+- blank renderer / window return failures
+
+SECTION 10 — RETURN
+
+Return:
+
+- exact files changed
+- exact new logging architecture
+- where structured critical logs are written
+- how dedupe works
+- how renderer errors are captured
+- where the export button lives
+- what files are included in export
+- proof the system avoids hot-path CPU overhead
+- example critical.log entries
+- example exported diagnostics folder structure
+
+IMPORTANT
+
+This needs to be production hardened.
+Do not just add more console logs.
+Do not just dump everything into one file.
+Do not create logging spam.
+Do not create new polling.
+Do not create new CPU waste.
+
+Build a clean critical diagnostics pipeline that helps us debug real user installs fast.

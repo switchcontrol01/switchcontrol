@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { usePageTiming, runWhenIdle } from "@/lib/page-timing";
 import { useAuth } from "@/hooks/use-auth";
 import { createPortal } from "react-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -478,15 +479,24 @@ export default function AppBooster() {
     }
   }, []);
 
+  // ── Timing ──────────────────────────────────────────────────────────────────
+  const { mark: timingMark } = usePageTiming("AppBooster");
+
   // auto-scan once on first open in Electron if no games have been detected yet
   // deps: [user?.loggedIn] — retries if component mounts before auth completes
+  //
+  // IMPORTANT: loadGames() (fast DB read) fires immediately so the game list
+  // renders right away. The heavy scanGames() IPC call is deferred to idle so
+  // it never blocks the section-open paint.
   useEffect(() => {
     if (!user?.loggedIn) return;
     if (hasAutoScanned.current) return;
     let cancelled = false;
+    timingMark("mount");
     console.log("[AppBooster] mounted — isElectron:", isElectron, "appBoosterEnabled:", appBoosterEnabled);
-    (async () => {
-      const loaded = await loadGames();
+
+    // Phase 1: load games immediately (fast DB read — renders game list)
+    loadGames().then((loaded) => {
       if (cancelled || hasAutoScanned.current) return;
 
       const hasUndetected = loaded.some((g) => !g.detected);
@@ -494,29 +504,38 @@ export default function AppBooster() {
       console.log("[AppBooster] auto-scan check — hasUndetected:", hasUndetected, "bridgeAvail:", bridgeAvail, "appBoosterEnabled:", appBoosterEnabled, "games:", loaded.length);
 
       if (hasUndetected && loaded.length > 0 && bridgeAvail && appBoosterEnabled) {
-        hasAutoScanned.current = true;
-        setIsScanning(true);
-        console.log("[AppBooster] auto-scan — starting");
-        try {
-          const results = await (window as any).electronAPI.appBooster.scanGames(
-            loaded.map((g) => ({ slug: g.slug, executable: g.executable, knownPaths: g.knownPaths ?? [] }))
-          );
-          const detectedCount = results.filter((r: any) => r.detected).length;
-          console.log("[AppBooster] auto-scan — results:", results.length, "detected:", detectedCount);
-          await apiPost("/app-booster/games/scan", { results });
-          const refreshed = await loadGames();
-          writeCache(refreshed);
-          console.log("[AppBooster] auto-scan — cache updated");
-        } catch (e: any) {
-          console.error("[AppBooster] auto-scan — error:", e?.message);
-        } finally {
-          setIsScanning(false);
-        }
+        // Phase 2: defer the expensive IPC scan until the browser is idle so
+        // the page shell is already visible before we start touching the FS.
+        runWhenIdle(() => {
+          if (cancelled || hasAutoScanned.current) return;
+          hasAutoScanned.current = true;
+          setIsScanning(true);
+          timingMark("scan-start");
+          console.log("[AppBooster] auto-scan — starting (deferred to idle)");
+          (async () => {
+            try {
+              const results = await (window as any).electronAPI.appBooster.scanGames(
+                loaded.map((g) => ({ slug: g.slug, executable: g.executable, knownPaths: g.knownPaths ?? [] }))
+              );
+              const detectedCount = results.filter((r: any) => r.detected).length;
+              console.log("[AppBooster] auto-scan — results:", results.length, "detected:", detectedCount);
+              await apiPost("/app-booster/games/scan", { results });
+              const refreshed = await loadGames();
+              writeCache(refreshed);
+              timingMark("scan-done");
+              console.log("[AppBooster] auto-scan — cache updated");
+            } catch (e: any) {
+              console.error("[AppBooster] auto-scan — error:", e?.message);
+            } finally {
+              setIsScanning(false);
+            }
+          })();
+        }, 4000);
       } else if (loaded.length > 0) {
         // Cache fresh API data (no scan needed)
         writeCache(loaded);
       }
-    })();
+    }).catch(() => {});
     return () => { cancelled = true; };
   }, [user?.loggedIn]);
 
