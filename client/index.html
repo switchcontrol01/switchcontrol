@@ -46,7 +46,14 @@
       </div>
       <div style="font-family:Inter,system-ui,sans-serif;font-size:10px;color:rgba(255,255,255,0.22);letter-spacing:0.28em;text-transform:uppercase;user-select:none;">Initializing</div>
     </div>
-    <script>requestAnimationFrame(function(){var b=document.getElementById('shell-progress');if(b)b.style.width='80%';});</script>
+    <script>
+      if(window.electronAPI||navigator.userAgent.indexOf('Electron')!==-1){
+        requestAnimationFrame(function(){var b=document.getElementById('shell-progress');if(b)b.style.width='80%';});
+      }else{
+        var s=document.getElementById('startup-shell');if(s)s.style.display='none';
+        document.documentElement.style.opacity='1';
+      }
+    </script>
 
     <div id="root" style="background:#07090D;height:100%;width:100%;"></div>
     <script type="module" src="/src/main.tsx"></script>
