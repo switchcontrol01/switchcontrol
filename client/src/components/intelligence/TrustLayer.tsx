@@ -56,7 +56,7 @@ interface TrustLayerProps {
 }
 
 export function TrustLayer({ tweak, isOpen, delta, className }: TrustLayerProps) {
-  const riskCfg = RISK_CONFIG[tweak.risk];
+  const riskCfg = RISK_CONFIG[tweak.risk] ?? RISK_CONFIG.Risky;
   const RiskIcon = riskCfg.icon;
 
   const impactEntries = Object.entries(tweak.expected ?? {}).filter(

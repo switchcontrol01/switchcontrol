@@ -921,8 +921,8 @@ const BASE: BaseTweak[] = [
       "A bad value in the mouclass driver requires Safe Mode registry recovery",
       "The latency reduction is marginal and not worth the stability risk",
     ],
-    expected: { latency: "None", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Critical" },
-    category: "Input", level: "Advanced", risk: "Critical",
+    expected: { latency: "None", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Low" },
+    category: "Input", level: "Advanced", risk: "Risky",
     requiresReboot: true, controlType: "slider",
     whoShouldAvoid: "Everyone — this tweak is disabled.",
     sliderConfig: {
@@ -947,8 +947,8 @@ const BASE: BaseTweak[] = [
       "A bad value in the kbdclass driver requires Safe Mode registry recovery",
       "The latency reduction is marginal and not worth the stability risk",
     ],
-    expected: { latency: "None", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Critical" },
-    category: "Input", level: "Advanced", risk: "Critical",
+    expected: { latency: "None", cpu: "None", ram: "None", disk: "None", gpu: "None", network: "None", stabilityRisk: "Low" },
+    category: "Input", level: "Advanced", risk: "Risky",
     requiresReboot: true, controlType: "slider",
     whoShouldAvoid: "Everyone — this tweak is disabled.",
     sliderConfig: {

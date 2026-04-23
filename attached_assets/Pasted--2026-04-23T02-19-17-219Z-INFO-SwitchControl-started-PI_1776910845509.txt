@@ -1,0 +1,95 @@
+
+[2026-04-23T02:19:17.219Z] [INFO] SwitchControl started — PID:14912 platform:win32/x64 node:20.18.3
+[2026-04-23T02:19:17.250Z] [LOG] [Security] IPC handlers registered
+[2026-04-23T02:19:17.251Z] [LOG] [Debloat] IPC handlers registered
+[2026-04-23T02:19:17.252Z] [LOG] [Cleaner] IPC handlers registered
+[2026-04-23T02:19:17.252Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-04-23T02:19:17.271Z] [LOG] [STARTUP] whenReady — v1.0.3 | isDev:false | pid:14912
+[2026-04-23T02:19:17.274Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-04-23T02:19:17.295Z] [LOG] [STARTUP:5] BrowserWindow constructed — show:false (waiting for ready-to-show), isVisible: false
+[2026-04-23T02:19:17.296Z] [LOG] [STARTUP:6] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-04-23T02:19:17.300Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-04-23T02:19:17.300Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\Switchcontrol.exe
+[2026-04-23T02:19:17.300Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-04-23T02:19:17.300Z] [LOG] [Backend] app.isPackaged: true
+[2026-04-23T02:19:17.300Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-04-23T02:19:17.301Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-04-23T02:19:17.301Z] [LOG] [Backend] Bundle size: 2.8 MB
+[2026-04-23T02:19:17.344Z] [LOG] [Updater] init — v1.0.3 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-04-23T02:19:17.344Z] [LOG] [STARTUP] app ready — 73ms from whenReady
+[2026-04-23T02:19:17.417Z] [LOG] [Backend] Free port found: 55620
+[2026-04-23T02:19:17.417Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-04-23T02:19:17.417Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-04-23T02:19:17.417Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-23T02:19:17.417Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-23T02:19:17.417Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-04-23T02:19:17.418Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-23T02:19:17.418Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-23T02:19:17.418Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-23T02:19:17.418Z] [LOG] [Backend] =====================================
+[2026-04-23T02:19:17.418Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-04-23T02:19:17.418Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-04-23T02:19:17.418Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-04-23T02:19:17.419Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-04-23T02:19:17.419Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-04-23T02:19:17.419Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-04-23T02:19:17.419Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-04-23T02:19:17.419Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-04-23T02:19:17.419Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-04-23T02:19:17.419Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-04-23T02:19:17.419Z] [LOG] [Backend] ==========================================
+[2026-04-23T02:19:17.420Z] [LOG] [Backend] Spawning child process...
+[2026-04-23T02:19:17.420Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\Switchcontrol.exe
+[2026-04-23T02:19:17.420Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-04-23T02:19:17.420Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-04-23T02:19:17.420Z] [LOG] [Backend]   PORT: 55620
+[2026-04-23T02:19:17.420Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-04-23T02:19:17.426Z] [LOG] [Backend] Child process spawned, PID: 8364
+[2026-04-23T02:19:17.426Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:55620/api/health
+[2026-04-23T02:19:17.550Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-04-23T02:19:17.550Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-23T02:19:17.551Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-23T02:19:17.551Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-04-23T02:19:17.551Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-04-23T02:19:17.552Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-04-23T02:19:17.639Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-04-23T02:19:17.639Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-04-23T02:19:17.647Z] [LOG] [Backend:stdout] [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-04-23T02:19:17.649Z] [LOG] [STARTUP:6] loadFile() promise RESOLVED
+[2026-04-23T02:19:17.658Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-04-23T02:19:17.659Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1779502757
+[2026-04-23T02:19:17.659Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-04-23T02:19:17.659Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-04-23T02:19:17.659Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-04-23T02:19:17.659Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-04-23T02:19:17.659Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-04-23T02:19:17.659Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-04-23T02:19:17.660Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-23T02:19:17.660Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-04-23T02:19:17.660Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-04-23T02:19:17.660Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-04-23T02:19:17.660Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-04-23T02:19:17.660Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-04-23T02:19:17.661Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-04-23T02:19:17.663Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-23T02:19:17.663Z] [LOG] [Backend:stdout] [SysIntelligence] Collecting full system profile…
+[2026-04-23T02:19:17.668Z] [LOG] [Backend:stdout] [Telemetry] Background polling started (1000ms interval)
+[2026-04-23T02:19:17.668Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry
+[2026-04-23T02:19:18.360Z] [LOG] [Backend:stdout] 2:19:17 PM [express] serving on 127.0.0.1:55620
+[2026-04-23T02:19:18.367Z] [LOG] [Backend] Health check PASSED — attempt 8, 940ms elapsed, body={"status":"ok","timestamp":1776910758364}
+[2026-04-23T02:19:18.367Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-04-23T02:19:18.368Z] [LOG] [Backend] PID: 8364
+[2026-04-23T02:19:18.368Z] [LOG] [Backend] Port: 55620
+[2026-04-23T02:19:18.368Z] [LOG] [Backend] Ready: true
+[2026-04-23T02:19:18.368Z] [LOG] [Backend] getBackendPort() will return: 55620
+[2026-04-23T02:19:18.368Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-04-23T02:19:18.368Z] [LOG] [Backend] ========================
+[2026-04-23T02:19:18.369Z] [LOG] [STARTUP] backend ready — port 55620 (1098ms)
+[2026-04-23T02:19:21.481Z] [LOG] [Backend:stdout] [SysIntelligence] Collection complete in 3822ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-04-23T02:19:25.345Z] [INFO] Checking for update
+[2026-04-23T02:19:25.345Z] [LOG] [Updater] Checking for update...
+[2026-04-23T02:19:25.544Z] [INFO] Update for version 1.0.3 is not available (latest version: 1.0.3, downgrade is allowed).
+[2026-04-23T02:19:25.544Z] [LOG] [Updater] No update available — current version is latest.
+[2026-04-23T02:19:27.873Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT LHM: false
+[2026-04-23T02:20:03.243Z] [WARN] [GPU:perf] unexpected max value (fail 1): -1
+[2026-04-23T02:20:34.180Z] [WARN] [GPU:perf] unexpected max value (fail 1): -1
