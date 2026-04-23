@@ -50,6 +50,9 @@ function getPowerPlanManager()       { return require('./power-plan-manager'); }
 
 // ── SC plan detection ─────────────────────────────────────────────────────────
 
+/** Prefix shared by every SwitchControl-managed power plan name. */
+const SC_PLAN_NAME_PREFIX = 'SwitchControl -';
+
 /**
  * Return all GUIDs that SwitchControl has ever created/activated, lowercased.
  * Read directly from the power-plans.json state file via the manager export.
@@ -66,11 +69,24 @@ function getSCPlanGuids() {
 
 /**
  * True if the given GUID belongs to a SwitchControl-managed premium power plan.
+ *
+ * Uses dual detection for belt-and-suspenders safety:
+ *   1. GUID is in power-plans.json (primary — exact match)
+ *   2. Plan name starts with SC prefix (fallback — covers reinstall/cleared-file scenarios)
+ *
  * @param {string|null} guid
+ * @param {string|null} [name] — optional plan name for name-based fallback
  */
-function isSwitchControlPlanGuid(guid) {
+function isSwitchControlPlanGuid(guid, name) {
   if (!guid) return false;
-  return getSCPlanGuids().includes(String(guid).toLowerCase());
+  const guidMatch = getSCPlanGuids().includes(String(guid).toLowerCase());
+  if (guidMatch) return true;
+  // Fallback: name-based detection covers cases where power-plans.json is missing
+  // (e.g. reinstall) but an SC-named plan is still active on the system.
+  if (name && typeof name === 'string') {
+    return name.startsWith(SC_PLAN_NAME_PREFIX);
+  }
+  return false;
 }
 
 // ── per-type revert handlers ──────────────────────────────────────────────────
@@ -185,11 +201,14 @@ async function revertPowerPlan(record) {
 
   // Step 1: Read what is CURRENTLY active on Windows.
   let currentGuid = null;
+  let currentName = null;
   try {
     const active = await mgr.getActivePowerScheme();
     currentGuid = active.scheme?.guid ? active.scheme.guid.toLowerCase() : null;
+    currentName = active.scheme?.name ?? null;
     console.log(
       `[RevertPipeline] power_plan — current active GUID: ${currentGuid ?? '(unreadable)'}` +
+      ` name: "${currentName ?? ''}"` +
       ` | appliedPlanGuid (ownership): ${appliedLower ?? '(none)'}`
     );
   } catch (e) {
@@ -217,12 +236,12 @@ async function revertPowerPlan(record) {
         );
       }
     } else {
-      // Fallback: check power-plans.json set (old behaviour for pre-ownership records)
-      userChangedPlan = !isSwitchControlPlanGuid(currentGuid);
+      // Fallback: GUID+name dual check (covers reinstall / cleared power-plans.json)
+      userChangedPlan = !isSwitchControlPlanGuid(currentGuid, currentName);
       if (userChangedPlan) {
         console.log(
-          `[RevertPipeline] power_plan — revert skipped: current GUID (${currentGuid}) not in SC plan set` +
-          ` (no appliedPlanGuid in record — treating as user change)`
+          `[RevertPipeline] power_plan — revert skipped: current plan not SC-managed` +
+          ` (guid=${currentGuid} name="${currentName}" — no appliedPlanGuid in record, treating as user change)`
         );
       }
     }
@@ -465,8 +484,9 @@ async function runStartupPowerPlanSanityCheck() {
     return { checked: true, action: 'error', error: e.message };
   }
 
-  if (!currentGuid || !isSwitchControlPlanGuid(currentGuid)) {
-    console.log(`[Sanity] Power plan check clean — active plan is not SC-managed (guid=${currentGuid})`);
+  // Dual check: GUID match (primary) OR name prefix match (fallback for reinstall)
+  if (!currentGuid || !isSwitchControlPlanGuid(currentGuid, currentName)) {
+    console.log(`[Sanity] Power plan check clean — active plan is not SC-managed (guid=${currentGuid} name="${currentName}")`);
     return { checked: true, action: 'clean', activeGuid: currentGuid, activeName: currentName };
   }
 
