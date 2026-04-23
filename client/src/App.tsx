@@ -43,6 +43,7 @@ import FocusMode from "@/pages/FocusMode";
 import Debloater from "@/pages/Debloater";
 import StartupApps from "@/pages/StartupApps";
 import Tweaks from "@/pages/Tweaks";
+import NicTuningPage from "@/pages/NicTuning";
 import BiosAdvisor from "@/pages/BiosAdvisor";
 import AiAdvisor from "@/pages/AiAdvisor";
 import Security from "@/pages/Security";
@@ -97,6 +98,7 @@ function ElectronAppRoutes() {
         <Route path="/power-plan" component={PowerPlan} />
         <Route path="/app-booster" component={AppBooster} />
         <Route path="/focus" component={FocusMode} />
+        <Route path="/nic-tuning" component={NicTuningPage} />
         <Route path="/network" component={NetworkTweaks} />
         <Route path="/cleaner" component={SystemCleaner} />
         <Route path="/debloat" component={Debloater} />

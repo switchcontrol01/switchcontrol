@@ -1,0 +1,156 @@
+TASK
+
+Fix the premium revert system properly. It is currently not trustworthy.
+
+This is a production-critical entitlement enforcement fix.
+
+PROBLEM
+
+The current premium revert logic is incorrect.
+
+Real issues observed:
+- the revert summary listed the wrong tweaks
+- the revert summary listed the wrong network tweaks
+- the revert result was not aligned with what was actually enabled during premium/trial access
+- premium power plan behavior is broken
+- after premium was granted again, the machine still had the premium power plan active
+- this means users can keep premium power-plan benefits after entitlement ends
+- that is an abuse path and a trust-breaking bug
+
+This means the current ownership / baseline / revert model is not strict enough.
+
+GOAL
+
+Make premium expiry revert logic exact, deterministic, and abuse-resistant.
+
+After entitlement ends:
+- only the premium tweaks actually applied by SwitchControl during entitled access should be reverted
+- only the premium network tweaks actually applied by SwitchControl during entitled access should be reverted
+- premium power plans must NEVER persist after entitlement ends
+- if a SwitchControl premium power plan is active when trial/premium ends, it must be reverted immediately to Windows Balanced by GUID
+- no incorrect revert reports
+- no false positives
+- no silent misses
+- no leaving premium power plan active
+
+REQUIRED RULES
+
+RULE 1 — tweaks and network tweaks
+For tweaks and network tweaks:
+- revert only items that were actually applied by SwitchControl during the entitled window
+- do not claim items were reverted if they were not
+- do not include items that were already enabled before SwitchControl touched them
+- do not use guessed UI state
+- do not use stale local state
+- use persisted ownership / baseline state only
+
+RULE 2 — power plan is a special case
+Power plan must not use the same weak logic as normal tweaks.
+
+New strict rule:
+- if the active power plan at expiry time is a SwitchControl premium power plan
+- revert it immediately to Windows Balanced
+- use the real Windows Balanced GUID, not a label lookup
+- this must happen even if baseline tracking is missing, stale, or corrupted
+
+Windows Balanced GUID:
+381b4222-f694-41f0-9685-ff5bb260df2e
+
+That is the fallback truth.
+If the active plan is premium and entitlement ends, force restore to that GUID.
+
+RULE 3 — reporting must match reality
+The revert report shown to the user must only list:
+- what was truly detected
+- what was truly reverted
+- what failed
+- what was skipped
+
+Do not over-report.
+Do not say something was reverted if it was not actually reverted.
+
+FILES TO CHECK
+
+Ownership / revert system:
+- electron/ownership-store.js
+- electron/premium-revert-pipeline.js
+- any premium expiry hook / modal / pipeline caller
+- any tweak ownership tracking files
+- any network tweak ownership tracking files
+- any power plan ownership tracking files
+
+Power plan handling:
+- electron/power-plan-manager.js
+- power plan apply handlers
+- premium expiry handlers
+- any power plan IPC path
+- any entitlement lapse handler
+
+Frontend report UI:
+- PremiumRevertModal
+- premium expiry hook
+- any revert preview/report builder
+
+IMPLEMENTATION
+
+SECTION 1 — audit the ownership model
+
+Audit how ownership is currently recorded for:
+- tweaks
+- network tweaks
+- power plans
+
+Find exactly why wrong items are showing in the revert result.
+
+Check for:
+- stale ownership records
+- baseline overwrite bugs
+- apply records written before success is confirmed
+- revert records not clearing properly
+- preview logic reading wrong keys
+- mixed premium vs free item classification
+- items included purely because they are currently enabled rather than app-owned
+
+SECTION 2 — harden tweak and network revert eligibility
+
+For tweaks and network tweaks, an item is eligible for premium revert ONLY if:
+- it is premium-only
+- it has an ownership record
+- the ownership record says appliedByApp=true
+- the apply action was actually confirmed successful
+
+If any of those are missing, do not revert it and do not report it as reverted.
+
+Also:
+- if a revert succeeds, ownership must be updated correctly
+- if a revert fails, report that failure clearly
+- if an item was already enabled before SwitchControl touched it, do not revert it
+
+SECTION 3 — make power plan revert strict
+
+Implement strict power plan expiry handling:
+
+If entitlement ends and the active power plan is one of SwitchControl’s premium power plans:
+- revert immediately to Windows Balanced GUID
+- do not rely on previousPlanGuid as the only safeguard
+- do not leave premium plan active because ownership data is missing
+- do not skip because of stale state
+- do not trust local UI state
+
+Use:
+381b4222-f694-41f0-9685-ff5bb260df2e
+
+That should be the forced fallback.
+
+If previous non-premium plan is known and valid, you may use it only if it is not a premium SwitchControl plan.
+Otherwise force Windows Balanced.
+
+SECTION 4 — classify premium power plans explicitly
+
+Add an explicit helper for power plans:
+- isSwitchControlPremiumPowerPlan(planGuid or planId)
+
+Do not use vague string matching if avoidable.
+Have a hard known set of SwitchControl premium power plan IDs or GUIDs.
+If the active plan is in that set during entitlement expiry, it must be removed.
+

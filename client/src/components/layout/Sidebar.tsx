@@ -57,6 +57,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Power Plan", icon: Zap, href: "/power-plan", isPremium: true, tourId: "power-plan" },
   { label: "App Booster", icon: Rocket, href: "/app-booster" },
   { label: "Focus Mode", icon: Moon, href: "/focus" },
+  { label: "NIC Tuning", icon: Network, href: "/nic-tuning" },
   { label: "Network Tweaks", icon: Wifi, href: "/network", isPremium: true, tourId: "network" },
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },
   { label: "Debloat", icon: Shield, href: "/debloat" },

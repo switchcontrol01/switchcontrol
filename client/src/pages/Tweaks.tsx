@@ -6,7 +6,6 @@ import { TweakIntelligenceLayer } from "@/components/tweaks/TweakIntelligenceLay
 import { Zap, ShieldAlert, X } from "lucide-react";
 import { isElectronWithTweaks } from "@/hooks/use-tweak-executor";
 import { motion, AnimatePresence } from "framer-motion";
-import { NicTuning } from "@/components/tweaks/NicTuning";
 
 export default function Tweaks() {
   const isElectron = isElectronWithTweaks();
@@ -93,14 +92,6 @@ export default function Tweaks() {
           <TweaksList />
         </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          data-testid="section-nic-tuning"
-        >
-          <NicTuning />
-        </motion.div>
       </Reveal>
     </AppLayout>
   );
