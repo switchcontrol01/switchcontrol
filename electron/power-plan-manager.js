@@ -408,28 +408,47 @@ async function ensureSwitchControlScheme(profileId) {
 
   // Need to duplicate the base plan (requires admin)
   const baseGuid = await resolveBasePlanGuid(profile.basePlan);
-  const resultPath = path.join(os.tmpdir(), `sc_pp_dup_${Date.now()}.txt`);
-  const safeResultPath = resultPath.replace(/'/g, "''");
-  const safeScName = profile.scName.replace(/'/g, "''");
-  const safeScDesc = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
-
-  const commands = [
-    `$out = (& powercfg /duplicatescheme ${baseGuid} 2>&1) -join ''`,
-    `$m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
-    `if ($m.Success) { $guid = $m.Value; & powercfg /changename $guid '${safeScName}' '${safeScDesc}'; [System.IO.File]::WriteAllText('${safeResultPath}', $guid) }`,
-  ];
-
-  await runElevatedCommands(commands);
-
-  const deadline = Date.now() + 3000;
-  while (!fs.existsSync(resultPath) && Date.now() < deadline) {
-    await new Promise(r => setTimeout(r, 100));
-  }
-
+  const isAdminNow = await checkIsAdmin();
   let newGuid = null;
-  if (fs.existsSync(resultPath)) {
-    newGuid = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
-    try { fs.unlinkSync(resultPath); } catch {}
+
+  if (isAdminNow) {
+    // Run directly — no elevation needed, no window flash
+    try {
+      const dupOut = await runPowercfg('/duplicatescheme', baseGuid);
+      const m = dupOut.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (m) {
+        newGuid = m[0].toLowerCase();
+        try {
+          await runPowercfg('/changename', newGuid, profile.scName, profile.scDesc || 'SwitchControl managed power plan');
+        } catch { /* non-critical */ }
+        console.log(`[PowerPlan] Admin: duplicated scheme "${newGuid}" for ${profileId}`);
+      }
+    } catch (e) {
+      console.warn(`[PowerPlan] Admin direct duplicate failed — ${e.message}`);
+    }
+  } else {
+    const resultPath = path.join(os.tmpdir(), `sc_pp_dup_${Date.now()}.txt`);
+    const safeResultPath = resultPath.replace(/'/g, "''");
+    const safeScName = profile.scName.replace(/'/g, "''");
+    const safeScDesc = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
+
+    const commands = [
+      `$out = (& powercfg /duplicatescheme ${baseGuid} 2>&1) -join ''`,
+      `$m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
+      `if ($m.Success) { $guid = $m.Value; & powercfg /changename $guid '${safeScName}' '${safeScDesc}'; [System.IO.File]::WriteAllText('${safeResultPath}', $guid) }`,
+    ];
+
+    await runElevatedCommands(commands);
+
+    const deadline = Date.now() + 3000;
+    while (!fs.existsSync(resultPath) && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+
+    if (fs.existsSync(resultPath)) {
+      newGuid = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
+      try { fs.unlinkSync(resultPath); } catch {}
+    }
   }
 
   if (!newGuid || !/^[0-9a-f-]{36}$/.test(newGuid)) {
@@ -588,7 +607,7 @@ async function activatePlanByGuid(guid) {
   try {
     if (isAdmin) {
       const { execFileSync } = require('child_process');
-      execFileSync('powercfg', ['/setactive', cleanGuid], { stdio: 'pipe' });
+      execFileSync('powercfg', ['/setactive', cleanGuid], { stdio: 'pipe', windowsHide: true });
     } else {
       // Needs UAC
       const result = await runElevatedCommands([`powercfg /setactive ${cleanGuid}`]);

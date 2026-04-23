@@ -2003,7 +2003,7 @@ ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
   }
   try {
     const { execFileSync } = require('child_process');
-    execFileSync('powercfg', ['/setactive', guid.trim()], { stdio: 'pipe' });
+    execFileSync('powercfg', ['/setactive', guid.trim()], { stdio: 'pipe', windowsHide: true });
     // Verify the plan is now active
     const verifyState = await powerPlanManager.getPowerPlanState();
     const activeGuid = verifyState?.activeScheme?.guid ?? '';
@@ -2090,7 +2090,7 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
     const { execSync } = require('child_process');
     const out = execSync(
       'reg query "HKLM\\SOFTWARE\\Microsoft\\GamingServices" /v "GamingRootPath" /reg:64 2>nul',
-      { timeout: 3000, encoding: 'utf8' }
+      { timeout: 3000, encoding: 'utf8', windowsHide: true }
     );
     const m = out.match(/GamingRootPath\s+REG_SZ\s+(.+)/i);
     if (m) {
