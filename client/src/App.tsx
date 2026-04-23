@@ -989,8 +989,8 @@ function ElectronAppContent() {
           <motion.div
             key="splash"
             initial={{ opacity: 1 }}
-            exit={{ opacity: 0, scale: 1.008, filter: "blur(8px)" }}
-            transition={{ duration: 0.65, ease: [0.4, 0, 0.2, 1] }}
+            exit={{ opacity: 0, scale: 1.004 }}
+            transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
             className="h-full"
             style={{ position: "absolute", inset: 0, zIndex: 1 }}
           >

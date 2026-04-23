@@ -596,6 +596,19 @@ function createWindow() {
     console.error('[STARTUP:renderer] webContents UNRESPONSIVE');
   });
 
+  // Pipe all renderer console messages into the main-process log so crashes
+  // and React errors are captured even when DevTools is locked in production.
+  mainWindow.webContents.on('console-message', (_e, level, message, line, sourceId) => {
+    const tag = ['[Renderer:verbose]', '[Renderer:info]', '[Renderer:warn]', '[Renderer:error]'][level] || '[Renderer]';
+    const src = sourceId ? sourceId.replace(/^.*\//, '') : '';
+    const loc = src && line ? ` (${src}:${line})` : '';
+    if (level >= 2) {
+      console.error(`${tag}${loc}`, message);
+    } else {
+      console.log(`${tag}${loc}`, message);
+    }
+  });
+
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
     verboseLog('[STARTUP:7] did-finish-load — renderer ready');
