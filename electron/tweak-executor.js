@@ -447,12 +447,16 @@ const ADMIN_TWEAKS = {
     check:  `$tn = "AnalyzeSystem"; $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\Power Efficiency Diagnostics\\" -TaskName $tn -EA SilentlyContinue; if (-not $t) { $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\Power Efficiency Diagnostics" -TaskName $tn -EA SilentlyContinue }; if (-not $t) { $true } else { $t.State -eq "Disabled" }`,
   },
   'maintenance': {
+    // The scheduled-task path for "Regular Maintenance" varies across Windows builds
+    // and Disable-ScheduledTask can silently fail or get re-enabled by the Task Scheduler
+    // service.  The authoritative, version-stable approach is the MaintenanceDisabled
+    // registry key — this is what Task Scheduler and the Action Center both honour.
     name: 'Disable Maintenance Tasks',
     requiresAdmin:  true,
     requiresReboot: false,
-    apply:  `$tn = "Regular Maintenance"; $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\TaskScheduler\\" -TaskName $tn -EA SilentlyContinue; if (-not $t) { $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\TaskScheduler" -TaskName $tn -EA SilentlyContinue }; if ($t) { Disable-ScheduledTask -TaskPath $t.TaskPath -TaskName $tn | Out-Null }`,
-    revert: `$tn = "Regular Maintenance"; $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\TaskScheduler\\" -TaskName $tn -EA SilentlyContinue; if (-not $t) { $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\TaskScheduler" -TaskName $tn -EA SilentlyContinue }; if ($t) { Enable-ScheduledTask -TaskPath $t.TaskPath -TaskName $tn | Out-Null }`,
-    check:  `$tn = "Regular Maintenance"; $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\TaskScheduler\\" -TaskName $tn -EA SilentlyContinue; if (-not $t) { $t = Get-ScheduledTask -TaskPath "\\Microsoft\\Windows\\TaskScheduler" -TaskName $tn -EA SilentlyContinue }; if (-not $t) { $true } else { $t.State -eq "Disabled" }`,
+    apply:  `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\Maintenance"; New-Item -Path $p -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path $p -Name "MaintenanceDisabled" -Value 1 -Type DWord -Force`,
+    revert: `$p = "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\Maintenance"; Remove-ItemProperty -Path $p -Name "MaintenanceDisabled" -EA SilentlyContinue`,
+    check:  `(Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Schedule\\Maintenance" -Name "MaintenanceDisabled" -EA SilentlyContinue).MaintenanceDisabled -eq 1`,
   },
   'core-isolation': {
     name: 'Disable Core Isolation (HVCI)',

@@ -174,9 +174,46 @@ export function useTweakExecutor() {
         return FAIL(fType, result.userMessage, result.hint);
       }
 
-      // ── Success ──────────────────────────────────────────────────────────────
-      const status: TweakStatus = await getTweaksAPI().checkStatus(tweakId);
-      const actualState = status?.isApplied ?? (action === 'apply');
+      // ── Verify: authoritative post-execution state check ─────────────────────
+      // checkStatus MUST succeed; if it throws or returns null we cannot confirm
+      // the change — treat that as a verification failure rather than assuming success.
+      let status: TweakStatus | null = null;
+      try {
+        status = await getTweaksAPI().checkStatus(tweakId);
+      } catch {
+        return FAIL(
+          'verification_failed',
+          'Setting Could Not Be Verified',
+          'The command ran, but the system state could not be read back to confirm the change.',
+        );
+      }
+
+      if (!status) {
+        return FAIL(
+          'verification_failed',
+          'Setting Could Not Be Verified',
+          'The command ran, but the state check returned no result.',
+        );
+      }
+
+      const actualState: boolean = status.isApplied;
+      const succeeded = actualState === (action === 'apply');
+
+      if (!succeeded) {
+        // Command ran but system state did not change — do NOT update localState
+        // so the store and UI stay at the pre-toggle value.
+        return FAIL(
+          'verification_failed',
+          'Setting Could Not Be Verified',
+          'The command ran but the system state did not change. An antivirus or security policy may be reverting it immediately.',
+        );
+      }
+
+      // Verification confirmed — update localState and show success toast.
+      setLocalState(prev => ({
+        ...prev,
+        appliedTweaks: { ...prev.appliedTweaks, [tweakId]: actualState },
+      }));
 
       toast({
         title:       action === 'apply' ? 'Tweak Applied' : 'Tweak Reverted',
@@ -185,16 +222,6 @@ export function useTweakExecutor() {
 
       if (result.requiresReboot) {
         toast({ title: 'Restart Required', description: 'This change takes full effect after a system restart.' });
-      }
-
-      setLocalState(prev => ({
-        ...prev,
-        appliedTweaks: { ...prev.appliedTweaks, [tweakId]: actualState },
-      }));
-
-      const succeeded = actualState === (action === 'apply');
-      if (!succeeded) {
-        return FAIL('verification_failed', 'Setting Could Not Be Verified', 'The change was applied but the system state still reads as unchanged.');
       }
 
       // ── Ownership recording ───────────────────────────────────────────────────

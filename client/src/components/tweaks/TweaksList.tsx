@@ -50,7 +50,7 @@ const LEVEL_WARN: Record<string, { title: string; body: string }> = {
 
 export function TweaksList() {
   const { tweaks, toggleTweak, resetData, enableRecommended, setTweak } = useStore();
-  const { syncAllTweaks, localState, isElectron } = useTweakExecutor();
+  const { syncAllTweaks, isElectron } = useTweakExecutor();
   const { toast } = useToast();
   const [search, setSearch]         = useState("");
   const [activeChip, setActiveChip] = useState<string>("All");
@@ -112,15 +112,15 @@ export function TweaksList() {
       .finally(() => setSyncing(false));
   }, [isElectron, syncAllTweaks, setTweak, toast]);
 
-  const getTweakEnabled = (tweakId: string): boolean => {
-    const storeValue = tweaks[tweakId] ?? false;
-    if (isElectron && isRealTweak(tweakId)) {
-      if (syncFailed) return storeValue;
-      const hasLocalState = tweakId in localState.appliedTweaks;
-      return hasLocalState ? localState.appliedTweaks[tweakId] : storeValue;
-    }
-    return storeValue;
-  };
+  // Zustand store is the single source of truth.
+  // It is authoritative after two events:
+  //   1. Initial syncAllTweaks (calls setTweak for every real tweak from live system read).
+  //   2. Each successful toggle (onToggle → toggleTweak updates the store).
+  // We do NOT use the executor's localState here because TweaksList and TweakCard
+  // each hold separate useTweakExecutor() instances.  TweakCard's executor updates
+  // its own localState after execution, but TweaksList's copy is never refreshed,
+  // so reading it would give a stale disk-loaded value and cause visual bounce-back.
+  const getTweakEnabled = (tweakId: string): boolean => tweaks[tweakId] ?? false;
 
   const filteredTweaks = useMemo(() => {
     return TWEAKS_DATA.filter((t) => {
