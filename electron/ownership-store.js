@@ -88,9 +88,17 @@ function loadOwnership() {
 function saveOwnership(data) {
   try {
     ensureDir();
-    fs.writeFileSync(OWNERSHIP_FILE, JSON.stringify(data, null, 2), 'utf8');
+    // Atomic write: write to a temp file then rename.
+    // fs.renameSync is atomic on NTFS (same volume) — if the process crashes
+    // mid-write the original file is intact; only a fully-written tmp is
+    // swapped in.  This prevents a corrupt ownership store on unexpected exit.
+    const tmp = OWNERSHIP_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tmp, OWNERSHIP_FILE);
   } catch (e) {
     console.error('[OwnershipStore] saveOwnership failed:', e.message);
+    // Attempt to clean up orphaned tmp file on failure
+    try { fs.unlinkSync(OWNERSHIP_FILE + '.tmp'); } catch {}
   }
 }
 

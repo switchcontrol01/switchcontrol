@@ -106,6 +106,29 @@ async function reportResult(
   }
 }
 
+// ── Session-level state cache ─────────────────────────────────────────────────
+// Survives component remounts (tab switches, route changes) within the same
+// app session.  On first mount the component initialises from this cache so
+// the user never sees a false "idle/off" flash when they return to the page.
+// Reset to null only on full app reload — intentional, because a cold start
+// always re-fetches from the backend anyway.
+let _networkTweakStateCache: StateMap | null = null;
+
+function buildInitialStateMap(): StateMap {
+  if (_networkTweakStateCache) {
+    console.log('[NetworkTweaks:CACHE] cache hit — rehydrating from session cache');
+    return { ..._networkTweakStateCache };
+  }
+  console.log('[NetworkTweaks:CACHE] cache miss — initialising to idle');
+  const initial: StateMap = {};
+  for (const t of NETWORK_TWEAKS) {
+    initial[t.id] = { status: t.unavailable ? "unavailable" : "idle" };
+  }
+  return initial;
+}
+
+// ── fetch from backend ────────────────────────────────────────────────────────
+
 async function fetchBackendState(): Promise<StateMap> {
   try {
     const r = await fetch("/api/network-tweaks/state");
@@ -551,14 +574,17 @@ function NetworkTweaksContent() {
   );
   const [selectedTweak, setSelectedTweak] = useState<NetworkTweak | null>(null);
 
-  // Per-tweak state map
-  const [stateMap, setStateMap] = useState<StateMap>(() => {
-    const initial: StateMap = {};
-    for (const t of NETWORK_TWEAKS) {
-      initial[t.id] = { status: t.unavailable ? "unavailable" : "idle" };
-    }
-    return initial;
-  });
+  // Per-tweak state map — initialised from session cache if available so tab
+  // switches never flash "idle/off" before the backend response arrives.
+  const [stateMap, setStateMap] = useState<StateMap>(buildInitialStateMap);
+
+  // Keep the module-level session cache in sync with every stateMap update so
+  // that the next mount can skip the idle-flash window entirely.
+  const stateMapRef = useRef<StateMap>(stateMap);
+  useEffect(() => {
+    stateMapRef.current     = stateMap;
+    _networkTweakStateCache = { ...stateMap };
+  }, [stateMap]);
 
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastCounter = useRef(0);
@@ -573,11 +599,19 @@ function NetworkTweaksContent() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }
 
-  // Load persisted state from backend — only after auth is confirmed
+  // Load persisted state from backend — only after auth is confirmed.
+  // The `mounted` flag prevents a stale HTTP response (from a previous mount
+  // that was still in-flight when the user navigated away) from overwriting
+  // the fresh state on the new mount.
   useEffect(() => {
     if (!user?.loggedIn) return;
+    let mounted = true;
     timingMark("fetch-state");
     fetchBackendState().then(backendState => {
+      if (!mounted) {
+        console.log('[NetworkTweaks:CACHE] stale fetch response discarded (component remounted)');
+        return;
+      }
       setStateMap(prev => {
         const next = { ...prev };
         for (const [id, s] of Object.entries(backendState)) {
@@ -589,8 +623,12 @@ function NetworkTweaksContent() {
       });
       timingMark("fetch-state-done");
     });
+    return () => { mounted = false; };
   }, [user?.loggedIn]); // eslint-disable-line
 
+  // toggleTweak reads stateMapRef (not the closure-captured stateMap) so the
+  // callback identity is stable — no stale-closure desync when the map updates
+  // between the user clicking and the callback firing.
   const toggleTweak = useCallback(async (tweak: NetworkTweak) => {
     if (tweak.unavailable) return;
 
@@ -599,7 +637,7 @@ function NetworkTweaksContent() {
       return;
     }
 
-    const current = stateMap[tweak.id] ?? { status: "idle" };
+    const current = stateMapRef.current[tweak.id] ?? { status: "idle" };
     if (current.status === "applying") return;
 
     const isCurrentlyEnabled =
@@ -682,7 +720,7 @@ function NetworkTweaksContent() {
       }));
       addToast(tweak.id, false, msg);
     }
-  }, [stateMap, isPremium]);
+  }, [isPremium]); // stateMapRef is always current — no closure on stateMap needed
 
   const toggleCategory = useCallback((category: NetworkCategory) => {
     setExpandedCategories(prev => {

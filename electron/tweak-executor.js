@@ -46,8 +46,14 @@ function saveState(state) {
     ensureStateDir();
     state.meta.windowsBuild = os.release();
     state.meta.lastVerified  = new Date().toISOString();
-    fs.writeFileSync(TWEAK_STATE_FILE, JSON.stringify(state, null, 2));
-  } catch (e) { console.error('[TweakExecutor] saveState failed:', e.message); }
+    // Atomic write: tmp → rename so a crash mid-write never corrupts the file.
+    const tmp = TWEAK_STATE_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(state, null, 2));
+    fs.renameSync(tmp, TWEAK_STATE_FILE);
+  } catch (e) {
+    console.error('[TweakExecutor] saveState failed:', e.message);
+    try { fs.unlinkSync(TWEAK_STATE_FILE + '.tmp'); } catch {}
+  }
 }
 
 function logEntry(entry) {
@@ -875,6 +881,7 @@ async function executeTweak(tweakId, action) {
         const state = loadState();
         state.tweaks[tweakId] = expectedApplied;
         saveState(state);
+        console.log(`[TweakExecutor:PERSIST] ${tweakId} → ${expectedApplied} (elevated, verified) written`);
         const result = {
           success:        true,
           verified:       true,
@@ -951,6 +958,7 @@ async function executeTweak(tweakId, action) {
       const state = loadState();
       state.tweaks[tweakId] = expectedApplied;
       saveState(state);
+      console.log(`[TweakExecutor:PERSIST] ${tweakId} → ${expectedApplied} (hkcu, verified) written`);
 
       const result = {
         success:        true,

@@ -13,6 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassModalSurface } from "@/components/ui/GlassModalLayout";
 
+// Module-level sync generation counter — persists across component remounts.
+// Incremented when a new mount starts its sync; old in-flight syncs that
+// resolve after the counter has moved discard their results rather than
+// overwriting state written by the current mount.
+let _syncGeneration = 0;
+
 const CATEGORIES = ["Performance", "Latency", "Input", "Visuals", "Services", "Privacy", "Aesthetics", "Sliders"];
 
 const CATEGORY_MAP: Record<string, TweakCategory[]> = {
@@ -92,19 +98,35 @@ export function TweaksList() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isElectron) return;
+    // Claim this generation — any older in-flight sync will see a mismatch and
+    // discard its results rather than overwriting what this mount resolves to.
+    const myGen = ++_syncGeneration;
     setSyncing(true);
     setSyncFailed(false);
+    console.log(`[Tweaks:SYNC] hydration start gen=${myGen}`);
     syncAllTweaks()
       .then((results) => {
-        if (!results || Object.keys(results).length === 0) return;
+        if (myGen !== _syncGeneration) {
+          console.log(`[Tweaks:SYNC] stale result discarded gen=${myGen} current=${_syncGeneration}`);
+          return;
+        }
+        if (!results || Object.keys(results).length === 0) {
+          console.log('[Tweaks:SYNC] skipped (no results from syncAll)');
+          return;
+        }
+        let reconciled = 0;
         Object.entries(results).forEach(([tweakId, status]) => {
           const s = status as { isApplied: boolean; applied: boolean; unsupported?: boolean; error: string | null };
           if (!s.error && !s.unsupported && isRealTweak(tweakId)) {
-            setTweak(tweakId, s.isApplied ?? s.applied ?? false);
+            const finalState = s.isApplied ?? s.applied ?? false;
+            setTweak(tweakId, finalState);
+            reconciled++;
           }
         });
+        console.log(`[Tweaks:SYNC] hydration done gen=${myGen} reconciled=${reconciled}`);
       })
       .catch((err) => {
+        if (myGen !== _syncGeneration) return; // stale — don't surface error
         console.error('[TweaksList] Failed to sync:', err);
         setSyncFailed(true);
         toast({
@@ -113,7 +135,9 @@ export function TweaksList() {
           variant: 'destructive',
         });
       })
-      .finally(() => setSyncing(false));
+      .finally(() => {
+        if (myGen === _syncGeneration) setSyncing(false);
+      });
   }, [isElectron, syncAllTweaks, setTweak]); // toast excluded — see comment above
 
   // Zustand store is the single source of truth.
