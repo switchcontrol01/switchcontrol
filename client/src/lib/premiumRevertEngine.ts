@@ -266,39 +266,23 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     };
   }
 
-  // ── Step 3: Active plan IS SC-managed. Determine restore target ─────────────
-  // Use previousPlanGuid if it:
-  //   • Is a valid UUID
-  //   • Is NOT itself a SC plan (name check is redundant but safe)
-  //   • Is NOT identical to the applied plan (sanity check)
-  let targetGuid = BALANCED_GUID;
-  let forcedBalanced = true;
-
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (rec?.previousPlanGuid && UUID_RE.test(rec.previousPlanGuid)) {
-    const prevGuid = rec.previousPlanGuid.toLowerCase();
-    const prevName = rec.previousPlanName ?? '';
-    const prevIsSC =
-      prevName.startsWith(SC_PLAN_NAME_PREFIX) ||
-      (rec.appliedPlanGuid ? prevGuid === rec.appliedPlanGuid.toLowerCase() : false);
-
-    if (!prevIsSC) {
-      targetGuid = prevGuid;
-      forcedBalanced = false;
-      console.log(`[Revert:PLAN] Will restore to previous plan: "${rec.previousPlanName}" (${targetGuid})`);
-    } else {
-      console.warn(`[Revert:PLAN] previousPlanGuid "${prevGuid}" is itself a SC plan — forcing Windows Balanced`);
-    }
-  } else {
-    console.warn(`[Revert:PLAN] No valid previousPlanGuid in ownership record — forcing Windows Balanced (${BALANCED_GUID})`);
-  }
+  // ── Step 3: Active plan IS SC-managed. Hard-target Windows Balanced. ─────────
+  // FIX: NEVER restore previousPlanGuid on trial/premium expiry. previousPlanGuid
+  // may be stale after reinstall, may itself be an SC plan, or may have been
+  // deleted. The only guaranteed safe end-state is the built-in Windows Balanced
+  // GUID.  After expiry, users must not retain any SC-applied power configuration.
+  const targetGuid    = BALANCED_GUID;
+  const forcedBalanced = true;
 
   if (!api.activateByGuid) {
     if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
     return { status: 'failed', reason: 'Power plan restore requires an app update (activateByGuid not exposed)' };
   }
 
-  console.log(`[Revert:PLAN] Active SC plan "${currentName}" → activating "${targetGuid}" (forcedBalanced=${forcedBalanced})`);
+  console.log(
+    `[Revert:PLAN] Active SC plan "${currentName}" (${currentGuid})` +
+    ` — hard-target Windows Balanced (${BALANCED_GUID}) [trial expiry policy]`
+  );
 
   // ── Step 4: Activate target plan ────────────────────────────────────────────
   const restoreResult = await api.activateByGuid(targetGuid);
@@ -346,39 +330,10 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     };
   }
 
-  // ── Step 5: Primary target failed → try Balanced as last resort ─────────────
-  if (!forcedBalanced) {
-    console.warn(`[Revert:PLAN] Primary restore to ${targetGuid} failed — trying forced Balanced`);
-    const fallback = await api.activateByGuid(BALANCED_GUID);
-    if (fallback?.success) {
-      let fbDeleted = 0;
-      let fbVerified = false;
-      let fbActiveName: string | undefined;
-      try {
-        const premiumAPI = getPremiumAPI();
-        if (premiumAPI?.cleanupScPlans) {
-          const cleanup = await premiumAPI.cleanupScPlans();
-          fbDeleted = cleanup?.deleted?.length ?? 0;
-          fbVerified = cleanup?.verified ?? false;
-        }
-        const verify = await api.getState();
-        fbActiveName = verify?.activeScheme?.name;
-      } catch { /* non-fatal */ }
-
-      if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
-      return {
-        status: 'forced_balanced',
-        targetGuid: BALANCED_GUID,
-        forcedBalanced: true,
-        appliedPlanName: currentName,
-        reason: 'Previous plan restore failed — used Windows Balanced fallback',
-        plansDeleted: fbDeleted,
-        verifiedClean: fbVerified,
-        verifiedActiveName: fbActiveName,
-      };
-    }
-  }
-
+  // targetGuid is always BALANCED_GUID. If activateByGuid returned not-ok
+  // (activatePlanByGuid already tried restoredefaultschemes + retry internally),
+  // there is nothing more we can do.
+  console.error(`[Revert:PLAN] Windows Balanced activation failed: ${restoreResult?.error}`);
   if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
   return {
     status: 'failed',

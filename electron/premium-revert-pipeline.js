@@ -261,39 +261,19 @@ async function revertPowerPlan(record) {
   }
 
   // Step 3: Active plan IS the one the app set (or currentGuid is null — fail safe).
-  // Determine restore target:
-  //   a) previousPlanGuid if it is a valid UUID and is NOT itself an SC plan
-  //      (checked against both power-plans.json and the appliedPlanGuid record)
-  //   b) BALANCED_GUID otherwise — the safe absolute truth
-  let targetGuid = BALANCED_GUID;
-  let forcedBalanced = true;
+  // FIX: HARD-TARGET Windows Balanced for trial/premium expiry.
+  // We do NOT restore previousPlanGuid here. previousPlanGuid may be stale (e.g.
+  // from a reinstall), may itself be a SC plan, or may have been deleted.
+  // The only guaranteed safe end-state is the built-in Windows Balanced GUID.
+  // This is the correct behaviour on trial expiry — users must not retain any
+  // SC-applied configuration after their access ends.
+  const targetGuid    = BALANCED_GUID;
+  const forcedBalanced = true;
 
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (previousPlanGuid && UUID_RE.test(String(previousPlanGuid).trim())) {
-    const prevLower = previousPlanGuid.trim().toLowerCase();
-    // Reject previousPlanGuid if it is itself an SC plan (either via ownership record
-    // or via power-plans.json) — restoring to another SC plan defeats the purpose.
-    const prevIsApplied = appliedLower && prevLower === appliedLower;
-    const prevIsScPlan  = prevIsApplied || isSwitchControlPlanGuid(prevLower);
-    if (!prevIsScPlan) {
-      targetGuid = prevLower;
-      forcedBalanced = false;
-      console.log(`[RevertPipeline] power_plan — target: previousPlanGuid=${targetGuid}`);
-    } else {
-      console.warn(
-        `[RevertPipeline] power_plan — previousPlanGuid (${prevLower}) is itself an SC plan` +
-        ` (appliedLower=${appliedLower}, inSchemeGuids=${isSwitchControlPlanGuid(prevLower)}).` +
-        ` Forcing Windows Balanced (${BALANCED_GUID}).`
-      );
-    }
-  } else {
-    console.warn(
-      `[RevertPipeline] power_plan — no valid previousPlanGuid in baseline.` +
-      ` Forcing Windows Balanced (${BALANCED_GUID}).`
-    );
-  }
-
-  console.log(`[RevertPipeline] power_plan → activatePlanByGuid("${targetGuid}") forcedBalanced=${forcedBalanced}`);
+  console.log(
+    `[RevertPipeline] power_plan — hard-target: Windows Balanced (${BALANCED_GUID})` +
+    ` [previousPlanGuid=${previousPlanGuid ?? '(none)'} — not used, trial expiry policy]`
+  );
 
   try {
     const result = await mgr.activatePlanByGuid(targetGuid);
@@ -340,50 +320,11 @@ async function revertPowerPlan(record) {
       };
     }
 
-    // Primary target failed. If we weren't already targeting Balanced, try it as last resort.
-    if (!forcedBalanced) {
-      console.warn(
-        `[RevertPipeline] power_plan — restore to ${targetGuid} failed (${result.error}).` +
-        ` Trying forced Balanced (${BALANCED_GUID}) as last resort.`
-      );
-      const fallback = await mgr.activatePlanByGuid(BALANCED_GUID);
-      if (fallback.ok) {
-        if (fallback.restoredDefaults) {
-          console.log('[RevertPipeline] power_plan — restoredefaultschemes invoked and fallback Balanced activated');
-        }
-        ownershipStore.recordRevert(scopeKey);
-        let fbCleanup = { deleted: [], skipped: [], errors: [], verified: false };
-        let fbVerification = { activeGuid: BALANCED_GUID, isBalanced: false, scPlansRemaining: [], clean: false };
-        try {
-          fbCleanup = await mgr.deleteAllScPlans();
-          fbVerification = await mgr.verifyRevertClean();
-          console.log(`[RevertPipeline] power_plan cleanup (fallback) — deleted=${fbCleanup.deleted.length} clean=${fbVerification.clean}`);
-        } catch (e) {
-          console.warn('[RevertPipeline] power_plan cleanup (fallback) threw (non-fatal):', e.message);
-        }
-        return {
-          ok: true,
-          success: true,
-          action: 'forced_balanced_after_restore_fail',
-          guid: BALANCED_GUID,
-          forcedBalanced: true,
-          restoredDefaults: fallback.restoredDefaults || false,
-          retried:          fallback.retried          || false,
-          primaryError: result.error,
-          cleanup: fbCleanup,
-          verification: fbVerification,
-        };
-      }
-      return {
-        ok: false,
-        success: false,
-        action: 'restore_guid',
-        guid: BALANCED_GUID,
-        error: `Primary (${targetGuid}) failed: ${result.error}. Fallback Balanced also failed: ${fallback.error}`,
-      };
-    }
-
-    return { ok: false, success: false, action: 'restore_guid', guid: targetGuid, error: result.error };
+    // targetGuid is always BALANCED_GUID (hard-coded above). If activatePlanByGuid
+    // returned not-ok even after its internal restoredefaultschemes retry, there is
+    // nothing else we can do.
+    console.error(`[RevertPipeline] power_plan — Windows Balanced activation failed: ${result.error}`);
+    return { ok: false, success: false, action: 'forced_balanced', guid: targetGuid, error: result.error };
   } catch (e) {
     return { ok: false, success: false, action: 'restore_guid', guid: targetGuid, error: e.message };
   }

@@ -2156,16 +2156,15 @@ ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
     return { success: false, error: 'Invalid GUID' };
   }
   try {
-    const { execFileSync } = require('child_process');
-    execFileSync('powercfg', ['/setactive', guid.trim()], { stdio: 'pipe', windowsHide: true });
-    // Verify the plan is now active
-    const verifyState = await powerPlanManager.getPowerPlanState();
-    const activeGuid = verifyState?.activeScheme?.guid ?? '';
-    if (activeGuid.toLowerCase() !== guid.trim().toLowerCase()) {
-      return { success: false, error: `Plan set but verification failed — active=${activeGuid}` };
+    // Route through activatePlanByGuid which handles admin/non-admin elevation,
+    // the restoredefaultschemes fallback for the Balanced GUID, and GUID verification.
+    const result = await powerPlanManager.activatePlanByGuid(guid.trim());
+    if (result.ok) {
+      verboseLog(`[IPC] powerPlans:activateByGuid success — active="${result.activeScheme?.guid}"`);
+      return { success: true, activeScheme: result.activeScheme, alreadyActive: result.alreadyActive || false };
     }
-    verboseLog(`[IPC] powerPlans:activateByGuid success — active="${activeGuid}"`);
-    return { success: true, activeScheme: verifyState.activeScheme };
+    console.error('[IPC] powerPlans:activateByGuid failed:', result.error);
+    return { success: false, error: result.error };
   } catch (e) {
     console.error('[IPC] powerPlans:activateByGuid error:', e.message);
     return { success: false, error: e.message };

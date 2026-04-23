@@ -448,20 +448,54 @@ async function ensureSwitchControlScheme(profileId) {
       console.warn(`[PowerPlan] Admin direct duplicate failed — ${e.message}`);
     }
   } else {
-    const resultPath = path.join(os.tmpdir(), `sc_pp_dup_${Date.now()}.txt`);
+    // Non-admin path: write a proper standalone PS1 script and elevate it.
+    // NOTE: runElevatedCommands() wraps each entry with "& ${cmd}" which is
+    // only valid for executable invocations — not for PS variable assignments,
+    // regex operations, or conditional blocks.  We therefore write a proper
+    // script file and Start-Process it ourselves.
+    const scriptId   = `sc_pp_dup_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const resultPath = path.join(os.tmpdir(), `${scriptId}.txt`);
+    const scriptPath = path.join(os.tmpdir(), `${scriptId}.ps1`);
     const safeResultPath = resultPath.replace(/'/g, "''");
-    const safeScName = profile.scName.replace(/'/g, "''");
-    const safeScDesc = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
+    const safeScName     = profile.scName.replace(/'/g, "''");
+    const safeScDesc     = (profile.scDesc || 'SwitchControl managed power plan').replace(/'/g, "''");
 
-    const commands = [
-      `$out = (& powercfg /duplicatescheme ${baseGuid} 2>&1) -join ''`,
-      `$m = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
-      `if ($m.Success) { $guid = $m.Value; & powercfg /changename $guid '${safeScName}' '${safeScDesc}'; [System.IO.File]::WriteAllText('${safeResultPath}', $guid) }`,
+    const scriptLines = [
+      `$ErrorActionPreference = 'Continue'`,
+      `try {`,
+      `  $raw = & powercfg /duplicatescheme ${baseGuid} 2>&1`,
+      `  $out = ($raw | Out-String).Trim()`,
+      `  $m   = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
+      `  if ($m.Success) {`,
+      `    $guid = $m.Value.ToLower()`,
+      `    & powercfg /changename $guid '${safeScName}' '${safeScDesc}' | Out-Null`,
+      `    [System.IO.File]::WriteAllText('${safeResultPath}', $guid)`,
+      `  }`,
+      `} catch { }`,
     ];
 
-    await runElevatedCommands(commands);
+    try {
+      fs.writeFileSync(scriptPath, scriptLines.join('\r\n'), 'utf8');
+      const launchCmd = [
+        `Start-Process powershell`,
+        `-ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${scriptPath.replace(/'/g, "''")}')`,
+        `-Verb RunAs -Wait`,
+      ].join(' ');
+      await new Promise((resolve) => {
+        execFile(
+          'powershell',
+          ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
+          { timeout: 60_000, windowsHide: true },
+          () => resolve()   // resolve regardless — result is in resultPath
+        );
+      });
+    } catch (e) {
+      console.warn(`[PowerPlan] Non-admin: elevated duplicate script launch failed — ${e.message}`);
+    } finally {
+      try { fs.unlinkSync(scriptPath); } catch {}
+    }
 
-    const deadline = Date.now() + 3000;
+    const deadline = Date.now() + 5000;
     while (!fs.existsSync(resultPath) && Date.now() < deadline) {
       await new Promise(r => setTimeout(r, 100));
     }
@@ -486,15 +520,29 @@ async function ensureSwitchControlScheme(profileId) {
 }
 
 async function resolveBasePlanGuid(basePlan) {
-  // Check if ultimate performance is available
+  let listResult = null;
+  try { listResult = await listPowerSchemes(); } catch { /* non-fatal */ }
+
+  const schemes = listResult?.schemes ?? [];
+
+  // Ultimate Performance: consumer Windows editions don't include it by default.
   if (basePlan === 'ultimate_performance') {
-    const listResult = await listPowerSchemes();
-    const hasUltimate = listResult.schemes.some(s => s.guid === BUILTIN_GUIDS.ultimate_performance);
+    const hasUltimate = schemes.some(s => s.guid === BUILTIN_GUIDS.ultimate_performance);
     if (!hasUltimate) {
-      console.log('[PowerPlan] Ultimate Performance not available, falling back to High Performance');
+      console.log('[PowerPlan] Ultimate Performance not available — trying High Performance');
       basePlan = 'high_performance';
     }
   }
+
+  // High Performance: may be missing if the user deleted it.
+  if (basePlan === 'high_performance') {
+    const hasHighPerf = schemes.length === 0 || schemes.some(s => s.guid === BUILTIN_GUIDS.high_performance);
+    if (!hasHighPerf) {
+      console.log('[PowerPlan] High Performance plan not found in scheme list — falling back to Balanced');
+      return BUILTIN_GUIDS.balanced;
+    }
+  }
+
   return BUILTIN_GUIDS[basePlan] || BUILTIN_GUIDS.balanced;
 }
 
@@ -504,16 +552,30 @@ async function applyPowerProfile(profileId) {
   const profile = POWER_PROFILES[profileId];
   if (!profile) return { success: false, error: `Unknown profileId: ${profileId}` };
 
-  console.log(`[PowerPlan] applyPowerProfile: ${profileId}`);
+  console.log(`[PowerPlan] ── applyPowerProfile START: profileId="${profileId}" ──`);
+  console.log(`[PowerPlan]   basePlan="${profile.basePlan}" scName="${profile.scName}"`);
 
+  // ── Step 1: Read active GUID before any change ─────────────────────────────
+  let guidBefore = '(unread)';
+  try {
+    const pre = await getActivePowerScheme();
+    guidBefore = pre.scheme?.guid ?? '(null)';
+    console.log(`[PowerPlan]   GUID before: ${guidBefore} ("${pre.scheme?.name ?? ''}")`);
+  } catch (e) {
+    console.warn(`[PowerPlan]   pre-read failed: ${e.message}`);
+  }
+
+  // ── Step 2: Ensure/create the SC scheme ────────────────────────────────────
   let schemeGuid;
   try {
     schemeGuid = await ensureSwitchControlScheme(profileId);
+    console.log(`[PowerPlan]   target schemeGuid: ${schemeGuid}`);
   } catch (e) {
+    console.error(`[PowerPlan]   ensureSwitchControlScheme failed: ${e.message}`);
     return { success: false, error: `Could not prepare power scheme: ${e.message}` };
   }
 
-  // Build powercfg commands for all settings
+  // ── Step 3: Build and run setting commands ─────────────────────────────────
   const settingCmds = [];
   for (const [key, value] of Object.entries(profile.settings)) {
     const def = SETTING_DEFS[key];
@@ -524,45 +586,73 @@ async function applyPowerProfile(profileId) {
   settingCmds.push(`powercfg /setactive ${schemeGuid}`);
 
   const isAdmin = await checkIsAdmin();
+  console.log(`[PowerPlan]   isAdmin=${isAdmin} — running ${settingCmds.length} powercfg commands`);
   let applyResult = { ok: true, failed: [] };
 
   if (isAdmin) {
-    // Run directly (no UAC needed)
     const failed = [];
     for (const cmd of settingCmds) {
       try {
-        const args = cmd.split(' ').slice(1); // remove "powercfg"
+        const args = cmd.split(' ').slice(1);
         await runPowercfg(...args);
       } catch (e) {
         failed.push(cmd);
-        console.error(`[PowerPlan] Direct cmd failed: ${cmd} — ${e.message}`);
+        console.error(`[PowerPlan]   cmd FAILED: ${cmd} — stderr: ${e.message}`);
       }
     }
     applyResult = { ok: true, failed };
   } else {
     applyResult = await runElevatedCommands(settingCmds);
     if (applyResult.cancelled) {
+      console.warn(`[PowerPlan]   UAC cancelled — no changes made`);
       return { success: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
     }
     if (!applyResult.ok) {
+      console.error(`[PowerPlan]   elevation failed: ${applyResult.error}`);
       return { success: false, error: applyResult.error || 'Elevation failed.' };
     }
   }
 
-  // Verify
+  const failedSettings = applyResult.failed ?? [];
+  if (failedSettings.length > 0) {
+    console.warn(`[PowerPlan]   ${failedSettings.length} setting cmd(s) failed:`, failedSettings);
+  }
+
+  // ── Step 4: Verify — confirm the target GUID is now active ─────────────────
   const [activeResult, settingsResult] = await Promise.all([
     getActivePowerScheme(),
     readAllSettings(schemeGuid),
   ]);
 
+  const guidAfter = (activeResult.scheme?.guid ?? '').toLowerCase();
+  console.log(`[PowerPlan]   GUID after:  ${guidAfter} ("${activeResult.scheme?.name ?? ''}")`);
+  console.log(`[PowerPlan]   target GUID: ${schemeGuid.toLowerCase()}`);
+
   const settings     = settingsResult.settings;
   const breakdown    = generateBreakdown(settings);
-  const profileMatch = matchProfileToPreset(activeResult.scheme?.guid ?? '', settings);
+  const profileMatch = matchProfileToPreset(guidAfter, settings);
 
-  const failedSettings = applyResult.failed ?? [];
-  const success = activeResult.scheme?.guid === schemeGuid.toLowerCase() && profileMatch.match !== 'custom_modified';
+  // SUCCESS = the target scheme GUID is now active.
+  // Settings match is INFORMATIONAL — some settings may be hardware-limited
+  // (e.g. perfBoostModeAC=2 not supported on all CPUs) and will not reflect
+  // the requested value on read-back.  The plan is still active and useful.
+  const guidMatch = activeResult.success && guidAfter === schemeGuid.toLowerCase();
+  const success   = guidMatch;
 
-  console.log(`[PowerPlan] applyPowerProfile result: success=${success} match=${profileMatch.match} failedSettings=${failedSettings.length}`);
+  console.log(
+    `[PowerPlan] ── applyPowerProfile END ──` +
+    ` success=${success} guidMatch=${guidMatch}` +
+    ` settingsMatch=${profileMatch.match}` +
+    ` failedCmds=${failedSettings.length}` +
+    ` settingsErrors=${Object.keys(settingsResult.errors || {}).length}`
+  );
+
+  if (!success) {
+    console.error(
+      `[PowerPlan]   APPLY FAILED — active GUID "${guidAfter}" ≠ target GUID "${schemeGuid.toLowerCase()}"` +
+      (activeResult.success ? '' : ` — getActivePowerScheme failed: ${activeResult.error}`)
+    );
+  }
 
   return {
     success,
