@@ -1,0 +1,188 @@
+TASK — REDESIGN THE UPDATE AVAILABLE MODAL TO FEEL PREMIUM, EXCITING, AND UNIQUE
+
+PROBLEM
+
+The updater works, but the current update card feels:
+- bland
+- generic
+- static
+- not premium
+- not exciting enough for a live product update moment
+
+Right now it looks like a normal popup with a button.
+It does not feel special.
+It does not feel like a high-performance product.
+It does not create anticipation or momentum.
+
+GOAL
+
+Redesign the “Update Available” modal so it feels:
+- premium
+- animated
+- high-end
+- emotionally satisfying
+- uniquely Switchcontrol
+- worthy of a live product update
+
+This should feel like:
+“a new build is ready, this is a serious upgrade”
+not
+“basic system popup”
+
+IMPORTANT
+
+Do NOT make it gaudy, childish, or messy.
+Do NOT make it a generic shadcn dialog with glow.
+It must feel polished, intentional, rich, and modern.
+
+This is a product moment.
+Users should want to click update.
+
+FILES TO CHECK
+
+- client/src/components/updater/*
+- updater modal component
+- any shared dialog / modal primitives
+- motion tokens
+- glass card primitives
+- button styles
+- icon assets / release assets
+
+DESIGN DIRECTION
+
+The modal needs a stronger structure:
+
+1. BACKGROUND TREATMENT
+- Add a dimmed cinematic backdrop
+- Add soft blur behind modal
+- Add subtle animated spotlight / radial glow behind card
+- Add a very soft drifting particle or shimmer layer
+- Background should help isolate the modal and make it feel important
+
+2. MODAL CARD
+- Replace the plain card with a richer glass panel
+- Use layered glass:
+  - outer glow shell
+  - inner dark matte-glass body
+  - subtle edge highlights
+  - soft chromatic purple/cyan border energy
+- Rounded corners should feel premium and substantial
+- Add depth, not just opacity
+
+3. HEADER AREA
+Current title is too plain.
+
+Create a richer header with:
+- animated update badge / pill
+- version emphasis
+- release icon or upgrade glyph
+- stronger typography hierarchy
+
+Example structure:
+- badge: “NEW BUILD READY”
+- headline: “Switchcontrol 1.0.4 is here”
+- subtext: one tight line that feels confident and performance-focused
+
+Tone should feel like:
+- optimized
+- stable
+- faster
+- refined
+
+4. VISUAL MOMENT / HERO ELEMENT
+Add a unique visual element above or beside the text.
+Not a random icon.
+
+Possible directions:
+- animated circular progress ring / energy ring
+- glowing stacked release layers
+- vertical update beam / pulse core
+- mini performance graph pulse
+- floating chip/card showing “1.0.4”
+- subtle orbital particles around a central upgrade icon
+
+It must be elegant and restrained.
+
+5. MICRO-ANIMATIONS
+The current card feels lifeless.
+Add motion that feels expensive, not noisy.
+
+Required:
+- modal enters with blur + fade + slight scale-up
+- background content softens as modal comes in
+- badge has subtle shimmer or traveling highlight
+- hero visual has a slow pulse
+- button glow responds on hover
+- close icon should animate cleanly
+- text should reveal with slight stagger, very subtle
+
+No cheap bounce.
+No overdone spring.
+No fake gaming RGB spam.
+
+6. CTA BUTTON
+Current button is too ordinary.
+
+Redesign primary CTA:
+- thicker, more premium
+- subtle animated inner light sweep
+- better shadow depth
+- stronger label hierarchy
+
+Use wording better than:
+“Download Update”
+
+Better options:
+- “Install 1.0.4”
+- “Update Now”
+- “Get the New Build”
+
+Preferred:
+Update Now
+
+Add optional small supporting line below button:
+“Recommended for best performance and stability”
+
+7. PATCH SUMMARY INSIDE MODAL
+Right now the modal does not sell the update.
+
+Add a compact “What’s improved” section with 3 short bullets:
+- Lower CPU usage
+- Better tweak reliability
+- Stability and UI fixes
+
+These must be visually elegant, not bulky.
+
+Maybe as:
+- 3 mini glass tags
+or
+- 3 short bullet rows with tiny icons
+
+8. PREMIUM FEEL
+The modal must feel like Switchcontrol specifically.
+
+Use the same brand language as the rest of the app:
+- purple / cyan energy
+- matte dark premium base
+- rich glow edges
+- high-end glass
+- subtle telemetry / performance identity
+
+Avoid:
+- default modal layout
+- plain centered alert style
+- standard browser-like update box
+
+9. RESPONSIVENESS
+Ensure it looks excellent on:
+- desktop normal
+- smaller laptop screens
+- high DPI displays
+
+Spacing must remain clean and centered.
+
+10. DO NOT BREAK FUNCTIONALITY
+Keep updater logic intact:
+- existing version data
+- update button behavior
+- close behavior
