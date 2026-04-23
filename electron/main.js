@@ -64,8 +64,9 @@ require('./security-helper');
 require('./debloat-helper');
 require('./cleaner-helper');
 require('./focus-helper');
-const configStore  = require('./config-store');
+const configStore    = require('./config-store');
 const updaterService = require('./updater');
+const criticalLogger = require('./critical-logger');
 const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE } = require('./user-data-paths');
 
 app.setName('SwitchControl');
@@ -1106,6 +1107,100 @@ ipcMain.handle('app:openLogs', async () => {
     shell.openPath(logPath);
   } catch (err) {
     console.error('[Logs] Error opening log directory:', err);
+  }
+});
+
+// ── Critical-logger IPC bridge ────────────────────────────────────────────────
+
+/**
+ * log:reportCritical
+ * Called by the renderer (via preload narrow bridge) to record a critical event
+ * from the renderer process — React error boundaries, window.onerror, etc.
+ * Validates input so a compromised renderer cannot write arbitrary data.
+ */
+ipcMain.handle('log:reportCritical', (_event, raw) => {
+  try {
+    if (!raw || typeof raw !== 'object') return;
+    // Strict whitelist — only known fields accepted from renderer
+    const ALLOWED_CATEGORIES = new Set([
+      'renderer_failure', 'auth_failure', 'performance_warning',
+      'tweak_failure', 'backend_failure',
+    ]);
+    const cat = ALLOWED_CATEGORIES.has(raw.category) ? raw.category : 'renderer_failure';
+    criticalLogger.writeCritical({
+      category:  cat,
+      severity:  raw.severity === 'fatal' ? 'fatal' : raw.severity === 'warning' ? 'warning' : 'error',
+      source:    typeof raw.source  === 'string' ? raw.source.substring(0, 64)  : 'renderer',
+      message:   typeof raw.message === 'string' ? raw.message.substring(0, 512) : '',
+      stack:     typeof raw.stack   === 'string' ? raw.stack.substring(0, 2048)  : undefined,
+      route:     typeof raw.route   === 'string' ? raw.route.substring(0, 128)   : undefined,
+      userId:    typeof raw.userId  === 'string' ? raw.userId.substring(0, 64)   : undefined,
+    });
+  } catch (e) {}
+});
+
+/**
+ * log:getCriticalSummary
+ * Returns the human-readable critical event summary for display in Settings.
+ */
+ipcMain.handle('log:getCriticalSummary', () => {
+  try { return criticalLogger.getCriticalSummary(); } catch (e) { return ''; }
+});
+
+/**
+ * log:getRecentCritical
+ * Returns the last `n` structured critical events for display in Settings.
+ */
+ipcMain.handle('log:getRecentCritical', (_event, n = 20) => {
+  try { return criticalLogger.getRecentEvents(Math.min(n, 50)); } catch (e) { return []; }
+});
+
+/**
+ * log:exportDiagnostics
+ * Copies all log files + generates diagnostics.json and summary.txt into a
+ * timestamped folder on the user's Desktop (or Downloads if Desktop unavailable).
+ * Returns { ok, path, files } so the renderer can show the result.
+ */
+ipcMain.handle('log:exportDiagnostics', async (_event, notes = '') => {
+  try {
+    // Timestamp-named folder so successive exports never overwrite each other
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '_').slice(0, 19);
+    const folderName = `SwitchControl-Diagnostics-${stamp}`;
+
+    let basePath;
+    try { basePath = app.getPath('desktop'); } catch (e) {}
+    if (!basePath) { try { basePath = app.getPath('downloads'); } catch (e) {} }
+    if (!basePath) basePath = app.getPath('userData');
+
+    const destDir = path.join(basePath, folderName);
+    const logPaths = fileLogger.getPaths();
+
+    const extraMeta = {
+      appVersion:  app.getVersion(),
+      osVersion:   `${os.platform()} ${os.release()} ${os.arch()}`,
+      platform:    process.platform,
+      isPackaged:  app.isPackaged,
+      configFlags: {
+        isDev:         isDev,
+        electronUid:   undefined, // filled per-user — not a secret
+        backendPort:   backendLauncher.getBackendPort(),
+        backendReady:  backendLauncher.isBackendReady(),
+      },
+    };
+
+    const result = await criticalLogger.exportDiagnostics(destDir, notes, logPaths, extraMeta);
+
+    if (result.ok) {
+      console.log(`[Diagnostics] Export written to: ${result.path} (${result.files.join(', ')})`);
+      // Open the folder so the user can immediately find it
+      shell.openPath(result.path);
+    } else {
+      console.error('[Diagnostics] Export failed:', result.error);
+    }
+    return result;
+  } catch (err) {
+    console.error('[Diagnostics] Unhandled export error:', err.message);
+    return { ok: false, error: err.message };
   }
 });
 

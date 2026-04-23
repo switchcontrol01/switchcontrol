@@ -23,6 +23,16 @@ const fs   = require('fs');
 const path = require('path');
 const os   = require('os');
 
+// Lazy reference — critical-logger is required after this module is ready
+// to avoid a circular-require chain.
+let _criticalLogger = null;
+function getCriticalLogger() {
+  if (!_criticalLogger) {
+    try { _criticalLogger = require('./critical-logger'); } catch (e) {}
+  }
+  return _criticalLogger;
+}
+
 // ── Config ────────────────────────────────────────────────────────────────────
 
 const MAX_FILE_BYTES  = 5 * 1024 * 1024;   // 5 MB per log file before rotation
@@ -177,6 +187,12 @@ function init() {
 
   hookConsole();
 
+  // Initialise critical-logger with the same log directory
+  try {
+    const cl = getCriticalLogger();
+    if (cl) cl.init(LOG_DIR);
+  } catch (e) {}
+
   // Minimal startup header (always)
   const header = [
     '',
@@ -259,11 +275,32 @@ function hookConsole() {
   process.on('uncaughtException', (err) => {
     writeRaw(format('FATAL', ['uncaughtException:', err.stack || err.message]));
     writeCrashDump('uncaughtException', err.stack || err.message);
+    try {
+      const cl = getCriticalLogger();
+      if (cl) cl.writeCritical({
+        category: 'backend_failure',
+        severity: 'fatal',
+        source:   'uncaughtException',
+        message:  err.message || String(err),
+        stack:    err.stack,
+      });
+    } catch (e) {}
   });
   process.on('unhandledRejection', (reason) => {
     const msg = reason && reason.stack ? reason.stack : String(reason);
+    const err = reason instanceof Error ? reason : null;
     writeRaw(format('FATAL', ['unhandledRejection:', msg]));
     writeCrashDump('unhandledRejection', msg);
+    try {
+      const cl = getCriticalLogger();
+      if (cl) cl.writeCritical({
+        category: 'backend_failure',
+        severity: 'fatal',
+        source:   'unhandledRejection',
+        message:  err ? err.message : String(reason),
+        stack:    err ? err.stack : undefined,
+      });
+    } catch (e) {}
   });
 }
 
@@ -301,11 +338,17 @@ function appendBackend(line) {
 // ── Path accessor ─────────────────────────────────────────────────────────────
 
 function getPaths() {
+  let criticalLog = null;
+  try {
+    const cl = getCriticalLogger();
+    if (cl) criticalLog = cl.getPath();
+  } catch (e) {}
   return {
-    logDir:     LOG_DIR,
-    startupLog: _logFilePath,
-    latestLog:  _latestPath,
-    backendLog: _backendPath,
+    logDir:      LOG_DIR,
+    startupLog:  _logFilePath,
+    latestLog:   _latestPath,
+    backendLog:  _backendPath,
+    criticalLog,
   };
 }
 

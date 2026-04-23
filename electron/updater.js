@@ -44,6 +44,12 @@
 const { app, BrowserWindow } = require('electron');
 const { isDebug } = require('./file-logger');
 
+let _cl = null;
+function cl() {
+  if (!_cl) { try { _cl = require('./critical-logger'); } catch (e) {} }
+  return _cl;
+}
+
 // ── Provider constants ────────────────────────────────────────────────────────
 // Single source of truth — never hardcode these strings elsewhere in this file.
 
@@ -322,6 +328,15 @@ function initUpdater(isDev = false) {
       errorMessage: msg,
     };
     broadcast('error');
+    try {
+      cl()?.writeCritical({
+        category: 'updater_failure',
+        severity: 'error',
+        source:   'autoUpdater',
+        message:  `Updater error (failure #${_consecutiveFailures}): ${msg}`,
+        stack:    err?.stack,
+      });
+    } catch (e) {}
   });
 
   _autoUpdater = autoUpdater;
@@ -355,6 +370,7 @@ function checkForUpdates() {
     console.error('[Updater] checkForUpdates threw:', msg);
     state = { ...state, status: 'error', errorMessage: msg };
     broadcast('error');
+    try { cl()?.writeCritical({ category: 'updater_failure', severity: 'error', source: 'checkForUpdates', message: msg, stack: err?.stack }); } catch (e) {}
     return { ok: false, reason: 'exception', error: msg };
   }
 }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, createContext, useContext, useCallback, lazy, Suspense } from "react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
 import { queryClient } from "./lib/queryClient";
@@ -1328,24 +1329,26 @@ function WebsiteContent() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <MotionProvider>
-        <TooltipProvider>
-          {isElectron ? (
-            <div className="app-root">
-              <div className="titlebar">
-                <WindowControls />
+    <ErrorBoundary route="app-root">
+      <QueryClientProvider client={queryClient}>
+        <MotionProvider>
+          <TooltipProvider>
+            {isElectron ? (
+              <div className="app-root">
+                <div className="titlebar">
+                  <WindowControls />
+                </div>
+                <div className="app-content">
+                  <ElectronAppContent />
+                </div>
               </div>
-              <div className="app-content">
-                <ElectronAppContent />
-              </div>
-            </div>
-          ) : (
-            <WebsiteContent />
-          )}
-          <Toaster />
-        </TooltipProvider>
-      </MotionProvider>
-    </QueryClientProvider>
+            ) : (
+              <WebsiteContent />
+            )}
+            <Toaster />
+          </TooltipProvider>
+        </MotionProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

@@ -194,6 +194,36 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getPresence: () => ipcRenderer.invoke('config:getPresence'),
   },
 
+  // ── Diagnostic logging bridge (narrow, validated) ────────────────────────────
+  // Renderer → main only. Input is re-validated in main.js before writing.
+  // Never exposes file paths or read access back to the renderer.
+  logs: {
+    /**
+     * Report a critical event from the renderer (error boundary, global handler).
+     * @param {{ category, severity, source, message, stack?, route?, userId? }} event
+     */
+    reportCritical: (event) => {
+      if (!event || typeof event !== 'object') return Promise.resolve();
+      return ipcRenderer.invoke('log:reportCritical', event);
+    },
+    /**
+     * Returns the human-readable critical event summary string.
+     */
+    getCriticalSummary: () => ipcRenderer.invoke('log:getCriticalSummary'),
+    /**
+     * Returns the last n critical events as structured objects.
+     */
+    getRecentCritical: (n = 20) => ipcRenderer.invoke('log:getRecentCritical', n),
+    /**
+     * Exports all diagnostic files to a timestamped Desktop folder and opens it.
+     * @param {string} notes — optional user-supplied text to include in export
+     */
+    exportDiagnostics: (notes = '') => {
+      if (typeof notes !== 'string') notes = '';
+      return ipcRenderer.invoke('log:exportDiagnostics', notes.substring(0, 2000));
+    },
+  },
+
   // ── System mutation surfaces ─────────────────────────────────────────────────
   tweaks: {
     execute: (tweakId, action) => {

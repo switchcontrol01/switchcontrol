@@ -6,6 +6,13 @@ const fs = require('fs');
 const configStore = require('./config-store');
 const fileLogger = require('./file-logger');
 
+// Lazy reference so we don't form a require cycle on load
+let _cl = null;
+function cl() {
+  if (!_cl) { try { _cl = require('./critical-logger'); } catch (e) {} }
+  return _cl;
+}
+
 // Convenience: log to console (which mirrors to the main startup log file)
 // AND append to the dedicated backend.log so we can see the child stream
 // separately from the main process log.
@@ -133,6 +140,7 @@ async function startBackend(app) {
     }
 
     lastError = error;
+    try { cl()?.writeCritical({ category: 'startup_failure', severity: 'fatal', source: 'backend-launcher', message: error }); } catch (e) {}
     return { port: null, ready: false, error };
   }
 
@@ -209,6 +217,7 @@ async function startBackend(app) {
       console.error('[Backend] FATAL:', error);
       lastError = error;
       backendProcess = null;
+      try { cl()?.writeCritical({ category: 'startup_failure', severity: 'fatal', source: 'backend-launcher', message: error }); } catch (e) {}
       return { port: null, ready: false, error };
     }
 
@@ -237,6 +246,7 @@ async function startBackend(app) {
       if (code !== 0 && code !== null) {
         lastError = `Backend process crashed with exit code ${code}`;
         berr(lastError);
+        try { cl()?.writeCritical({ category: 'backend_failure', severity: 'error', source: 'backend-launcher', message: lastError }); } catch (e) {}
       }
       backendProcess = null;
       backendReady = false;
@@ -247,6 +257,7 @@ async function startBackend(app) {
       berr(lastError);
       backendProcess = null;
       backendReady = false;
+      try { cl()?.writeCritical({ category: 'backend_failure', severity: 'error', source: 'backend-launcher', message: lastError, stack: err.stack }); } catch (e) {}
     });
 
     console.log('[Backend] Polling health endpoint: http://127.0.0.1:' + port + '/api/health');
@@ -277,6 +288,7 @@ async function startBackend(app) {
     console.error('[Backend] getBackendPort() will return: null');
     console.error('[Backend] isBackendReady() will return: false');
     console.error('[Backend] ========================');
+    try { cl()?.writeCritical({ category: 'startup_failure', severity: 'fatal', source: 'backend-launcher', message: err.message, stack: err.stack }); } catch (e) {}
     return { port: null, ready: false, error: err.message };
   }
 }

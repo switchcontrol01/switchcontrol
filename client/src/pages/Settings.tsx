@@ -8,15 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown } from "lucide-react";
+import { Settings as SettingsIcon, RotateCcw, Trash2, FolderOpen, ExternalLink, Mail, Copy, Crown, FileDown, AlertCircle, CheckCircle2 } from "lucide-react";
 import { UpdateCard } from "@/components/UpdateCard";
 import { useToast } from "@/hooks/use-toast";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { useAppAuth } from "@/App";
 import { useAuthStore } from "@/lib/auth-store";
 import { LicenseManagementModal } from "@/components/LicenseManagementModal";
-import { useState, useEffect } from "react";
-import { Sparkles, CheckCircle2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { Reveal } from "@/lib/motion";
 import { PATCH_NOTES_STORAGE_KEY } from "@/components/PatchNotesModal";
@@ -143,6 +144,169 @@ function TikTokIcon({ className }: { className?: string }) {
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
     </svg>
+  );
+}
+
+// ── DiagnosticsCard ───────────────────────────────────────────────────────────
+
+interface CriticalEvent {
+  ts: string;
+  category: string;
+  severity: string;
+  source: string;
+  message: string;
+  count?: number;
+}
+
+function DiagnosticsCard() {
+  const { toast } = useToast();
+  const [notes, setNotes] = useState('');
+  const [exporting, setExporting] = useState(false);
+  const [exportResult, setExportResult] = useState<{ ok: boolean; path?: string } | null>(null);
+  const [events, setEvents] = useState<CriticalEvent[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  const logsApi = (window as any).electronAPI?.logs;
+
+  useEffect(() => {
+    if (!logsApi?.getRecentCritical) return;
+    logsApi.getRecentCritical(10)
+      .then((data: CriticalEvent[]) => { if (Array.isArray(data)) setEvents(data); })
+      .catch(() => {});
+  }, []);
+
+  const handleExport = useCallback(async () => {
+    if (!logsApi?.exportDiagnostics) {
+      toast({ title: 'Not available', description: 'Diagnostic export is only available in the desktop app.' });
+      return;
+    }
+    setExporting(true);
+    setExportResult(null);
+    try {
+      const result = await logsApi.exportDiagnostics(notes);
+      setExportResult(result);
+      if (result?.ok) {
+        toast({
+          title: 'Diagnostics exported',
+          description: `Saved to your Desktop. Folder opened automatically.`,
+        });
+        setNotes('');
+      } else {
+        toast({ title: 'Export failed', description: result?.error ?? 'Unknown error', variant: 'destructive' });
+      }
+    } catch (e: any) {
+      toast({ title: 'Export error', description: e?.message ?? 'Unknown error', variant: 'destructive' });
+    } finally {
+      setExporting(false);
+    }
+  }, [logsApi, notes, toast]);
+
+  const categoryColor: Record<string, string> = {
+    startup_failure:     'text-red-400',
+    backend_failure:     'text-red-400',
+    auth_failure:        'text-orange-400',
+    updater_failure:     'text-yellow-400',
+    tweak_failure:       'text-yellow-400',
+    renderer_failure:    'text-pink-400',
+    performance_warning: 'text-blue-400',
+  };
+
+  return (
+    <Card className="bg-card/50 border-border/50">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileDown className="size-4 text-muted-foreground" />
+          Export Diagnostics
+        </CardTitle>
+        <CardDescription>
+          Package log files and system info into a folder for issue reporting.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+
+        {/* Recent critical events summary */}
+        {events.length > 0 && (
+          <div className="rounded-md border border-border/40 bg-muted/20 p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
+                <AlertCircle className="size-3 text-yellow-500" />
+                {events.length} critical event{events.length !== 1 ? 's' : ''} this session
+              </p>
+              <button
+                onClick={() => setExpanded(v => !v)}
+                className="text-xs text-muted-foreground hover:text-foreground transition"
+                data-testid="button-toggle-critical-events"
+              >
+                {expanded ? 'Hide' : 'Show'}
+              </button>
+            </div>
+            {expanded && (
+              <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+                {events.map((e, i) => (
+                  <div key={i} className="flex items-start gap-2 text-xs" data-testid={`row-critical-event-${i}`}>
+                    <span className={`shrink-0 font-mono ${categoryColor[e.category] ?? 'text-muted-foreground'}`}>
+                      [{e.category.replace(/_/g, '-')}]
+                    </span>
+                    <span className="text-foreground/70 break-all">
+                      {e.message}
+                      {(e.count ?? 1) > 1 && (
+                        <span className="text-muted-foreground ml-1">(×{e.count})</span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {events.length === 0 && (
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <CheckCircle2 className="size-3 text-green-500/70 shrink-0" />
+            No critical events recorded this session.
+          </div>
+        )}
+
+        {/* Optional user notes */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">
+            Notes for support team <span className="font-normal">(optional)</span>
+          </label>
+          <Textarea
+            placeholder="Describe what you were doing when the issue occurred..."
+            value={notes}
+            onChange={e => setNotes(e.target.value)}
+            className="text-sm h-20 resize-none bg-background/50"
+            data-testid="input-diagnostic-notes"
+            maxLength={2000}
+          />
+        </div>
+
+        {/* Export button */}
+        <div className="flex flex-col gap-1.5">
+          <Button
+            variant="outline"
+            className="w-fit border-border/60"
+            onClick={handleExport}
+            disabled={exporting}
+            data-testid="button-export-diagnostics"
+          >
+            <FileDown className="size-4 mr-2" />
+            {exporting ? 'Exporting…' : 'Export Diagnostics'}
+          </Button>
+          {exportResult?.ok && (
+            <p className="text-xs text-green-400 flex items-center gap-1">
+              <CheckCircle2 className="size-3" />
+              Exported to Desktop. Folder opened automatically.
+            </p>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Exports startup, latest, critical, and backend logs plus a summary to a folder on your Desktop.
+          </p>
+        </div>
+
+      </CardContent>
+    </Card>
   );
 }
 
@@ -457,6 +621,13 @@ export default function Settings() {
             </CardContent>
           </Card>
           </Reveal>
+
+          {/* Diagnostics — export + issue report */}
+          {isElectron && (
+            <Reveal delay={0.22}>
+              <DiagnosticsCard />
+            </Reveal>
+          )}
 
           {/* Admin Panel — only visible to admin users */}
           {isAdmin && (
