@@ -1896,8 +1896,26 @@ ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
   if (!validActions.includes(action)) {
     return { error: true, message: 'Invalid action. Use apply or revert.' };
   }
-  console.log(`[SwitchControl] Executing tweak: ${tweakId}, action: ${action}`);
-  return await tweakExecutor.executeTweakWithOwnership(tweakId, action);
+  // Per-tweakId single-flight: prevents the same tweak running apply+revert concurrently
+  // if a component remounts while a previous execute is still in flight on the main side.
+  const _token = psLimiter.tryAcquire({
+    file: 'main.js', fn: `tweak:execute:${tweakId}`, reason: `tweak-${action}`,
+  });
+  if (!_token) {
+    console.log(`[tweak:execute] SKIPPED — ${tweakId} already executing (action=${action})`);
+    return {
+      success: false, skipped: true, failureType: 'unknown',
+      userMessage: 'Tweak Busy',
+      hint: 'Another operation on this tweak is already in progress. Please wait.',
+      message: null, error: null, verified: false, requiresReboot: false, requiresAdmin: false, commandsRun: [],
+    };
+  }
+  console.log(`[PS-Exec] start file=main.js fn=tweak:execute:${tweakId} reason=tweak-${action}`);
+  try {
+    return await tweakExecutor.executeTweakWithOwnership(tweakId, action);
+  } finally {
+    psLimiter.release(_token);
+  }
 });
 
 ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
@@ -2304,12 +2322,30 @@ function escapePsString(s) {
 ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executable, installPath, gameName }) => {
   console.log(`[IPC] appBooster:executeAction type=${type} mode=${mode} exe=${executable}`);
 
+  // ── Phase 1: validate all inputs before touching the limiter ─────────────────
+  // Unknown type/mode is caught here so the limiter is never acquired needlessly.
+  const VALID_BOOSTER_TYPES = ['cpu-priority', 'fso-disable', 'gpu-preference', 'network-qos'];
+  const VALID_BOOSTER_MODES = ['apply', 'revert', 'check'];
+  if (!VALID_BOOSTER_TYPES.includes(type) || !VALID_BOOSTER_MODES.includes(mode)) {
+    return { success: false, error: `Unknown action type "${type}" or mode "${mode}"`, verified: false };
+  }
   try {
     validateAppBoosterInput(installPath, 'installPath', WIN_PATH_RE);
     validateAppBoosterInput(executable,  'executable',  EXEC_NAME_RE);
     validateAppBoosterInput(gameName,    'gameName',    GAME_NAME_RE);
   } catch (e) {
     return { success: false, error: e.message, verified: false };
+  }
+
+  // ── Phase 2: acquire slot — now safe, all early-return paths above hold no token ─
+  const _boosterToken = psLimiter.tryAcquire({
+    file: 'main.js',
+    fn: `appBooster:executeAction:${type}:${(executable || '').replace(/[^a-z0-9]/gi, '_')}`,
+    reason: `app-booster-${mode}`,
+  });
+  if (!_boosterToken) {
+    console.log(`[appBooster:executeAction] SKIPPED — ${type}/${executable} already executing`);
+    return { success: false, skipped: true, error: 'Action already in progress for this game/type.', verified: false };
   }
 
   const exePath = installPath ? require('path').join(installPath, executable) : executable;
@@ -2344,6 +2380,9 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
 
   const scriptSet = scripts[type];
   if (!scriptSet || !scriptSet[mode]) {
+    // Defensive guard — type+mode were validated before acquire, so this cannot fire in practice.
+    // Release the token before returning so no slot is orphaned.
+    psLimiter.release(_boosterToken);
     return { success: false, error: `Unknown action type "${type}" or mode "${mode}"`, verified: false };
   }
 
@@ -2387,20 +2426,37 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
   } catch (e) {
     console.error(`[IPC] appBooster:executeAction error (${type}/${mode}):`, e.message);
     return { success: false, error: e.message, verified: false };
+  } finally {
+    psLimiter.release(_boosterToken);
   }
 });
 
 // ── Network Tweaks ────────────────────────────────────────────────────────────
 
 ipcMain.handle('networkTweaks:execute', async (event, tweakId, action) => {
-  console.log(`[IPC] networkTweaks:execute id=${tweakId} action=${action}`);
+  // Per-tweakId single-flight: prevents duplicate execute calls for the same network tweak
+  // when a component remounts while a previous operation is still in flight.
+  const _token = psLimiter.tryAcquire({
+    file: 'main.js', fn: `networkTweaks:execute:${tweakId}`, reason: `net-tweak-${action}`,
+  });
+  if (!_token) {
+    console.log(`[networkTweaks:execute] SKIPPED — ${tweakId} already executing (action=${action})`);
+    return {
+      tweakId, action, success: false, skipped: true,
+      verified: false, message: 'Another operation on this network tweak is already in progress.',
+      requiresRestart: false,
+    };
+  }
+  console.log(`[PS-Exec] start file=main.js fn=networkTweaks:execute:${tweakId} reason=net-tweak-${action}`);
   try {
     const result = await networkTweakExecutor.executeNetworkTweakWithOwnership(tweakId, action);
-    console.log(`[IPC] networkTweaks:execute result:`, result.success, result.verified, result.message?.slice(0, 80));
+    console.log(`[PS-Exec] done fn=networkTweaks:execute:${tweakId} success=${result.success} verified=${result.verified}`);
     return result;
   } catch (e) {
     console.error('[IPC] networkTweaks:execute error:', e.message);
     return { tweakId, action, success: false, verified: false, message: e.message, requiresRestart: false };
+  } finally {
+    psLimiter.release(_token);
   }
 });
 
