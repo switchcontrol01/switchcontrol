@@ -1,0 +1,119 @@
+TASK — FIX STARTUP WHITE FLASH AND MAKE APP OPEN SMOOTHLY
+
+PROBLEM
+
+On launch the app briefly shows a white / pale frame for about 0.1–0.3s before the branded startup UI appears.
+
+Current behavior feels cheap:
+- white flash
+- no smooth blur transition
+- main app appears after an ugly raw frame
+- splash feels disconnected from the actual window open
+
+GOAL
+
+Make app startup feel premium and native:
+- zero white flash
+- dark shell visible from first paint
+- splash already present instantly
+- blur/fade transition into app
+- no hard cut between splash and main UI
+
+REQUIRED FIXES
+
+1. FIX BROWSERWINDOW FIRST PAINT
+
+In Electron BrowserWindow:
+- set backgroundColor to a very dark color matching the app shell
+- do not allow any white/default startup frame
+- keep window hidden initially if needed
+
+Example direction:
+- backgroundColor: '#07090f' or exact app shell tone
+- show: false initially
+- only reveal in controlled sequence
+
+2. ADD TRUE STARTUP SHELL IN HTML, NOT LATE REACT ONLY
+
+The startup shell must exist in the initial HTML / preload-rendered shell, not only after React mounts.
+
+It should include:
+- dark background
+- centered logo
+- subtle glow
+- branded loading text
+- optional progress line
+
+This must be visible on first paint.
+
+3. DO NOT SHOW MAIN WINDOW TOO EARLY
+
+Use a controlled reveal sequence:
+- create window hidden
+- load app
+- wait for first meaningful paint / startup shell ready
+- show window only when dark shell is guaranteed visible
+
+Do NOT rely only on ready-to-show if it still reveals a raw pale frame.
+
+4. KEEP SPLASH AND MAIN APP IN SAME VISUAL STACK
+
+Do not destroy splash then abruptly mount main app.
+
+Use:
+- persistent startup overlay
+- main app renders underneath
+- once app is ready, splash fades + blurs away
+- app opacity rises underneath
+
+This must be one continuous transition.
+
+5. ADD OPACITY / BLUR TRANSITION
+
+Desired flow:
+- startup shell opacity 1
+- main app opacity 0
+- when app-ready event fires:
+  - main app fades from 0 to 1
+  - startup overlay fades from 1 to 0
+  - startup overlay gets slight blur / dissolve
+- then remove overlay after animation completes
+
+6. PREVENT UNSTYLED CONTENT FLASH
+
+Audit for:
+- delayed CSS bundle
+- delayed font swap
+- delayed theme variables
+- delayed background mount
+- route-level suspense fallback exposing blank container
+
+The app root must never render as white or transparent before theme styles land.
+
+7. CHECK THESE FILES
+
+- electron/main.js
+- preload / startup bridge
+- root HTML entry
+- App.tsx
+- AppLayout.tsx
+- startup splash component
+- any route transition wrapper
+- global CSS / theme tokens
+
+8. HARD RULE
+
+At no point during launch should the user ever see:
+- white frame
+- light gray frame
+- empty blank window
+- hard switch between splash and dashboard
+
+FINAL OUTPUT
+
+Return:
+- exact cause of white flash
+- exact file(s) responsible
+- what was changed in BrowserWindow startup
+- how first paint is now forced dark
+- how splash-to-app transition now works

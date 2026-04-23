@@ -155,10 +155,16 @@ let liveTelemetryCache = null;
 // We compute per-second rates ourselves from consecutive snapshots.
 let lastDiskSnapshot = null; // { rIO, wIO, ms, ts }
 
-// GPU telemetry polled in background alongside CPU/disk.
-// Windows Performance Counters are the primary source for live GPU usage %.
+// GPU telemetry cache — updated by the telemetry loop (LHM) and by one-time startup pre-warm.
+// Windows Perf Counter load is refreshed on-demand via telemetry:refreshGpuLoad IPC only —
+// it is NOT polled continuously, so no PowerShell is spawned in the background loop.
 // { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
 let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
+
+// On-demand GPU perf counter refresh — throttled by TTL to prevent rapid PS spawning.
+// Calls from telemetry:refreshGpuLoad IPC are silently coalesced within this window.
+let _gpuCounterLastRefreshTs = 0;
+const GPU_COUNTER_REFRESH_TTL = 30_000; // ms — minimum gap between PowerShell GPU counter calls
 
 // Fast GPU existence flag — set true as soon as si.graphics() confirms a controller.
 // si.graphics() completes in ~300–600ms (no PowerShell overhead), so this is known
@@ -267,26 +273,24 @@ async function pollTelemetry() {
       diskIO.source = 'unavailable';
     }
 
-    // ── GPU polling (runs in parallel with disk, does not block cache update) ──
-    // Primary: Windows Performance Counters — works for AMD, NVIDIA, Intel.
-    // Fallback: LHM → si.graphics() (for temp/VRAM when perf counter provides load).
-    const [gpuCounterResult, lhmResult, gpuStaticResult] = await Promise.allSettled([
-      getGpuPerfCounterLoad(),
+    // ── GPU polling (PS-free — no PowerShell spawned in this loop) ──────────────
+    // LHM (HTTP to localhost:8085) provides load/temp/power for users with LHM running.
+    // si.graphics() provides VRAM — pure WMI, no PS overhead.
+    // GPU perf counter (PS-based) is NOT called here; use telemetry:refreshGpuLoad IPC
+    // for on-demand refresh (manual trigger, AI advisor, diagnostics).
+    const [lhmResult, gpuStaticResult] = await Promise.allSettled([
       getLhmTelemetry(),
       getGpuStatic(),
     ]);
 
-    const gpuCounterLoad = gpuCounterResult.status === 'fulfilled' ? gpuCounterResult.value : null;
     const lhm = lhmResult.status === 'fulfilled' ? lhmResult.value : null;
     const gpuStatic = gpuStaticResult.status === 'fulfilled' ? gpuStaticResult.value : null;
 
-    // Build GPU cache: perf counter for load, LHM for temp/power, si.graphics() for VRAM
+    // Build GPU cache: LHM for load/temp/power, si.graphics() for VRAM.
+    // Perf counter load value persists from last on-demand refresh — never reset to null here.
     const newGpu = { ...gpuPollCache };
 
-    if (gpuCounterLoad != null) {
-      newGpu.load = gpuCounterLoad;
-      newGpu.source = 'perf-counter';
-    } else if (lhm?.gpuLoad != null) {
+    if (lhm?.gpuLoad != null) {
       newGpu.load = lhm.gpuLoad;
       newGpu.source = 'lhm';
     }
@@ -311,11 +315,11 @@ async function startTelemetryPolling() {
   verboseLog('[telemetry:poll] priming differential APIs + pre-warming GPU sources...');
 
   // ── GPU pre-warm (fire-and-forget, runs in parallel with CPU/disk prime) ──
+  // ONE-TIME GPU pre-warm — fires exactly once at startup, never repeats.
   // PowerShell perf counters have a 2-4s cold-start overhead on first call.
-  // By starting all GPU queries NOW (before the 1.5s measurement window wait),
-  // gpuPollCache has real values before the first real pollTelemetry() executes.
-  // This ensures getLive() can return gpu.available=true + a valid load reading
-  // from the very first renderer call — no delayed line join on the chart.
+  // Seeding gpuPollCache now ensures getLive() returns a valid load reading
+  // from the first renderer call rather than waiting for the user to trigger
+  // a manual refresh. The loop itself does NOT call getGpuPerfCounterLoad().
   si.graphics().then(gfx => {
     const ctrl = gfx?.controllers?.find(c => c.model) ?? gfx?.controllers?.[0];
     if (ctrl) {
@@ -1584,8 +1588,9 @@ ipcMain.handle('telemetry:getLive', async (event, selectedDiskMount) => {
     const ramUsedGb = parseFloat((ramUsed / (1024 * 1024 * 1024)).toFixed(1));
     const ramPercent = ramTotal > 0 ? Math.round((ramUsed / ramTotal) * 100) : 0;
 
-    // --- GPU telemetry: read from background-polled gpuPollCache (fast, non-blocking) ---
-    // gpuPollCache is updated every 1s by pollTelemetry() using Windows Perf Counters + LHM.
+    // --- GPU telemetry: read from gpuPollCache (fast, non-blocking cache read) ---
+    // load: populated by LHM (if running) or by the last on-demand perf counter refresh.
+    // No PowerShell is spawned in the polling loop — see telemetry:refreshGpuLoad for on-demand.
     const gpuLoad     = gpuPollCache.load;
     const gpuTemp     = gpuPollCache.temp;
     const gpuMemUsed  = gpuPollCache.memUsedMb;
@@ -1847,6 +1852,36 @@ ipcMain.handle('telemetry:getGpu', async () => {
   } catch (e) {
     console.error('[telemetry:getGpu] error:', e.message);
     return null;
+  }
+});
+
+/**
+ * telemetry:refreshGpuLoad — on-demand Windows GPU perf counter read.
+ *
+ * This is the ONLY place getGpuPerfCounterLoad() is called during steady-state.
+ * It is NOT called in the background poll loop — call this from the UI when the
+ * user explicitly opens the GPU section, runs the AI advisor, or hits a refresh
+ * button. Responses within the TTL window are served from cache (no PS spawn).
+ *
+ * Returns: { load: number|null, source: string, cached: boolean, error?: string }
+ */
+ipcMain.handle('telemetry:refreshGpuLoad', async () => {
+  const now = Date.now();
+  if (now - _gpuCounterLastRefreshTs < GPU_COUNTER_REFRESH_TTL) {
+    verboseLog('[telemetry:refreshGpuLoad] within TTL — returning cached load=' + gpuPollCache.load);
+    return { load: gpuPollCache.load, source: gpuPollCache.source, cached: true };
+  }
+  _gpuCounterLastRefreshTs = now;
+  try {
+    const load = await getGpuPerfCounterLoad();
+    if (load != null) {
+      gpuPollCache = { ...gpuPollCache, load, source: 'perf-counter' };
+      verboseLog('[telemetry:refreshGpuLoad] perf counter read: load=' + load + '%');
+    }
+    return { load: gpuPollCache.load, source: gpuPollCache.source, cached: false };
+  } catch (e) {
+    console.error('[telemetry:refreshGpuLoad] error:', e.message);
+    return { load: gpuPollCache.load, source: gpuPollCache.source, cached: false, error: e.message };
   }
 });
 

@@ -179,7 +179,9 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
   const [loadHistory, setLoadHistory] = useState<number[]>([]);
   const prevLoadRef = useRef<number | null>(null);
 
-  // Ensure the system profile has been loaded
+  // Ensure the system profile has been loaded.
+  // Also trigger an on-demand GPU perf counter refresh so the load reading is
+  // fresh when the modal opens (GPU counter is no longer polled continuously).
   useEffect(() => {
     if (!open) {
       setLoadHistory([]);
@@ -187,6 +189,8 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
       return;
     }
     fetchProfile();
+    // Fire-and-forget — result flows back via gpuPollCache → getLive → telemetry stream
+    (window as any).electronAPI?.telemetry?.refreshGpuLoad?.().catch?.(() => {});
   }, [open, fetchProfile]);
 
   // Accumulate GPU load into sparkline while modal is open

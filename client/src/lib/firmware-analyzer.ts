@@ -521,6 +521,11 @@ export async function collectElectronTelemetry(): Promise<HardwareTelemetry | nu
   if (!window.electronAPI?.telemetry) return null;
 
   try {
+    // Trigger an on-demand GPU perf counter refresh before collecting data.
+    // GPU load is no longer polled continuously — this ensures the AI advisor
+    // and diagnostics always receive a current reading.
+    (window.electronAPI.telemetry as any).refreshGpuLoad?.().catch?.(() => {});
+
     if (window.electronAPI.telemetry.getHardwareTelemetry) {
       const hwTelemetry = await window.electronAPI.telemetry.getHardwareTelemetry();
       if (hwTelemetry) return hwTelemetry;

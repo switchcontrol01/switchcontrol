@@ -181,6 +181,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getGpu:               () => ipcRenderer.invoke('telemetry:getGpu'),
     getDisk:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getDisk', selectedDiskMount),
     getHardwareTelemetry: () => ipcRenderer.invoke('telemetry:getHardwareTelemetry'),
+    refreshGpuLoad:       () => ipcRenderer.invoke('telemetry:refreshGpuLoad'),
   },
 
   // ── Packaged config store — persisted secrets (e.g. OPENAI_API_KEY) ─────────
