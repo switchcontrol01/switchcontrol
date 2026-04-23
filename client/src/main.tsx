@@ -49,6 +49,20 @@ window.addEventListener('unhandledrejection', (e) => {
   });
 });
 
+// ── Drag / drop lockdown ─────────────────────────────────────────────────────
+// Prevents UI elements and links from being dragged out of the window.
+// Without these listeners, Chromium lets users drag <a> tags onto the desktop
+// creating .url shortcut files that expose internal file:// paths.
+document.addEventListener('dragstart', (e) => { e.preventDefault(); }, true);
+document.addEventListener('dragover',  (e) => { e.preventDefault(); }, true);
+document.addEventListener('drop',      (e) => { e.preventDefault(); }, true);
+
+// Block any in-page click on a file:// link (belt + suspenders alongside main.js will-navigate).
+document.addEventListener('click', (e) => {
+  const a = (e.target as Element).closest?.('a') as HTMLAnchorElement | null;
+  if (a?.href?.startsWith('file://')) e.preventDefault();
+}, true);
+
 console.log('[LAUNCH:R1] renderer entry — createRoot dispatching');
 createRoot(document.getElementById("root")!).render(<App />);
 

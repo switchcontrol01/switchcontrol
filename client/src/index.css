@@ -1592,6 +1592,17 @@ html {
   }
 }
 
+/* Kill Chromium's native element-drag at the CSS layer.
+   This stops <a>, <img>, and any other element from being dragged out of
+   the window regardless of JS event timing. */
+* {
+  -webkit-user-drag: none;
+}
+a, img, button {
+  -webkit-user-drag: none;
+  draggable: false;
+}
+
 /* Global non-selectable UI chrome — fully sealed desktop shell */
 .app-root {
   user-select: none;

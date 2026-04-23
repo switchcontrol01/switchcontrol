@@ -553,7 +553,14 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (event, url) => {
     try {
       const parsedUrl = new URL(url);
-      if (parsedUrl.protocol === 'file:' || parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') {
+      // Block file:// navigation — exposes internal app paths.
+      if (parsedUrl.protocol === 'file:') {
+        console.warn('[Security] Blocked file:// navigation attempt:', url);
+        event.preventDefault();
+        return;
+      }
+      // Allow internal dev server and switchcontrol:// custom protocol.
+      if (parsedUrl.hostname === 'localhost' || parsedUrl.hostname === '127.0.0.1') {
         return;
       }
       if ((parsedUrl.hostname === 'switchcontrol.org' || parsedUrl.hostname === 'www.switchcontrol.org') && parsedUrl.protocol === 'https:') {
