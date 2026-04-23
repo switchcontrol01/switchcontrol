@@ -190,6 +190,18 @@ function ElectronAppContent() {
     entitlementsVerified,
   });
 
+  // ── Trial-expiry redirect ──────────────────────────────────────────────────
+  // When the revert modal opens (trial just ended or app reopened post-expiry),
+  // immediately navigate to /dashboard so the revert summary is never obstructed
+  // by a premium-gated page. The PremiumOverlayCard simultaneously returns null
+  // via trialExpiryStore, preventing the z-9999 overlay from blocking the modal.
+  useEffect(() => {
+    if (!revertModalOpen) return;
+    if (phase !== 'authenticated') return;
+    console.log('[TrialExpiry] revert modal opened — redirecting to /dashboard');
+    setLocation('/dashboard');
+  }, [revertModalOpen, phase]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // First-run baseline scan — records pre-existing applied state before the app touches anything
   useBaselineScan();
 

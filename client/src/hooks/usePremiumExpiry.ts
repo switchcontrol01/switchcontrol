@@ -12,6 +12,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { isElectronWithTweaks } from '@/hooks/use-tweak-executor';
 import { runPremiumRevert, hasPremiumItemsToRevert, PremiumRevertReport } from '@/lib/premiumRevertEngine';
 import { isTrialActive } from '@/lib/trialCountdown';
+import { useTrialExpiryStore } from '@/stores/trialExpiryStore';
 
 interface UsePremiumExpiryOptions {
   isPremium: boolean;
@@ -48,6 +49,12 @@ export function usePremiumExpiry({
 
   const triggerRevert = useCallback(async () => {
     if (revertRunning.current) return;
+
+    // Immediately suppress all premium gates and signal App.tsx to redirect.
+    // This fires synchronously before any async work so there is zero window
+    // where a z-9999 premium overlay can block the revert modal.
+    useTrialExpiryStore.getState().setTrialEndingFlowActive(true);
+
     if (!isElectronWithTweaks()) {
       // Non-Electron: nothing real to revert — always show the modal so the
       // user is informed their trial ended, even if no tweaks were applied.
@@ -172,7 +179,12 @@ export function usePremiumExpiry({
   return {
     revertModalOpen: modalOpen,
     revertReport,
-    closeRevertModal: () => setModalOpen(false),
+    closeRevertModal: () => {
+      setModalOpen(false);
+      // Release the gate suppression — premium overlays return to normal after user
+      // has seen the revert summary and dismissed the modal.
+      useTrialExpiryStore.getState().setTrialEndingFlowActive(false);
+    },
     retryRevert,
     isActive: isCurrentlyActive,
   };

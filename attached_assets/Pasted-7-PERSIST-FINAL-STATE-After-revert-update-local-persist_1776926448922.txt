@@ -1,0 +1,141 @@
+7. PERSIST FINAL STATE
+
+After revert:
+- update local persisted tweak state
+- update ownership store
+- mark all reverted tweaks as NOT applied
+
+No stale “applied” flags allowed.
+
+8. USER FEEDBACK (CRITICAL)
+
+User must see:
+- “Trial expired”
+- list of what was reverted
+- confirmation it is complete
+
+Fix current bug:
+User cannot see revert summary if stuck in premium tab.
+
+Solution:
+- force redirect to neutral screen (dashboard or modal)
+- show revert summary overlay ABOVE premium lock UI
+
+FILES TO AUDIT
+
+- electron/premium-revert-pipeline.js
+- electron/main.js (trial expiry trigger)
+- electron/power-plan-manager.js
+- network tweak executor files
+- NIC executor
+- tweak executor
+- ownership store
+- frontend premium gating logic
+- trial expiry handler in UI
+
+REQUIRED FIXES
+
+SECTION 1 — CENTRAL REVERT PIPELINE
+
+Create a single function:
+
+handleTrialExpiryRevert()
+
+Steps:
+1. acquire global PS limiter lock (exclusive mode)
+2. cancel or block new tweak executions
+3. revert power plan → Balanced
+4. revert all premium tweaks
+5. verify each revert
+6. persist state
+7. release lock
+8. mark trialExpiredHandled = true
+
+SECTION 2 — POWER PLAN HARD REVERT
+
+Use explicit command:
+
+powercfg /setactive SCHEME_BALANCED
+
+Then verify:
+
+powercfg /getactivescheme
+
+Must match Balanced.
+
+SECTION 3 — STATE WIPE + SAFE RESET
+
+After revert:
+- clear any “applied” flags for premium tweaks
+- ensure frontend receives updated state immediately
+- no stale cached applied states
+
+SECTION 4 — UI FLOW FIX
+
+When trial expires:
+- interrupt current page if needed
+- show revert summary modal
+- block premium UI interactions until acknowledged
+
+Fix current issue:
+User stuck on premium tab while revert message hidden.
+
+SECTION 5 — NO RE-EXECUTION
+
+Ensure:
+- expiry logic runs once per session
+- and never again after handled
+
+Persist flag:
+- local storage or file-based
+
+SECTION 6 — LOGGING
+
+Log:
+- trial expiry triggered
+- each revert action
+- verification result
+- failures (if any)
+- completion
+
+Must be clear and traceable.
+
+TEST MATRIX
+
+Run these:
+
+1. Apply premium power plan
+2. Apply network tweaks
+3. Close app
+4. Reopen app
+5. Let trial expire
+
+Verify:
+- power plan = Balanced
+- network tweaks reverted
+- UI shows not applied
+- revert summary visible
+
+Repeat while:
+- user is on premium page
+- user is mid-navigation
+- user reopens app after expiry
+
+CHECKLIST
+
+- power plan always returns to Balanced
+- no premium tweak remains applied after expiry
+- UI and system state match
+- revert runs once only
+- no race with limiter or async loops
+- revert summary always visible
+- reopening app shows correct non-premium state
+
+FINAL OUTPUT
+
+Return:
+- exact files handling expiry
+- exact revert pipeline implementation
+- proof power plan returns to Balanced
+- proof all premium tweaks revert correctly
+- confirmation UI + system state are fully synchronized after expiry

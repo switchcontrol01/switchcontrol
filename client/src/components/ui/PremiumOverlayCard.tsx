@@ -18,6 +18,7 @@ import { motion } from "@/lib/motion";
 import { useAttentionBounce } from "@/hooks/useAttentionBounce";
 import { premiumColor, premiumOverlay, premiumRgba } from "@/lib/themeTokens";
 import { openPricing } from "@/lib/pricing";
+import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 
 export interface PremiumOverlayCardProps {
   featureName: string;
@@ -67,7 +68,13 @@ export function PremiumOverlayCard({
   className,
   variant = "card",
 }: PremiumOverlayCardProps) {
+  const trialEndingFlowActive = useTrialExpiryStore(s => s.trialEndingFlowActive);
   const { bounceProps, trigger } = useAttentionBounce();
+
+  // During the trial-expiry flow the revert modal must have full focus.
+  // Suppress ALL premium gates (both page and card variants) so z-[9999] cannot
+  // block PremiumRevertModal at z-[101]. App.tsx simultaneously redirects to /dashboard.
+  if (trialEndingFlowActive) return null;
 
   const handleOuterClick = () => {
     trigger();
