@@ -561,8 +561,11 @@ router.get("/latency-estimate", (_req, res) => {
 
 // ── Smart RAM analysis (real state engine) ────────────────────────────────────
 
-router.get("/ram-analysis", async (_req, res) => {
+router.get("/ram-analysis", async (req, res) => {
   try {
+    // ?bust=1 allows the client to invalidate the cache after a RAM clean
+    if (req.query.bust === "1") ramAnalysisCache = null;
+
     // Serve cached result if within TTL — avoids si.processes() on every fast refresh
     if (ramAnalysisCache && (Date.now() - ramAnalysisCache.ts) < RAM_ANALYSIS_TTL) {
       return res.json(ramAnalysisCache.data);

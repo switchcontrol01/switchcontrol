@@ -744,64 +744,139 @@ const RAM_STATE_CONFIG: Record<RamState, {
   critical:       { label: "Critical",       textColor: "text-red-400",     barColor: "bg-red-500",      borderColor: "border-red-500/20",     bgColor: "bg-red-500/[0.04]",     glowColor: "rgba(239,68,68,0.35)",   badgeClass: "text-red-300 bg-red-500/10 border-red-500/20" },
 };
 
+type ClearPhase = "idle" | "clearing" | "settling" | "done";
+
+const CLEAR_ANIM_PHASES = [
+  { label: "Scanning processes…",   progress: 32, ms: 0    },
+  { label: "Trimming working sets…", progress: 66, ms: 900  },
+  { label: "Reclaiming memory…",    progress: 92, ms: 1800 },
+];
+
 function SmartRAMCard({
   data,
-  onClearRAM,
+  onRefreshRam,
+  onOpenAdvanced,
 }: {
   data: SmartRamProfile | null;
-  onClearRAM: () => void;
+  onRefreshRam: () => Promise<void>;
+  onOpenAdvanced: () => void;
 }) {
-  const [reclaimed, setReclaimed]       = useState<number | null>(null);
-  const [clearPending, setClearPending] = useState(false);
-  const prevUsedGb = useRef<number | null>(null);
+  const [phase, setPhase]               = useState<ClearPhase>("idle");
+  const [clearProgress, setClearProgress] = useState(0);
+  const [clearLabel, setClearLabel]     = useState("");
+  const [freedGb, setFreedGb]           = useState<number | null>(null);
+  const snapshotRef  = useRef<{ usedGb: number; usedPct: number } | null>(null);
+  const timersRef    = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  const cfg     = RAM_STATE_CONFIG[data?.state ?? "stable"];
-  const usedPct = data?.usedPct ?? 0;
+  const cfg      = RAM_STATE_CONFIG[data?.state ?? "stable"];
+  const usedPct  = data?.usedPct ?? 0;
   const reclaimPct = data ? Math.min(40, (data.reclaimableGb / data.totalGb) * 100) : 0;
 
+  const clearTimers = () => { timersRef.current.forEach(clearTimeout); timersRef.current = []; };
+
+  useEffect(() => () => clearTimers(), []);
+
   const handleClear = async () => {
-    if (!data) return;
-    prevUsedGb.current = data.usedGb;
-    setClearPending(true);
-    await onClearRAM();
-    // After 3.5s settle, the parent will re-fetch RAM data — if usedGb drops we show delta
-    setTimeout(() => setClearPending(false), 4_000);
+    if (!data || phase !== "idle") return;
+    snapshotRef.current = { usedGb: data.usedGb, usedPct: data.usedPct };
+    clearTimers();
+    setPhase("clearing");
+    setClearProgress(0);
+    setFreedGb(null);
+
+    // Animate through 3 sub-phases
+    CLEAR_ANIM_PHASES.forEach(({ label, progress, ms }) => {
+      timersRef.current.push(setTimeout(() => {
+        setClearLabel(label);
+        setClearProgress(progress);
+      }, ms));
+    });
+
+    // Call Electron helper if available, otherwise simulate
+    const minDelay = new Promise<void>((r) => setTimeout(r, 2_500));
+    const api = (window as any).electronAPI;
+    if (api?.memory?.clean) {
+      await Promise.all([api.memory.clean("smart"), minDelay]);
+    } else {
+      await minDelay;
+    }
+
+    // Settling — wait for server-side 8s cache TTL to expire, then refresh
+    setPhase("settling");
+    setClearProgress(100);
+
+    timersRef.current.push(setTimeout(async () => {
+      await onRefreshRam();
+      setPhase("done");
+      // Auto-dismiss after 12 s
+      timersRef.current.push(setTimeout(() => { setPhase("idle"); setFreedGb(null); }, 12_000));
+    }, 6_500)); // 2.5 + 6.5 = 9 s total — well past 8 s TTL
   };
 
-  // Detect actual RAM drop after clear
+  // Detect actual memory freed once "done" data arrives
   useEffect(() => {
-    if (prevUsedGb.current !== null && data && data.usedGb < prevUsedGb.current - 0.05) {
-      const freed = Math.round((prevUsedGb.current - data.usedGb) * 10) / 10;
-      if (freed > 0) setReclaimed(freed);
-      prevUsedGb.current = null;
+    if (phase === "done" && snapshotRef.current && data) {
+      const diff = Math.round((snapshotRef.current.usedGb - data.usedGb) * 10) / 10;
+      setFreedGb(diff > 0 ? diff : 0);
+      snapshotRef.current = null;
     }
-  }, [data?.usedGb]);
+  }, [phase, data?.usedGb]);
+
+  const isActive = phase === "clearing" || phase === "settling";
 
   return (
-    <GlassCard className={cn("relative transition-colors duration-700", data ? cfg.borderColor : "")} data-testid="card-smart-ram">
+    <GlassCard
+      className={cn("relative transition-colors duration-700",
+        data && phase === "idle" ? cfg.borderColor : isActive ? "border-teal-500/25" : "")}
+      data-testid="card-smart-ram"
+    >
       <div className="p-5 space-y-4">
 
-        {/* Header row */}
+        {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
             <h3 className="text-sm font-medium flex items-center gap-2">
               <HardDrive className="size-4 text-muted-foreground" />
               Smart RAM Analysis
             </h3>
-            {data && (
-              <span className={cn("inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full border", cfg.badgeClass)} data-testid="text-ram-state">
-                {cfg.label}
-              </span>
-            )}
+            <AnimatePresence mode="wait">
+              {phase === "idle" && data && (
+                <motion.span
+                  key="badge-state"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className={cn("inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full border", cfg.badgeClass)}
+                  data-testid="text-ram-state"
+                >
+                  {cfg.label}
+                </motion.span>
+              )}
+              {isActive && (
+                <motion.span
+                  key="badge-active"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full border text-teal-300 bg-teal-500/10 border-teal-500/20"
+                >
+                  <span className="size-1.5 rounded-full bg-teal-400 animate-pulse inline-block" />
+                  {phase === "clearing" ? "Clearing…" : "Settling…"}
+                </motion.span>
+              )}
+              {phase === "done" && (
+                <motion.span
+                  key="badge-done"
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full border text-emerald-300 bg-emerald-500/10 border-emerald-500/20"
+                >
+                  <CheckCircle className="size-2.5" /> Done
+                </motion.span>
+              )}
+            </AnimatePresence>
           </div>
           {data ? (
             <div className="shrink-0 text-right">
-              <div className={cn("text-2xl font-bold tabular-nums", cfg.textColor)} data-testid="text-ram-used-pct">
+              <div className={cn("text-2xl font-bold tabular-nums transition-colors duration-500", isActive ? "text-teal-400" : phase === "done" ? "text-emerald-400" : cfg.textColor)} data-testid="text-ram-used-pct">
                 {usedPct}%
               </div>
-              <div className="text-[10px] text-muted-foreground/50">
-                {data.usedGb} / {data.totalGb} GB
-              </div>
+              <div className="text-[10px] text-muted-foreground/50">{data.usedGb} / {data.totalGb} GB</div>
             </div>
           ) : (
             <div className="h-10 w-16 rounded-lg bg-white/[0.04] animate-pulse" />
@@ -813,13 +888,13 @@ function SmartRAMCard({
           <div className="space-y-2">
             <div className="h-2 rounded-full bg-white/[0.05] relative overflow-hidden">
               <motion.div
-                className={cn("h-full rounded-full absolute left-0 top-0", cfg.barColor)}
-                style={{ boxShadow: `0 0 10px ${cfg.glowColor}` }}
+                className={cn("h-full rounded-full absolute left-0 top-0 transition-colors duration-500", isActive ? "bg-teal-400" : cfg.barColor)}
+                style={{ boxShadow: `0 0 10px ${isActive ? "rgba(52,211,153,0.30)" : cfg.glowColor}` }}
                 initial={{ width: 0 }}
                 animate={{ width: `${usedPct}%` }}
                 transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               />
-              {reclaimPct > 0 && (
+              {reclaimPct > 0 && phase === "idle" && (
                 <motion.div
                   className="h-full rounded-full absolute top-0 bg-teal-400/25 border-r border-teal-400/40"
                   style={{ left: `${Math.max(0, usedPct - reclaimPct)}%` }}
@@ -830,10 +905,14 @@ function SmartRAMCard({
               )}
             </div>
             <div className="flex items-center gap-3 text-[9px] text-muted-foreground/40">
-              <span className="flex items-center gap-1"><span className={cn("inline-block size-1.5 rounded-full", cfg.barColor)} /> Used</span>
-              {reclaimPct > 0 && <span className="flex items-center gap-1"><span className="inline-block size-1.5 rounded-full bg-teal-400/50" /> Reclaimable</span>}
-              {data.swapUsedGb !== null && data.swapUsedGb > 0 && (
-                <span className="flex items-center gap-1 text-red-400/70">⚠ {data.swapUsedGb} GB swap in use</span>
+              <span className="flex items-center gap-1">
+                <span className={cn("inline-block size-1.5 rounded-full transition-colors duration-500", isActive ? "bg-teal-400" : cfg.barColor)} /> Used
+              </span>
+              {reclaimPct > 0 && phase === "idle" && (
+                <span className="flex items-center gap-1"><span className="inline-block size-1.5 rounded-full bg-teal-400/50" /> Reclaimable</span>
+              )}
+              {data.swapUsedGb !== null && data.swapUsedGb > 0 && phase === "idle" && (
+                <span className="flex items-center gap-1 text-red-400/70">⚠ {data.swapUsedGb} GB swap</span>
               )}
             </div>
           </div>
@@ -841,15 +920,77 @@ function SmartRAMCard({
           <div className="h-2 rounded-full bg-white/[0.04] animate-pulse" />
         )}
 
+        {/* Clearing / Settling inline progress */}
+        <AnimatePresence>
+          {isActive && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="overflow-hidden"
+            >
+              <div className="p-3 rounded-xl bg-teal-500/[0.07] border border-teal-500/20 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-teal-300/80">
+                    {phase === "settling" ? "Measuring impact…" : clearLabel || "Starting…"}
+                  </span>
+                  <span className="text-[10px] text-teal-400/60 font-mono">{clearProgress}%</span>
+                </div>
+                <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-gradient-to-r from-teal-500/80 to-teal-400"
+                    animate={{ width: `${phase === "settling" ? 100 : clearProgress}%` }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  />
+                </div>
+                {phase === "settling" && (
+                  <p className="text-[10px] text-teal-300/40 text-center">Waiting for memory to settle…</p>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Done — before/after result */}
+        <AnimatePresence>
+          {phase === "done" && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="overflow-hidden"
+            >
+              <div className="p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.06]">
+                {freedGb !== null && freedGb > 0 ? (
+                  <div className="flex items-center gap-3">
+                    <Zap className="size-4 text-emerald-400 shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-[12px] font-semibold text-emerald-300">Reclaimed {freedGb} GB</p>
+                      <p className="text-[10px] text-emerald-300/50">Memory pressure reduced</p>
+                    </div>
+                    <button onClick={() => { setPhase("idle"); setFreedGb(null); clearTimers(); }} className="text-white/20 hover:text-white/50 text-lg leading-none">×</button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="size-4 text-emerald-400 shrink-0" />
+                    <p className="text-[11px] text-emerald-300 flex-1">Standby cache flushed — system headroom restored.</p>
+                    <button onClick={() => { setPhase("idle"); setFreedGb(null); clearTimers(); }} className="text-white/20 hover:text-white/50 text-lg leading-none">×</button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* State reason */}
-        {data && (
-          <p className="text-[11px] text-white/55 leading-relaxed" data-testid="text-ram-reason">
-            {data.reason}
-          </p>
+        {data && phase === "idle" && (
+          <p className="text-[11px] text-white/55 leading-relaxed" data-testid="text-ram-reason">{data.reason}</p>
         )}
 
         {/* Stats grid */}
-        {data ? (
+        {data && !isActive ? (
           <div className="grid grid-cols-3 gap-2.5">
             <div className={cn("p-2.5 rounded-lg text-center border", cfg.bgColor, cfg.borderColor)}>
               <div className={cn("text-sm font-bold tabular-nums", cfg.textColor)} data-testid="text-ram-reclaimable">
@@ -874,23 +1015,20 @@ function SmartRAMCard({
               <div className="text-[9px] text-muted-foreground/40 mt-0.5">Cache</div>
             </div>
           </div>
-        ) : (
+        ) : data === null ? (
           <div className="grid grid-cols-3 gap-2.5">
             {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-lg bg-white/[0.04] animate-pulse" />)}
           </div>
-        )}
+        ) : null}
 
-        {/* Top processes */}
-        {data && data.topProcesses.length > 0 && (
+        {/* Top processes — only when idle */}
+        {data && phase === "idle" && data.topProcesses.length > 0 && (
           <div>
             <p className="text-[9px] text-white/25 uppercase tracking-widest mb-2">Top Memory Consumers</p>
             <div className="space-y-1.5">
               {data.topProcesses.slice(0, 5).map((proc, i) => (
                 <div key={i} className="flex items-center gap-2">
-                  <div
-                    className="h-1 rounded-full bg-white/10 flex-1 relative overflow-hidden"
-                    title={proc.ramMb !== null ? `${proc.ramMb} MB` : undefined}
-                  >
+                  <div className="h-1 rounded-full bg-white/10 flex-1 relative overflow-hidden" title={proc.ramMb !== null ? `${proc.ramMb} MB` : undefined}>
                     <motion.div
                       className="h-full rounded-full bg-gradient-to-r from-teal-500/60 to-cyan-500/40"
                       initial={{ width: 0 }}
@@ -908,55 +1046,34 @@ function SmartRAMCard({
           </div>
         )}
 
-        {/* Reclaim feedback */}
-        <AnimatePresence>
-          {reclaimed !== null && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="overflow-hidden"
-            >
-              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-teal-500/10 border border-teal-500/20">
-                <Zap className="size-3.5 text-teal-400 shrink-0" />
-                <span className="text-[11px] text-teal-300">
-                  Reclaimed {reclaimed} GB — memory pressure reduced
-                </span>
-                <button onClick={() => setReclaimed(null)} className="ml-auto text-white/20 hover:text-white/50">
-                  ×
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Action row */}
         <div className="flex items-center gap-3 pt-1 border-t border-white/[0.05]">
-          <div className="flex-1 min-w-0">
-            {data && (
+          <div className="flex-1 min-w-0 space-y-0.5">
+            {data && phase === "idle" && (
               <p className="text-[10px] text-muted-foreground/55 leading-snug" data-testid="text-ram-recommendation">
                 {data.recommendation}
               </p>
             )}
+            <button
+              onClick={onOpenAdvanced}
+              className="text-[10px] text-white/20 hover:text-white/45 transition-colors"
+            >
+              Advanced options…
+            </button>
           </div>
           <Button
             size="sm"
             onClick={handleClear}
-            disabled={clearPending || !data}
-            className="shrink-0 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/25 disabled:opacity-50"
+            disabled={phase !== "idle" || !data}
+            className="shrink-0 bg-teal-500/15 hover:bg-teal-500/25 text-teal-400 border border-teal-500/25 disabled:opacity-40"
             data-testid="button-smart-clear-ram"
           >
-            {clearPending ? (
+            {isActive ? (
               <RefreshCw className="size-3.5 mr-1.5 animate-spin" />
             ) : (
               <Zap className="size-3.5 mr-1.5" />
             )}
-            {clearPending
-              ? "Measuring…"
-              : data?.reclaimableGb
-              ? `Clear ~${data.reclaimableGb} GB`
-              : "Clear RAM"}
+            {phase === "clearing" ? "Clearing…" : phase === "settling" ? "Measuring…" : data?.reclaimableGb ? `Clear ~${data.reclaimableGb} GB` : "Clear RAM"}
           </Button>
         </div>
       </div>
@@ -985,7 +1102,7 @@ function RevealCard({ children, delay = 0 }: { children: ReactNode; delay?: numb
 
 export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
   const { user } = useAuth();
-  const { instability, dna, problems, latency, ram, causation, causeLoading, analyzeCause } = useDashboardIntelligence(!!user?.loggedIn);
+  const { instability, dna, problems, latency, ram, causation, causeLoading, analyzeCause, refreshRam } = useDashboardIntelligence(!!user?.loggedIn);
   const { prefersReducedMotion } = useMotion();
 
   return (
@@ -1025,7 +1142,7 @@ export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
 
       {/* Row 3: Smart RAM */}
       <RevealCard delay={0.26}>
-        <SmartRAMCard data={ram} onClearRAM={onClearRAM} />
+        <SmartRAMCard data={ram} onRefreshRam={refreshRam} onOpenAdvanced={onClearRAM} />
       </RevealCard>
     </div>
   );

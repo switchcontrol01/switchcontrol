@@ -149,6 +149,7 @@ interface DashboardIntelligenceState {
   causeLoading:  boolean;
   analyzeCause:  () => Promise<void>;
   refresh:       () => void;
+  refreshRam:    () => Promise<void>;
 }
 
 async function fetchJSON<T>(url: string): Promise<T> {
@@ -200,6 +201,13 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     fetchAll();
   }, [fetchAll]);
 
+  const refreshRam = useCallback(async () => {
+    try {
+      const r = await fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis?bust=1");
+      setRam(r);
+    } catch (_) {}
+  }, []);
+
   useEffect(() => {
     if (!enabled) return;
     if (initRef.current) return;
@@ -220,5 +228,5 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     };
   }, [enabled, fetchAll]);
 
-  return { instability, dna, problems, latency, ram, loading, causation, causeLoading, analyzeCause, refresh };
+  return { instability, dna, problems, latency, ram, loading, causation, causeLoading, analyzeCause, refresh, refreshRam };
 }
