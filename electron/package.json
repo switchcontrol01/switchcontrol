@@ -26,7 +26,7 @@
   },
   "build": {
     "appId": "com.switchcontrol.app",
-    "productName": "SwitchControl",
+    "productName": "Switchcontrol",
     "directories": {
       "output": "dist",
       "buildResources": "build"
@@ -107,7 +107,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
-      "shortcutName": "SwitchControl"
+      "shortcutName": "Switchcontrol"
     }
   }
 }

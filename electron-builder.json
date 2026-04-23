@@ -1,7 +1,7 @@
 {
   "appId": "com.switchcontrol.desktop",
-  "productName": "SwitchControl",
-  "executableName": "SwitchControl",
+  "productName": "Switchcontrol",
+  "executableName": "Switchcontrol",
   "copyright": "Copyright © 2026 SwitchTech",
   "directories": {
     "output": "release"
@@ -19,6 +19,6 @@
   "nsis": {
     "oneClick": false,
     "allowToChangeInstallationDirectory": true,
-    "shortcutName": "SwitchControl"
+    "shortcutName": "Switchcontrol"
   }
 }
