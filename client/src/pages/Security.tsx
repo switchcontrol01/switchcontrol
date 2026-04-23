@@ -485,7 +485,7 @@ function OverviewTab({
 
 function ProtectionTab({
   securityStatus, advancedProtection, hasSecurity, scanning,
-  onRefresh, onRefreshAdvanced,
+  onRefresh, onRefreshAdvanced, advProtStatus, advProtError,
 }: {
   securityStatus: SecurityStatus | null;
   advancedProtection: AdvancedProtection | null;
@@ -493,6 +493,8 @@ function ProtectionTab({
   scanning: boolean;
   onRefresh: () => void;
   onRefreshAdvanced: () => void;
+  advProtStatus: "idle"|"loading"|"success"|"empty"|"error";
+  advProtError: string | null;
 }) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
@@ -554,33 +556,94 @@ function ProtectionTab({
             <h3 className="font-semibold text-sm">Advanced Protection</h3>
           </div>
           {hasSecurity && (
-            <Button variant="ghost" size="icon" className="size-7" disabled={scanning} onClick={onRefreshAdvanced}>
-              <RefreshCw className={cn("size-3.5", scanning && "animate-spin")} />
+            <Button
+              variant="ghost" size="icon" className="size-7"
+              disabled={scanning || advProtStatus === "loading"}
+              onClick={onRefreshAdvanced}
+              data-testid="button-refresh-advanced"
+            >
+              <RefreshCw className={cn("size-3.5", (scanning || advProtStatus === "loading") && "animate-spin")} />
             </Button>
           )}
         </div>
-        {advancedProtection ? (
-          <div className="space-y-0.5">
-            {[
-              { label: "Defender Service",        v: advancedProtection.defenderServiceRunning, yes: "Running", no: "Stopped" },
-              { label: "Cloud-delivered Protection", v: advancedProtection.cloudProtection,    yes: "On",      no: "Off" },
-              { label: "Sample Submission",        v: advancedProtection.sampleSubmission,       yes: "Enabled", no: "Disabled" },
-              { label: "Controlled Folder Access", v: advancedProtection.controlledFolderAccess, yes: "On",     no: "Off" },
-              { label: "PUA Protection",           v: advancedProtection.puaProtection,          yes: "Enabled", no: "Disabled" },
-              { label: "SmartScreen",              v: advancedProtection.smartScreen,            yes: "On",      no: "Off" },
-            ].map(row => (
-              <StatusRow key={row.label} label={row.label}
-                value={row.v === true ? row.yes : row.v === false ? row.no : "Unknown"}
-                state={row.v === true ? "ok" : row.v === false ? "off" : "unknown"}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-6 text-muted-foreground text-sm">
-            <Shield className="size-8 mx-auto opacity-30 mb-2" />
-            {hasSecurity ? "Run a Smart Scan to fetch advanced data" : "Available on Windows desktop"}
-          </div>
-        )}
+        <AnimatePresence mode="wait">
+          {/* Not on Windows Electron */}
+          {!hasSecurity && (
+            <motion.div key="adv-no-electron" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="text-center py-6 text-muted-foreground text-sm" data-testid="adv-state-no-electron">
+              <Shield className="size-8 mx-auto opacity-30 mb-2" />
+              Available on Windows desktop
+            </motion.div>
+          )}
+          {/* Loading */}
+          {hasSecurity && advProtStatus === "loading" && (
+            <motion.div key="adv-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-3 py-6" data-testid="adv-state-loading">
+              <Loader2 className="size-6 text-primary animate-spin" />
+              <p className="text-xs text-muted-foreground">Fetching advanced defender data…</p>
+            </motion.div>
+          )}
+          {/* Idle — never scanned yet, offer manual trigger */}
+          {hasSecurity && advProtStatus === "idle" && (
+            <motion.div key="adv-idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-3 py-6" data-testid="adv-state-idle">
+              <Shield className="size-8 mx-auto opacity-20" />
+              <p className="text-xs text-muted-foreground">Advanced data not loaded yet.</p>
+              <Button size="sm" variant="secondary" className="gap-2 text-xs" onClick={onRefreshAdvanced}
+                data-testid="button-run-advanced-scan">
+                <Scan className="size-3.5" />Run Advanced Scan
+              </Button>
+            </motion.div>
+          )}
+          {/* Error */}
+          {hasSecurity && advProtStatus === "error" && (
+            <motion.div key="adv-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-3 py-5" data-testid="adv-state-error">
+              <AlertTriangle className="size-6 text-amber-400" />
+              <div className="text-center">
+                <p className="text-sm font-medium text-amber-400">Advanced scan failed</p>
+                {advProtError && <p className="text-[11px] text-muted-foreground mt-1 font-mono">{advProtError}</p>}
+              </div>
+              <Button size="sm" variant="secondary" className="gap-2 text-xs" onClick={onRefreshAdvanced}
+                data-testid="button-retry-advanced-scan">
+                <RefreshCw className="size-3.5" />Retry
+              </Button>
+            </motion.div>
+          )}
+          {/* Empty — IPC responded but Defender returned no data */}
+          {hasSecurity && advProtStatus === "empty" && !advancedProtection && (
+            <motion.div key="adv-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="flex flex-col items-center gap-3 py-5" data-testid="adv-state-empty">
+              <ShieldOff className="size-7 opacity-30" />
+              <p className="text-xs text-muted-foreground text-center">
+                Defender returned no advanced data.<br />Defender may be managed by your organisation.
+              </p>
+              <Button size="sm" variant="secondary" className="gap-2 text-xs" onClick={onRefreshAdvanced}
+                data-testid="button-retry-advanced-scan-empty">
+                <RefreshCw className="size-3.5" />Retry
+              </Button>
+            </motion.div>
+          )}
+          {/* Success — render rows */}
+          {hasSecurity && advancedProtection && (advProtStatus === "success" || advProtStatus === "empty") && (
+            <motion.div key="adv-success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="space-y-0.5" data-testid="adv-state-success">
+              {[
+                { label: "Defender Service",          v: advancedProtection.defenderServiceRunning, yes: "Running",  no: "Stopped" },
+                { label: "Cloud-delivered Protection", v: advancedProtection.cloudProtection,        yes: "On",       no: "Off" },
+                { label: "Sample Submission",          v: advancedProtection.sampleSubmission,       yes: "Enabled",  no: "Disabled" },
+                { label: "Controlled Folder Access",   v: advancedProtection.controlledFolderAccess, yes: "On",       no: "Off" },
+                { label: "PUA Protection",             v: advancedProtection.puaProtection,          yes: "Enabled",  no: "Disabled" },
+                { label: "SmartScreen",                v: advancedProtection.smartScreen,            yes: "On",       no: "Off" },
+              ].map(row => (
+                <StatusRow key={row.label} label={row.label}
+                  value={row.v === true ? row.yes : row.v === false ? row.no : "Unknown"}
+                  state={row.v === true ? "ok" : row.v === false ? "off" : "unknown"}
+                />
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </GlassCard>
 
       {/* Protection Freshness */}
@@ -738,6 +801,8 @@ export default function Security() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [securityStatus,    setSecurityStatus]    = useState<SecurityStatus | null>(null);
   const [advancedProtection, setAdvancedProtection] = useState<AdvancedProtection | null>(null);
+  const [advProtStatus, setAdvProtStatus] = useState<"idle"|"loading"|"success"|"empty"|"error">("idle");
+  const [advProtError,  setAdvProtError]  = useState<string | null>(null);
   const [startupItems,      setStartupItems]      = useState<StartupItem[]>([]);
   const [processTrust,      setProcessTrust]      = useState<ProcessTrustItem[]>([]);
   const [recommendations,   setRecommendations]   = useState<SecurityRecommendation[]>([]);
@@ -775,14 +840,67 @@ export default function Security() {
     }, 3000);
   }, [hasSecurity]); // eslint-disable-line
 
+  // Auto-fetch Advanced Protection on mount — same idle-defer pattern.
+  // Previously this was ONLY populated by Smart Scan, leaving the card
+  // permanently stuck on the placeholder unless the user ran a full scan.
+  useEffect(() => {
+    if (!hasSecurity) return;
+    runWhenIdle(() => {
+      console.log("[AdvancedProtection] page mounted — starting fetch");
+      setAdvProtStatus("loading");
+      setAdvProtError(null);
+      timingMark("getAdvancedProtection-start");
+      eAPI().security.getAdvancedProtection()
+        .then((r: any) => {
+          console.log("[AdvancedProtection] IPC response received:", r);
+          timingMark("getAdvancedProtection-done");
+          if (r?.available && r.data) {
+            const hasAnyValue = Object.values(r.data).some(v => v !== null);
+            console.log("[AdvancedProtection] parsed result — hasAnyValue:", hasAnyValue, "data:", r.data);
+            setAdvancedProtection(r.data);
+            setAdvProtStatus(hasAnyValue ? "success" : "empty");
+          } else {
+            console.warn("[AdvancedProtection] IPC returned unavailable:", r?.reason ?? "unknown");
+            setAdvProtStatus("empty");
+          }
+        })
+        .catch((err: any) => {
+          console.error("[AdvancedProtection] IPC call failed:", err?.message ?? err);
+          setAdvProtStatus("error");
+          setAdvProtError(err?.message ?? "Advanced scan failed");
+        });
+    }, 3500);
+  }, [hasSecurity]); // eslint-disable-line
+
   const refreshStatus = useCallback(() => {
     if (!hasSecurity) return;
     eAPI().security.getStatus().then((r: any) => { if (r?.available && r.data) setSecurityStatus(r.data); }).catch(() => {});
   }, [hasSecurity]);
 
-  const refreshAdvanced = useCallback(() => {
+  const refreshAdvanced = useCallback(async () => {
     if (!hasSecurity) return;
-    eAPI().security.getAdvancedProtection().then((r: any) => { if (r?.available && r.data) setAdvancedProtection(r.data); }).catch(() => {});
+    console.log("[AdvancedProtection] refresh triggered");
+    setAdvProtStatus("loading");
+    setAdvProtError(null);
+    try {
+      console.log("[AdvancedProtection] IPC called");
+      const r = await eAPI().security.getAdvancedProtection();
+      console.log("[AdvancedProtection] IPC response:", r);
+      if (r?.available && r.data) {
+        const hasAnyValue = Object.values(r.data).some(v => v !== null);
+        console.log("[AdvancedProtection] parsed — hasAnyValue:", hasAnyValue);
+        setAdvancedProtection(r.data);
+        setAdvProtStatus(hasAnyValue ? "success" : "empty");
+        console.log("[AdvancedProtection] UI state updated → success");
+      } else {
+        console.warn("[AdvancedProtection] unavailable:", r?.reason ?? "unknown");
+        setAdvProtStatus("empty");
+      }
+    } catch (err: any) {
+      console.error("[AdvancedProtection] refresh failed:", err?.message ?? err);
+      setAdvProtStatus("error");
+      setAdvProtError(err?.message ?? "Advanced scan failed");
+    }
   }, [hasSecurity]);
 
   const startScan = useCallback(async (type: "quick" | "smart") => {
@@ -806,8 +924,24 @@ export default function Security() {
       let advProt: AdvancedProtection | null = advancedProtection;
       if (type === "smart" && hasSecurity) {
         setScanStage(1);
-        const r = await eAPI().security.getAdvancedProtection().catch(() => null);
-        if (r?.available && r.data) { advProt = r.data; setAdvancedProtection(r.data); }
+        setAdvProtStatus("loading");
+        setAdvProtError(null);
+        try {
+          const r = await eAPI().security.getAdvancedProtection().catch(() => null);
+          console.log("[AdvancedProtection] Smart Scan IPC response:", r);
+          if (r?.available && r.data) {
+            advProt = r.data;
+            setAdvancedProtection(r.data);
+            const hasAnyValue = Object.values(r.data).some(v => v !== null);
+            setAdvProtStatus(hasAnyValue ? "success" : "empty");
+          } else {
+            setAdvProtStatus("empty");
+          }
+        } catch (err: any) {
+          console.error("[AdvancedProtection] Smart Scan fetch failed:", err?.message ?? err);
+          setAdvProtStatus("error");
+          setAdvProtError(err?.message ?? "Advanced scan failed");
+        }
       }
       if (scanAbort.current) { setScanStatus("idle"); return; }
       await delay(350);
@@ -1027,6 +1161,7 @@ export default function Security() {
                 securityStatus={securityStatus} advancedProtection={advancedProtection}
                 hasSecurity={hasSecurity} scanning={scanning}
                 onRefresh={refreshStatus} onRefreshAdvanced={refreshAdvanced}
+                advProtStatus={advProtStatus} advProtError={advProtError}
               />
             )}
             {activeTab === "startup" && (
