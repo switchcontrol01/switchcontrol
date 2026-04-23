@@ -1,0 +1,38 @@
+[2026-04-23T04:23:35.761Z] HEALTH attempt=1 elapsed=0ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:62064
+[2026-04-23T04:23:35.813Z] HEALTH attempt=2 elapsed=54ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:62064
+[2026-04-23T04:23:35.864Z] HEALTH attempt=3 elapsed=105ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:62064
+[2026-04-23T04:23:35.884Z] STDOUT [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-04-23T04:23:35.885Z] STDOUT [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-23T04:23:35.885Z] STDOUT [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-23T04:23:35.885Z] STDOUT [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-04-23T04:23:35.885Z] STDOUT [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-04-23T04:23:35.885Z] STDOUT [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-04-23T04:23:35.926Z] HEALTH attempt=4 elapsed=167ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:62064
+[2026-04-23T04:23:35.993Z] STDOUT [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-04-23T04:23:35.993Z] STDOUT [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-04-23T04:23:35.993Z] HEALTH attempt=5 elapsed=234ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:62064
+[2026-04-23T04:23:35.995Z] STDOUT [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-04-23T04:23:36.003Z] STDOUT [JWT] ===== SELF-TEST START =====
+[2026-04-23T04:23:36.004Z] STDOUT [JWT] PASS: valid token → sub=self-test-user-000 exp=1779510216
+[2026-04-23T04:23:36.004Z] STDOUT [JWT] PASS: invalid token → null (rejected)
+[2026-04-23T04:23:36.004Z] STDOUT [JWT] PASS: expired token → null (rejected)
+[2026-04-23T04:23:36.005Z] STDOUT [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-04-23T04:23:36.005Z] STDOUT [JWT] PASS: alg=none token → null (rejected)
+[2026-04-23T04:23:36.005Z] STDOUT [JWT] PASS: wrong issuer token → null (rejected)
+[2026-04-23T04:23:36.005Z] STDOUT [JWT] ===== SELF-TEST END =====
+[2026-04-23T04:23:36.005Z] STDOUT [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-23T04:23:36.005Z] STDOUT [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-04-23T04:23:36.006Z] STDOUT [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-04-23T04:23:36.006Z] STDOUT [AUTH] production: true
+[2026-04-23T04:23:36.006Z] STDOUT [AUTH] electronBackend: true
+[2026-04-23T04:23:36.006Z] STDOUT [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-04-23T04:23:36.006Z] STDOUT [AUTH] ================================
+[2026-04-23T04:23:36.007Z] STDOUT [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-23T04:23:36.007Z] STDOUT [SysIntelligence] Collecting full system profile…
+[2026-04-23T04:23:36.012Z] STDOUT [Telemetry] Background polling started (1000ms interval)
+[2026-04-23T04:23:36.013Z] STDOUT [WS] Live telemetry WebSocket server ready at /ws/telemetry
+[2026-04-23T04:23:36.043Z] HEALTH attempt=6 elapsed=285ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:62064
+[2026-04-23T04:23:36.194Z] HEALTH attempt=7 elapsed=435ms ERR ECONNREFUSED connect ECONNREFUSED 127.0.0.1:62064
+[2026-04-23T04:23:36.575Z] STDOUT 4:23:36 PM [express] serving on 127.0.0.1:62064
+[2026-04-23T04:23:36.582Z] Health check PASSED — attempt 8, 824ms elapsed, body={"status":"ok","timestamp":1776918216580}
+[2026-04-23T04:23:39.494Z] STDOUT [SysIntelligence] Collection complete in 3488ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2

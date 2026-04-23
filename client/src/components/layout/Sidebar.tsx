@@ -17,6 +17,7 @@ import {
   Activity,
   Brain,
   Clock,
+  Network,
 } from "lucide-react";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
