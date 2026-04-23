@@ -1,0 +1,102 @@
+2. REMOVE DEFAULT FALSE VISUAL INIT
+Do NOT initialize cards to visually off/grey by default.
+
+Before real status is known, show:
+- loading shimmer
+- checking badge
+- skeleton toggle
+- neutral unknown state
+
+Never show "off" unless the app actually knows it is off.
+
+3. TAB SWITCH / REMOUNT SAFE HYDRATION
+When a page remounts:
+- load cached canonical state if available
+- immediately run fresh verification
+- keep previous verified state visible while refresh is happening
+- do not momentarily collapse back to defaults
+
+Meaning:
+- stale verified true stays visible until a newer verified false says otherwise
+
+4. IGNORE STALE ASYNC RESPONSES
+Introduce request versioning per tweak and per section.
+
+Pattern:
+- increment requestVersion on each new verify/apply/revert flow
+- each async call captures localVersion
+- when it resolves, only commit if localVersion matches currentVersion
+
+Older responses must be discarded.
+
+5. KEEP VERIFIED TRUE STICKY DURING CHECKS
+If a tweak is already known as verified applied:
+- do not paint it off while a recheck is in progress
+- keep it visually applied
+- only change if the new check explicitly proves otherwise
+
+6. UNIFY TOGGLE + SLIDER + OPTION CARDS
+Apply same state model to:
+- standard toggle tweaks
+- slider tweaks
+- network tweaks
+- NIC tweaks
+- power plans
+
+No special case UI should fall back to fake defaults on remount.
+
+7. CLEAR SEPARATION OF DISPLAY STATES
+Define UI rules clearly:
+
+- unknown/checking:
+  neutral/loading, not off
+- applied + verified:
+  green/on/applied visuals
+- not_applied + verified:
+  grey/off visuals
+- applying/reverting:
+  show progress state but preserve prior verified context
+- error:
+  show error badge, do not silently collapse to off
+
+8. DO NOT LET PERSISTED UI CACHE OVERRIDE FRESH VERIFY
+If local storage / persisted store exists, it is only a temporary hint.
+Fresh backend verification wins.
+Persisted stale false must never overwrite verified true.
+
+9. ADD DIAGNOSTIC LOGGING
+Temporarily log for affected tweaks:
+- tweak id
+- route/section
+- mount
+- initial frontend state
+- cached state loaded
+- verify request id/version
+- verify result
+- final committed rendered state
+
+Need to catch exactly where visual state flips wrong.
+
+10. HARD RULE
+If backend says:
+- applied: true
+- verified: true
+
+Then the card must never render grey/off/default.
+
+CHECKLIST
+- applied tweak stays visually applied after switching tabs
+- applied tweak stays visually applied after leaving and returning to page
+- applied tweak stays visually applied after reopening app
+- no false off/grey flash before verification finishes
+- stale async responses cannot overwrite newer verified state
+- toggle cards, slider cards, network cards, NIC cards, and power plans all behave consistently
+
+FINAL OUTPUT
+Return:
+- exact root cause
+- exact component/store causing the visual false revert
+- exact fix applied
+- how stale responses are blocked
+- how remounts now preserve verified visual state
+- confirmation that verified true can no longer render as grey/off

@@ -394,7 +394,7 @@ export function TweaksList() {
                     syncing &&
                     isElectron &&
                     isRealTweak(tweak.id) &&
-                    !(tweak.id in tweaks)
+                    !getTweakEnabled(tweak.id)
                   }
                   isHighlighted={tweak.id === highlightId}
                 />
