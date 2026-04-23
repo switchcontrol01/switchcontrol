@@ -7,7 +7,6 @@ interface SplashProps {
   onComplete: () => void;
 }
 
-/* ── Floating dust particles — stable positions, never re-randomise ── */
 const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
   id: i,
   x: (i * 37 + 11) % 100,
@@ -17,68 +16,58 @@ const PARTICLES = Array.from({ length: 28 }, (_, i) => ({
   dur: 6 + (i % 7) * 2.2,
   dx: ((i % 9) - 4) * 18,
   dy: ((i % 6) - 3) * 12,
-  delay: (i * 0.28) % 4, // halved max delay so more particles appear early
+  delay: (i * 0.28) % 4,
 }));
 
-/* ── Static sun-streak beams ── */
 const STREAKS = [
-  { left: "4%",  top: "-8%",  rot: "28deg",  w: "170vw", h: "6px",   color: "rgba(168,85,247,0.55)",  blur: 4,   dur: 18, delay: 0   },
-  { left: "14%", top: "18%",  rot: "24deg",  w: "155vw", h: "4px",   color: "rgba(0,200,255,0.48)",   blur: 3,   dur: 22, delay: 1.4 },
-  { left: "2%",  top: "44%",  rot: "20deg",  w: "145vw", h: "8px",   color: "rgba(168,85,247,0.42)",  blur: 5,   dur: 26, delay: 0.7 },
-  { left: "28%", top: "-4%",  rot: "32deg",  w: "125vw", h: "3px",   color: "rgba(0,230,255,0.45)",   blur: 2.5, dur: 20, delay: 2.8 },
-  { left: "0%",  top: "62%",  rot: "18deg",  w: "135vw", h: "5px",   color: "rgba(200,120,255,0.40)", blur: 3.5, dur: 24, delay: 4.0 },
+  { left: "4%",  top: "-8%",  rot: "28deg", w: "170vw", h: "6px",  color: "rgba(168,85,247,0.55)",  blur: 4,   dur: 18, delay: 0   },
+  { left: "14%", top: "18%",  rot: "24deg", w: "155vw", h: "4px",  color: "rgba(0,200,255,0.48)",   blur: 3,   dur: 22, delay: 1.4 },
+  { left: "2%",  top: "44%",  rot: "20deg", w: "145vw", h: "8px",  color: "rgba(168,85,247,0.42)",  blur: 5,   dur: 26, delay: 0.7 },
+  { left: "28%", top: "-4%",  rot: "32deg", w: "125vw", h: "3px",  color: "rgba(0,230,255,0.45)",   blur: 2.5, dur: 20, delay: 2.8 },
+  { left: "0%",  top: "62%",  rot: "18deg", w: "135vw", h: "5px",  color: "rgba(200,120,255,0.40)", blur: 3.5, dur: 24, delay: 4.0 },
 ];
 
 export default function Splash({ onComplete }: SplashProps) {
-  const [logoReady, setLogoReady] = useState(false);
-  const [textReady, setTextReady] = useState(false);
+  const [logoReady, setLogoReady]   = useState(false);
+  const [textReady, setTextReady]   = useState(false);
   const [sweepReady, setSweepReady] = useState(false);
-  const [exiting,   setExiting]   = useState(false);
-  const [progress,  setProgress]  = useState(0);
+  const [progress, setProgress]     = useState(0);
   const tagline = useMemo(() => getTagline(), []);
-  const [statusText, setStatusText] = useState(tagline);
 
   useEffect(() => {
-    // ── Splash owns all timing ──────────────────────────────────────────
-    // Logo first — establishes brand before environment blooms.
+    // Logo first — brand established quickly.
     const t1 = setTimeout(() => setLogoReady(true),  80);
-    // Title/tagline follow quickly after logo appears.
+    // Title follows logo.
     const t2 = setTimeout(() => setTextReady(true),  220);
-    // Diagonal reveal sweep begins after foreground is visible.
-    const t3 = setTimeout(() => setSweepReady(true), 520);
-    // Begin exit sequence.
-    const t4 = setTimeout(() => setExiting(true),   5000);
-    // Notify parent exactly when splash has finished — parent is NOT allowed
-    // to set its own splashDone timer; this callback is the single authority.
-    const done = setTimeout(() => onComplete(), 6400);
+    // Diagonal sweep fires after foreground is visible.
+    const t3 = setTimeout(() => setSweepReady(true), 480);
+    // Hand off to App — App.tsx AnimatePresence handles the exit fade (0.65s).
+    // No internal exit animation here; having two exit animations caused a blank frame.
+    const done = setTimeout(() => onComplete(), 1800);
 
-    const si = setInterval(() => setStatusText(getTagline()), 2200);
-
+    // Progress bar — fills to ~90% in 1.8 s, slows near the end (never quite hits 100%)
     const pi = setInterval(() => {
       setProgress(p => {
         if (p >= 100) return 100;
         const r = 100 - p;
-        if (p < 45) return p + 2.2;
-        if (p < 78) return p + Math.max(r * 0.12, 0.6);
-        return p + Math.max(r * 0.06, 0.18);
+        if (p < 60) return p + 3.2;
+        if (p < 85) return p + Math.max(r * 0.14, 0.8);
+        return p + Math.max(r * 0.07, 0.25);
       });
     }, 36);
 
     return () => {
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); clearTimeout(done);
-      clearInterval(pi); clearInterval(si);
+      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(done);
+      clearInterval(pi);
     };
   }, [onComplete]);
 
   return (
-    <motion.div
+    <div
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
       style={{ background: "#07090D" }}
-      animate={exiting ? { opacity: 0, scale: 1.04, filter: "blur(28px)" } : { opacity: 1, scale: 1, filter: "blur(0px)" }}
-      transition={exiting ? { duration: 1.3, ease: [0.4, 0, 0.8, 1] } : { duration: 0 }}
     >
-
-      {/* ── Layer A: wide atmospheric color hazes ────────────────────────── */}
+      {/* ── Layer A: wide atmospheric hazes ── */}
       <motion.div
         className="absolute pointer-events-none"
         style={{
@@ -113,7 +102,7 @@ export default function Splash({ onComplete }: SplashProps) {
         transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 5 }}
       />
 
-      {/* ── Layer B: diagonal sun-streak light beams ─────────────────────── */}
+      {/* ── Layer B: diagonal sun-streak beams ── */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {STREAKS.map((s, i) => (
           <motion.div
@@ -134,76 +123,66 @@ export default function Splash({ onComplete }: SplashProps) {
         ))}
       </div>
 
-      {/* ── Layer C: floating dust particles ─────────────────────────────── */}
+      {/* ── Layer C: floating dust particles ── */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 3 }}>
         {PARTICLES.map(p => (
           <motion.div
             key={p.id}
             className="absolute rounded-full"
             style={{
-              left: `${p.x}%`,
-              top:  `${p.y}%`,
-              width:  p.size,
-              height: p.size,
+              left: `${p.x}%`, top: `${p.y}%`,
+              width: p.size, height: p.size,
               background: p.id % 3 === 0 ? 'rgba(168,85,247,1)' : p.id % 3 === 1 ? 'rgba(0,210,255,1)' : 'rgba(210,160,255,1)',
               boxShadow: `0 0 ${p.size * 2}px ${p.size}px ${p.id % 3 === 0 ? 'rgba(168,85,247,0.5)' : p.id % 3 === 1 ? 'rgba(0,210,255,0.5)' : 'rgba(210,160,255,0.5)'}`,
             }}
             initial={{ opacity: p.opacity * 0.2 }}
-            animate={{
-              x: [0, p.dx, 0],
-              y: [0, p.dy, 0],
-              opacity: [p.opacity * 0.2, p.opacity, p.opacity * 0.35, p.opacity, p.opacity * 0.2],
-            }}
-            transition={{
-              duration: p.dur,
-              repeat: Infinity,
-              ease: 'easeInOut',
-              delay: p.delay,
-            }}
+            animate={{ x: [0, p.dx, 0], y: [0, p.dy, 0], opacity: [p.opacity * 0.2, p.opacity, p.opacity * 0.35, p.opacity, p.opacity * 0.2] }}
+            transition={{ duration: p.dur, repeat: Infinity, ease: 'easeInOut', delay: p.delay }}
           />
         ))}
       </div>
 
-      {/* ── Layer D: sun-haze bloom origin — lower-left, rising ──────────── */}
+      {/* ── Layer D: sun-haze bloom ── */}
       <div className="absolute pointer-events-none" style={{ left: "14%", top: "58%", zIndex: 2 }}>
-        <motion.div style={{
-          width: "900px", height: "540px",
-          marginLeft: "-150px", marginTop: "-270px",
-          background: "radial-gradient(ellipse at 20% 50%, rgba(168,85,247,0.32) 0%, rgba(0,180,255,0.16) 35%, rgba(255,140,60,0.06) 58%, transparent 72%)",
-          filter: "blur(60px)",
-        }}
+        <motion.div
+          style={{
+            width: "900px", height: "540px",
+            marginLeft: "-150px", marginTop: "-270px",
+            background: "radial-gradient(ellipse at 20% 50%, rgba(168,85,247,0.32) 0%, rgba(0,180,255,0.16) 35%, rgba(255,140,60,0.06) 58%, transparent 72%)",
+            filter: "blur(60px)",
+          }}
           animate={{ opacity: [0.5, 0.85, 0.5], x: [0, 14, 0], y: [0, -8, 0] }}
           transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
-      {/* ── Layer D: center bloom behind logo ────────────────────────────── */}
+      {/* ── Layer D: centre bloom behind logo ── */}
       <div className="absolute pointer-events-none" style={{ left: "50%", top: "46%", zIndex: 3 }}>
-        <motion.div style={{
-          width: "640px", height: "640px",
-          marginLeft: "-320px", marginTop: "-320px",
-          background: "radial-gradient(ellipse, rgba(139,92,246,0.28) 0%, rgba(0,200,255,0.12) 38%, transparent 68%)",
-          filter: "blur(48px)",
-        }}
+        <motion.div
+          style={{
+            width: "640px", height: "640px",
+            marginLeft: "-320px", marginTop: "-320px",
+            background: "radial-gradient(ellipse, rgba(139,92,246,0.28) 0%, rgba(0,200,255,0.12) 38%, transparent 68%)",
+            filter: "blur(48px)",
+          }}
           animate={{ opacity: [0.45, 0.80, 0.45], scale: [0.96, 1.06, 0.96] }}
           transition={{ duration: 5.5, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div style={{
-          position: "absolute",
-          width: "280px", height: "280px",
-          marginLeft: "-140px", marginTop: "-140px",
-          top: "50%", left: "50%",
-          background: "radial-gradient(ellipse, rgba(210,160,255,0.30) 0%, rgba(0,215,255,0.14) 44%, transparent 70%)",
-          filter: "blur(28px)",
-        }}
+        <motion.div
+          style={{
+            position: "absolute",
+            width: "280px", height: "280px",
+            marginLeft: "-140px", marginTop: "-140px",
+            top: "50%", left: "50%",
+            background: "radial-gradient(ellipse, rgba(210,160,255,0.30) 0%, rgba(0,215,255,0.14) 44%, transparent 70%)",
+            filter: "blur(28px)",
+          }}
           animate={{ opacity: [0.55, 0.95, 0.55], scale: [0.92, 1.10, 0.92] }}
           transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut", delay: 0.8 }}
         />
       </div>
 
-      {/* ── Layer E: diagonal reveal sweep — fires after logo is visible ──── */}
-      {/* Tells the eye where to look as the scene opens. Soft, atmospheric,
-          not a hard wipe. Sweeps from top-left toward bottom-right once. */}
+      {/* ── Layer E: diagonal reveal sweep ── */}
       <AnimatePresence>
         {sweepReady && (
           <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 4 }}>
@@ -232,24 +211,22 @@ export default function Splash({ onComplete }: SplashProps) {
         )}
       </AnimatePresence>
 
-      {/* ── Vignette ─────────────────────────────────────────────────────── */}
+      {/* ── Vignette ── */}
       <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 5,
         background: "radial-gradient(ellipse 80% 80% at 50% 50%, transparent 30%, rgba(7,9,13,0.88) 100%)",
       }} />
 
-      {/* ── Logo + text content ───────────────────────────────────────────── */}
+      {/* ── Logo + text ── */}
       <div className="relative flex flex-col items-center gap-8" style={{ zIndex: 10 }}>
 
-        {/* Logo reveal */}
         <AnimatePresence>
           {logoReady && (
             <motion.div
               initial={{ opacity: 0, y: 16, filter: "blur(18px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
               className="relative"
             >
-              {/* Halo behind logo */}
               <motion.div
                 className="absolute rounded-full pointer-events-none"
                 style={{
@@ -262,8 +239,6 @@ export default function Splash({ onComplete }: SplashProps) {
                 animate={{ scale: [1, 1.22, 1], opacity: [0.55, 0.90, 0.55] }}
                 transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut" }}
               />
-
-              {/* Thin glowing rim */}
               <motion.div
                 className="absolute rounded-[24%] pointer-events-none"
                 style={{
@@ -275,19 +250,14 @@ export default function Splash({ onComplete }: SplashProps) {
                 animate={{ opacity: [0.35, 0.75, 0.35] }}
                 transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
               />
-
-              {/* Shimmer sweep across logo */}
               <div className="absolute inset-0 rounded-[22%] overflow-hidden pointer-events-none">
                 <motion.div
                   className="absolute inset-0"
-                  style={{
-                    background: "linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.22) 50%, transparent 75%)",
-                  }}
+                  style={{ background: "linear-gradient(115deg, transparent 25%, rgba(255,255,255,0.22) 50%, transparent 75%)" }}
                   animate={{ x: ["-130%", "160%"] }}
                   transition={{ duration: 2.2, repeat: Infinity, repeatDelay: 2.4, ease: "easeInOut" }}
                 />
               </div>
-
               <motion.img
                 src={logoImg}
                 alt="SwitchControl"
@@ -307,16 +277,14 @@ export default function Splash({ onComplete }: SplashProps) {
           )}
         </AnimatePresence>
 
-        {/* Title + progress */}
         <AnimatePresence>
           {textReady && (
             <motion.div
               initial={{ opacity: 0, y: 14, filter: "blur(10px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.90, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-center gap-4"
             >
-              {/* Wordmark */}
               <h1 className="text-3xl font-bold tracking-tight select-none" style={{ letterSpacing: "-0.01em" }}>
                 <span className="text-white">Switch</span>
                 <span style={{
@@ -326,27 +294,16 @@ export default function Splash({ onComplete }: SplashProps) {
                 }}>Control</span>
               </h1>
 
-              {/* Tagline ticker */}
-              <div className="h-5 overflow-hidden">
-                <AnimatePresence mode="wait">
-                  <motion.p
-                    key={statusText}
-                    className="text-[13px] text-white/38 text-center tracking-wide select-none"
-                    data-testid="text-splash-tagline"
-                    initial={{ opacity: 0, y: 7 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -7 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {statusText}
-                  </motion.p>
-                </AnimatePresence>
-              </div>
+              <p
+                className="text-[13px] text-white/38 text-center tracking-wide select-none"
+                data-testid="text-splash-tagline"
+              >
+                {tagline}
+              </p>
 
-              {/* Progress track — horizontal light sweep */}
+              {/* Progress track */}
               <div className="relative w-52 h-[1.5px] rounded-full overflow-hidden"
                 style={{ background: "rgba(255,255,255,0.07)" }}>
-                {/* Fill */}
                 <motion.div
                   className="absolute left-0 top-0 h-full rounded-full"
                   style={{
@@ -356,18 +313,14 @@ export default function Splash({ onComplete }: SplashProps) {
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.28, ease: "easeOut" }}
                 />
-                {/* Travelling gleam */}
                 <motion.div
                   className="absolute top-0 h-full w-16"
-                  style={{
-                    background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)",
-                  }}
+                  style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)" }}
                   animate={{ x: ["-64px", "208px"] }}
                   transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut", repeatDelay: 0.4 }}
                 />
               </div>
 
-              {/* Status label */}
               <motion.p
                 className="text-[11px] text-white/22 tracking-widest uppercase select-none"
                 animate={{ opacity: [0.6, 1, 0.6] }}
@@ -379,6 +332,6 @@ export default function Splash({ onComplete }: SplashProps) {
           )}
         </AnimatePresence>
       </div>
-    </motion.div>
+    </div>
   );
 }
