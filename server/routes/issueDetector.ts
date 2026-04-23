@@ -2,8 +2,8 @@
  * Issue Detector — finds real, evidence-backed system issues.
  *
  * All detections are driven by:
- *   - getSnapshot()              → live telemetry (CPU, RAM, processes, disk)
- *   - getCachedSystemIntelligence() → deep hardware profile (RAM layout, security, VBS, XMP, network)
+ *   - getSnapshot()              → live telemetry (CPU, RAM, GPU, temps, disk, processes)
+ *   - getCachedSystemIntelligence() → deep hardware profile (RAM layout, security, VBS, XMP, network, storage)
  *   - tweakStates (from client)  → what SwitchControl tweaks are currently applied
  *   - startupAppCount (from client) → number of startup entries (client fetches from /api/startup)
  *   - powerPlanName (from client) → active power plan name
@@ -37,6 +37,9 @@ export interface DetectedIssue {
   linkedTweakIds?: string[];
   autoFixAvailable: boolean;
 }
+
+// Known-bad power plan names — only flag these, never flag custom/gaming plans
+const BAD_POWER_PLAN_KEYWORDS = ["balanced", "power saver", "powersaver", "economy", "eco mode"];
 
 router.post("/detect", (req, res) => {
   try {
@@ -99,12 +102,23 @@ router.post("/detect", (req, res) => {
       });
     }
 
+    if (intel?.platform?.resizeBarEnabled === false) {
+      issues.push({
+        id: "rebar-disabled",
+        category: "gpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "Resizable BAR (SAM) Is Disabled",
+        reason: "Resizable BAR allows the CPU to address the full GPU VRAM instead of 256MB chunks at a time.",
+        impact: "5–15% GPU performance loss in modern titles. AMD SAM and NVIDIA RTX 30/40 series both benefit significantly.",
+        recommendedAction: "Enable Resizable BAR (or AMD SAM) in your BIOS under PCI Express settings. Requires UEFI boot and CSM disabled.",
+        autoFixAvailable: false,
+      });
+    }
+
     // ── Memory ────────────────────────────────────────────────────────────────
 
-    if (
-      intel?.memory?.sticks &&
-      intel.memory.sticks.length === 1
-    ) {
+    if (intel?.memory?.sticks && intel.memory.sticks.length === 1) {
       const stick = intel.memory.sticks[0];
       issues.push({
         id: "single-channel-ram",
@@ -122,9 +136,7 @@ router.post("/detect", (req, res) => {
     const xmpState = intel?.inference?.expoOrXmp?.state;
     if (xmpState === "unknown") {
       const sticks = intel?.memory?.sticks ?? [];
-      const maxConfigured = Math.max(
-        ...sticks.map((s) => s.configuredClockMhz ?? 0)
-      );
+      const maxConfigured = Math.max(...sticks.map((s) => s.configuredClockMhz ?? 0));
       const maxRated = Math.max(...sticks.map((s) => s.clockMhz ?? 0));
       if (maxRated > 0 && maxConfigured > 0 && maxConfigured < maxRated * 0.95) {
         issues.push({
@@ -138,6 +150,123 @@ router.post("/detect", (req, res) => {
           recommendedAction: "Enable XMP (Intel) or EXPO (AMD) profile in BIOS under the Memory/OC settings section.",
           autoFixAvailable: false,
         });
+      }
+    }
+
+    // ── Live RAM pressure ─────────────────────────────────────────────────────
+
+    if (snapshot?.ram?.usedPercent != null && snapshot.ram.usedPercent > 85) {
+      const pct = Math.round(snapshot.ram.usedPercent);
+      const usedGB = snapshot.ram.usedGB?.toFixed(1) ?? "?";
+      const totalGB = snapshot.ram.totalGB?.toFixed(1) ?? "?";
+      issues.push({
+        id: "high-ram-usage",
+        category: "memory",
+        severity: pct > 92 ? "high" : "medium",
+        confidence: "confirmed",
+        title: `RAM at ${pct}%  (${usedGB} / ${totalGB} GB used)`,
+        reason: "Very high RAM utilization forces Windows to spill overflow to the disk page file.",
+        impact: "Page file access adds 10–500ms+ latency spikes — directly visible as stutters during gameplay.",
+        recommendedAction: "Close background applications or use the Dashboard RAM Cleaner to reclaim standby memory.",
+        autoFixAvailable: false,
+      });
+    }
+
+    // ── Thermals ──────────────────────────────────────────────────────────────
+
+    if (snapshot?.temps?.cpu != null && snapshot.temps.cpu > 80) {
+      const t = Math.round(snapshot.temps.cpu);
+      issues.push({
+        id: "cpu-temp-high",
+        category: "cpu",
+        severity: t > 90 ? "high" : "medium",
+        confidence: "confirmed",
+        title: `CPU Temperature: ${t}°C`,
+        reason: `CPU is running at ${t}°C. Modern CPUs begin thermal throttling when approaching their TjMax (typically 95–105°C).`,
+        impact: t > 90
+          ? "Thermal throttling is likely active — clock speeds are being reduced to protect the chip."
+          : "Sustained high temperatures reduce boost clock duration and increase thermal throttle risk under load.",
+        recommendedAction: "Check CPU cooler contact and thermal paste condition. Verify cooler fan RPM and case airflow. Reseat cooler if paste is old.",
+        autoFixAvailable: false,
+      });
+    }
+
+    if (snapshot?.temps?.gpu != null && snapshot.temps.gpu > 83) {
+      const t = Math.round(snapshot.temps.gpu);
+      issues.push({
+        id: "gpu-temp-high",
+        category: "gpu",
+        severity: t > 90 ? "high" : "medium",
+        confidence: "confirmed",
+        title: `GPU Temperature: ${t}°C`,
+        reason: `GPU is running at ${t}°C. Modern GPUs typically throttle between 83–90°C depending on the card's limit.`,
+        impact: t > 90
+          ? "GPU is likely power/thermal throttling — sustained frame rate loss and potential instability."
+          : "Reduced GPU boost headroom; sustained loads may cause clock drops and frame pacing issues.",
+        recommendedAction: "Clean GPU fans and heatsink of dust. Improve case airflow. Consider an undervolt to reduce thermals without performance loss.",
+        autoFixAvailable: false,
+      });
+    }
+
+    // ── GPU VRAM ──────────────────────────────────────────────────────────────
+
+    if (snapshot?.gpu?.vramPercent != null && snapshot.gpu.vramPercent > 88) {
+      const pct = Math.round(snapshot.gpu.vramPercent);
+      const usedMb = snapshot.gpu.vramUsedMb;
+      const totalMb = snapshot.gpu.vramTotalMb;
+      const usedStr = usedMb != null ? `${(usedMb / 1024).toFixed(1)} GB` : `${pct}%`;
+      const totalStr = totalMb != null ? `${(totalMb / 1024).toFixed(0)} GB` : "";
+      issues.push({
+        id: "vram-near-full",
+        category: "gpu",
+        severity: pct > 95 ? "high" : "medium",
+        confidence: "confirmed",
+        title: `GPU VRAM at ${pct}%${totalStr ? ` (${usedStr} / ${totalStr})` : ` (${usedStr} used)`}`,
+        reason: "VRAM capacity is nearly exhausted. When VRAM fills up, the GPU must spill textures to system RAM over the PCIe bus.",
+        impact: "Severe frame time spikes (100ms+) and visible stutter when the GPU is forced to page textures across the bus.",
+        recommendedAction: "Lower in-game texture quality or resolution. Close other GPU-using applications. Consider a higher VRAM GPU if this persists.",
+        autoFixAvailable: false,
+      });
+    }
+
+    // ── Disk ──────────────────────────────────────────────────────────────────
+
+    if (snapshot?.disk?.activeTimePct != null && snapshot.disk.activeTimePct > 85) {
+      const pct = Math.round(snapshot.disk.activeTimePct);
+      issues.push({
+        id: "disk-saturated",
+        category: "storage",
+        severity: pct > 95 ? "high" : "medium",
+        confidence: "confirmed",
+        title: `Disk at ${pct}% Active`,
+        reason: "The storage device is nearly fully saturated with read/write requests, leaving no headroom for additional I/O.",
+        impact: "Game asset streaming stalls, hitching during level loads, and significant stutter if the page file is also active.",
+        recommendedAction: "Check Task Manager → Performance → Disk for which process is driving I/O. Disable background indexing and Windows Search if not needed.",
+        autoFixAvailable: false,
+      });
+    }
+
+    // Check system drive free space from intel
+    if (intel?.storage?.filesystems) {
+      const sysDrive = intel.storage.filesystems.find(
+        (f) => f.mount === "C:" || f.mount === "/" || f.fs?.toLowerCase().includes("c:")
+      );
+      if (sysDrive?.sizeGb != null && sysDrive.usedGb != null) {
+        const freeGb = sysDrive.sizeGb - sysDrive.usedGb;
+        const freePct = (freeGb / sysDrive.sizeGb) * 100;
+        if (freePct < 10) {
+          issues.push({
+            id: "low-disk-space",
+            category: "storage",
+            severity: freePct < 5 ? "high" : "medium",
+            confidence: "confirmed",
+            title: `System Drive Almost Full (${freeGb.toFixed(0)} GB free)`,
+            reason: `Only ${freeGb.toFixed(1)} GB (${freePct.toFixed(0)}%) remains on the system drive. Windows needs free space for the page file, temp files, and updates.`,
+            impact: "Windows page file cannot expand — causing crashes or hard freezes under memory pressure. Shader caches and game updates may also fail.",
+            recommendedAction: "Free up space by removing unused programs, clearing Temp folders, and running Disk Cleanup. Move game installs to a secondary drive if available.",
+            autoFixAvailable: false,
+          });
+        }
       }
     }
 
@@ -155,23 +284,6 @@ router.post("/detect", (req, res) => {
         impact: "Increases scheduler jitter, reduces available CPU headroom, and adds memory pressure.",
         recommendedAction: "Use Debloater and Tweaks to disable unnecessary services and startup programs.",
         linkedTweakIds: ["disable-services"],
-        autoFixAvailable: false,
-      });
-    }
-
-    if (snapshot?.ram?.usedPercent != null && snapshot.ram.usedPercent > 85) {
-      const pct = Math.round(snapshot.ram.usedPercent);
-      const usedGB = snapshot.ram.usedGB?.toFixed(1) ?? "?";
-      const totalGB = snapshot.ram.totalGB?.toFixed(1) ?? "?";
-      issues.push({
-        id: "high-ram-usage",
-        category: "memory",
-        severity: pct > 92 ? "high" : "medium",
-        confidence: "confirmed",
-        title: `RAM ${pct}% Used  (${usedGB} / ${totalGB} GB)`,
-        reason: "Very high RAM utilization forces Windows to use the disk page file for overflow.",
-        impact: "Page file access adds 10–500ms+ latency spikes — directly visible as stutters during gameplay.",
-        recommendedAction: "Close background applications or use the Dashboard RAM Cleaner to reclaim standby memory.",
         autoFixAvailable: false,
       });
     }
@@ -212,10 +324,11 @@ router.post("/detect", (req, res) => {
 
     if (intel?.network?.interfaces && intel.network.interfaces.length > 0) {
       const activeIfaces = intel.network.interfaces.filter(
-        (n) => n.ipv4 && n.ipv4 !== "" && n.ipv4 !== "0.0.0.0"
+        (n) => n.ip4 && n.ip4 !== "" && n.ip4 !== "0.0.0.0" && !n.internal
       );
       const hasEthernet = activeIfaces.some((n) => !n.wifi);
       const hasWifi = activeIfaces.some((n) => n.wifi);
+
       if (hasEthernet && hasWifi) {
         issues.push({
           id: "wifi-and-ethernet-both-active",
@@ -228,14 +341,29 @@ router.post("/detect", (req, res) => {
           recommendedAction: "Disable Wi-Fi in Windows network settings since Ethernet provides a more stable connection.",
           autoFixAvailable: false,
         });
+      } else if (!hasEthernet && hasWifi) {
+        issues.push({
+          id: "wifi-only-gaming",
+          category: "network",
+          severity: "medium",
+          confidence: "confirmed",
+          title: "Gaming on Wi-Fi — No Ethernet Detected",
+          reason: "Wi-Fi introduces variable latency, retransmissions, and interference that Ethernet connections avoid entirely.",
+          impact: "Ping spikes of 5–50ms are common on Wi-Fi and unpredictable. Packet loss causes rubber-banding and desync in competitive titles.",
+          recommendedAction: "Connect via Ethernet for the lowest and most consistent latency. If wiring is not possible, use a 5GHz or 6GHz band and keep the router line-of-sight.",
+          autoFixAvailable: false,
+        });
       }
     }
 
     // ── Power Plan ────────────────────────────────────────────────────────────
+    // Only flag KNOWN bad plan names (balanced, power saver) — never flag custom
+    // gaming/performance plans created by SwitchControl or other tools.
 
     if (powerPlanName && typeof powerPlanName === "string") {
-      const name = powerPlanName.toLowerCase();
-      if (!name.includes("high performance") && !name.includes("ultimate")) {
+      const nameLower = powerPlanName.toLowerCase();
+      const isKnownBad = BAD_POWER_PLAN_KEYWORDS.some((kw) => nameLower.includes(kw));
+      if (isKnownBad) {
         issues.push({
           id: "suboptimal-power-plan",
           category: "cpu",
