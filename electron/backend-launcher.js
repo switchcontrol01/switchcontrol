@@ -28,7 +28,7 @@ function berr(...args) {
   try { fileLogger.appendBackend('ERROR ' + line); } catch (e) {}
 }
 
-const TRACKED_KEYS = ['OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
+const TRACKED_KEYS = ['OPENAI_API_KEY', 'STRIPE_SECRET_KEY', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'JWT_SECRET', 'SESSION_SECRET'];
 
 let backendProcess = null;
 let backendReady = false;

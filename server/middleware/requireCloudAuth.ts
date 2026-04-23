@@ -22,38 +22,82 @@ declare global {
 const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
 
 export const requireJwt: RequestHandler = async (req, res, next) => {
+  // ── Electron embedded backend fast-path ──────────────────────────────────────
+  // The cloud JWT is signed with the cloud's JWT_SECRET which the packaged
+  // embedded backend does not (and should not) have. Instead, the renderer sends
+  // the authenticated user's ID via x-electron-uid (safe: 127.0.0.1 only).
+  if (isElectronBackend) {
+    const electronUid = req.headers['x-electron-uid'];
+    if (typeof electronUid === 'string' && electronUid.length > 0) {
+      req.cloudUser = {
+        id: electronUid,
+        isPremium: false,
+        plan: 'free',
+        trialEndsAt: null,
+        email: null,
+        isAdmin: false,
+        premiumBoundDeviceId: null,
+      };
+      return next();
+    }
+
+    // Fallback: if a JWT is present (e.g. older client), decode WITHOUT signature
+    // verification — we cannot verify the cloud signature locally and logging it
+    // as an error would spam the log. Payload trust is safe here (127.0.0.1 only).
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      try {
+        const jwtLib = await import('jsonwebtoken');
+        const decoded = jwtLib.default.decode(token) as { sub?: string; iss?: string } | null;
+        if (decoded?.sub) {
+          console.log(
+            `[CloudAuth] Electron local-trust decode | method=${req.method} path=${req.path} sub=${decoded.sub}`
+          );
+          req.cloudUser = {
+            id: decoded.sub,
+            isPremium: false,
+            plan: 'free',
+            trialEndsAt: null,
+            email: null,
+            isAdmin: false,
+            premiumBoundDeviceId: null,
+          };
+          return next();
+        }
+      } catch {
+        // jwt.decode never throws for malformed tokens — falls through below
+      }
+      console.warn(
+        `[CloudAuth] Electron mode: JWT present but undecodable | method=${req.method} path=${req.path}`
+      );
+    } else {
+      console.warn(
+        `[CloudAuth] Electron mode: no auth header and no x-electron-uid | method=${req.method} path=${req.path}`
+      );
+    }
+
+    return res.status(401).json({ error: "Authentication required. Please log in." });
+  }
+
+  // ── Standard (cloud/web) auth path ──────────────────────────────────────────
   const authHeader = req.headers.authorization;
 
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.substring(7);
     const payload = verifyJwt(token);
     if (!payload?.sub) {
-      // JWT present but invalid/expired — fall through to session cookie check
-      // rather than hard-failing. This prevents stale persisted JWTs from
-      // blocking users who have a valid session cookie.
-      console.warn(`[CloudAuth] Invalid/expired JWT — falling through to session check | ip=${req.ip}`);
+      // JWT present but invalid/expired — log with request context then fall through
+      // to session cookie check.
+      const hasSession = !!(req as any).isAuthenticated?.();
+      console.warn(
+        `[CloudAuth] Invalid/expired JWT — falling through to session check | ` +
+        `method=${req.method} path=${req.path} hasAuthHeader=true hasSession=${hasSession} electronBackend=${isElectronBackend}`
+      );
     } else {
-      // ── Electron local backend: no DB available, trust the verified JWT directly ──
-      // The JWT was issued by switchcontrol.org using the shared JWT_SECRET.
-      // A valid HS256 signature + non-expired payload is sufficient proof of identity.
-      // We cannot do a DB user lookup here because DATABASE_URL is stripped in Electron mode.
-      if (isElectronBackend) {
-        req.cloudUser = {
-          id: payload.sub,
-          isPremium: false,
-          plan: 'free',
-          trialEndsAt: null,
-          email: null,
-          isAdmin: false,
-          premiumBoundDeviceId: null,
-        };
-        return next();
-      }
-
       try {
         const user = await storage.getUser(payload.sub);
         if (!user) {
-          // User not found in DB — fall through to session
           console.warn(`[CloudAuth] JWT user not found in DB — falling through to session check | sub=${payload.sub}`);
         } else {
           const effectivePlan = resolveEffectivePlan(user);

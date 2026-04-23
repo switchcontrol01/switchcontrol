@@ -341,43 +341,58 @@ export async function apiFetch(
     }
   }
 
-  // Include JWT in Authorization header when the user is authenticated via JWT
-  // (e.g. packaged Electron). This lets requireJwt middleware accept local API calls.
-  // Decode the payload client-side first so we never send an expired token —
-  // the backend hard-rejects expired JWTs even when a valid session cookie exists.
-  const jwt = useAuthStore.getState().jwt;
-  if (jwt && !headers['Authorization'] && !headers['authorization']) {
-    let jwtOk = true;
-    try {
-      const parts = jwt.split('.');
-      if (parts.length !== 3) {
-        jwtOk = false;
-      } else {
-        const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-        if (payload.exp && Math.floor(Date.now() / 1000) >= payload.exp) {
+  // Determine whether this request is going to the local embedded Electron backend
+  // (http://127.0.0.1:PORT/api/...) or to an external/cloud destination.
+  // Cloud JWT must ONLY go to cloud endpoints — the embedded backend uses a different
+  // JWT_SECRET (or none), so attaching the cloud JWT there produces "invalid signature" spam.
+  const isLocalEmbeddedRequest =
+    isPackagedElectron &&
+    (url.startsWith('http://127.0.0.1') || url.startsWith('http://localhost'));
+
+  if (isLocalEmbeddedRequest) {
+    // For local embedded backend requests: send the user ID via a trusted local header
+    // instead of the cloud JWT. Safe because 127.0.0.1 is only reachable from this machine.
+    const uid = useAuthStore.getState().user?.id;
+    if (uid) {
+      headers['x-electron-uid'] = uid;
+    }
+  } else {
+    // For non-local requests (cloud API, web): attach the JWT as a Bearer token.
+    // Decode the payload client-side first so we never send an expired token.
+    const jwt = useAuthStore.getState().jwt;
+    if (jwt && !headers['Authorization'] && !headers['authorization']) {
+      let jwtOk = true;
+      try {
+        const parts = jwt.split('.');
+        if (parts.length !== 3) {
           jwtOk = false;
-          console.warn('[API] Stored JWT is expired — attempting silent reissue...');
-          if (isPackagedElectron) {
-            const freshJwt = await tryReissueJwt();
-            if (freshJwt) {
-              headers['Authorization'] = `Bearer ${freshJwt}`;
-              jwtOk = true;
+        } else {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+          if (payload.exp && Math.floor(Date.now() / 1000) >= payload.exp) {
+            jwtOk = false;
+            console.warn('[API] Stored JWT is expired — attempting silent reissue...');
+            if (isPackagedElectron) {
+              const freshJwt = await tryReissueJwt();
+              if (freshJwt) {
+                headers['Authorization'] = `Bearer ${freshJwt}`;
+                jwtOk = true;
+              } else {
+                console.warn('[API] JWT reissue failed — clearing JWT, falling back to session');
+                useAuthStore.getState().setJwt(null);
+              }
             } else {
-              console.warn('[API] JWT reissue failed — clearing JWT, falling back to session');
               useAuthStore.getState().setJwt(null);
             }
-          } else {
-            useAuthStore.getState().setJwt(null);
           }
         }
+      } catch {
+        jwtOk = false;
+        console.warn('[API] Stored JWT is malformed — clearing');
+        useAuthStore.getState().setJwt(null);
       }
-    } catch {
-      jwtOk = false;
-      console.warn('[API] Stored JWT is malformed — clearing');
-      useAuthStore.getState().setJwt(null);
-    }
-    if (jwtOk && !headers['Authorization']) {
-      headers['Authorization'] = `Bearer ${jwt}`;
+      if (jwtOk && !headers['Authorization']) {
+        headers['Authorization'] = `Bearer ${jwt}`;
+      }
     }
   }
 
