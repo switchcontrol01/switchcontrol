@@ -1016,9 +1016,6 @@ export default function NicTuningPage() {
                 <div>
                   <div className="flex items-center gap-2.5">
                     <h1 className="text-lg font-bold text-white tracking-tight">NIC Tuning</h1>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full border bg-emerald-500/10 text-emerald-400 border-emerald-500/25 uppercase tracking-wider">
-                      Free
-                    </span>
                   </div>
                   <p className="text-[12px] text-white/45 mt-0.5">
                     Advanced Network Adapter Control Center — Buffers · RSS · Interrupt Moderation · Power
