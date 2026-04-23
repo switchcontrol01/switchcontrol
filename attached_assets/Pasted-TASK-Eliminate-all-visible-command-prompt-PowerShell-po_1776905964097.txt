@@ -1,0 +1,130 @@
+TASK
+Eliminate all visible command prompt / PowerShell popups when applying tweaks, power plans, network tweaks, NIC changes, Focus Mode actions, cleaner actions, and any other system actions.
+
+This is release critical.
+
+PROBLEM
+Users still see a brief 0.2 second terminal / PowerShell popup before some actions apply.
+This means at least one execution path is still spawning a visible shell window.
+
+This is not acceptable in production.
+There must be zero visible shell windows anywhere in the app.
+
+GOAL
+Make every tweak/system action execute fully hidden.
+No cmd flash.
+No PowerShell flash.
+No temporary visible console window.
+No inconsistent behavior where some actions are hidden and others still flash.
+
+FILES TO AUDIT
+Audit every execution path in Electron, including but not limited to:
+- electron/tweak-executor.js
+- electron/network-tweak-executor.js
+- electron/nic-executor.js
+- electron/focus-helper.js
+- electron/power-plan-manager.js
+- electron/main.js
+- any shared helper that launches powershell, cmd, reg, netsh, powercfg, or Start-Process
+- any helper used by cleaner, debloat, startup, booster, network, or focus actions
+
+WHAT TO LOOK FOR
+Find every use of:
+- exec(
+- execFile(
+- spawn(
+- powershell
+- cmd.exe
+- cmd /c
+- Start-Process
+- -Verb RunAs
+- shell: true
+- windowsHide missing
+- hidden window style missing
+- old duplicate runner helpers
+
+REQUIRED FIXES
+1. Standardize all shell execution through one hidden helper
+Create or reuse a single shared hidden execution helper for all non-elevated PowerShell/cmd actions.
+
+Rules:
+- use execFile or spawn, not exec where possible
+- always set windowsHide: true
+- never use shell: true unless absolutely required
+- when launching PowerShell directly, include hidden/noninteractive args:
+  -NoProfile
+  -NonInteractive
+  -ExecutionPolicy Bypass
+  -WindowStyle Hidden
+
+2. Standardize all elevated execution through one hidden elevated runner
+Any action requiring admin must go through one shared elevated path.
+
+Rules:
+- write temporary .ps1 script to %TEMP%
+- launch with Start-Process powershell -Verb RunAs
+- pass:
+  -NoProfile
+  -NonInteractive
+  -ExecutionPolicy Bypass
+  -WindowStyle Hidden
+  -File <temp script>
+- parent launch must also use windowsHide: true
+- temp script must write structured result to temp json
+- cleanup temp files after completion
+- no inline visible shell usage
+- no duplicate older elevation code paths left behind
+
+3. Remove all legacy visible launch paths
+If any executor still directly does:
+- exec('powershell ...')
+- exec('cmd /c ...')
+- spawn('powershell', ...)
+without windowsHide
+or any non-hidden Start-Process flow
+replace it with the shared hidden runner.
+
+4. Audit every feature path
+Verify hidden execution for:
+- normal tweaks
+- network tweaks
+- NIC changes
+- power plan apply/reset
+- Focus Mode apply/revert
+- cleaner actions
+- debloat actions
+- startup actions
+- booster actions
+- any restore/revert pipeline
+
+5. Ensure no renderer-triggered action bypasses the hidden helper
+All IPC handlers that eventually launch system commands must route through the hidden shared helper or hidden elevated helper.
+No one-off special cases.
+
+6. Add explicit logging proving which helper path is used
+For each action, log:
+- action id
+- executor path used
+- elevated or not
+- hidden launch true
+But do NOT log every hot-path telemetry loop.
+This logging is only for action execution.
+
+7. Verify in packaged production build
+Do not stop at code review.
+Build the packaged app and manually test:
+- apply a normal tweak
+- apply a network tweak
+- apply a NIC property
+- apply a power plan
+- apply Focus Mode
+- run one cleaner action
+There must be zero visible console/powershell/cmd popup in all cases.
+
+RETURN
+- exact files changed
+- exact old visible launch paths removed
+- exact shared hidden helper introduced
+- exact elevated hidden runner introduced
+- confirmation that all tweak/apply/revert paths now use it
+- packaged build verification results showing zero visible popup across all tested actions

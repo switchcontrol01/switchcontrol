@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePageTiming, runWhenIdle } from "@/lib/page-timing";
+import { safeGetJwt } from "@/lib/auth-store";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { useAuthStore } from "@/lib/auth-store";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
@@ -654,7 +654,8 @@ function ScreenshotAnalysisCard() {
     if (!imageBase64 || !imageFile || imageAnalyzing) return;
     setImageAnalyzing(true); setImageError(null);
     try {
-      const jwt = useAuthStore.getState().jwt;
+      // safeGetJwt validates expiry + format; clears and returns null if bad
+      const jwt = safeGetJwt();
       const headers: Record<string,string> = { "Content-Type": "application/json" };
       if (jwt) headers["Authorization"] = `Bearer ${jwt}`;
       const res = await fetch(`${CLOUD_API_BASE}/security/image-analysis`, {

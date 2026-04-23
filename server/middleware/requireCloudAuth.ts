@@ -21,6 +21,34 @@ declare global {
 
 const isElectronBackend = process.env.ELECTRON_BACKEND === '1';
 
+// ── Token fingerprint + dedup helpers ────────────────────────────────────────
+// A "fingerprint" is the first 6 chars of the base64url header + first 6 chars
+// of the base64url payload. This uniquely identifies a token without exposing
+// any secret data (the signature is never logged).
+function tokenFingerprint(token: string): string {
+  try {
+    const parts = token.split('.');
+    return (parts[0] ?? '').substring(0, 6) + '.' + (parts[1] ?? '').substring(0, 6);
+  } catch {
+    return 'malformed';
+  }
+}
+
+// Per-fingerprint dedup map: fingerprint → last-warning timestamp (ms).
+// Suppresses repeated "invalid JWT" warnings for the same token within 60 s.
+const _invalidTokenLastWarn = new Map<string, number>();
+const INVALID_TOKEN_WARN_INTERVAL_MS = 60_000;
+
+function shouldWarnInvalidToken(fp: string): boolean {
+  const last = _invalidTokenLastWarn.get(fp) ?? 0;
+  const now = Date.now();
+  if (now - last >= INVALID_TOKEN_WARN_INTERVAL_MS) {
+    _invalidTokenLastWarn.set(fp, now);
+    return true;
+  }
+  return false;
+}
+
 export const requireJwt: RequestHandler = async (req, res, next) => {
   // ── Electron embedded backend fast-path ──────────────────────────────────────
   // The cloud JWT is signed with the cloud's JWT_SECRET which the packaged
@@ -85,20 +113,23 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
 
   if (authHeader?.startsWith("Bearer ")) {
     const token = authHeader.substring(7);
+    const fp = tokenFingerprint(token);
     const payload = verifyJwt(token);
     if (!payload?.sub) {
-      // JWT present but invalid/expired — log with request context then fall through
-      // to session cookie check.
+      // JWT present but invalid/expired — log once per unique token fingerprint
+      // (60 s dedup window) then fall through to session cookie check.
       const hasSession = !!(req as any).isAuthenticated?.();
-      console.warn(
-        `[CloudAuth] Invalid/expired JWT — falling through to session check | ` +
-        `method=${req.method} path=${req.path} hasAuthHeader=true hasSession=${hasSession} electronBackend=${isElectronBackend}`
-      );
+      if (shouldWarnInvalidToken(fp)) {
+        console.warn(
+          `[CloudAuth] Invalid/expired JWT — falling through to session check | ` +
+          `method=${req.method} path=${req.path} tokenId=${fp} hasSession=${hasSession} electronBackend=${isElectronBackend}`
+        );
+      }
     } else {
       try {
         const user = await storage.getUser(payload.sub);
         if (!user) {
-          console.warn(`[CloudAuth] JWT user not found in DB — falling through to session check | sub=${payload.sub}`);
+          console.warn(`[CloudAuth] JWT user not found in DB — falling through to session check | sub=${payload.sub} tokenId=${fp}`);
         } else {
           const effectivePlan = resolveEffectivePlan(user);
           req.cloudUser = {
@@ -134,6 +165,12 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
           isAdmin: user.isAdmin ?? false,
           premiumBoundDeviceId: user.premiumBoundDeviceId ?? null,
         };
+        // Only log when a JWT was also present (shows the fallback path taken)
+        if (authHeader?.startsWith('Bearer ')) {
+          console.log(
+            `[CloudAuth] Session-cookie fallback succeeded | method=${req.method} path=${req.path} sub=${user.id}`
+          );
+        }
         return next();
       }
     } catch {}

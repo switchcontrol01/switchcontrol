@@ -1,11 +1,19 @@
 import { queryClient } from "./queryClient";
-import { useAuthStore } from "./auth-store";
+import { useAuthStore, safeGetJwt } from "./auth-store";
 
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== 'undefined' && window.location.protocol === 'file:';
 
 if (typeof window !== 'undefined') {
   console.log(`[API] Init: electron=${isElectron}, packaged=${isPackagedElectron}, protocol=${window.location?.protocol}`);
+
+  // Boot-time JWT sanity check: clear any persisted JWT that is expired or
+  // malformed before the first API call goes out. Without this, apps that
+  // resume with a stale JWT from localStorage will fire one bad request per
+  // call before the in-request check kicks in. safeGetJwt() does the check
+  // AND clears the store (deduped warning), so just calling it is enough.
+  // Deferred so Zustand's persist middleware has time to rehydrate the store.
+  setTimeout(() => { safeGetJwt(); }, 0);
 }
 
 let _resolvedApiBase: string | null = null;
@@ -204,20 +212,59 @@ if (typeof window !== 'undefined') {
 // ── Global fetch interceptor for packaged Electron ───────────────────────────
 // In packaged mode the page is served via file://, so relative /api/ URLs
 // have no host and fail silently. We patch window.fetch once so ALL callers
-// (hooks, pages, etc.) automatically hit the correct local backend URL.
+// (hooks, pages, etc.) automatically:
+//   1. Get the URL rewritten to http://127.0.0.1:PORT/api/...
+//   2. Receive an x-electron-uid header if they don't already carry auth.
+//
+// Requirement (2) is critical: pages like FocusMode, NetworkTweaks, and
+// SystemCleaner use raw fetch("/api/...") calls that bypass apiFetch, so
+// they never get x-electron-uid injected by the normal path. Without it
+// the embedded backend's requireJwt middleware rejects them with a silent 401
+// — causing focus enable/disable, network-tweak state, and cleaner categories
+// to never work in packaged builds.
 if (typeof window !== 'undefined' && isPackagedElectron) {
   const _originalFetch = window.fetch.bind(window);
   (window as any).fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    let url = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as Request).url;
+    const isStringOrUrl = typeof input === 'string' || input instanceof URL;
+    let url = typeof input === 'string' ? input
+             : input instanceof URL ? input.href
+             : (input as Request).url;
+
     if (url.startsWith('/api/') || url === '/api') {
       try {
         const base = await resolveApiBase(); // resolves to http://127.0.0.1:PORT/api
-        const suffix = url.slice('/api'.length); // e.g. "/tweak-intelligence/system-state"
-        url = base + suffix;
-        if (typeof input === 'string') {
-          input = url;
-        } else if (input instanceof Request) {
-          input = new Request(url, input);
+        const suffix = url.slice('/api'.length); // e.g. "/focus/enable"
+        const absUrl = base + suffix;
+
+        // Rewrite URL in the input argument
+        if (typeof input === 'string' || input instanceof URL) {
+          input = absUrl;
+        } else {
+          input = new Request(absUrl, input as Request);
+        }
+
+        // ── Auto-inject x-electron-uid for embedded backend auth ─────────
+        // Only for string/URL inputs (covers all raw fetch("/api/...") callers
+        // in practice). Skip if an Authorization or x-electron-uid header is
+        // already present (e.g. apiFetch already handled it).
+        if (isStringOrUrl) {
+          const userId = useAuthStore.getState().user?.id;
+          if (userId) {
+            const rawHeaders = init?.headers;
+            const normalized: Record<string, string> = {};
+            if (rawHeaders instanceof Headers) {
+              rawHeaders.forEach((v, k) => { normalized[k.toLowerCase()] = v; });
+            } else if (Array.isArray(rawHeaders)) {
+              for (const [k, v] of rawHeaders as [string, string][]) normalized[k.toLowerCase()] = v;
+            } else if (rawHeaders) {
+              for (const [k, v] of Object.entries(rawHeaders as Record<string, string>)) {
+                normalized[k.toLowerCase()] = v;
+              }
+            }
+            if (!normalized['x-electron-uid'] && !normalized['authorization']) {
+              init = { ...(init ?? {}), headers: { ...normalized, 'x-electron-uid': userId } };
+            }
+          }
         }
       } catch {
         // fall through to original fetch — it will fail with a clear error
@@ -225,7 +272,7 @@ if (typeof window !== 'undefined' && isPackagedElectron) {
     }
     return _originalFetch(input, init);
   };
-  console.log('[API] Packaged Electron: global fetch interceptor installed for /api/ rewrites');
+  console.log('[API] Packaged Electron: global fetch interceptor installed (URL rewrite + x-electron-uid injection)');
 }
 
 let _cachedCsrfToken: string | null = null;

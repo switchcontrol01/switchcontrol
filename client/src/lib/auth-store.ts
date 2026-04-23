@@ -127,12 +127,70 @@ export function triggerFlowReset() {
   useAuthStore.setState(s => ({ flowResetTs: s.flowResetTs + 1 }));
 }
 
+// Module-level set: track short fingerprints of tokens we've already warned about
+// so the same bad token does not spam the console on every API call.
+const _badJwtFingerprints = new Set<string>();
+
+/** First 8 chars of base64url header + first 8 chars of payload — enough to
+ *  uniquely identify a token without exposing any secret data. */
+function _jwtFingerprint(jwt: string): string {
+  try {
+    const p = jwt.split('.');
+    return (p[0] ?? '').substring(0, 8) + '.' + (p[1] ?? '').substring(0, 8);
+  } catch {
+    return 'malformed';
+  }
+}
+
+/** @internal — keep the private accessor pointing to safeGetJwt so all
+ *  inline callers in this file get validation automatically. */
 function getStoredJwt(): string | null {
-  return useAuthStore.getState().jwt;
+  return safeGetJwt();
+}
+
+/**
+ * Returns the stored JWT only if it is well-formed and not expired.
+ * Clears and returns null if the token is malformed or expired.
+ * Each distinct bad token produces exactly one console warning (deduped by fingerprint).
+ */
+export function safeGetJwt(): string | null {
+  const jwt = useAuthStore.getState().jwt;
+  if (!jwt) return null;
+  try {
+    const parts = jwt.split('.');
+    if (parts.length !== 3) {
+      const fp = _jwtFingerprint(jwt);
+      if (!_badJwtFingerprints.has(fp)) {
+        _badJwtFingerprints.add(fp);
+        console.warn('[Auth] JWT has invalid format (not 3 parts) — cleared. tokenId:', fp);
+      }
+      useAuthStore.getState().setJwt(null);
+      return null;
+    }
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    if (payload.exp && Math.floor(Date.now() / 1000) >= payload.exp) {
+      const fp = _jwtFingerprint(jwt);
+      if (!_badJwtFingerprints.has(fp)) {
+        _badJwtFingerprints.add(fp);
+        console.warn('[Auth] JWT is expired — cleared. tokenId:', fp);
+      }
+      useAuthStore.getState().setJwt(null);
+      return null;
+    }
+    return jwt;
+  } catch {
+    const fp = _jwtFingerprint(jwt);
+    if (!_badJwtFingerprints.has(fp)) {
+      _badJwtFingerprints.add(fp);
+      console.warn('[Auth] JWT is malformed (parse error) — cleared. tokenId:', fp);
+    }
+    useAuthStore.getState().setJwt(null);
+    return null;
+  }
 }
 
 function buildAuthHeaders(): HeadersInit {
-  const jwt = getStoredJwt();
+  const jwt = safeGetJwt();
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (jwt) {
     headers['Authorization'] = `Bearer ${jwt}`;

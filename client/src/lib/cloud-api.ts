@@ -1,4 +1,4 @@
-import { useAuthStore } from "./auth-store";
+import { useAuthStore, safeGetJwt } from "./auth-store";
 import { ApiError } from "./api";
 import { getCloudUserFacingError } from "./network-errors";
 
@@ -21,7 +21,9 @@ export interface CloudRequestOptions {
 }
 
 async function buildHeaders(): Promise<Record<string, string>> {
-  const jwt = useAuthStore.getState().jwt;
+  // safeGetJwt validates format + expiry and clears the store on first bad token
+  // (deduped warning). Never sends an expired or malformed JWT to the cloud.
+  const jwt = safeGetJwt();
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -88,10 +90,10 @@ export async function cloudApiPost<T = any>(
 
   const attempt = async (attemptNum: number): Promise<T> => {
     const headers = await buildHeaders();
-    const jwt = useAuthStore.getState().jwt;
+    const hasAuth = !!headers["Authorization"];
 
     console.log(
-      `[CloudAPI] ${new Date().toISOString()} | POST ${path} | auth=${!!jwt} | base=${CLOUD_BASE}${attemptNum > 1 ? ` | retry=${attemptNum - 1}` : ""}`
+      `[CloudAPI] ${new Date().toISOString()} | POST ${path} | auth=${hasAuth} | base=${CLOUD_BASE}${attemptNum > 1 ? ` | retry=${attemptNum - 1}` : ""}`
     );
 
     let res: Response;
