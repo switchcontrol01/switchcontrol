@@ -1,0 +1,108 @@
+TASK
+
+Find and kill the PowerShell process multiplication bug that is causing extreme CPU usage and process explosion in the packaged app.
+
+PROBLEM
+
+A user reported:
+- CPU usage spikes extremely high
+- Task Manager shows PowerShell processes multiplying
+- total process count climbs massively
+- closing SwitchControl drops CPU back down immediately
+
+This proves SwitchControl is spawning PowerShell repeatedly in a loop or overlapping retry cycle.
+
+GOAL
+
+Make sure PowerShell is never spawned uncontrollably.
+PowerShell must only run:
+- on explicit user action
+- on carefully throttled one-shot checks
+- with strict single-flight locking
+- with zero overlap
+
+We must completely eliminate PowerShell multiplication.
+
+FILES TO AUDIT FIRST
+
+- electron/nic-executor.js
+- electron/network-tweak-executor.js
+- electron/tweak-executor.js
+- electron/focus-helper.js
+- electron/main.js
+- any telemetry or verification helpers that use exec / spawn / PowerShell
+
+SEARCH FOR
+
+- exec(
+- execFile(
+- spawn(
+- powershell
+- Start-Process powershell
+- setInterval(
+- setTimeout(
+- useEffect(
+- retry loops
+- verification loops
+
+REQUIRED FIXES
+
+1. SINGLE-FLIGHT LOCKS
+Every PowerShell-backed function must have overlap protection.
+If one invocation is already running, a second one must not start.
+
+Example pattern:
+let running = false;
+if (running) return;
+running = true;
+try {
+  ...
+} finally {
+  running = false;
+}
+
+2. NO POWERSHELL IN HOT POLLING PATHS
+Do not run PowerShell on fast intervals, render cycles, or repeating UI effects.
+If any live UI is polling via PowerShell, replace it with:
+- cached backend state
+- throttled snapshots
+- or manual refresh only
+
+3. THROTTLE ALL READS
+Any passive PowerShell read/check must have a minimum cooldown.
+NIC capability scans and tweak verification must not rerun repeatedly during rerenders, route changes, or accordion open/close churn.
+
+4. ADD EXECUTION LOGGING
+For every PowerShell launch, temporarily log:
+- file
+- function
+- reason
+- timestamp
+- whether another run was already active
+
+This is to identify the exact source of repeated spawning.
+
+5. FIX ROOT CAUSE, NOT JUST SYMPTOM
+Do not just slow intervals.
+Find the exact loop or repeated trigger that causes PowerShell multiplication and remove the architectural flaw.
+
+6. HARD RULE
+At idle, opening the app and sitting on a page must not create a stream of new PowerShell.exe processes.
+
+CHECKLIST
+
+- no multiplying PowerShell processes in Task Manager
+- no overlapping PowerShell runs
+- no PowerShell spawned from render loops
+- no uncontrolled retry logic
+- CPU stable at idle
+- process count stable at idle
+
+FINAL OUTPUT
+
+Return:
+- exact root cause
+- exact file and function
+- why it multiplied PowerShell
+- exact fix applied
+- what safeguards were added to prevent this ever happening again

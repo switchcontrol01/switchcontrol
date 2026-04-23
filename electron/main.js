@@ -165,7 +165,17 @@ let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, 
 // load pending" so the chart series is always structurally present from frame 1.
 let gpuExistsOnHardware = false;
 
+// Single-flight lock: prevents overlapping pollTelemetry runs.
+// setInterval fires every 1s but PowerShell can take 200ms-4s — without this
+// lock, a backlog of concurrent PowerShell.exe processes builds up in Task Manager.
+let _pollTelemetryRunning = false;
+
 async function pollTelemetry() {
+  if (_pollTelemetryRunning) {
+    verboseLog('[telemetry:poll] skipped — previous poll still in flight');
+    return;
+  }
+  _pollTelemetryRunning = true;
   try {
     const [load, mem, temps, fsData, netStats, rawDiskIO] = await Promise.all([
       si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
@@ -285,6 +295,8 @@ async function pollTelemetry() {
     liveTelemetryCache = { load, mem, temps, fsData: fsData || [], netStats: netStats || [], diskIO, timestamp: Date.now() };
   } catch (e) {
     console.error('[telemetry:poll] unexpected error:', e.message);
+  } finally {
+    _pollTelemetryRunning = false;
   }
 }
 
@@ -884,9 +896,19 @@ const GPU_PERF_COUNTER_MAX_FAILS = 5; // stop trying after 5 consecutive failure
 // Last per-engine breakdown — exposed for debug logging
 let lastGpuEngineBreakdown = {};
 
+// Single-flight lock: ensures only one PowerShell GPU counter process runs at a time.
+// Without this, concurrent pollTelemetry overlap could stack multiple powershell.exe
+// processes waiting on Get-Counter, causing runaway CPU and process multiplication.
+let _gpuPerfCounterRunning = false;
+
 async function getGpuPerfCounterLoad() {
   if (process.platform !== 'win32') return null;
   if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS) return null;
+  if (_gpuPerfCounterRunning) {
+    verboseLog('[GPU:perf] skipped — previous PowerShell counter still running');
+    return gpuPollCache.load ?? null;
+  }
+  _gpuPerfCounterRunning = true;
 
   // PowerShell outputs JSON: { "max": <number>, "engines": { <type>: <sum>, ... } }
   const ps = `
@@ -907,34 +929,38 @@ try {
   '{"max":-1,"engines":{}}'
 }`.trim();
 
-  return new Promise((resolve) => {
-    execFile('powershell', [
-      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
-      '-ExecutionPolicy', 'Bypass', '-Command', ps,
-    ], { windowsHide: true, timeout: 4000 }, (err, stdout, stderr) => {
-      if (err) {
-        gpuPerfCounterFailCount++;
-        console.warn(`[GPU:perf] PowerShell error (fail ${gpuPerfCounterFailCount}):`, err.message);
-        return resolve(null);
-      }
-      try {
-        const parsed = JSON.parse(stdout.trim());
-        const max = parsed.max;
-        if (!Number.isFinite(max) || max < 0) {
+  try {
+    return await new Promise((resolve) => {
+      execFile('powershell', [
+        '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+        '-ExecutionPolicy', 'Bypass', '-Command', ps,
+      ], { windowsHide: true, timeout: 4000 }, (err, stdout, stderr) => {
+        if (err) {
           gpuPerfCounterFailCount++;
-          console.warn(`[GPU:perf] unexpected max value (fail ${gpuPerfCounterFailCount}): ${max}`);
+          console.warn(`[GPU:perf] PowerShell error (fail ${gpuPerfCounterFailCount}):`, err.message);
           return resolve(null);
         }
-        gpuPerfCounterFailCount = 0; // reset on success
-        lastGpuEngineBreakdown = parsed.engines || {};
-        resolve(parseFloat(max.toFixed(1)));
-      } catch (parseErr) {
-        gpuPerfCounterFailCount++;
-        console.warn(`[GPU:perf] JSON parse error (fail ${gpuPerfCounterFailCount}): "${stdout.trim()}"`);
-        resolve(null);
-      }
+        try {
+          const parsed = JSON.parse(stdout.trim());
+          const max = parsed.max;
+          if (!Number.isFinite(max) || max < 0) {
+            gpuPerfCounterFailCount++;
+            console.warn(`[GPU:perf] unexpected max value (fail ${gpuPerfCounterFailCount}): ${max}`);
+            return resolve(null);
+          }
+          gpuPerfCounterFailCount = 0; // reset on success
+          lastGpuEngineBreakdown = parsed.engines || {};
+          resolve(parseFloat(max.toFixed(1)));
+        } catch (parseErr) {
+          gpuPerfCounterFailCount++;
+          console.warn(`[GPU:perf] JSON parse error (fail ${gpuPerfCounterFailCount}): "${stdout.trim()}"`);
+          resolve(null);
+        }
+      });
     });
-  });
+  } finally {
+    _gpuPerfCounterRunning = false;
+  }
 }
 
 // ─── GPU static info (name, VRAM) — cached, refreshed every 60s ──────────────

@@ -264,8 +264,17 @@ let enabledTriggers = {};
 let triggerWindow = null; // renderer window for sending events
 let _isSeedPoll = false;  // true for the very first poll — establishes baseline without firing
 
+// Single-flight lock: prevents overlapping pollTriggers runs.
+// Each enabled trigger spawns a PowerShell process. Without this lock,
+// if a poll takes longer than 5s, the next interval fires and stacks more processes.
+let _pollTriggersRunning = false;
+
 async function pollTriggers() {
   if (!triggerCallback) return;
+  if (_pollTriggersRunning) return;
+
+  _pollTriggersRunning = true;
+  try {
 
   // Consume the seed flag: first poll only records state, never fires callbacks.
   const isSeed = _isSeedPoll;
@@ -354,6 +363,10 @@ public class WinUtil {
     } else if (!hasHeadset) {
       lastTriggerState.headsetConnected = false;
     }
+  }
+
+  } finally {
+    _pollTriggersRunning = false;
   }
 }
 
