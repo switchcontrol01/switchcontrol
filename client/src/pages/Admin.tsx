@@ -993,9 +993,11 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             </div>
 
             {/* Admin Logs */}
-            {localLogs.length > 0 && (
-              <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
-                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Recent Actions</p>
+            <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Recent Admin Actions</p>
+              {localLogs.length === 0 ? (
+                <p className="text-xs text-white/25 italic">No admin actions recorded for this user.</p>
+              ) : (
                 <div className="space-y-2.5">
                   {localLogs.map((log) => (
                     <div key={log.id} className="flex items-start gap-2.5 text-xs">
@@ -1008,8 +1010,8 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
