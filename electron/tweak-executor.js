@@ -635,9 +635,9 @@ const ADMIN_TWEAKS = {
     name: 'Disable Delivery Optimization',
     requiresAdmin:  true,
     requiresReboot: false,
-    apply:  `$s = Get-Service -Name DoSvc -EA SilentlyContinue; if ($s) { Stop-Service DoSvc -Force -EA SilentlyContinue; Set-Service DoSvc -StartupType Disabled }; New-Item -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Name "DODownloadMode" -Value 0 -Type DWord -Force`,
-    revert: `$s = Get-Service -Name DoSvc -EA SilentlyContinue; if ($s) { Set-Service DoSvc -StartupType Automatic; Start-Service DoSvc -EA SilentlyContinue }; Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Name "DODownloadMode" -EA SilentlyContinue`,
-    check:  `$s = Get-Service -Name DoSvc -EA SilentlyContinue; $s -and ($s.StartType -eq "Disabled")`,
+    apply:  `New-Item -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Force -EA SilentlyContinue | Out-Null; Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Name "DODownloadMode" -Value 0 -Type DWord -Force; $s = Get-Service -Name DoSvc -EA SilentlyContinue; if ($s) { Stop-Service DoSvc -Force -EA SilentlyContinue }`,
+    revert: `Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Name "DODownloadMode" -EA SilentlyContinue; $s = Get-Service -Name DoSvc -EA SilentlyContinue; if ($s) { Start-Service DoSvc -EA SilentlyContinue }`,
+    check:  `($p = Get-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows\\DeliveryOptimization" -Name "DODownloadMode" -EA SilentlyContinue) -ne $null -and $p.DODownloadMode -eq 0`,
   },
   'disable-wer': {
     name: 'Disable Windows Error Reporting',
