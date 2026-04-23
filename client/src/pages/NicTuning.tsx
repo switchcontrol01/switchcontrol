@@ -11,7 +11,9 @@ import {
   Network, Loader2, CheckCircle2, XCircle, AlertTriangle,
   RefreshCw, RotateCcw, Info, Ban, Wifi, Zap, Activity,
   Server, Shield, ChevronRight, ChevronDown,
+  ArrowDownToLine, ArrowUpFromLine, Radio,
 } from "lucide-react";
+import { useLiveTelemetry, formatKbps } from "@/hooks/useLiveTelemetry";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Button } from "@/components/ui/button";
@@ -560,6 +562,213 @@ function PropertyGroupSection({
   );
 }
 
+// ── Live Network Throughput Card ──────────────────────────────────────────
+
+function buildSparkPath(
+  data: number[],
+  w: number,
+  h: number,
+  padding = 4,
+): string {
+  if (data.length < 2) return "";
+  const max = Math.max(...data, 1);
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - padding - ((v / max) * (h - padding * 2));
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  return `M ${pts.join(" L ")}`;
+}
+
+function buildAreaPath(
+  data: number[],
+  w: number,
+  h: number,
+  padding = 4,
+): string {
+  if (data.length < 2) return "";
+  const line = buildSparkPath(data, w, h, padding);
+  return `${line} L ${w},${h} L 0,${h} Z`;
+}
+
+function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
+  const { telemetry, history, connected } = useLiveTelemetry();
+  const peakRxRef = useRef(0);
+  const peakTxRef = useRef(0);
+  const [peakRx, setPeakRx] = useState(0);
+  const [peakTx, setPeakTx] = useState(0);
+
+  const rxSec   = telemetry?.network?.rx_sec  ?? 0;
+  const txSec   = telemetry?.network?.tx_sec  ?? 0;
+  const rxKbps  = rxSec / 1024;
+  const txKbps  = txSec / 1024;
+  const rxHist  = history?.rxKbps ?? [];
+  const txHist  = history?.txKbps ?? [];
+
+  useEffect(() => {
+    if (rxKbps > peakRxRef.current) { peakRxRef.current = rxKbps; setPeakRx(rxKbps); }
+    if (txKbps > peakTxRef.current) { peakTxRef.current = txKbps; setPeakTx(txKbps); }
+  }, [rxKbps, txKbps]);
+
+  const W = 500, H = 72;
+  const rxLinePath  = buildSparkPath(rxHist, W, H);
+  const rxAreaPath  = buildAreaPath(rxHist, W, H);
+  const txLinePath  = buildSparkPath(txHist, W, H);
+  const txAreaPath  = buildAreaPath(txHist, W, H);
+
+  const rxMbps  = rxSec / (1024 * 1024);
+  const txMbps  = txSec / (1024 * 1024);
+  const fmtRx   = rxMbps >= 1 ? `${rxMbps.toFixed(2)} MB/s` : formatKbps(rxKbps);
+  const fmtTx   = txMbps >= 1 ? `${txMbps.toFixed(2)} MB/s` : formatKbps(txKbps);
+  const fmtPkRx = peakRx >= 1024 ? `${(peakRx / 1024).toFixed(2)} MB/s` : formatKbps(peakRx);
+  const fmtPkTx = peakTx >= 1024 ? `${(peakTx / 1024).toFixed(2)} MB/s` : formatKbps(peakTx);
+
+  const hasActivity = rxSec > 0 || txSec > 0;
+
+  return (
+    <GlassCard blur="sm" hoverEffect={false} className="overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4 pb-3">
+        <div className="flex items-center gap-2">
+          <div className="size-7 rounded-lg bg-cyan-500/15 flex items-center justify-center">
+            <Activity className="size-3.5 text-cyan-400" />
+          </div>
+          <span className="text-xs font-semibold text-white/80">Live Network Throughput</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "size-1.5 rounded-full",
+              connected
+                ? hasActivity
+                  ? "bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.8)] animate-pulse"
+                  : "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.7)]"
+                : "bg-white/20",
+            )}
+          />
+          <span className={cn("text-[10px] font-medium", connected ? "text-white/40" : "text-white/20")}>
+            {connected ? (hasActivity ? "Active" : "Idle") : "Disconnected"}
+          </span>
+          <Radio className="size-3 text-white/20" />
+          <span className="text-[10px] text-white/25 max-w-[160px] truncate">{adapterName}</span>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="grid grid-cols-2 gap-px bg-white/[0.04] mx-4 rounded-xl overflow-hidden border border-white/[0.06]">
+        {/* Download */}
+        <div className="bg-[rgba(10,12,18,0.7)] p-3.5 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <ArrowDownToLine className="size-3 text-cyan-400" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35">Download</span>
+          </div>
+          <motion.p
+            key={fmtRx}
+            className="text-2xl font-bold tabular-nums text-cyan-300 leading-none tracking-tight"
+            initial={{ opacity: 0.6, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            {fmtRx}
+          </motion.p>
+          <p className="text-[10px] text-white/25">
+            Peak: <span className="text-white/40">{fmtPkRx}</span>
+          </p>
+        </div>
+        {/* Upload */}
+        <div className="bg-[rgba(10,12,18,0.7)] p-3.5 space-y-1">
+          <div className="flex items-center gap-1.5">
+            <ArrowUpFromLine className="size-3 text-violet-400" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35">Upload</span>
+          </div>
+          <motion.p
+            key={fmtTx}
+            className="text-2xl font-bold tabular-nums text-violet-300 leading-none tracking-tight"
+            initial={{ opacity: 0.6, y: 2 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18 }}
+          >
+            {fmtTx}
+          </motion.p>
+          <p className="text-[10px] text-white/25">
+            Peak: <span className="text-white/40">{fmtPkTx}</span>
+          </p>
+        </div>
+      </div>
+
+      {/* Sparkline chart */}
+      <div className="relative mx-4 mt-3 mb-4 rounded-xl overflow-hidden border border-white/[0.05]"
+        style={{ background: "rgba(8,10,16,0.6)", height: H }}>
+        <svg
+          viewBox={`0 0 ${W} ${H}`}
+          preserveAspectRatio="none"
+          className="absolute inset-0 w-full h-full"
+        >
+          <defs>
+            <linearGradient id="rxGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(34,211,238,0.35)" />
+              <stop offset="100%" stopColor="rgba(34,211,238,0)" />
+            </linearGradient>
+            <linearGradient id="txGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="rgba(139,92,246,0.30)" />
+              <stop offset="100%" stopColor="rgba(139,92,246,0)" />
+            </linearGradient>
+          </defs>
+          {/* RX area fill */}
+          {rxAreaPath && (
+            <path d={rxAreaPath} fill="url(#rxGrad)" />
+          )}
+          {/* TX area fill */}
+          {txAreaPath && (
+            <path d={txAreaPath} fill="url(#txGrad)" />
+          )}
+          {/* TX line */}
+          {txLinePath && (
+            <path
+              d={txLinePath}
+              fill="none"
+              stroke="rgba(139,92,246,0.7)"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          )}
+          {/* RX line on top */}
+          {rxLinePath && (
+            <path
+              d={rxLinePath}
+              fill="none"
+              stroke="rgba(34,211,238,0.9)"
+              strokeWidth="1.5"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+              style={{ filter: "drop-shadow(0 0 3px rgba(34,211,238,0.6))" }}
+            />
+          )}
+          {/* Idle state label */}
+          {!hasActivity && (
+            <text x={W / 2} y={H / 2 + 4} textAnchor="middle"
+              fill="rgba(255,255,255,0.12)" fontSize="10" fontFamily="monospace">
+              No traffic
+            </text>
+          )}
+        </svg>
+        {/* Legend */}
+        <div className="absolute bottom-2 right-3 flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <span className="w-4 h-px bg-cyan-400/80 inline-block" />
+            <span className="text-[9px] text-white/30">RX</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-4 h-px bg-violet-400/70 inline-block" />
+            <span className="text-[9px] text-white/30">TX</span>
+          </div>
+        </div>
+      </div>
+    </GlassCard>
+  );
+}
+
 // ── Adapter overview + diagnostics ───────────────────────────────────────────
 
 function AdapterDiagnostics({
@@ -973,6 +1182,9 @@ export default function NicTuningPage() {
               capabilities={capabilities}
               capLoading={capLoading}
             />
+
+            {/* Live throughput graph */}
+            <NetworkThroughputCard adapterName={activeAdapter.name} />
 
             {/* Property groups — only render once capabilities are loaded */}
             {capabilities && Object.keys(propertyMeta).length > 0 && (
