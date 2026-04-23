@@ -64,6 +64,12 @@ export interface PowerPlanRevertResult {
   appliedPlanName?: string;
   reason?: string;
   forcedBalanced?: boolean;
+  /** Plans deleted from Windows Power Options during cleanup. */
+  plansDeleted?: number;
+  /** True if post-cleanup verification confirmed no SC plans remain + active=Balanced. */
+  verifiedClean?: boolean;
+  /** The active scheme name as read back from Windows after full revert+cleanup. */
+  verifiedActiveName?: string;
 }
 
 export interface PremiumRevertReport {
@@ -298,15 +304,33 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   const restoreResult = await api.activateByGuid(targetGuid);
 
   if (restoreResult?.success) {
-    // Verify
+    // ── Cleanup: delete all SC plans from Windows ──────────────────────────────
+    let plansDeleted = 0;
+    let verifiedClean = false;
+    let verifiedActiveName: string | undefined;
+    try {
+      const premiumAPI = getPremiumAPI();
+      if (premiumAPI?.cleanupScPlans) {
+        const cleanup = await premiumAPI.cleanupScPlans();
+        plansDeleted = cleanup?.deleted?.length ?? 0;
+        verifiedClean = cleanup?.verified ?? false;
+        console.log(`[Revert:PLAN] SC plan cleanup — deleted=${plansDeleted} verified=${verifiedClean}`);
+      }
+    } catch (e) {
+      console.warn('[Revert:PLAN] SC plan cleanup threw (non-fatal):', e);
+    }
+
+    // ── Verify: read back active plan and confirm it matches target ────────────
     try {
       const verify = await api.getState();
       const verifiedGuid = (verify?.activeScheme?.guid ?? '').toLowerCase();
+      verifiedActiveName = verify?.activeScheme?.name;
       if (verifiedGuid !== targetGuid) {
         console.error(`[Revert:PLAN] Verification failed — expected ${targetGuid} got ${verifiedGuid}`);
         if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
         return { status: 'failed', reason: 'Power plan set but verification failed', targetGuid };
       }
+      console.log(`[Revert:PLAN] Verification passed — active: "${verifiedActiveName}" (${verifiedGuid})`);
     } catch { /* non-fatal */ }
 
     if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
@@ -316,6 +340,9 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
       forcedBalanced,
       previousPlanName: rec?.previousPlanName,
       appliedPlanName:  currentName,
+      plansDeleted,
+      verifiedClean,
+      verifiedActiveName,
     };
   }
 
@@ -324,6 +351,20 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     console.warn(`[Revert:PLAN] Primary restore to ${targetGuid} failed — trying forced Balanced`);
     const fallback = await api.activateByGuid(BALANCED_GUID);
     if (fallback?.success) {
+      let fbDeleted = 0;
+      let fbVerified = false;
+      let fbActiveName: string | undefined;
+      try {
+        const premiumAPI = getPremiumAPI();
+        if (premiumAPI?.cleanupScPlans) {
+          const cleanup = await premiumAPI.cleanupScPlans();
+          fbDeleted = cleanup?.deleted?.length ?? 0;
+          fbVerified = cleanup?.verified ?? false;
+        }
+        const verify = await api.getState();
+        fbActiveName = verify?.activeScheme?.name;
+      } catch { /* non-fatal */ }
+
       if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
       return {
         status: 'forced_balanced',
@@ -331,6 +372,9 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
         forcedBalanced: true,
         appliedPlanName: currentName,
         reason: 'Previous plan restore failed — used Windows Balanced fallback',
+        plansDeleted: fbDeleted,
+        verifiedClean: fbVerified,
+        verifiedActiveName: fbActiveName,
       };
     }
   }

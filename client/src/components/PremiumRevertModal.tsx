@@ -180,20 +180,32 @@ function StatusRow({ result, index }: { result: RevertItemResult; index: number 
 function PowerPlanRow({ result, delay = 0 }: { result: PowerPlanRevertResult; delay?: number }) {
   if (result.status === 'not_applicable') return null;
 
+  const activeName = result.verifiedActiveName;
+  const plansDeleted = result.plansDeleted ?? 0;
+  const verifiedClean = result.verifiedClean ?? false;
+
   const configs = {
     reverted: {
       icon: CheckCircle2,
       color: "text-emerald-400",
       glow: "rgba(52,211,153,0.15)",
       label: "Power plan restored",
-      detail: result.previousPlanName ? `Restored to "${result.previousPlanName}"` : "Restored to previous plan",
+      detail: activeName
+        ? `Active: "${activeName}"`
+        : result.previousPlanName
+          ? `Restored to "${result.previousPlanName}"`
+          : "Restored to previous plan",
     },
     forced_balanced: {
       icon: AlertCircle,
       color: "text-amber-400",
       glow: "rgba(251,191,36,0.15)",
-      label: "Forced to Windows Balanced",
-      detail: result.reason ?? (result.appliedPlanName ? `Removed "${result.appliedPlanName}"` : "Premium plan removed"),
+      label: "Reverted to Windows Balanced",
+      detail: activeName
+        ? `Active: "${activeName}"`
+        : result.appliedPlanName
+          ? `Removed "${result.appliedPlanName}"`
+          : "Premium plan removed",
     },
     skipped_not_sc: {
       icon: Shield,
@@ -228,6 +240,21 @@ function PowerPlanRow({ result, delay = 0 }: { result: PowerPlanRevertResult; de
       <div className="flex-1 min-w-0">
         <div className={cn("text-[11px] font-medium truncate", cfg.color)}>{cfg.label}</div>
         <div className="text-[10px] text-white/40 truncate mt-0.5">{cfg.detail}</div>
+        {(plansDeleted > 0 || verifiedClean) && (
+          <div className="flex items-center gap-2 mt-1">
+            {plansDeleted > 0 && (
+              <span className="text-[9px] text-white/30">
+                {plansDeleted} plan{plansDeleted !== 1 ? 's' : ''} removed from Power Options
+              </span>
+            )}
+            {verifiedClean && (
+              <span className="text-[9px] text-emerald-400/60 flex items-center gap-0.5">
+                <CheckCircle2 className="size-2.5" />
+                verified clean
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );

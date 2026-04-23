@@ -2647,9 +2647,19 @@ ipcMain.handle('premium:powerPlanSanityCheck', async () => {
 ipcMain.handle('premium:cleanupScPlans', async () => {
   console.log('[IPC] premium:cleanupScPlans — deleting orphaned SC power plans');
   try {
-    const result = await powerPlanManager.deleteAllScPlans();
-    console.log(`[IPC] premium:cleanupScPlans done — deleted=${result.deleted.length} skipped=${result.skipped.length} errors=${result.errors.length}`);
-    return { success: true, ...result };
+    const cleanup = await powerPlanManager.deleteAllScPlans();
+    const verification = await powerPlanManager.verifyRevertClean();
+    console.log(
+      `[IPC] premium:cleanupScPlans done — deleted=${cleanup.deleted.length}` +
+      ` skipped=${cleanup.skipped.length} errors=${cleanup.errors.length}` +
+      ` clean=${verification.clean}`
+    );
+    return {
+      success: true,
+      ...cleanup,
+      verified: verification.clean,
+      verification,
+    };
   } catch (e) {
     console.error('[IPC] premium:cleanupScPlans error:', e.message);
     return { success: false, error: e.message };

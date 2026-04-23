@@ -1,0 +1,72 @@
+TASK
+Make premium/trial power-plan expiry cleanup strict and abuse-proof.
+
+PROBLEM
+
+When a free trial ends, SwitchControl power plans must not remain on the system.
+The app must:
+- revert the active plan to the real built-in Windows Balanced plan
+- remove all SwitchControl-created power plans
+- prevent users from keeping premium power plans after expiry
+
+Current behavior is not clean enough.
+Windows Power Options still shows leftover SwitchControl plans and duplicates.
+
+GOAL
+
+When a free trial or premium access ends:
+- active plan becomes Windows Balanced
+- all app-owned SwitchControl power plans are deleted
+- no duplicate SwitchControl plans remain in Control Panel
+- users cannot continue using premium plans after expiry
+
+REQUIRED IMPLEMENTATION
+
+1. REVERT TO REAL WINDOWS BALANCED
+On expiry revert to built-in Windows Balanced GUID only:
+381b4222-f694-41f0-9685-ff5bb260df2e
+
+Do NOT revert to any SwitchControl custom balanced plan.
+
+2. DELETE APP-OWNED SWITCHCONTROL PLANS
+After revert succeeds:
+- enumerate all plans
+- identify app-owned SwitchControl plans
+- delete them from the system
+- verify they are gone
+
+3. DO NOT DELETE USER PLANS
+Only delete plans confirmed as app-owned by:
+- ownership metadata
+- stored GUID registry
+- explicit app-created plan records
+- strict app-owned naming fallback only if needed
+
+Do not delete arbitrary user-created custom plans.
+
+4. FIX DUPLICATE PLAN CREATION
+Audit apply/create flow.
+Do not create a fresh duplicate SwitchControl plan every time profile apply runs.
+Reuse existing app-owned plans when already present.
+If duplicates already exist from old versions, clean them during expiry and sanity check.
+
+5. VERIFY POST-CLEANUP
+After cleanup:
+- confirm active GUID is Windows Balanced
+- confirm no SwitchControl custom plans remain
+- refresh frontend power-plan state
+- Power Options in Windows must no longer show app premium plans
+
+6. ADD SANITY CHECK
+Add a startup or entitlement-transition sanity check:
+if user is free/trial expired and any SwitchControl premium plan still exists:
+- switch to Windows Balanced
+- delete leftover app-owned plans
+- refresh UI
+
+SUCCESS CRITERIA
+
+- expired trial always ends on real Windows Balanced
+- no SwitchControl premium/custom plans remain after expiry
+- no duplicate SwitchControl plans remain in Power Options
+- users cannot keep premium power plans after trial ends

@@ -729,46 +729,100 @@ const SC_PLAN_NAME_PREFIX = 'SwitchControl -';
 
 /**
  * Delete all SwitchControl-managed power plans from Windows except the one
- * currently active (never delete an active plan — Windows rejects the call).
+ * currently active (Windows rejects deletion of the active plan).
  *
- * Called after revert to prevent the accumulation of orphaned SC plans in
- * Power Options. Also safe to call standalone as a manual cleanup.
+ * Detection priority — most-trusted first:
+ *   1. GUIDs stored in power-plans.json schemeGuids (definitive app registry)
+ *   2. GUIDs in ownership-store where itemType=power_plan + appliedByApp=true
+ *   3. Name-prefix fallback: plans whose name starts with SC_PLAN_NAME_PREFIX
+ *      (catches orphans from reinstalls where both registries were cleared)
+ *      — only schemes NOT matching any built-in GUID are eligible here
  *
- * @returns {{ deleted: string[], skipped: string[], errors: string[] }}
+ * User-created plans are safe: only GUIDs confirmed via registry/ownership,
+ * or schemes explicitly named with the SC prefix, are removed.
+ *
+ * @returns {{ deleted: string[], skipped: string[], errors: string[], verified: boolean }}
  */
 async function deleteAllScPlans() {
   const deleted  = [];
   const skipped  = [];
   const errors   = [];
 
+  // ── 1. Read currently active plan ────────────────────────────────────────────
   let activeGuid = null;
   try {
     const cur = await getActivePowerScheme();
     activeGuid = cur.scheme?.guid?.toLowerCase() ?? null;
-  } catch { /* non-fatal — just won't skip active */ }
+  } catch { /* non-fatal */ }
 
+  // ── 2. List all Windows power schemes ────────────────────────────────────────
   let schemes = [];
   try {
     const listResult = await listPowerSchemes();
     schemes = listResult.schemes || [];
   } catch (e) {
-    return { deleted, skipped, errors: [`listPowerSchemes failed: ${e.message}`] };
+    return { deleted, skipped, errors: [`listPowerSchemes failed: ${e.message}`], verified: false };
   }
 
-  const scSchemes = schemes.filter(s => s.name && s.name.startsWith(SC_PLAN_NAME_PREFIX));
+  // ── 3. Build confirmed-SC-owned GUID set ─────────────────────────────────────
+  const confirmedGuids = new Set();
 
-  if (scSchemes.length === 0) {
-    console.log('[PowerPlan] deleteAllScPlans: no SC plans found on system');
-    return { deleted, skipped, errors };
+  // Priority 1: power-plans.json schemeGuids
+  try {
+    const storedGuids = Object.values(loadState().schemeGuids || {});
+    storedGuids.forEach(g => g && confirmedGuids.add(String(g).toLowerCase()));
+  } catch { /* non-critical */ }
+
+  // Priority 2: ownership-store records with appliedByApp=true + power_plan type
+  try {
+    const ownershipStore = require('./ownership-store');
+    const allRecords = ownershipStore.getAllRecords();
+    Object.values(allRecords).forEach(r => {
+      if (r.itemType === 'power_plan' && r.appliedByApp === true && r.appliedPlanGuid) {
+        confirmedGuids.add(String(r.appliedPlanGuid).toLowerCase());
+      }
+    });
+  } catch { /* non-critical */ }
+
+  // ── 4. Identify which Windows schemes to delete ───────────────────────────────
+  const builtinGuidSet = new Set(Object.values(BUILTIN_GUIDS).map(g => String(g).toLowerCase()));
+
+  const toDelete = schemes.filter(s => {
+    const guid = s.guid?.toLowerCase();
+    if (!guid) return false;
+
+    // Registry match (Priority 1 + 2): definitive app-owned
+    if (confirmedGuids.has(guid)) return true;
+
+    // Name-prefix fallback (Priority 3): orphans from cleared registries
+    // Only if name matches AND it's not a known Windows built-in GUID
+    if (s.name && s.name.startsWith(SC_PLAN_NAME_PREFIX) && !builtinGuidSet.has(guid)) {
+      console.log(`[PowerPlan] deleteAllScPlans: name-fallback matched orphan "${s.name}" (${guid})`);
+      return true;
+    }
+
+    return false;
+  });
+
+  if (toDelete.length === 0) {
+    console.log('[PowerPlan] deleteAllScPlans: no SC plans found to delete');
+    // Verify: confirm no stale name-prefix plans remain
+    const orphansRemaining = schemes.filter(
+      s => s.name?.startsWith(SC_PLAN_NAME_PREFIX) && !builtinGuidSet.has(s.guid?.toLowerCase())
+    );
+    return { deleted, skipped, errors, verified: orphansRemaining.length === 0 };
   }
 
   const isAdmin = await checkIsAdmin();
 
-  for (const scheme of scSchemes) {
+  // ── 5. Delete each candidate ─────────────────────────────────────────────────
+  for (const scheme of toDelete) {
     const guid = scheme.guid.toLowerCase();
     if (guid === activeGuid) {
-      // Windows will refuse to delete the active plan — skip it.
-      console.log(`[PowerPlan] deleteAllScPlans: skipping active plan "${scheme.name}" (${guid})`);
+      // Windows refuses to delete the active plan — active plan must be
+      // switched first. This should not happen in normal revert flow since
+      // revert activates Windows Balanced before calling deleteAllScPlans.
+      console.log(`[PowerPlan] deleteAllScPlans: skipping active plan "${scheme.name}" (${guid}) — revert must run first`);
       skipped.push(guid);
       continue;
     }
@@ -788,7 +842,7 @@ async function deleteAllScPlans() {
     }
   }
 
-  // Clear stale GUIDs from power-plans.json that no longer exist on Windows.
+  // ── 6. Clear deleted GUIDs from power-plans.json ─────────────────────────────
   try {
     const state = loadState();
     if (state.schemeGuids) {
@@ -802,8 +856,73 @@ async function deleteAllScPlans() {
     }
   } catch { /* non-critical */ }
 
-  console.log(`[PowerPlan] deleteAllScPlans: deleted=${deleted.length} skipped=${skipped.length} errors=${errors.length}`);
-  return { deleted, skipped, errors };
+  // ── 7. Post-deletion verification ────────────────────────────────────────────
+  // Re-list schemes and confirm no SC plans remain (excluding active if skipped).
+  let verified = false;
+  try {
+    const recheck = await listPowerSchemes();
+    const remaining = (recheck.schemes || []).filter(
+      s => s.name?.startsWith(SC_PLAN_NAME_PREFIX) && !builtinGuidSet.has(s.guid?.toLowerCase())
+    );
+    // Verification passes if zero SC plans remain, or only the still-active one is left (skipped)
+    const nonActiveRemaining = remaining.filter(s => s.guid?.toLowerCase() !== activeGuid);
+    verified = nonActiveRemaining.length === 0;
+    if (verified) {
+      console.log('[PowerPlan] deleteAllScPlans: post-delete verification PASSED — no SC plans remain');
+    } else {
+      console.warn(
+        `[PowerPlan] deleteAllScPlans: post-delete verification FAILED — ` +
+        `${nonActiveRemaining.length} SC plans still present: ` +
+        nonActiveRemaining.map(s => `"${s.name}"(${s.guid})`).join(', ')
+      );
+    }
+  } catch (e) {
+    console.warn('[PowerPlan] deleteAllScPlans: post-delete verification threw:', e.message);
+  }
+
+  console.log(`[PowerPlan] deleteAllScPlans: deleted=${deleted.length} skipped=${skipped.length} errors=${errors.length} verified=${verified}`);
+  return { deleted, skipped, errors, verified };
+}
+
+/**
+ * Verify that the current system state is clean for a non-premium user:
+ *   • Active plan is Windows Balanced (381b4222-f694-41f0-9685-ff5bb260df2e)
+ *   • No SwitchControl-named plans remain in the system
+ *
+ * @returns {{ activeGuid: string, isBalanced: boolean, scPlansRemaining: string[], clean: boolean }}
+ */
+async function verifyRevertClean() {
+  const builtinGuidSet = new Set(Object.values(BUILTIN_GUIDS).map(g => String(g).toLowerCase()));
+  let activeGuid = '';
+  let isBalanced = false;
+
+  try {
+    const cur = await getActivePowerScheme();
+    activeGuid = (cur.scheme?.guid ?? '').toLowerCase();
+    isBalanced = activeGuid === BALANCED_GUID;
+  } catch (e) {
+    console.warn('[PowerPlan] verifyRevertClean: could not read active scheme:', e.message);
+  }
+
+  let scPlansRemaining = [];
+  try {
+    const listResult = await listPowerSchemes();
+    scPlansRemaining = (listResult.schemes || [])
+      .filter(s => s.name?.startsWith(SC_PLAN_NAME_PREFIX) && !builtinGuidSet.has(s.guid?.toLowerCase()))
+      .map(s => `"${s.name}" (${s.guid})`);
+  } catch (e) {
+    console.warn('[PowerPlan] verifyRevertClean: could not list schemes:', e.message);
+  }
+
+  const clean = isBalanced && scPlansRemaining.length === 0;
+  console.log(
+    `[PowerPlan] verifyRevertClean: isBalanced=${isBalanced} scPlansRemaining=${scPlansRemaining.length} clean=${clean}`
+  );
+  if (!clean) {
+    if (!isBalanced) console.warn(`[PowerPlan] verifyRevertClean: active GUID is ${activeGuid} (expected ${BALANCED_GUID})`);
+    if (scPlansRemaining.length) console.warn('[PowerPlan] verifyRevertClean: SC plans still present:', scPlansRemaining);
+  }
+  return { activeGuid, isBalanced, scPlansRemaining, clean };
 }
 
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
@@ -892,4 +1011,5 @@ module.exports = {
   getActivePowerScheme,
   getStoredSchemeGuids,
   deleteAllScPlans,
+  verifyRevertClean,
 };

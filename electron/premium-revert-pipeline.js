@@ -308,16 +308,23 @@ async function revertPowerPlan(record) {
       }
       ownershipStore.recordRevert(scopeKey);
 
-      // Fire-and-forget: delete all lingering SC plans from Windows.
-      // Non-blocking — a failure here must not break the revert result.
-      mgr.deleteAllScPlans().then(cleanup => {
+      // Delete all SC plans, then verify the system is clean.
+      let cleanup = { deleted: [], skipped: [], errors: [], verified: false };
+      let verification = { activeGuid: targetGuid, isBalanced: false, scPlansRemaining: [], clean: false };
+      try {
+        cleanup = await mgr.deleteAllScPlans();
         console.log(
           `[RevertPipeline] power_plan cleanup — deleted=${cleanup.deleted.length}` +
-          ` skipped=${cleanup.skipped.length} errors=${cleanup.errors.length}`
+          ` skipped=${cleanup.skipped.length} errors=${cleanup.errors.length} verified=${cleanup.verified}`
         );
-      }).catch(e => {
-        console.warn('[RevertPipeline] power_plan cleanup threw (non-fatal):', e.message);
-      });
+        // Only verify "isBalanced" if we targeted the Balanced GUID
+        if (forcedBalanced || targetGuid === BALANCED_GUID) {
+          verification = await mgr.verifyRevertClean();
+          console.log(`[RevertPipeline] power_plan verify — clean=${verification.clean}`);
+        }
+      } catch (e) {
+        console.warn('[RevertPipeline] power_plan cleanup/verify threw (non-fatal):', e.message);
+      }
 
       return {
         ok: true,
@@ -328,6 +335,8 @@ async function revertPowerPlan(record) {
         alreadyActive:    result.alreadyActive    || false,
         restoredDefaults: result.restoredDefaults || false,
         retried:          result.retried          || false,
+        cleanup,
+        verification,
       };
     }
 
@@ -343,9 +352,15 @@ async function revertPowerPlan(record) {
           console.log('[RevertPipeline] power_plan — restoredefaultschemes invoked and fallback Balanced activated');
         }
         ownershipStore.recordRevert(scopeKey);
-        mgr.deleteAllScPlans().then(c => {
-          console.log(`[RevertPipeline] power_plan cleanup (fallback) — deleted=${c.deleted.length} skipped=${c.skipped.length} errors=${c.errors.length}`);
-        }).catch(e => console.warn('[RevertPipeline] power_plan cleanup (fallback) threw:', e.message));
+        let fbCleanup = { deleted: [], skipped: [], errors: [], verified: false };
+        let fbVerification = { activeGuid: BALANCED_GUID, isBalanced: false, scPlansRemaining: [], clean: false };
+        try {
+          fbCleanup = await mgr.deleteAllScPlans();
+          fbVerification = await mgr.verifyRevertClean();
+          console.log(`[RevertPipeline] power_plan cleanup (fallback) — deleted=${fbCleanup.deleted.length} clean=${fbVerification.clean}`);
+        } catch (e) {
+          console.warn('[RevertPipeline] power_plan cleanup (fallback) threw (non-fatal):', e.message);
+        }
         return {
           ok: true,
           success: true,
@@ -355,6 +370,8 @@ async function revertPowerPlan(record) {
           restoredDefaults: fallback.restoredDefaults || false,
           retried:          fallback.retried          || false,
           primaryError: result.error,
+          cleanup: fbCleanup,
+          verification: fbVerification,
         };
       }
       return {
