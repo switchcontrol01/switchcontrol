@@ -1,19 +1,19 @@
 {
-  "version": "1.0.4",
-  "title": "Switchcontrol 1.0.4 — Stability + Accuracy Update",
-  "headline": "This update focuses on making Switchcontrol fully reliable. If something is enabled, it stays enabled. If it's applied, it shows correctly.",
+  "version": "1.0.5",
+  "title": "SwitchControl 1.0.5 — Power Plan Cleanup + Trial Security Update",
+  "headline": "Trial expiry is now airtight. All SwitchControl power plans are deleted on revert, duplicates are cleaned up automatically, and the system is verified clean before the modal closes.",
   "date": "2026-04-23",
   "changes": [
-    "Fixed CPU usage spikes caused by background process issues",
-    "Fixed Delivery Optimization conflicts — network tweaks now apply cleanly",
-    "Fixed tweaks resetting when switching tabs or reopening the app",
-    "Fixed UI showing incorrect (grey) state after restart — now reflects real system state",
-    "Improved tweak verification — checks actual Windows state instead of cached UI state",
-    "Improved PowerShell execution stability with global limiter and async loop control",
-    "Fixed trial expiry — premium tweaks now correctly revert when trial ends, including power plans",
-    "Improved app startup performance — reduced white flash and faster initial render",
-    "Fixed intermittent blank screen after login on Discord/auth edge cases",
-    "Improved overall stability — reduced race conditions across tweak execution, navigation, and background polling"
+    "Fixed trial expiry leaving duplicate SwitchControl plans in Windows Power Options",
+    "Fixed power plan revert not deleting app-created plans — all SC plans are now removed on expiry",
+    "Fixed app creating a new power plan every session instead of reusing the existing one",
+    "Added automatic cleanup of orphaned SwitchControl plans on every startup for free users",
+    "Added post-revert verification — confirms active plan is Windows Balanced and no SC plans remain",
+    "Revert modal now shows the confirmed active plan name and a verified clean indicator",
+    "Improved SC plan detection: uses ownership records and plan name prefix as dual fallback",
+    "User-created custom power plans are never touched — only app-owned SC plans are removed",
+    "Fixed startup sanity check missing SC plans when the internal plan registry was reset",
+    "Improved overall trial expiry reliability across reinstall and plan-switch edge cases"
   ],
   "type": "patch"
 }
