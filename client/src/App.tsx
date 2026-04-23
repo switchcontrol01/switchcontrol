@@ -88,9 +88,13 @@ export function useAppAuth() {
   return useContext(AppAuthContext);
 }
 
+const DarkFallback = () => (
+  <div style={{ position: "fixed", inset: 0, background: "#07090D" }} />
+);
+
 function ElectronAppRoutes() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<DarkFallback />}>
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/dashboard" component={Home} />
@@ -118,7 +122,7 @@ function ElectronAppRoutes() {
 
 function WebsiteRoutes() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<DarkFallback />}>
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/features" component={Features} />
@@ -995,6 +999,10 @@ function ElectronAppContent() {
         </div>
       )}
 
+
+      {phase === "authenticated" && (
+        <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#07090D" }} />
+      )}
 
       <AnimatePresence mode="sync">
         {phase === "splash" && (

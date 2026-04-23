@@ -58,6 +58,28 @@
   --animate-out: animate-out 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* ── Hard-lock dark background at every DOM level ────────────────
+   Belt-and-suspenders alongside the index.html inline styles.
+   Ensures no white frame can bleed through if CSS loads before
+   any JavaScript sets styles programmatically. */
+html {
+  background: #07090D;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: #07090D;
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  background: #07090D;
+  height: 100%;
+}
+/* ────────────────────────────────────────────────────────────── */
+
 /* ── Login page visual system ─────────────────────────────────── */
 
 @keyframes loginFocalPulse {
@@ -1721,6 +1743,7 @@ textarea,
   min-height: 0;
   overflow: hidden;
   position: relative;
+  background: #07090D;
 }
 
 /* Animated contour keyframes for Splash screen */
