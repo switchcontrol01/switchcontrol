@@ -14,13 +14,20 @@ const path = require('path');
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
+// Diagnostic counter — every powershell.exe spawn increments this.
+let _net_psCount = 0;
+
 function execPowerShell(command) {
+  const id = ++_net_psCount;
+  const t0 = Date.now();
+  console.log(`[PS:network-tweak] #${id} execPowerShell SPAWN ts=${t0}`);
   return new Promise((resolve, reject) => {
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
       { timeout: 20000, windowsHide: true },
       (error, stdout, stderr) => {
+        console.log(`[PS:network-tweak] #${id} execPowerShell ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
         if (error) {
           reject(new Error((stderr || error.message || 'PowerShell error').trim()));
         } else {

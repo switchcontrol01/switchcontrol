@@ -258,7 +258,12 @@ export function useTweakExecutor() {
     if (!isElectronWithTweaks()) return {};
     try {
       const results = await getTweaksAPI().syncAll();
-      const state   = await getTweaksAPI().getLocalState();
+      // null means a sync was already in-flight — skip update to avoid redundant work
+      if (results === null) {
+        console.log('[TweakExecutor] syncAll skipped — already running on main process');
+        return {};
+      }
+      const state = await getTweaksAPI().getLocalState();
       setLocalState(state);
       return results;
     } catch (err) {

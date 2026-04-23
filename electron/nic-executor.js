@@ -23,14 +23,22 @@ const fs = require('fs');
 const path = require('path');
 
 // ── PowerShell helpers ────────────────────────────────────────────────────────
+// Diagnostic counter — every powershell.exe spawn from this file increments this.
+let _nic_psCount = 0;
 
 function queryPS(command) {
+  const id = ++_nic_psCount;
+  const t0 = Date.now();
+  console.log(`[PS:nic-executor] #${id} queryPS SPAWN ts=${t0}`);
   return new Promise((resolve) => {
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
       { timeout: 20000, windowsHide: true },
-      (error, stdout) => resolve(error ? null : stdout.trim())
+      (error, stdout) => {
+        console.log(`[PS:nic-executor] #${id} queryPS ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
+        resolve(error ? null : stdout.trim());
+      }
     );
   });
 }

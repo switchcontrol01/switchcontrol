@@ -73,7 +73,14 @@ function getExecutionLog() {
 }
 
 // ─── PowerShell helpers ────────────────────────────────────────────────────────
+// Diagnostic counter — every powershell.exe spawn increments this.
+// At idle this number must never climb. Log lines appear in the Electron console.
+let _tweak_psCount = 0;
+
 function runPowerShell(command) {
+  const id = ++_tweak_psCount;
+  const t0 = Date.now();
+  console.log(`[PS:tweak-executor] #${id} runPowerShell SPAWN ts=${t0}`);
   return new Promise((resolve, reject) => {
     const wrapped = `try { ${command}; exit 0 } catch { Write-Error $_.Exception.Message; exit 1 }`;
     execFile(
@@ -81,10 +88,13 @@ function runPowerShell(command) {
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', wrapped],
       { timeout: 30000, windowsHide: true },
       (error, stdout, stderr) => {
+        const dur = Date.now() - t0;
         if (error) {
           const msg = stderr?.trim() || stdout?.trim() || error.message;
+          console.log(`[PS:tweak-executor] #${id} runPowerShell FAIL ${dur}ms`);
           reject(new Error(msg));
         } else {
+          console.log(`[PS:tweak-executor] #${id} runPowerShell OK ${dur}ms`);
           resolve(stdout.trim());
         }
       }
@@ -93,12 +103,18 @@ function runPowerShell(command) {
 }
 
 function queryPowerShell(command) {
+  const id = ++_tweak_psCount;
+  const t0 = Date.now();
+  console.log(`[PS:tweak-executor] #${id} queryPowerShell SPAWN ts=${t0}`);
   return new Promise((resolve) => {
     execFile(
       'powershell',
       ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
       { timeout: 12000, windowsHide: true },
-      (error, stdout) => resolve(error ? null : stdout.trim())
+      (error, stdout) => {
+        console.log(`[PS:tweak-executor] #${id} queryPowerShell ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
+        resolve(error ? null : stdout.trim());
+      }
     );
   });
 }

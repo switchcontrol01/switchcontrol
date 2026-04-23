@@ -85,14 +85,18 @@ export function TweaksList() {
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // On load: verify all real tweak states against the system
+  // On load: verify all real tweak states against the system.
+  // toast is intentionally excluded from deps — it is used only in the catch
+  // path and its identity changes every render (shadcn useToast). Including it
+  // would re-trigger a full 65-PowerShell sync on every render cycle.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isElectron) return;
     setSyncing(true);
     setSyncFailed(false);
     syncAllTweaks()
       .then((results) => {
-        if (!results) return;
+        if (!results || Object.keys(results).length === 0) return;
         Object.entries(results).forEach(([tweakId, status]) => {
           const s = status as { isApplied: boolean; applied: boolean; unsupported?: boolean; error: string | null };
           if (!s.error && !s.unsupported && isRealTweak(tweakId)) {
@@ -110,7 +114,7 @@ export function TweaksList() {
         });
       })
       .finally(() => setSyncing(false));
-  }, [isElectron, syncAllTweaks, setTweak, toast]);
+  }, [isElectron, syncAllTweaks, setTweak]); // toast excluded — see comment above
 
   // Zustand store is the single source of truth.
   // It is authoritative after two events:

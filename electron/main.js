@@ -1904,14 +1904,30 @@ ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
   return await tweakExecutor.checkTweakStatus(tweakId);
 });
 
+// Single-flight lock: prevents overlapping tweak:syncAll runs.
+// syncAll spawns one powershell.exe per tweak check (~65 total).
+// Without this lock, rapid mounts/remounts would stack 130+ PowerShell processes.
+let _tweakSyncAllRunning = false;
+
 ipcMain.handle('tweak:syncAll', async () => {
-  // Check ALL known real tweaks (not just previously-applied ones)
-  const allTweakIds = Object.keys(tweakExecutor.ALL_TWEAKS);
-  const results = {};
-  for (const tweakId of allTweakIds) {
-    results[tweakId] = await tweakExecutor.checkTweakStatus(tweakId);
+  if (_tweakSyncAllRunning) {
+    console.log('[tweak:syncAll] skipped — sync already in progress');
+    return null; // caller treats null as "use cached state"
   }
-  return results;
+  _tweakSyncAllRunning = true;
+  const t0 = Date.now();
+  console.log(`[tweak:syncAll] START — checking ${Object.keys(tweakExecutor.ALL_TWEAKS).length} tweaks via PowerShell`);
+  try {
+    const allTweakIds = Object.keys(tweakExecutor.ALL_TWEAKS);
+    const results = {};
+    for (const tweakId of allTweakIds) {
+      results[tweakId] = await tweakExecutor.checkTweakStatus(tweakId);
+    }
+    console.log(`[tweak:syncAll] DONE in ${Date.now() - t0}ms`);
+    return results;
+  } finally {
+    _tweakSyncAllRunning = false;
+  }
 });
 
 ipcMain.handle('tweak:getLog', () => {
@@ -2391,12 +2407,26 @@ ipcMain.handle('networkTweaks:checkStatus', async (event, tweakId) => {
   }
 });
 
+// Single-flight lock: prevents overlapping networkTweaks:checkAll runs (~38 PowerShell checks).
+let _networkTweakCheckAllRunning = false;
+
 ipcMain.handle('networkTweaks:checkAll', async () => {
+  if (_networkTweakCheckAllRunning) {
+    console.log('[networkTweaks:checkAll] skipped — already in progress');
+    return null;
+  }
+  _networkTweakCheckAllRunning = true;
+  const t0 = Date.now();
+  console.log('[networkTweaks:checkAll] START — checking all network tweaks via PowerShell');
   try {
-    return await networkTweakExecutor.checkAllNetworkTweakStatus();
+    const result = await networkTweakExecutor.checkAllNetworkTweakStatus();
+    console.log(`[networkTweaks:checkAll] DONE in ${Date.now() - t0}ms`);
+    return result;
   } catch (e) {
     console.error('[IPC] networkTweaks:checkAll error:', e.message);
     return {};
+  } finally {
+    _networkTweakCheckAllRunning = false;
   }
 });
 

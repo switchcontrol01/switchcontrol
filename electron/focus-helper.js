@@ -56,8 +56,13 @@ const KNOWN_GAME_PROCESSES = [
 // ── PowerShell executor ────────────────────────────────────────────────────────
 // Uses execFile (not exec) + windowsHide:true so no shell or console window
 // is ever visible to the user, even briefly.
+// Diagnostic counter — every powershell.exe spawn from this file increments this.
+let _focus_psCount = 0;
 
 function ps(script) {
+  const id = ++_focus_psCount;
+  const t0 = Date.now();
+  console.log(`[PS:focus-helper] #${id} ps() SPAWN ts=${t0}`);
   const encoded = Buffer.from(script, 'utf16le').toString('base64');
   return new Promise((resolve) => {
     execFile(
@@ -66,6 +71,7 @@ function ps(script) {
        '-WindowStyle', 'Hidden', '-EncodedCommand', encoded],
       { timeout: 8000, windowsHide: true },
       (err, stdout, stderr) => {
+        console.log(`[PS:focus-helper] #${id} ps() ${err ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
         if (err) {
           resolve({ ok: false, output: '', error: err.message });
         } else {
