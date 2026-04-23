@@ -46,7 +46,7 @@ export function GlassModalSurface({ className, children, ...props }: HTMLAttribu
   return (
     <div
       className={cn(
-        "relative glass-surface-bg backdrop-blur-2xl border border-white/[0.12] rounded-2xl overflow-hidden",
+        "relative glass-surface-bg backdrop-blur-xl border border-white/[0.12] rounded-2xl overflow-hidden",
         "shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(139,92,246,0.10),0_0_60px_rgba(139,92,246,0.08),inset_0_1px_0_rgba(255,255,255,0.08)]",
         className
       )}
@@ -120,7 +120,7 @@ export function GlassModalLayout({
                 }}
               />
 
-              <div className="relative glass-surface-bg border border-white/[0.12] rounded-2xl backdrop-blur-2xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(139,92,246,0.10),0_0_60px_rgba(139,92,246,0.08),inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <div className="relative glass-surface-bg border border-white/[0.12] rounded-2xl backdrop-blur-xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(139,92,246,0.10),0_0_60px_rgba(139,92,246,0.08),inset_0_1px_0_rgba(255,255,255,0.08)]">
                 <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
                 <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-purple-500/[0.05] to-transparent pointer-events-none" />
 
