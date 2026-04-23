@@ -16,8 +16,9 @@ function runPS(cmd, timeoutMs = 20000) {
     if (process.platform !== 'win32') return reject(new Error('Windows only'));
     execFile(
       'powershell.exe',
-      ['-NonInteractive', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', cmd],
-      { timeout: timeoutMs, maxBuffer: 1024 * 512 },
+      ['-NonInteractive', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+       '-WindowStyle', 'Hidden', '-Command', cmd],
+      { timeout: timeoutMs, maxBuffer: 1024 * 512, windowsHide: true },
       (err, stdout, stderr) => {
         if (err) return reject(err);
         resolve(stdout?.trim() ?? '');

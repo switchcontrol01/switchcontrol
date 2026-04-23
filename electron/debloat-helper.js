@@ -23,8 +23,9 @@ function runPS(cmd, timeoutMs = 15000) {
     if (process.platform !== 'win32') return reject(new Error('Windows only'));
     execFile(
       'powershell.exe',
-      ['-NonInteractive', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', cmd],
-      { timeout: timeoutMs, maxBuffer: 1024 * 512 },
+      ['-NonInteractive', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+       '-WindowStyle', 'Hidden', '-Command', cmd],
+      { timeout: timeoutMs, maxBuffer: 1024 * 512, windowsHide: true },
       (err, stdout, stderr) => {
         if (err) return reject(err);
         resolve(stdout?.trim() ?? '');
@@ -39,8 +40,9 @@ function queryPS(cmd, timeoutMs = 12000) {
     if (process.platform !== 'win32') return resolve(null);
     execFile(
       'powershell.exe',
-      ['-NonInteractive', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', cmd],
-      { timeout: timeoutMs, maxBuffer: 1024 * 256 },
+      ['-NonInteractive', '-NoProfile', '-ExecutionPolicy', 'Bypass',
+       '-WindowStyle', 'Hidden', '-Command', cmd],
+      { timeout: timeoutMs, maxBuffer: 1024 * 256, windowsHide: true },
       (err, stdout) => resolve(err ? null : stdout?.trim() ?? '')
     );
   });
@@ -385,7 +387,7 @@ async function runExeProcess(exe, argsArray, timeoutMs = 120000) {
     let errMsg = null;
     let proc;
     try {
-      proc = spawn(exe, argsArray, { windowsHide: false, detached: false });
+      proc = spawn(exe, argsArray, { windowsHide: true, detached: false });
     } catch (err) {
       return resolve({ exitCode: -1, timedOut: false, error: err.message });
     }

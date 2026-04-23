@@ -1037,7 +1037,7 @@ ipcMain.handle('memory:clean', async (event, mode) => {
 
   return new Promise((resolve) => {
     const { execFile } = require('child_process');
-    execFile(exePath, ['--mode', mode], { timeout: 10000 }, (err, stdout, stderr) => {
+    execFile(exePath, ['--mode', mode], { timeout: 10000, windowsHide: true }, (err, stdout, stderr) => {
       if (stderr) console.log('[Memory] stderr:', stderr.trim());
       if (err) {
         console.error('[Memory] execFile error:', err.message, 'killed:', err.killed);
@@ -2289,20 +2289,32 @@ ipcMain.handle('appBooster:executeAction', async (event, { type, mode, executabl
 
   try {
     const output = await new Promise((resolve, reject) => {
-      execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', scriptSet[mode]], { timeout: 15000 }, (error, stdout, stderr) => {
-        if (error) reject(new Error(stderr || error.message));
-        else resolve(stdout.trim());
-      });
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+         '-WindowStyle', 'Hidden', '-Command', scriptSet[mode]],
+        { timeout: 15000, windowsHide: true },
+        (error, stdout, stderr) => {
+          if (error) reject(new Error(stderr || error.message));
+          else resolve(stdout.trim());
+        }
+      );
     });
 
     let verified = false;
     if (mode !== 'check' && scriptSet.check) {
       try {
         const checkOut = await new Promise((resolve, reject) => {
-          execFile('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', scriptSet.check], { timeout: 10000 }, (error, stdout, stderr) => {
-            if (error) reject(new Error(stderr || error.message));
-            else resolve(stdout.trim());
-          });
+          execFile(
+            'powershell',
+            ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+             '-WindowStyle', 'Hidden', '-Command', scriptSet.check],
+            { timeout: 10000, windowsHide: true },
+            (error, stdout, stderr) => {
+              if (error) reject(new Error(stderr || error.message));
+              else resolve(stdout.trim());
+            }
+          );
         });
         verified = String(checkOut).toLowerCase().includes('true');
         if (mode === 'revert') verified = !verified;

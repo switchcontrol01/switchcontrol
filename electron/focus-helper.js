@@ -5,10 +5,7 @@
  */
 
 const { ipcMain } = require('electron');
-const { exec } = require('child_process');
-const { promisify } = require('util');
-
-const execAsync = promisify(exec);
+const { execFile } = require('child_process');
 
 // ── Safety constants ───────────────────────────────────────────────────────────
 
@@ -57,18 +54,26 @@ const KNOWN_GAME_PROCESSES = [
 ];
 
 // ── PowerShell executor ────────────────────────────────────────────────────────
+// Uses execFile (not exec) + windowsHide:true so no shell or console window
+// is ever visible to the user, even briefly.
 
-async function ps(script) {
+function ps(script) {
   const encoded = Buffer.from(script, 'utf16le').toString('base64');
-  try {
-    const { stdout, stderr } = await execAsync(
-      `powershell -NoProfile -NonInteractive -EncodedCommand ${encoded}`,
-      { timeout: 8000 }
+  return new Promise((resolve) => {
+    execFile(
+      'powershell',
+      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+       '-WindowStyle', 'Hidden', '-EncodedCommand', encoded],
+      { timeout: 8000, windowsHide: true },
+      (err, stdout, stderr) => {
+        if (err) {
+          resolve({ ok: false, output: '', error: err.message });
+        } else {
+          resolve({ ok: true, output: (stdout || '').trim(), error: (stderr || '').trim() });
+        }
+      }
     );
-    return { ok: true, output: stdout.trim(), error: stderr.trim() };
-  } catch (err) {
-    return { ok: false, output: '', error: err.message };
-  }
+  });
 }
 
 // ── Action implementations ─────────────────────────────────────────────────────
