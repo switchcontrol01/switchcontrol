@@ -6,6 +6,7 @@
 
 const { ipcMain } = require('electron');
 const { execFile } = require('child_process');
+const psLimiter = require('./powershell-limiter');
 
 // ── Safety constants ───────────────────────────────────────────────────────────
 
@@ -258,7 +259,7 @@ async function verifyState() {
 
 // ── Trigger monitor ────────────────────────────────────────────────────────────
 
-let triggerIntervalId = null;
+// triggerIntervalId removed — trigger polling now uses a safe async loop (_triggerLoop)
 let triggerCallback = null;
 let lastTriggerState = {
   gameProcess: null,
@@ -270,16 +271,27 @@ let enabledTriggers = {};
 let triggerWindow = null; // renderer window for sending events
 let _isSeedPoll = false;  // true for the very first poll — establishes baseline without firing
 
-// Single-flight lock: prevents overlapping pollTriggers runs.
-// Each enabled trigger spawns a PowerShell process. Without this lock,
-// if a poll takes longer than 5s, the next interval fires and stacks more processes.
-let _pollTriggersRunning = false;
+// Safe async trigger loop — replaces setInterval so each poll only starts after
+// the previous one fully completes (including all PowerShell trigger checks).
+// Set _triggerLoopActive = false to stop cleanly between polls.
+let _triggerLoopActive = false;
+let _triggerLoopGen   = 0; // increments on restart to orphan old loop iterations
+
+async function _triggerLoop(gen) {
+  while (_triggerLoopActive && gen === _triggerLoopGen && triggerCallback) {
+    await pollTriggers();
+    if (_triggerLoopActive && gen === _triggerLoopGen) {
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  }
+  console.log(`[FocusHelper] trigger async loop gen=${gen} exited`);
+}
 
 async function pollTriggers() {
   if (!triggerCallback) return;
-  if (_pollTriggersRunning) return;
+  const _token = psLimiter.tryAcquire({ file: 'focus-helper.js', fn: 'pollTriggers', reason: 'trigger-poll' });
+  if (!_token) return; // previous poll still in flight — loop will retry after 5s sleep
 
-  _pollTriggersRunning = true;
   try {
 
   // Consume the seed flag: first poll only records state, never fires callbacks.
@@ -372,7 +384,7 @@ public class WinUtil {
   }
 
   } finally {
-    _pollTriggersRunning = false;
+    psLimiter.release(_token);
   }
 }
 
@@ -477,7 +489,8 @@ ipcMain.handle('focus:startTriggerMonitor', async (event, { triggers }) => {
   lastTriggerState = { gameProcess: null, fullscreen: false, controllerConnected: false, headsetConnected: false };
   triggerWindow = event.sender;
 
-  if (triggerIntervalId) clearInterval(triggerIntervalId);
+  // Stop any previously running loop before starting a new one
+  _triggerLoopActive = false;
 
   const activeTriggerCount = Object.values(enabledTriggers).filter(Boolean).length;
   if (activeTriggerCount === 0) return { ok: true, monitoring: false };
@@ -488,19 +501,20 @@ ipcMain.handle('focus:startTriggerMonitor', async (event, { triggers }) => {
     } catch {}
   };
 
-  triggerIntervalId = setInterval(pollTriggers, 5000);
-  _isSeedPoll = true;  // first poll only records baseline — does not fire triggers
-  pollTriggers();
+  // Start safe async loop — next poll only begins after previous one fully completes
+  _isSeedPoll = true;  // first poll only records baseline — does not fire callbacks
+  _triggerLoopActive = true;
+  _triggerLoopGen++;
+  console.log(`[FocusHelper] trigger async loop gen=${_triggerLoopGen} started (${activeTriggerCount} trigger(s))`);
+  _triggerLoop(_triggerLoopGen); // fire-and-forget
 
   return { ok: true, monitoring: true, triggers: enabledTriggers };
 });
 
 ipcMain.handle('focus:stopTriggerMonitor', async () => {
-  if (triggerIntervalId) {
-    clearInterval(triggerIntervalId);
-    triggerIntervalId = null;
-  }
+  _triggerLoopActive = false; // signals the loop to exit after current poll completes
   triggerCallback = null;
+  console.log('[FocusHelper] trigger async loop stop requested');
   return { ok: true };
 });
 

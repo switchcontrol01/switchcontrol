@@ -258,9 +258,9 @@ export function useTweakExecutor() {
     if (!isElectronWithTweaks()) return {};
     try {
       const results = await getTweaksAPI().syncAll();
-      // null means a sync was already in-flight — skip update to avoid redundant work
-      if (results === null) {
-        console.log('[TweakExecutor] syncAll skipped — already running on main process');
+      // skipped result means a sync was already in-flight — use cached state, don't update
+      if (!results || (results as any).skipped === true) {
+        console.log('[TweakExecutor] syncAll skipped by main process — using cached state');
         return {};
       }
       const state = await getTweaksAPI().getLocalState();

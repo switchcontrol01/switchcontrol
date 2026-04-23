@@ -60,6 +60,7 @@ try {
 }
 const powerPlanManager = require('./power-plan-manager');
 const backendLauncher = require('./backend-launcher');
+const psLimiter = require('./powershell-limiter');
 require('./security-helper');
 require('./debloat-helper');
 require('./cleaner-helper');
@@ -147,7 +148,7 @@ let lastCpuLoad = 0;
 // every request. Instead a background poll runs every 2s so the differential
 // APIs have a real baseline, and getLive reads the cached snapshot.
 let liveTelemetryCache = null;
-let telemetryPollInterval = null;
+// telemetryPollInterval removed — polling is now an async loop (_telemetryLoop)
 
 // Disk I/O delta tracking — mirrors server/lib/telemetry.ts approach.
 // disksIO() returns cumulative rIO (sectors read), wIO (sectors written), ms (ms busy).
@@ -165,17 +166,23 @@ let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, 
 // load pending" so the chart series is always structurally present from frame 1.
 let gpuExistsOnHardware = false;
 
-// Single-flight lock: prevents overlapping pollTelemetry runs.
-// setInterval fires every 1s but PowerShell can take 200ms-4s — without this
-// lock, a backlog of concurrent PowerShell.exe processes builds up in Task Manager.
-let _pollTelemetryRunning = false;
+// Safe async telemetry loop — replaces setInterval so each poll only starts
+// after the previous one fully completes (including PowerShell GPU counter).
+// Set _telemetryLoopActive = false to stop cleanly.
+let _telemetryLoopActive = false;
+
+async function _telemetryLoop() {
+  verboseLog('[telemetry:poll] async loop started');
+  while (_telemetryLoopActive) {
+    await pollTelemetry();
+    if (_telemetryLoopActive) await new Promise(r => setTimeout(r, 1000));
+  }
+  verboseLog('[telemetry:poll] async loop exited');
+}
 
 async function pollTelemetry() {
-  if (_pollTelemetryRunning) {
-    verboseLog('[telemetry:poll] skipped — previous poll still in flight');
-    return;
-  }
-  _pollTelemetryRunning = true;
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'pollTelemetry', reason: 'telemetry-poll' });
+  if (!_token) return; // already running — loop will retry after current poll finishes
   try {
     const [load, mem, temps, fsData, netStats, rawDiskIO] = await Promise.all([
       si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
@@ -296,7 +303,7 @@ async function pollTelemetry() {
   } catch (e) {
     console.error('[telemetry:poll] unexpected error:', e.message);
   } finally {
-    _pollTelemetryRunning = false;
+    psLimiter.release(_token);
   }
 }
 
@@ -367,8 +374,9 @@ async function startTelemetryPolling() {
   await new Promise(r => setTimeout(r, 1500));
   await pollTelemetry();
 
-  telemetryPollInterval = setInterval(pollTelemetry, 1000);
-  verboseLog('[telemetry:poll] background poll started (1s interval)');
+  _telemetryLoopActive = true;
+  _telemetryLoop(); // fire-and-forget — loop awaits each poll before sleeping 1s
+  verboseLog('[telemetry:poll] async loop started (sequential, no overlap possible)');
 }
 
 // Register protocol handler BEFORE app is ready
@@ -896,19 +904,14 @@ const GPU_PERF_COUNTER_MAX_FAILS = 5; // stop trying after 5 consecutive failure
 // Last per-engine breakdown — exposed for debug logging
 let lastGpuEngineBreakdown = {};
 
-// Single-flight lock: ensures only one PowerShell GPU counter process runs at a time.
-// Without this, concurrent pollTelemetry overlap could stack multiple powershell.exe
-// processes waiting on Get-Counter, causing runaway CPU and process multiplication.
-let _gpuPerfCounterRunning = false;
-
 async function getGpuPerfCounterLoad() {
   if (process.platform !== 'win32') return null;
   if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS) return null;
-  if (_gpuPerfCounterRunning) {
-    verboseLog('[GPU:perf] skipped — previous PowerShell counter still running');
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'getGpuPerfCounterLoad', reason: 'gpu-counter' });
+  if (!_token) {
+    verboseLog('[GPU:perf] skipped — limiter refused (another run in flight)');
     return gpuPollCache.load ?? null;
   }
-  _gpuPerfCounterRunning = true;
 
   // PowerShell outputs JSON: { "max": <number>, "engines": { <type>: <sum>, ... } }
   const ps = `
@@ -959,7 +962,7 @@ try {
       });
     });
   } finally {
-    _gpuPerfCounterRunning = false;
+    psLimiter.release(_token);
   }
 }
 
@@ -1904,34 +1907,36 @@ ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
   return await tweakExecutor.checkTweakStatus(tweakId);
 });
 
-// Single-flight lock: prevents overlapping tweak:syncAll runs.
-// syncAll spawns one powershell.exe per tweak check (~65 total).
-// Without this lock, rapid mounts/remounts would stack 130+ PowerShell processes.
-let _tweakSyncAllRunning = false;
-
 ipcMain.handle('tweak:syncAll', async () => {
-  if (_tweakSyncAllRunning) {
-    console.log('[tweak:syncAll] skipped — sync already in progress');
-    return null; // caller treats null as "use cached state"
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'tweak:syncAll', reason: 'tweak-sync-all' });
+  if (!_token) {
+    const skipped = psLimiter.skippedResult({ file: 'main.js', fn: 'tweak:syncAll', reason: 'tweak-sync-all' });
+    console.log('[tweak:syncAll] returning explicit skipped result — sync already in progress');
+    return skipped; // caller checks result.skipped === true and uses cached state
   }
-  _tweakSyncAllRunning = true;
   const t0 = Date.now();
-  console.log(`[tweak:syncAll] START — checking ${Object.keys(tweakExecutor.ALL_TWEAKS).length} tweaks via PowerShell`);
+  console.log(`[PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — ${Object.keys(tweakExecutor.ALL_TWEAKS).length} checks`);
   try {
     const allTweakIds = Object.keys(tweakExecutor.ALL_TWEAKS);
     const results = {};
     for (const tweakId of allTweakIds) {
       results[tweakId] = await tweakExecutor.checkTweakStatus(tweakId);
     }
-    console.log(`[tweak:syncAll] DONE in ${Date.now() - t0}ms`);
+    console.log(`[PS-Exec] done file=main.js fn=tweak:syncAll ms=${Date.now() - t0}`);
     return results;
   } finally {
-    _tweakSyncAllRunning = false;
+    psLimiter.release(_token);
   }
 });
 
 ipcMain.handle('tweak:getLog', () => {
   return tweakExecutor.getExecutionLog();
+});
+
+// Diagnostic: returns the live PS limiter state (active slots, global cap)
+// Useful for verifying zero idle PowerShell processes between polls.
+ipcMain.handle('psLimiter:getState', () => {
+  return psLimiter.getState();
 });
 
 ipcMain.handle('tweak:getLocalState', () => {
@@ -2407,26 +2412,24 @@ ipcMain.handle('networkTweaks:checkStatus', async (event, tweakId) => {
   }
 });
 
-// Single-flight lock: prevents overlapping networkTweaks:checkAll runs (~38 PowerShell checks).
-let _networkTweakCheckAllRunning = false;
-
 ipcMain.handle('networkTweaks:checkAll', async () => {
-  if (_networkTweakCheckAllRunning) {
-    console.log('[networkTweaks:checkAll] skipped — already in progress');
-    return null;
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'networkTweaks:checkAll', reason: 'net-tweak-check-all' });
+  if (!_token) {
+    const skipped = psLimiter.skippedResult({ file: 'main.js', fn: 'networkTweaks:checkAll', reason: 'net-tweak-check-all' });
+    console.log('[networkTweaks:checkAll] returning explicit skipped — already in progress');
+    return skipped;
   }
-  _networkTweakCheckAllRunning = true;
   const t0 = Date.now();
-  console.log('[networkTweaks:checkAll] START — checking all network tweaks via PowerShell');
+  console.log('[PS-Exec] start file=main.js fn=networkTweaks:checkAll reason=net-tweak-check-all');
   try {
     const result = await networkTweakExecutor.checkAllNetworkTweakStatus();
-    console.log(`[networkTweaks:checkAll] DONE in ${Date.now() - t0}ms`);
+    console.log(`[PS-Exec] done file=main.js fn=networkTweaks:checkAll ms=${Date.now() - t0}`);
     return result;
   } catch (e) {
     console.error('[IPC] networkTweaks:checkAll error:', e.message);
     return {};
   } finally {
-    _networkTweakCheckAllRunning = false;
+    psLimiter.release(_token);
   }
 });
 
@@ -2775,11 +2778,8 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
-  if (telemetryPollInterval) {
-    clearInterval(telemetryPollInterval);
-    telemetryPollInterval = null;
-    console.log('[telemetry:poll] interval cleared on quit');
-  }
+  _telemetryLoopActive = false; // signals the async loop to stop after current poll
+  console.log('[telemetry:poll] async loop stop requested on quit');
   backendLauncher.stopBackend();
 });
 
