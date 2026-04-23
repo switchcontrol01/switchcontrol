@@ -16,21 +16,38 @@ import {
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface InstalledApp {
-  id:              string;
-  name:            string;
-  publisher:       string;
-  version:         string;
-  sizeMb:          number;
-  installDate:     string;
-  installLocation: string;
-  uninstallString: string;
-  quietUninstall:  string;
-  source:          string;
-  isProtected:     boolean;
-  canUninstall:    boolean;
-  uninstallMethod: "msi" | "exe" | "appx" | "none";
-  trustLabel:      "microsoft" | "user-installed" | "system" | "protected" | "unknown";
+  id:               string;
+  name:             string;
+  publisher:        string;
+  version:          string;
+  sizeMb:           number;
+  installDate:      string;
+  installLocation:  string;
+  uninstallString:  string;
+  quietUninstall:   string;
+  windowsInstaller: boolean;
+  registryKeyPath:  string;
+  source:           string;
+  isProtected:      boolean;
+  canUninstall:     boolean;
+  uninstallMethod:  "msi" | "exe" | "appx" | "none";
+  trustLabel:       "microsoft" | "user-installed" | "system" | "protected" | "unknown";
 }
+
+type UninstallResult = {
+  ok:              boolean;
+  status:          string;
+  methodUsed?:     string;
+  executable?:     string;
+  args?:           string;
+  exitCode?:       number;
+  requiresRestart?: boolean;
+  verifiedRemoved?: boolean | null;
+  errorDetail?:    string;
+  error?:          string;
+};
+
+type AppResult = { kind: "removed" } | { kind: "restart-required" } | { kind: "failed"; detail: string } | { kind: "pending" };
 
 type FilterType = "all" | "uninstallable" | "protected" | "microsoft" | "third-party" | "large";
 type SortType   = "name" | "size-desc" | "publisher" | "uninstallable-first";
@@ -38,7 +55,7 @@ type SortType   = "name" | "size-desc" | "publisher" | "uninstallable-first";
 // ── Electron accessor helpers ─────────────────────────────────────────────────
 type InstalledAppsAPI = {
   scan:      () => Promise<{ ok: boolean; apps: InstalledApp[]; scannedAt: string; error?: string }>;
-  uninstall: (app: InstalledApp) => Promise<{ ok: boolean; status: string; exitCode?: number; requiresRestart?: boolean; error?: string }>;
+  uninstall: (app: InstalledApp) => Promise<UninstallResult>;
 };
 function getInstalledAppsAPI(): InstalledAppsAPI | undefined {
   return (window as any).electronAPI?.installedApps as InstalledAppsAPI | undefined;
@@ -151,7 +168,7 @@ function AppRow({
   onUninstall,
 }: {
   app: InstalledApp;
-  result?: "removed" | "failed" | "pending";
+  result?: AppResult;
   uninstallingId: string | null;
   onUninstall: (app: InstalledApp) => void;
 }) {
@@ -169,7 +186,7 @@ function AppRow({
     } catch { return app.installDate; }
   }, [app.installDate]);
 
-  if (result === "removed") {
+  if (result?.kind === "removed") {
     return (
       <div className="flex items-center gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] opacity-60">
         <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
@@ -178,11 +195,20 @@ function AppRow({
     );
   }
 
+  if (result?.kind === "restart-required") {
+    return (
+      <div className="flex items-center gap-3 p-3 rounded-xl border border-amber-500/20 bg-amber-500/[0.04] opacity-80">
+        <CheckCircle2 className="size-4 text-amber-400 shrink-0" />
+        <span className="text-sm text-amber-400">{app.name} — Uninstalled (restart required)</span>
+      </div>
+    );
+  }
+
   return (
     <div className={cn(
       "rounded-xl border border-white/[0.07] overflow-hidden transition-all",
       app.isProtected && "opacity-70",
-      result === "failed" && "border-red-500/20 bg-red-500/[0.03]",
+      result?.kind === "failed" && "border-red-500/20 bg-red-500/[0.03]",
     )} data-testid={`app-row-${app.id}`}>
       {/* Main row */}
       <div className="flex items-center gap-3 p-3 sm:p-3.5 hover:bg-white/[0.02] transition-colors">
@@ -224,9 +250,13 @@ function AppRow({
 
         {/* Actions */}
         <div className="flex items-center gap-1.5 shrink-0">
-          {result === "failed" && (
-            <span className="text-[11px] text-red-400 flex items-center gap-1">
-              <XCircle className="size-3" />Failed
+          {result?.kind === "failed" && (
+            <span
+              className="text-[11px] text-red-400 flex items-center gap-1 max-w-[160px] truncate"
+              title={result.detail || "Uninstall failed"}
+            >
+              <XCircle className="size-3 shrink-0" />
+              {result.detail ? `Failed: ${result.detail}` : "Failed"}
             </span>
           )}
           {isProcessing ? (
@@ -322,6 +352,17 @@ function AppRow({
   );
 }
 
+// ── Failure label helper ──────────────────────────────────────────────────────
+
+function buildFailureLabel(res: UninstallResult): string {
+  if (res.errorDetail) return res.errorDetail;
+  if (res.error)       return res.error;
+  if (res.exitCode !== undefined && res.exitCode !== null) {
+    return `Exit code ${res.exitCode}`;
+  }
+  return res.status || "Uninstall failed";
+}
+
 // ── InstalledAppsPanel ────────────────────────────────────────────────────────
 
 export function InstalledAppsPanel() {
@@ -336,7 +377,7 @@ export function InstalledAppsPanel() {
   const [sort,          setSort]          = useState<SortType>("name");
   const [confirmApp,    setConfirmApp]    = useState<InstalledApp | null>(null);
   const [uninstallingId, setUninstallingId] = useState<string | null>(null);
-  const [results,       setResults]       = useState<Record<string, "removed" | "failed" | "pending">>({});
+  const [results,       setResults]       = useState<Record<string, AppResult>>({});
 
   const isElectronAvail = typeof window !== "undefined" && !!getInstalledAppsAPI();
 
@@ -364,14 +405,16 @@ export function InstalledAppsPanel() {
     const api = getInstalledAppsAPI();
     setConfirmApp(null);
     setUninstallingId(app.id);
-    setResults(prev => ({ ...prev, [app.id]: "pending" }));
+    setResults(prev => ({ ...prev, [app.id]: { kind: "pending" } }));
 
     try {
       const res = await api!.uninstall(app);
-      const status: "removed" | "failed" = res.ok ? "removed" : "failed";
-      setResults(prev => ({ ...prev, [app.id]: status }));
 
-      if (res.ok) {
+      if (res.ok && res.requiresRestart) {
+        setResults(prev => ({ ...prev, [app.id]: { kind: "restart-required" } }));
+        // Keep in list — user should know a restart is needed
+      } else if (res.ok) {
+        setResults(prev => ({ ...prev, [app.id]: { kind: "removed" } }));
         setApps(prev => prev.filter(a => a.id !== app.id));
         applyAction(
           `Uninstalled ${app.name}`,
@@ -388,9 +431,13 @@ export function InstalledAppsPanel() {
             status: "removed", source: "InstalledApps",
           }),
         }).catch(() => {});
+      } else {
+        // Build a concise user-facing failure reason
+        const detail = buildFailureLabel(res);
+        setResults(prev => ({ ...prev, [app.id]: { kind: "failed", detail } }));
       }
     } catch (e: any) {
-      setResults(prev => ({ ...prev, [app.id]: "failed" }));
+      setResults(prev => ({ ...prev, [app.id]: { kind: "failed", detail: e?.message ?? "Unexpected error" } }));
     } finally {
       setUninstallingId(null);
     }
@@ -398,7 +445,7 @@ export function InstalledAppsPanel() {
 
   // ── Computed ────────────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    let list = apps.filter(a => results[a.id] !== "removed");
+    let list = apps.filter(a => results[a.id]?.kind !== "removed");
 
     if (search.trim()) {
       const q = search.toLowerCase();

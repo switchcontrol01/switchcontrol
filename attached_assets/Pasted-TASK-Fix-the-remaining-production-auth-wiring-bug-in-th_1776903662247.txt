@@ -1,0 +1,87 @@
+TASK
+Fix the remaining production auth wiring bug in the packaged Electron app.
+
+PROBLEM
+Backend startup is now clean, but runtime logs still show repeated real auth failures:
+
+- [AUTH] JWT verification failed: invalid signature
+- [CloudAuth] Invalid/expired JWT — falling through to session check | ip=127.0.0.1
+
+This is happening after startup, during normal app use.
+
+That means the Electron frontend is still sending a JWT that the local embedded backend cannot verify.
+
+This is not acceptable for release because it causes:
+- auth error spam
+- pointless CPU/request churn
+- confusing trust-boundary behavior
+- possible hidden feature failures
+
+GOAL
+Make local Electron backend requests stop sending the wrong bearer token.
+Cloud JWTs must only go to the real cloud API, not to the embedded localhost backend unless explicitly designed for that exact route and signed with the same secret.
+
+REQUIRED INVESTIGATION
+1. Find every place in client/src where Authorization headers or bearer tokens are attached automatically.
+2. Find every shared fetch wrapper / API helper / interceptor.
+3. Identify which requests are going to:
+   - localhost embedded backend
+   - switchcontrol.org cloud backend
+4. Find which routes are triggering the invalid-signature spam around:
+   - 00:13:44
+   - 00:13:46
+   - 00:15:43
+   - 00:15:47
+
+REQUIRED FIXES
+1. Add precise logging in requireCloudAuth.ts
+   On JWT verification failure, log:
+   - request method
+   - request path
+   - whether Authorization header was present
+   - whether session cookie was present
+   - whether ELECTRON_BACKEND=1
+   Do not log raw token contents.
+
+2. Fix request routing so cloud JWT is NOT attached to localhost embedded backend requests by default.
+   If there is a shared fetch helper, it must branch cleanly:
+   - cloud API requests → may attach cloud bearer token
+   - embedded localhost requests → do not attach cloud bearer token unless explicitly required
+
+3. Audit all routes using requireCloudAuth.
+   Confirm whether any embedded-backend-only routes are incorrectly guarded with cloud JWT auth middleware.
+   If a route is intended for local Electron backend use, it must not depend on a cloud-signed JWT unless that is explicitly supported end to end.
+
+4. Remove repeated fallback churn.
+   If JWT verification fails on localhost and the route is not supposed to use cloud bearer auth, the request path should be corrected instead of repeatedly falling through.
+
+5. Verify no repeated auth spam remains in logs during:
+   - app idle
+   - opening App Booster
+   - opening Focus Mode
+   - opening Network Tweaks
+   - opening Security page
+   - returning to app after idle
+
+FILES TO CHECK
+- server/middleware/requireCloudAuth.ts
+- server/lib/jwt.ts
+- client/src/lib/queryClient.ts
+- client/src/lib/auth-store.ts
+- client/src/lib/api.ts
+- client/src/lib/cloud-api.ts
+- any shared fetch wrapper or request interceptor in client/src
+- any Electron/local API bridge code that decides base URLs
+
+RETURN
+- exact file(s) that were wrongly attaching the token
+- exact route(s) that were causing the spam
+- exact fix made
+- proof from fresh packaged logs that the invalid-signature spam is gone
+
+ACCEPTANCE
+Release is only acceptable if packaged logs no longer show repeated:
+- [AUTH] JWT verification failed: invalid signature
+- [CloudAuth] Invalid/expired JWT — falling through to session check
+
+during normal app usage.
