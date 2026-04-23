@@ -414,6 +414,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     previewRevert:        () => ipcRenderer.invoke('premium:previewRevert'),
     getOwnership:         () => ipcRenderer.invoke('premium:getOwnership'),
     powerPlanSanityCheck: () => ipcRenderer.invoke('premium:powerPlanSanityCheck'),
+    cleanupScPlans:       () => ipcRenderer.invoke('premium:cleanupScPlans'),
   },
 
   // ── Updater — renderer reads state, main process owns all logic ─────────────

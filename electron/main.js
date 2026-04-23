@@ -2642,6 +2642,20 @@ ipcMain.handle('premium:powerPlanSanityCheck', async () => {
   }
 });
 
+// Clean up all orphaned/duplicate SwitchControl power plans from Windows.
+// Safe to call at any time — skips the currently active plan.
+ipcMain.handle('premium:cleanupScPlans', async () => {
+  console.log('[IPC] premium:cleanupScPlans — deleting orphaned SC power plans');
+  try {
+    const result = await powerPlanManager.deleteAllScPlans();
+    console.log(`[IPC] premium:cleanupScPlans done — deleted=${result.deleted.length} skipped=${result.skipped.length} errors=${result.errors.length}`);
+    return { success: true, ...result };
+  } catch (e) {
+    console.error('[IPC] premium:cleanupScPlans error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
 // Auth: Clear cookies for the backend domain
 ipcMain.handle('auth:clearCookies', async () => {
   console.log('[Auth] auth:clearCookies IPC called');

@@ -307,6 +307,18 @@ async function revertPowerPlan(record) {
         console.log(`[RevertPipeline] power_plan — activated ${targetGuid} (changed=true)`);
       }
       ownershipStore.recordRevert(scopeKey);
+
+      // Fire-and-forget: delete all lingering SC plans from Windows.
+      // Non-blocking — a failure here must not break the revert result.
+      mgr.deleteAllScPlans().then(cleanup => {
+        console.log(
+          `[RevertPipeline] power_plan cleanup — deleted=${cleanup.deleted.length}` +
+          ` skipped=${cleanup.skipped.length} errors=${cleanup.errors.length}`
+        );
+      }).catch(e => {
+        console.warn('[RevertPipeline] power_plan cleanup threw (non-fatal):', e.message);
+      });
+
       return {
         ok: true,
         success: true,
@@ -331,6 +343,9 @@ async function revertPowerPlan(record) {
           console.log('[RevertPipeline] power_plan — restoredefaultschemes invoked and fallback Balanced activated');
         }
         ownershipStore.recordRevert(scopeKey);
+        mgr.deleteAllScPlans().then(c => {
+          console.log(`[RevertPipeline] power_plan cleanup (fallback) — deleted=${c.deleted.length} skipped=${c.skipped.length} errors=${c.errors.length}`);
+        }).catch(e => console.warn('[RevertPipeline] power_plan cleanup (fallback) threw:', e.message));
         return {
           ok: true,
           success: true,
@@ -487,6 +502,13 @@ async function runStartupPowerPlanSanityCheck() {
   // Dual check: GUID match (primary) OR name prefix match (fallback for reinstall)
   if (!currentGuid || !isSwitchControlPlanGuid(currentGuid, currentName)) {
     console.log(`[Sanity] Power plan check clean — active plan is not SC-managed (guid=${currentGuid} name="${currentName}")`);
+    // Even when the active plan is clean, sweep for orphaned SC plans left from
+    // previous installs (duplicates in Power Options) and delete them silently.
+    mgr.deleteAllScPlans().then(c => {
+      if (c.deleted.length > 0) {
+        console.log(`[Sanity] Orphan cleanup on clean startup — deleted=${c.deleted.length} plans`);
+      }
+    }).catch(() => {/* non-fatal */});
     return { checked: true, action: 'clean', activeGuid: currentGuid, activeName: currentName };
   }
 
@@ -499,7 +521,11 @@ async function runStartupPowerPlanSanityCheck() {
       // Clear any stale ownership record so the report doesn't re-trigger
       const scopeKey = ownershipStore.buildScopeKey('power_plan', 'active-scheme');
       ownershipStore.recordRevert(scopeKey);
-      console.log(`[Sanity] Forced Windows Balanced successfully. Removed SC plan: "${currentName}" (${currentGuid})`);
+      console.log(`[Sanity] Forced Windows Balanced successfully. Was: "${currentName}" (${currentGuid})`);
+      // Delete all lingering SC plans (non-blocking, non-fatal).
+      mgr.deleteAllScPlans().then(c => {
+        console.log(`[Sanity] SC plan cleanup — deleted=${c.deleted.length} skipped=${c.skipped.length} errors=${c.errors.length}`);
+      }).catch(e => console.warn('[Sanity] SC plan cleanup threw (non-fatal):', e.message));
       return { checked: true, action: 'forced_balanced', activeGuid: currentGuid, activeName: currentName };
     }
     console.error(`[Sanity] Failed to force Windows Balanced: ${result.error}`);

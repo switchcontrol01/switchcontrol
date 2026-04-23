@@ -403,7 +403,28 @@ async function ensureSwitchControlScheme(profileId) {
       } catch { /* non-critical, ignore */ }
       return existingGuid.toLowerCase();
     }
-    console.warn(`[PowerPlan] Stored GUID ${existingGuid} no longer exists — will recreate`);
+    console.warn(`[PowerPlan] Stored GUID ${existingGuid} no longer exists — will scan for orphaned SC plan`);
+  }
+
+  // Before creating a new plan, check if an orphaned SC plan with the same name
+  // already exists on Windows (e.g. from a previous install where state was cleared).
+  // Adopting it avoids accumulating duplicate plans in Power Options.
+  try {
+    const listResult = await listPowerSchemes();
+    const orphan = listResult.schemes?.find(
+      s => s.name && s.name.toLowerCase() === profile.scName.toLowerCase()
+    );
+    if (orphan) {
+      const orphanGuid = orphan.guid.toLowerCase();
+      console.log(
+        `[PowerPlan] Found orphaned SC plan "${orphan.name}" (${orphanGuid}) — adopting instead of creating new`
+      );
+      const newState = { ...loadState(), schemeGuids: { ...(loadState().schemeGuids || {}), [profileId]: orphanGuid } };
+      saveState(newState);
+      return orphanGuid;
+    }
+  } catch (e) {
+    console.warn('[PowerPlan] Orphan scan failed — will proceed to create new plan:', e.message);
   }
 
   // Need to duplicate the base plan (requires admin)
@@ -702,6 +723,89 @@ async function activatePlanByGuid(guid) {
   return { ok: true, changed: true, activeScheme: verifyResult.scheme };
 }
 
+// ── SC plan cleanup ───────────────────────────────────────────────────────────
+
+const SC_PLAN_NAME_PREFIX = 'SwitchControl -';
+
+/**
+ * Delete all SwitchControl-managed power plans from Windows except the one
+ * currently active (never delete an active plan — Windows rejects the call).
+ *
+ * Called after revert to prevent the accumulation of orphaned SC plans in
+ * Power Options. Also safe to call standalone as a manual cleanup.
+ *
+ * @returns {{ deleted: string[], skipped: string[], errors: string[] }}
+ */
+async function deleteAllScPlans() {
+  const deleted  = [];
+  const skipped  = [];
+  const errors   = [];
+
+  let activeGuid = null;
+  try {
+    const cur = await getActivePowerScheme();
+    activeGuid = cur.scheme?.guid?.toLowerCase() ?? null;
+  } catch { /* non-fatal — just won't skip active */ }
+
+  let schemes = [];
+  try {
+    const listResult = await listPowerSchemes();
+    schemes = listResult.schemes || [];
+  } catch (e) {
+    return { deleted, skipped, errors: [`listPowerSchemes failed: ${e.message}`] };
+  }
+
+  const scSchemes = schemes.filter(s => s.name && s.name.startsWith(SC_PLAN_NAME_PREFIX));
+
+  if (scSchemes.length === 0) {
+    console.log('[PowerPlan] deleteAllScPlans: no SC plans found on system');
+    return { deleted, skipped, errors };
+  }
+
+  const isAdmin = await checkIsAdmin();
+
+  for (const scheme of scSchemes) {
+    const guid = scheme.guid.toLowerCase();
+    if (guid === activeGuid) {
+      // Windows will refuse to delete the active plan — skip it.
+      console.log(`[PowerPlan] deleteAllScPlans: skipping active plan "${scheme.name}" (${guid})`);
+      skipped.push(guid);
+      continue;
+    }
+    try {
+      if (isAdmin) {
+        const { execFileSync } = require('child_process');
+        execFileSync('powercfg', ['/delete', guid], { stdio: 'pipe', windowsHide: true });
+      } else {
+        const result = await runElevatedCommands([`powercfg /delete ${guid}`]);
+        if (!result.ok) throw new Error(result.error || 'Elevation failed');
+      }
+      console.log(`[PowerPlan] deleteAllScPlans: deleted "${scheme.name}" (${guid})`);
+      deleted.push(guid);
+    } catch (e) {
+      console.error(`[PowerPlan] deleteAllScPlans: failed to delete "${scheme.name}" (${guid}): ${e.message}`);
+      errors.push(guid);
+    }
+  }
+
+  // Clear stale GUIDs from power-plans.json that no longer exist on Windows.
+  try {
+    const state = loadState();
+    if (state.schemeGuids) {
+      const cleaned = {};
+      for (const [pid, g] of Object.entries(state.schemeGuids)) {
+        if (!deleted.includes(String(g).toLowerCase())) {
+          cleaned[pid] = g;
+        }
+      }
+      saveState({ ...state, schemeGuids: cleaned });
+    }
+  } catch { /* non-critical */ }
+
+  console.log(`[PowerPlan] deleteAllScPlans: deleted=${deleted.length} skipped=${skipped.length} errors=${errors.length}`);
+  return { deleted, skipped, errors };
+}
+
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
 
 const ownershipStore = require('./ownership-store');
@@ -787,4 +891,5 @@ module.exports = {
   listSchemesForFrontend,
   getActivePowerScheme,
   getStoredSchemeGuids,
+  deleteAllScPlans,
 };
