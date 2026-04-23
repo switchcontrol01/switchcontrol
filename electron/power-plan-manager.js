@@ -599,17 +599,23 @@ const BALANCED_GUID = BUILTIN_GUIDS.balanced; // '381b4222-f694-41f0-9685-ff5bb2
  * Guarantees:
  *   1. If the target GUID is already active, returns immediately without any
  *      system call or UAC prompt (avoids unnecessary elevation).
- *   2. If activation of BALANCED_GUID fails (plan deleted), runs
+ *      → { ok: true, alreadyActive: true, changed: false }
+ *
+ *   2. If activation of BALANCED_GUID fails (plan deleted), invokes
  *      `powercfg -restoredefaultschemes` to restore Windows built-in plans,
- *      then retries — never relies on plan names.
+ *      then retries exactly once — never relies on plan names.
+ *      Success → { ok: true, restoredDefaults: true, retried: true, changed: true }
+ *      Failure → { ok: false, restoredDefaultsAttempted: true, error }
  *
  * @param {string} guid — must be a valid UUID
- * @returns {{ success, activeScheme?, alreadyActive?, error? }}
+ * @returns {{ ok: boolean, changed?: boolean, alreadyActive?: boolean,
+ *             restoredDefaults?: boolean, restoredDefaultsAttempted?: boolean,
+ *             retried?: boolean, activeScheme?: object, error?: string }}
  */
 async function activatePlanByGuid(guid) {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (!guid || !UUID_RE.test(guid.trim())) {
-    return { success: false, error: `Invalid GUID: ${guid}` };
+    return { ok: false, error: `Invalid GUID: ${guid}` };
   }
   const cleanGuid = guid.trim().toLowerCase();
 
@@ -617,8 +623,11 @@ async function activatePlanByGuid(guid) {
   try {
     const current = await getActivePowerScheme();
     if (current.success && current.scheme?.guid === cleanGuid) {
-      console.log(`[PowerPlan] activatePlanByGuid: ${cleanGuid} is already the active plan — skipping`);
-      return { success: true, activeScheme: current.scheme, alreadyActive: true };
+      console.log(
+        `[PowerPlan] activatePlanByGuid: ${cleanGuid} is already the active plan` +
+        ` — revert skipped because already active (no UAC / no powercfg spawn)`
+      );
+      return { ok: true, alreadyActive: true, changed: false, activeScheme: current.scheme };
     }
   } catch (e) {
     // Non-fatal — cannot confirm pre-state, proceed with activation attempt
@@ -648,6 +657,8 @@ async function activatePlanByGuid(guid) {
   }
 
   // ── Activation attempt ─────────────────────────────────────────────────────
+  let restoredDefaults = false;
+
   try {
     await runSetActive(cleanGuid);
   } catch (firstErr) {
@@ -657,21 +668,24 @@ async function activatePlanByGuid(guid) {
     if (cleanGuid === BALANCED_GUID) {
       console.warn(
         `[PowerPlan] activatePlanByGuid: Balanced activation failed (${firstErr.message})` +
-        ` — running powercfg -restoredefaultschemes then retrying`
+        ` — invoking powercfg -restoredefaultschemes then retrying (once)`
       );
       try {
         await runRestoreDefaultSchemes();
         console.log('[PowerPlan] activatePlanByGuid: restoredefaultschemes completed — retrying setactive');
+        restoredDefaults = true;
         await runSetActive(cleanGuid);
-        console.log('[PowerPlan] activatePlanByGuid: Balanced plan restored and activated successfully');
+        console.log('[PowerPlan] activatePlanByGuid: retry success — Balanced plan restored and activated');
       } catch (restoreErr) {
+        console.error('[PowerPlan] activatePlanByGuid: retry after restoredefaultschemes also failed —', restoreErr.message);
         return {
-          success: false,
+          ok: false,
+          restoredDefaultsAttempted: true,
           error: `Balanced activation failed; restoredefaultschemes + retry also failed: ${restoreErr.message} (original: ${firstErr.message})`,
         };
       }
     } else {
-      return { success: false, error: firstErr.message };
+      return { ok: false, error: firstErr.message };
     }
   }
 
@@ -679,9 +693,13 @@ async function activatePlanByGuid(guid) {
   const verifyResult = await getActivePowerScheme();
   const activeGuid = verifyResult.scheme?.guid ?? '';
   if (activeGuid !== cleanGuid) {
-    return { success: false, error: `Set GUID but verification failed — active=${activeGuid}, expected=${cleanGuid}` };
+    return { ok: false, error: `Set GUID but verification failed — active=${activeGuid}, expected=${cleanGuid}` };
   }
-  return { success: true, activeScheme: verifyResult.scheme };
+
+  if (restoredDefaults) {
+    return { ok: true, restoredDefaults: true, retried: true, changed: true, activeScheme: verifyResult.scheme };
+  }
+  return { ok: true, changed: true, activeScheme: verifyResult.scheme };
 }
 
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
@@ -717,6 +735,10 @@ async function applyPowerProfileWithOwnership(profileId) {
           previousPlanGuid: active.scheme.guid,
           previousValue:   { guid: active.scheme.guid, name: active.scheme.name },
         });
+        console.log(
+          `[PowerPlan] previousPlanGuid captured: ${active.scheme.guid}` +
+          ` (name: "${active.scheme.name}") — will restore here on revert`
+        );
       } else {
         console.warn('[PowerPlan] could not read active scheme for baseline:', active.error);
       }
@@ -735,6 +757,10 @@ async function applyPowerProfileWithOwnership(profileId) {
       appliedPlanGuid:   result.activeScheme?.guid || null,
       verificationState: result.verified ? 'verified' : 'unverified',
     });
+    console.log(
+      `[PowerPlan] premium plan applied: profileId=${profileId}` +
+      ` guid=${result.activeScheme?.guid || '(unknown)'} — appliedByApp=true recorded`
+    );
   }
 
   return result;
