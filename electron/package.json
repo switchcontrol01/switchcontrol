@@ -46,6 +46,7 @@
       "ownership-store.js",
       "backend-launcher.js",
       "config-store.js",
+      "critical-logger.js",
       "security-helper.js",
       "debloat-helper.js",
       "cleaner-helper.js",
