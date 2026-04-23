@@ -1,0 +1,157 @@
+TASK
+
+Turn AI Advisor into a full-system advisor with complete app awareness.
+
+PROBLEM
+
+The current AI Advisor is too blind.
+It cannot answer questions about parts of the system that SwitchControl already knows elsewhere.
+
+Example:
+- user asks if monitor/display signal is good
+- display signal data exists in dashboard/system APIs
+- AI Advisor still says it cannot check it
+
+That means the advisor is not getting the full application context.
+
+It also needs awareness of:
+- enabled tweaks
+- disabled tweaks
+- reverted tweaks
+- network tweaks
+- NIC tuning state
+- power plan state
+- cleaner results
+- debloat state
+- BIOS advisor results
+- dashboard intelligence
+- verification status
+- action history
+- user-triggered changes across the whole app
+
+GOAL
+
+Make AI Advisor a true global advisor for SwitchControl.
+
+It must be able to reason across:
+- system hardware
+- live telemetry
+- display signal
+- tweak state
+- network state
+- startup state
+- history
+- BIOS results
+- premium/trial state
+- revert state
+- verification state
+- app actions
+
+It should answer based on real internal state, not isolated page-only context.
+
+HARD RULES
+
+1. AI Advisor must have a unified context source.
+2. It must read from backend aggregators, not from scattered frontend-only state.
+3. It must be able to explain:
+   - what is currently enabled
+   - what was previously changed
+   - what is verified
+   - what is risky
+   - what is missing
+4. It must never claim “I cannot check X” if SwitchControl already has that data.
+5. Auto-apply / auto-enable actions must be optional, gated, safe, and logged.
+
+FILES TO AUDIT
+
+- client/src/pages/AiAdvisor.tsx
+- client/src/components/AiAdvisor*
+- server/routes.ts
+- server/routes/ai*.ts
+- server/routes/advisor*.ts
+- any AI advisor service / prompt builder
+- system intelligence routes
+- dashboard intelligence routes
+- BIOS advisor routes
+- tweak state / history routes
+- network tweak routes
+- NIC routes
+- cleaner routes
+- debloat routes
+- power plan routes
+- startup routes
+- app booster routes
+- focus routes
+- any IPC bridge used to expose desktop/system state
+
+SECTION 1 — BUILD A UNIFIED ADVISOR CONTEXT ENDPOINT
+
+Create one backend aggregator for AI Advisor, for example:
+
+GET /api/ai-advisor/context
+
+This endpoint should assemble one canonical context object from all relevant internal sources.
+
+It must include at minimum:
+
+1. system
+- cpu
+- gpu
+- ram
+- motherboard
+- bios version
+- storage
+- network adapters
+- monitor/display signal
+- refresh rate / resolution / connection type / quality score
+
+2. telemetry
+- cpu load
+- memory pressure
+- process count
+- network activity
+- trend
+- instability signals
+
+3. tweaks
+- all tweak IDs
+- verified applied state
+- pending state
+- failed state
+- reverted state
+- ownership / trial / premium source if relevant
+
+4. network and NIC
+- network tweaks applied
+- NIC properties
+- driver / link speed / duplex / offload / RSS / buffers if available
+- ping sample / latency sample if available
+
+5. power
+- current power plan
+- whether it is Windows default or SwitchControl-managed
+- trial expiry revert target if relevant
+
+6. cleaner / debloat / startup
+- recent scan summaries
+- selected items
+- applied actions
+- startup profile state
+
+7. BIOS
+- BIOS advisor scores
+- latest scan result
+- last explained settings
+- confidence / missing data
+
+8. history
+- recent user actions
+- recent apply/revert events
+- recent verification events
+- recent failures
+
+9. account / entitlement
+- logged in state
+- premium / trial / expired
+- revert pending / recently reverted
+

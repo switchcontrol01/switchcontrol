@@ -41,6 +41,11 @@ export interface DetectedIssue {
 // Known-bad power plan names — only flag these, never flag custom/gaming plans
 const BAD_POWER_PLAN_KEYWORDS = ["balanced", "power saver", "powersaver", "economy", "eco mode"];
 
+// Helper: tweak is confirmed OFF (in store as false — synced from registry in Electron)
+function off(states: Record<string, boolean>, id: string): boolean {
+  return states[id] === false;
+}
+
 router.post("/detect", (req, res) => {
   try {
     const {
@@ -288,35 +293,41 @@ router.post("/detect", (req, res) => {
       });
     }
 
-    // ── Tweak-linked issues (only when real tweak state is known) ─────────────
+    // ── Power Plan ────────────────────────────────────────────────────────────
+    // Only flag KNOWN bad plan names (balanced, power saver) — never flag custom
+    // gaming/performance plans created by SwitchControl or other tools.
 
-    if (tweakStates["game-bar"] === false) {
-      issues.push({
-        id: "game-bar-enabled",
-        category: "services",
-        severity: "low",
-        confidence: "confirmed",
-        title: "Xbox Game Bar Is Running",
-        reason: "Game Bar keeps background recording and overlay processes active at all times.",
-        impact: "Constant background CPU draw; accidental Win+G presses can cause stutters.",
-        recommendedAction: "Disable Game Bar via the Tweaks page (Services category).",
-        linkedTweakIds: ["game-bar"],
-        autoFixAvailable: true,
-      });
+    if (powerPlanName && typeof powerPlanName === "string") {
+      const nameLower = powerPlanName.toLowerCase();
+      const isKnownBad = BAD_POWER_PLAN_KEYWORDS.some((kw) => nameLower.includes(kw));
+      if (isKnownBad) {
+        issues.push({
+          id: "suboptimal-power-plan",
+          category: "cpu",
+          severity: "medium",
+          confidence: "confirmed",
+          title: `Power Plan: "${powerPlanName}"`,
+          reason: "A balanced or power-saver plan throttles CPU frequency scaling, which increases DPC latency and limits boost clock duration.",
+          impact: "Noticeable input latency increases; CPU may not maintain peak clock during sustained loads.",
+          recommendedAction: "Switch to High Performance or Ultimate Performance via the Power Plan page.",
+          autoFixAvailable: false,
+        });
+      }
     }
 
-    if (tweakStates["delivery-optimization"] === false) {
+    // ── Startup Apps ──────────────────────────────────────────────────────────
+
+    if (typeof startupAppCount === "number" && startupAppCount > 12) {
       issues.push({
-        id: "delivery-opt-on",
-        category: "network",
-        severity: "low",
+        id: "too-many-startup-apps",
+        category: "startup",
+        severity: startupAppCount > 20 ? "high" : "medium",
         confidence: "confirmed",
-        title: "Delivery Optimization Uploading to Other PCs",
-        reason: "Windows Update Delivery Optimization uses your upload bandwidth to distribute updates to other devices.",
-        impact: "Can spike upload during gameplay, increasing effective ping and causing packet loss.",
-        recommendedAction: "Disable Delivery Optimization in Tweaks (Network category).",
-        linkedTweakIds: ["delivery-optimization"],
-        autoFixAvailable: true,
+        title: `${startupAppCount} Apps Launch at Startup`,
+        reason: "Each startup app consumes CPU, memory, and disk on boot — and many continue running in background.",
+        impact: "Slower boot, increased background RAM and CPU consumption during gaming sessions.",
+        recommendedAction: "Review and disable unnecessary entries on the Startup Apps page.",
+        autoFixAvailable: false,
       });
     }
 
@@ -356,41 +367,250 @@ router.post("/detect", (req, res) => {
       }
     }
 
-    // ── Power Plan ────────────────────────────────────────────────────────────
-    // Only flag KNOWN bad plan names (balanced, power saver) — never flag custom
-    // gaming/performance plans created by SwitchControl or other tools.
+    // ── Tweak-linked issues ───────────────────────────────────────────────────
+    // These fire when a tweak is CONFIRMED off (value === false, synced from
+    // registry in Electron mode). They are silent in web / unauthenticated mode.
 
-    if (powerPlanName && typeof powerPlanName === "string") {
-      const nameLower = powerPlanName.toLowerCase();
-      const isKnownBad = BAD_POWER_PLAN_KEYWORDS.some((kw) => nameLower.includes(kw));
-      if (isKnownBad) {
-        issues.push({
-          id: "suboptimal-power-plan",
-          category: "cpu",
-          severity: "medium",
-          confidence: "confirmed",
-          title: `Power Plan: "${powerPlanName}"`,
-          reason: "A balanced or power-saver plan throttles CPU frequency scaling, which increases DPC latency and limits boost clock duration.",
-          impact: "Noticeable input latency increases; CPU may not maintain peak clock during sustained loads.",
-          recommendedAction: "Switch to High Performance or Ultimate Performance via the Power Plan page.",
-          autoFixAvailable: false,
-        });
-      }
+    // CPU / Latency
+    if (off(tweakStates, "timer-res")) {
+      issues.push({
+        id: "timer-res-off",
+        category: "cpu",
+        severity: "high",
+        confidence: "confirmed",
+        title: "Timer Resolution at Default 15.6ms",
+        reason: "Windows runs its global scheduler timer at 15.625ms by default. Every sleep, frame vsync wait, and input poll is rounded to this quantum.",
+        impact: "Frame delivery timing inaccuracies up to 15ms per tick; input latency spikes and inconsistent wakeup timing for the game loop.",
+        recommendedAction: "Enable Timer Resolution in Tweaks → CPU to pin Windows to 0.5ms resolution.",
+        linkedTweakIds: ["timer-res"],
+        autoFixAvailable: true,
+      });
     }
 
-    // ── Startup Apps ──────────────────────────────────────────────────────────
-
-    if (typeof startupAppCount === "number" && startupAppCount > 12) {
+    if (off(tweakStates, "synth-timers")) {
       issues.push({
-        id: "too-many-startup-apps",
-        category: "startup",
-        severity: startupAppCount > 20 ? "high" : "medium",
+        id: "synth-timers-on",
+        category: "cpu",
+        severity: "medium",
         confidence: "confirmed",
-        title: `${startupAppCount} Apps Launch at Startup`,
-        reason: "Each startup app consumes CPU, memory, and disk on boot — and many continue running in background.",
-        impact: "Slower boot, increased background RAM and CPU consumption during gaming sessions.",
-        recommendedAction: "Review and disable unnecessary entries on the Startup Apps page.",
-        autoFixAvailable: false,
+        title: "Hyper-V Synthetic Timer Drivers Loaded",
+        reason: "Synthetic timer drivers remain registered even when Hyper-V is disabled, adding an extra layer of interrupt abstraction.",
+        impact: "Measurable DPC latency increase on timer interrupts — shows up in LatencyMon as elevated timer DPC times.",
+        recommendedAction: "Disable synthetic timer drivers via Tweaks → CPU.",
+        linkedTweakIds: ["synth-timers"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "irq-priority")) {
+      issues.push({
+        id: "irq-priority-default",
+        category: "cpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "IRQ / DPC Priority Not Elevated",
+        reason: "Default Windows IRQ priority leaves game-related hardware interrupts competing with lower-priority device driver DPCs.",
+        impact: "Higher DPC latency; uneven frame pacing in latency-sensitive titles — typically 200–600µs of jitter measurable in LatencyMon.",
+        recommendedAction: "Raise IRQ / DPC priority via Tweaks → CPU.",
+        linkedTweakIds: ["irq-priority"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "mmcss-gaming")) {
+      issues.push({
+        id: "mmcss-not-configured",
+        category: "cpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "MMCSS Gaming Thread Profile Not Configured",
+        reason: "The Multimedia Class Scheduler Gaming profile controls thread priority and CPU quantum allocation for foreground tasks. Default Windows values leave headroom reserved for background services.",
+        impact: "Foreground game threads may not receive maximum scheduler priority — causing irregular frame timing and potential audio glitches.",
+        recommendedAction: "Apply the MMCSS Gaming profile via Tweaks → CPU.",
+        linkedTweakIds: ["mmcss-gaming"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "p-states")) {
+      issues.push({
+        id: "p-states-on",
+        category: "cpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "CPU P-States (Frequency Stepping) Active",
+        reason: "P-States allow the processor to drop to lower frequency states between workloads to save power. Each P-State transition adds a brief latency penalty during re-ramp.",
+        impact: "Clock speed dips during brief idle moments within frame render — directly measurable as frame time spikes and DPC latency variance.",
+        recommendedAction: "Disable CPU P-States via Tweaks → CPU.",
+        linkedTweakIds: ["p-states"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "power-throttling")) {
+      issues.push({
+        id: "power-throttling-on",
+        category: "cpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "CPU Power Throttling (EcoQoS) Active",
+        reason: "Windows EcoQoS silently throttles CPU threads it classifies as non-interactive — and some game engine threads are misclassified.",
+        impact: "Unpredictable CPU clock reduction on game threads; most noticeable as stutter on CPU-bound titles.",
+        recommendedAction: "Disable Power Throttling via Tweaks → CPU.",
+        linkedTweakIds: ["power-throttling"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "win32-priority-sep")) {
+      issues.push({
+        id: "win32-priority-sep-default",
+        category: "cpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "Win32 Priority Separation Not Gaming-Optimized",
+        reason: "Win32PrioritySeparation controls how aggressively Windows boosts foreground thread priority. The default value (2) gives modest boost; the gaming value gives maximum foreground priority.",
+        impact: "Game threads compete more equally with background processes for CPU time — causing frame timing variance.",
+        recommendedAction: "Set Win32 Priority Separation to gaming value via Tweaks → CPU.",
+        linkedTweakIds: ["win32-priority-sep"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "sys-responsiveness")) {
+      issues.push({
+        id: "sys-responsiveness-default",
+        category: "cpu",
+        severity: "low",
+        confidence: "confirmed",
+        title: "MMCSS System Responsiveness at Default",
+        reason: "SystemResponsiveness controls what percentage of CPU time MMCSS reserves for background tasks. Default (20%) leaves significant CPU budget for non-game processes.",
+        impact: "Background services can claim up to 20% of scheduler time even when a game is in the foreground.",
+        recommendedAction: "Reduce MMCSS system responsiveness via Tweaks → CPU.",
+        linkedTweakIds: ["sys-responsiveness"],
+        autoFixAvailable: true,
+      });
+    }
+
+    // GPU
+    if (off(tweakStates, "disable-mpo")) {
+      issues.push({
+        id: "mpo-enabled",
+        category: "gpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "Multi-Plane Overlay (MPO) Enabled",
+        reason: "MPO is a GPU compositing feature with a known bug in Windows 10/11 DX12/WDDM drivers causing black screen flashes and frame drops on many GPU models.",
+        impact: "Random black screen flashes, frame drops, and compositor-related stutters — most common on NVIDIA hardware in multi-monitor setups.",
+        recommendedAction: "Disable MPO via Tweaks → GPU.",
+        linkedTweakIds: ["disable-mpo"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "disable-fso")) {
+      issues.push({
+        id: "fso-enabled",
+        category: "gpu",
+        severity: "medium",
+        confidence: "confirmed",
+        title: "Full Screen Optimizations Not Disabled",
+        reason: "Windows Full Screen Optimizations override exclusive fullscreen with a borderless-like mode, inserting the DWM compositor into the frame path.",
+        impact: "Adds 1–3 frames of display pipeline latency vs. true exclusive fullscreen. Blocks some DX11 optimizations and can interfere with G-Sync/FreeSync.",
+        recommendedAction: "Disable Full Screen Optimizations via Tweaks → GPU.",
+        linkedTweakIds: ["disable-fso"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "pcie-link-state")) {
+      issues.push({
+        id: "pcie-link-state-on",
+        category: "gpu",
+        severity: "low",
+        confidence: "confirmed",
+        title: "PCIe Link State Power Management Active",
+        reason: "PCIe ASPM allows the PCIe bus to enter low-power states between GPU data transfers. Recovery from L1 state adds latency.",
+        impact: "Micro-stutters visible when GPU rapidly transitions between idle and active PCIe states — especially at the start of a burst workload.",
+        recommendedAction: "Disable PCIe Link State power management via Tweaks → Power.",
+        linkedTweakIds: ["pcie-link-state"],
+        autoFixAvailable: true,
+      });
+    }
+
+    // Services / Game features
+    if (off(tweakStates, "xbox-bar")) {
+      issues.push({
+        id: "xbox-bar-running",
+        category: "services",
+        severity: "low",
+        confidence: "confirmed",
+        title: "Xbox Game Bar Running in Background",
+        reason: "Game Bar keeps background recording, overlay, and social features active at all times — regardless of whether you use them.",
+        impact: "Constant background CPU draw; accidental Win+G presses cause overlay stutters; recording buffers consume RAM.",
+        recommendedAction: "Disable Xbox Game Bar via Tweaks → Services.",
+        linkedTweakIds: ["xbox-bar"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "xbox-services")) {
+      issues.push({
+        id: "xbox-services-running",
+        category: "services",
+        severity: "low",
+        confidence: "confirmed",
+        title: "Xbox Background Services Running",
+        reason: "Xbox Identity Provider and Xbox Live services run background processes continuously regardless of whether Xbox features are used.",
+        impact: "Ongoing background CPU and memory consumption; occasional disk activity from service syncing.",
+        recommendedAction: "Disable Xbox Services via Tweaks → Services.",
+        linkedTweakIds: ["xbox-services"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "disable-delivery-opt")) {
+      issues.push({
+        id: "delivery-opt-on",
+        category: "network",
+        severity: "low",
+        confidence: "confirmed",
+        title: "Windows Update Delivery Optimization Active",
+        reason: "Delivery Optimization uses your upload bandwidth to distribute Windows updates to other devices on your network and the internet.",
+        impact: "Can spike upload during gameplay, increasing effective ping and causing packet loss on congested links.",
+        recommendedAction: "Disable Delivery Optimization via Tweaks → Network.",
+        linkedTweakIds: ["disable-delivery-opt"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "net-throttle-index")) {
+      issues.push({
+        id: "net-throttle-active",
+        category: "network",
+        severity: "low",
+        confidence: "confirmed",
+        title: "MMCSS Network Bandwidth Reserve Active",
+        reason: "Windows reserves 20% of available network bandwidth for MMCSS multimedia streaming. This cap applies to all traffic including game server connections.",
+        impact: "Game server throughput capped at ~80% of available bandwidth — shows as artificially lower in-game download speeds.",
+        recommendedAction: "Remove the MMCSS network throttle limit via Tweaks → Network.",
+        linkedTweakIds: ["net-throttle-index"],
+        autoFixAvailable: true,
+      });
+    }
+
+    if (off(tweakStates, "gaming-mode")) {
+      issues.push({
+        id: "gaming-mode-off",
+        category: "services",
+        severity: "low",
+        confidence: "confirmed",
+        title: "Windows Game Mode Disabled",
+        reason: "Game Mode signals to the Windows scheduler that a game is the priority foreground task — enabling GPU priority and suppressing some background updates.",
+        impact: "Scheduler does not apply foreground GPU priority — background processes may compete for GPU resources without being deprioritized.",
+        recommendedAction: "Enable Game Mode via Tweaks → Services.",
+        linkedTweakIds: ["gaming-mode"],
+        autoFixAvailable: true,
       });
     }
 

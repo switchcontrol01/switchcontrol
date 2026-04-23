@@ -93,11 +93,9 @@ const CONFIDENCE_LABEL: Record<DetectedIssue["confidence"], string> = {
 };
 
 // ── Route for fix-linked tweaks ───────────────────────────────────────────────
-
-const TWEAK_ROUTE: Record<string, string> = {
-  "game-bar":              "/tweaks",
-  "delivery-optimization": "/tweaks",
-};
+// Maps tweak IDs to the page that fixes them. Falls back to "/tweaks" by default.
+// Add entries here only when the destination differs from /tweaks.
+const TWEAK_ROUTE: Record<string, string> = {};
 
 // ── Single issue card ─────────────────────────────────────────────────────────
 
