@@ -51,6 +51,7 @@
       "debloat-helper.js",
       "cleaner-helper.js",
       "focus-helper.js",
+      "powershell-limiter.js",
       "node_modules/electron-updater/**/*",
       "node_modules/builder-util-runtime/**/*",
       "node_modules/semver/**/*",
