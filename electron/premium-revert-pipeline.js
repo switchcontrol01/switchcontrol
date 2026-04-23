@@ -14,35 +14,64 @@
  * 5. Records revert in ownership store ONLY after executor confirms success.
  * 6. Produces a full per-item result report for logging / display.
  *
- * REVERT LOGIC PER TYPE
- * ---------------------
- * tweak / network_tweak:
- *   previousValue = boolean
- *     true  → run apply script (it was already enabled before us — keep it enabled)
- *     false → run revert script (it was disabled before us — disable it again)
- *     null  → skip (inconclusive baseline, fail-safe)
+ * POWER PLAN — SPECIAL RULES
+ * --------------------------
+ * Power plan revert is stricter than tweak revert:
  *
- * nic:
- *   previousValue = { registryValue, displayValue }
- *     registryValue present → restore with setNicProperty(adapterName, key, registryValue)
- *     registryValue null    → reset to driver default with resetNicProperty(adapterName, key)
+ *   1. Always read the CURRENTLY active plan from Windows — do not rely solely
+ *      on the ownership record. This catches cases where the ownership store
+ *      is stale, missing, or was cleared.
  *
- * power_plan:
- *   previousPlanGuid = exact GUID before SwitchControl changed it
- *   → activatePlanByGuid(previousPlanGuid)
- *   Null GUID → skip (fail-safe)
+ *   2. If the currently active plan is NOT a SwitchControl-managed plan, the
+ *      user already moved away from it. Skip with action='skipped_not_sc'.
+ *
+ *   3. If the currently active plan IS a SwitchControl plan it MUST be reverted,
+ *      regardless of whether a conflict was detected:
+ *        a) If previousPlanGuid is known and is not itself a SC plan → restore it.
+ *        b) Otherwise → force Windows Balanced (BALANCED_GUID).
+ *
+ *   4. If the primary target fails → try Windows Balanced as last resort.
+ *
+ * Windows Balanced GUID (immutable truth):
+ *   381b4222-f694-41f0-9685-ff5bb260df2e
  */
 
 'use strict';
 
 const ownershipStore = require('./ownership-store');
 
+const BALANCED_GUID = '381b4222-f694-41f0-9685-ff5bb260df2e';
+
 // Lazy-require executors to avoid circular-dependency issues at module load.
-// Each getter is called once per pipeline run.
 function getTweakExecutor()          { return require('./tweak-executor'); }
 function getNetworkTweakExecutor()   { return require('./network-tweak-executor'); }
 function getNicExecutor()            { return require('./nic-executor'); }
 function getPowerPlanManager()       { return require('./power-plan-manager'); }
+
+// ── SC plan detection ─────────────────────────────────────────────────────────
+
+/**
+ * Return all GUIDs that SwitchControl has ever created/activated, lowercased.
+ * Read directly from the power-plans.json state file via the manager export.
+ */
+function getSCPlanGuids() {
+  try {
+    const mgr = getPowerPlanManager();
+    const guids = Object.values(mgr.getStoredSchemeGuids());
+    return guids.filter(Boolean).map(g => String(g).toLowerCase());
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * True if the given GUID belongs to a SwitchControl-managed premium power plan.
+ * @param {string|null} guid
+ */
+function isSwitchControlPlanGuid(guid) {
+  if (!guid) return false;
+  return getSCPlanGuids().includes(String(guid).toLowerCase());
+}
 
 // ── per-type revert handlers ──────────────────────────────────────────────────
 
@@ -98,8 +127,6 @@ async function revertNicProperty(record) {
   }
 
   const nicExec = getNicExecutor();
-
-  // previousValue = { registryValue, displayValue }
   const registryValue = previousValue?.registryValue ?? null;
 
   if (registryValue !== null && registryValue !== undefined) {
@@ -115,7 +142,6 @@ async function revertNicProperty(record) {
       return { success: false, action: 'restore_exact_value', registryValue, error: e.message };
     }
   } else {
-    // No registry value captured — reset to driver default
     console.log(`[RevertPipeline] nic:${adapterName}:${itemId} → no registryValue in baseline, resetting to driver default`);
     try {
       const result = await nicExec.resetNicProperty(adapterName, itemId);
@@ -130,24 +156,105 @@ async function revertNicProperty(record) {
   }
 }
 
+/**
+ * Revert the active power plan.
+ *
+ * STRICT RULES — see module header comment for full description:
+ *  - Always reads the CURRENTLY active plan first.
+ *  - If active plan is NOT SC-managed → skip (user already moved away).
+ *  - If active plan IS SC-managed → must revert:
+ *      • Use previousPlanGuid if valid and not itself a SC plan.
+ *      • Otherwise force Windows Balanced (BALANCED_GUID).
+ *      • If primary target fails → try Balanced as last resort.
+ */
 async function revertPowerPlan(record) {
   const { previousPlanGuid, scopeKey } = record;
+  const mgr = getPowerPlanManager();
 
-  if (!previousPlanGuid) {
-    return { skipped: true, reason: 'No previousPlanGuid in baseline — cannot restore original plan. Failing safe.' };
+  // Step 1: Read what is CURRENTLY active on Windows.
+  let currentGuid = null;
+  try {
+    const active = await mgr.getActivePowerScheme();
+    currentGuid = active.scheme?.guid ? active.scheme.guid.toLowerCase() : null;
+  } catch (e) {
+    console.warn('[RevertPipeline] Could not read active power scheme:', e.message);
+    // Cannot read active plan. Fail safe — report failure.
+    return { success: false, action: 'restore_guid', guid: null, error: `Cannot read active scheme: ${e.message}` };
   }
 
-  console.log(`[RevertPipeline] power_plan → restoring GUID "${previousPlanGuid}"`);
+  // Step 2: If the active plan is NOT a SC plan, the user already changed away.
+  // Nothing to do — this is the expected clean state.
+  if (currentGuid && !isSwitchControlPlanGuid(currentGuid)) {
+    console.log(`[RevertPipeline] power_plan — active GUID ${currentGuid} is not SC-managed. Skipping.`);
+    ownershipStore.recordRevert(scopeKey);
+    return {
+      skipped: true,
+      reason: `Active plan (${currentGuid}) is not a SwitchControl plan — user already changed it. Clean state.`,
+      action: 'skipped_not_sc',
+    };
+  }
+
+  // Step 3: Active plan IS SC-managed (or currentGuid is null — fail safe by reverting).
+  // Determine restore target:
+  //   a) previousPlanGuid if it is a valid UUID and is NOT itself a SC plan
+  //   b) BALANCED_GUID otherwise (forced fallback — the safe absolute truth)
+  let targetGuid = BALANCED_GUID;
+  let forcedBalanced = true;
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (previousPlanGuid && UUID_RE.test(String(previousPlanGuid).trim())) {
+    const prevLower = previousPlanGuid.trim().toLowerCase();
+    if (!isSwitchControlPlanGuid(prevLower)) {
+      targetGuid = prevLower;
+      forcedBalanced = false;
+      console.log(`[RevertPipeline] power_plan — will restore to previous plan GUID: ${targetGuid}`);
+    } else {
+      console.warn(`[RevertPipeline] power_plan — previousPlanGuid (${previousPlanGuid}) is itself a SC plan. Forcing Windows Balanced.`);
+    }
+  } else {
+    console.warn(`[RevertPipeline] power_plan — no valid previousPlanGuid in baseline. Forcing Windows Balanced (${BALANCED_GUID}).`);
+  }
+
+  console.log(`[RevertPipeline] power_plan → activating "${targetGuid}" (forcedBalanced=${forcedBalanced})`);
 
   try {
-    const result = await getPowerPlanManager().activatePlanByGuid(previousPlanGuid);
+    const result = await mgr.activatePlanByGuid(targetGuid);
+
     if (result.success) {
       ownershipStore.recordRevert(scopeKey);
-      return { success: true, action: 'restore_guid', guid: previousPlanGuid };
+      return {
+        success: true,
+        action: forcedBalanced ? 'forced_balanced' : 'restore_guid',
+        guid: targetGuid,
+        forcedBalanced,
+      };
     }
-    return { success: false, action: 'restore_guid', guid: previousPlanGuid, error: result.error };
+
+    // Primary target failed. If we weren't already targeting Balanced, try it as last resort.
+    if (!forcedBalanced) {
+      console.warn(`[RevertPipeline] power_plan — restore to ${targetGuid} failed (${result.error}). Trying forced Balanced.`);
+      const fallback = await mgr.activatePlanByGuid(BALANCED_GUID);
+      if (fallback.success) {
+        ownershipStore.recordRevert(scopeKey);
+        return {
+          success: true,
+          action: 'forced_balanced_after_restore_fail',
+          guid: BALANCED_GUID,
+          forcedBalanced: true,
+          primaryError: result.error,
+        };
+      }
+      return {
+        success: false,
+        action: 'restore_guid',
+        guid: BALANCED_GUID,
+        error: `Primary (${targetGuid}) failed: ${result.error}. Fallback Balanced also failed: ${fallback.error}`,
+      };
+    }
+
+    return { success: false, action: 'restore_guid', guid: targetGuid, error: result.error };
   } catch (e) {
-    return { success: false, action: 'restore_guid', guid: previousPlanGuid, error: e.message };
+    return { success: false, action: 'restore_guid', guid: targetGuid, error: e.message };
   }
 }
 
@@ -176,8 +283,9 @@ async function revertAllAppOwned() {
   for (const record of owned) {
     const { scopeKey, itemType, baselineCaptured } = record;
 
-    // Fail-safe: no baseline → skip unconditionally
-    if (!baselineCaptured) {
+    // Power plan is exempt from the baseline-captured requirement —
+    // it has its own strict active-plan check and forced-Balanced fallback.
+    if (itemType !== 'power_plan' && !baselineCaptured) {
       details[scopeKey] = { skipped: true, reason: 'No baseline captured — failing safe.' };
       skippedCount++;
       console.warn(`[RevertPipeline] SKIP ${scopeKey} — no baseline captured`);
@@ -208,7 +316,7 @@ async function revertAllAppOwned() {
       console.warn(`[RevertPipeline] SKIP ${scopeKey} — ${itemResult.reason}`);
     } else if (itemResult.success) {
       revertedCount++;
-      console.log(`[RevertPipeline] OK   ${scopeKey}`);
+      console.log(`[RevertPipeline] OK   ${scopeKey} (action=${itemResult.action})`);
     } else {
       failedCount++;
       console.error(`[RevertPipeline] FAIL ${scopeKey} — ${itemResult.error}`);
@@ -232,7 +340,6 @@ async function revertAllAppOwned() {
 
 /**
  * Dry-run: return what would be reverted without executing anything.
- * Useful for displaying a confirmation dialog to the user.
  */
 function previewRevert() {
   const owned = ownershipStore.getAllAppOwned();
@@ -246,11 +353,65 @@ function previewRevert() {
     previousPlanGuid: record.previousPlanGuid || null,
     appliedValue:     record.appliedValue,
     lastAppliedAt:    record.lastAppliedAt,
-    willSkip:         !record.baselineCaptured,
+    willSkip:         !record.baselineCaptured && record.itemType !== 'power_plan',
   }));
+}
+
+/**
+ * Startup sanity check — belt-and-suspenders guard for Section 6.
+ *
+ * Call this when the frontend has verified that the user is NOT premium.
+ * If a SwitchControl premium power plan is currently active, force-revert
+ * to Windows Balanced immediately — regardless of ownership store state.
+ *
+ * This closes the loophole where:
+ *   • The revert ran but the power plan step was skipped or failed.
+ *   • The app was closed before revert completed.
+ *   • The ownership store was cleared while the plan remained active.
+ *   • The user regained and lost premium quickly (ownership record lost).
+ *
+ * @returns {{ checked: boolean, action: string, activeGuid?: string, activeName?: string, error?: string }}
+ */
+async function runStartupPowerPlanSanityCheck() {
+  const mgr = getPowerPlanManager();
+  let currentGuid = null;
+  let currentName = null;
+
+  try {
+    const active = await mgr.getActivePowerScheme();
+    currentGuid = active.scheme?.guid?.toLowerCase() ?? null;
+    currentName = active.scheme?.name ?? null;
+  } catch (e) {
+    return { checked: true, action: 'error', error: e.message };
+  }
+
+  if (!currentGuid || !isSwitchControlPlanGuid(currentGuid)) {
+    console.log(`[Sanity] Power plan check clean — active plan is not SC-managed (guid=${currentGuid})`);
+    return { checked: true, action: 'clean', activeGuid: currentGuid, activeName: currentName };
+  }
+
+  // Active plan is SC-managed — this must not persist for a non-premium user.
+  console.log(`[Sanity] Non-premium user has SC plan active: "${currentName}" (${currentGuid}) — forcing Windows Balanced`);
+
+  try {
+    const result = await mgr.activatePlanByGuid(BALANCED_GUID);
+    if (result.success) {
+      // Clear any stale ownership record so the report doesn't re-trigger
+      const scopeKey = ownershipStore.buildScopeKey('power_plan', 'active-scheme');
+      ownershipStore.recordRevert(scopeKey);
+      console.log(`[Sanity] Forced Windows Balanced successfully. Removed SC plan: "${currentName}" (${currentGuid})`);
+      return { checked: true, action: 'forced_balanced', activeGuid: currentGuid, activeName: currentName };
+    }
+    console.error(`[Sanity] Failed to force Windows Balanced: ${result.error}`);
+    return { checked: true, action: 'failed', activeGuid: currentGuid, activeName: currentName, error: result.error };
+  } catch (e) {
+    console.error('[Sanity] Sanity check exception:', e.message);
+    return { checked: true, action: 'error', error: e.message };
+  }
 }
 
 module.exports = {
   revertAllAppOwned,
   previewRevert,
+  runStartupPowerPlanSanityCheck,
 };

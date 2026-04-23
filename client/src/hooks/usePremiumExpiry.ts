@@ -100,13 +100,31 @@ export function usePremiumExpiry({
 
     if (wasActive === null) {
       // First verified read — record state and handle "opened after expiry" case.
-      // If the trial already expired while the app was closed and there are
-      // app-owned items to revert, trigger the revert immediately on first open.
       prevWasActive.current = isCurrentlyActive;
       console.log(`[PremiumExpiry] Initial state recorded — active=${isCurrentlyActive}`);
-      if (!isCurrentlyActive && hasPremiumItemsToRevert()) {
-        console.log('[PremiumExpiry] Opened post-expiry with owned items — triggering revert');
-        triggerRevert();
+
+      if (!isCurrentlyActive) {
+        // Section 6 — Startup sanity check (belt-and-suspenders).
+        // If the user is not premium and a SC power plan is still active, force
+        // it to Windows Balanced immediately — regardless of Zustand store state.
+        // This closes the loophole where the revert previously skipped/failed the
+        // power plan step, or ownership data was cleared while the plan persisted.
+        if (isElectronWithTweaks()) {
+          const premiumAPI = (window as any).electronAPI?.premium;
+          if (premiumAPI?.powerPlanSanityCheck) {
+            console.log('[PremiumExpiry] Running startup power plan sanity check...');
+            premiumAPI.powerPlanSanityCheck().then((result: any) => {
+              console.log('[PremiumExpiry] Sanity check result:', result);
+            }).catch((e: any) => {
+              console.error('[PremiumExpiry] Sanity check error:', e);
+            });
+          }
+        }
+
+        if (hasPremiumItemsToRevert()) {
+          console.log('[PremiumExpiry] Opened post-expiry with owned items — triggering revert');
+          triggerRevert();
+        }
       }
       return;
     }

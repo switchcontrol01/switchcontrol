@@ -393,9 +393,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Invoke premium:previewRevert before showing a confirmation dialog.
   // Invoke premium:getOwnership for display or debugging.
   premium: {
-    revertAll:     () => ipcRenderer.invoke('premium:revertAll'),
-    previewRevert: () => ipcRenderer.invoke('premium:previewRevert'),
-    getOwnership:  () => ipcRenderer.invoke('premium:getOwnership'),
+    revertAll:            () => ipcRenderer.invoke('premium:revertAll'),
+    previewRevert:        () => ipcRenderer.invoke('premium:previewRevert'),
+    getOwnership:         () => ipcRenderer.invoke('premium:getOwnership'),
+    powerPlanSanityCheck: () => ipcRenderer.invoke('premium:powerPlanSanityCheck'),
   },
 
   // ── Updater — renderer reads state, main process owns all logic ─────────────

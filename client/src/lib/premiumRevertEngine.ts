@@ -1,26 +1,48 @@
 /**
  * Premium Revert Engine
  * ─────────────────────
- * Safely reverts tweaks, network tweaks, and power plan changes that were
- * applied by the app during trial or premium use.
+ * Reverts tweaks, network tweaks, and power plan changes applied by the app
+ * during trial or premium use.
  *
- * Safety rules:
- *  - Only reverts items where appliedByApp === true
- *  - Checks for manual user changes before reverting (conflict detection)
- *  - Verifies the revert actually succeeded before clearing ownership metadata
- *  - Never blindly overwrites manual post-apply changes
- *  - Never touches pre-existing user/system tweaks (appliedByApp === false)
+ * OWNERSHIP ELIGIBILITY
+ * ---------------------
+ * Tweaks / network tweaks:
+ *   Only reverted when appliedByApp === true AND isPremium === true (tweaks)
+ *   or appliedByApp === true (network tweaks — all are premium-gated).
+ *   Items where appliedByApp === false are NEVER touched (user pre-existing state).
+ *
+ * Power plan — strict special rules:
+ *   1. Always read the CURRENTLY active plan from Windows — do not trust the
+ *      Zustand store alone. This catches stale / missing / cleared records.
+ *   2. If the active plan is NOT a SwitchControl plan (detected by GUID or name
+ *      prefix) → skip. The user already moved away. Clean state.
+ *   3. If the active plan IS a SwitchControl plan → MUST revert:
+ *        a) Use previousPlanGuid from ownership if valid and not itself a SC plan.
+ *        b) Otherwise force Windows Balanced (BALANCED_GUID).
+ *        c) If primary target fails → try Balanced as last resort.
  */
 
 import { useTweakOwnershipStore } from '@/stores/tweakOwnershipStore';
 
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+/** Windows Balanced built-in GUID — immutable restore target. */
+const BALANCED_GUID = '381b4222-f694-41f0-9685-ff5bb260df2e';
+
+/**
+ * All SwitchControl-managed power plan names start with this prefix.
+ * Used as a name-based fallback when the GUID record is unavailable.
+ */
+const SC_PLAN_NAME_PREFIX = 'SwitchControl -';
+
 // ── Result types ───────────────────────────────────────────────────────────────
 
 export type RevertItemStatus =
-  | 'reverted'           // successfully reverted and verified
-  | 'skipped_conflict'   // current state differs from appliedState — user changed manually
-  | 'skipped_user_owned' // appliedByApp === false — never touch
-  | 'failed';            // revert attempted but failed or could not be verified
+  | 'reverted'            // successfully reverted and verified
+  | 'skipped_conflict'    // current state differs from appliedState — user changed manually
+  | 'skipped_user_owned'  // appliedByApp === false — was pre-existing, never touched
+  | 'skipped_not_active'  // item exists in store but is no longer in an applied state
+  | 'failed';             // revert attempted but failed or could not be verified
 
 export interface RevertItemResult {
   tweakId: string;
@@ -30,10 +52,18 @@ export interface RevertItemResult {
 }
 
 export interface PowerPlanRevertResult {
-  status: 'reverted' | 'skipped_conflict' | 'failed' | 'not_applicable';
+  /** What happened to the power plan. */
+  status:
+    | 'reverted'        // restored to previousPlanGuid successfully
+    | 'forced_balanced' // forced to Windows Balanced (no valid previous GUID or as fallback)
+    | 'skipped_not_sc'  // active plan was not a SwitchControl plan — nothing to do
+    | 'failed'          // revert attempted but failed
+    | 'not_applicable'; // power plan API unavailable (non-Electron env)
+  targetGuid?: string;
   previousPlanName?: string;
   appliedPlanName?: string;
   reason?: string;
+  forcedBalanced?: boolean;
 }
 
 export interface PremiumRevertReport {
@@ -59,6 +89,10 @@ function getPowerPlanAPI() {
   return (window as any).electronAPI?.powerPlans ?? null;
 }
 
+function getPremiumAPI() {
+  return (window as any).electronAPI?.premium ?? null;
+}
+
 // ── Core revert functions ──────────────────────────────────────────────────────
 
 async function revertSingleTweak(
@@ -81,7 +115,7 @@ async function revertSingleTweak(
       return 'skipped_conflict';
     }
 
-    // 3. Execute revert (pass currentlyEnabled=true so executor calls 'revert' action)
+    // 3. Execute revert
     const result = await api.execute(tweakId, 'revert');
     if (!result?.success) {
       console.error(`[Revert:TWEAK] execute failed tweakId="${tweakId}"`, result?.error);
@@ -94,7 +128,6 @@ async function revertSingleTweak(
     const afterIsApplied: boolean = afterStatus?.isApplied ?? false;
 
     if (afterIsApplied !== false) {
-      // Revert claimed success but system still reads as applied
       console.error(`[Revert:TWEAK] verification failed tweakId="${tweakId}" — still applied after revert`);
       useTweakOwnershipStore.getState().markTweakRevertFailed(tweakId);
       return 'failed';
@@ -136,7 +169,7 @@ async function revertSingleNetworkTweak(
       return 'skipped_conflict';
     }
 
-    // 3. Execute revert (preload expects "revert", not "disable")
+    // 3. Execute revert
     const result = await api.execute(tweakId, 'revert');
     if (!result?.success) {
       console.error(`[Revert:NET] execute failed tweakId="${tweakId}"`, result?.message);
@@ -169,95 +202,160 @@ async function revertSingleNetworkTweak(
   }
 }
 
+/**
+ * Revert the active power plan.
+ *
+ * STRICT RULES — see module header for full description.
+ * Always checks the live active plan, not just the Zustand record.
+ */
 async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   const store = useTweakOwnershipStore.getState();
   const rec = store.powerPlan;
 
-  if (!rec || !rec.appliedByApp) {
+  const api = getPowerPlanAPI();
+  if (!api) {
     return { status: 'not_applicable' };
   }
 
-  const api = getPowerPlanAPI();
-  if (!api) {
-    store.markPowerPlanRevertFailed();
-    return { status: 'failed', reason: 'Power plan API not available' };
-  }
-
+  // ── Step 1: Read the CURRENTLY active plan from Windows ─────────────────────
+  let currentGuid = '';
+  let currentName = '';
   try {
-    // 1. Read current active plan
     const stateResult = await api.getState();
-    if (!stateResult?.success) {
-      store.markPowerPlanRevertFailed();
-      return { status: 'failed', reason: 'Could not read current power plan state' };
+    if (stateResult?.success) {
+      currentGuid = (stateResult.activeScheme?.guid ?? '').toLowerCase();
+      currentName = stateResult.activeScheme?.name ?? '';
     }
-
-    const currentGuid: string = stateResult.activeScheme?.guid ?? '';
-
-    // 2. Conflict detection — did the user manually change the plan after we applied?
-    if (currentGuid && currentGuid.toLowerCase() !== rec.appliedPlanGuid.toLowerCase()) {
-      console.warn(`[Revert:PLAN] conflict — expected applied=${rec.appliedPlanGuid} got current=${currentGuid}`);
-      store.markPowerPlanConflict();
-      return {
-        status: 'skipped_conflict',
-        previousPlanName: rec.previousPlanName,
-        appliedPlanName: rec.appliedPlanName,
-        reason: 'Power plan was changed manually after the app applied it',
-      };
-    }
-
-    // 3. Restore previous plan via activateByGuid if available, else fail gracefully
-    if (!api.activateByGuid) {
-      // Capability not present — mark for retry
-      store.markPowerPlanRevertFailed();
-      return {
-        status: 'failed',
-        previousPlanName: rec.previousPlanName,
-        reason: 'Power plan restore requires an app update',
-      };
-    }
-
-    const restoreResult = await api.activateByGuid(rec.previousPlanGuid);
-    if (!restoreResult?.success) {
-      console.error('[Revert:PLAN] activateByGuid failed', restoreResult?.error);
-      store.markPowerPlanRevertFailed();
-      return {
-        status: 'failed',
-        previousPlanName: rec.previousPlanName,
-        reason: restoreResult?.error ?? 'Power plan restore failed',
-      };
-    }
-
-    // 4. Verify — check active plan is now the previous one
-    const verifyState = await api.getState();
-    const verifiedGuid: string = verifyState?.activeScheme?.guid ?? '';
-    if (verifiedGuid.toLowerCase() !== rec.previousPlanGuid.toLowerCase()) {
-      console.error('[Revert:PLAN] verification failed — expected', rec.previousPlanGuid, 'got', verifiedGuid);
-      store.markPowerPlanRevertFailed();
-      return { status: 'failed', reason: 'Power plan restore could not be verified' };
-    }
-
-    // 5. Clear ownership — verified success
-    store.recordPowerPlanRevertSuccess();
-    console.log(`[Revert:PLAN] success — restored "${rec.previousPlanName}" (${rec.previousPlanGuid})`);
-    return {
-      status: 'reverted',
-      previousPlanName: rec.previousPlanName,
-      appliedPlanName: rec.appliedPlanName,
-    };
-
-  } catch (err) {
-    console.error('[Revert:PLAN] exception', err);
-    store.markPowerPlanRevertFailed();
-    return { status: 'failed', reason: err instanceof Error ? err.message : 'Unexpected error' };
+  } catch (e) {
+    console.error('[Revert:PLAN] Failed to read active power scheme:', e);
+    if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+    return { status: 'failed', reason: 'Could not read current power plan state' };
   }
+
+  // ── Step 2: Is the current plan a SwitchControl-managed plan? ───────────────
+  // Detection via:
+  //   A. GUID matches what we applied (from Zustand ownership record)
+  //   B. Plan name starts with the SC prefix (covers missing ownership records)
+  const guidMatchesSC = !!(
+    rec?.appliedByApp &&
+    rec.appliedPlanGuid &&
+    currentGuid &&
+    currentGuid === rec.appliedPlanGuid.toLowerCase()
+  );
+  const nameMatchesSC = currentName.startsWith(SC_PLAN_NAME_PREFIX);
+  const activeIsSCPlan = guidMatchesSC || nameMatchesSC;
+
+  if (!activeIsSCPlan) {
+    // Active plan is not SC-managed — user already moved away. Nothing to do.
+    console.log(`[Revert:PLAN] Active plan "${currentName}" (${currentGuid}) is not SC-managed — skipping`);
+    if (rec?.appliedByApp) {
+      // User changed away from the SC plan themselves — ownership fulfilled
+      store.recordPowerPlanRevertSuccess();
+    }
+    return {
+      status: 'skipped_not_sc',
+      reason: currentGuid
+        ? `Active plan "${currentName}" is not a SwitchControl plan — user already changed it`
+        : 'Could not read active plan — nothing to revert',
+    };
+  }
+
+  // ── Step 3: Active plan IS SC-managed. Determine restore target ─────────────
+  // Use previousPlanGuid if it:
+  //   • Is a valid UUID
+  //   • Is NOT itself a SC plan (name check is redundant but safe)
+  //   • Is NOT identical to the applied plan (sanity check)
+  let targetGuid = BALANCED_GUID;
+  let forcedBalanced = true;
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (rec?.previousPlanGuid && UUID_RE.test(rec.previousPlanGuid)) {
+    const prevGuid = rec.previousPlanGuid.toLowerCase();
+    const prevName = rec.previousPlanName ?? '';
+    const prevIsSC =
+      prevName.startsWith(SC_PLAN_NAME_PREFIX) ||
+      (rec.appliedPlanGuid ? prevGuid === rec.appliedPlanGuid.toLowerCase() : false);
+
+    if (!prevIsSC) {
+      targetGuid = prevGuid;
+      forcedBalanced = false;
+      console.log(`[Revert:PLAN] Will restore to previous plan: "${rec.previousPlanName}" (${targetGuid})`);
+    } else {
+      console.warn(`[Revert:PLAN] previousPlanGuid "${prevGuid}" is itself a SC plan — forcing Windows Balanced`);
+    }
+  } else {
+    console.warn(`[Revert:PLAN] No valid previousPlanGuid in ownership record — forcing Windows Balanced (${BALANCED_GUID})`);
+  }
+
+  if (!api.activateByGuid) {
+    if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+    return { status: 'failed', reason: 'Power plan restore requires an app update (activateByGuid not exposed)' };
+  }
+
+  console.log(`[Revert:PLAN] Active SC plan "${currentName}" → activating "${targetGuid}" (forcedBalanced=${forcedBalanced})`);
+
+  // ── Step 4: Activate target plan ────────────────────────────────────────────
+  const restoreResult = await api.activateByGuid(targetGuid);
+
+  if (restoreResult?.success) {
+    // Verify
+    try {
+      const verify = await api.getState();
+      const verifiedGuid = (verify?.activeScheme?.guid ?? '').toLowerCase();
+      if (verifiedGuid !== targetGuid) {
+        console.error(`[Revert:PLAN] Verification failed — expected ${targetGuid} got ${verifiedGuid}`);
+        if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+        return { status: 'failed', reason: 'Power plan set but verification failed', targetGuid };
+      }
+    } catch { /* non-fatal */ }
+
+    if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
+    return {
+      status: forcedBalanced ? 'forced_balanced' : 'reverted',
+      targetGuid,
+      forcedBalanced,
+      previousPlanName: rec?.previousPlanName,
+      appliedPlanName:  currentName,
+    };
+  }
+
+  // ── Step 5: Primary target failed → try Balanced as last resort ─────────────
+  if (!forcedBalanced) {
+    console.warn(`[Revert:PLAN] Primary restore to ${targetGuid} failed — trying forced Balanced`);
+    const fallback = await api.activateByGuid(BALANCED_GUID);
+    if (fallback?.success) {
+      if (rec?.appliedByApp) store.recordPowerPlanRevertSuccess();
+      return {
+        status: 'forced_balanced',
+        targetGuid: BALANCED_GUID,
+        forcedBalanced: true,
+        appliedPlanName: currentName,
+        reason: 'Previous plan restore failed — used Windows Balanced fallback',
+      };
+    }
+  }
+
+  if (rec?.appliedByApp) store.markPowerPlanRevertFailed();
+  return {
+    status: 'failed',
+    reason: restoreResult?.error ?? 'Power plan restore failed',
+    appliedPlanName: currentName,
+    targetGuid,
+  };
 }
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
 /**
  * Run the full premium revert sequence.
- * Only processes items where appliedByApp === true.
- * Returns a full report of what happened.
+ *
+ * Eligibility:
+ *   Tweaks:        appliedByApp === true AND isPremium === true
+ *   Network tweaks: appliedByApp === true (all network tweaks are premium-gated)
+ *   Power plan:    checked unconditionally — uses live active-plan detection
+ *                  so it works even if the Zustand record is missing/stale.
+ *
+ * Returns a full per-item report of what happened.
  */
 export async function runPremiumRevert(): Promise<PremiumRevertReport> {
   console.log('[Revert] Starting premium revert sequence...');
@@ -267,7 +365,10 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
   const networkResults: RevertItemResult[] = [];
 
   // ── Tweaks ──────────────────────────────────────────────────────────────────
-  // Only revert premium tweaks — free tweaks remain intact when the trial ends.
+  // Only revert items that are:
+  //   • premium-gated (isPremium)
+  //   • confirmed applied by the app (appliedByApp)
+  // This ensures free tweaks and pre-existing tweaks are never touched.
   const tweakEntries = Object.entries(store.appliedTweaks)
     .filter(([, rec]) => rec.appliedByApp && rec.isPremium);
 
@@ -278,6 +379,7 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
   }
 
   // ── Network tweaks ──────────────────────────────────────────────────────────
+  // All network tweaks are premium-gated — only revert app-applied ones.
   const networkEntries = Object.entries(store.networkTweaks)
     .filter(([, rec]) => rec.appliedByApp);
 
@@ -288,6 +390,7 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
   }
 
   // ── Power plan ──────────────────────────────────────────────────────────────
+  // Always run — detects SC plans by live active-plan check, not just Zustand.
   const powerPlanResult = await revertPowerPlan();
 
   const anyFailed =
@@ -297,13 +400,12 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
 
   const anyConflict =
     tweakResults.some(r => r.status === 'skipped_conflict') ||
-    networkResults.some(r => r.status === 'skipped_conflict') ||
-    powerPlanResult.status === 'skipped_conflict';
+    networkResults.some(r => r.status === 'skipped_conflict');
 
   const revertedCount =
     tweakResults.filter(r => r.status === 'reverted').length +
     networkResults.filter(r => r.status === 'reverted').length +
-    (powerPlanResult.status === 'reverted' ? 1 : 0);
+    (powerPlanResult.status === 'reverted' || powerPlanResult.status === 'forced_balanced' ? 1 : 0);
 
   console.log(
     `[Revert] Complete — reverted=${revertedCount} failed=${anyFailed} conflict=${anyConflict}`
@@ -313,7 +415,7 @@ export async function runPremiumRevert(): Promise<PremiumRevertReport> {
 }
 
 /**
- * Returns true if there are any app-applied items that would need reverting.
+ * Returns true if there are any app-applied premium items that would need reverting.
  */
 export function hasPremiumItemsToRevert(): boolean {
   const store = useTweakOwnershipStore.getState();

@@ -686,12 +686,23 @@ async function applyPowerProfileWithOwnership(profileId) {
 
 // ── Exports ───────────────────────────────────────────────────────────────────
 
+/**
+ * Return the map of { profileId → guid } stored in power-plans.json.
+ * Used by the revert pipeline to identify which GUIDs are SC-managed plans.
+ */
+function getStoredSchemeGuids() {
+  const state = loadState();
+  return state.schemeGuids || {};
+}
+
 module.exports = {
   POWER_PROFILES,
+  BUILTIN_GUIDS,
   getPowerPlanState,
   applyPowerProfile,
   applyPowerProfileWithOwnership,
   activatePlanByGuid,
   listSchemesForFrontend,
   getActivePowerScheme,
+  getStoredSchemeGuids,
 };

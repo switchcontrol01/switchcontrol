@@ -2409,6 +2409,31 @@ ipcMain.handle('premium:getOwnership', () => {
   }
 });
 
+/**
+ * Startup sanity check — Section 6 guard.
+ *
+ * Called by the frontend when it determines the user is not premium.
+ * Checks if a SwitchControl premium power plan is currently active and, if so,
+ * force-reverts it to Windows Balanced (381b4222-f694-41f0-9685-ff5bb260df2e).
+ *
+ * This closes the loophole where:
+ *   - The expiry revert skipped or failed the power plan step.
+ *   - The app was closed before the revert completed.
+ *   - The ownership store was cleared while the SC plan remained active.
+ *   - The user regained premium briefly then lost it (ownership record lost).
+ */
+ipcMain.handle('premium:powerPlanSanityCheck', async () => {
+  console.log('[IPC] premium:powerPlanSanityCheck — checking active power plan');
+  try {
+    const result = await premiumRevertPipeline.runStartupPowerPlanSanityCheck();
+    console.log(`[IPC] premium:powerPlanSanityCheck done — action=${result.action}`);
+    return { success: true, ...result };
+  } catch (e) {
+    console.error('[IPC] premium:powerPlanSanityCheck error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
 // Auth: Clear cookies for the backend domain
 ipcMain.handle('auth:clearCookies', async () => {
   console.log('[Auth] auth:clearCookies IPC called');
