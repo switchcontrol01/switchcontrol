@@ -37,6 +37,8 @@ interface TweakCardProps {
    *  not yet confirmed. Shows a pulsing neutral state instead of grey-off so
    *  the user never sees a false "not applied" before verification completes. */
   isVerifying?: boolean;
+  /** Pulse-highlight this card — used when deep-linked from Detected Issues */
+  isHighlighted?: boolean;
 }
 
 interface FailureInfo {
@@ -177,7 +179,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
 }
 
 // ── Main card ─────────────────────────────────────────────────────────────────
-export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false }: TweakCardProps) {
+export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isHighlighted = false }: TweakCardProps) {
   const [open, setOpen]               = useState(false);
   const [trustOpen, setTrustOpen]     = useState(false);
   const [failureInfo, setFailureInfo] = useState<FailureInfo | null>(null);
@@ -277,7 +279,18 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false }: T
 
   return (
     <>
-      <div className={isLocked ? "relative" : undefined}>
+      <div className={cn("relative", isLocked && "relative")}>
+        {/* Deep-link highlight ring */}
+        {isHighlighted && (
+          <motion.div
+            className="absolute -inset-px rounded-xl pointer-events-none z-10"
+            initial={{ opacity: 0.9 }}
+            animate={{ opacity: [0.9, 0.4, 0.9] }}
+            transition={{ duration: 1.6, repeat: 3, ease: "easeInOut", repeatType: "mirror" }}
+            onAnimationComplete={() => {}}
+            style={{ boxShadow: "0 0 0 2px hsl(var(--primary)/0.7), 0 0 20px hsl(var(--primary)/0.35)", borderRadius: 12 }}
+          />
+        )}
         <GlassCard
           blur="sm"
           className={cn(

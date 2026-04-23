@@ -112,8 +112,9 @@ function IssueCard({
   const cfg = SEV_CONFIG[issue.severity];
   const SevIcon = cfg.icon;
   const CatIcon = CATEGORY_ICON[issue.category] ?? AlertTriangle;
-  const fixRoute = issue.linkedTweakIds?.[0]
-    ? TWEAK_ROUTE[issue.linkedTweakIds[0]] ?? "/tweaks"
+  const primaryTweakId = issue.linkedTweakIds?.[0];
+  const fixRoute = primaryTweakId
+    ? (TWEAK_ROUTE[primaryTweakId] ?? `/tweaks?tweak=${encodeURIComponent(primaryTweakId)}`)
     : "/tweaks";
 
   return (
@@ -240,7 +241,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [detectedAt, setDetectedAt] = useState<number | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
 
   const runDetection = useCallback(async () => {
     setLoading(true);

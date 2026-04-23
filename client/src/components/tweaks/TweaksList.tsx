@@ -65,7 +65,32 @@ export function TweaksList() {
   const [syncing, setSyncing]       = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
   const [warnLevel, setWarnLevel]   = useState<string | null>(null); // level name that needs confirmation
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const seenWarnings = useRef<Set<string>>(new Set());
+
+  // Read ?tweak=<id> deep-link param on mount and scroll to that card
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const tweakId = params.get("tweak");
+    if (!tweakId) return;
+    const target = TWEAKS_DATA.find((t) => t.id === tweakId);
+    if (!target) return;
+    // Clear the URL param so a refresh shows the full list
+    const url = new URL(window.location.href);
+    url.searchParams.delete("tweak");
+    window.history.replaceState({}, "", url.toString());
+    // Pre-fill search so the tweak is visible, reset filters
+    setSearch(target.title);
+    setActiveChip("All");
+    setActiveLevel("All");
+    setHighlightId(tweakId);
+    // Scroll to the card after it renders
+    const scrollTimer = setTimeout(() => {
+      const el = document.getElementById(`tweak-card-${tweakId}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 400);
+    return () => clearTimeout(scrollTimer);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleLevelTab = (tab: typeof LEVEL_TABS[number]) => {
     if (tab.warnOnFirstOpen && !seenWarnings.current.has(tab.id)) {
@@ -346,6 +371,7 @@ export function TweaksList() {
           {filteredTweaks.map((tweak, index) => (
             <motion.div
               key={tweak.id}
+              id={`tweak-card-${tweak.id}`}
               className="self-start"
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -370,6 +396,7 @@ export function TweaksList() {
                     isRealTweak(tweak.id) &&
                     !(tweak.id in tweaks)
                   }
+                  isHighlighted={tweak.id === highlightId}
                 />
               )}
             </motion.div>
