@@ -882,8 +882,10 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
               </div>
             )}
 
-            {/* Device Binding */}
-            {localUser.isPremium && (
+            {/* Device Binding — visible for all users who have (or had) a bound device,
+                regardless of current plan. Trial users can inherit a stale binding from
+                a previous premium period; admins need to see and clear it in those cases. */}
+            {(localUser.isPremium || localUser.premiumBoundDeviceId) && (
               <div className={`rounded-xl border p-4 ${localUser.premiumBoundDeviceId ? "border-amber-500/20" : "border-white/8"}`}
                 style={{ background: localUser.premiumBoundDeviceId ? "rgba(245,158,11,0.04)" : "rgba(255,255,255,0.03)" }}>
                 <div className="flex items-center justify-between mb-3">

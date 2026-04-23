@@ -171,8 +171,10 @@ function ElectronAppContent() {
   const flowResetTs = useAuthStore(s => s.flowResetTs);
   const [, setLocation] = useHashLocation();
 
-  // Premium device lock — Electron only, runs after entitlements confirmed from server
-  const isPremiumVerified = entitlementsOk && (user?.isPremium ?? false);
+  // Premium device lock — Electron only, runs after entitlements confirmed from server.
+  // Exclude trial users: trial access is user-scoped and must never trigger device locking,
+  // even if the auth store still has a stale isPremium=true from a previous session.
+  const isPremiumVerified = entitlementsOk && (user?.isPremium ?? false) && user?.plan !== "trial";
   const {
     status: deviceLockStatus,
     isChecking: isDeviceLockChecking,

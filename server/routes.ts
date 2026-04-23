@@ -9,6 +9,7 @@ import { isPremiumTweakById } from "../shared/tweak-tiers";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
+import { resolveEffectivePlan } from "./lib/planUtils";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
 import securityRouter from "./routes/security";
@@ -703,13 +704,16 @@ export async function registerRoutes(
   // Sends the stable device ID via x-device-id header.
   //
   // Logic:
-  //   - User not premium          → { status: 'not_premium' }
-  //   - No bound device yet       → bind this device, { status: 'ok', isFirstBind: true }
-  //   - Device matches bound      → update lastSeen, { status: 'ok' }
-  //   - Device differs from bound → { status: 'locked' }
+  //   - Effective plan != 'premium' → { status: 'not_premium' }  (trial = user-scoped, no device lock)
+  //   - No bound device yet          → bind this device, { status: 'ok', isFirstBind: true }
+  //   - Device matches bound         → update lastSeen, { status: 'ok' }
+  //   - Device differs, binding stale (>30 days unseen) → rebind, { status: 'ok' }
+  //   - Device differs, binding active → { status: 'locked' }
   //
   // NOTE: uses requireJwt only (not requireCloudPremium) so the validation call
   //       itself is never blocked by the device lock it is trying to evaluate.
+  // NOTE: always reads a fresh user from the DB — never trusts stale JWT claims
+  //       for isPremium, since admin plan changes don't invalidate in-flight tokens.
   app.post("/api/device/premium-validate", requireJwt, async (req, res) => {
     try {
       const cloudUser = req.cloudUser!;
@@ -719,30 +723,52 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing x-device-id header.", code: "missing_device_id" });
       }
 
-      if (!cloudUser.isPremium) {
-        return res.json({ status: "not_premium" });
-      }
-
+      // Always fetch a fresh user record — the JWT-cached isPremium field can be stale
+      // if the admin changed the plan after the token was issued (e.g. premium → trial).
       const user = await storage.getUser(cloudUser.id);
       if (!user) {
         return res.status(404).json({ error: "User not found." });
       }
 
+      const effectivePlan = resolveEffectivePlan(user);
+
+      // Device locking is a PREMIUM-only feature. Trial access is user-scoped, not
+      // device-scoped. Returning not_premium here lets the client proceed without
+      // showing the DeviceLockModal regardless of any previously-bound device ID.
+      if (effectivePlan !== "premium") {
+        console.log(`[DeviceBinding] Skip | user=${cloudUser.id} | plan=${effectivePlan} | device=${deviceId}`);
+        return res.json({ status: "not_premium" });
+      }
+
       if (!user.premiumBoundDeviceId) {
-        // First premium activation on this account — bind the device
+        // First premium activation — bind the presenting device
         await storage.bindPremiumDevice(cloudUser.id, deviceId);
-        console.log(`[DeviceBinding] First bind | user=${cloudUser.id} | device=${deviceId}`);
+        console.log(`[DeviceBinding] Assigned | user=${cloudUser.id} | device=${deviceId}`);
         return res.json({ status: "ok", isFirstBind: true });
       }
 
       if (user.premiumBoundDeviceId === deviceId) {
-        // Correct device — validated
+        // Correct device — refresh lastSeen timestamp
+        await storage.updateDeviceLastSeen(cloudUser.id, deviceId);
         console.log(`[DeviceBinding] Valid | user=${cloudUser.id} | device=${deviceId}`);
         return res.json({ status: "ok", isFirstBind: false });
       }
 
-      // Device mismatch — block
-      console.warn(`[DeviceBinding] Mismatch | user=${cloudUser.id} | bound=${user.premiumBoundDeviceId} | presented=${deviceId}`);
+      // Device mismatch — check whether the binding has gone stale (device unseen for >30 days).
+      // A stale binding can happen after a hardware change; allow automatic rebind rather than
+      // permanently locking the user out without admin intervention.
+      const STALE_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+      const lastSeen = user.premiumDeviceLastSeenAt ?? user.premiumBoundAt;
+      const isStale = !lastSeen || Date.now() - new Date(lastSeen).getTime() > STALE_MS;
+
+      if (isStale) {
+        await storage.bindPremiumDevice(cloudUser.id, deviceId);
+        console.log(`[DeviceBinding] Rebind-stale | user=${cloudUser.id} | old=${user.premiumBoundDeviceId} | new=${deviceId}`);
+        return res.json({ status: "ok", isFirstBind: false });
+      }
+
+      // Active mismatch — block
+      console.warn(`[DeviceBinding] Locked | user=${cloudUser.id} | bound=${user.premiumBoundDeviceId} | presented=${deviceId}`);
       return res.json({
         status: "locked",
         message: "This premium license is already linked to a different device and can't be used here.",

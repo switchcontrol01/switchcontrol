@@ -14,6 +14,7 @@ export async function runDeviceBindingMigration(): Promise<void> {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_bound_device_id VARCHAR(255)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_bound_at TIMESTAMPTZ`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_last_seen_device_id VARCHAR(255)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS premium_device_last_seen_at TIMESTAMPTZ`,
     // trial_duration_hours was integer but must be real to support sub-hour durations (1m, 30m)
     `DO $$ BEGIN
       IF EXISTS (

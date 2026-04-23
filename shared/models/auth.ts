@@ -48,6 +48,7 @@ export const users = pgTable("users", {
   premiumBoundDeviceId: varchar("premium_bound_device_id"),
   premiumBoundAt: timestamp("premium_bound_at"),
   premiumLastSeenDeviceId: varchar("premium_last_seen_device_id"),
+  premiumDeviceLastSeenAt: timestamp("premium_device_last_seen_at"),
 
   // Onboarding
   hasSeenPremiumUnlock: boolean("has_seen_premium_unlock").notNull().default(false),

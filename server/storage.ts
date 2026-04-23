@@ -65,6 +65,7 @@ export interface IStorage {
   bindPremiumDevice(userId: string, deviceId: string): Promise<User>;
   clearPremiumDevice(userId: string): Promise<User>;
   findUserByBoundDeviceId(deviceId: string): Promise<User | undefined>;
+  updateDeviceLastSeen(userId: string, deviceId: string): Promise<void>;
 
   // Admin
   listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }>;
@@ -236,6 +237,10 @@ class MockStorage implements IStorage {
 
   async findUserByBoundDeviceId(_deviceId: string): Promise<User | undefined> {
     return undefined;
+  }
+
+  async updateDeviceLastSeen(_userId: string, _deviceId: string): Promise<void> {
+    // no-op in mock mode
   }
 
   async listUsers(opts: ListUsersOpts): Promise<{ users: User[]; total: number }> {
@@ -678,6 +683,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.premiumBoundDeviceId, deviceId))
       .limit(1);
     return user;
+  }
+
+  async updateDeviceLastSeen(userId: string, deviceId: string): Promise<void> {
+    await db!
+      .update(users)
+      .set({
+        premiumLastSeenDeviceId: deviceId,
+        premiumDeviceLastSeenAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
   }
 }
 
