@@ -2647,14 +2647,20 @@ ipcMain.handle('premium:powerPlanSanityCheck', async () => {
 // Clean up all orphaned/duplicate SwitchControl power plans from Windows.
 // Safe to call at any time — skips the currently active plan.
 ipcMain.handle('premium:cleanupScPlans', async () => {
-  console.log('[IPC] premium:cleanupScPlans — deleting orphaned SC power plans');
+  console.log('[IPC] premium:cleanupScPlans — restoring built-in plan names, then deleting SC plans');
   try {
+    // Restore original Windows names FIRST — this undoes any name corruption
+    // where a built-in plan (e.g. Windows Balanced) was renamed "SwitchControl - *"
+    // by the reuse-path changename.  Must run before deleteAllScPlans so that
+    // the SC-name-prefix detection is accurate and verifyRevertClean is truthful.
+    await powerPlanManager.restoreBuiltinPlanNames();
     const cleanup = await powerPlanManager.deleteAllScPlans();
     const verification = await powerPlanManager.verifyRevertClean();
     console.log(
       `[IPC] premium:cleanupScPlans done — deleted=${cleanup.deleted.length}` +
       ` skipped=${cleanup.skipped.length} errors=${cleanup.errors.length}` +
-      ` clean=${verification.clean}`
+      ` clean=${verification.clean}` +
+      ` renamedBuiltins=${verification.renamedBuiltins?.length ?? 0}`
     );
     return {
       success: true,

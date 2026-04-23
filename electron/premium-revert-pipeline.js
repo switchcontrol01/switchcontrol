@@ -288,19 +288,39 @@ async function revertPowerPlan(record) {
       }
       ownershipStore.recordRevert(scopeKey);
 
-      // Delete all SC plans, then verify the system is clean.
+      // Step A: Restore original names of any built-in plans that were renamed
+      // with the SC prefix (e.g. Windows Balanced renamed to "SwitchControl -
+      // Balanced Gaming" via the reuse-path changename bug). Must run BEFORE
+      // deleteAllScPlans so the name-prefix detection is accurate.
+      try {
+        await mgr.restoreBuiltinPlanNames();
+        console.log('[RevertPipeline] power_plan — restoreBuiltinPlanNames complete');
+      } catch (e) {
+        console.warn('[RevertPipeline] power_plan — restoreBuiltinPlanNames threw (non-fatal):', e.message);
+      }
+
+      // Step B: Delete all SC plans, then verify the system is clean.
       let cleanup = { deleted: [], skipped: [], errors: [], verified: false };
-      let verification = { activeGuid: targetGuid, isBalanced: false, scPlansRemaining: [], clean: false };
+      let verification = { activeGuid: targetGuid, isBalanced: false, scPlansRemaining: [], renamedBuiltins: [], clean: false };
       try {
         cleanup = await mgr.deleteAllScPlans();
         console.log(
           `[RevertPipeline] power_plan cleanup — deleted=${cleanup.deleted.length}` +
           ` skipped=${cleanup.skipped.length} errors=${cleanup.errors.length} verified=${cleanup.verified}`
         );
-        // Only verify "isBalanced" if we targeted the Balanced GUID
-        if (forcedBalanced || targetGuid === BALANCED_GUID) {
-          verification = await mgr.verifyRevertClean();
-          console.log(`[RevertPipeline] power_plan verify — clean=${verification.clean}`);
+        // Always verify — targetGuid is always BALANCED_GUID (hard-coded above).
+        verification = await mgr.verifyRevertClean();
+        console.log(
+          `[RevertPipeline] power_plan verify — clean=${verification.clean}` +
+          ` renamedBuiltins=${verification.renamedBuiltins?.length ?? 0}`
+        );
+        if (!verification.clean) {
+          console.error(
+            '[RevertPipeline] power_plan verify FAILED —' +
+            ` isBalanced=${verification.isBalanced}` +
+            ` scPlansRemaining=${verification.scPlansRemaining?.length ?? 0}` +
+            ` renamedBuiltins=${verification.renamedBuiltins?.length ?? 0}`
+          );
         }
       } catch (e) {
         console.warn('[RevertPipeline] power_plan cleanup/verify threw (non-fatal):', e.message);

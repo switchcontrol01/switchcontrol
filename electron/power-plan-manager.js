@@ -393,15 +393,29 @@ async function ensureSwitchControlScheme(profileId) {
   const existingGuid = state.schemeGuids?.[profileId];
 
   if (existingGuid) {
+    const existingLower = existingGuid.toLowerCase();
     // Confirm it still exists
     const listResult = await listPowerSchemes();
-    if (listResult.schemes.some(s => s.guid === existingGuid.toLowerCase())) {
+    if (listResult.schemes.some(s => s.guid === existingLower)) {
       console.log(`[PowerPlan] Reusing existing SC scheme "${existingGuid}" for ${profileId}`);
-      // Refresh name & description in case they changed
-      try {
-        await runPowercfg('/changename', existingGuid.toLowerCase(), profile.scName, profile.scDesc || 'SwitchControl managed power plan');
-      } catch { /* non-critical, ignore */ }
-      return existingGuid.toLowerCase();
+      // Refresh name & description in case they changed.
+      // CRITICAL GUARD: NEVER rename a built-in Windows plan.
+      // If existingGuid is a built-in GUID (e.g. BALANCED_GUID stored as fallback from
+      // a failed duplication), renaming it would corrupt the Windows Balanced plan name
+      // to "SwitchControl - Balanced Gaming", which then can't be cleaned up on revert.
+      const builtinGuidSet = new Set(Object.values(BUILTIN_GUIDS).map(g => g.toLowerCase()));
+      if (!builtinGuidSet.has(existingLower)) {
+        try {
+          await runPowercfg('/changename', existingLower, profile.scName, profile.scDesc || 'SwitchControl managed power plan');
+        } catch { /* non-critical, ignore */ }
+      } else {
+        console.warn(
+          `[PowerPlan] Stored GUID ${existingLower} is a built-in Windows plan — ` +
+          `skipping changename to prevent name corruption. ` +
+          `A proper SC duplicate should be created instead.`
+        );
+      }
+      return existingLower;
     }
     console.warn(`[PowerPlan] Stored GUID ${existingGuid} no longer exists — will scan for orphaned SC plan`);
   }
@@ -510,6 +524,20 @@ async function ensureSwitchControlScheme(profileId) {
     // Fallback: use built-in base plan directly
     console.warn(`[PowerPlan] Could not create duplicate scheme — falling back to base plan GUID ${baseGuid}`);
     newGuid = baseGuid;
+    // CRITICAL GUARD: NEVER persist a built-in GUID as an SC scheme GUID.
+    // If persisted, the reuse path would call `powercfg /changename <BALANCED_GUID>
+    // "SwitchControl - Balanced Gaming"` on the next apply — permanently renaming
+    // the Windows Balanced plan.  That renamed plan can then never be deleted on
+    // revert (Windows refuses to delete the active plan) and the revert verifier
+    // falsely reports clean because the GUID matches BALANCED_GUID.
+    const builtinGuidSet = new Set(Object.values(BUILTIN_GUIDS).map(g => g.toLowerCase()));
+    if (builtinGuidSet.has(newGuid.toLowerCase())) {
+      console.warn(
+        `[PowerPlan] Fallback GUID ${newGuid} is a built-in Windows plan — ` +
+        `NOT persisting to power-plans.json (prevents name corruption on reuse).`
+      );
+      return newGuid;   // use for this session only, do not save
+    }
   }
 
   // Persist
@@ -995,24 +1023,82 @@ async function verifyRevertClean() {
   }
 
   let scPlansRemaining = [];
+  let renamedBuiltins  = [];
   try {
     const listResult = await listPowerSchemes();
-    scPlansRemaining = (listResult.schemes || [])
+    const allSchemes  = listResult.schemes || [];
+
+    // Custom SC duplicate plans (non-built-in GUIDs, SC name prefix)
+    scPlansRemaining = allSchemes
       .filter(s => s.name?.startsWith(SC_PLAN_NAME_PREFIX) && !builtinGuidSet.has(s.guid?.toLowerCase()))
+      .map(s => `"${s.name}" (${s.guid})`);
+
+    // Built-in plans that were renamed with the SC prefix — these cannot be
+    // deleted (they are Windows built-ins) but their name must be restored.
+    // This catches the case where ensureSwitchControlScheme fell back to
+    // BALANCED_GUID and the reuse path renamed Windows Balanced to
+    // "SwitchControl - Balanced Gaming".
+    renamedBuiltins = allSchemes
+      .filter(s => s.name?.startsWith(SC_PLAN_NAME_PREFIX) && builtinGuidSet.has(s.guid?.toLowerCase()))
       .map(s => `"${s.name}" (${s.guid})`);
   } catch (e) {
     console.warn('[PowerPlan] verifyRevertClean: could not list schemes:', e.message);
   }
 
-  const clean = isBalanced && scPlansRemaining.length === 0;
+  const clean = isBalanced && scPlansRemaining.length === 0 && renamedBuiltins.length === 0;
   console.log(
-    `[PowerPlan] verifyRevertClean: isBalanced=${isBalanced} scPlansRemaining=${scPlansRemaining.length} clean=${clean}`
+    `[PowerPlan] verifyRevertClean: isBalanced=${isBalanced}` +
+    ` scPlansRemaining=${scPlansRemaining.length}` +
+    ` renamedBuiltins=${renamedBuiltins.length}` +
+    ` clean=${clean}`
   );
   if (!clean) {
     if (!isBalanced) console.warn(`[PowerPlan] verifyRevertClean: active GUID is ${activeGuid} (expected ${BALANCED_GUID})`);
     if (scPlansRemaining.length) console.warn('[PowerPlan] verifyRevertClean: SC plans still present:', scPlansRemaining);
+    if (renamedBuiltins.length) console.warn('[PowerPlan] verifyRevertClean: built-in plans renamed with SC prefix:', renamedBuiltins);
   }
-  return { activeGuid, isBalanced, scPlansRemaining, clean };
+  return { activeGuid, isBalanced, scPlansRemaining, renamedBuiltins, clean };
+}
+
+// Original Windows names + descriptions for built-in power plans.
+// Used to restore plan names after they may have been renamed by the SC reuse path.
+const BUILTIN_PLAN_NAMES = {
+  [BUILTIN_GUIDS.balanced]:
+    ['Balanced', 'Automatically balances performance with energy consumption on capable hardware.'],
+  [BUILTIN_GUIDS.high_performance]:
+    ['High performance', 'Favors performance, but may use more energy.'],
+  [BUILTIN_GUIDS.power_saver]:
+    ["Power saver", "Saves energy by reducing your PC's performance where possible."],
+  [BUILTIN_GUIDS.ultimate_performance]:
+    ['Ultimate Performance', 'Provides ultimate performance on higher end PCs.'],
+};
+
+/**
+ * Restore the original Windows names of all known built-in power plans.
+ *
+ * This is called before deleteAllScPlans() and verifyRevertClean() to undo
+ * any name corruption caused by the reuse-path changename guard failure.
+ * After restoration, the SC-name-prefix detection reliably finds only true
+ * SC duplicate plans (non-built-in GUIDs), never falsely renamed built-ins.
+ *
+ * Non-fatal: plans that don't exist on this Windows edition are silently skipped.
+ *
+ * @returns {{ guid: string, name: string, ok: boolean, error?: string }[]}
+ */
+async function restoreBuiltinPlanNames() {
+  const results = [];
+  for (const [guid, [name, desc]] of Object.entries(BUILTIN_PLAN_NAMES)) {
+    try {
+      await runPowercfg('/changename', guid, name, desc);
+      console.log(`[PowerPlan] restoreBuiltinPlanNames: restored "${name}" (${guid})`);
+      results.push({ guid, name, ok: true });
+    } catch (e) {
+      // Plans like ultimate_performance may not exist on consumer editions — non-fatal.
+      console.log(`[PowerPlan] restoreBuiltinPlanNames: skipped "${name}" (${guid}) — ${e.message}`);
+      results.push({ guid, name, ok: false, error: e.message });
+    }
+  }
+  return results;
 }
 
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
@@ -1102,4 +1188,5 @@ module.exports = {
   getStoredSchemeGuids,
   deleteAllScPlans,
   verifyRevertClean,
+  restoreBuiltinPlanNames,
 };

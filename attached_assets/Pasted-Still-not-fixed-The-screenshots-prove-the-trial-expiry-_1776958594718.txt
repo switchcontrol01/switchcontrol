@@ -1,0 +1,62 @@
+Still not fixed.
+
+The screenshots prove the trial expiry revert is still broken.
+
+FACTS FROM REAL TEST
+- The trial-ended modal says "Reverted to Windows Balanced"
+- But in the same modal it also shows:
+  Active: "SwitchControl - Balanced Gaming"
+- Control Panel Power Options confirms the active plan is still:
+  SwitchControl - Balanced Gaming
+
+So the app is NOT reverting to the real built-in Windows Balanced plan.
+It is still landing on a SwitchControl custom plan.
+
+This is a real backend logic failure, not a UI issue.
+
+WHAT MUST BE TRUE
+For expired free-trial users:
+- final active plan MUST be the built-in Windows Balanced plan only
+- GUID must be:
+  381b4222-f694-41f0-9685-ff5bb260df2e
+- no SwitchControl custom power plan may remain active
+- ideally no SwitchControl custom power plan should remain at all after expiry cleanup
+
+ROOT ISSUE
+Your revert report and actual machine state disagree.
+That means one of these is happening:
+1. revert report is using intended target instead of actual verified active GUID
+2. Windows Balanced is activated briefly but then overwritten by SwitchControl Balanced
+3. only one custom plan is removed, but another SwitchControl Balanced clone remains and becomes active
+4. startup or post-revert sanity logic is re-importing or reselecting SwitchControl Balanced
+5. active-plan verification is checking the wrong field or stale cached state
+
+REQUIRED FIX
+For trial expiry specifically, stop being clever.
+
+Use this exact hard sequence:
+
+1. list all power schemes
+2. identify all SwitchControl-owned / SwitchControl-named schemes
+3. if current active scheme is one of those, switch to built-in Windows Balanced GUID:
+   381b4222-f694-41f0-9685-ff5bb260df2e
+4. verify actual active GUID using powercfg /getactivescheme
+5. only if verified, delete ALL SwitchControl custom plans
+6. run powercfg /getactivescheme again
+7. if final active GUID is not 381b4222-f694-41f0-9685-ff5bb260df2e, mark failure and do NOT report success
+
+VERY IMPORTANT
+The revert modal must report the REAL final verified active GUID and real final active plan name.
+Do not display “Reverted to Windows Balanced” unless powercfg /getactivescheme actually confirms GUID 381b4222-f694-41f0-9685-ff5bb260df2e at the end.
+
+ALSO FIX
+If any SwitchControl Balanced clone remains in Control Panel after trial expiry, that is still a failure.
+Expired users must not keep SwitchControl power plans available to select.
+
+MANUAL VERIFICATION REQUIRED
+After code changes, verify with all 3:
+- powercfg /list
+- powercfg /getactivescheme
+- Control Panel > Power Options
+
+Do not say fixed unless all 3 show built-in Windows Balanced active and no SwitchControl plans remain after expiry.
