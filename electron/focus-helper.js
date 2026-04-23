@@ -391,6 +391,11 @@ public class WinUtil {
 // ── IPC handlers ───────────────────────────────────────────────────────────────
 
 ipcMain.handle('focus:apply', async (event, { settings, previousState }) => {
+  const _token = psLimiter.tryAcquire({ file: 'focus-helper.js', fn: 'focus:apply', reason: 'focus-apply' });
+  if (!_token) {
+    console.log('[focus:apply] SKIPPED — apply already in progress');
+    return { ok: false, error: 'Focus apply already in progress', skipped: true };
+  }
   const results = {};
   const applied = {};
 
@@ -436,10 +441,17 @@ ipcMain.handle('focus:apply', async (event, { settings, previousState }) => {
     };
   } catch (err) {
     return { ok: false, error: err.message, results };
+  } finally {
+    psLimiter.release(_token);
   }
 });
 
 ipcMain.handle('focus:revert', async (event, { settings, previousState }) => {
+  const _token = psLimiter.tryAcquire({ file: 'focus-helper.js', fn: 'focus:revert', reason: 'focus-revert' });
+  if (!_token) {
+    console.log('[focus:revert] SKIPPED — revert already in progress');
+    return { ok: false, error: 'Focus revert already in progress', skipped: true };
+  }
   const results = {};
 
   try {
@@ -474,6 +486,8 @@ ipcMain.handle('focus:revert', async (event, { settings, previousState }) => {
     return { ok: true, results, verification };
   } catch (err) {
     return { ok: false, error: err.message, results };
+  } finally {
+    psLimiter.release(_token);
   }
 });
 

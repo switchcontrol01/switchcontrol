@@ -1939,7 +1939,16 @@ ipcMain.handle('tweak:checkStatus', async (event, tweakId) => {
   if (typeof tweakId !== 'string') {
     return { error: true, message: 'Invalid tweakId' };
   }
-  return await tweakExecutor.checkTweakStatus(tweakId);
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: `tweak:checkStatus:${tweakId}`, reason: 'tweak-check-status' });
+  if (!_token) {
+    console.log(`[tweak:checkStatus] SKIPPED — ${tweakId} check already in flight`);
+    return { tweakId, isApplied: null, applied: null, skipped: true };
+  }
+  try {
+    return await tweakExecutor.checkTweakStatus(tweakId);
+  } finally {
+    psLimiter.release(_token);
+  }
 });
 
 ipcMain.handle('tweak:syncAll', async () => {
@@ -2478,10 +2487,17 @@ ipcMain.handle('networkTweaks:execute', async (event, tweakId, action) => {
 });
 
 ipcMain.handle('networkTweaks:checkStatus', async (event, tweakId) => {
+  const _token = psLimiter.tryAcquire({ file: 'main.js', fn: `networkTweaks:checkStatus:${tweakId}`, reason: 'net-tweak-check-status' });
+  if (!_token) {
+    console.log(`[networkTweaks:checkStatus] SKIPPED — ${tweakId} check already in flight`);
+    return { tweakId, applied: null, skipped: true };
+  }
   try {
     return await networkTweakExecutor.checkNetworkTweakStatus(tweakId);
   } catch (e) {
     return { tweakId, applied: null, error: e.message };
+  } finally {
+    psLimiter.release(_token);
   }
 });
 

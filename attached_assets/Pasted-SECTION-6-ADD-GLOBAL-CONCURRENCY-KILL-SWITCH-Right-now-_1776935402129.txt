@@ -1,0 +1,88 @@
+SECTION 6 — ADD GLOBAL CONCURRENCY KILL SWITCH
+
+Right now per-key limiting is not enough if many different handlers each spawn their own PowerShell.
+
+Add a global PowerShell cap:
+- max 1 background PowerShell at a time
+- max 1 startup verification PowerShell chain at a time
+- user-triggered actions may run only if background queue is idle OR must be explicitly queued
+
+Needed behavior:
+- background jobs cannot stack
+- startup jobs cannot stack
+- duplicate requests collapse into one
+- skipped requests return explicit skipped reason
+- optional: cached result reused when skip occurs
+
+This is not optional now.
+The app is still storming.
+
+SECTION 7 — REMOVE POWERSHELL FROM HOT TELEMETRY PATHS
+
+If ANY live telemetry path still touches PowerShell, remove it.
+
+Telemetry must use:
+- native Node/Electron sources
+- cached snapshots
+- direct library reads
+- native binary if already in use
+- manual refresh only
+
+PowerShell must not be used to paint live dashboard UI.
+
+SECTION 8 — CHECK FOR RECURSIVE IPC OR FEEDBACK LOOPS
+
+Audit for this pattern:
+frontend mount -> IPC check -> backend returns -> state update -> rerender -> mount/effect runs again -> IPC check again
+
+Also audit:
+- auth restore triggering page sync
+- page sync triggering verification
+- verification triggering state write
+- state write retriggering another sync
+- updater/auth/tour overlays retriggering route hydration
+
+I want all effect dependency arrays and IPC callback chains inspected.
+Look specifically for:
+- unstable function refs
+- state changes retriggering sync
+- toast state in deps
+- modal state in deps
+- auth state churn
+- version state churn
+- trial/premium state churn
+
+SECTION 9 — ADD REAL-TIME DIAGNOSTIC COUNTERS
+
+Expose a temporary internal diagnostic state:
+- active PowerShell count
+- total launches since boot
+- launches in last 10s
+- top caller by count
+- last 20 spawn reasons
+- skipped count
+- queued count
+- average duration
+
+Put this in:
+- logs
+- and a temporary debug IPC endpoint
+
+I need proof, not assumptions.
+
+SECTION 10 — SUCCESS CRITERIA
+
+The fix is only complete if all of this is true:
+
+IDLE TEST
+- open app
+- sit on dashboard for 60 seconds
+- powershell.exe count stays at 0 or 1 max, never multiplying
+- app CPU settles low and stable
+- no repeating PowerShell launches in logs
+
+NAVIGATION TEST
+- switch between dashboard, tweaks, network tweaks, NIC tuning, AI advisor
+- no new PowerShell storm
+- no repeated status sync storm
+- no uncontrolled background verific

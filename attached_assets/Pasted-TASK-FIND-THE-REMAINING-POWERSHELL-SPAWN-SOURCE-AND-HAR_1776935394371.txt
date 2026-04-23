@@ -1,0 +1,184 @@
+TASK — FIND THE REMAINING POWERSHELL SPAWN SOURCE AND HARD-STOP IT
+
+PROBLEM
+
+The PowerShell storm is STILL happening in the packaged app.
+
+Real evidence from live testing:
+- Task Manager still shows many powershell.exe processes at the same time
+- app CPU usage is still high
+- process count is still inflated
+- app process itself is still consuming too much CPU
+- this is happening even after the previous “global limiter / async loop / skipped state” pass
+
+That means one of these is true:
+1. there are still unprotected PowerShell entry points
+2. some protected paths are not actually using the limiter
+3. a caller is bypassing the limiter completely
+4. a loop or retry path is still re-triggering PowerShell continuously
+5. multiple different handlers are each spawning PowerShell independently
+6. verification/status sync is still happening far too often
+
+GOAL
+
+Find the exact remaining source of PowerShell spawning and kill it completely.
+
+At idle:
+- there must not be a stream of new PowerShell processes
+- there must not be overlapping PowerShell processes
+- CPU usage must settle properly
+- process count must stay stable
+
+This is now a strict root cause investigation.
+Do NOT assume the previous fix was correct.
+Audit the real runtime path.
+
+HARD RULE
+
+Do not give me another “should be fixed” answer.
+Instrument it, prove it, and return the exact remaining caller(s).
+
+FILES TO AUDIT FIRST
+
+- electron/main.js
+- electron/focus-helper.js
+- electron/tweak-executor.js
+- electron/network-tweak-executor.js
+- electron/nic-executor.js
+- electron/powershell-limiter.js
+- preload.js
+- any telemetry module
+- any updater / launcher hook
+- any auth/login success hook
+- any startup verification hook
+- any route hydration or sync handler
+
+SEARCH FOR ALL OF THIS
+
+- exec(
+- execFile(
+- spawn(
+- powershell
+- powershell.exe
+- Start-Process
+- setInterval(
+- setTimeout(
+- requestAnimationFrame
+- useEffect(
+- ipcMain.handle(
+- ipcMain.on(
+- verify
+- syncAll
+- checkAll
+- checkStatus
+- hydrate
+- startup
+- launch
+- boot
+- init
+- refresh
+- telemetry
+- monitor
+- poll
+
+SECTION 1 — ADD ABSOLUTE SPAWN TRACING
+
+I need a single source of truth for every PowerShell launch.
+
+Create one shared wrapper for ALL PowerShell execution.
+No direct exec/execFile/spawn for powershell should remain outside this wrapper.
+
+Example concept:
+- file: electron/powershell-runner.js
+
+It must log for every PowerShell launch:
+- timestamp
+- file
+- function
+- reason
+- stack trace
+- args
+- whether limiter was acquired
+- limiter key used
+- whether it was skipped
+- PID if spawned
+- duration
+- success/failure
+
+IMPORTANT:
+Also log a short call stack using:
+new Error().stack
+
+I want the exact source file and function that launched it.
+No guessing.
+
+SECTION 2 — BAN DIRECT POWERSHELL CALLS
+
+After the wrapper exists:
+- replace every direct PowerShell exec path with the wrapper
+- fail the build if a direct PowerShell call remains outside the wrapper
+
+Add a simple defensive assertion / code comment / grep-safe guard:
+PowerShell must only execute through the shared runner.
+
+SECTION 3 — VERIFY THE LIMITER IS ACTUALLY USED
+
+Do not just have a limiter module sitting there.
+Prove every PowerShell path uses it.
+
+For every caller, return a table:
+- file
+- function
+- runner used: yes/no
+- limiter used: yes/no
+- limiter key
+- user-triggered or background
+- polling or one-shot
+
+If any path says no, fix it immediately.
+
+SECTION 4 — FIND STARTUP / IDLE SPAWNERS
+
+This bug is probably now in startup, hydration, verification, auth transition, updater, or background telemetry.
+
+Audit these specific moments:
+- app launch
+- preload initialization
+- auth success / auth restore
+- dashboard first render
+- route change
+- tweak page mount
+- network page mount
+- NIC page mount
+- updater modal mount
+- premium/trial status refresh
+- tour start/end
+- logout/login
+- startup verification
+- app focus regain
+- window show / ready-to-show
+- before-quit cleanup
+- storage hydration
+
+I want a concrete answer:
+Which of those events is still causing repeated PowerShell spawns?
+
+SECTION 5 — HARD DISABLE BACKGROUND POWERSHELL UNTIL CLEAN
+
+Temporarily disable all non-essential background PowerShell activity.
+
+Meaning:
+- no passive tweak verification loops
+- no passive network verification loops
+- no passive NIC scans on mount
+- no background telemetry via PowerShell
+- no status refresh using PowerShell during idle
+- no auth-triggered PowerShell checks
+- no tour-triggered PowerShell checks
+
+Only allow:
+- explicit user click
+- essential one-shot startup verification with strict cap
+- async loop paths that are proven single-instance
+
+Anything else should be disabled for now until the root cause is gone.
