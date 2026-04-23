@@ -364,6 +364,12 @@ export function TweaksList() {
                   tweak={tweak}
                   isEnabled={getTweakEnabled(tweak.id)}
                   onToggle={() => toggleTweak(tweak.id)}
+                  isVerifying={
+                    syncing &&
+                    isElectron &&
+                    isRealTweak(tweak.id) &&
+                    !(tweak.id in tweaks)
+                  }
                 />
               )}
             </motion.div>

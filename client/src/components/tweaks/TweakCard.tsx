@@ -33,6 +33,10 @@ interface TweakCardProps {
   tweak: Tweak;
   isEnabled: boolean;
   onToggle: () => void;
+  /** True while the initial system sync is running and this tweak's state is
+   *  not yet confirmed. Shows a pulsing neutral state instead of grey-off so
+   *  the user never sees a false "not applied" before verification completes. */
+  isVerifying?: boolean;
 }
 
 interface FailureInfo {
@@ -173,7 +177,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
 }
 
 // ── Main card ─────────────────────────────────────────────────────────────────
-export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
+export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false }: TweakCardProps) {
   const [open, setOpen]               = useState(false);
   const [trustOpen, setTrustOpen]     = useState(false);
   const [failureInfo, setFailureInfo] = useState<FailureInfo | null>(null);
@@ -280,6 +284,8 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
             "group flex flex-col transition-all duration-500",
             isEnabled && !isUnsupported
               ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.15)]"
+              : isVerifying && !isUnsupported && !failureInfo
+              ? "border-white/[0.09] animate-pulse"
               : "hover:border-white/[0.13] hover:bg-white/[0.05]",
             isUnsupported && "opacity-60 cursor-not-allowed",
             failureInfo && "border-red-500/20"
@@ -351,6 +357,14 @@ export function TweakCard({ tweak, isEnabled, onToggle }: TweakCardProps) {
               ) : isExecuting ? (
                 <div className="flex items-center justify-center w-11 h-6">
                   <Loader2 className="size-4 animate-spin text-primary" />
+                </div>
+              ) : isVerifying && !isEnabled ? (
+                <div
+                  className="flex items-center justify-center w-11 h-6 opacity-40 animate-pulse cursor-not-allowed"
+                  title="Verifying system state…"
+                  data-testid={`switch-tweak-${tweak.id}`}
+                >
+                  <Switch checked={false} disabled className="pointer-events-none" />
                 </div>
               ) : (
                 <Switch

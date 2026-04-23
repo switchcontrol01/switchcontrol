@@ -246,9 +246,13 @@ interface NetworkTweakCardProps {
   tweakState: TweakState;
   onToggle: () => void;
   onInfoClick: () => void;
+  /** True while the initial backend fetch is in-flight and this card's state
+   *  has not yet been confirmed. Shows a pulsing neutral border instead of
+   *  the grey idle/off state to prevent false "not applied" flash on cold open. */
+  isVerifying?: boolean;
 }
 
-function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick }: NetworkTweakCardProps) {
+function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifying = false }: NetworkTweakCardProps) {
   const { prefersReducedMotion } = useMotion();
   const isUnavailable = !!tweak.unavailable;
   const isApplying = tweakState.status === "applying";
@@ -256,6 +260,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick }: NetworkT
                     tweakState.status === "enabled_unverified" ||
                     tweakState.status === "staged";
   const hasFailed = tweakState.status === "failed";
+  const isIdle = tweakState.status === "idle";
 
   return (
     <motion.div
@@ -271,6 +276,8 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick }: NetworkT
             ? "border-primary/30 bg-primary/5 shadow-[0_0_20px_-5px_hsl(var(--primary)/0.15)]"
             : hasFailed
             ? "border-red-500/20 bg-red-500/5"
+            : isVerifying && isIdle
+            ? "border-white/[0.09] animate-pulse"
             : "hover:bg-white/5"
         )}
         hoverEffect={false}
@@ -577,6 +584,10 @@ function NetworkTweaksContent() {
   // Per-tweak state map — initialised from session cache if available so tab
   // switches never flash "idle/off" before the backend response arrives.
   const [stateMap, setStateMap] = useState<StateMap>(buildInitialStateMap);
+  // True during the initial backend fetch on cold launch (no session cache).
+  // While fetching, idle-status cards show a verifying shimmer instead of
+  // the grey off-state so the user never sees a false "not applied" flash.
+  const [fetching, setFetching] = useState(() => _networkTweakStateCache === null);
 
   // Keep the module-level session cache in sync with every stateMap update so
   // that the next mount can skip the idle-flash window entirely.
@@ -621,6 +632,7 @@ function NetworkTweaksContent() {
         }
         return next;
       });
+      setFetching(false);
       timingMark("fetch-state-done");
     });
     return () => { mounted = false; };
@@ -929,6 +941,7 @@ function NetworkTweaksContent() {
                           tweakState={stateMap[tweak.id] ?? { status: tweak.unavailable ? "unavailable" : "idle" }}
                           onToggle={() => toggleTweak(tweak)}
                           onInfoClick={() => setSelectedTweak(tweak)}
+                          isVerifying={fetching && !tweak.unavailable}
                         />
                       ))}
                     </div>
