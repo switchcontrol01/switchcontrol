@@ -59,24 +59,34 @@
 }
 
 /* ── Hard-lock dark background at every DOM level ────────────────
-   Belt-and-suspenders alongside the index.html inline styles.
-   Ensures no white frame can bleed through if CSS loads before
-   any JavaScript sets styles programmatically. */
+   !important overrides any cascade from Tailwind resets or other
+   sheets. Ensures no white frame can bleed through at any stage:
+   before JS, during hydration, or if paint order is surprising. */
 html {
-  background: #07090D;
+  background: #07090D !important;
+  background-color: #07090D !important;
   height: 100%;
+  width: 100%;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background: #07090D;
+  background: #07090D !important;
+  background-color: #07090D !important;
   height: 100%;
+  width: 100%;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 #root {
-  background: #07090D;
+  background: #07090D !important;
+  background-color: #07090D !important;
   height: 100%;
+  width: 100%;
 }
 /* ────────────────────────────────────────────────────────────── */
 

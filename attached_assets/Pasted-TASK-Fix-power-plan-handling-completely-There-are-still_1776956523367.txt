@@ -1,0 +1,127 @@
+TASK
+Fix power plan handling completely.
+
+There are still 2 real bugs:
+
+1. "Maximum Performance" profile fails to apply.
+2. When a free trial ends, revert still goes to a SwitchControl plan instead of the true Windows Balanced power plan.
+
+This is not fixed.
+
+PROBLEM A — MAXIMUM PERFORMANCE FAILS
+In the Power Plan page, Maximum Performance returns "Apply Failed / Could not apply power profile".
+This is a real backend failure, not just UI.
+
+PROBLEM B — TRIAL REVERT STILL WRONG
+When free trial expires, the app is STILL reverting to SwitchControl Balanced instead of the real built-in Windows Balanced plan.
+We explicitly do NOT want any SwitchControl power plan left active after trial expiry.
+We also want SwitchControl-created power plans deleted so trial users cannot keep using them.
+
+GOAL
+Make power plan behavior bulletproof:
+
+A. Maximum Performance must apply successfully every time.
+B. Trial expiry must always revert to the true built-in Windows Balanced plan:
+   GUID 381b4222-f694-41f0-9685-ff5bb260df2e
+C. After free trial expiry, all SwitchControl-created power plans must be removed from the machine.
+D. No revert path may ever land on a SwitchControl custom plan after expiry.
+
+FILES TO AUDIT FIRST
+- electron/power-plan-manager.js
+- any premium revert / ownership file
+- any free trial expiry hook that calls premium:revertAll
+- any startup sanity check that touches power plans
+- any powercfg import / duplicate / activate code
+- any ownership metadata store
+- any UI verification path for PowerPlan page
+
+ROOT CAUSE CHECKLIST
+
+1. MAX PERFORMANCE APPLY FAILURE
+Audit:
+- does the profile GUID actually exist before activation?
+- does apply import/duplicate the scheme correctly?
+- does activation fail because the GUID is stale?
+- are duplicate custom plans causing activation ambiguity?
+- is verification comparing against the wrong GUID?
+- is there any code still selecting by display name instead of GUID?
+
+Log all of this:
+- requested profile
+- source GUID
+- imported/created GUID
+- activation target GUID
+- active GUID before
+- active GUID after
+- verification result
+- error output from powercfg
+
+2. TRIAL REVERT TARGET WRONG
+Audit the full expiry path from trial ending -> revertAll -> power plan revert.
+
+We want:
+- final target MUST be Windows Balanced built-in GUID only:
+  381b4222-f694-41f0-9685-ff5bb260df2e
+- NOT "Balanced" by display name
+- NOT any SwitchControl Balanced clone
+- NOT previously active custom SwitchControl plan
+
+3. DELETE APP-CREATED POWER PLANS AFTER TRIAL EXPIRY
+After trial expiry revert completes:
+- activate built-in Windows Balanced GUID first
+- verify it is active
+- then delete all SwitchControl-created plans
+- then verify again that active GUID is still the built-in Windows Balanced GUID
+
+4. DO NOT TRUST OLD OWNERSHIP / BASELINE DATA BLINDLY
+If originalPowerPlanGuid points to a SwitchControl-owned custom plan, do NOT revert to it on trial expiry.
+Trial expiry should prioritize:
+- built-in Windows Balanced GUID
+not stale app-created plans.
+
+REQUIRED FIXES
+
+FIX 1 — HARD TARGET FOR TRIAL EXPIRY
+For free-trial expiry only:
+- always revert final active plan to built-in Windows Balanced GUID:
+  381b4222-f694-41f0-9685-ff5bb260df2e
+- do not allow fallback to any SwitchControl plan
+
+FIX 2 — DELETE ALL SWITCHCONTROL PLANS AFTER EXPIRY
+Implement cleanup:
+- list all power schemes
+- identify all app-created SwitchControl plans by ownership metadata and/or name prefix
+- delete them after switching to Windows Balanced
+- verify deletion succeeded
+
+FIX 3 — MAX PERFORMANCE APPLY PIPELINE
+Make applyProfileWithOwnership(profileId) for Maximum Performance robust:
+- ensure target exists or is recreated
+- activate strictly by GUID
+- verify by GUID
+- return exact stderr/stdout when failure happens
+- do not swallow powercfg failure details
+
+FIX 4 — STARTUP SANITY CHECK
+Ensure startup sanity does NOT re-import or re-activate SwitchControl Balanced after trial expiry.
+If user is free / expired:
+- built-in Windows Balanced only
+- no custom SwitchControl profiles should survive
+
+SUCCESS CRITERIA
+1. Maximum Performance activates successfully.
+2. After trial expiry, Control Panel shows active plan = built-in Windows Balanced.
+3. No SwitchControl custom power plans remain after expiry.
+4. Reopening the app does not recreate or reactivate SwitchControl plans for free users.
+5. Logs clearly show:
+   - previous active GUID
+   - final active GUID
+   - deleted custom plan GUIDs
+   - verification passed
+
+IMPORTANT
+Do not claim fixed unless this is verified manually with:
+- Control Panel power options
+- powercfg /list
+- powercfg /getactivescheme
+before and after trial expiry.

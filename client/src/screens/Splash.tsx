@@ -35,68 +35,104 @@ export default function Splash({ onComplete }: SplashProps) {
   const tagline = useMemo(() => getTagline(), []);
 
   // ── Launch handshake ──────────────────────────────────────────────────────
-  // Sequence:
-  //   1. Splash mounts → fade out the static HTML shell (#startup-shell).
-  //      The React Splash renders underneath it immediately, so the visual
-  //      is seamless — both layers are dark.
-  //   2. After one rAF (Chromium has composited first real React frame):
-  //      signal main via 'app:first-frame-ready'.
-  //   3. Main calls show(), then sends 'app:window-shown' back to renderer.
-  //   4. On 'app:window-shown': set html opacity = 1 so the 200ms CSS fade
-  //      starts AFTER the window is on screen, never before.
-  //      Fallback: if confirmation never arrives within 600ms, reveal anyway.
+  // Correct sequence (no white flash):
+  //   1. Splash mounts.  Static shell (#startup-shell) stays FULLY OPAQUE —
+  //      it must NOT fade until AFTER the window is on screen.
+  //   2. TWO animation frames pass.  Frame 1 → Chromium lays out + paints the
+  //      dark React content.  Frame 2 → compositor has promoted that frame to
+  //      the GPU pipeline.  Only then is a guaranteed-dark frame ready to show.
+  //   3. Renderer sends 'app:first-frame-ready'.
+  //   4. Main calls show() (window appears with backgroundColor #07090D, html
+  //      still opacity:0 so compositor background is what the OS sees).
+  //   5. Main immediately sends 'app:window-shown'.
+  //   6. On 'app:window-shown':
+  //        a. Start shell fade (180ms) — shell was held opaque until now so it
+  //           acts as a solid dark cover while html transitions from 0→1.
+  //        b. Set html opacity = 1 (200ms CSS transition already on <html>).
+  //      Fallback: reveal after 700 ms if IPC never arrives.
   useEffect(() => {
-    console.log('[LAUNCH:R2] Splash mounted — dismissing static shell');
+    const mountTs = performance.now();
+    console.log(`[LAUNCH:R2] Splash mounted | t=+${mountTs.toFixed(0)}ms`);
 
-    // ── Step 1: fade out the static shell ───────────────────────────────
-    let shellRemoveTimer: ReturnType<typeof setTimeout> | undefined;
-    const shell = document.getElementById('startup-shell');
-    if (shell) {
-      shell.style.transition = 'opacity 180ms ease-out';
-      shell.style.opacity = '0';
-      shellRemoveTimer = setTimeout(() => {
-        if (shell.parentNode) shell.parentNode.removeChild(shell);
-      }, 200);
-    }
-
-    // ── Steps 2-4: IPC handshake ─────────────────────────────────────────
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
     let windowShownUnsub: (() => void) | undefined;
+    let raf1: number;
+    let raf2: number;
 
-    const raf = requestAnimationFrame(() => {
-      console.log('[LAUNCH:R3] first-frame-ready: sending IPC');
-      const api = (window as any).electronAPI;
+    // ── Steps 1-5: two-frame wait then IPC ──────────────────────────────
+    // Shell deliberately NOT touched here — it stays opaque while hidden.
+    raf1 = requestAnimationFrame(() => {
+      // Frame 1 complete: layout + paint committed.
+      raf2 = requestAnimationFrame(() => {
+        // Frame 2 complete: compositor has promoted the dark frame.
+        const readyTs = performance.now();
+        console.log(`[LAUNCH:R3] first-frame-ready: sending IPC | t=+${readyTs.toFixed(0)}ms (2 rAFs after mount)`);
+        const api = (window as any).electronAPI;
 
-      if (api?.signalFirstFrameReady) {
-        api.signalFirstFrameReady();
+        if (api?.signalFirstFrameReady) {
+          api.signalFirstFrameReady();
 
-        let revealed = false;
-        const reveal = () => {
-          if (revealed) return;
-          revealed = true;
-          // 200ms CSS opacity transition defined in index.html on <html>.
+          let revealed = false;
+          const reveal = (source: string) => {
+            if (revealed) return;
+            revealed = true;
+            const revealTs = performance.now();
+            console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
+
+            // ── Shell fade starts NOW — window is on screen ──────────────
+            // The shell was opaque during the hidden phase so backgroundColor
+            // (#07090D) was the only visible surface.  Now that the window is
+            // showing, fade the shell out while html fades in — both start
+            // simultaneously so the shell acts as a dark cover.
+            const shell = document.getElementById('startup-shell');
+            if (shell) {
+              shell.style.transition = 'opacity 180ms ease-out';
+              shell.style.opacity = '0';
+              setTimeout(() => {
+                if (shell.parentNode) shell.parentNode.removeChild(shell);
+                console.log('[LAUNCH:R4b] startup-shell removed from DOM');
+              }, 200);
+            }
+
+            // html opacity 0→1 (200ms transition already declared in index.html)
+            document.documentElement.style.opacity = '1';
+            console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+${performance.now().toFixed(0)}ms`);
+            setTimeout(() => {
+              console.log(`[LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
+            }, 200);
+          };
+
+          // Primary: reveal once main confirms window is on screen
+          windowShownUnsub = api.onWindowShown?.(() => {
+            clearTimeout(fallbackTimer);
+            windowShownUnsub = undefined;
+            const shownTs = performance.now();
+            console.log(`[LAUNCH:R3b] app:window-shown received | t=+${shownTs.toFixed(0)}ms`);
+            reveal('app:window-shown');
+          });
+
+          // Fallback: if IPC confirmation never arrives, reveal anyway
+          fallbackTimer = setTimeout(() => {
+            console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700 ms fallback');
+            reveal('fallback-timeout');
+          }, 700);
+
+        } else {
+          // Non-Electron (website) path — no handshake needed, reveal immediately
+          const shell = document.getElementById('startup-shell');
+          if (shell) {
+            shell.style.transition = 'opacity 180ms ease-out';
+            shell.style.opacity = '0';
+            setTimeout(() => { if (shell.parentNode) shell.parentNode.removeChild(shell); }, 200);
+          }
           document.documentElement.style.opacity = '1';
-          console.log('[LAUNCH:R4] opacity reveal started');
-        };
-
-        // Primary: reveal once main confirms window is on screen
-        windowShownUnsub = api.onWindowShown?.(() => {
-          clearTimeout(fallbackTimer);
-          windowShownUnsub = undefined;
-          reveal();
-        });
-
-        // Fallback: if confirmation never arrives (e.g. preload issue), reveal anyway
-        fallbackTimer = setTimeout(reveal, 600);
-      } else {
-        // Non-Electron (website) path — reveal immediately
-        document.documentElement.style.opacity = '1';
-      }
+        }
+      });
     });
 
     return () => {
-      cancelAnimationFrame(raf);
-      clearTimeout(shellRemoveTimer);
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
       clearTimeout(fallbackTimer);
       windowShownUnsub?.();
     };

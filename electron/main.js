@@ -677,15 +677,17 @@ function createWindow() {
 
   // ── Launch handshake ─────────────────────────────────────────────────────────
   // Primary show trigger: renderer sends 'app:first-frame-ready' after Splash
-  // has painted its first composited dark frame (one rAF after React mount).
-  // This guarantees the window is never shown before the branded UI exists.
+  // has painted TWO composited dark frames (double-rAF after React mount).
+  // This guarantees the window is never shown before the branded dark UI exists.
+  const _launchT0 = Date.now();
+  const launchMs = () => `+${Date.now() - _launchT0}ms`;
   let _firstFrameReadyFired = false;
 
   // Hard fallback: if the IPC signal never arrives (preload issue, crash), show
   // after 5 s so the app is never permanently invisible.
   const showFallbackTimer = setTimeout(() => {
     if (mainWindow && !mainWindow.isVisible()) {
-      console.warn('[LAUNCH:FALLBACK] first-frame-ready never received — force-showing after 5 s');
+      console.warn(`[LAUNCH:FALLBACK] first-frame-ready never received — force-showing after 5 s | ${launchMs()}`);
       mainWindow.show();
       mainWindow.webContents.send('app:window-shown');
       mainWindow.focus();
@@ -695,23 +697,24 @@ function createWindow() {
   ipcMain.once('app:first-frame-ready', () => {
     _firstFrameReadyFired = true;
     clearTimeout(showFallbackTimer);
-    console.log('[LAUNCH:4] first-frame-ready received from renderer — branded frame confirmed');
+    console.log(`[LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | ${launchMs()}`);
     if (!mainWindow || mainWindow.isVisible()) return;
     mainWindow.show();
-    console.log('[LAUNCH:5] show() called — window now visible');
-    // Confirm to renderer that the window is on screen so it can start the
-    // opacity reveal transition (prevents reveal starting before show() fires).
+    console.log(`[LAUNCH:5] mainWindow.show() called — window now on screen | ${launchMs()}`);
+    // Tell renderer the window is on screen so it can begin the opacity reveal.
+    // Renderer must NOT reveal before this — otherwise the transition starts
+    // while the window is still hidden, wasting the opacity budget.
     mainWindow.webContents.send('app:window-shown');
-    console.log('[LAUNCH:5b] app:window-shown sent to renderer');
+    console.log(`[LAUNCH:5b] app:window-shown sent to renderer | ${launchMs()}`);
     mainWindow.focus();
-    console.log('[LAUNCH:6] focus() called — launch sequence complete');
+    console.log(`[LAUNCH:6] focus() — launch sequence complete | ${launchMs()}`);
   });
 
-  // ready-to-show: diagnostic log only — do NOT show here.
-  // ready-to-show can fire before CSS is applied (white frame risk).
+  // ready-to-show: DIAGNOSTIC ONLY — do NOT call show() here.
+  // ready-to-show can fire before CSS paint (white frame risk).
   // The first-frame-ready IPC handshake above is the authoritative show trigger.
   mainWindow.once('ready-to-show', () => {
-    verboseLog('[LAUNCH:ready-to-show] Chromium first paint available — waiting for first-frame-ready IPC');
+    verboseLog(`[LAUNCH:ready-to-show] Chromium first paint available — awaiting first-frame-ready IPC | ${launchMs()}`);
   });
   mainWindow.on('closed', () => { 
     mainWindow = null; 
