@@ -42,6 +42,7 @@ import {
   Cpu,
   Gauge,
   HardDrive,
+  HelpCircle,
   Minus,
   RefreshCw,
   Shield,
@@ -623,18 +624,33 @@ function WhatCausedThatCard({
               transition={{ duration: 0.3 }}
             >
               {/* Primary cause */}
-              <div className={cn(
-                "p-3 rounded-lg border space-y-2",
-                causation.noIssue
-                  ? "border-emerald-500/20 bg-emerald-500/[0.05]"
-                  : "border-amber-500/20 bg-amber-500/[0.05]"
-              )} data-testid="section-cause-result">
+              {(() => {
+                const isUncertain = causation.primaryCause.id === "cause-uncertain";
+                const isTweakVerify = causation.primaryCause.id === "tweak-verification" || causation.primaryCause.id === "tweak-check-single";
+                const borderBg =
+                  causation.noIssue   ? "border-emerald-500/20 bg-emerald-500/[0.05]"
+                  : isUncertain       ? "border-white/10 bg-white/[0.03]"
+                  : isTweakVerify     ? "border-violet-500/20 bg-violet-500/[0.05]"
+                  :                     "border-amber-500/20 bg-amber-500/[0.05]";
+                const labelColor =
+                  causation.noIssue   ? "text-emerald-300"
+                  : isUncertain       ? "text-white/50"
+                  : isTweakVerify     ? "text-violet-300"
+                  :                     "text-amber-200";
+                const Icon =
+                  causation.noIssue   ? CheckCircle
+                  : isUncertain       ? HelpCircle
+                  :                     AlertTriangle;
+                const iconColor =
+                  causation.noIssue   ? "text-emerald-400"
+                  : isUncertain       ? "text-white/30"
+                  : isTweakVerify     ? "text-violet-400"
+                  :                     "text-amber-400";
+                return (
+              <div className={cn("p-3 rounded-lg border space-y-2", borderBg)} data-testid="section-cause-result">
                 <div className="flex items-center gap-2">
-                  {causation.noIssue
-                    ? <CheckCircle className="size-3.5 text-emerald-400 shrink-0" />
-                    : <AlertTriangle className="size-3.5 text-amber-400 shrink-0" />
-                  }
-                  <span className={cn("text-xs font-semibold", causation.noIssue ? "text-emerald-300" : "text-amber-200")} data-testid="text-cause-label">
+                  <Icon className={cn("size-3.5 shrink-0", iconColor)} />
+                  <span className={cn("text-xs font-semibold", labelColor)} data-testid="text-cause-label">
                     {causation.primaryCause.label}
                   </span>
                 </div>
@@ -664,6 +680,8 @@ function WhatCausedThatCard({
                   )}
                 </div>
               </div>
+                );
+              })()}
 
               {/* Suggestion */}
               {causation.primaryCause.destination && (

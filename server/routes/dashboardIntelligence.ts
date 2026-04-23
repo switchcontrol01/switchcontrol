@@ -5,14 +5,17 @@ import si from "systeminformation";
 const router = Router();
 
 // ── Server-side caches for expensive routes ───────────────────────────────────
-// /ram-analysis: calls si.mem() + si.processes() — 8s TTL
-// /display-signal: calls si.graphics() — 60s TTL (display config rarely changes)
+// /ram-analysis:        calls si.mem() + si.processes() — 8s TTL
+// /what-caused-that:    calls si.processes()             — 8s TTL
+// /display-signal:      calls si.graphics()              — 60s TTL
 
-const RAM_ANALYSIS_TTL    = 8_000;
-const DISPLAY_SIGNAL_TTL  = 60_000;
+const RAM_ANALYSIS_TTL       = 8_000;
+const WHAT_CAUSED_THAT_TTL   = 8_000;
+const DISPLAY_SIGNAL_TTL     = 60_000;
 
-let ramAnalysisCache:   { data: any; ts: number } | null = null;
-let displaySignalCache: { data: any; ts: number } | null = null;
+let ramAnalysisCache:      { data: any; ts: number } | null = null;
+let whatCausedThatCache:   { data: any; ts: number } | null = null;
+let displaySignalCache:    { data: any; ts: number } | null = null;
 
 // ── Stability / Instability score ──────────────────────────────────────────────
 
@@ -107,14 +110,77 @@ router.get("/instability", (_req, res) => {
 });
 
 // ── What just caused that? ────────────────────────────────────────────────────
+//
+// Real attribution engine — calls si.processes() live so it can identify:
+//   - powershell.exe count (tweak verification bursts)
+//   - top CPU-consuming processes by name
+//   - SwitchControl backend process CPU (node/electron)
+//   - renderer/GPU process CPU
+//
+// Priority chain:
+//   1. powershell burst → Tweak Verification Activity
+//   2. backend process hot → Backend Analysis Activity
+//   3. renderer/GPU hot → UI / Renderer Workload
+//   4. RAM pressure → Memory Pressure
+//   5. network burst → Background Network Transfer
+//   6. external process named → External Process Spike
+//   7. CPU elevated, no cause found → Cause Uncertain (honest)
+//   8. nothing elevated → No significant anomaly (clean state)
 
-router.get("/what-caused-that", (_req, res) => {
+router.get("/what-caused-that", async (_req, res) => {
+  // Serve cached result if within TTL — si.processes() is expensive
+  if (whatCausedThatCache && (Date.now() - whatCausedThatCache.ts) < WHAT_CAUSED_THAT_TTL) {
+    return res.json(whatCausedThatCache.data);
+  }
+
   try {
     const snap    = getCachedSnapshot();
     const cpuLoad = snap.cpu.load;
     const ramPct  = snap.ram.usedPercent;
     const procs   = snap.processes.total;
     const netKbs  = (snap.network.rx_sec + snap.network.tx_sec) / 1024;
+
+    // ── Live per-process attribution ──────────────────────────────────────────
+
+    interface ProcRow { name: string; pid: number; pcpu: number; memRss: number }
+    let procList: ProcRow[] = [];
+    try {
+      const siProcs = await si.processes();
+      procList = siProcs.list
+        .filter((p: any) => typeof p.pcpu === "number" && p.pcpu >= 0)
+        .map((p: any) => ({
+          name:   String(p.name ?? "unknown").toLowerCase(),
+          pid:    p.pid ?? 0,
+          pcpu:   p.pcpu,
+          memRss: p.memRss ?? 0,
+        }));
+    } catch (_) {}
+
+    // PowerShell instances — primary signal for tweak/verification activity
+    const psProcs    = procList.filter(p => p.name.startsWith("powershell"));
+    const psCount    = psProcs.length;
+    const topPsProc  = psProcs.sort((a, b) => b.pcpu - a.pcpu)[0] ?? null;
+
+    // Top 3 CPU processes overall (used for evidence strings + external detection)
+    const topCpuProcs = [...procList]
+      .sort((a, b) => b.pcpu - a.pcpu)
+      .slice(0, 3);
+
+    // SwitchControl backend: node.exe or electron.exe (main process, not renderer)
+    const backendProcs   = procList.filter(p =>
+      p.name.includes("node") || p.name === "electron" || p.name.includes("switchcontrol")
+    );
+    const backendMaxCpu  = backendProcs.reduce((m, p) => Math.max(m, p.pcpu), 0);
+    const hotBackend     = backendProcs.find(p => p.pcpu === backendMaxCpu) ?? null;
+
+    // Renderer / GPU process (Electron renderer, GPU helper)
+    const rendererProcs  = procList.filter(p =>
+      p.name.includes("renderer") || p.name.includes(" gpu") ||
+      p.name.includes("gpu process") || (p.name.includes("electron") && p.name.includes("helper"))
+    );
+    const rendererMaxCpu = rendererProcs.reduce((m, p) => Math.max(m, p.pcpu), 0);
+
+    // ── Cause interface ───────────────────────────────────────────────────────
 
     interface Cause {
       id: string;
@@ -129,65 +195,110 @@ router.get("/what-caused-that", (_req, res) => {
 
     const causes: Cause[] = [];
 
+    // ── Priority 1: PowerShell burst → tweak/check activity ──────────────────
+    if (psCount >= 2) {
+      const conf: "high" | "medium" | "low" = psCount >= 4 ? "high" : "medium";
+      const evidence: string[] = [
+        `${psCount} PowerShell task${psCount !== 1 ? "s" : ""} active`,
+      ];
+      if (topPsProc && topPsProc.pcpu > 0.1)
+        evidence.push(`top powershell.exe at ${topPsProc.pcpu.toFixed(1)}% CPU`);
+      else
+        evidence.push("powershell.exe processes spawned");
+      evidence.push("Tweak verification or registry check in progress");
+      causes.push({
+        id: "tweak-verification",
+        label: "Tweak Verification Activity",
+        evidence,
+        confidence: conf,
+        subsystem: "SwitchControl / PowerShell",
+        score: 55 + Math.min(40, psCount * 8),
+        suggestion: "Normal after applying tweaks — completes in seconds",
+        destination: "/tweaks",
+      });
+    } else if (psCount === 1 && cpuLoad > 25) {
+      causes.push({
+        id: "tweak-check-single",
+        label: "Single Tweak Check Running",
+        evidence: [
+          "1 PowerShell task active",
+          topPsProc && topPsProc.pcpu > 0.1
+            ? `powershell.exe at ${topPsProc.pcpu.toFixed(1)}% CPU`
+            : "powershell.exe spawned",
+        ],
+        confidence: "low",
+        subsystem: "SwitchControl / PowerShell",
+        score: 38,
+        suggestion: "Single PowerShell check — completes shortly",
+        destination: "/tweaks",
+      });
+    }
+
+    // ── Priority 2: Backend process hot → app internal work ──────────────────
+    if (backendMaxCpu > 15) {
+      const procName = hotBackend?.name ?? "node.exe";
+      const evidence: string[] = [
+        `${procName} at ${backendMaxCpu.toFixed(1)}% CPU`,
+        "App engine: telemetry scan, AI analysis, or disk inspection",
+      ];
+      if (topCpuProcs[0] && !topCpuProcs[0].name.startsWith("powershell"))
+        evidence.push(`top overall: ${topCpuProcs[0].name} at ${topCpuProcs[0].pcpu.toFixed(1)}%`);
+      causes.push({
+        id: "backend-activity",
+        label: "Backend Analysis Activity",
+        evidence,
+        confidence: backendMaxCpu > 40 ? "high" : "medium",
+        subsystem: "Backend",
+        score: 45 + Math.min(40, backendMaxCpu * 0.9),
+        suggestion: "Background scan in progress — CPU will settle when complete",
+        destination: "/",
+      });
+    }
+
+    // ── Priority 3: Renderer / GPU hot → UI rendering load ───────────────────
+    if (rendererMaxCpu > 20) {
+      causes.push({
+        id: "renderer-load",
+        label: "UI / Renderer Workload",
+        evidence: [
+          `renderer process at ${rendererMaxCpu.toFixed(1)}% CPU`,
+          "Heavy UI rendering, animation, or GPU compositing",
+        ],
+        confidence: rendererMaxCpu > 45 ? "high" : "medium",
+        subsystem: "Renderer",
+        score: 40 + Math.min(35, rendererMaxCpu * 0.75),
+        suggestion: "Reduce open panels or complex animations",
+        destination: "/",
+      });
+    }
+
+    // ── Priority 4: Memory pressure ───────────────────────────────────────────
     if (ramPct > 78) {
       causes.push({
         id: "memory-pressure",
         label: "Memory Pressure",
         evidence: [
           `RAM at ${ramPct.toFixed(0)}%`,
-          ramPct > 90 ? "Active page file usage likely" : "Standby memory being trimmed aggressively",
+          ramPct > 90 ? "Active page file usage likely" : "Standby memory being trimmed",
           `${snap.ram.usedGB.toFixed(1)} GB used of ${snap.ram.totalGB.toFixed(1)} GB`,
         ],
         confidence: ramPct > 90 ? "high" : ramPct > 85 ? "medium" : "low",
         subsystem: "Memory",
         score: 50 + Math.min(50, (ramPct - 78) * 2.5),
-        suggestion: "Apply memory-opt tweaks or clear RAM",
+        suggestion: "Apply memory-opt tweaks or clear RAM standby",
         destination: "/tweaks",
       });
     }
 
-    if (cpuLoad > 45 || snap.load_trend === "rising") {
-      causes.push({
-        id: "cpu-burst",
-        label: "CPU Background Activity",
-        evidence: [
-          `CPU at ${cpuLoad.toFixed(0)}%`,
-          snap.load_trend === "rising" ? "Load trend: currently rising" : `Load trend: ${snap.load_trend}`,
-          `${procs} background processes active`,
-        ],
-        confidence: cpuLoad > 72 ? "high" : cpuLoad > 52 ? "medium" : "low",
-        subsystem: "CPU",
-        score: cpuLoad > 72 ? 85 : cpuLoad > 52 ? 62 : 35,
-        suggestion: "Disable background apps via System Tweaks",
-        destination: "/tweaks",
-      });
-    }
-
-    if (procs > 200) {
-      causes.push({
-        id: "background-procs",
-        label: "Background Process Burst",
-        evidence: [
-          `${procs} processes currently running`,
-          procs > 300 ? "Unusually high process count" : "Above-average background services",
-          `Scheduling overhead adds latency`,
-        ],
-        confidence: procs > 300 ? "medium" : "low",
-        subsystem: "Processes",
-        score: procs > 300 ? 65 : 40,
-        suggestion: "Run debloat tweaks to reduce service count",
-        destination: "/tweaks",
-      });
-    }
-
+    // ── Priority 5: Network burst ─────────────────────────────────────────────
     if (netKbs > 800) {
       causes.push({
         id: "network-burst",
         label: "Background Network Transfer",
         evidence: [
           `Network: ${netKbs > 1024 ? (netKbs / 1024).toFixed(1) + " MB/s" : netKbs.toFixed(0) + " KB/s"}`,
-          "Background download/upload detected",
-          "Could be Windows Update, cloud sync, or antivirus",
+          "Background download or upload detected",
+          "Likely Windows Update, cloud sync, or antivirus definitions",
         ],
         confidence: netKbs > 5000 ? "high" : netKbs > 2000 ? "medium" : "low",
         subsystem: "Network",
@@ -197,6 +308,53 @@ router.get("/what-caused-that", (_req, res) => {
       });
     }
 
+    // ── Priority 6: External process CPU spike ────────────────────────────────
+    // Only fires if no other cause matched yet, and a named external process is hot
+    if (causes.length === 0 && cpuLoad > 35 && topCpuProcs.length > 0) {
+      const top = topCpuProcs[0];
+      const knownInternal = ["powershell", "node", "electron", "switchcontrol"];
+      const isExternal = !knownInternal.some(n => top.name.includes(n));
+      if (isExternal && top.pcpu > 8) {
+        const evidence: string[] = [
+          `${top.name} at ${top.pcpu.toFixed(1)}% CPU`,
+        ];
+        if (topCpuProcs[1])
+          evidence.push(`also: ${topCpuProcs[1].name} at ${topCpuProcs[1].pcpu.toFixed(1)}%`);
+        evidence.push(`system CPU at ${cpuLoad.toFixed(0)}%`);
+        causes.push({
+          id: "external-process",
+          label: "External Process Spike",
+          evidence,
+          confidence: top.pcpu > 30 ? "high" : "medium",
+          subsystem: "External",
+          score: 40 + Math.min(40, top.pcpu * 1.3),
+          suggestion: "Identify the process in Task Manager and close if unneeded",
+          destination: "/",
+        });
+      }
+    }
+
+    // ── Priority 7: CPU elevated, no identified cause → honest uncertain ──────
+    if (causes.length === 0 && cpuLoad > 35) {
+      const evidence: string[] = [
+        `CPU at ${cpuLoad.toFixed(0)}% — no dominant process identified`,
+      ];
+      if (topCpuProcs.length > 0)
+        evidence.push(`highest: ${topCpuProcs[0].name} at ${topCpuProcs[0].pcpu.toFixed(1)}%`);
+      evidence.push("Possible: scheduler jitter, interrupt load, or brief kernel burst");
+      causes.push({
+        id: "cause-uncertain",
+        label: "Cause Uncertain",
+        evidence,
+        confidence: "low",
+        subsystem: "Unknown",
+        score: 20,
+        suggestion: "Run analyzer again in a few seconds — transient spikes self-resolve",
+        destination: "/",
+      });
+    }
+
+    // ── Sort by score and pick primary ───────────────────────────────────────
     causes.sort((a, b) => b.score - a.score);
 
     const primaryCause: Cause = causes[0] ?? {
@@ -205,7 +363,7 @@ router.get("/what-caused-that", (_req, res) => {
       evidence: [
         `CPU at ${cpuLoad.toFixed(0)}% — within normal range`,
         `RAM at ${ramPct.toFixed(0)}%`,
-        "System appears stable at time of analysis",
+        psCount === 0 ? "No PowerShell activity" : `${psCount} PowerShell task${psCount !== 1 ? "s" : ""} running`,
       ],
       confidence: "high",
       subsystem: "None",
@@ -214,14 +372,22 @@ router.get("/what-caused-that", (_req, res) => {
       destination: "",
     };
 
-    res.json({
+    const result = {
       primaryCause,
       allCauses: causes.slice(0, 4),
       noIssue: causes.length === 0,
-      cpuLoad:  parseFloat(cpuLoad.toFixed(1)),
-      ramPct:   parseFloat(ramPct.toFixed(1)),
-      ts:       Date.now(),
-    });
+      cpuLoad:      parseFloat(cpuLoad.toFixed(1)),
+      ramPct:       parseFloat(ramPct.toFixed(1)),
+      psCount,
+      topProcesses: topCpuProcs.map(p => ({
+        name:   p.name,
+        cpuPct: parseFloat(p.pcpu.toFixed(1)),
+      })),
+      ts: Date.now(),
+    };
+
+    whatCausedThatCache = { data: result, ts: Date.now() };
+    res.json(result);
   } catch (e: any) {
     res.status(500).json({ error: "Failed to analyze cause" });
   }

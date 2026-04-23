@@ -1,0 +1,67 @@
+TASK
+Fix the “What Just Caused That?” analyzer so it reports real cause attribution, not generic guesses.
+
+PROBLEM
+Right now the analyzer mostly says one vague thing like:
+- CPU Background Activity
+
+But Task Manager shows more detail:
+- app adds about 6 extra processes
+- multiple powershell.exe processes appear
+- CPU can spike without a huge process-count jump
+
+So the current analyzer is not identifying the real source.
+It is doing weak heuristic correlation instead of actual attribution.
+
+GOAL
+When CPU rises, the analyzer must identify the most likely real cause with evidence.
+
+REQUIRED FIXES
+
+1. STOP USING PROCESS COUNT AS PRIMARY CAUSE
+High process count alone is not enough.
+142 vs 136 processes is only a delta of 6.
+That does not prove the cause.
+
+2. ADD REAL ATTRIBUTION INPUTS
+At analysis time, collect:
+- top CPU-consuming processes
+- count of active powershell.exe
+- renderer CPU if available
+- backend process CPU if available
+- whether tweak verification is running
+- whether syncAll is running
+- whether telemetry refresh is running
+- whether AI advisor / scan / disk / GPU refresh is running
+
+3. BUILD A CAUSE PRIORITY SYSTEM
+Example priority:
+- if powershell children active and recent tweak/check fired -> “Tweak verification activity”
+- if backend CPU high -> “Backend analysis activity”
+- if renderer CPU high -> “UI / renderer workload”
+- if telemetry refresh active -> “Telemetry refresh”
+- if none proven -> “Cause uncertain”
+
+4. SHOW EVIDENCE IN THE CARD
+Do not just say “CPU Background Activity”.
+Show short evidence like:
+- 4 PowerShell tasks active
+- top process: powershell.exe
+- tweak verification running
+- backend scan active
+- renderer task active
+
+5. ADD “CAUSE UNCERTAIN” STATE
+If the app cannot prove the cause, it must say that.
+Do not fake confidence.
+
+6. CAP CONCURRENCY FOR POWERSHELL WORK
+Audit why multiple powershell.exe appear at once.
+Single-flight and batching must be enforced harder.
+Do not allow overlapping verification bursts unless absolutely required.
+
+SUCCESS CRITERIA
+- analyzer names actual likely source
+- evidence shown in UI
+- no more generic one-line fake attribution
+- PowerShell bursts reduced

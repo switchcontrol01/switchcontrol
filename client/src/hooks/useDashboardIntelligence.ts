@@ -35,6 +35,8 @@ export interface CausationData {
   noIssue: boolean;
   cpuLoad: number;
   ramPct: number;
+  psCount?: number;
+  topProcesses?: { name: string; cpuPct: number }[];
   ts: number;
 }
 

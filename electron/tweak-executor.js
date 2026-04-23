@@ -78,6 +78,44 @@ function getExecutionLog() {
   return [];
 }
 
+// ─── PowerShell concurrency semaphore ─────────────────────────────────────────
+// Hard cap: never allow more than MAX_PS_CONCURRENT powershell.exe processes
+// from this module at once. Callers that arrive when slots are full queue up
+// (await) rather than spawning a new process immediately. This prevents
+// verification bursts (e.g. syncAll + individual verify calls arriving
+// simultaneously) from flooding the process list with powershell.exe children.
+//
+// The global ps-limiter in main.js provides per-operation single-flight;
+// this semaphore is belt-and-suspenders at the spawn level.
+
+const MAX_PS_CONCURRENT = 2;
+let _psActive = 0;
+const _psQueue = [];
+
+function _withPsSemaphore(fn) {
+  return new Promise((resolve, reject) => {
+    const run = () => {
+      _psActive++;
+      Promise.resolve()
+        .then(fn)
+        .then(resolve, reject)
+        .finally(() => {
+          _psActive--;
+          if (_psQueue.length > 0) {
+            const next = _psQueue.shift();
+            next();
+          }
+        });
+    };
+    if (_psActive < MAX_PS_CONCURRENT) {
+      run();
+    } else {
+      console.log(`[PS-Semaphore] queued — ${_psActive}/${MAX_PS_CONCURRENT} slots active, queue=${_psQueue.length + 1}`);
+      _psQueue.push(run);
+    }
+  });
+}
+
 // ─── PowerShell helpers ────────────────────────────────────────────────────────
 // Diagnostic counter — every powershell.exe spawn increments this.
 // At idle this number must never climb. Log lines appear in the Electron console.
@@ -109,19 +147,22 @@ function runPowerShell(command) {
 }
 
 function queryPowerShell(command) {
-  const id = ++_tweak_psCount;
-  const t0 = Date.now();
-  console.log(`[PS:tweak-executor] #${id} queryPowerShell SPAWN ts=${t0}`);
-  return new Promise((resolve) => {
-    execFile(
-      'powershell',
-      ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
-      { timeout: 12000, windowsHide: true },
-      (error, stdout) => {
-        console.log(`[PS:tweak-executor] #${id} queryPowerShell ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
-        resolve(error ? null : stdout.trim());
-      }
-    );
+  // Acquire semaphore slot before spawning — queues if MAX_PS_CONCURRENT is full
+  return _withPsSemaphore(() => {
+    const id = ++_tweak_psCount;
+    const t0 = Date.now();
+    console.log(`[PS:tweak-executor] #${id} queryPowerShell SPAWN ts=${t0} active=${_psActive}`);
+    return new Promise((resolve) => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', command],
+        { timeout: 12000, windowsHide: true },
+        (error, stdout) => {
+          console.log(`[PS:tweak-executor] #${id} queryPowerShell ${error ? 'FAIL' : 'OK'} ${Date.now() - t0}ms`);
+          resolve(error ? null : stdout.trim());
+        }
+      );
+    });
   });
 }
 
