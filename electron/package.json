@@ -8,12 +8,12 @@
   "type": "commonjs",
   "scripts": {
     "start": "electron .",
-    "prebuild": "node -e \"const f=require('fs'),p=require('path'),base=__dirname;const run=s=>{const sp=p.join(base,'scripts',s+'.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[prebuild] '+s+'.js not found — using inline fallback');}};run('ensure-assets');const distSp=p.join(base,'scripts','ensure-dist.js');if(f.existsSync(distSp)){require(distSp);}else{const src=p.join(base,'..','dist');const dst=p.join(base,'dist-frontend');if(!f.existsSync(src)){console.error('[prebuild] dist/ not found — run npm run build first');process.exit(1);}f.rmSync(dst,{recursive:true,force:true});f.cpSync(src,dst,{recursive:true});const cjs=p.join(dst,'index.cjs');if(f.existsSync(cjs))f.rmSync(cjs);console.log('[prebuild] dist-frontend synced (inline fallback)');}\"",
-    "build:native": "node -e \"const f=require('fs'),p=require('path');const sp=p.join(__dirname,'scripts','build-native.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[build:native] build-native.js not found — skipping native build (existing bin/sc_memory.exe will be used)');}\"",
+    "prebuild": "node -e \"const f=require('fs'),p=require('path'),base=process.cwd();const run=s=>{const sp=p.join(base,'scripts',s+'.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[prebuild] '+s+'.js not found — using inline fallback');}};run('ensure-assets');const distSp=p.join(base,'scripts','ensure-dist.js');if(f.existsSync(distSp)){require(distSp);}else{const src=p.join(base,'..','dist');const dst=p.join(base,'dist-frontend');if(!f.existsSync(src)){console.error('[prebuild] dist/ not found — run npm run build first');process.exit(1);}f.rmSync(dst,{recursive:true,force:true});f.cpSync(src,dst,{recursive:true});const cjs=p.join(dst,'index.cjs');if(f.existsSync(cjs))f.rmSync(cjs);console.log('[prebuild] dist-frontend synced (inline fallback)');}\"",
+    "build:native": "node -e \"const f=require('fs'),p=require('path');const sp=p.join(process.cwd(),'scripts','build-native.js');if(f.existsSync(sp)){require(sp);}else{console.warn('[build:native] build-native.js not found — skipping (existing bin/sc_memory.exe will be used)');}\"",
     "dist:win": "npm run prebuild && npm run build:native && electron-builder --win",
     "generate-latest-yml": "node scripts/generate-latest-yml.js",
     "sync-version": "node scripts/sync-version.js",
-    "release": "node -e \"const f=require('fs'),p=require('path');const sp=p.join(__dirname,'scripts','release.js');if(f.existsSync(sp)){require(sp);}else{console.error('[release] release.js not found.\\nFix: run git pull in the SwitchControl directory to download the release script, then retry.');process.exit(1);}\""
+    "release": "node -e \"const f=require('fs'),p=require('path');const sp=p.join(process.cwd(),'scripts','release.js');if(f.existsSync(sp)){require(sp);}else{console.error('[release] release.js not found.\\nFix: run git pull in the SwitchControl directory to download the release script, then retry.');process.exit(1);}\""
   },
   "dependencies": {
     "systeminformation": "^5.23.5",
