@@ -412,7 +412,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false }: T
         {open && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[6px] pointer-events-auto"
+              className="fixed inset-0 z-40 bg-black/35 pointer-events-auto"
               onClick={closeModal} data-testid="modal-backdrop"
               variants={modalBackdrop} initial="initial" animate="animate" exit="exit"
             />

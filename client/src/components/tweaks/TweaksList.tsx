@@ -281,7 +281,7 @@ export function TweaksList() {
         {warnLevel && LEVEL_WARN[warnLevel] && (
           <>
             <motion.div
-              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[6px]"
+              className="fixed inset-0 z-40 bg-black/40"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setWarnLevel(null)}
             />

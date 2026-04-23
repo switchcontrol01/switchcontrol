@@ -1,0 +1,134 @@
+TASK
+
+Fix the info panel / tweak detail glass card turning from clear glass to milky white after opening.
+
+PROBLEM
+
+The panel initially looks correct:
+- transparent
+- glossy
+- clean glass
+- good blur
+
+Then after a brief moment it turns denser / milkier / whiter.
+
+This means a later-applied class, overlay, animation target, or state-based style is overriding the intended glass appearance.
+
+GOAL
+
+Keep the panel visually consistent from first frame to settled state:
+- no transition from clear to milky
+- no stronger white fill appearing after mount
+- same glass appearance during idle, hover, open, and settled states
+
+FILES TO AUDIT FIRST
+
+- the tweak info modal / info panel component
+- shared GlassCard / glass surface primitive
+- motion wrapper around the panel
+- any parent card / overlay / spotlight / shimmer layers
+- any state class logic using:
+  - isOpen
+  - hovered
+  - selected
+  - focused
+  - data-state
+  - animate / initial / exit
+
+SEARCH FOR
+
+- backgroundColor
+- bg-white/
+- bg-slate/
+- bg-zinc/
+- opacity
+- backdrop-blur
+- absolute inset-0 overlays
+- after:
+- before:
+- data-[state=
+- group-hover
+- animate={{
+- initial={{
+- whileHover={{
+- transition classes
+- glass variant tokens
+
+REQUIRED FIXES
+
+1. FIND THE EXACT OVERRIDE
+Identify exactly what changes between:
+- first correct frame
+- later milky frame
+
+Do not guess.
+Inspect final computed classes/styles for:
+- panel root
+- inner content wrapper
+- absolute overlays
+- pseudo-element layers
+- motion wrapper
+
+2. KEEP ONE AUTHORITATIVE GLASS SURFACE
+The panel must have one authoritative background recipe only.
+Do not let open/hover/focus states swap to a denser white background.
+
+Use a stable visual recipe like:
+- low white alpha
+- backdrop blur
+- subtle border
+- subtle shadow
+- no second white wash layer
+
+3. REMOVE MILKY OVERLAYS
+If there is an absolute overlay or glow layer fading in with white/gray tint:
+- remove it
+- or reduce opacity drastically
+- or make it purely border/glow, not fill
+
+4. DO NOT ANIMATE BACKGROUND FILL
+Do not animate backgroundColor to a brighter white value.
+Allowed animation:
+- opacity of whole panel
+- translateY
+- scale
+- blur of backdrop if needed
+Not allowed:
+- glass fill becoming denser after mount
+
+5. FIX STATE CLASS COLLISIONS
+If base class says transparent glass but open/selected/focused class adds a stronger bg-white/*, remove the stronger state class.
+Base glass must remain visually consistent in all states.
+
+6. CHECK SHARED GLASS PRIMITIVE
+If this comes from a shared GlassCard token, fix it at the source without breaking other surfaces.
+If needed, create a dedicated variant for info panels:
+- glass-info-panel
+- stable clear glass
+- no milky settled state
+
+7. FINAL VISUAL TARGET
+The panel should stay:
+- clear
+- translucent
+- premium
+- glossy
+- readable
+- never cloudy/milky
+
+CHECKLIST
+
+- open panel: clear immediately
+- wait 2 seconds: still clear
+- hover panel: still clear
+- focus elements inside panel: still clear
+- reopen multiple times: no milky transition
+- no state where a white wash appears over the panel
+
+FINAL OUTPUT
+
+Return:
+- exact file
+- exact class/overlay/state causing the milky shift
+- exact fix applied
+- confirmation that the settled state now matches the initial clear glass state

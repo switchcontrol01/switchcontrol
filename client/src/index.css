@@ -2459,8 +2459,10 @@ button, a, nav, header, footer, label {
 
 /* ── Glass modal surface ──────────────────────────────────────────────────────
    Fallback (no backdrop-filter): opaque dark panel — readable without blur.
-   With backdrop-filter: near-transparent so the 40px blur shows through,
-   creating the frosted-glass / milky overlay effect.
+   With backdrop-filter: near-transparent tint so the backdrop-blur-xl on the
+   GlassModalSurface blurs directly through actual dark page content, producing
+   clear dark glass. Backdrop overlays must NOT stack a second backdrop-blur or
+   the double-blur compounds into a milky grey — overlays use bg-black/35 only.
    Applied to: GlassModalSurface, GlassModalLayout content, DialogContent,
    LicenseManagementModal, PendingActivationModal.
    ─────────────────────────────────────────────────────────────────────────── */
