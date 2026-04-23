@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cloudApiGet } from "@/lib/cloud-api";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -82,6 +83,30 @@ interface SystemContext {
   enabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
   disabledTweaks: Array<{ id: string; title: string; category: string; risk: string }>;
   telemetry: Record<string, number | string | null>;
+  powerPlan?: string;
+  recentHistory?: Array<{ action: string; page: string; result: string; timestamp: string }>;
+}
+
+interface AdvisorCoverage {
+  display: "available" | "partial" | "unavailable";
+  networkTweaks: "available" | "partial" | "unavailable";
+  telemetry: "available" | "unavailable";
+  systemIntel: "available" | "partial" | "unavailable";
+}
+
+interface AdvisorContextData {
+  display: {
+    status: string;
+    primaryMonitor: string | null;
+    resolution: string | null;
+    refreshHz: number | null;
+    connectionType: string | null;
+    qualityScore: number | null;
+    qualityReason: string | null;
+    displayCount: number;
+  };
+  networkTweaks: { status: string; applied: string[]; failed: string[]; total: number };
+  coverage: AdvisorCoverage;
 }
 
 interface AttachedImage {
@@ -454,6 +479,120 @@ function SystemSpecRow({ icon: Icon, label, value, color }: { icon: typeof Cpu; 
   );
 }
 
+// ── Advisor Coverage Panel ────────────────────────────────────────────────────
+
+const STATUS_COLOR = {
+  available: "text-emerald-400",
+  partial: "text-amber-400",
+  unavailable: "text-white/25",
+};
+const STATUS_DOT = {
+  available: "bg-emerald-400",
+  partial: "bg-amber-400",
+  unavailable: "bg-white/15",
+};
+const STATUS_LABEL = {
+  available: "Live",
+  partial: "Partial",
+  unavailable: "–",
+};
+
+function CoverageRow({ label, status, detail }: { label: string; status: "available" | "partial" | "unavailable"; detail?: string }) {
+  return (
+    <div className="flex items-center gap-2 py-[3px]">
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[status]}`} />
+      <span className="text-[10px] text-white/50 flex-1 leading-none">{label}</span>
+      {detail
+        ? <span className={`text-[9px] ${STATUS_COLOR[status]} max-w-[70px] truncate`}>{detail}</span>
+        : <span className={`text-[9px] ${STATUS_COLOR[status]}`}>{STATUS_LABEL[status]}</span>}
+    </div>
+  );
+}
+
+function CoveragePanel({
+  coverage,
+  ctxData,
+  tweakCount,
+  historyCount,
+  powerPlan,
+}: {
+  coverage: AdvisorCoverage | null;
+  ctxData: AdvisorContextData | null;
+  tweakCount: number;
+  historyCount: number;
+  powerPlan: string | null;
+}) {
+  const allUnavailable = !coverage || (
+    coverage.display === "unavailable" &&
+    coverage.networkTweaks === "unavailable" &&
+    coverage.telemetry === "unavailable" &&
+    coverage.systemIntel === "unavailable"
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -16 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.45, delay: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 backdrop-blur-sm"
+    >
+      <div className="flex items-center gap-2 mb-2.5">
+        <div className="w-5 h-5 rounded-md bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
+          <Eye className="size-2.5 text-blue-400" />
+        </div>
+        <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Advisor Coverage</p>
+      </div>
+      {allUnavailable ? (
+        <p className="text-[10px] text-white/20 text-center py-1">Initializing data sources…</p>
+      ) : (
+        <div>
+          <CoverageRow
+            label="System Hardware"
+            status={coverage?.systemIntel ?? "unavailable"}
+          />
+          <CoverageRow
+            label="Display Signal"
+            status={coverage?.display ?? "unavailable"}
+            detail={
+              coverage?.display !== "unavailable" && ctxData?.display.refreshHz
+                ? `${ctxData.display.refreshHz}Hz`
+                : undefined
+            }
+          />
+          <CoverageRow
+            label="Tweaks"
+            status={tweakCount > 0 ? "available" : "partial"}
+            detail={tweakCount > 0 ? `${tweakCount} active` : undefined}
+          />
+          <CoverageRow
+            label="Live Telemetry"
+            status={coverage?.telemetry ?? "unavailable"}
+          />
+          <CoverageRow
+            label="Network Tweaks"
+            status={coverage?.networkTweaks ?? "unavailable"}
+            detail={
+              ctxData?.networkTweaks.applied.length
+                ? `${ctxData.networkTweaks.applied.length} applied`
+                : undefined
+            }
+          />
+          <CoverageRow
+            label="Power Plan"
+            status={powerPlan ? "available" : "partial"}
+            detail={powerPlan ? powerPlan.slice(0, 14) : undefined}
+          />
+          <CoverageRow
+            label="History"
+            status={historyCount > 0 ? "available" : "partial"}
+            detail={historyCount > 0 ? `${historyCount} events` : undefined}
+          />
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
 function SystemProfileCard({ context }: { context: SystemContext | null }) {
   const s = context?.system;
   const hasAny = s?.cpu || s?.gpu || s?.ram || s?.storage;
@@ -734,7 +873,7 @@ export default function AiAdvisor() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const { isOnline } = useNetworkStatus();
-  const { stats, tweaks } = useStore();
+  const { stats, tweaks, history } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
   const sysIntel = useSystemIntelligence();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
@@ -757,6 +896,17 @@ export default function AiAdvisor() {
   const [imageError, setImageError] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
+  const [advisorCtxData, setAdvisorCtxData] = useState<AdvisorContextData | null>(null);
+
+  // Fetch server-side advisor context for coverage panel
+  useEffect(() => {
+    if (!isPremium) return;
+    let cancelled = false;
+    cloudApiGet<AdvisorContextData>("/ai-advisor/context")
+      .then(data => { if (!cancelled) setAdvisorCtxData(data); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [isPremium]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -929,6 +1079,20 @@ export default function AiAdvisor() {
       si.platform.vbsEnabled ? "VBS/Memory Integrity: On (may reduce GPU performance)" : null,
     ].filter(Boolean).join("; ") : "";
 
+    const recentHistory = Array.isArray(history)
+      ? history.slice(0, 20).map(h => ({
+          action: h.action,
+          page: h.page,
+          result: h.result,
+          timestamp: h.timestamp,
+        }))
+      : [];
+
+    const powerPlanFromIntel =
+      si?.powerPlan?.name ??
+      si?.powerPlan?.guid ??
+      null;
+
     const ctx: SystemContext = {
       isPremium,
       system: {
@@ -960,11 +1124,13 @@ export default function AiAdvisor() {
         avgFps: null,
         pingMs: null,
       },
+      powerPlan: powerPlanFromIntel ?? undefined,
+      recentHistory,
     };
     setContext(ctx);
     contextRef.current = ctx;
     if (si) console.log(`[AI:CONTEXT] system-intelligence enriched | MB=${si.baseboard.model} | BIOS=${si.bios.version} | net=${networkStr}`);
-  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile]);
+  }, [stats, tweaks, liveTel, isPremium, sysIntel.profile, history]);
 
   // Auto-analysis welcome message
   useEffect(() => {
@@ -1316,6 +1482,13 @@ export default function AiAdvisor() {
           <div className="w-56 shrink-0 flex flex-col gap-3 overflow-y-auto scrollbar-thin">
             <SystemProfileCard context={context} />
             <OptimizationStatusCard enabledCount={enabledCount} totalCount={totalTweaks} />
+            <CoveragePanel
+              coverage={advisorCtxData?.coverage ?? null}
+              ctxData={advisorCtxData}
+              tweakCount={enabledCount}
+              historyCount={history?.length ?? 0}
+              powerPlan={context?.powerPlan ?? null}
+            />
             <QuickActionsPanel
               onAction={handleQuickAction}
               onImageUploadAction={handleImageUploadAction}

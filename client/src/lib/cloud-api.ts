@@ -139,3 +139,28 @@ export async function cloudApiPost<T = any>(
 
   return attempt(1);
 }
+
+export async function cloudApiGet<T = any>(
+  path: string,
+  options?: CloudRequestOptions
+): Promise<T> {
+  if (typeof navigator !== "undefined" && !navigator.onLine) {
+    throw new ApiError(0, "You are offline. Please check your connection.");
+  }
+  const url = `${CLOUD_BASE}${path.startsWith("/") ? path : `/${path}`}`;
+  const headers = await buildHeaders();
+  // Remove Content-Type for GET (no body)
+  const getHeaders: Record<string, string> = { ...headers };
+  delete getHeaders["Content-Type"];
+  const res = await fetch(url, {
+    method: "GET",
+    headers: getHeaders,
+    credentials: isPackagedElectron ? "omit" : "include",
+    signal: options?.signal,
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new ApiError(res.status, body?.error ?? `Request failed: ${res.status}`);
+  }
+  return res.json();
+}

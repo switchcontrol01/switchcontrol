@@ -677,4 +677,11 @@ router.get("/display-signal", async (_req, res) => {
   }
 });
 
+// ── Exported getter for other modules (advisorContext.ts) ─────────────────────
+export function getCachedDisplaySignal(): any | null {
+  if (!displaySignalCache) return null;
+  if (Date.now() - displaySignalCache.ts > DISPLAY_SIGNAL_TTL) return null;
+  return displaySignalCache.data;
+}
+
 export default router;

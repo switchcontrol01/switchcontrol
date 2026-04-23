@@ -3,6 +3,7 @@ import { z } from "zod";
 import rateLimit from "express-rate-limit";
 import OpenAI from "openai";
 import crypto from "crypto";
+import { buildAdvisorServerContext } from "./advisorContext";
 
 const aiRouter = Router();
 
@@ -332,21 +333,34 @@ Analyze this system configuration and current tweak state. Provide state-aware o
 
 const CHAT_SYSTEM_PROMPT = `You are SwitchControl AI — an expert Windows gaming PC optimization advisor built directly into the SwitchControl app.
 
-You have complete real-time visibility into the user's system:
-- Their exact hardware (CPU model, GPU model, RAM, storage)
-- Every SwitchControl tweak they have enabled or disabled
-- Live telemetry: CPU/GPU load, temperatures, VRAM usage, network throughput
-- Their subscription tier (Premium or Free)
+You have complete real-time visibility into the user's FULL system state (provided below):
+- Exact hardware: CPU model, GPU model, RAM configuration (sticks, type, speed), storage, motherboard, BIOS version
+- Display signal: monitor model, resolution, refresh rate, connection type, quality score, any issues detected
+- Every SwitchControl tweak they have enabled or disabled (by name and ID)
+- Network tweaks applied via SwitchControl (TCP, UDP, SMB, DNS settings)
+- Live telemetry: CPU/GPU load and temperature, VRAM usage, RAM pressure, process count, network throughput
+- Active power plan
+- Recent SwitchControl activity history (what was changed and when)
+- Security flags: VBS, Hyper-V, Resizable BAR, XMP/EXPO status
+- Subscription tier (Premium or Free)
 - The full conversation history — you remember everything discussed
+
+CRITICAL RULE: NEVER say "I cannot check X" or "I don't have access to X" if the data appears in the system state below.
+- Display signal, refresh rate, resolution → check the display data
+- What tweaks are enabled → check the enabled tweaks list
+- What was recently changed → check the recent activity history
+- Network settings → check the network tweaks applied
+- Power plan → check the power plan field
+If a specific piece of data truly is "unavailable" or "data unavailable" in the context, then you may say you cannot see it.
 
 HOW TO RESPOND:
 - Be direct, specific, and genuinely informative. This is the whole point.
-- Always use the actual hardware model names from context — never "your CPU", say the model like "Ryzen 7 9800X3D" or "RTX 4090".
-- Reference their active tweaks by name when relevant. If they have Timer Resolution enabled, you know. If they don't have HPET disabled yet, mention it.
-- Give real explanations — WHY something works, not just what to click. A user who understands sticks around.
-- If their telemetry shows something notable (CPU temp above 85°C, VRAM nearly full, CPU-bound while GPU is idle), surface it and explain what it means.
-- When recommending a SwitchControl setting, mention the section it's in (e.g. "Tweaks → Performance" or "Network").
-- Bold important technical terms using **markdown**: **Timer Resolution**, **HPET**, **MSI mode**, **Interrupt Affinity**, etc.
+- Always use the actual hardware model names from context — never "your CPU", say the model like "EPYC 9B14" or "RTX 4090".
+- Reference their active tweaks by name when relevant.
+- Give real explanations — WHY something works, not just what to click.
+- If their telemetry shows something notable (CPU temp above 85°C, VRAM nearly full, CPU-bound while GPU is idle), surface it.
+- When recommending a SwitchControl setting, mention the section it's in (e.g. "Tweaks → CPU" or "Network").
+- Bold important technical terms using **markdown**: **Timer Resolution**, **HPET**, **MSI mode**, **Interrupt Affinity**, **MPO**, etc.
 - Write in short paragraphs (2–4 sentences). One idea per paragraph.
 - Be conversational but expert — like a knowledgeable friend who builds and tunes PCs professionally.
 
@@ -356,6 +370,7 @@ WHAT NOT TO DO:
 - Never be vague when you have their exact system data — being specific is your job
 - Never repeat the question back before answering
 - Don't pad responses with caveats and disclaimers — be direct
+- Never claim data is unavailable if it appears in the system state
 
 RESPONSE FORMAT:
 Plain text with markdown bold for key terms. Short paragraphs. No headers. No bullet lists unless listing 4+ items. Enough detail to actually help, no more.`;
@@ -431,70 +446,156 @@ function structuredToHistoryText(s: ChatStructuredResponse): string {
     .join(" | ");
 }
 
-function buildChatContext(context: any): string {
+function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof buildAdvisorServerContext>>): string {
   const parts: string[] = [];
 
   // Subscription tier
   const isPremium = context?.isPremium === true;
   parts.push(`Subscription: ${isPremium ? "Premium (full feature access)" : "Free tier (limited features)"}`);
 
-  if (context?.system) {
+  // ── Hardware ───────────────────────────────────────────────────────────────
+  // Prefer system intelligence from serverCtx, fall back to client-supplied strings
+  if (serverCtx?.systemIntel?.status === "available") {
+    const si = serverCtx.systemIntel;
+    const cpu = si.cpuBrand ?? context?.system?.cpu;
+    const gpus = si.gpuNames.length > 0 ? si.gpuNames.join(" / ") : context?.system?.gpu;
+    const ramParts = [
+      si.ramTotalMb ? `${Math.round(si.ramTotalMb / 1024)}GB` : null,
+      si.ramStickCount ? `${si.ramStickCount} stick${si.ramStickCount > 1 ? "s" : ""}` : null,
+      si.ramType ?? null,
+      si.ramSpeedMhz ? `@ ${si.ramSpeedMhz}MHz` : null,
+    ].filter(Boolean).join(" ");
+    const ram = ramParts || context?.system?.ram;
+    if (cpu) parts.push(`CPU: ${cpu}`);
+    if (gpus) parts.push(`GPU: ${gpus}`);
+    if (ram) parts.push(`RAM: ${ram}`);
+    if (si.motherboard) parts.push(`Motherboard: ${si.motherboard}`);
+    if (si.biosVersion) parts.push(`BIOS Version: ${si.biosVersion}`);
+    if (si.os) parts.push(`OS: ${si.os}`);
+    if (context?.system?.storage) parts.push(`Storage: ${context.system.storage}`);
+    if (si.networkAdapters.length > 0) parts.push(`Network adapters: ${si.networkAdapters.join(", ")}`);
+    else if (context?.system?.network) parts.push(`Network: ${context.system.network}`);
+    // Security flags
+    if (si.vbsEnabled) parts.push("⚠️ VBS/Memory Integrity ENABLED — adds CPU overhead and scheduler latency");
+    if (si.hypervisorPresent) parts.push("⚠️ Hyper-V hypervisor present — raises timer resolution floor");
+    if (si.resizeBarEnabled === false) parts.push("⚠️ Resizable BAR disabled — GPU performance limited");
+    if (si.xmpInference) parts.push(`XMP/EXPO status: ${si.xmpInference}`);
+  } else if (context?.system) {
     const s = context.system;
     const specs = [s.cpu, s.gpu, s.ram, s.storage, s.os].filter(Boolean).join(" | ");
     if (specs) parts.push(`Hardware: ${specs}`);
-    if (s.motherboard && s.motherboard !== "Unknown" && s.motherboard !== "") {
-      parts.push(`Motherboard: ${s.motherboard}`);
-    }
+    if (s.motherboard && s.motherboard !== "Unknown" && s.motherboard !== "") parts.push(`Motherboard: ${s.motherboard}`);
+    if (s.network) parts.push(`Network: ${s.network}`);
   }
 
+  // ── Display signal ─────────────────────────────────────────────────────────
+  const disp = serverCtx?.display;
+  if (disp?.status === "available" || disp?.status === "partial") {
+    const dispParts: string[] = [];
+    if (disp.primaryMonitor) dispParts.push(disp.primaryMonitor);
+    if (disp.resolution) dispParts.push(disp.resolution);
+    if (disp.refreshHz) dispParts.push(`@ ${disp.refreshHz}Hz`);
+    if (disp.connectionType) dispParts.push(`via ${disp.connectionType}`);
+    if (dispParts.length) parts.push(`Primary display: ${dispParts.join(" ")}`);
+    if (disp.qualityScore != null) {
+      const rating = disp.qualityScore >= 80 ? "Good" : disp.qualityScore >= 55 ? "Moderate" : "Weak";
+      parts.push(`Display quality score: ${disp.qualityScore}/100 (${rating})${disp.qualityReason ? ` — ${disp.qualityReason}` : ""}`);
+    }
+    if (disp.qualityActions.length > 0) parts.push(`Display improvement suggestions: ${disp.qualityActions.join("; ")}`);
+    if (disp.hdrEnabled) parts.push("HDR enabled on display");
+    if (disp.vrrEnabled) parts.push("VRR/G-Sync/FreeSync enabled");
+    if (disp.displayCount > 1) parts.push(`${disp.displayCount} monitors connected`);
+  } else if (context?.system?.display) {
+    parts.push(`Display: ${context.system.display}`);
+  } else {
+    parts.push("Display signal: data unavailable (display-signal endpoint not yet populated)");
+  }
+
+  // ── Power plan ─────────────────────────────────────────────────────────────
+  if (context?.powerPlan) {
+    parts.push(`Active power plan: "${context.powerPlan}"`);
+  }
+
+  // ── Tweaks ────────────────────────────────────────────────────────────────
   if (context?.enabledTweaks?.length > 0) {
     const all = (context.enabledTweaks as any[]).map((t: any) => t.title);
-    parts.push(`Active tweaks (${all.length}): ${all.join(", ")}`);
+    parts.push(`Active SwitchControl tweaks (${all.length} enabled): ${all.join(", ")}`);
   } else {
-    parts.push("Active tweaks: none enabled yet");
+    parts.push("Active SwitchControl tweaks: none enabled yet");
   }
-
   if (context?.disabledTweaks?.length > 0) {
     const avail = (context.disabledTweaks as any[]).map((t: any) => t.title);
     parts.push(`Available tweaks not yet enabled (${avail.length}): ${avail.join(", ")}`);
   }
 
-  if (context?.telemetry) {
-    const t = context.telemetry;
-    const telParts: string[] = [];
-    if (t.cpuLoadPct != null) {
-      const trend = t.loadTrend ? ` [${t.loadTrend}]` : "";
-      telParts.push(`CPU load ${t.cpuLoadPct}%${trend}`);
-    }
-    if (t.cpuTempC != null) telParts.push(`CPU temp ${t.cpuTempC}°C${t.cpuTempC > 85 ? " ⚠️ HIGH" : ""}`);
-    if (t.gpuLoadPct != null) telParts.push(`GPU load ${t.gpuLoadPct}%`);
-    if (t.gpuTempC != null) telParts.push(`GPU temp ${t.gpuTempC}°C${t.gpuTempC > 90 ? " ⚠️ HIGH" : ""}`);
-    if (t.vramUsedMb != null && t.vramTotalMb != null) {
-      const pct = t.vramPercent != null ? ` (${t.vramPercent}%)` : "";
-      telParts.push(`VRAM ${(t.vramUsedMb / 1024).toFixed(1)}/${(t.vramTotalMb / 1024).toFixed(1)} GB${pct}${t.vramPercent != null && t.vramPercent > 90 ? " ⚠️ NEAR LIMIT" : ""}`);
-    }
-    if (t.ramUsedGB != null) {
-      const total = t.ramTotalGB != null ? `/${t.ramTotalGB} GB` : "";
-      telParts.push(`RAM ${t.ramUsedGB}${total} GB used`);
-    }
-    if (t.networkRxKbps != null || t.networkTxKbps != null) {
-      const rx = t.networkRxKbps != null ? `↓${(t.networkRxKbps / 1024).toFixed(2)} MB/s` : "";
-      const tx = t.networkTxKbps != null ? `↑${(t.networkTxKbps / 1024).toFixed(2)} MB/s` : "";
-      telParts.push(`Network ${[rx, tx].filter(Boolean).join(" ")}`);
-    }
-    if (telParts.length) parts.push(`Live telemetry: ${telParts.join(", ")}`);
-
-    // Highlight active bottlenecks
-    if (t.cpuLoadPct != null && t.gpuLoadPct != null && t.cpuLoadPct > 85 && t.gpuLoadPct < 60) {
-      parts.push("⚠️ Active CPU bottleneck detected — CPU saturated while GPU is underutilized");
-    }
-    if (t.vramPercent != null && t.vramPercent > 90) {
-      parts.push("⚠️ VRAM near capacity — frame instability and stuttering likely");
-    }
-    if (t.cpuTempC != null && t.cpuTempC > 90) {
-      parts.push("⚠️ CPU thermal throttling risk — temperatures above safe operating range");
-    }
+  // ── Network tweaks ────────────────────────────────────────────────────────
+  const nt = serverCtx?.networkTweaks;
+  if (nt?.status === "available" || nt?.status === "partial") {
+    if (nt.applied.length > 0) parts.push(`Network tweaks applied: ${nt.applied.join(", ")} (${nt.applied.length} total)`);
+    else parts.push("Network tweaks: none applied yet");
+    if (nt.failed.length > 0) parts.push(`Network tweaks that failed: ${nt.failed.join(", ")}`);
   }
+
+  // ── Live telemetry ────────────────────────────────────────────────────────
+  // Prefer server-side snapshot (always fresh) over client-supplied telemetry
+  const tel = serverCtx?.telemetry?.status === "available" ? serverCtx.telemetry : null;
+  const ctxTel = context?.telemetry ?? {};
+  const telParts: string[] = [];
+
+  const cpuLoad = tel?.cpuLoadPct ?? ctxTel.cpuLoadPct;
+  const cpuTemp = tel?.cpuTempC ?? ctxTel.cpuTempC;
+  const gpuLoad = tel?.gpuLoadPct ?? ctxTel.gpuLoadPct;
+  const gpuTemp = tel?.gpuTempC ?? ctxTel.gpuTempC;
+  const ramUsed = tel?.ramUsedGB ?? ctxTel.ramUsedGB;
+  const ramTotal = tel?.ramTotalGB ?? ctxTel.ramTotalGB;
+  const vramUsed = tel?.vramUsedMb ?? ctxTel.vramUsedMb;
+  const vramTotal = tel?.vramTotalMb ?? ctxTel.vramTotalMb;
+  const vramPct = tel?.vramPct ?? ctxTel.vramPercent;
+  const loadTrend = tel?.loadTrend ?? ctxTel.loadTrend;
+  const rxKbps = tel?.networkRxKbps ?? ctxTel.networkRxKbps;
+  const txKbps = tel?.networkTxKbps ?? ctxTel.networkTxKbps;
+
+  if (cpuLoad != null) telParts.push(`CPU load ${cpuLoad}%${loadTrend ? ` [${loadTrend}]` : ""}`);
+  if (cpuTemp != null) telParts.push(`CPU temp ${cpuTemp}°C${cpuTemp > 85 ? " ⚠️ HIGH" : ""}`);
+  if (gpuLoad != null) telParts.push(`GPU load ${gpuLoad}%`);
+  if (gpuTemp != null) telParts.push(`GPU temp ${gpuTemp}°C${gpuTemp > 90 ? " ⚠️ HIGH" : ""}`);
+  if (vramUsed != null && vramTotal != null) {
+    const pctTag = vramPct != null ? ` (${vramPct}%)` : "";
+    telParts.push(`VRAM ${(vramUsed / 1024).toFixed(1)}/${(vramTotal / 1024).toFixed(1)} GB${pctTag}${vramPct != null && vramPct > 90 ? " ⚠️ NEAR LIMIT" : ""}`);
+  }
+  if (ramUsed != null) {
+    const totalTag = ramTotal != null ? `/${ramTotal} GB` : "";
+    telParts.push(`RAM ${ramUsed}${totalTag} GB used`);
+  }
+  if (tel?.processCount != null) telParts.push(`${tel.processCount} processes running`);
+  if (rxKbps != null || txKbps != null) {
+    const rx = rxKbps != null ? `↓${(rxKbps / 1024).toFixed(2)} MB/s` : "";
+    const tx = txKbps != null ? `↑${(txKbps / 1024).toFixed(2)} MB/s` : "";
+    telParts.push(`Network ${[rx, tx].filter(Boolean).join(" ")}`);
+  }
+  if (telParts.length) parts.push(`Live telemetry: ${telParts.join(", ")}`);
+
+  // Highlight active bottlenecks
+  if (cpuLoad != null && gpuLoad != null && cpuLoad > 85 && gpuLoad < 60) {
+    parts.push("⚠️ Active CPU bottleneck — CPU saturated while GPU is underutilized");
+  }
+  if (vramPct != null && vramPct > 90) parts.push("⚠️ VRAM near capacity — frame instability and stuttering likely");
+  if (cpuTemp != null && cpuTemp > 90) parts.push("⚠️ CPU thermal throttling risk — temperatures above safe operating range");
+  if (gpuTemp != null && gpuTemp > 88) parts.push("⚠️ GPU thermal throttling risk — temperatures elevated");
+  if (tel?.ramUsedPct != null && tel.ramUsedPct > 88) parts.push(`⚠️ RAM at ${Math.round(tel.ramUsedPct)}% — page-file spilling likely under gaming load`);
+
+  // ── Recent action history ─────────────────────────────────────────────────
+  const history: any[] = Array.isArray(context?.recentHistory) ? context.recentHistory.slice(0, 8) : [];
+  if (history.length > 0) {
+    const lines = history.map((h: any) => {
+      const when = h.timestamp ? new Date(h.timestamp).toLocaleString() : "recently";
+      return `${h.action} (${h.page ?? "?"}) — ${h.result ?? "Success"} at ${when}`;
+    });
+    parts.push(`Recent SwitchControl activity (most recent first):\n${lines.map(l => `  • ${l}`).join("\n")}`);
+  }
+
+  // ── Notes from client ─────────────────────────────────────────────────────
+  if (context?.system?.notes) parts.push(`Additional notes: ${context.system.notes}`);
 
   return parts.join("\n");
 }
@@ -557,7 +658,17 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
   }
 
   try {
-    const contextInfo = buildChatContext(context);
+    // Pull server-side context (display signal, network tweaks, sys intel, live telemetry)
+    // Non-blocking: if it fails we degrade gracefully to client-supplied context only
+    let serverCtx: Awaited<ReturnType<typeof buildAdvisorServerContext>> | undefined;
+    try {
+      serverCtx = await buildAdvisorServerContext();
+      console.log(`[AI:chat:serverCtx] display=${serverCtx.coverage.display} netTweaks=${serverCtx.coverage.networkTweaks} telemetry=${serverCtx.coverage.telemetry} sysIntel=${serverCtx.coverage.systemIntel}`);
+    } catch (e: any) {
+      console.warn(`[AI:chat:serverCtx] failed to build server context — using client context only: ${e.message}`);
+    }
+
+    const contextInfo = buildChatContext(context, serverCtx);
 
     // Log what tweak state the AI is receiving
     const enabledTweakIds = (context?.enabledTweaks ?? []).map((t: any) => t?.id).filter(Boolean);
