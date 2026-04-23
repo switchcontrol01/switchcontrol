@@ -230,11 +230,11 @@ function ElectronAppContent() {
   }, [pauseWhenMinimized, realtimeMetricsEnabled]);
 
   // login_success → next phase.
-  // First-time users: 900ms (welcome animation plays next, no need to hold long).
-  // Returning users: 600ms (get to dashboard quickly, no welcome to wait for).
+  // First-time users: 500ms (welcome animation plays next, no need to hold long).
+  // Returning users: 300ms (get to dashboard quickly, no welcome to wait for).
   useEffect(() => {
     if (phase !== "login_success") return;
-    const delay = isFirstLogin ? 900 : 600;
+    const delay = isFirstLogin ? 500 : 300;
     const t = setTimeout(() => {
       if (isFirstLogin) {
         setPhase("welcome");
@@ -296,23 +296,14 @@ function ElectronAppContent() {
   // Phase-stabilization gate: let the dashboard's fade-in finish before any
   // tour overlay is allowed to mount.
   //
-  // For first-time users (isFirstLogin=true) the app arrives from the
-  // "welcome" phase whose AnimatePresence exit animation takes 1450ms. Using
-  // 1600ms left only a 150ms gap — not enough on slower Windows machines,
-  // causing the WelcomeAnimation to bleed through the 82%-opaque tour
-  // backdrop. 2400ms gives a comfortable 950ms buffer after that exit.
-  //
-  // Returning users: 900ms (dashboard fade-in is 0.9s+0.25s delay = 1.15s total;
-  // 900ms starts tours slightly before full opacity — acceptable since they overlap
-  // the tail of the fade, not the start).
-  // First-time users: 1800ms (welcome animation exit is 1450ms; need 350ms buffer
-  // for the compositing layer to settle before the tour backdrop mounts).
+  // Welcome exit is now 0.7s. Dashboard fade-in is 0.35s with no delay.
+  // 500ms for both paths gives a comfortable buffer after the animations settle.
   useEffect(() => {
     if (phase !== "authenticated") {
       setIsPhaseStable(false);
       return;
     }
-    const delay = isFirstLogin ? 1800 : 900;
+    const delay = 500;
     console.log(`[TourTransition] phase entered authenticated — waiting ${delay}ms for dashboard to stabilize`);
     const t = setTimeout(() => {
       setIsPhaseStable(true);
@@ -1058,15 +1049,15 @@ function ElectronAppContent() {
           <motion.div
             key="welcome"
             initial={{ opacity: 0, filter: "blur(28px)", scale: 1.018 }}
-            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 2.4, delay: 0.35, ease: [0.22, 1, 0.36, 1] } }}
-            exit={{ opacity: 0, filter: "blur(28px)", scale: 0.972, transition: { duration: 1.45, ease: [0.4, 0, 0.6, 1] } }}
+            animate={{ opacity: 1, filter: "blur(0px)", scale: 1, transition: { duration: 0.8, delay: 0.1, ease: [0.22, 1, 0.36, 1] } }}
+            exit={{ opacity: 0, filter: "blur(28px)", scale: 0.972, transition: { duration: 0.7, ease: [0.4, 0, 0.6, 1] } }}
             className="h-full"
             style={{ zIndex: 1 }}
           >
             <WelcomeAnimation 
               userName={user?.username || null}
               isPremium={user?.isPremium}
-              introDelay={1.7}
+              introDelay={0.4}
               onComplete={() => {
                 console.log('[Handoff] intro exit complete — mounting dashboard');
                 setPhase("authenticated");
@@ -1091,7 +1082,7 @@ function ElectronAppContent() {
             animate={
               isSigningOut
                 ? { opacity: 0, scale: 0.975, filter: "blur(28px)", transition: { duration: 1.2, ease: [0.4, 0, 0.6, 1] } }
-                : { opacity: 1, transition: { duration: 0.9, delay: 0.25, ease: [0.22, 1, 0.36, 1] } }
+                : { opacity: 1, transition: { duration: 0.35, delay: 0, ease: [0.22, 1, 0.36, 1] } }
             }
             className="h-full"
             style={{ pointerEvents: isSigningOut ? "none" : undefined }}

@@ -36,7 +36,7 @@ import {
 import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal } from "@/lib/motion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/hooks/use-auth";
-import { PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
+import { PremiumHeaderBadge, PremiumPageOverlay } from "@/components/ui/premium-page-overlay";
 import { useNetworkDiagnostics } from "@/hooks/useNetworkDiagnostics";
 import { NetworkDiagnosticsHero, NetworkDiagnosticsFooter } from "@/components/network/NetworkDiagnosticsPanel";
 
@@ -506,9 +506,41 @@ function ToastContainer({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id
   );
 }
 
+// ── locked page (free users) ──────────────────────────────────────────────────
+
+function NetworkTweaksLocked() {
+  return (
+    <AppLayout>
+      <Reveal className="p-8 space-y-8">
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0, y: -14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
+              Network Tweaks
+            </h1>
+            <PremiumHeaderBadge isLocked />
+          </div>
+          <p className="text-muted-foreground">
+            Optimize latency, throughput, and stability. Every toggle applies a real system change.
+          </p>
+        </motion.div>
+      </Reveal>
+      <PremiumPageOverlay
+        featureName="Network Tweaks is a Premium Feature"
+        buttonText="Unlock Network Tweaks"
+        description="Real-time network optimization, latency tuning, and stability tweaks are available with SwitchControl Premium."
+      />
+    </AppLayout>
+  );
+}
+
 // ── main page ─────────────────────────────────────────────────────────────────
 
-export default function NetworkTweaks() {
+function NetworkTweaksContent() {
   const { mark: timingMark } = usePageTiming("NetworkTweaks");
   const { isPremium, user } = useAuth();
   const { telemetry: liveTel } = useLiveTelemetry();
@@ -883,4 +915,12 @@ export default function NetworkTweaks() {
 
     </AppLayout>
   );
+}
+
+// ── gated export ───────────────────────────────────────────────────────────────
+
+export default function NetworkTweaks() {
+  const { isPremium } = useAuth();
+  if (!isPremium) return <NetworkTweaksLocked />;
+  return <NetworkTweaksContent />;
 }
