@@ -1,15 +1,17 @@
 {
   "version": "1.0.3",
-  "title": "Stability & Polish Update",
-  "headline": "Eliminated UAC flash on power plan setup, fixed startup polling before login, and corrected the installed app name.",
+  "title": "Performance Intelligence & NIC Tuning Update",
+  "headline": "Smarter issue detection, live network monitoring, and several critical bug fixes including a black screen fix on launch.",
   "date": "2026-04-23",
   "changes": [
+    "Fixed black screen on launch caused by a missing icon import in the sidebar (Network icon for NIC Tuning)",
+    "Fixed splash screen exit animation causing a GPU layer occlusion in the packaged app",
+    "Detected Issues panel no longer false-flags SwitchControl's own Max Performance power plan as a problem",
+    "Added 6 new system health detections: CPU temperature, GPU temperature, VRAM saturation, low disk space, Resizable BAR disabled, and WiFi-only gaming",
+    "Added live RX/TX throughput graph with sparkline chart to the NIC Tuning page",
     "Fixed power plan setup flashing a UAC prompt for users already running as administrator",
     "Prevented dashboard intelligence polling from firing before login completes",
-    "Fixed issue detection scan triggering on page load before authentication resolved",
-    "Fixed display signal graph polling protected endpoints before login",
-    "Installed app name now permanently displays as Switchcontrol with no version suffix",
-    "Added page-active hook infrastructure for smarter background job lifecycle"
+    "Installed app name now permanently displays as Switchcontrol with no version suffix"
   ],
   "type": "patch"
 }
