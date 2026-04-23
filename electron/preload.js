@@ -63,6 +63,9 @@ const ALLOWED_MEMORY_MODES  = new Set(['safe', 'smart', 'advanced']);
 contextBridge.exposeInMainWorld('electronAPI', {
   isElectron: true,
 
+  // ── Launch handshake: renderer signals first branded frame is painted ────────
+  signalFirstFrameReady: () => ipcRenderer.send('app:first-frame-ready'),
+
   // ── Low-risk read-only ──────────────────────────────────────────────────────
   getVersion:      () => ipcRenderer.invoke('app:getVersion'),
   getAppVersion:   () => ipcRenderer.invoke('app:getVersion'),

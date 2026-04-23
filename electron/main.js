@@ -468,9 +468,10 @@ function createWindow() {
       devTools: isDev, // Disabled at Chromium level in production builds
       backgroundThrottling: false, // Prevent timer throttling when window loses focus
       additionalArguments: isDev ? [] : ['--switchcontrol-prod'],
+      paintWhenInitiallyHidden: true, // Ensure Chromium paints frames even while window is hidden
     }
   });
-  console.log('[STARTUP:5] BrowserWindow constructed — show:false (waiting for ready-to-show), isVisible:', mainWindow.isVisible());
+  console.log('[LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible:', mainWindow.isVisible());
 
   // ── DevTools access hardening ─────────────────────────────────────────────────
   // In dev: F12 / Ctrl+Shift+I toggle DevTools normally.
@@ -581,28 +582,28 @@ function createWindow() {
   });
 
   if (isDev) {
-    console.log('[STARTUP:6] dev mode — loadURL http://localhost:5000');
+    console.log('[LAUNCH:2] dev mode — loadURL http://localhost:5000');
     mainWindow.loadURL('http://localhost:5000');
   } else {
     const indexPath = path.join(process.resourcesPath, 'dist', 'index.html');
     const indexExists = require('fs').existsSync(indexPath);
-    console.log('[STARTUP:6] packaged mode — indexPath:', indexPath, '| exists:', indexExists);
+    console.log('[LAUNCH:2] packaged mode — indexPath:', indexPath, '| exists:', indexExists);
     if (!indexExists) {
       try {
         const distDir = path.join(process.resourcesPath, 'dist');
         if (require('fs').existsSync(distDir)) {
-          console.error('[STARTUP:6] dist contents:', require('fs').readdirSync(distDir).join(', '));
+          console.error('[LAUNCH:2] dist contents:', require('fs').readdirSync(distDir).join(', '));
         } else {
-          console.error('[STARTUP:6] dist directory does NOT exist at', distDir);
+          console.error('[LAUNCH:2] dist directory does NOT exist at', distDir);
         }
       } catch (e) {
-        console.error('[STARTUP:6] could not list dist:', e.message);
+        console.error('[LAUNCH:2] could not list dist:', e.message);
       }
     }
     mainWindow.loadFile(indexPath).then(() => {
-      console.log('[STARTUP:6] loadFile() promise RESOLVED');
+      console.log('[LAUNCH:2] loadFile() promise RESOLVED');
     }).catch(err => {
-      console.error('[STARTUP:6] loadFile() promise REJECTED:', err && err.message);
+      console.error('[LAUNCH:2] loadFile() promise REJECTED:', err && err.message);
     });
   }
 
@@ -631,7 +632,7 @@ function createWindow() {
 
   // Track when renderer is ready
   mainWindow.webContents.on('did-finish-load', () => {
-    verboseLog('[STARTUP:7] did-finish-load — renderer ready');
+    console.log('[LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)');
     rendererReady = true;
 
     if (!isDev) {
@@ -663,22 +664,38 @@ function createWindow() {
     }
   });
 
-  // Safety net: if ready-to-show never fires (e.g. GPU stall), force-show after 5 s.
+  // ── Launch handshake ─────────────────────────────────────────────────────────
+  // Primary show trigger: renderer sends 'app:first-frame-ready' after Splash
+  // has painted its first composited dark frame (one rAF after React mount).
+  // This guarantees the window is never shown before the branded UI exists.
+  let _firstFrameReadyFired = false;
+
+  // Hard fallback: if the IPC signal never arrives (preload issue, crash), show
+  // after 5 s so the app is never permanently invisible.
   const showFallbackTimer = setTimeout(() => {
     if (mainWindow && !mainWindow.isVisible()) {
-      console.warn('[STARTUP] ready-to-show fallback — showing window after 5 s timeout');
+      console.warn('[LAUNCH:FALLBACK] first-frame-ready never received — force-showing after 5 s');
       mainWindow.show();
       mainWindow.focus();
     }
   }, 5000);
 
-  mainWindow.once('ready-to-show', () => {
+  ipcMain.once('app:first-frame-ready', () => {
+    _firstFrameReadyFired = true;
     clearTimeout(showFallbackTimer);
-    verboseLog('[SwitchControl] Window ready-to-show — showing window');
-    // Show first, then focus so the Windows compositor paints immediately and
-    // JS timers are not throttled (Chromium GPU rendering stall on frameless windows).
+    console.log('[LAUNCH:4] first-frame-ready received from renderer — branded frame confirmed');
+    if (!mainWindow || mainWindow.isVisible()) return;
     mainWindow.show();
+    console.log('[LAUNCH:5] show() called — window now visible');
     mainWindow.focus();
+    console.log('[LAUNCH:6] focus() called — launch sequence complete');
+  });
+
+  // ready-to-show: diagnostic log only — do NOT show here.
+  // ready-to-show can fire before CSS is applied (white frame risk).
+  // The first-frame-ready IPC handshake above is the authoritative show trigger.
+  mainWindow.once('ready-to-show', () => {
+    verboseLog('[LAUNCH:ready-to-show] Chromium first paint available — waiting for first-frame-ready IPC');
   });
   mainWindow.on('closed', () => { 
     mainWindow = null; 

@@ -49,4 +49,12 @@ window.addEventListener('unhandledrejection', (e) => {
   });
 });
 
+console.log('[LAUNCH:R1] renderer entry — createRoot dispatching');
 createRoot(document.getElementById("root")!).render(<App />);
+
+// In non-Electron (website) mode there is no Splash handshake, so reveal immediately.
+// In Electron mode, Splash.tsx sends app:first-frame-ready after one rAF and then
+// sets documentElement.style.opacity = '1' — do not override that here.
+if (!(window as any).electronAPI) {
+  document.documentElement.style.opacity = '1';
+}

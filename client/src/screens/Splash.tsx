@@ -34,6 +34,25 @@ export default function Splash({ onComplete }: SplashProps) {
   const [progress, setProgress]     = useState(0);
   const tagline = useMemo(() => getTagline(), []);
 
+  // ── Launch handshake ──────────────────────────────────────────────────────
+  // After one rAF, Chromium has composited the first real frame (dark Splash
+  // background + initial state). We then signal main to show the window and
+  // start the CSS opacity fade-in. This ensures the window is NEVER visible
+  // before a dark branded frame is ready.
+  useEffect(() => {
+    console.log('[LAUNCH:R2] Splash mounted — queueing first-frame-ready signal');
+    const raf = requestAnimationFrame(() => {
+      console.log('[LAUNCH:R3] first-frame-ready: sending IPC + starting opacity reveal');
+      (window as any).electronAPI?.signalFirstFrameReady?.();
+      // Reveal the window content with a 200ms CSS opacity fade (set in index.html).
+      // Uses documentElement so no React wrapper or transform is involved —
+      // position:fixed children are unaffected.
+      document.documentElement.style.opacity = '1';
+      console.log('[LAUNCH:R4] opacity fade-in started');
+    });
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   useEffect(() => {
     // Logo first — brand established quickly.
     const t1 = setTimeout(() => setLogoReady(true),  80);
@@ -43,7 +62,10 @@ export default function Splash({ onComplete }: SplashProps) {
     const t3 = setTimeout(() => setSweepReady(true), 480);
     // Hand off to App — App.tsx AnimatePresence handles the exit fade (0.65s).
     // No internal exit animation here; having two exit animations caused a blank frame.
-    const done = setTimeout(() => onComplete(), 1800);
+    const done = setTimeout(() => {
+      console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
+      onComplete();
+    }, 1800);
 
     // Progress bar — fills to ~90% in 1.8 s, slows near the end (never quite hits 100%)
     const pi = setInterval(() => {
