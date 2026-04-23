@@ -181,7 +181,11 @@ async function runElevated(command) {
   // ArgumentList as PS array — avoids nested quoting inside -Command strings.
   // -Wait is passed so the host process waits for the elevated child.
   // -WindowStyle Hidden suppresses the console popup in the elevated child.
-  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
+  // -WindowStyle Hidden is passed to Start-Process itself (not only inside -ArgumentList)
+  // so that ShellExecuteEx sets wShowWindow=SW_HIDE at process creation time.
+  // Without it, conhost.exe briefly creates a visible console window before
+  // powershell.exe has a chance to hide itself via its own -WindowStyle flag.
+  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-WindowStyle', 'Hidden', '-File', '${safeScriptPath}') -Verb RunAs -Wait`;
 
   try {
     await new Promise((resolve, reject) => {

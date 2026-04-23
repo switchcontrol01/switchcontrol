@@ -676,7 +676,9 @@ async function runElevated(command) {
 
   fs.writeFileSync(scriptPath, scriptContent, 'utf8');
 
-  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
+  // -WindowStyle Hidden on Start-Process itself sets SW_HIDE at ShellExecuteEx / process
+  // creation time so conhost.exe never shows the window, not just after powershell starts.
+  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
 
   try {
     await new Promise((resolve, reject) => {

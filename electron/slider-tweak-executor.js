@@ -121,6 +121,24 @@ function queryPS(command) {
   });
 }
 
+// One-shot admin check — result cached for the process lifetime.
+let _isAdminCache = null;
+async function checkIsAdmin() {
+  if (_isAdminCache !== null) return _isAdminCache;
+  try {
+    _isAdminCache = await new Promise(resolve => {
+      execFile(
+        'powershell',
+        ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command',
+          '([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)'],
+        { windowsHide: true, timeout: 6000 },
+        (err, stdout) => resolve(!err && stdout.trim().toLowerCase() === 'true')
+      );
+    });
+  } catch { _isAdminCache = false; }
+  return _isAdminCache;
+}
+
 async function runElevated(command) {
   const tmpDir     = os.tmpdir();
   const scriptId   = `sc_slider_${Date.now()}_${Math.random().toString(36).slice(2)}`;
@@ -142,7 +160,9 @@ async function runElevated(command) {
 
   fs.writeFileSync(scriptPath, scriptContent, 'utf8');
 
-  const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
+  // -WindowStyle Hidden on Start-Process itself sets SW_HIDE at ShellExecuteEx / process
+  // creation time so conhost.exe never shows the window, not just after powershell starts.
+  const launchCmd = `Start-Process powershell -WindowStyle Hidden -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${safeScript}') -Verb RunAs -Wait`;
 
   try {
     await new Promise((resolve, reject) => {
@@ -482,12 +502,20 @@ async function applySliderValue(tweakId, value) {
     }
 
     // 5. Execute write
+    // When already admin, use runPS() directly — avoids spawning an elevated child
+    // via Start-Process which can briefly flash a console window even with -WindowStyle Hidden.
     if (def.requiresAdmin) {
-      const result = await runElevated(def.writeCommand(numValue));
-      if (!result.ok) {
-        clearCrashSentinel();
-        logSliderEntry({ tweakId, action: 'apply', previousValue, newValue: numValue, success: false, error: result.error });
-        return { ok: false, verified: false, actualValue: null, previousValue, error: result.error || 'Elevation failed.' };
+      const alreadyAdmin = await checkIsAdmin();
+      if (alreadyAdmin) {
+        console.log(`[SliderExecutor] ${tweakId}: already admin — using runPS (no UAC spawn)`);
+        await runPS(def.writeCommand(numValue));
+      } else {
+        const result = await runElevated(def.writeCommand(numValue));
+        if (!result.ok) {
+          clearCrashSentinel();
+          logSliderEntry({ tweakId, action: 'apply', previousValue, newValue: numValue, success: false, error: result.error });
+          return { ok: false, verified: false, actualValue: null, previousValue, error: result.error || 'Elevation failed.' };
+        }
       }
     } else {
       await runPS(def.writeCommand(numValue));
@@ -576,8 +604,14 @@ async function resetSliderValue(tweakId) {
 
   try {
     if (def.requiresAdmin) {
-      const result = await runElevated(def.writeCommand(restoredTo));
-      if (!result.ok) { writeOk = false; writeErr = result.error || 'Elevation failed.'; }
+      const alreadyAdmin = await checkIsAdmin();
+      if (alreadyAdmin) {
+        console.log(`[SliderExecutor] revert ${tweakId}: already admin — using runPS (no UAC spawn)`);
+        await runPS(def.writeCommand(restoredTo));
+      } else {
+        const result = await runElevated(def.writeCommand(restoredTo));
+        if (!result.ok) { writeOk = false; writeErr = result.error || 'Elevation failed.'; }
+      }
     } else {
       await runPS(def.writeCommand(restoredTo));
     }
