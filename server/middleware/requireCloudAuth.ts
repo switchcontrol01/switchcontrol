@@ -176,7 +176,7 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
     } catch {}
   }
 
-  return res.status(401).json({ error: "Authentication required. Please log in to use AI features." });
+  return res.status(401).json({ error: "Authentication required. Please log in." });
 };
 
 export const requireCloudPremium: RequestHandler = (req, res, next) => {

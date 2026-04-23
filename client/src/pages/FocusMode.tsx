@@ -472,6 +472,11 @@ export default function FocusMode() {
   // ── Activate ──────────────────────────────────────────────────────────────────
 
   const handleActivate = useCallback(async (source = "manual") => {
+    if (!user?.loggedIn) {
+      toast({ title: "Please log in to use Focus Mode", variant: "destructive" });
+      return;
+    }
+
     setActivation("activating");
     let electronRes: Record<string, ActionResult> = {};
     let appliedSt: Record<string, any> = {};
@@ -504,7 +509,7 @@ export default function FocusMode() {
           triggerSource: source,
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
 
       if (data.ok) {
         const expiresAt = data.expiresAt ? new Date(data.expiresAt).getTime() : null;
@@ -538,13 +543,17 @@ export default function FocusMode() {
         }, 1000);
       } else {
         setActivation("failed");
-        toast({ title: "Failed to activate Focus Mode", description: data.error, variant: "destructive" });
+        toast({
+          title: "Failed to activate Focus Mode",
+          description: `${data.error ?? "Unknown error"} [HTTP ${res.status}]`,
+          variant: "destructive",
+        });
       }
     } catch (e: any) {
       setActivation("failed");
-      toast({ title: "Failed to activate", description: e.message, variant: "destructive" });
+      toast({ title: "Failed to activate Focus Mode", description: e.message, variant: "destructive" });
     }
-  }, [settings, profileId, durationMinutes, currentProfile, focusStore, toast]);
+  }, [user, settings, profileId, durationMinutes, currentProfile, focusStore, toast]);
 
   // ── Deactivate ─────────────────────────────────────────────────────────────────
 

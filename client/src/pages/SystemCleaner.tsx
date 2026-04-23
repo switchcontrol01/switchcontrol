@@ -348,6 +348,11 @@ export default function SystemCleaner() {
   // ── Scan ──────────────────────────────────────────────────────────────────
 
   const runScan = useCallback(async () => {
+    if (!user?.loggedIn) {
+      toast({ title: "Please log in to use System Cleaner", variant: "destructive" });
+      return;
+    }
+
     const allItems = Object.values(categories).flat();
     const itemIds  = allItems.map(i => i.id);
 
@@ -371,23 +376,29 @@ export default function SystemCleaner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ mode, electronResults }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
       if (data.ok) {
         setFindings(data.findings);
         setScanSummary(data.summary);
         setCategoryTotals(data.categoryTotals ?? null);
         setScanStatus("done");
-        // Refresh scan history after a successful scan
         fetch("/api/cleaner/scan-history").then(r => r.json()).then(d => {
           if (d.ok) setScanHistory(d.history);
         }).catch(() => {});
-      } else { setScanStatus("error"); }
-    } catch {
+      } else {
+        setScanStatus("error");
+        toast({
+          title: "Scan failed",
+          description: `${data.error ?? "Unknown error"} [HTTP ${res.status}]`,
+          variant: "destructive",
+        });
+      }
+    } catch (e: any) {
       setScanStatus("error");
-      toast({ title: "Scan failed", variant: "destructive" });
+      toast({ title: "Scan failed", description: e.message, variant: "destructive" });
     }
     setScanningIds([]);
-  }, [categories, mode, toast]);
+  }, [user, categories, mode, toast]);
 
   // ── Clean ─────────────────────────────────────────────────────────────────
 

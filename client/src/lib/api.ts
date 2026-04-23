@@ -209,20 +209,23 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// ── Global fetch interceptor for packaged Electron ───────────────────────────
-// In packaged mode the page is served via file://, so relative /api/ URLs
-// have no host and fail silently. We patch window.fetch once so ALL callers
-// (hooks, pages, etc.) automatically:
-//   1. Get the URL rewritten to http://127.0.0.1:PORT/api/...
-//   2. Receive an x-electron-uid header if they don't already carry auth.
+// ── Global fetch interceptor for ALL Electron modes ──────────────────────────
+// Installed in both packaged AND dev Electron environments.
 //
-// Requirement (2) is critical: pages like FocusMode, NetworkTweaks, and
-// SystemCleaner use raw fetch("/api/...") calls that bypass apiFetch, so
-// they never get x-electron-uid injected by the normal path. Without it
-// the embedded backend's requireJwt middleware rejects them with a silent 401
-// — causing focus enable/disable, network-tweak state, and cleaner categories
-// to never work in packaged builds.
-if (typeof window !== 'undefined' && isPackagedElectron) {
+// PACKAGED mode (file:// protocol):
+//   1. Rewrites relative /api/ URLs to http://127.0.0.1:PORT/api/...
+//      (file:// has no implicit host so relative URLs break without this)
+//   2. Injects x-electron-uid — the embedded backend's fast-path auth token.
+//      The embedded backend (ELECTRON_BACKEND=1) trusts this header on 127.0.0.1.
+//
+// DEV mode (http:// via Vite dev server proxy):
+//   1. Does NOT rewrite URLs — Vite proxy already handles relative /api/ calls.
+//   2. Injects Authorization: Bearer <jwt> — the dev Express server uses cloud
+//      JWT auth (no ELECTRON_BACKEND=1). Pages that use raw fetch() instead of
+//      apiFetch() would get 401 without this injection.
+//
+// Both paths skip injection if the caller already set auth headers.
+if (typeof window !== 'undefined' && isElectron) {
   const _originalFetch = window.fetch.bind(window);
   (window as any).fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
     const isStringOrUrl = typeof input === 'string' || input instanceof URL;
@@ -232,47 +235,56 @@ if (typeof window !== 'undefined' && isPackagedElectron) {
 
     if (url.startsWith('/api/') || url === '/api') {
       try {
-        const base = await resolveApiBase(); // resolves to http://127.0.0.1:PORT/api
-        const suffix = url.slice('/api'.length); // e.g. "/focus/enable"
-        const absUrl = base + suffix;
-
-        // Rewrite URL in the input argument
-        if (typeof input === 'string' || input instanceof URL) {
-          input = absUrl;
-        } else {
-          input = new Request(absUrl, input as Request);
+        if (isPackagedElectron) {
+          // ── Packaged: rewrite relative URL to absolute embedded backend URL ──
+          const base = await resolveApiBase(); // http://127.0.0.1:PORT/api
+          const suffix = url.slice('/api'.length); // e.g. "/focus/enable"
+          const absUrl = base + suffix;
+          if (typeof input === 'string' || input instanceof URL) {
+            input = absUrl;
+          } else {
+            input = new Request(absUrl, input as Request);
+          }
         }
 
-        // ── Auto-inject x-electron-uid for embedded backend auth ─────────
-        // Only for string/URL inputs (covers all raw fetch("/api/...") callers
-        // in practice). Skip if an Authorization or x-electron-uid header is
-        // already present (e.g. apiFetch already handled it).
+        // ── Inject auth for string/URL inputs only ────────────────────────
+        // Covers all raw fetch("/api/...") callers. Skip if auth already set.
         if (isStringOrUrl) {
-          const userId = useAuthStore.getState().user?.id;
-          if (userId) {
-            const rawHeaders = init?.headers;
-            const normalized: Record<string, string> = {};
-            if (rawHeaders instanceof Headers) {
-              rawHeaders.forEach((v, k) => { normalized[k.toLowerCase()] = v; });
-            } else if (Array.isArray(rawHeaders)) {
-              for (const [k, v] of rawHeaders as [string, string][]) normalized[k.toLowerCase()] = v;
-            } else if (rawHeaders) {
-              for (const [k, v] of Object.entries(rawHeaders as Record<string, string>)) {
-                normalized[k.toLowerCase()] = v;
-              }
+          const rawHeaders = init?.headers;
+          const normalized: Record<string, string> = {};
+          if (rawHeaders instanceof Headers) {
+            rawHeaders.forEach((v, k) => { normalized[k.toLowerCase()] = v; });
+          } else if (Array.isArray(rawHeaders)) {
+            for (const [k, v] of rawHeaders as [string, string][]) normalized[k.toLowerCase()] = v;
+          } else if (rawHeaders) {
+            for (const [k, v] of Object.entries(rawHeaders as Record<string, string>)) {
+              normalized[k.toLowerCase()] = v;
             }
-            if (!normalized['x-electron-uid'] && !normalized['authorization']) {
-              init = { ...(init ?? {}), headers: { ...normalized, 'x-electron-uid': userId } };
+          }
+
+          if (!normalized['x-electron-uid'] && !normalized['authorization']) {
+            if (isPackagedElectron) {
+              // Packaged: use x-electron-uid — trusted by embedded backend fast-path
+              const userId = useAuthStore.getState().user?.id;
+              if (userId) {
+                init = { ...(init ?? {}), headers: { ...normalized, 'x-electron-uid': userId } };
+              }
+            } else {
+              // Dev Electron: use JWT Bearer — dev Express server uses cloud JWT auth
+              const jwt = safeGetJwt();
+              if (jwt) {
+                init = { ...(init ?? {}), headers: { ...normalized, 'authorization': `Bearer ${jwt}` } };
+              }
             }
           }
         }
       } catch {
-        // fall through to original fetch — it will fail with a clear error
+        // fall through — request fires as-is (will error with a clear network message)
       }
     }
     return _originalFetch(input, init);
   };
-  console.log('[API] Packaged Electron: global fetch interceptor installed (URL rewrite + x-electron-uid injection)');
+  console.log(`[API] Electron fetch interceptor installed | packaged=${isPackagedElectron} (URL-rewrite=${isPackagedElectron}, auth-inject=true)`);
 }
 
 let _cachedCsrfToken: string | null = null;

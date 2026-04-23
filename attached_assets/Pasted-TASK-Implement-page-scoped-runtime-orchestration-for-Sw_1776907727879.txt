@@ -1,0 +1,150 @@
+TASK
+Implement page-scoped runtime orchestration for SwitchControl so only the active page's expensive feature workloads run. Keep the backend alive, but stop hidden page work, duplicate polling, and inactive feature jobs.
+
+PROBLEM
+Right now the app appears to run too much at once. Even when the user is not on a section, some feature logic may still poll, request data, initialize heavy collectors, or hit protected routes. This causes:
+- unnecessary CPU usage
+- hidden backend work
+- duplicate polling
+- unnecessary network and IPC traffic
+- 401 spam before auth is ready
+- lower trust because the app feels busy in the background
+
+We do NOT want to shut down the backend itself on every page change. That would be slow and unstable.
+We DO want to shut down page-specific expensive jobs when the user leaves that page.
+
+GOAL
+Refactor runtime behavior so:
+- backend process remains alive
+- app shell remains alive
+- auth/session/updater remain alive
+- only active page workloads run
+- inactive page workloads fully stop
+- shared low-cost telemetry can remain centralized
+- expensive collectors are subscriber-based or page-scoped
+- no hidden polling continues after leaving a page
+- no duplicate timers exist for the same data
+- page return is fast through cached state, then refresh
+
+NON-NEGOTIABLE RULES
+1. Do NOT stop/restart the backend process on route change.
+2. Do NOT break auth, updater, deep-linking, or shell stability.
+3. Do NOT remove dashboard responsiveness.
+4. Do NOT create multiple competing telemetry loops.
+5. Do NOT let hidden pages continue intervals, polling, scans, or subscriptions.
+6. Do NOT start protected route polling before auth is confirmed.
+7. Prefer one shared source of truth over many local timers.
+8. Expensive work must start on subscribe and stop when unused.
+
+ARCHITECTURE TARGET
+Use this model:
+
+- Backend server: always alive
+- App shell / auth / updater: always alive
+- Shared lightweight telemetry cache: centralized
+- Page-specific expensive jobs: active only while page is mounted and eligible
+- Background collectors: reference-counted or subscriber-based
+- Idle timeout: if no subscribers, stop expensive collector after 10–30 seconds
+- On re-open page: serve cached data immediately, then refresh
+
+FILES TO AUDIT
+Frontend:
+- client/src/App.tsx
+- client/src/pages/Home.tsx
+- client/src/pages/AiAdvisor.tsx
+- client/src/pages/BiosAdvisor.tsx
+- client/src/pages/FocusMode.tsx
+- client/src/pages/NetworkTweaks.tsx
+- client/src/pages/SystemCleaner.tsx
+- client/src/pages/AppBooster.tsx
+- client/src/pages/Tweaks.tsx
+- client/src/hooks/*
+- client/src/lib/*
+- any polling hooks used by dashboard intelligence, issue detection, cleaner, focus, network, AI advisor
+
+Backend:
+- server/index.ts
+- server/routes.ts
+- server/routes/*
+- any telemetry manager / systeminformation collectors
+- any recurring polling or cache warmers
+- any feature-specific background intervals
+
+Electron:
+- electron/main.js
+- electron/preload.js
+- any IPC bridge or long-running collector code
+
+IMPLEMENTATION PLAN
+
+SECTION 1 — INVENTORY ALL LONG-RUNNING WORK
+Find every source of background work in the app and classify each one into:
+- global always-on
+- shared lightweight cache
+- page-scoped
+- bug / duplicate / unnecessary
+
+Specifically identify:
+- setInterval
+- setTimeout loops
+- websocket reconnect loops
+- route polling hooks
+- systeminformation calls
+- IPC polling
+- expensive scans
+- background preloaders
+- protected route polling before auth
+- duplicate telemetry fetchers
+
+Output a clear map in code comments or internal notes:
+- what starts it
+- where it stops
+- whether it is duplicated
+- whether it should remain global or become page-scoped
+
+SECTION 2 — DEFINE ALLOWED GLOBAL SERVICES
+Keep only these types of things global:
+- auth/session state
+- updater state
+- shell/window state
+- lightweight shared telemetry manager if needed by dashboard
+- backend process itself
+
+Anything else that is expensive should NOT run globally unless there is a hard product reason.
+
+SECTION 3 — BUILD PAGE ACTIVITY MODEL
+Implement a single source of truth for route activity.
+Need a lightweight route activity utility or hook that tells whether a page is currently active.
+
+Requirements:
+- works reliably with the router already used in the app
+- page components can ask “am I active?”
+- supports mount/unmount cleanup
+- no race conditions on route change
+- no stale intervals after leaving page
+
+If useful, create:
+- usePageActive(pageKey)
+or
+- useFeatureRuntime(featureKey, enabled)
+
+SECTION 4 — CENTRALIZE EXPENSIVE JOB LIFECYCLE
+For expensive jobs, implement a start/stop ownership model.
+
+Examples:
+- AI Advisor requests/polling
+- Cleaner scan status polling
+- Focus trigger monitor
+- Network diagnostics polling
+- App Booster scans
+- issue detection
+- BIOS analysis refresh
+- heavy dashboard intelligence routes if they are not globally justified
+
+Rules:
+- start only when page is active AND auth state allows it
+- stop immediately on page leave unless intentionally cached
+- if shared by multiple components, use reference counting
+- if no subscribers remain, stop after a short idle timeout
+- clean up interval, listener, websocket, and abort controller on teardown
+

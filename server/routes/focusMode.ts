@@ -216,28 +216,30 @@ router.post("/enable", async (req: Request, res: Response) => {
     : 'active';
 
   let sessionId: number | null = null;
-  try {
-    const row = await db.execute(sql`
-      INSERT INTO focus_sessions (
-        user_id, profile_id, settings, applied_state, electron_results, verification,
-        status, activated_at, duration_seconds, trigger_source
-      ) VALUES (
-        ${userId},
-        ${profileId},
-        ${JSON.stringify(settings)}::jsonb,
-        ${JSON.stringify(appliedState ?? {})}::jsonb,
-        ${JSON.stringify(electronResults ?? {})}::jsonb,
-        ${JSON.stringify(verification ?? {})}::jsonb,
-        ${status},
-        ${activatedAt.toISOString()},
-        ${durationMinutes ? durationMinutes * 60 : null},
-        ${triggerSource ?? 'manual'}
-      )
-      RETURNING id
-    `);
-    sessionId = (row.rows[0] as any)?.id ?? null;
-  } catch (e: any) {
-    console.error('[FocusMode] DB insert error:', e.message);
+  if (db) {
+    try {
+      const row = await db.execute(sql`
+        INSERT INTO focus_sessions (
+          user_id, profile_id, settings, applied_state, electron_results, verification,
+          status, activated_at, duration_seconds, trigger_source
+        ) VALUES (
+          ${userId},
+          ${profileId},
+          ${JSON.stringify(settings)}::jsonb,
+          ${JSON.stringify(appliedState ?? {})}::jsonb,
+          ${JSON.stringify(electronResults ?? {})}::jsonb,
+          ${JSON.stringify(verification ?? {})}::jsonb,
+          ${status},
+          ${activatedAt.toISOString()},
+          ${durationMinutes ? durationMinutes * 60 : null},
+          ${triggerSource ?? 'manual'}
+        )
+        RETURNING id
+      `);
+      sessionId = (row.rows[0] as any)?.id ?? null;
+    } catch (e: any) {
+      console.error('[FocusMode] DB insert error:', e.message);
+    }
   }
 
   activeStates.set(userId, {
@@ -313,6 +315,8 @@ router.post("/disable", async (req: Request, res: Response) => {
 router.get("/history", async (req: Request, res: Response) => {
   const userId = getUserId(req);
   if (!userId) return res.status(401).json({ ok: false, error: "Unauthorized" });
+
+  if (!db) return res.json({ ok: true, history: [] });
 
   try {
     const rows = await db.execute(sql`
