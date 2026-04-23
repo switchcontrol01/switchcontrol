@@ -1,12 +1,15 @@
 {
-  "version": "1.0.2",
-  "title": "Bug Fix Update",
-  "headline": "Premium Revert modal close button fixed and TCP Wait-Time revert now correctly clears.",
-  "date": "2026-04-22",
+  "version": "1.0.3",
+  "title": "Stability & Polish Update",
+  "headline": "Eliminated UAC flash on power plan setup, fixed startup polling before login, and corrected the installed app name.",
+  "date": "2026-04-23",
   "changes": [
-    "Fixed X button on Premium Revert modal being unclickable due to z-index overlap",
-    "Fixed Decrease Wait-Time State revert always showing as failed after a successful revert",
-    "TCP wait-time check now correctly treats absent registry property as not applied"
+    "Fixed power plan setup flashing a UAC prompt for users already running as administrator",
+    "Prevented dashboard intelligence polling from firing before login completes",
+    "Fixed issue detection scan triggering on page load before authentication resolved",
+    "Fixed display signal graph polling protected endpoints before login",
+    "Installed app name now permanently displays as Switchcontrol with no version suffix",
+    "Added page-active hook infrastructure for smarter background job lifecycle"
   ],
   "type": "patch"
 }
