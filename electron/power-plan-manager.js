@@ -589,12 +589,22 @@ async function listSchemesForFrontend() {
 
 // ── Low-level plan activation ─────────────────────────────────────────────────
 
+// Windows Balanced plan GUID — immutable, used for restoredefaultschemes fallback.
+const BALANCED_GUID = BUILTIN_GUIDS.balanced; // '381b4222-f694-41f0-9685-ff5bb260df2e'
+
 /**
  * Activate a power plan by exact GUID.
  * Used by the premium-expiry revert pipeline to restore the user's original plan.
  *
- * @param {string} guid — must pass UUID format check
- * @returns {{ success, activeScheme?, error? }}
+ * Guarantees:
+ *   1. If the target GUID is already active, returns immediately without any
+ *      system call or UAC prompt (avoids unnecessary elevation).
+ *   2. If activation of BALANCED_GUID fails (plan deleted), runs
+ *      `powercfg -restoredefaultschemes` to restore Windows built-in plans,
+ *      then retries — never relies on plan names.
+ *
+ * @param {string} guid — must be a valid UUID
+ * @returns {{ success, activeScheme?, alreadyActive?, error? }}
  */
 async function activatePlanByGuid(guid) {
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -602,30 +612,76 @@ async function activatePlanByGuid(guid) {
     return { success: false, error: `Invalid GUID: ${guid}` };
   }
   const cleanGuid = guid.trim().toLowerCase();
+
+  // ── Guard 1: already active — skip all system calls (no UAC, no powercfg) ──
+  try {
+    const current = await getActivePowerScheme();
+    if (current.success && current.scheme?.guid === cleanGuid) {
+      console.log(`[PowerPlan] activatePlanByGuid: ${cleanGuid} is already the active plan — skipping`);
+      return { success: true, activeScheme: current.scheme, alreadyActive: true };
+    }
+  } catch (e) {
+    // Non-fatal — cannot confirm pre-state, proceed with activation attempt
+    console.warn('[PowerPlan] activatePlanByGuid: pre-check failed —', e.message);
+  }
+
   const isAdmin = await checkIsAdmin();
 
-  try {
+  // ── Inner helper: run a single powercfg command ────────────────────────────
+  async function runSetActive(targetGuid) {
     if (isAdmin) {
       const { execFileSync } = require('child_process');
-      execFileSync('powercfg', ['/setactive', cleanGuid], { stdio: 'pipe', windowsHide: true });
+      execFileSync('powercfg', ['/setactive', targetGuid], { stdio: 'pipe', windowsHide: true });
     } else {
-      // Needs UAC
-      const result = await runElevatedCommands([`powercfg /setactive ${cleanGuid}`]);
-      if (!result.ok) {
-        return { success: false, error: result.error || 'Elevation failed.' };
-      }
+      const result = await runElevatedCommands([`powercfg /setactive ${targetGuid}`]);
+      if (!result.ok) throw new Error(result.error || 'Elevation failed.');
     }
-
-    // Verify
-    const verifyResult = await getActivePowerScheme();
-    const activeGuid = verifyResult.scheme?.guid ?? '';
-    if (activeGuid !== cleanGuid) {
-      return { success: false, error: `Set GUID but verification failed — active=${activeGuid}` };
-    }
-    return { success: true, activeScheme: verifyResult.scheme };
-  } catch (e) {
-    return { success: false, error: e.message };
   }
+
+  async function runRestoreDefaultSchemes() {
+    if (isAdmin) {
+      const { execFileSync } = require('child_process');
+      execFileSync('powercfg', ['-restoredefaultschemes'], { stdio: 'pipe', windowsHide: true });
+    } else {
+      await runElevatedCommands(['powercfg -restoredefaultschemes']);
+    }
+  }
+
+  // ── Activation attempt ─────────────────────────────────────────────────────
+  try {
+    await runSetActive(cleanGuid);
+  } catch (firstErr) {
+    // ── Guard 2: BALANCED_GUID missing — restore built-in plans then retry ──
+    // Only runs when the target is the Windows Balanced plan (safe to restore).
+    // Restoring default schemes on a non-Balanced target could wipe user plans.
+    if (cleanGuid === BALANCED_GUID) {
+      console.warn(
+        `[PowerPlan] activatePlanByGuid: Balanced activation failed (${firstErr.message})` +
+        ` — running powercfg -restoredefaultschemes then retrying`
+      );
+      try {
+        await runRestoreDefaultSchemes();
+        console.log('[PowerPlan] activatePlanByGuid: restoredefaultschemes completed — retrying setactive');
+        await runSetActive(cleanGuid);
+        console.log('[PowerPlan] activatePlanByGuid: Balanced plan restored and activated successfully');
+      } catch (restoreErr) {
+        return {
+          success: false,
+          error: `Balanced activation failed; restoredefaultschemes + retry also failed: ${restoreErr.message} (original: ${firstErr.message})`,
+        };
+      }
+    } else {
+      return { success: false, error: firstErr.message };
+    }
+  }
+
+  // ── Verify: confirm the GUID is truly active now ───────────────────────────
+  const verifyResult = await getActivePowerScheme();
+  const activeGuid = verifyResult.scheme?.guid ?? '';
+  if (activeGuid !== cleanGuid) {
+    return { success: false, error: `Set GUID but verification failed — active=${activeGuid}, expected=${cleanGuid}` };
+  }
+  return { success: true, activeScheme: verifyResult.scheme };
 }
 
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
