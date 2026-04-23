@@ -1,0 +1,138 @@
+TASK
+Fix Debloat app uninstall so EXE and MSI uninstall methods work reliably in production.
+
+PROBLEM
+Debloat uninstall is failing for normal installed apps. Example from live UI:
+- App: VTRL
+- Uninstall method: EXE
+- Status: Failed
+
+This means the uninstall pipeline is not robust enough for real Windows uninstall strings.
+
+GOAL
+Make uninstall reliable, correctly elevated, correctly parsed, and correctly verified.
+
+FILES TO CHECK
+- debloat backend executor
+- uninstall detection / inventory code
+- any PowerShell or child_process launcher used for uninstall
+- UI status handling for uninstall results
+
+IMPLEMENTATION
+
+1. AUDIT HOW UNINSTALL COMMANDS ARE DISCOVERED
+For each installed app, capture and store:
+- DisplayName
+- UninstallString
+- QuietUninstallString
+- WindowsInstaller
+- InstallLocation
+- Publisher
+- DisplayVersion
+- Registry source path
+
+Check both:
+- HKLM\Software\Microsoft\Windows\CurrentVersion\Uninstall\*
+- HKLM\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*
+- HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\*
+
+2. PREFER QUIETUNINSTALLSTRING FIRST
+Execution order:
+- if QuietUninstallString exists, use it
+- else use UninstallString
+- if WindowsInstaller=1 and a product code exists, use msiexec correctly
+- do not guess unsafe silent flags unless explicitly mapped
+
+3. FIX COMMAND PARSING
+Do not naively split uninstall strings by spaces.
+Implement proper parsing for:
+- quoted exe paths
+- exe path + arguments
+- msiexec product code commands
+- rundll32 uninstall entries
+
+Need to correctly separate:
+- executable
+- argument string
+
+4. ADD ADMIN ELEVATION
+If uninstall target is system-wide or under Program Files, run elevated.
+Use the same trusted elevation path used elsewhere in Electron.
+Do not mark uninstall failed just because elevation was required.
+
+5. WAIT FOR REAL RESULT
+When launching uninstall:
+- wait for process exit
+- capture exit code
+- capture stderr/stdout if available
+- only mark success after verification
+
+6. ADD POST-UNINSTALL VERIFICATION
+After process exits, verify app is actually gone by checking:
+- uninstall registry entry removed
+OR
+- install folder missing
+OR
+- app no longer appears in installed apps scan
+
+If process exited but app still exists:
+- mark as failed_verification
+- show clear reason in UI
+
+7. HANDLE MSI PROPERLY
+If WindowsInstaller=1:
+- use msiexec /x {PRODUCT-CODE} /qn only when silent uninstall is intended
+- otherwise support interactive uninstall mode
+- log the exact path taken
+
+8. HANDLE EXE PROPERLY
+For EXE uninstallers:
+- use QuietUninstallString when available
+- if only UninstallString exists, support:
+  - interactive uninstall
+  - or silent uninstall only when known safe
+Do not append random flags blindly.
+
+9. RETURN REAL ERROR DETAILS TO UI
+Return structured result:
+- ok
+- methodUsed
+- executable
+- args
+- exitCode
+- elevated
+- verifiedRemoved
+- errorMessage
+
+10. IMPROVE UI STATUS
+Replace generic "Failed" with:
+- Failed: admin required
+- Failed: invalid uninstall command
+- Failed: process exited with code X
+- Failed: uninstaller ran but app still detected
+- Failed: uninstall string missing
+
+11. ADD TEST CASES
+Test at minimum:
+- MSI uninstall
+- EXE uninstall with quoted path
+- EXE uninstall with args
+- HKCU user-installed app
+- HKLM system app
+- app with QuietUninstallString
+- app with only UninstallString
+- uninstall requiring admin
+- uninstall that succeeds
+- uninstall that launches but does not remove app
+
+CHECKLIST
+- EXE uninstall works for normal apps
+- MSI uninstall works
+- commands are parsed correctly
+- elevation works
+- UI shows real failure reasons
+- success only shown after verification
+- no fake success and no fake failure
+
+FINAL OUTPUT
+Production-safe uninstall pipeline for Debloat with real verification and clear UI errors.

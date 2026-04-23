@@ -278,6 +278,11 @@ const UNSUPPORTED_TWEAKS = {
   'timer-res': "Timer resolution requires a persistent runtime process calling timeBeginPeriod(). The effect is not persistent via registry and resets when the process exits. Requires agent.",
   'desktop-comp': "Desktop Window Manager (DWM) cannot be disabled on Windows 10/11. This is a legacy Windows XP/Vista feature and has no modern equivalent.",
   'hdcp': "HDCP enforcement is controlled at the hardware/display-driver level and cannot be reliably toggled via registry or PowerShell.",
+  // Disabled in v1.0.2 — kernel input driver parameters can cause unrecoverable
+  // mouse/keyboard loss if set incorrectly.  These are handled by slider-tweak-executor
+  // with a hard block; this entry prevents any accidental toggle-path execution.
+  'mouse-queue-size': "Disabled for safety: modifying MouseDataQueueSize (mouclass kernel driver) can cause complete mouse failure requiring Safe Mode recovery.",
+  'kbd-queue-size':   "Disabled for safety: modifying KeyboardDataQueueSize (kbdclass kernel driver) can cause complete keyboard failure requiring Safe Mode recovery.",
 };
 
 // ─── HKCU tweaks (no admin required) ──────────────────────────────────────────

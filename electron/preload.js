@@ -235,6 +235,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertString(tweakId, 'tweakId');
       return ipcRenderer.invoke('tweak:getSliderMeta', tweakId);
     },
+    checkCrashSentinel: () => ipcRenderer.invoke('tweak:checkCrashSentinel'),
+    getDisabledSliders: () => ipcRenderer.invoke('tweak:getDisabledSliders'),
   },
 
   nic: {

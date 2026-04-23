@@ -1819,6 +1819,14 @@ ipcMain.handle('tweak:getSliderMeta', (event, tweakId) => {
   return sliderTweakExecutor.getSliderTweakMeta(tweakId);
 });
 
+ipcMain.handle('tweak:checkCrashSentinel', () => {
+  return sliderTweakExecutor.checkCrashSentinel();
+});
+
+ipcMain.handle('tweak:getDisabledSliders', () => {
+  return sliderTweakExecutor.DISABLED_SLIDER_TWEAKS;
+});
+
 // NIC tuning IPC handlers
 ipcMain.handle('nic:getAdapters', async () => {
   return await nicExecutor.getNetAdapters();
@@ -2468,6 +2476,17 @@ app.whenReady().then(async () => {
 
   // Fire-and-forget: audit runs in parallel, any crash is caught inside the function
   void runStartupAuditSafe();
+
+  // Check for slider crash sentinel — warns if the previous session crashed during
+  // a reboot-required elevated write (e.g. mouclass / kbdclass driver parameters).
+  try {
+    const sentinel = sliderTweakExecutor.checkCrashSentinel();
+    if (sentinel) {
+      console.warn(`[STARTUP] Slider crash sentinel found for "${sentinel.tweakId}" — previous write may have aborted. previousValue=${sentinel.previousValue}`);
+    }
+  } catch (e) {
+    console.error('[STARTUP] Crash sentinel check failed:', e.message);
+  }
 
   // ── C. Create main window ─────────────────────────────────────────────────────
   // Start telemetry poll before window so first getLive call finds a primed cache.

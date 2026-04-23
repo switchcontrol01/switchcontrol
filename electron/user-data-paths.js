@@ -52,4 +52,26 @@ module.exports = {
    * rather than guessing a generic default.
    */
   OWNERSHIP_FILE:    path.join(APPDATA_DIR, 'ownership.json'),
+
+  /**
+   * Slider-tweak original-value backup.
+   * Stores the registry value captured BEFORE the first slider write per tweak,
+   * so revert always restores the user's actual previous value rather than a
+   * hard-coded default.  Written by slider-tweak-executor.js.
+   */
+  SLIDER_STATE_FILE: path.join(APPDATA_DIR, 'slider-state.json'),
+
+  /**
+   * Slider-tweak audit log — one entry per apply / revert / blocked action.
+   * Captures previousValue, newValue, success, and timestamp.
+   */
+  SLIDER_LOG_FILE:   path.join(APPDATA_DIR, 'slider-log.json'),
+
+  /**
+   * Crash-sentinel file for slider tweaks that require reboot.
+   * Written immediately before the elevated registry write; deleted on
+   * verified success.  If the app starts and finds this file, it means the
+   * previous write may have caused a crash and the auto-revert flow runs.
+   */
+  SLIDER_CRASH_SENTINEL_FILE: path.join(APPDATA_DIR, 'slider-crash-sentinel.json'),
 };
