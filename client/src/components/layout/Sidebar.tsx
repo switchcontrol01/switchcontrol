@@ -18,7 +18,6 @@ import {
   Brain,
   Clock,
 } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useAuth } from "@/hooks/use-auth";
@@ -512,32 +511,25 @@ export function Sidebar() {
             </div>
 
             {/* Logout */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <motion.button
-                  onClick={isSigningOut ? undefined : logout}
-                  disabled={isSigningOut}
-                  className={cn(
-                    "size-7 rounded-lg flex items-center justify-center transition-colors",
-                    isSigningOut ? "text-red-400/40 cursor-default" : "text-muted-foreground/40",
-                  )}
-                  whileHover={isSigningOut ? {} : {
-                    color: "#f87171",
-                    backgroundColor: "rgba(239,68,68,0.12)",
-                    transition: { duration: 0.15 },
-                  }}
-                  whileTap={isSigningOut ? {} : { scale: 0.9 }}
-                  data-testid="button-sign-out"
-                >
-                  {isSigningOut
-                    ? <Loader2 className="size-3.5 animate-spin" />
-                    : <LogOut className="size-3.5" />}
-                </motion.button>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="text-xs">
-                {isSigningOut ? "Signing out…" : "Sign out"}
-              </TooltipContent>
-            </Tooltip>
+            <motion.button
+              onClick={isSigningOut ? undefined : logout}
+              disabled={isSigningOut}
+              className={cn(
+                "size-7 rounded-lg flex items-center justify-center transition-colors",
+                isSigningOut ? "text-red-400/40 cursor-default" : "text-muted-foreground/40",
+              )}
+              whileHover={isSigningOut ? {} : {
+                color: "#f87171",
+                backgroundColor: "rgba(239,68,68,0.12)",
+                transition: { duration: 0.15 },
+              }}
+              whileTap={isSigningOut ? {} : { scale: 0.9 }}
+              data-testid="button-sign-out"
+            >
+              {isSigningOut
+                ? <Loader2 className="size-3.5 animate-spin" />
+                : <LogOut className="size-3.5" />}
+            </motion.button>
           </div>
 
           {/* Bottom bar: version + social icons */}
@@ -546,63 +538,49 @@ export function Sidebar() {
               {appVersion ? `v${appVersion}` : "SwitchControl"}
             </span>
             <div className="flex items-center gap-0.5">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    onClick={() => {
-                      const api = (window as any).electronAPI;
-                      if (api?.openExternal) {
-                        api.openExternal(SOCIAL_LINKS.discord);
-                      } else {
-                        window.open(SOCIAL_LINKS.discord, "_blank");
-                      }
-                    }}
-                    className="size-6 rounded flex items-center justify-center text-muted-foreground/40"
-                    whileHover={{
-                      color: "#5865F2",
-                      backgroundColor: "rgba(88,101,242,0.12)",
-                      scale: 1.1,
-                      transition: { duration: 0.15 },
-                    }}
-                    whileTap={{ scale: 0.9 }}
-                    data-testid="sidebar-link-discord"
-                  >
-                    <DiscordIcon className="size-3.5" />
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  Join our Discord
-                </TooltipContent>
-              </Tooltip>
+              <motion.button
+                onClick={() => {
+                  const api = (window as any).electronAPI;
+                  if (api?.openExternal) {
+                    api.openExternal(SOCIAL_LINKS.discord);
+                  } else {
+                    window.open(SOCIAL_LINKS.discord, "_blank");
+                  }
+                }}
+                className="size-6 rounded flex items-center justify-center text-muted-foreground/40"
+                whileHover={{
+                  color: "#5865F2",
+                  backgroundColor: "rgba(88,101,242,0.12)",
+                  scale: 1.1,
+                  transition: { duration: 0.15 },
+                }}
+                whileTap={{ scale: 0.9 }}
+                data-testid="sidebar-link-discord"
+              >
+                <DiscordIcon className="size-3.5" />
+              </motion.button>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <motion.button
-                    onClick={() => {
-                      const api = (window as any).electronAPI;
-                      if (api?.openExternal) {
-                        api.openExternal(SOCIAL_LINKS.tiktok);
-                      } else {
-                        window.open(SOCIAL_LINKS.tiktok, "_blank");
-                      }
-                    }}
-                    className="size-6 rounded flex items-center justify-center text-muted-foreground/40"
-                    whileHover={{
-                      color: "#ec4899",
-                      backgroundColor: "rgba(236,72,153,0.12)",
-                      scale: 1.1,
-                      transition: { duration: 0.15 },
-                    }}
-                    whileTap={{ scale: 0.9 }}
-                    data-testid="sidebar-link-tiktok"
-                  >
-                    <TikTokIcon className="size-3.5" />
-                  </motion.button>
-                </TooltipTrigger>
-                <TooltipContent side="top" className="text-xs">
-                  Follow on TikTok
-                </TooltipContent>
-              </Tooltip>
+              <motion.button
+                onClick={() => {
+                  const api = (window as any).electronAPI;
+                  if (api?.openExternal) {
+                    api.openExternal(SOCIAL_LINKS.tiktok);
+                  } else {
+                    window.open(SOCIAL_LINKS.tiktok, "_blank");
+                  }
+                }}
+                className="size-6 rounded flex items-center justify-center text-muted-foreground/40"
+                whileHover={{
+                  color: "#ec4899",
+                  backgroundColor: "rgba(236,72,153,0.12)",
+                  scale: 1.1,
+                  transition: { duration: 0.15 },
+                }}
+                whileTap={{ scale: 0.9 }}
+                data-testid="sidebar-link-tiktok"
+              >
+                <TikTokIcon className="size-3.5" />
+              </motion.button>
             </div>
           </div>
         </motion.div>
