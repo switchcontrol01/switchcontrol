@@ -1,17 +1,19 @@
 {
-  "version": "1.0.3",
-  "title": "Performance Intelligence & NIC Tuning Update",
-  "headline": "Smarter issue detection, live network monitoring, and several critical bug fixes including a black screen fix on launch.",
+  "version": "1.0.4",
+  "title": "Switchcontrol 1.0.4 — Stability + Accuracy Update",
+  "headline": "This update focuses on making Switchcontrol fully reliable. If something is enabled, it stays enabled. If it's applied, it shows correctly.",
   "date": "2026-04-23",
   "changes": [
-    "Fixed black screen on launch caused by a missing icon import in the sidebar (Network icon for NIC Tuning)",
-    "Fixed splash screen exit animation causing a GPU layer occlusion in the packaged app",
-    "Detected Issues panel no longer false-flags SwitchControl's own Max Performance power plan as a problem",
-    "Added 6 new system health detections: CPU temperature, GPU temperature, VRAM saturation, low disk space, Resizable BAR disabled, and WiFi-only gaming",
-    "Added live RX/TX throughput graph with sparkline chart to the NIC Tuning page",
-    "Fixed power plan setup flashing a UAC prompt for users already running as administrator",
-    "Prevented dashboard intelligence polling from firing before login completes",
-    "Installed app name now permanently displays as Switchcontrol with no version suffix"
+    "Fixed CPU usage spikes caused by background process issues",
+    "Fixed Delivery Optimization conflicts — network tweaks now apply cleanly",
+    "Fixed tweaks resetting when switching tabs or reopening the app",
+    "Fixed UI showing incorrect (grey) state after restart — now reflects real system state",
+    "Improved tweak verification — checks actual Windows state instead of cached UI state",
+    "Improved PowerShell execution stability with global limiter and async loop control",
+    "Fixed trial expiry — premium tweaks now correctly revert when trial ends, including power plans",
+    "Improved app startup performance — reduced white flash and faster initial render",
+    "Fixed intermittent blank screen after login on Discord/auth edge cases",
+    "Improved overall stability — reduced race conditions across tweak execution, navigation, and background polling"
   ],
   "type": "patch"
 }

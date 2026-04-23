@@ -1,0 +1,141 @@
+TASK — RELEASE VERSION 1.0.4 + UPDATE WEBSITE + PATCH NOTES
+
+PROBLEM
+
+We have fixes ready but:
+- app version is not updated
+- website still shows old version
+- patch notes are incomplete and unclear
+- download link may not point to latest installer
+
+GOAL
+
+Ship version 1.0.4 cleanly across:
+- Electron app version
+- website download page
+- installer link
+- patch notes (clear + strong + user-trust focused)
+
+This is a LIVE release.
+
+---
+
+SECTION 1 — BUMP APP VERSION
+
+Update ALL version references to:
+
+1.0.4
+
+Files to update:
+- package.json → "version": "1.0.4"
+- electron-builder config (if exists)
+- any version constants in UI
+- About / Settings page display
+- installer filename (Switchcontrol-1.0.4.exe)
+
+IMPORTANT:
+App name must remain:
+Switchcontrol
+(no version in app name)
+
+---
+
+SECTION 2 — UPDATE WEBSITE DOWNLOAD PAGE
+
+Find:
+- download page (switchcontrol.org)
+
+Update:
+- displayed version → 1.0.4
+- download button → NEW installer link
+- remove old links or archive them
+
+Ensure:
+- no caching issues (force refresh or version param if needed)
+- link actually downloads correct 1.0.4 build
+
+---
+
+SECTION 3 — ADD PATCH NOTES (HIGH QUALITY)
+
+Do NOT keep it short and vague.
+Make it feel like a serious upgrade.
+
+PATCH NOTES — VERSION 1.0.4
+
+Title:
+Switchcontrol 1.0.4 — Stability + Accuracy Update
+
+Content:
+
+• Fixed CPU usage spikes  
+Resolved background process issues that could cause unnecessary CPU load.
+
+• Fixed Delivery Optimization conflicts  
+Network tweaks now apply cleanly without interference from Windows delivery optimization.
+
+• Fixed tweaks resetting when switching tabs or reopening app  
+All tweaks now persist correctly across:
+- tab navigation  
+- app restart  
+- session restore  
+
+• Fixed UI showing incorrect (grey) state after restart  
+Tweaks now verify real system state on launch and display correctly.
+
+• Improved tweak verification system  
+App now checks actual Windows state instead of relying on cached UI state.
+
+• Improved PowerShell execution stability  
+Added global limiter and async loop control to prevent process spawning issues.
+
+• Fixed trial expiry behavior  
+Premium tweaks now correctly revert when trial ends:
+- including power plans (returns to Windows Balanced)
+
+• Improved app startup performance  
+Reduced white flash and improved initial render flow.
+
+• Fixed intermittent blank screen after login (Discord/auth edge case)  
+App now handles auth + tour transitions safely.
+
+• Improved overall stability and consistency  
+Reduced race conditions across:
+- tweak execution  
+- navigation  
+- background polling  
+
+---
+
+SECTION 4 — OPTIONAL (BUT STRONGLY RECOMMENDED)
+
+Add small line under patch notes:
+
+"This update focuses on making Switchcontrol fully reliable.  
+If something is enabled, it stays enabled. If it’s applied, it shows correctly."
+
+This builds trust.
+
+---
+
+SECTION 5 — VERIFY BEFORE PUSH
+
+Must confirm:
+
+- installer downloads correctly
+- version shows 1.0.4 inside app
+- website shows 1.0.4
+- no broken links
+- patch notes visible
+- no old version references
+
+---
+
+SECTION 6 — FINAL OUTPUT
+
+Return:
+
+- confirmation version updated everywhere
+- final download URL
+- confirmation installer matches 1.0.4
+- confirmation website is live with patch notes
