@@ -65,9 +65,7 @@
 html {
   background: #07090D !important;
   background-color: #07090D !important;
-  height: 100%;
   width: 100%;
-  overflow: hidden;
   margin: 0;
   padding: 0;
 }
@@ -75,9 +73,7 @@ html {
 body {
   background: #07090D !important;
   background-color: #07090D !important;
-  height: 100%;
   width: 100%;
-  overflow: hidden;
   margin: 0;
   padding: 0;
 }
@@ -85,8 +81,6 @@ body {
 #root {
   background: #07090D !important;
   background-color: #07090D !important;
-  height: 100%;
-  width: 100%;
 }
 /* ────────────────────────────────────────────────────────────── */
 
@@ -656,14 +650,13 @@ body {
   @apply font-sans antialiased bg-background text-foreground;
   margin: 0;
   padding: 0;
-  height: 100%;
   background-attachment: fixed;
   position: relative;
   overflow-x: hidden;
 }
 
 #root {
-  height: 100%;
+  min-height: 100vh;
 }
 
 /* Remove focus outlines for mouse/touch users - only show for keyboard */
