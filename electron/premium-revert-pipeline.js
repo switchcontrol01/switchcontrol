@@ -176,28 +176,59 @@ async function revertNicProperty(record) {
  * the revertAllAppOwned loop which checks itemResult.success.
  */
 async function revertPowerPlan(record) {
-  const { previousPlanGuid, scopeKey } = record;
+  const { previousPlanGuid, appliedPlanGuid, scopeKey } = record;
   const mgr = getPowerPlanManager();
+
+  // Normalise the GUID the app actually activated (from ownership record).
+  // This is the authoritative source — does not depend on power-plans.json.
+  const appliedLower = appliedPlanGuid ? String(appliedPlanGuid).trim().toLowerCase() : null;
 
   // Step 1: Read what is CURRENTLY active on Windows.
   let currentGuid = null;
   try {
     const active = await mgr.getActivePowerScheme();
     currentGuid = active.scheme?.guid ? active.scheme.guid.toLowerCase() : null;
-    console.log(`[RevertPipeline] power_plan — current active GUID: ${currentGuid ?? '(unreadable)'}`);
+    console.log(
+      `[RevertPipeline] power_plan — current active GUID: ${currentGuid ?? '(unreadable)'}` +
+      ` | appliedPlanGuid (ownership): ${appliedLower ?? '(none)'}`
+    );
   } catch (e) {
     console.warn('[RevertPipeline] power_plan — could not read active power scheme:', e.message);
     return { ok: false, success: false, action: 'restore_guid', guid: null, error: `Cannot read active scheme: ${e.message}` };
   }
 
   // Step 2: Manual change protection.
-  // If the current plan is NOT an SC-managed plan the user already moved away
-  // after SwitchControl applied — do not touch it. Record as clean revert.
-  if (currentGuid && !isSwitchControlPlanGuid(currentGuid)) {
-    console.log(
-      `[RevertPipeline] power_plan — revert skipped: user changed plan after apply` +
-      ` (currentGuid=${currentGuid} is not SC-managed). Treating as clean state.`
-    );
+  //
+  // Primary check — compare currentGuid directly against what the app applied.
+  //   If appliedPlanGuid is on record and current ≠ applied → user moved away → skip.
+  //   This works regardless of whether the GUID is in power-plans.json.
+  //
+  // Fallback (appliedPlanGuid missing / old records) — fall back to the
+  //   isSwitchControlPlanGuid() check against power-plans.json.
+  let userChangedPlan = false;
+  if (currentGuid) {
+    if (appliedLower) {
+      // Primary: exact ownership-record match
+      userChangedPlan = (currentGuid !== appliedLower);
+      if (userChangedPlan) {
+        console.log(
+          `[RevertPipeline] power_plan — revert skipped: user changed plan after apply` +
+          ` (current=${currentGuid} ≠ applied=${appliedLower})`
+        );
+      }
+    } else {
+      // Fallback: check power-plans.json set (old behaviour for pre-ownership records)
+      userChangedPlan = !isSwitchControlPlanGuid(currentGuid);
+      if (userChangedPlan) {
+        console.log(
+          `[RevertPipeline] power_plan — revert skipped: current GUID (${currentGuid}) not in SC plan set` +
+          ` (no appliedPlanGuid in record — treating as user change)`
+        );
+      }
+    }
+  }
+
+  if (userChangedPlan) {
     ownershipStore.recordRevert(scopeKey);
     return {
       ok: true,
@@ -206,26 +237,33 @@ async function revertPowerPlan(record) {
       reason: 'user_changed_plan_after_apply',
       action: 'skipped_not_sc',
       currentGuid,
+      appliedLower,
     };
   }
 
-  // Step 3: Active plan IS SC-managed (or currentGuid is null — fail safe by reverting).
+  // Step 3: Active plan IS the one the app set (or currentGuid is null — fail safe).
   // Determine restore target:
-  //   a) previousPlanGuid if it is a valid UUID and is NOT itself a SC plan
-  //   b) BALANCED_GUID otherwise (forced fallback — the safe absolute truth)
+  //   a) previousPlanGuid if it is a valid UUID and is NOT itself an SC plan
+  //      (checked against both power-plans.json and the appliedPlanGuid record)
+  //   b) BALANCED_GUID otherwise — the safe absolute truth
   let targetGuid = BALANCED_GUID;
   let forcedBalanced = true;
 
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (previousPlanGuid && UUID_RE.test(String(previousPlanGuid).trim())) {
     const prevLower = previousPlanGuid.trim().toLowerCase();
-    if (!isSwitchControlPlanGuid(prevLower)) {
+    // Reject previousPlanGuid if it is itself an SC plan (either via ownership record
+    // or via power-plans.json) — restoring to another SC plan defeats the purpose.
+    const prevIsApplied = appliedLower && prevLower === appliedLower;
+    const prevIsScPlan  = prevIsApplied || isSwitchControlPlanGuid(prevLower);
+    if (!prevIsScPlan) {
       targetGuid = prevLower;
       forcedBalanced = false;
       console.log(`[RevertPipeline] power_plan — target: previousPlanGuid=${targetGuid}`);
     } else {
       console.warn(
-        `[RevertPipeline] power_plan — previousPlanGuid (${previousPlanGuid}) is itself an SC plan.` +
+        `[RevertPipeline] power_plan — previousPlanGuid (${prevLower}) is itself an SC plan` +
+        ` (appliedLower=${appliedLower}, inSchemeGuids=${isSwitchControlPlanGuid(prevLower)}).` +
         ` Forcing Windows Balanced (${BALANCED_GUID}).`
       );
     }
