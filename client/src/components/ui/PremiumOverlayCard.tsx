@@ -242,36 +242,32 @@ export function PremiumOverlayCard({
         onClick={handleOuterClick}
         data-testid="premium-overlay"
       >
-        {/* Inject keyframes */}
         <style>{KEYFRAMES}</style>
-
-        {/* Ambient floating particles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
           <div style={{ position:"absolute", left:"18%", top:"22%", width:5, height:5, borderRadius:"50%", background:premiumRgba.glow45, animation:"sc-poc-p0 5s ease-in-out infinite" }} />
           <div style={{ position:"absolute", right:"22%", top:"30%", width:3, height:3, borderRadius:"50%", background:premiumRgba.glow35, animation:"sc-poc-p1 6.5s ease-in-out infinite 1.2s" }} />
           <div style={{ position:"absolute", left:"55%", bottom:"25%", width:4, height:4, borderRadius:"50%", background:premiumRgba.glow40, animation:"sc-poc-p2 4.8s ease-in-out infinite 2.5s" }} />
         </div>
-
         {cardInner}
       </div>,
       document.body,
     );
   }
 
+  /* card variant — fills its container (placed inside PremiumCardOverlay's
+     dark-bg wrapper, so no absolute overlay needed here) */
   return (
     <div
-      className={`absolute inset-0 flex items-center justify-center z-10 overflow-hidden ${className ?? ""}`}
+      className={`relative w-full flex items-center justify-center overflow-hidden px-4 py-6 ${className ?? ""}`}
       onClick={handleOuterClick}
       data-testid="premium-card-overlay"
     >
       <style>{KEYFRAMES}</style>
-
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden>
         <div style={{ position:"absolute", left:"18%", top:"22%", width:5, height:5, borderRadius:"50%", background:premiumRgba.glow45, animation:"sc-poc-p0 5s ease-in-out infinite" }} />
         <div style={{ position:"absolute", right:"22%", top:"30%", width:3, height:3, borderRadius:"50%", background:premiumRgba.glow35, animation:"sc-poc-p1 6.5s ease-in-out infinite 1.2s" }} />
         <div style={{ position:"absolute", left:"55%", bottom:"25%", width:4, height:4, borderRadius:"50%", background:premiumRgba.glow40, animation:"sc-poc-p2 4.8s ease-in-out infinite 2.5s" }} />
       </div>
-
       {cardInner}
     </div>
   );
