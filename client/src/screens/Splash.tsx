@@ -79,6 +79,15 @@ export default function Splash({ onComplete }: SplashProps) {
             const revealTs = performance.now();
             console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
 
+            // ── body::before teardown ─────────────────────────────────────
+            // Adding 'sc-first-frame-ready' triggers the CSS transition that
+            // fades body::before (z-index:2147483647) from opaque to transparent
+            // over 120ms.  This is the primary anti-flash guard — it must be
+            // removed FIRST, before the shell and html transitions start, so
+            // the startup-shell behind it becomes visible as the cover fades.
+            document.body.classList.add('sc-first-frame-ready');
+            console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
+
             // ── Shell fade starts NOW — window is on screen ──────────────
             // The shell was opaque during the hidden phase so backgroundColor
             // (#07090D) was the only visible surface.  Now that the window is
@@ -118,7 +127,10 @@ export default function Splash({ onComplete }: SplashProps) {
           }, 700);
 
         } else {
-          // Non-Electron (website) path — no handshake needed, reveal immediately
+          // Non-Electron (website) path — no handshake needed, reveal immediately.
+          // sc-first-frame-ready may already be set by the inline script in index.html
+          // for the website path, but set it here too as a belt-and-suspenders guard.
+          document.body.classList.add('sc-first-frame-ready');
           const shell = document.getElementById('startup-shell');
           if (shell) {
             shell.style.transition = 'opacity 180ms ease-out';

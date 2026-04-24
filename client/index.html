@@ -1,7 +1,64 @@
 <!DOCTYPE html>
 <html lang="en" style="background:#07090D;color-scheme:dark;opacity:0;transition:opacity 200ms ease-out;height:100%;width:100%;overflow:hidden;">
   <head>
-    <script>document.documentElement.style.background='#07090D';document.documentElement.style.colorScheme='dark';</script>
+    <!--
+      CRITICAL DARK-PAINT GUARANTEE
+      ─────────────────────────────
+      This <style> block runs before ANY JavaScript bundle, before index.css,
+      before React, before fonts.  It is the first DOM paint Chromium makes.
+
+      body::before is a maximum-z-index opaque dark overlay that:
+        • Sits above every DOM element (z-index:2147483647, position:fixed)
+        • Is pointer-events:none so it never blocks interaction
+        • Fades out only after Splash.tsx adds 'sc-first-frame-ready' to <body>
+
+      This layer is the final line of defence against the ~0.1 s white flash
+      that occurs between BrowserWindow.show() and the first composited frame.
+
+      Transition path:
+        BrowserWindow show() (opacity:0→1 in main.js, 16 ms)
+          → app:window-shown IPC
+            → reveal() in Splash.tsx
+              → document.body.classList.add('sc-first-frame-ready')  ← triggers fade
+              → shell.style.opacity = '0'                             (180 ms)
+              → html.style.opacity  = '1'                             (200 ms CSS)
+    -->
+    <style>
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #07090D !important;
+        overflow: hidden;
+      }
+
+      /* Bulletproof dark cover — painted by the browser before ANY JS runs.
+         Sits above everything. Removed only once sc-first-frame-ready is set. */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: #07090D;
+        z-index: 2147483647;
+        pointer-events: none;
+        /* No transition here — it is opaque and instant until the class fires */
+      }
+
+      /* Splash signals first-frame-ready → cover fades in 120 ms */
+      body.sc-first-frame-ready::before {
+        opacity: 0;
+        transition: opacity 120ms ease;
+      }
+    </style>
+
+    <!-- Belt-and-suspenders: set background on documentElement synchronously
+         in case the <html> style attribute is somehow deferred. -->
+    <script>
+      document.documentElement.style.background = '#07090D';
+      document.documentElement.style.colorScheme = 'dark';
+    </script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
 
@@ -37,6 +94,8 @@
          Chromium paint is dark, so the OS window manager never gets a chance
          to flash a white/gray default frame on show().
          Splash.tsx fades this out on mount, then signals first-frame-ready.
+         NOTE: body::before (z-index 2147483647) sits above this shell and is
+         the primary flash guard; the shell is the secondary branded cover.
     ──────────────────────────────────────────────────────────────────────── -->
     <div id="startup-shell" style="position:fixed;inset:0;z-index:9999;background:#07090D;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:20px;pointer-events:none;">
       <div style="position:absolute;left:50%;top:48%;width:420px;height:420px;margin-left:-210px;margin-top:-210px;background:radial-gradient(ellipse,rgba(139,92,246,0.20) 0%,rgba(0,200,255,0.08) 45%,transparent 70%);filter:blur(72px);"></div>
@@ -56,6 +115,8 @@
         document.documentElement.style.height='';
         document.body.style.overflow='';
         document.body.style.height='';
+        // Website path: body::before not needed, remove it immediately
+        document.body.classList.add('sc-first-frame-ready');
         var r=document.getElementById('root');if(r)r.style.height='';
       }
     </script>
