@@ -16,7 +16,9 @@ import { motion, AnimatePresence, modalBackdrop, modalContent, useMotion, Reveal
 import {
   Zap, Leaf, Gauge, Cpu, Usb, Moon, Rocket, Monitor, Laptop,
   ChevronDown, ChevronUp, Info, X, RotateCcw, Check, AlertTriangle,
-  Settings2, Lock, Battery, Loader2, RefreshCw, ShieldAlert,
+  Settings2, Loader2, RefreshCw, ShieldAlert,
+  ShieldCheck, ShieldX, Activity, Bug, Terminal, Sliders,
+  TrendingDown,
 } from "lucide-react";
 import { IntentModeSelector, IntentModeDescription, type IntentMode } from "@/components/intelligence/IntentModeSelector";
 import { useAuth } from "@/hooks/use-auth";
@@ -64,7 +66,6 @@ interface CustomSettings {
   disableHibernation: boolean;
 }
 
-// Backend response shapes
 interface BackendBreakdown {
   cpuBoost?: string;
   cpuRange?: string;
@@ -122,59 +123,41 @@ const POWER_PROFILES: PowerProfile[] = [
   },
 ];
 
-// Static fallback breakdown labels (shown in browser / before backend responds)
+// Estimated performance impact scores (visual only, clearly labelled)
+const PROFILE_IMPACT: Record<FrontendProfileId, { latency: number; speed: number; battery: number }> = {
+  performance: { latency: 95, speed: 100, battery:  5 },
+  balanced:    { latency: 68, speed:  80, battery: 42 },
+  efficiency:  { latency: 22, speed:  45, battery: 95 },
+  custom:      { latency: 65, speed:  72, battery: 30 },
+};
+
+// Key settings summary shown on each card
+const PROFILE_KEY_SETTINGS: Record<FrontendProfileId, string[]> = {
+  performance: ["CPU 100%–100%", "Boost: Aggressive", "No Core Parking", "USB Always On", "Sleep Off"],
+  balanced:    ["CPU 5%–100%",   "Boost: Efficient",  "No Core Parking", "USB Always On", "Sleep Off"],
+  efficiency:  ["CPU 5%–85%",   "Boost: Efficient",  "Min Parking",     "USB Save",      "Sleep 15m"],
+  custom:      ["CPU: Custom",   "Boost: Custom",     "Park: Custom",    "USB: Custom",   "Sleep: Custom"],
+};
+
+// Per-profile visual theme
+const PROFILE_THEME: Record<FrontendProfileId, { accent: string; glow: string; borderColor: string; bgGrad: string }> = {
+  performance: { accent: "#ef4444", glow: "rgba(239,68,68,0.25)",    borderColor: "rgba(239,68,68,0.35)",   bgGrad: "linear-gradient(160deg,rgba(239,68,68,0.18) 0%,rgba(234,88,12,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
+  balanced:    { accent: "#8b5cf6", glow: "rgba(139,92,246,0.25)",   borderColor: "rgba(139,92,246,0.35)",  bgGrad: "linear-gradient(160deg,rgba(139,92,246,0.18) 0%,rgba(6,182,212,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
+  efficiency:  { accent: "#10b981", glow: "rgba(16,185,129,0.25)",   borderColor: "rgba(16,185,129,0.35)",  bgGrad: "linear-gradient(160deg,rgba(16,185,129,0.18) 0%,rgba(20,184,166,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
+  custom:      { accent: "#a78bfa", glow: "rgba(167,139,250,0.25)",  borderColor: "rgba(167,139,250,0.35)", bgGrad: "linear-gradient(160deg,rgba(167,139,250,0.18) 0%,rgba(139,92,246,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
+};
+
 const STATIC_BREAKDOWN: Record<FrontendProfileId, Record<string, string>> = {
-  performance: {
-    cpuBoost:         "Aggressive",
-    cpuRange:         "100% – 100%",
-    coreParking:      "No parking allowed",
-    sleepHibernate:   "Sleep disabled",
-    usbPowerSaving:   "Disabled",
-    frequencyScaling: "Fixed at maximum",
-    pciePower:        "Off (max performance)",
-    displayTimeout:   "Never",
-  },
-  balanced: {
-    cpuBoost:         "Efficient aggressive",
-    cpuRange:         "5% – 100%",
-    coreParking:      "No parking allowed",
-    sleepHibernate:   "Sleep disabled",
-    usbPowerSaving:   "Disabled",
-    frequencyScaling: "Dynamic based on demand",
-    pciePower:        "Off (max performance)",
-    displayTimeout:   "Never",
-  },
-  efficiency: {
-    cpuBoost:         "Efficient enabled",
-    cpuRange:         "5% – 85%",
-    coreParking:      "Minimal parking allowed",
-    sleepHibernate:   "After 15 min",
-    usbPowerSaving:   "Enabled",
-    frequencyScaling: "Dynamic based on demand",
-    pciePower:        "Maximum saving",
-    displayTimeout:   "After 5 min",
-  },
-  custom: {
-    cpuBoost:         "Customized",
-    cpuRange:         "Custom",
-    coreParking:      "Custom",
-    sleepHibernate:   "Custom",
-    usbPowerSaving:   "Custom",
-    frequencyScaling: "Custom",
-    pciePower:        "Custom",
-    displayTimeout:   "Custom",
-  },
+  performance: { cpuBoost: "Aggressive", cpuRange: "100% – 100%", coreParking: "No parking allowed", sleepHibernate: "Sleep disabled", usbPowerSaving: "Disabled", frequencyScaling: "Fixed at maximum", pciePower: "Off (max performance)", displayTimeout: "Never" },
+  balanced:    { cpuBoost: "Efficient aggressive", cpuRange: "5% – 100%", coreParking: "No parking allowed", sleepHibernate: "Sleep disabled", usbPowerSaving: "Disabled", frequencyScaling: "Dynamic based on demand", pciePower: "Off (max performance)", displayTimeout: "Never" },
+  efficiency:  { cpuBoost: "Efficient enabled", cpuRange: "5% – 85%", coreParking: "Minimal parking allowed", sleepHibernate: "After 15 min", usbPowerSaving: "Enabled", frequencyScaling: "Dynamic based on demand", pciePower: "Maximum saving", displayTimeout: "After 5 min" },
+  custom:      { cpuBoost: "Customized", cpuRange: "Custom", coreParking: "Custom", sleepHibernate: "Custom", usbPowerSaving: "Custom", frequencyScaling: "Custom", pciePower: "Custom", displayTimeout: "Custom" },
 };
 
 const BREAKDOWN_LABELS: Record<string, string> = {
-  cpuBoost:         "CPU Boost",
-  cpuRange:         "CPU Frequency Range",
-  coreParking:      "Core Parking",
-  sleepHibernate:   "Sleep / Hibernate",
-  usbPowerSaving:   "USB Power Saving",
-  frequencyScaling: "Frequency Scaling",
-  pciePower:        "PCIe Power Mgmt",
-  displayTimeout:   "Display Timeout",
+  cpuBoost: "CPU Boost", cpuRange: "CPU Freq Range", coreParking: "Core Parking",
+  sleepHibernate: "Sleep / Hibernate", usbPowerSaving: "USB Power", frequencyScaling: "Freq Scaling",
+  pciePower: "PCIe Power Mgmt", displayTimeout: "Display Timeout",
 };
 
 const OVERRIDE_TOGGLES: OverrideToggle[] = [
@@ -225,7 +208,74 @@ function backendIdToFrontendId(backendId: BackendProfileId | null | undefined): 
   return backendId ? (map[backendId] ?? null) : null;
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Premium sub-components ────────────────────────────────────────────────────
+
+function EnergyLines() {
+  return (
+    <svg className="absolute inset-0 w-full h-full pointer-events-none" preserveAspectRatio="none" aria-hidden>
+      <defs>
+        <linearGradient id="pp-eg1" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="rgba(139,92,246,0)" />
+          <stop offset="45%" stopColor="rgba(139,92,246,0.5)" />
+          <stop offset="100%" stopColor="rgba(139,92,246,0)" />
+        </linearGradient>
+        <linearGradient id="pp-eg2" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="rgba(6,182,212,0)" />
+          <stop offset="55%" stopColor="rgba(6,182,212,0.3)" />
+          <stop offset="100%" stopColor="rgba(6,182,212,0)" />
+        </linearGradient>
+      </defs>
+      <path d="M -100 45 Q 200 25 500 45 Q 800 65 1100 45" stroke="url(#pp-eg1)" strokeWidth="1" fill="none" opacity="0.7">
+        <animateTransform attributeName="transform" type="translate" values="-100 0;200 0;-100 0" dur="8s" repeatCount="indefinite" />
+      </path>
+      <path d="M -200 70% Q 300 55% 600 70% Q 900 85% 1200 70%" stroke="url(#pp-eg2)" strokeWidth="1" fill="none" opacity="0.4">
+        <animateTransform attributeName="transform" type="translate" values="0 0;150 0;0 0" dur="11s" repeatCount="indefinite" />
+      </path>
+      <path d="M 0 20% Q 400 35% 700 20% Q 1000 5% 1300 20%" stroke="url(#pp-eg1)" strokeWidth="0.5" fill="none" opacity="0.25">
+        <animateTransform attributeName="transform" type="translate" values="100 0;-100 0;100 0" dur="14s" repeatCount="indefinite" />
+      </path>
+    </svg>
+  );
+}
+
+function VerificationBadge({ match, loading }: { match?: string; loading?: boolean }) {
+  if (loading) return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-white/40"><span className="size-1.5 rounded-full bg-white/20 animate-pulse" /> Checking…</span>;
+  if (!match) return null;
+  const states = {
+    exact_match:      { icon: <ShieldCheck className="size-3" />, label: "Verified — Exact Match", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
+    close_match:      { icon: <AlertTriangle className="size-3" />, label: "Close Match", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+    custom_modified:  { icon: <Settings2 className="size-3" />, label: "Custom State", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+    unknown:          { icon: <ShieldX className="size-3" />, label: "Unknown State", cls: "bg-white/10 text-white/40 border-white/10" },
+  } as const;
+  const s = states[match as keyof typeof states] ?? states.unknown;
+  return (
+    <span className={cn("inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-[11px] font-medium", s.cls)}>
+      {s.icon} {s.label}
+    </span>
+  );
+}
+
+function ImpactBar({ label, value, color }: { label: string; value: number; color: string }) {
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[10px]">
+        <span className="text-white/50">{label}</span>
+        <span className="font-medium" style={{ color }}>{value}%</span>
+      </div>
+      <div className="h-1 rounded-full bg-white/[0.07] overflow-hidden">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: color }}
+          initial={{ width: 0 }}
+          animate={{ width: `${value}%` }}
+          transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.15 }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── InfoModal ─────────────────────────────────────────────────────────────────
 
 function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () => void }) {
   const { prefersReducedMotion } = useMotion();
@@ -299,27 +349,25 @@ export default function PowerPlan() {
   const [localState, setLocalState] = useState(loadLocalState);
   const [activeTab, setActiveTab]   = useState<"profiles" | "custom">("profiles");
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [debugOpen, setDebugOpen]       = useState(false);
   const [infoToggle, setInfoToggle]     = useState<OverrideToggle | null>(null);
   const [intentMode, setIntentMode]     = useState<IntentMode>("balanced");
 
-  // Custom plan name + persisted metadata
   const [customPlanName, setCustomPlanName] = useState("My Custom Plan");
   const [customNameError, setCustomNameError] = useState<string | null>(null);
   const [customPlanMeta, setCustomPlanMeta] = useState<{ guid: string; name: string; createdAt: number } | null>(null);
 
   const isElectron = isElectronWithPowerPlans();
 
-  // Backend state — only show loading if we're actually in Electron (otherwise data is instant)
   const [backendState,   setBackendState]   = useState<BackendState | null>(null);
   const [planLoading,    setPlanLoading]    = useState(isElectron);
   const [planError,      setPlanError]      = useState<string | null>(null);
-  const [applying,       setApplying]       = useState<string | null>(null); // frontend profileId
+  const [applying,       setApplying]       = useState<string | null>(null);
   const [applyResult,    setApplyResult]    = useState<{ profileId: string; success: boolean; match: string } | null>(null);
   const [applyingCustom, setApplyingCustom] = useState(false);
   const [customApplied,  setCustomApplied]  = useState(false);
   const hasFetched = useRef(false);
 
-  // ── Custom name validation ──────────────────────────────────────────────────
   function validateCustomName(v: string): string | null {
     const t = v.trim();
     if (t.length < 3)  return "Name must be at least 3 characters";
@@ -328,7 +376,6 @@ export default function PowerPlan() {
     return null;
   }
 
-  // ── Fetch real power state on mount ────────────────────────────────────────
   const fetchPowerState = useCallback(async () => {
     if (!isElectron) { setPlanLoading(false); return; }
     setPlanLoading(true);
@@ -341,7 +388,6 @@ export default function PowerPlan() {
       } else {
         setPlanError(result.error ?? "Could not read power plan state from Windows.");
       }
-      // Also load persisted custom plan metadata
       if (api?.getCustomMeta) {
         try {
           const meta = await api.getCustomMeta();
@@ -364,27 +410,22 @@ export default function PowerPlan() {
     fetchPowerState();
   }, [fetchPowerState]);
 
-  // ── Derive active profile from backend state ────────────────────────────────
   const verifiedFrontendProfileId: FrontendProfileId | null = backendState?.profileMatch
     ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
     : null;
 
-  // Current active profile for UI (uses backend truth when available, else falls back to null)
   const activeProfileId: FrontendProfileId | null = verifiedFrontendProfileId;
 
-  // ── Activate a profile ──────────────────────────────────────────────────────
   const activateProfile = useCallback(async (frontendId: FrontendProfileId) => {
     const profile = POWER_PROFILES.find(p => p.id === frontendId);
     if (!profile) return;
 
     if (!isElectron) {
-      // Non-Electron demo mode — just update UI, no real apply
       applyAction(`Activated ${profile.name} profile`, "Power Plan", "Simulated apply");
       toast({ title: "Profile Activated (Demo)", description: `${profile.name} — Windows only for real changes.` });
       return;
     }
 
-    // ── Ownership: capture current active plan before applying ────────────────
     const prevGuid: string = backendState?.activeScheme?.guid ?? '';
     const prevName: string = backendState?.activeScheme?.name ?? backendState?.activeScheme?.guid ?? 'Unknown';
 
@@ -402,12 +443,11 @@ export default function PowerPlan() {
         return;
       }
 
-      // Update backend state from verification result
       setBackendState({
-        success:      true,
+        success: true,
         activeScheme: result.activeScheme,
-        settings:     result.settings,
-        breakdown:    result.breakdown,
+        settings: result.settings,
+        breakdown: result.breakdown,
         profileMatch: result.profileMatch,
         settingsErrors: result.settingsErrors,
       });
@@ -424,11 +464,9 @@ export default function PowerPlan() {
         toast({ title: "Profile Activated", description: `${profile.name} set as active. Some settings may need a restart to take effect.` });
       }
 
-      // ── Ownership: record which plan was replaced ───────────────────────────
       if (prevGuid && prevGuid.toLowerCase() !== (result.activeScheme?.guid ?? '').toLowerCase()) {
         useTweakOwnershipStore.getState().recordPowerPlanApply(
-          prevGuid,
-          prevName,
+          prevGuid, prevName,
           result.activeScheme?.guid ?? profile.backendId,
           profile.name,
         );
@@ -440,9 +478,8 @@ export default function PowerPlan() {
     } finally {
       setApplying(null);
     }
-  }, [isElectron, applyAction, toast]);
+  }, [isElectron, applyAction, toast, backendState]);
 
-  // ── Apply custom settings ──────────────────────────────────────────────────
   const applyCustomProfile = useCallback(async () => {
     const nameErr = validateCustomName(customPlanName);
     if (nameErr) { setCustomNameError(nameErr); setActiveTab("custom"); return; }
@@ -483,7 +520,6 @@ export default function PowerPlan() {
     }
   }, [customPlanName, customPlanMeta, isElectron, localState.customSettings, toast, fetchPowerState]);
 
-  // ── Intent mode → profile mapping ─────────────────────────────────────────
   const INTENT_TO_PROFILE: Record<IntentMode, FrontendProfileId> = {
     competitive: "performance",
     balanced:    "balanced",
@@ -493,13 +529,11 @@ export default function PowerPlan() {
 
   const handleIntentMode = useCallback((mode: IntentMode) => {
     setIntentMode(mode);
-    const profileId = INTENT_TO_PROFILE[mode];
-    activateProfile(profileId);
+    activateProfile(INTENT_TO_PROFILE[mode]);
   }, [activateProfile]);
 
-  // ── Overrides (kept as local-only for now) ──────────────────────────────────
   const updateLocalState = useCallback((updates: Partial<typeof localState>) => {
-    setLocalState(prev => {
+    setLocalState((prev: any) => {
       const next = { ...prev, ...updates };
       saveLocalState(next);
       return next;
@@ -524,10 +558,8 @@ export default function PowerPlan() {
     frequency: OVERRIDE_TOGGLES.filter(t => t.category === "frequency"),
   };
 
-  // ── Breakdown data (backend-derived when available) ──────────────────────────
   function getBreakdownForProfile(frontendId: FrontendProfileId): Record<string, string> {
     if (backendState?.breakdown && activeProfileId === frontendId) {
-      // Backend-derived labels for the currently active profile
       const bd = backendState.breakdown;
       return {
         cpuBoost:         bd.cpuBoost         ?? STATIC_BREAKDOWN[frontendId]?.cpuBoost         ?? "Unknown",
@@ -543,53 +575,43 @@ export default function PowerPlan() {
     return STATIC_BREAKDOWN[frontendId] ?? {};
   }
 
-  const displayProfile = POWER_PROFILES.find(p => p.id === activeProfileId);
+  const displayProfile   = POWER_PROFILES.find(p => p.id === activeProfileId);
   const displayBreakdown = displayProfile ? getBreakdownForProfile(displayProfile.id) : null;
+  const isCustomState    = backendState?.profileMatch?.match === "custom_modified";
+  const isCloseMatch     = backendState?.profileMatch?.match === "close_match";
 
-  const isCustomState = backendState?.profileMatch?.match === "custom_modified";
-  const isCloseMatch  = backendState?.profileMatch?.match === "close_match";
-
-  // Custom plan is active when backend reports the same GUID we created
   const isCustomPlanActive = !!(
     customPlanMeta?.guid &&
     backendState?.activeScheme?.guid?.toLowerCase() === customPlanMeta.guid.toLowerCase()
   );
-
-  // Sync customApplied with backend truth on every state update
   const effectiveCustomApplied = isCustomPlanActive || customApplied;
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <AppLayout>
       <motion.div
-        className={cn("space-y-8 relative", !isPremium && "opacity-60 blur-[2px]")}
+        className={cn("space-y-6 relative", !isPremium && "opacity-60 blur-[2px]")}
         variants={pageTransition}
         initial="initial"
         animate={planLoading ? "initial" : "animate"}
         exit="exit"
       >
-        <Reveal>
-          <PageHeader
-            icon={Zap}
-            title="Power Plan"
-            badge={<PremiumHeaderBadge isLocked={!isPremium} />}
-            subtitle="Configure power profiles for optimal gaming performance."
-          />
-        </Reveal>
 
-        {/* Non-Electron notice */}
+        {/* ── Non-Electron banner ──────────────────────────────────────────── */}
         {!isElectron && (
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/20">
             <ShieldAlert className="size-5 text-amber-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-medium text-amber-300">Windows desktop only</p>
-              <p className="text-xs text-amber-200/70 mt-0.5">Real power plan apply requires the SwitchControl Windows app. Changes here are for preview only.</p>
+              <p className="text-xs text-amber-200/70 mt-0.5">Real power plan apply requires the SwitchControl Windows app. Changes here are preview only.</p>
             </div>
           </div>
         )}
 
-        {/* Backend error */}
+        {/* ── Error banner ─────────────────────────────────────────────────── */}
         {planError && isElectron && (
-          <div className="flex items-start gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20">
+          <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
             <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm font-medium text-red-300">Could not read power plan state</p>
@@ -601,526 +623,733 @@ export default function PowerPlan() {
           </div>
         )}
 
-        {/* Active scheme badge */}
-        {backendState?.activeScheme && !planLoading && (
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <Zap className="size-3.5 text-primary" />
-            <span>Active Windows plan: <span className="text-white/70 font-medium">{backendState.activeScheme.name}</span></span>
-            {isCustomState && <span className="px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Custom Modified</span>}
-            {isCloseMatch  && <span className="px-1.5 py-0.5 rounded-full bg-yellow-500/10 text-yellow-400 border border-yellow-500/20">Close Match</span>}
-            <button onClick={fetchPowerState} disabled={planLoading} className="ml-auto text-muted-foreground hover:text-white transition-colors" title="Refresh power state">
-              <RefreshCw className={cn("size-3.5", planLoading && "animate-spin")} />
-            </button>
-          </div>
-        )}
+        {/* ══════════════════════════════════════════════════════════════════
+            SECTION 1 — HERO STATUS PANEL
+        ══════════════════════════════════════════════════════════════════ */}
+        <div
+          className="relative overflow-hidden rounded-2xl border border-white/[0.07] p-6 md:p-8"
+          style={{ background: "linear-gradient(135deg, rgba(10,10,20,0.98) 0%, rgba(30,15,50,0.4) 50%, rgba(10,10,20,0.98) 100%)", boxShadow: "0 0 80px -20px rgba(139,92,246,0.18), inset 0 1px 0 rgba(255,255,255,0.04)" }}
+        >
+          <EnergyLines />
+          <div className="relative z-10">
+            {/* Header row */}
+            <div className="flex items-start justify-between mb-5">
+              <PageHeader
+                icon={Zap}
+                title="Power Plan"
+                badge={<PremiumHeaderBadge isLocked={!isPremium} />}
+                subtitle="Windows power configuration center"
+              />
+              <button
+                onClick={fetchPowerState}
+                disabled={planLoading}
+                className="mt-1 size-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                title="Refresh power state"
+                data-testid="button-refresh-power-state"
+              >
+                <RefreshCw className={cn("size-3.5 text-white/50", planLoading && "animate-spin")} />
+              </button>
+            </div>
 
-        {/* ── System Intent Mode ───────────────────────────────────────── */}
-        <Reveal delay={0.05}>
-        <div className="space-y-3">
-          <motion.div
-            className="flex items-center gap-2"
-            initial={{ opacity: 0, x: -8 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <Rocket className="size-4 text-primary" />
-            <span className="text-sm font-medium">System Intent</span>
-            <span className="text-[10px] text-muted-foreground">Quick-select your scenario</span>
-          </motion.div>
-          <IntentModeSelector value={intentMode} onChange={handleIntentMode} />
-          <IntentModeDescription mode={intentMode} />
+            {/* Active plan name */}
+            {planLoading ? (
+              <div className="space-y-2 mb-4">
+                <div className="h-8 w-72 rounded-lg bg-white/[0.06] animate-pulse" />
+                <div className="h-4 w-48 rounded bg-white/[0.04] animate-pulse" />
+              </div>
+            ) : (
+              <div className="mb-4">
+                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-tight">
+                  {backendState?.activeScheme?.name ?? "No Plan Detected"}
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {backendState ? "Currently active in Windows Power Options" : "Waiting for Windows power state…"}
+                </p>
+              </div>
+            )}
+
+            {/* Status pills */}
+            <div className="flex flex-wrap items-center gap-2">
+              <VerificationBadge match={backendState?.profileMatch?.match} loading={planLoading} />
+
+              {backendState?.activeScheme?.guid && !planLoading && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 border border-white/10 text-[11px] font-mono text-white/40" title={backendState.activeScheme.guid}>
+                  GUID: {backendState.activeScheme.guid.slice(0, 8)}…{backendState.activeScheme.guid.slice(-4)}
+                </span>
+              )}
+
+              {isElectron && backendState && !planLoading && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/25 text-[11px] text-primary/80">
+                  <ShieldCheck className="size-3" /> SwitchControl Managed
+                </span>
+              )}
+
+              {isCloseMatch && !planLoading && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-400">
+                  <AlertTriangle className="size-3" /> Some settings differ
+                </span>
+              )}
+
+              {isCustomState && !planLoading && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/25 text-[11px] text-blue-400">
+                  <Settings2 className="size-3" /> Custom Windows state
+                </span>
+              )}
+            </div>
+          </div>
         </div>
+
+        {/* ══════════════════════════════════════════════════════════════════
+            SECTION 2 — SYSTEM INTENT MODE
+        ══════════════════════════════════════════════════════════════════ */}
+        <Reveal delay={0.04}>
+          <GlassCard className="p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <Rocket className="size-4 text-primary" />
+              <span className="text-sm font-semibold text-white">System Intent</span>
+              <span className="text-[10px] text-muted-foreground">Quick-select your use case</span>
+            </div>
+            <IntentModeSelector value={intentMode} onChange={handleIntentMode} />
+            <IntentModeDescription mode={intentMode} />
+          </GlassCard>
         </Reveal>
 
+        {/* ══════════════════════════════════════════════════════════════════
+            SECTION 3 — TABS
+        ══════════════════════════════════════════════════════════════════ */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profiles" | "custom")} className="space-y-6">
           <TabsList className="bg-black/40 border border-white/10">
             <TabsTrigger value="profiles" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
               <Gauge className="size-4 mr-2" /> Power Profiles
             </TabsTrigger>
             <TabsTrigger value="custom" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
-              <Settings2 className="size-4 mr-2" /> Custom
+              <Sliders className="size-4 mr-2" /> Custom Builder
             </TabsTrigger>
           </TabsList>
 
-          {/* ── Profiles tab ─────────────────────────────────────────────── */}
-          <TabsContent value="profiles" className="space-y-8">
+          {/* ══════════════════════════════════════════════════════════════
+              PROFILES TAB
+          ══════════════════════════════════════════════════════════════ */}
+          <TabsContent value="profiles" className="space-y-6">
 
-            {/* Loading skeleton */}
+            {/* Loading skeletons */}
             {planLoading && isElectron && (
-              <div className="grid gap-4 md:grid-cols-3">
-                {[0, 1, 2].map(i => (
-                  <div key={i} className="h-48 rounded-xl bg-white/5 border border-white/10 animate-pulse" />
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {[0,1,2,3].map(i => (
+                  <div key={i} className="h-[360px] rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
                 ))}
               </div>
             )}
 
-            {/* Profile cards */}
+            {/* ── Premium Profile Cards ─────────────────────────────────── */}
             {(!planLoading || !isElectron) && (
               <motion.div
-                className="grid gap-4 md:grid-cols-3"
+                className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
                 variants={staggerContainer}
                 initial="initial"
                 animate="animate"
               >
+                {/* Standard profiles */}
                 {POWER_PROFILES.map((profile) => {
                   const isActive   = activeProfileId === profile.id;
                   const isApplying = applying === profile.id;
-                  const Icon = profile.icon;
+                  const Icon       = profile.icon;
+                  const t          = PROFILE_THEME[profile.id];
+                  const impact     = PROFILE_IMPACT[profile.id];
+                  const keySettings = PROFILE_KEY_SETTINGS[profile.id];
 
                   return (
                     <motion.div
                       key={profile.id}
                       variants={staggerItem}
-                      whileHover={{ scale: 1.025, y: -4, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
-                      whileTap={{ scale: 0.975, y: 0 }}
+                      whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
+                      className="h-full"
                     >
-                    <GlassCard
-                      key={profile.id}
-                      className={cn(
-                        "p-5 transition-all duration-300",
-                        `bg-gradient-to-br ${profile.color}`,
-                        isActive && "ring-2 ring-primary shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]"
-                      )}
-                      data-testid={`card-profile-${profile.id}`}
-                    >
-                      <div className="flex items-start justify-between mb-3">
-                        <div className={cn("size-10 rounded-lg flex items-center justify-center", isActive ? "bg-primary/30 text-primary" : "bg-white/10 text-white/70")}>
-                          <Icon className="size-5" />
-                        </div>
-                        <div className="flex gap-1">
-                          {profile.compatibility.includes("desktop") && (
-                            <span className="size-6 rounded bg-white/10 flex items-center justify-center" title="Desktop"><Monitor className="size-3 text-white/60" /></span>
-                          )}
-                          {profile.compatibility.includes("laptop") && (
-                            <span className="size-6 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-3 text-white/60" /></span>
-                          )}
-                        </div>
-                      </div>
-                      <h3 className="font-semibold text-white mb-1">{profile.name}</h3>
-                      <p className="text-xs text-muted-foreground mb-4 line-clamp-2">{profile.description}</p>
-                      <div className="flex gap-2 mb-4">
-                        <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="CPU"><Cpu className="size-2.5 text-white/50" /></span>
-                        <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="USB"><Usb className="size-2.5 text-white/50" /></span>
-                        <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Sleep"><Moon className="size-2.5 text-white/50" /></span>
-                        <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Boost"><Rocket className="size-2.5 text-white/50" /></span>
-                      </div>
-                      <Button
-                        onClick={() => activateProfile(profile.id)}
-                        disabled={isApplying || !!applying}
+                      <div
                         className={cn(
-                          "w-full",
-                          isActive
-                            ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
-                            : "bg-white/10 hover:bg-white/20 text-white"
+                          "relative overflow-hidden rounded-2xl border h-full flex flex-col transition-all duration-300",
+                          isActive && "ring-2 shadow-[0_0_48px_-10px]"
                         )}
-                        data-testid={`button-activate-${profile.id}`}
+                        style={{
+                          background: t.bgGrad,
+                          borderColor: isActive ? t.accent : t.borderColor,
+                          boxShadow: isActive ? `0 0 48px -10px ${t.glow}` : undefined,
+                        }}
+                        data-testid={`card-profile-${profile.id}`}
                       >
-                        {isApplying ? (
-                          <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
-                        ) : isActive ? (
-                          <><Check className="size-4 mr-2" /> Active{isCloseMatch ? " (close)" : ""}</>
-                        ) : (
-                          "Activate Profile"
-                        )}
-                      </Button>
-                    </GlassCard>
+                        {/* Top accent line */}
+                        <div className="h-[2px] w-full shrink-0" style={{ background: `linear-gradient(90deg, transparent 0%, ${t.accent} 50%, transparent 100%)` }} />
+
+                        <div className="p-5 flex-1 flex flex-col">
+                          {/* Icon + active badge */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div
+                              className="size-12 rounded-xl flex items-center justify-center"
+                              style={{ backgroundColor: `${t.accent}22`, border: `1px solid ${t.accent}44` }}
+                            >
+                              <Icon className="size-6" style={{ color: t.accent }} />
+                            </div>
+                            <div className="flex flex-col items-end gap-1.5">
+                              {isActive && (
+                                <span
+                                  className="text-[10px] px-2.5 py-0.5 rounded-full border font-medium flex items-center gap-1.5"
+                                  style={{ backgroundColor: `${t.accent}18`, borderColor: `${t.accent}44`, color: t.accent }}
+                                >
+                                  <span className="size-1.5 rounded-full animate-pulse" style={{ backgroundColor: t.accent }} />
+                                  Active
+                                </span>
+                              )}
+                              <div className="flex gap-1">
+                                {profile.compatibility.includes("desktop") && (
+                                  <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-white/40" /></span>
+                                )}
+                                {profile.compatibility.includes("laptop") && (
+                                  <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-white/40" /></span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Name + desc */}
+                          <h3 className="text-base font-bold text-white mb-1.5">{profile.name}</h3>
+                          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{profile.description}</p>
+
+                          {/* Key settings pills */}
+                          <div className="flex flex-wrap gap-1 mb-4">
+                            {keySettings.map(s => (
+                              <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/55">{s}</span>
+                            ))}
+                          </div>
+
+                          {/* Estimated impact bars */}
+                          <div className="space-y-2 mb-5">
+                            <p className="text-[10px] uppercase tracking-widest text-white/25 font-medium mb-2.5 flex items-center gap-1.5">
+                              <TrendingDown className="size-2.5" />
+                              Estimated Impact
+                            </p>
+                            <ImpactBar label="Latency Reduction" value={impact.latency} color={t.accent} />
+                            <ImpactBar label="Responsiveness"    value={impact.speed}   color={t.accent} />
+                            <ImpactBar label="Battery Efficiency" value={impact.battery} color="#4b5563" />
+                          </div>
+
+                          <div className="flex-1" />
+
+                          {/* Apply button */}
+                          <Button
+                            onClick={() => activateProfile(profile.id)}
+                            disabled={isApplying || !!applying}
+                            className={cn("w-full font-medium transition-all duration-200", isActive ? "border" : "border")}
+                            style={isActive
+                              ? { backgroundColor: `${t.accent}22`, color: t.accent, borderColor: `${t.accent}44` }
+                              : { background: `linear-gradient(135deg, ${t.accent}55, ${t.accent}28)`, color: "#fff", borderColor: `${t.accent}44` }
+                            }
+                            data-testid={`button-activate-${profile.id}`}
+                          >
+                            {isApplying ? (
+                              <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
+                            ) : isActive ? (
+                              <><Check className="size-4 mr-2" /> Active{isCloseMatch ? " (close)" : ""}</>
+                            ) : (
+                              <><Zap className="size-4 mr-2" /> Activate</>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
                     </motion.div>
                   );
                 })}
 
-                {/* ── Custom profile card ──────────────────────────────── */}
+                {/* ── Custom profile card ──────────────────────────── */}
                 <motion.div
                   variants={staggerItem}
-                  whileHover={{ scale: 1.025, y: -4, transition: { duration: 0.2, ease: [0.22, 1, 0.36, 1] } }}
-                  whileTap={{ scale: 0.975, y: 0 }}
+                  whileHover={{ y: -6, transition: { duration: 0.22, ease: [0.22, 1, 0.36, 1] } }}
+                  className="h-full"
                 >
-                  <GlassCard
+                  <div
                     className={cn(
-                      "p-5 transition-all duration-300 bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-violet-500/30",
-                      effectiveCustomApplied && "ring-2 ring-primary shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]"
+                      "relative overflow-hidden rounded-2xl border h-full flex flex-col transition-all duration-300",
+                      effectiveCustomApplied && "ring-2"
                     )}
+                    style={{
+                      background: PROFILE_THEME.custom.bgGrad,
+                      borderColor: effectiveCustomApplied ? PROFILE_THEME.custom.accent : PROFILE_THEME.custom.borderColor,
+                      boxShadow: effectiveCustomApplied ? `0 0 48px -10px ${PROFILE_THEME.custom.glow}` : undefined,
+                    }}
                     data-testid="card-profile-custom"
                   >
-                    <div className="flex items-start justify-between mb-3">
-                      <div className={cn("size-10 rounded-lg flex items-center justify-center", effectiveCustomApplied ? "bg-primary/30 text-primary" : "bg-white/10 text-white/70")}>
-                        <Settings2 className="size-5" />
+                    <div className="h-[2px] w-full shrink-0" style={{ background: "linear-gradient(90deg, transparent 0%, #a78bfa 50%, transparent 100%)" }} />
+
+                    <div className="p-5 flex-1 flex flex-col">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="size-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#a78bfa22", border: "1px solid #a78bfa44" }}>
+                          <Settings2 className="size-6 text-violet-300" />
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
+                          {effectiveCustomApplied && (
+                            <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-medium flex items-center gap-1.5 text-violet-300" style={{ backgroundColor: "#a78bfa18", borderColor: "#a78bfa44" }}>
+                              <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
+                              Active
+                            </span>
+                          )}
+                          <div className="flex gap-1">
+                            <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-white/40" /></span>
+                            <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-white/40" /></span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <span className="size-6 rounded bg-white/10 flex items-center justify-center" title="Desktop"><Monitor className="size-3 text-white/60" /></span>
-                        <span className="size-6 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-3 text-white/60" /></span>
+
+                      <h3 className="text-base font-bold text-white mb-1.5" data-testid="text-custom-plan-name">
+                        {customPlanMeta?.name ?? "Custom Plan"}
+                      </h3>
+                      {customPlanMeta?.guid && (
+                        <p className="text-[10px] font-mono text-muted-foreground/45 mb-1 truncate">{customPlanMeta.guid}</p>
+                      )}
+                      <p className="text-xs text-muted-foreground mb-4 leading-relaxed">Your personal power configuration, tuned for your exact needs.</p>
+
+                      <div className="flex flex-wrap gap-1 mb-4">
+                        {PROFILE_KEY_SETTINGS.custom.map(s => (
+                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/55">{s}</span>
+                        ))}
+                      </div>
+
+                      <div className="space-y-2 mb-5">
+                        <p className="text-[10px] uppercase tracking-widest text-white/25 font-medium mb-2.5 flex items-center gap-1.5">
+                          <TrendingDown className="size-2.5" />
+                          Estimated Impact
+                        </p>
+                        <ImpactBar label="Latency Reduction" value={PROFILE_IMPACT.custom.latency} color="#a78bfa" />
+                        <ImpactBar label="Responsiveness"    value={PROFILE_IMPACT.custom.speed}   color="#a78bfa" />
+                        <ImpactBar label="Battery Efficiency" value={PROFILE_IMPACT.custom.battery} color="#4b5563" />
+                      </div>
+
+                      <div className="flex-1" />
+
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={applyCustomProfile}
+                          disabled={applyingCustom || !!applying}
+                          className={cn("flex-1 font-medium border transition-all duration-200")}
+                          style={effectiveCustomApplied
+                            ? { backgroundColor: "#a78bfa22", color: "#a78bfa", borderColor: "#a78bfa44" }
+                            : { background: "linear-gradient(135deg, rgba(167,139,250,0.55), rgba(167,139,250,0.25))", color: "#fff", borderColor: "#a78bfa44" }
+                          }
+                          data-testid="button-activate-custom"
+                        >
+                          {applyingCustom ? (
+                            <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
+                          ) : effectiveCustomApplied ? (
+                            <><Check className="size-4 mr-2" /> Active</>
+                          ) : (
+                            <><Zap className="size-4 mr-2" /> Activate</>
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setActiveTab("custom")}
+                          className="size-10 shrink-0 bg-white/5 hover:bg-white/10 border border-white/10"
+                          title="Edit custom settings"
+                          data-testid="button-edit-custom"
+                        >
+                          <Settings2 className="size-4" />
+                        </Button>
                       </div>
                     </div>
-                    <h3 className="font-semibold text-white mb-1" data-testid="text-custom-plan-name">
-                      {customPlanMeta?.name ?? "Custom"}
-                    </h3>
-                    {customPlanMeta?.guid && (
-                      <p className="text-[10px] text-muted-foreground/60 mb-1 font-mono truncate">{customPlanMeta.guid}</p>
-                    )}
-                    <p className="text-xs text-muted-foreground mb-4 line-clamp-2">Your personal power configuration. Tune CPU, USB, sleep, and frequency settings manually.</p>
-                    <div className="flex gap-2 mb-4">
-                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="CPU"><Cpu className="size-2.5 text-white/50" /></span>
-                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="USB"><Usb className="size-2.5 text-white/50" /></span>
-                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Sleep"><Moon className="size-2.5 text-white/50" /></span>
-                      <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Settings"><Settings2 className="size-2.5 text-white/50" /></span>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={applyCustomProfile}
-                        disabled={applyingCustom || !!applying}
-                        className={cn(
-                          "flex-1",
-                          effectiveCustomApplied
-                            ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
-                            : "bg-white/10 hover:bg-white/20 text-white"
-                        )}
-                        data-testid="button-activate-custom"
-                      >
-                        {applyingCustom ? (
-                          <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
-                        ) : effectiveCustomApplied ? (
-                          <><Check className="size-4 mr-2" /> Active</>
-                        ) : (
-                          "Activate Profile"
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setActiveTab("custom")}
-                        className="size-9 shrink-0 bg-white/5 hover:bg-white/10 border border-white/10"
-                        title="Edit custom settings"
-                        data-testid="button-edit-custom"
-                      >
-                        <Settings2 className="size-4" />
-                      </Button>
-                    </div>
-                  </GlassCard>
+                  </div>
                 </motion.div>
               </motion.div>
             )}
 
-            {/* Configuration breakdown — backend-driven or static */}
+            {/* ── Active Profile Deep Breakdown ─────────────────────── */}
             {displayProfile && displayBreakdown && !planLoading && (
-              <Reveal delay={0.12}>
-              <GlassCard className="p-6" data-testid="panel-profile-breakdown">
-                <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
-                  <displayProfile.icon className="size-5 text-primary" />
-                  {displayProfile.name} — Configuration Breakdown
-                </h2>
-                <div className="flex items-center gap-2 mb-4">
-                  {backendState?.breakdown && activeProfileId === displayProfile.id ? (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                      Live from Windows
-                    </span>
-                  ) : (
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white/40 border border-white/10">
-                      Preset values
-                    </span>
-                  )}
-                </div>
-                <motion.div
-                  className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                  variants={staggerContainer}
-                  initial="initial"
-                  animate="animate"
-                >
-                  {Object.entries(displayBreakdown).map(([key, value]) => (
-                    <motion.div
-                      key={key}
-                      variants={staggerItem}
-                      className="p-3 rounded-lg bg-white/5 border border-white/10 hover:bg-white/[0.07] hover:border-white/15 transition-colors"
-                      whileHover={{ scale: 1.02, transition: { duration: 0.18 } }}
-                    >
-                      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
-                        {BREAKDOWN_LABELS[key] ?? key}
-                      </span>
-                      <p className="text-sm text-white mt-1">{value}</p>
-                    </motion.div>
-                  ))}
-                </motion.div>
-
-                {/* Mismatch warning */}
-                {isCloseMatch && backendState?.profileMatch?.mismatches && Object.keys(backendState.profileMatch.mismatches).length > 0 && (
-                  <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="size-3.5 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-medium">Some settings differ from preset</span> — may be blocked by policy.
-                        <ul className="mt-1 space-y-0.5 text-amber-200/70">
-                          {Object.entries(backendState.profileMatch.mismatches).slice(0, 4).map(([k, v]) => (
-                            <li key={k}>{k}: expected {(v as any).expected}, got {(v as any).actual}</li>
-                          ))}
-                        </ul>
-                      </div>
+              <Reveal delay={0.1}>
+                <GlassCard className="p-6" data-testid="panel-profile-breakdown">
+                  <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+                    <div>
+                      <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                        <displayProfile.icon className="size-4 text-primary" />
+                        {displayProfile.name} — Windows Configuration
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {backendState?.breakdown && activeProfileId === displayProfile.id
+                          ? "Live settings pulled directly from Windows registry"
+                          : "Preset expected values for this profile"}
+                      </p>
                     </div>
+                    {backendState?.breakdown && activeProfileId === displayProfile.id ? (
+                      <span className="text-[11px] px-3 py-1 rounded-full bg-emerald-500/12 text-emerald-400 border border-emerald-500/25 flex items-center gap-1.5">
+                        <Activity className="size-3" /> Live from Windows
+                      </span>
+                    ) : (
+                      <span className="text-[11px] px-3 py-1 rounded-full bg-white/[0.07] text-white/40 border border-white/[0.08]">Preset values</span>
+                    )}
                   </div>
-                )}
-              </GlassCard>
+
+                  <motion.div
+                    className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4"
+                    variants={staggerContainer}
+                    initial="initial"
+                    animate="animate"
+                  >
+                    {Object.entries(displayBreakdown).map(([key, value]) => {
+                      const mismatch   = backendState?.profileMatch?.mismatches?.[key];
+                      const isLive     = !!(backendState?.breakdown && activeProfileId === displayProfile.id);
+                      const isVerified = isLive && !mismatch;
+                      return (
+                        <motion.div
+                          key={key}
+                          variants={staggerItem}
+                          className={cn(
+                            "p-3.5 rounded-xl border transition-colors",
+                            isVerified  ? "bg-emerald-500/[0.06] border-emerald-500/20 hover:bg-emerald-500/10"
+                            : mismatch  ? "bg-amber-500/[0.06] border-amber-500/20 hover:bg-amber-500/10"
+                                        : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07]"
+                          )}
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+                              {BREAKDOWN_LABELS[key] ?? key}
+                            </span>
+                            {isVerified && <ShieldCheck className="size-3 text-emerald-400 shrink-0" />}
+                            {mismatch   && <AlertTriangle className="size-3 text-amber-400 shrink-0" />}
+                          </div>
+                          <p className="text-sm font-medium text-white">{value}</p>
+                          {mismatch && (
+                            <p className="text-[10px] text-amber-400/65 mt-1">
+                              Expected {(mismatch as any).expected}, got {(mismatch as any).actual}
+                            </p>
+                          )}
+                        </motion.div>
+                      );
+                    })}
+                  </motion.div>
+
+                  {/* Estimated Performance Impact */}
+                  {activeProfileId && activeProfileId !== "custom" && (() => {
+                    const t = PROFILE_THEME[activeProfileId];
+                    const impact = PROFILE_IMPACT[activeProfileId];
+                    return (
+                      <div className="mt-6 pt-5 border-t border-white/[0.06]">
+                        <p className="text-[10px] uppercase tracking-widest text-white/25 font-semibold mb-4">
+                          Estimated Performance Impact
+                          <span className="ml-1.5 normal-case text-white/20 font-normal">vs baseline Windows Balanced</span>
+                        </p>
+                        <div className="grid gap-4 sm:grid-cols-3">
+                          {[
+                            { label: "Input Latency Reduction", value: impact.latency, color: t.accent },
+                            { label: "CPU Responsiveness",      value: impact.speed,   color: "#06b6d4" },
+                            { label: "Battery Efficiency",      value: impact.battery, color: "#6b7280" },
+                          ].map(bar => (
+                            <div key={bar.label} className="space-y-1.5">
+                              <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-white/55">{bar.label}</span>
+                                <span className="font-semibold" style={{ color: bar.color }}>{bar.value}%</span>
+                              </div>
+                              <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                                <motion.div
+                                  className="h-full rounded-full"
+                                  style={{ backgroundColor: bar.color }}
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${bar.value}%` }}
+                                  transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </GlassCard>
               </Reveal>
             )}
 
-            {/* No active match — custom state */}
+            {/* ── Custom state warning ─────────────────────────────── */}
             {isCustomState && !planLoading && (
               <Reveal delay={0.12}>
-              <GlassCard className="p-5 border-amber-500/20 bg-amber-500/5">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="size-5 text-amber-400 shrink-0 mt-0.5" />
+                <div className="p-5 rounded-xl bg-blue-500/[0.07] border border-blue-500/20 flex items-start gap-3">
+                  <Settings2 className="size-5 text-blue-400 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium text-white mb-1">Custom Power State Detected</h3>
-                    <p className="text-xs text-muted-foreground">Your current Windows power settings do not closely match any SwitchControl preset. Activate a profile to bring it into a known state.</p>
+                    <h3 className="text-sm font-medium text-white mb-1">Custom Windows Power State</h3>
+                    <p className="text-xs text-muted-foreground">Your current Windows settings do not match any SwitchControl preset. Activate a profile to restore a known state.</p>
                     {backendState?.activeScheme && (
-                      <p className="text-xs text-muted-foreground mt-1">Active plan: <span className="text-white/60">{backendState.activeScheme.name}</span></p>
+                      <p className="text-xs text-white/40 mt-1 font-mono">{backendState.activeScheme.name} · {backendState.activeScheme.guid.slice(0, 18)}…</p>
                     )}
                   </div>
                 </div>
-              </GlassCard>
               </Reveal>
             )}
 
-            {/* Advanced overrides */}
-            <Reveal delay={0.18}>
-            <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" className="w-full justify-between px-4 py-3 h-auto bg-white/5 hover:bg-white/10 border border-white/10">
-                  <span className="flex items-center gap-2 font-medium"><Settings2 className="size-4" /> Advanced Overrides</span>
-                  {advancedOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="pt-4 space-y-6 animate-in slide-in-from-top-2 duration-200">
-                {(["cpu", "usb", "sleep", "frequency"] as const).map(cat => {
-                  const catLabels = { cpu: ["CPU Behavior", Cpu], usb: ["USB & Devices", Usb], sleep: ["Sleep & Power Saving", Moon], frequency: ["Frequency & Scheduling", Rocket] } as const;
-                  const [label, LabelIcon] = catLabels[cat];
-                  return (
-                    <div key={cat} className="space-y-3">
-                      <h3 className="text-sm font-medium text-white/80 flex items-center gap-2">
-                        <LabelIcon className="size-4" /> {label}
-                      </h3>
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {groupedOverrides[cat].map(toggle => (
-                          <OverrideToggleCard
-                            key={toggle.id}
-                            toggle={toggle}
-                            enabled={localState.overrides[toggle.id] || false}
-                            onToggle={() => toggleOverride(toggle.id)}
-                            onInfo={() => setInfoToggle(toggle)}
-                          />
-                        ))}
-                      </div>
+            {/* ── Advanced Overrides ──────────────────────────────── */}
+            <Reveal delay={0.16}>
+              <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
+                <CollapsibleTrigger asChild>
+                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] transition-colors text-sm font-medium text-white">
+                    <span className="flex items-center gap-2"><Settings2 className="size-4 text-primary/70" /> Advanced Overrides</span>
+                    <div className="flex items-center gap-2 text-muted-foreground text-xs">
+                      <span>Fine-grained Windows controls</span>
+                      {advancedOpen ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
                     </div>
-                  );
-                })}
-              </CollapsibleContent>
-            </Collapsible>
+                  </button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-4 space-y-5 animate-in slide-in-from-top-2 duration-200">
+                  {(["cpu", "usb", "sleep", "frequency"] as const).map(cat => {
+                    const catConfig = {
+                      cpu:       { label: "CPU Behavior",             Icon: Cpu },
+                      usb:       { label: "USB & Devices",            Icon: Usb },
+                      sleep:     { label: "Sleep & Power Saving",     Icon: Moon },
+                      frequency: { label: "Frequency & Scheduling",   Icon: Rocket },
+                    } as const;
+                    const { label, Icon } = catConfig[cat];
+                    return (
+                      <div key={cat} className="space-y-3">
+                        <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider flex items-center gap-2">
+                          <Icon className="size-3.5 text-primary/60" /> {label}
+                        </h3>
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {groupedOverrides[cat].map(toggle => (
+                            <OverrideToggleCard
+                              key={toggle.id}
+                              toggle={toggle}
+                              enabled={localState.overrides[toggle.id] || false}
+                              onToggle={() => toggleOverride(toggle.id)}
+                              onInfo={() => setInfoToggle(toggle)}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
             </Reveal>
           </TabsContent>
 
-          {/* ── Custom tab ────────────────────────────────────────────────── */}
-          <TabsContent value="custom" className="space-y-6">
-            <Reveal>
-            <GlassCard className="p-6">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold text-white">Custom Power Configuration</h2>
-                  <p className="text-sm text-muted-foreground mt-1">Fine-tune every power setting for maximum control.</p>
+          {/* ══════════════════════════════════════════════════════════════
+              CUSTOM BUILDER TAB
+          ══════════════════════════════════════════════════════════════ */}
+          <TabsContent value="custom" className="space-y-5">
+
+            {/* Custom plan status header */}
+            {effectiveCustomApplied && customPlanMeta && (
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-500/[0.07] border border-emerald-500/20">
+                <ShieldCheck className="size-5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-emerald-300">"{customPlanMeta.name}" is active in Windows</p>
+                  <p className="text-[11px] font-mono text-emerald-400/50 mt-0.5 truncate">{customPlanMeta.guid}</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={resetCustomSettings} className="text-muted-foreground hover:text-white">
-                  <RotateCcw className="size-4 mr-2" /> Reset Defaults
+              </div>
+            )}
+
+            {/* ── Plan name ────────────────────────────────────────────── */}
+            <GlassCard className="p-6">
+              <div className="flex items-start justify-between mb-5">
+                <div>
+                  <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                    <Settings2 className="size-4 text-primary" />
+                    Plan Identity
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">This name appears in Windows Power Options</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={resetCustomSettings} className="text-muted-foreground hover:text-white text-xs gap-1.5">
+                  <RotateCcw className="size-3.5" /> Reset
                 </Button>
               </div>
 
-              {/* Plan name input */}
-              <div className="mb-6 p-4 rounded-lg bg-white/5 border border-white/10 space-y-2">
-                <label className="text-sm font-medium text-white flex items-center gap-2">
-                  <Settings2 className="size-4 text-primary" />
-                  Plan Name
-                  <span className="text-[10px] text-muted-foreground">(shown in Windows Power Options)</span>
-                </label>
-                <div className="flex gap-2 items-start">
-                  <div className="flex-1 space-y-1">
-                    <input
-                      type="text"
-                      value={customPlanName}
-                      onChange={(e) => {
-                        setCustomPlanName(e.target.value);
-                        setCustomNameError(validateCustomName(e.target.value));
-                      }}
-                      placeholder="e.g. Oscar Low Latency"
-                      maxLength={50}
-                      className={cn(
-                        "w-full rounded-md border bg-black/40 px-3 py-2 text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1",
-                        customNameError
-                          ? "border-red-500/50 focus:ring-red-500/50"
-                          : "border-white/10 focus:ring-primary/50"
-                      )}
-                      data-testid="input-custom-plan-name"
-                    />
-                    {customNameError ? (
-                      <p className="text-[11px] text-red-400">{customNameError}</p>
-                    ) : (
-                      <p className="text-[11px] text-muted-foreground">{customPlanName.trim().length}/50 chars · no \\ / : * ? &quot; &lt; &gt; |</p>
+              <div className="space-y-1.5">
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={customPlanName}
+                    onChange={(e) => {
+                      setCustomPlanName(e.target.value);
+                      setCustomNameError(validateCustomName(e.target.value));
+                    }}
+                    placeholder="e.g. Oscar Low Latency"
+                    maxLength={50}
+                    className={cn(
+                      "w-full rounded-xl border bg-black/50 px-4 py-3 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 transition-all",
+                      customNameError
+                        ? "border-red-500/50 focus:ring-red-500/30"
+                        : "border-white/[0.10] focus:ring-primary/30 focus:border-primary/40"
                     )}
-                  </div>
+                    data-testid="input-custom-plan-name"
+                  />
                 </div>
+                {customNameError ? (
+                  <p className="text-[11px] text-red-400 flex items-center gap-1"><AlertTriangle className="size-3" /> {customNameError}</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground/60">{customPlanName.trim().length}/50 chars · no \\ / : * ? " &lt; &gt; |</p>
+                )}
                 {customPlanMeta?.guid && (
-                  <p className="text-[10px] text-muted-foreground/50 font-mono">
-                    Active GUID: {customPlanMeta.guid}
-                  </p>
+                  <p className="text-[10px] font-mono text-muted-foreground/40 mt-1">Windows GUID: {customPlanMeta.guid}</p>
                 )}
               </div>
+            </GlassCard>
 
-              <div className="space-y-8">
-                <div className="space-y-4">
-                  <motion.h3
-                    className="text-sm font-medium text-white flex items-center gap-2"
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <Cpu className="size-4 text-primary" /> CPU Behavior
-                  </motion.h3>
-                  <motion.div
-                    className="grid gap-3 sm:grid-cols-2"
-                    variants={staggerContainer}
-                    initial="initial"
-                    animate="animate"
-                  >
-                    {([
-                      { key: "disableThrottleStates" as const,      name: "Disable Throttle States",       desc: "Prevent CPU low-power states",            tag: "Advanced" as const },
-                      { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Hardware performance state control",      tag: "Safe" as const,    unwired: true },
-                      { key: "enableTurboBoost" as const,            name: "Enable Turbo Boost",            desc: "Allow CPU to boost above base clock",     tag: "Safe" as const },
-                      { key: "disableCoreParking" as const,          name: "Disable Core Parking",          desc: "Keep all CPU cores active",               tag: "Safe" as const },
-                      { key: "disableFrequencyScaling" as const,     name: "Disable Frequency Scaling",     desc: "Lock CPU at maximum frequency",           tag: "Advanced" as const },
-                      { key: "preferPerformanceProcesses" as const,  name: "Prefer Performance Processes",  desc: "Prioritize foreground apps",              tag: "Safe" as const,    unwired: true },
-                      { key: "optimizePerformanceInterval" as const, name: "Optimize Check Interval",       desc: "Faster performance monitoring",           tag: "Advanced" as const, unwired: true },
-                    ] as const).map(item => {
-                      const isUnwired = "unwired" in item && item.unwired;
-                      return (
-                      <motion.div
-                        key={item.key}
-                        variants={staggerItem}
-                        whileHover={isUnwired ? {} : { scale: 1.015, transition: { duration: 0.15 } }}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                          isUnwired
-                            ? "border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed"
-                            : localState.customSettings[item.key]
-                              ? "border-primary/30 bg-primary/5"
-                              : "border-white/10 bg-white/5 hover:bg-white/[0.07]"
-                        )}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-sm", isUnwired ? "text-white/40" : "text-white")}>{item.name}</span>
-                            <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border uppercase", item.tag === "Safe" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-blue-400 border-blue-500/30 bg-blue-500/10")}>{item.tag}</span>
-                            {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-white/30">Not connected yet</span>}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
+            {/* ── CPU Settings ─────────────────────────────────────────── */}
+            <GlassCard className="p-6">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+                <Cpu className="size-4 text-primary" /> CPU Behavior
+              </h3>
+              <motion.div className="grid gap-2.5 sm:grid-cols-2" variants={staggerContainer} initial="initial" animate="animate">
+                {([
+                  { key: "disableThrottleStates" as const,      name: "Disable Throttle States",       desc: "Prevent CPU low-power states",       tag: "Advanced" as const },
+                  { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Hardware performance state control",  tag: "Safe" as const,    unwired: true },
+                  { key: "enableTurboBoost" as const,            name: "Enable Turbo Boost",            desc: "Allow CPU to boost above base clock", tag: "Safe" as const },
+                  { key: "disableCoreParking" as const,          name: "Disable Core Parking",          desc: "Keep all CPU cores active",           tag: "Safe" as const },
+                  { key: "disableFrequencyScaling" as const,     name: "Disable Frequency Scaling",     desc: "Lock CPU at maximum frequency",       tag: "Advanced" as const },
+                  { key: "preferPerformanceProcesses" as const,  name: "Prefer Performance Processes",  desc: "Prioritize foreground apps",          tag: "Safe" as const,    unwired: true },
+                  { key: "optimizePerformanceInterval" as const, name: "Optimize Check Interval",       desc: "Faster performance monitoring",       tag: "Advanced" as const, unwired: true },
+                ] as const).map(item => {
+                  const isUnwired = "unwired" in item && item.unwired;
+                  return (
+                    <motion.div
+                      key={item.key}
+                      variants={staggerItem}
+                      className={cn(
+                        "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
+                        isUnwired
+                          ? "border-white/[0.04] bg-white/[0.02] opacity-45 cursor-not-allowed"
+                          : localState.customSettings[item.key]
+                            ? "border-primary/30 bg-primary/[0.06] hover:bg-primary/10"
+                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                          <span className={cn("text-sm font-medium", isUnwired ? "text-white/35" : "text-white")}>{item.name}</span>
+                          <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border uppercase font-medium", item.tag === "Safe" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-blue-400 border-blue-500/30 bg-blue-500/10")}>{item.tag}</span>
+                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-white/25">Coming soon</span>}
                         </div>
-                        <Switch
-                          checked={isUnwired ? false : localState.customSettings[item.key]}
-                          onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
-                          disabled={isUnwired}
-                          className="data-[state=checked]:bg-primary"
-                        />
-                      </motion.div>
-                      );
-                    })}
-                  </motion.div>
-                </div>
+                        <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                      </div>
+                      <Switch
+                        checked={isUnwired ? false : localState.customSettings[item.key]}
+                        onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
+                        disabled={isUnwired}
+                        className="data-[state=checked]:bg-primary ml-3 shrink-0"
+                      />
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </GlassCard>
 
-                <div className="space-y-4">
-                  <h3 className="text-sm font-medium text-white flex items-center gap-2"><Gauge className="size-4 text-primary" /> Processor State Range</h3>
-                  <div className="space-y-4 p-4 rounded-lg bg-white/5 border border-white/10">
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/70">Minimum Processor State</span>
-                        <span className="text-primary font-medium">{localState.customSettings.minProcessorState}%</span>
-                      </div>
-                      <Slider min={0} max={100} step={5} value={[localState.customSettings.minProcessorState]} onValueChange={([v]) => updateCustomSetting("minProcessorState", v)} className="w-full" />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-white/70">Maximum Processor State</span>
-                        <span className="text-primary font-medium">{localState.customSettings.maxProcessorState}%</span>
-                      </div>
-                      <Slider min={0} max={100} step={5} value={[localState.customSettings.maxProcessorState]} onValueChange={([v]) => updateCustomSetting("maxProcessorState", v)} className="w-full" />
-                    </div>
+            {/* ── Processor State Range ─────────────────────────────────── */}
+            <GlassCard className="p-6">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+                <Gauge className="size-4 text-primary" /> Processor State Range
+              </h3>
+              <div className="space-y-5">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/70">Minimum Processor State</span>
+                    <span className="text-primary font-semibold tabular-nums">{localState.customSettings.minProcessorState}%</span>
+                  </div>
+                  <div className="px-1">
+                    <Slider
+                      min={0} max={100} step={5}
+                      value={[localState.customSettings.minProcessorState]}
+                      onValueChange={([v]) => updateCustomSetting("minProcessorState", v)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-white/30">
+                    <span>0% (Power save)</span><span>100% (Max)</span>
                   </div>
                 </div>
-
-                <div className="space-y-4">
-                  <motion.h3
-                    className="text-sm font-medium text-white flex items-center gap-2"
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.35, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <Usb className="size-4 text-primary" /> USB & Sleep
-                  </motion.h3>
-                  <motion.div
-                    className="grid gap-3 sm:grid-cols-2"
-                    variants={staggerContainer}
-                    initial="initial"
-                    animate="animate"
-                  >
-                    {([
-                      { key: "disableUsbSelectiveSuspend" as const, name: "Disable USB Selective Suspend", desc: "USB devices always powered",    tag: "Safe" as const },
-                      { key: "disableUsbPowerManagement" as const,  name: "Disable USB Power Management", desc: "Full USB power at all times",  tag: "Safe" as const, unwired: true },
-                      { key: "keepDisplayOn" as const,              name: "Keep Display On",               desc: "Prevent display from turning off", tag: "Safe" as const },
-                      { key: "disableSleep" as const,               name: "Disable Sleep",                 desc: "Prevent sleep mode",          tag: "Safe" as const },
-                      { key: "disableHibernation" as const,         name: "Disable Hibernation",           desc: "Prevent hibernation",         tag: "Safe" as const },
-                    ] as const).map(item => {
-                      const isUnwired = "unwired" in item && item.unwired;
-                      return (
-                      <motion.div
-                        key={item.key}
-                        variants={staggerItem}
-                        whileHover={isUnwired ? {} : { scale: 1.015, transition: { duration: 0.15 } }}
-                        className={cn(
-                          "flex items-center justify-between p-3 rounded-lg border transition-colors",
-                          isUnwired
-                            ? "border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed"
-                            : localState.customSettings[item.key]
-                              ? "border-primary/30 bg-primary/5"
-                              : "border-white/10 bg-white/5 hover:bg-white/[0.07]"
-                        )}
-                      >
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className={cn("text-sm", isUnwired ? "text-white/40" : "text-white")}>{item.name}</span>
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full border text-emerald-400 border-emerald-500/30 bg-emerald-500/10 uppercase">{item.tag}</span>
-                            {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-white/30">Not connected yet</span>}
-                          </div>
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
-                        </div>
-                        <Switch
-                          checked={isUnwired ? false : localState.customSettings[item.key]}
-                          onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
-                          disabled={isUnwired}
-                          className="data-[state=checked]:bg-primary"
-                        />
-                      </motion.div>
-                      );
-                    })}
-                  </motion.div>
+                <div className="border-t border-white/[0.06] pt-5 space-y-3">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-white/70">Maximum Processor State</span>
+                    <span className="text-primary font-semibold tabular-nums">{localState.customSettings.maxProcessorState}%</span>
+                  </div>
+                  <div className="px-1">
+                    <Slider
+                      min={0} max={100} step={5}
+                      value={[localState.customSettings.maxProcessorState]}
+                      onValueChange={([v]) => updateCustomSetting("maxProcessorState", v)}
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-white/30">
+                    <span>0%</span><span>100% (Full Turbo)</span>
+                  </div>
                 </div>
               </div>
+            </GlassCard>
 
-              {/* ── Apply button ─────────────────────────────────────── */}
-              <div className="pt-4 border-t border-white/10 mt-6 flex items-center justify-between gap-4">
-                <p className="text-xs text-muted-foreground">
-                  {effectiveCustomApplied
-                    ? `"${customPlanMeta?.name ?? customPlanName}" is active in Windows Power Options.`
-                    : "Press Apply to create and activate this plan in Windows."}
-                </p>
+            {/* ── USB & Sleep ───────────────────────────────────────────── */}
+            <GlassCard className="p-6">
+              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+                <Usb className="size-4 text-primary" /> USB & Sleep
+              </h3>
+              <motion.div className="grid gap-2.5 sm:grid-cols-2" variants={staggerContainer} initial="initial" animate="animate">
+                {([
+                  { key: "disableUsbSelectiveSuspend" as const, name: "Disable USB Selective Suspend", desc: "USB devices stay powered", tag: "Safe" as const },
+                  { key: "disableUsbPowerManagement" as const,  name: "Disable USB Power Management", desc: "Full USB power at all times", tag: "Safe" as const, unwired: true },
+                  { key: "keepDisplayOn" as const,              name: "Keep Display On",               desc: "Prevent display from sleeping", tag: "Safe" as const },
+                  { key: "disableSleep" as const,               name: "Disable Sleep",                 desc: "Prevent sleep mode",           tag: "Safe" as const },
+                  { key: "disableHibernation" as const,         name: "Disable Hibernation",           desc: "Prevent hibernation",          tag: "Safe" as const },
+                ] as const).map(item => {
+                  const isUnwired = "unwired" in item && item.unwired;
+                  return (
+                    <motion.div
+                      key={item.key}
+                      variants={staggerItem}
+                      className={cn(
+                        "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
+                        isUnwired
+                          ? "border-white/[0.04] bg-white/[0.02] opacity-45 cursor-not-allowed"
+                          : localState.customSettings[item.key]
+                            ? "border-primary/30 bg-primary/[0.06] hover:bg-primary/10"
+                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
+                      )}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
+                          <span className={cn("text-sm font-medium", isUnwired ? "text-white/35" : "text-white")}>{item.name}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 rounded-full border text-emerald-400 border-emerald-500/30 bg-emerald-500/10 uppercase font-medium">{item.tag}</span>
+                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-white/25">Coming soon</span>}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{item.desc}</p>
+                      </div>
+                      <Switch
+                        checked={isUnwired ? false : localState.customSettings[item.key]}
+                        onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
+                        disabled={isUnwired}
+                        className="data-[state=checked]:bg-primary ml-3 shrink-0"
+                      />
+                    </motion.div>
+                  );
+                })}
+              </motion.div>
+            </GlassCard>
+
+            {/* ── Apply button ─────────────────────────────────────────── */}
+            <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] p-5" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(0,0,0,0.6) 100%)" }}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-white">
+                    {effectiveCustomApplied
+                      ? `"${customPlanMeta?.name ?? customPlanName}" is active`
+                      : "Ready to create your custom Windows power plan"}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {effectiveCustomApplied
+                      ? "Windows Power Options is using your custom configuration"
+                      : "Creates a new named plan in Windows and activates it immediately"}
+                  </p>
+                </div>
                 <Button
                   onClick={applyCustomProfile}
                   disabled={applyingCustom || !!customNameError}
+                  size="lg"
                   className={cn(
-                    "shrink-0 min-w-[160px]",
+                    "shrink-0 min-w-[180px] font-semibold",
                     effectiveCustomApplied
-                      ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
-                      : "bg-primary text-white hover:bg-primary/90"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
+                      : "bg-primary hover:bg-primary/90 text-white shadow-[0_0_24px_-4px_rgba(139,92,246,0.5)]"
                   )}
                   data-testid="button-apply-custom"
                 >
@@ -1133,8 +1362,62 @@ export default function PowerPlan() {
                   )}
                 </Button>
               </div>
-            </GlassCard>
-            </Reveal>
+            </div>
+
+            {/* ── Debug Drawer ─────────────────────────────────────────── */}
+            <Collapsible open={debugOpen} onOpenChange={setDebugOpen}>
+              <CollapsibleTrigger asChild>
+                <button className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.06] transition-colors text-xs text-white/40 hover:text-white/60">
+                  <span className="flex items-center gap-2"><Bug className="size-3.5" /> Debug / Diagnostics</span>
+                  {debugOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+                </button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="pt-3 animate-in slide-in-from-top-2 duration-200">
+                <div className="rounded-xl bg-black/60 border border-white/[0.06] p-4 space-y-3 font-mono text-[11px]">
+                  <div className="flex items-center gap-2 text-white/40 mb-2">
+                    <Terminal className="size-3.5" />
+                    <span className="text-[10px] uppercase tracking-widest font-sans">Power Plan State</span>
+                  </div>
+                  <div className="space-y-1.5 text-white/50">
+                    <div className="flex justify-between gap-4">
+                      <span className="text-white/30">Active GUID</span>
+                      <span className="text-right truncate">{backendState?.activeScheme?.guid ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-white/30">Active Name</span>
+                      <span className="text-right">{backendState?.activeScheme?.name ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-white/30">Match State</span>
+                      <span className="text-right">{backendState?.profileMatch?.match ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-white/30">Profile ID</span>
+                      <span className="text-right">{backendState?.profileMatch?.profileId ?? "—"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-white/30">Custom GUID</span>
+                      <span className="text-right truncate">{customPlanMeta?.guid ?? "None"}</span>
+                    </div>
+                    <div className="flex justify-between gap-4">
+                      <span className="text-white/30">Custom Name</span>
+                      <span className="text-right">{customPlanMeta?.name ?? "—"}</span>
+                    </div>
+                    {backendState?.profileMatch?.mismatches && Object.keys(backendState.profileMatch.mismatches).length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                        <p className="text-[10px] text-amber-400/60 mb-1.5">Setting Mismatches</p>
+                        {Object.entries(backendState.profileMatch.mismatches).map(([k, v]) => (
+                          <div key={k} className="flex justify-between gap-4 text-amber-400/50">
+                            <span className="text-white/30">{k}</span>
+                            <span>exp {(v as any).expected} · got {(v as any).actual}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
           </TabsContent>
         </Tabs>
       </motion.div>
