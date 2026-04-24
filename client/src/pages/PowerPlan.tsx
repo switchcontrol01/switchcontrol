@@ -655,9 +655,12 @@ export default function PowerPlan() {
     fetchPowerState();
   }, [fetchPowerState]);
 
-  const verifiedFrontendProfileId: FrontendProfileId | null = backendState?.profileMatch
-    ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
-    : null;
+  // Only treat a profile as "active" on exact_match — close_match / custom_modified /
+  // unknown all mean a non-app or modified plan is active; no preset card should glow.
+  const verifiedFrontendProfileId: FrontendProfileId | null =
+    backendState?.profileMatch?.match === "exact_match"
+      ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
+      : null;
 
   const activeProfileId: FrontendProfileId | null = verifiedFrontendProfileId;
 
