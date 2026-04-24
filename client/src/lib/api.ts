@@ -524,6 +524,11 @@ export async function apiGet<T = any>(path: string, options?: { signal?: AbortSi
   return res.json();
 }
 
+export async function apiDelete<T = any>(path: string): Promise<T> {
+  const res = await apiFetch(path, { method: "DELETE" }, { withCsrf: true });
+  return res.json();
+}
+
 export async function fetchSettings() {
   return apiGet("/settings");
 }

@@ -725,6 +725,27 @@ router.post("/games/:slug/report-result", async (req: Request, res: Response) =>
   }
 });
 
+// DELETE /api/app-booster/games/:slug — remove a detected game from DB
+router.delete("/games/:slug", async (req: Request, res: Response) => {
+  const userId = getUserId(req);
+  try {
+    const { slug } = req.params;
+    if (!slug) return res.status(400).json({ error: "slug required" });
+    const key = memKey(userId, slug);
+    memGames.delete(key);
+    memStates.delete(key);
+    if (!isNoDbMode && db) {
+      await db.execute(sql`DELETE FROM app_booster_state WHERE game_slug = ${slug} AND user_id = ${userId}`);
+      await db.execute(sql`DELETE FROM app_booster_games WHERE slug = ${slug} AND user_id = ${userId}`);
+    }
+    console.log(`[AppBooster] DELETE /games/${slug} userId=${userId}`);
+    res.json({ ok: true });
+  } catch (e: any) {
+    console.error("[AppBooster] DELETE /games error:", e.message);
+    res.status(500).json({ error: "Failed to remove game" });
+  }
+});
+
 // GET /api/app-booster/history
 router.get("/history", async (req: Request, res: Response) => {
   const userId = getUserId(req);
