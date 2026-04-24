@@ -15,7 +15,7 @@ import { TrialTour } from "@/components/TrialTour";
 import { GuidedTour } from "@/components/GuidedTour";
 import { WindowControls } from "@/components/WindowControls";
 import { AnimatePresence, motion } from "framer-motion";
-import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen } from "@/lib/auth-store";
+import { useAuthStore, validateToken, exchangeToken, AuthUser, refreshEntitlements, retryRefreshEntitlements, triggerFlowReset, performFullLogout, postUnlockSeen, postTourSeen, postResetTourFlags, postTrialActivationSeen, postTrialTourSeen } from "@/lib/auth-store";
 import { tryReissueJwt } from "@/lib/api";
 import { isTrialActive } from "@/lib/trialCountdown";
 import { telemetryManager } from "@/lib/telemetryManager";
@@ -609,7 +609,10 @@ function ElectronAppContent() {
 
           if (result.ok && result.user?.isPremium) {
             console.log('[PremiumFlow] Premium confirmed — hasSeenUnlock:', result.user.hasSeenPremiumUnlock, 'hasSeenTour:', result.user.hasSeenPremiumTour);
+            console.log('[Premium] Updated user:', result.user.plan);
             setEntitlementsOk(true);
+            setEntitlementsVerified(true);
+            triggerFlowReset();
             useAuthStore.getState().setElectronAuthState('authenticated');
             return;
           }

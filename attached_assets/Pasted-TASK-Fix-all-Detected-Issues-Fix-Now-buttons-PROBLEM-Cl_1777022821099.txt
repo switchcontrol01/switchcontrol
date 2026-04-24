@@ -1,0 +1,97 @@
+TASK
+Fix all Detected Issues "Fix Now" buttons.
+
+PROBLEM
+Clicking Fix Now inside Detected Issues does not reliably navigate to the matching tweak, and when it does apply, the state can untick after switching tabs or restarting. This means the detected issue system is not connected to the real tweak execution/state system.
+
+GOAL
+Every Fix Now button must:
+1. Redirect to the exact tweak card in Tweaks
+2. Highlight/focus that tweak
+3. Apply the tweak through the normal tweak execution path
+4. Verify the tweak after applying
+5. Persist the enabled state after tab switching and app restart
+6. Remove or update the detected issue once verified
+
+IMPLEMENTATION
+
+1. Create a single issue-to-tweak map
+Do not use labels/text matching.
+
+Example:
+const ISSUE_FIX_MAP = {
+  "mmcss-gaming-not-configured": {
+    route: "/tweaks",
+    category: "cpu",
+    tweakId: "mmcss-gaming"
+  },
+  "fullscreen-optimizations-not-disabled": {
+    route: "/tweaks",
+    category: "gpu",
+    tweakId: "disable-fso"
+  },
+  "xbox-game-bar-running": {
+    route: "/tweaks",
+    category: "services",
+    tweakId: "xbox-bar"
+  },
+  "pcie-link-state-active": {
+    route: "/tweaks",
+    category: "gpu",
+    tweakId: "pcie-link-state"
+  }
+}
+
+2. Fix the Fix Now button handler
+When clicked:
+- look up issue.id in ISSUE_FIX_MAP
+- navigate to /tweaks
+- pass selected category and focused tweak id
+- scroll the tweak card into view
+- pulse/highlight it for 2 seconds
+
+3. Do NOT apply using a separate shortcut path
+Fix Now must call the same function used by the normal tweak toggle/card.
+
+Bad:
+custom apply logic inside detected issue card
+
+Good:
+executeTweak(tweakId, "apply")
+then verify through tweak:checkStatus
+
+4. After apply succeeds:
+- call tweak:checkStatus(tweakId)
+- update Zustand/store from verified system result
+- persist local enabled state only after verification passes
+
+5. Fix tab switching issue
+When user switches tabs, the tweak must not visually untick unless system verification confirms it is disabled.
+
+Do not let stale localStorage overwrite verified system state.
+
+6. Add debug logs:
+[DetectedIssue:FixNow] clicked issueId=...
+[DetectedIssue:FixNow] mapped tweakId=...
+[DetectedIssue:FixNow] navigating route=/tweaks category=...
+[DetectedIssue:FixNow] applying tweakId=...
+[DetectedIssue:FixNow] verify result applied=true/false
+[DetectedIssue:FixNow] store updated enabled=true/false
+
+7. If no mapping exists:
+- disable Fix Now button
+- show "No automated fix available"
+- log warning
+
+CHECKLIST
+- MMCSS issue Fix Now opens Tweaks > CPU and focuses MMCSS Gaming
+- Fullscreen Optimizations issue Fix Now opens Tweaks > GPU and focuses Disable Fullscreen Optimizations
+- Xbox Game Bar issue Fix Now opens correct tweak
+- PCIe Link State issue Fix Now opens correct tweak
+- Applying from Fix Now stays enabled after tab switch
+- Applying from Fix Now stays enabled after app restart
+- Detected issue disappears or changes to resolved after verification
+- No fake visual-only enabled states
+
+FINAL OUTPUT
+Detected Issues Fix Now buttons are fully wired to real tweak IDs, real navigation, real execution, real verification, and persistent state.

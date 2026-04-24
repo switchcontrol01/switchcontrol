@@ -1,4 +1,5 @@
 import { useAppAuth } from "@/App";
+import { refreshEntitlements } from "@/lib/auth-store";
 
 export function useAuth() {
   const { user, isPremium, logout, isSigningOut } = useAppAuth();
@@ -23,6 +24,8 @@ export function useAuth() {
     isPremium,
     isSigningOut,
     logout,
-    refetch: async () => {},
+    refetch: async () => {
+      await refreshEntitlements();
+    },
   };
 }

@@ -1144,24 +1144,36 @@ export default function AdminPage() {
       // apply it directly to the auth store so the AppFlow/unlock animation
       // triggers instantly — without waiting for a separate /api/me round-trip
       // that may hit a different DB connection and see a stale snapshot.
-      const isActive = updated.effectivePlan === "premium" || updated.effectivePlan === "trial";
+      const newPlan = updated.effectivePlan ?? updated.plan ?? "free";
+      // Resolve isPremium using the same defensive logic as refreshEntitlements()
+      // so that trial users also get isPremium=true in the optimistic update.
+      const newIsPremium = !!(
+        newPlan === "premium" ||
+        (newPlan === "trial" && !!updated.trialEndsAt && new Date() < new Date(updated.trialEndsAt))
+      );
       useAuthStore.getState().setUser({
         ...currentUser,
-        isPremium:             isActive && updated.effectivePlan === "premium",
-        plan:                  updated.effectivePlan ?? updated.plan ?? (isActive ? "premium" : "free"),
+        isPremium:             newIsPremium,
+        plan:                  newPlan,
         trialEndsAt:           updated.trialEndsAt ?? null,
         isAdmin:               updated.isAdmin,
         hasSeenPremiumUnlock:  updated.hasSeenPremiumUnlock,
         hasSeenPremiumTour:    updated.hasSeenPremiumTour,
       });
+      console.log("[Premium] Updated user:", newPlan, "isPremium:", newIsPremium);
 
       // Signal App.tsx to clear all session-level animation guards so the
       // AppFlow re-evaluates the new state immediately.
       triggerFlowReset();
 
-      // Background confirmation fetch — refreshes any fields not in AdminUser
-      // (e.g. hasSeenTrialActivation) and re-syncs in case of edge-case drift.
-      refreshEntitlements();
+      // Delay the confirmation fetch to avoid stomping the optimistic update.
+      // If /api/me is called immediately it may return a stale snapshot (the DB
+      // write just committed on one connection; a different read connection can
+      // still see the pre-write row).  A short delay lets the DB commit fully
+      // and makes the confirmation always agree with the optimistic state.
+      // Trial grants use a shorter delay because they can also be resolved
+      // defensively via plan+trialEndsAt even if isPremium is briefly stale.
+      setTimeout(() => refreshEntitlements(), newPlan === "premium" ? 3000 : 500);
     }
   };
 
