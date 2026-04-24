@@ -561,7 +561,7 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     const totalTag = ramTotal != null ? `/${ramTotal} GB` : "";
     telParts.push(`RAM ${ramUsed}${totalTag} GB used`);
   }
-  if (tel?.processCount != null) telParts.push(`${tel.processCount} processes running`);
+  if (svrTel?.processCount != null) telParts.push(`${svrTel.processCount} processes running`);
   if (rxKbps != null || txKbps != null) {
     const rx = rxKbps != null ? `↓${(rxKbps / 1024).toFixed(2)} MB/s` : "";
     const tx = txKbps != null ? `↑${(txKbps / 1024).toFixed(2)} MB/s` : "";

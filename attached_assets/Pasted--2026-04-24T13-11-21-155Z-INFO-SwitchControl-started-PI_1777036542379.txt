@@ -1,0 +1,1271 @@
+
+[2026-04-24T13:11:21.155Z] [INFO] SwitchControl started — PID:15452 platform:win32/x64 node:20.18.3
+[2026-04-24T13:11:21.184Z] [LOG] [Security] IPC handlers registered
+[2026-04-24T13:11:21.185Z] [LOG] [Debloat] IPC handlers registered
+[2026-04-24T13:11:21.186Z] [LOG] [Cleaner] IPC handlers registered
+[2026-04-24T13:11:21.186Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-04-24T13:11:21.207Z] [LOG] [STARTUP] whenReady — v1.0.7 | isDev:false | pid:15452
+[2026-04-24T13:11:21.209Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-04-24T13:11:21.223Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-04-24T13:11:21.224Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-04-24T13:11:21.228Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-04-24T13:11:21.228Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\Switchcontrol.exe
+[2026-04-24T13:11:21.228Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-04-24T13:11:21.228Z] [LOG] [Backend] app.isPackaged: true
+[2026-04-24T13:11:21.228Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-04-24T13:11:21.228Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-04-24T13:11:21.228Z] [LOG] [Backend] Bundle size: 2.8 MB
+[2026-04-24T13:11:21.271Z] [LOG] [Updater] init — v1.0.7 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-04-24T13:11:21.271Z] [LOG] [STARTUP] app ready — 64ms from whenReady
+[2026-04-24T13:11:21.272Z] [LOG] [Backend] Free port found: 50235
+[2026-04-24T13:11:21.273Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-04-24T13:11:21.273Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-04-24T13:11:21.273Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:11:21.273Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:11:21.273Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:11:21.273Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:11:21.273Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:11:21.273Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:11:21.273Z] [LOG] [Backend] =====================================
+[2026-04-24T13:11:21.273Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-04-24T13:11:21.273Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-04-24T13:11:21.274Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-04-24T13:11:21.274Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-04-24T13:11:21.274Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-04-24T13:11:21.274Z] [LOG] [Backend] ==========================================
+[2026-04-24T13:11:21.274Z] [LOG] [Backend] Spawning child process...
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\Switchcontrol.exe
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-04-24T13:11:21.274Z] [LOG] [Backend]   PORT: 50235
+[2026-04-24T13:11:21.275Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-04-24T13:11:21.279Z] [LOG] [Backend] Child process spawned, PID: 22296
+[2026-04-24T13:11:21.280Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:50235/api/health
+[2026-04-24T13:11:21.358Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-04-24T13:11:21.358Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-24T13:11:21.359Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-24T13:11:21.359Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-04-24T13:11:21.359Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-04-24T13:11:21.359Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-04-24T13:11:21.401Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [Entitlements] AUTH_DOMAIN resolved — packaged=true domain="https://switchcontrol.org"
+[2026-04-24T13:11:21.403Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [AUTH BOOT] persisted jwt length: 217 token present: true user present: true
+[2026-04-24T13:11:21.403Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Init: electron=true, packaged=true, protocol=file:
+[2026-04-24T13:11:21.403Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Electron fetch interceptor installed | packaged=true (URL-rewrite=true, auth-inject=true)
+[2026-04-24T13:11:21.405Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Store:REHYDRATE] total_stored=47 enabled=30 source=localStorage
+[2026-04-24T13:11:21.405Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-04-24T13:11:21.410Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [BiosStore] hydrated | scores from storage: {"latency":43,"frametime":43,"stability":28,"competitiveReadiness":41,"grade":"Needs Tuning","profileBias":"Smoothness-focused"}
+[2026-04-24T13:11:21.410Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [BiosStore] hydrated | sanitized scores: {"latency":43,"frametime":43,"stability":28,"competitiveReadiness":41,"grade":"Needs Tuning","profileBias":"Smoothness-focused"}
+[2026-04-24T13:11:21.411Z] [LOG] [Renderer:info] (index-C8r5uut6.js:11) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-04-24T13:11:21.411Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [LAUNCH:R0] renderer bootstrap — opacity locked to 0 | t=+187ms
+[2026-04-24T13:11:21.411Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [LAUNCH:R1] createRoot dispatching | t=+187ms
+[2026-04-24T13:11:21.412Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:459) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-04-24T13:11:21.412Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:460) [SwitchControl Desktop] Platform: win32
+[2026-04-24T13:11:21.413Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-04-24T13:11:21.413Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-04-24T13:11:21.413Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-04-24T13:11:21.414Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 11ms, attempt 1)
+[2026-04-24T13:11:21.417Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T13:11:21.420Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-04-24T13:11:21.427Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R2] Splash mounted | t=+203ms
+[2026-04-24T13:11:21.427Z] [LOG] [Renderer:info] (index-C8r5uut6.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T13:11:21.428Z] [LOG] [Renderer:info] (index-C8r5uut6.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T13:11:21.428Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Registering deep link auth callback (once)
+[2026-04-24T13:11:21.442Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R3] splash ready: logo decoded, compositor frame ready | t=+218ms
+[2026-04-24T13:11:21.442Z] [LOG] [LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | +215ms
+[2026-04-24T13:11:21.458Z] [LOG] [LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | +231ms
+[2026-04-24T13:11:21.459Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R3] first-frame-ready IPC sent | t=+218ms
+[2026-04-24T13:11:21.459Z] [LOG] [Backend:stdout] [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-04-24T13:11:21.461Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-04-24T13:11:21.461Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1779628281
+[2026-04-24T13:11:21.462Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T13:11:21.462Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Electron window focus (passive)
+[2026-04-24T13:11:21.463Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-04-24T13:11:21.463Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-04-24T13:11:21.463Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-04-24T13:11:21.463Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-04-24T13:11:21.463Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-04-24T13:11:21.463Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-04-24T13:11:21.463Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-24T13:11:21.464Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-04-24T13:11:21.464Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-04-24T13:11:21.464Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-04-24T13:11:21.464Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-04-24T13:11:21.464Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-04-24T13:11:21.464Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-04-24T13:11:21.465Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-24T13:11:21.465Z] [LOG] [Backend:stdout] [SysIntelligence] Collecting full system profile…
+[2026-04-24T13:11:21.469Z] [LOG] [Backend:stdout] [Telemetry] Scheduler started — base=2s, low-end=6s, budget=5%
+[2026-04-24T13:11:21.470Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry
+[2026-04-24T13:11:21.475Z] [LOG] [LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | +248ms
+[2026-04-24T13:11:21.475Z] [LOG] [LAUNCH:5c] app:window-shown sent to renderer | +248ms
+[2026-04-24T13:11:21.475Z] [LOG] [LAUNCH:6] focus() — launch sequence complete | +248ms
+[2026-04-24T13:11:21.476Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [LAUNCH] app:window-shown received — starting opacity reveal
+[2026-04-24T13:11:21.476Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R3b] app:window-shown received | t=+251ms
+[2026-04-24T13:11:21.476Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R4] reveal triggered by app:window-shown | t=+251ms
+[2026-04-24T13:11:21.476Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)
+[2026-04-24T13:11:21.476Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+251ms
+[2026-04-24T13:11:21.615Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 212ms, attempt 2)
+[2026-04-24T13:11:21.677Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R4b] startup-shell removed from DOM
+[2026-04-24T13:11:21.677Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+453ms
+[2026-04-24T13:11:21.698Z] [LOG] [Backend:stdout] 1:11:21 AM [express] serving on 127.0.0.1:50235
+[2026-04-24T13:11:21.707Z] [LOG] [Backend] Health check PASSED — attempt 7, 427ms elapsed, body={"status":"ok","timestamp":1777036281705}
+[2026-04-24T13:11:21.708Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-04-24T13:11:21.709Z] [LOG] [Backend] PID: 22296
+[2026-04-24T13:11:21.709Z] [LOG] [Backend] Port: 50235
+[2026-04-24T13:11:21.709Z] [LOG] [Backend] Ready: true
+[2026-04-24T13:11:21.709Z] [LOG] [Backend] getBackendPort() will return: 50235
+[2026-04-24T13:11:21.709Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-04-24T13:11:21.709Z] [LOG] [Backend] ========================
+[2026-04-24T13:11:21.709Z] [LOG] [STARTUP] backend ready — port 50235 (502ms)
+[2026-04-24T13:11:21.710Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:104) [Backend] backend-ready event received, port: 50235
+[2026-04-24T13:11:21.710Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Backend-ready push: base=http://127.0.0.1:50235/api (was: unset)
+[2026-04-24T13:11:21.710Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Backend port resolved: 50235 (307ms, push or poll)
+[2026-04-24T13:11:21.710Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Packaged Electron API base: http://127.0.0.1:50235/api
+[2026-04-24T13:11:21.711Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Resolved: http://127.0.0.1:50235/api | electron=true packaged=true
+[2026-04-24T13:11:21.928Z] [LOG] [Renderer:info] (index-C8r5uut6.js:26) [TourTransition] unmounted
+[2026-04-24T13:11:21.929Z] [LOG] [Renderer:info] (index-C8r5uut6.js:26) [TourTransition] unmounted
+[2026-04-24T13:11:23.193Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-04-24T13:11:23.194Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T13:11:23.197Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [Auth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-04-24T13:11:23.197Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [Entitlements] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-04-24T13:11:23.197Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [Auth] Using stored user data: 64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium: true
+[2026-04-24T13:11:23.197Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T13:11:23.198Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T13:11:23.475Z] [LOG] [LAUNCH:7] starting telemetry — 2000ms post window-shown | +2248ms
+[2026-04-24T13:11:24.862Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T13:11:24.862Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T13:11:24.862Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T13:11:24.863Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [Entitlements] startup fetch OK — isPremium: true plan: premium
+[2026-04-24T13:11:24.863Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-04-24T13:11:24.863Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:11:24.920Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [Network] Heartbeat started (interval=30000ms)
+[2026-04-24T13:11:24.920Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Telemetry] Manager starting
+[2026-04-24T13:11:24.920Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T13:11:24.921Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Dashboard] mounted
+[2026-04-24T13:11:24.921Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-04-24T13:11:24.925Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [Handoff] dashboard fade-in started
+[2026-04-24T13:11:24.925Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [PremiumExpiry] Initial state recorded — active=true
+[2026-04-24T13:11:24.925Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-04-24T13:11:24.925Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:11:24.944Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [CloudAPI] 2026-04-24T13:11:24.944Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-04-24T13:11:24.992Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Telemetry] WebSocket connected
+[2026-04-24T13:11:25.024Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:11:25.024Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:11:25.040Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:11:25.040Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:11:25.144Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:11:25.144Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:11:25.289Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [Handoff] dashboard fade-in complete — layout stable
+[2026-04-24T13:11:25.295Z] [LOG] [Backend:stdout] [SysIntelligence] Collection complete in 3831ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-04-24T13:11:25.296Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [SysIntelligence] Profile loaded | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor
+[2026-04-24T13:11:25.425Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [TourTransition] dashboard stable — tours unblocked
+[2026-04-24T13:11:25.426Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:11:25.433Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: true isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-04-24T13:11:25.434Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [AppFlow] No flow conditions met — staying idle
+[2026-04-24T13:11:25.539Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=1 active=1
+[2026-04-24T13:11:25.841Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-04-24T13:11:25.843Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [DeviceLock] Valid device
+[2026-04-24T13:11:25.846Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:11:25.869Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=2 active=2
+[2026-04-24T13:11:26.578Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT
+[2026-04-24T13:11:26.601Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:11:26.921Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T13:11:27.361Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=2 duration=1492ms active=1 calls60s=1
+[2026-04-24T13:11:27.361Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=1 duration=1822ms active=0 calls60s=2
+[2026-04-24T13:11:27.361Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=3 active=1
+[2026-04-24T13:11:27.544Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=4 active=2
+[2026-04-24T13:11:28.990Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:11:29.014Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=4 duration=1470ms active=1 calls60s=3
+[2026-04-24T13:11:29.015Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=3 duration=1654ms active=0 calls60s=4
+[2026-04-24T13:11:29.271Z] [INFO] Checking for update
+[2026-04-24T13:11:29.271Z] [LOG] [Updater] Checking for update...
+[2026-04-24T13:11:30.003Z] [ERROR] Error: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jmvprp7p\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9f155aaf2c34d9b0-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Fri, 24 Apr 2026 13:11:30 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-04-24T13:11:30.003Z] [ERROR] [Updater] Error (consecutive failures: 1): Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jmvprp7p\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9f155aaf2c34d9b0-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Fri, 24 Apr 2026 13:11:30 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+[2026-04-24T13:11:30.003Z] [FATAL] unhandledRejection: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jmvprp7p\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9f155aaf2c34d9b0-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Fri, 24 Apr 2026 13:11:30 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-04-24T13:11:31.014Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=5 active=1
+[2026-04-24T13:11:31.325Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=6 active=2
+[2026-04-24T13:11:32.794Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=6 duration=1469ms active=1 calls60s=5
+[2026-04-24T13:11:32.795Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=5 duration=1781ms active=0 calls60s=6
+[2026-04-24T13:11:34.795Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=7 active=1
+[2026-04-24T13:11:34.975Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=8 active=2
+[2026-04-24T13:11:36.444Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=8 duration=1469ms active=1 calls60s=7
+[2026-04-24T13:11:36.444Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=7 duration=1649ms active=0 calls60s=8
+[2026-04-24T13:11:38.445Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=9 active=1
+[2026-04-24T13:11:38.630Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=10 active=2
+[2026-04-24T13:11:40.104Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=10 duration=1474ms active=1 calls60s=9
+[2026-04-24T13:11:40.104Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=9 duration=1659ms active=0 calls60s=10
+[2026-04-24T13:11:42.104Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=11 active=1
+[2026-04-24T13:11:42.445Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=12 active=2
+[2026-04-24T13:11:43.924Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=12 duration=1479ms active=1 calls60s=11
+[2026-04-24T13:11:43.924Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=11 duration=1820ms active=0 calls60s=12
+[2026-04-24T13:11:45.924Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=13 active=1
+[2026-04-24T13:11:46.106Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=14 active=2
+[2026-04-24T13:11:47.574Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=14 duration=1468ms active=1 calls60s=13
+[2026-04-24T13:11:47.574Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=13 duration=1650ms active=0 calls60s=14
+[2026-04-24T13:11:49.575Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=15 active=1
+[2026-04-24T13:11:49.756Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=16 active=2
+[2026-04-24T13:11:51.233Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=16 duration=1477ms active=1 calls60s=15
+[2026-04-24T13:11:51.234Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=15 duration=1659ms active=0 calls60s=16
+[2026-04-24T13:11:53.234Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=17 active=1
+[2026-04-24T13:11:53.419Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=18 active=2
+[2026-04-24T13:11:54.890Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=18 duration=1471ms active=1 calls60s=17
+[2026-04-24T13:11:54.890Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=17 duration=1656ms active=0 calls60s=18
+[2026-04-24T13:11:56.890Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=19 active=1
+[2026-04-24T13:11:57.074Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=20 active=2
+[2026-04-24T13:11:58.542Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=20 duration=1468ms active=1 calls60s=19
+[2026-04-24T13:11:58.543Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=19 duration=1653ms active=0 calls60s=20
+[2026-04-24T13:12:00.543Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=21 active=1
+[2026-04-24T13:12:00.875Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=22 active=2
+[2026-04-24T13:12:02.349Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=22 duration=1474ms active=1 calls60s=21
+[2026-04-24T13:12:02.349Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=21 duration=1806ms active=0 calls60s=22
+[2026-04-24T13:12:04.349Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=23 active=1
+[2026-04-24T13:12:04.533Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=24 active=2
+[2026-04-24T13:12:04.895Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:12:06.009Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=24 duration=1476ms active=1 calls60s=23
+[2026-04-24T13:12:06.009Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=23 duration=1660ms active=0 calls60s=24
+[2026-04-24T13:12:08.010Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=25 active=1
+[2026-04-24T13:12:08.309Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=26 active=2
+[2026-04-24T13:12:09.709Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:12:09.779Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=26 duration=1470ms active=1 calls60s=25
+[2026-04-24T13:12:09.780Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=25 duration=1770ms active=0 calls60s=26
+[2026-04-24T13:12:11.780Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=27 active=1
+[2026-04-24T13:12:11.834Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:12:11.835Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | mount | +0ms
+[2026-04-24T13:12:11.846Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | shell | +12ms
+[2026-04-24T13:12:11.866Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | getStatus-start | +32ms
+[2026-04-24T13:12:11.868Z] [LOG] [Renderer:info] (index-C8r5uut6.js:233) [AdvancedProtection] page mounted — starting fetch
+[2026-04-24T13:12:11.868Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | getAdvancedProtection-start | +32ms
+[2026-04-24T13:12:11.870Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | mount | +0ms
+[2026-04-24T13:12:11.970Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=28 active=2
+[2026-04-24T13:12:11.974Z] [WARN] [Security] getAdvancedProtection ERROR: Command failed: powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command 
+      $mp   = Get-MpComputerStatus -ErrorAction SilentlyContinue
+      $pref = Get-MpPreference    -ErrorAction SilentlyContinue
+      $svc  = (Get-Service -Name WinDefend -ErrorAction SilentlyContinue)?.Status
+
+      $signatureAge = $null
+      if ($mp?.AntivirusSignatureLastUpdated) {
+        $signatureAge = [int]([DateTime]::UtcNow - $mp.AntivirusSignatureLastUpdated.ToUniversalTime()).TotalDays
+      }
+      $quickScanAge = $null
+      if ($mp?.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) {
+        $quickScanAge = [int]([DateTime]::UtcNow - $mp.QuickScanEndTime.ToUniversalTime()).TotalDays
+      }
+      $fullScanAge = $null
+      if ($mp?.FullScanEndTime -and $mp.FullScanEndTime.Year -gt 2000) {
+        $fullScanAge = [int]([DateTime]::UtcNow - $mp.FullScanEndTime.ToUniversalTime()).TotalDays
+      }
+
+      $smartScreen = $null
+      try {
+        $ss = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name SmartScreenEnabled -ErrorAction Stop).SmartScreenEnabled
+        $smartScreen = ($ss -ne 'Off')
+      } catch {}
+
+      @{
+        cloudProtection         = if ($pref) { $pref.MAPSReporting -ne 0 } else { $null }
+        sampleSubmission        = if ($pref) { $pref.SubmitSamplesConsent -in @(1,3) } else { $null }
+        controlledFolderAccess  = if ($pref) { $pref.EnableControlledFolderAccess -ne 0 } else { $null }
+        puaProtection           = if ($pref) { $pref.PUAProtection -ne 0 } else { $null }
+        smartScreen             = $smartScreen
+        signatureVersion        = $mp?.AntivirusSignatureVersion
+        signatureAge            = $signatureAge
+        quickScanAge            = $quickScanAge
+        fullScanAge             = $fullScanAge
+        defenderServiceRunning  = ($svc -eq 'Running')
+      } | ConvertTo-Json -Compress
+    
+At line:4 char:74
++ ... = (Get-Service -Name WinDefend -ErrorAction SilentlyContinue)?.Status
++                                                                  ~~~~~~~~
+Unexpected token '?.Status' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnexpectedToken
+ 
+
+[2026-04-24T13:12:11.974Z] [LOG] [Renderer:info] (index-C8r5uut6.js:233) [AdvancedProtection] IPC response received: [object Object]
+[2026-04-24T13:12:11.974Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | getAdvancedProtection-done | +140ms
+[2026-04-24T13:12:11.975Z] [ERROR] [Renderer:warn] (index-C8r5uut6.js:233) [AdvancedProtection] IPC returned unavailable: error
+[2026-04-24T13:12:11.975Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | mount | +0ms
+[2026-04-24T13:12:12.378Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:12:12.379Z] [LOG] [Renderer:info] (index-C8r5uut6.js:154) [calculateBiosScores] settings=36 | latencyTotal=42.51 frametime=42.78999999999999 stability=28.13 | clamped: latency=42.51 frametime=42.78999999999999 stability=28.13 cr=41
+[2026-04-24T13:12:12.413Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:12:12.611Z] [LOG] [Security] getStatus OK | realtime=null firewall=false
+[2026-04-24T13:12:12.611Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] Security | getStatus-done | +777ms
+[2026-04-24T13:12:13.001Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:12:13.016Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:13.017Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:13.017Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:13.017Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:13.443Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=28 duration=1473ms active=1 calls60s=27
+[2026-04-24T13:12:13.443Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=27 duration=1663ms active=0 calls60s=28
+[2026-04-24T13:12:13.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:13.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:13.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:13.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:15.442Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=29 active=1
+[2026-04-24T13:12:15.495Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:15.495Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:15.495Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:15.496Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:15.621Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=30 active=2
+[2026-04-24T13:12:17.087Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=30 duration=1466ms active=1 calls60s=29
+[2026-04-24T13:12:17.087Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=29 duration=1645ms active=0 calls60s=30
+[2026-04-24T13:12:17.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:17.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:17.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:17.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:19.083Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] sending_message="what is my ram?"
+[2026-04-24T13:12:19.083Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] enabled_tweaks=30 disabled_tweaks=32
+[2026-04-24T13:12:19.083Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:19.084Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz"
+[2026-04-24T13:12:19.087Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=31 active=1
+[2026-04-24T13:12:19.139Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [CloudAPI] 2026-04-24T13:12:19.090Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-04-24T13:12:19.408Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=32 active=2
+[2026-04-24T13:12:19.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:19.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:19.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:19.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:19.714Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:29) [CloudAPI] HTTP 500 | POST /ai/chat | SwitchControl services are temporarily unavailable. Local tools still work.
+[2026-04-24T13:12:19.715Z] [ERROR] [Renderer:warn] (index-C8r5uut6.js:29) [CloudAPI] Server error (500) on attempt 1, retrying in 1500ms...
+[2026-04-24T13:12:20.871Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=32 duration=1463ms active=1 calls60s=31
+[2026-04-24T13:12:20.871Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=31 duration=1784ms active=0 calls60s=32
+[2026-04-24T13:12:21.215Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [CloudAPI] 2026-04-24T13:12:21.215Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api | retry=1
+[2026-04-24T13:12:21.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:21.483Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:21.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:21.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:21.567Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:29) [CloudAPI] HTTP 500 | POST /ai/chat | SwitchControl services are temporarily unavailable. Local tools still work.
+[2026-04-24T13:12:22.870Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=33 active=1
+[2026-04-24T13:12:23.046Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=34 active=2
+[2026-04-24T13:12:23.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:23.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:23.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:23.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:23.910Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] sending_message="h"
+[2026-04-24T13:12:23.910Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] enabled_tweaks=30 disabled_tweaks=32
+[2026-04-24T13:12:23.910Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:23.910Z] [LOG] [Renderer:info] (index-C8r5uut6.js:227) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz"
+[2026-04-24T13:12:23.916Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [CloudAPI] 2026-04-24T13:12:23.916Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-04-24T13:12:24.262Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:29) [CloudAPI] HTTP 500 | POST /ai/chat | SwitchControl services are temporarily unavailable. Local tools still work.
+[2026-04-24T13:12:24.262Z] [ERROR] [Renderer:warn] (index-C8r5uut6.js:29) [CloudAPI] Server error (500) on attempt 1, retrying in 1500ms...
+[2026-04-24T13:12:24.512Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=34 duration=1466ms active=1 calls60s=33
+[2026-04-24T13:12:24.512Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=33 duration=1642ms active=0 calls60s=34
+[2026-04-24T13:12:25.484Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:25.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:25.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:25.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:25.762Z] [LOG] [Renderer:info] (index-C8r5uut6.js:29) [CloudAPI] 2026-04-24T13:12:25.762Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api | retry=1
+[2026-04-24T13:12:26.204Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:29) [CloudAPI] HTTP 500 | POST /ai/chat | SwitchControl services are temporarily unavailable. Local tools still work.
+[2026-04-24T13:12:26.513Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=35 active=1
+[2026-04-24T13:12:26.948Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=36 active=2
+[2026-04-24T13:12:27.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:27.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:27.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:27.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:28.418Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=36 duration=1470ms active=1 calls60s=33
+[2026-04-24T13:12:28.418Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=35 duration=1905ms active=0 calls60s=34
+[2026-04-24T13:12:29.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:29.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:29.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:29.485Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:30.420Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=37 active=1
+[2026-04-24T13:12:30.611Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=38 active=2
+[2026-04-24T13:12:31.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:31.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:31.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:31.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:32.172Z] [WARN] [GPU:perf] unexpected max value (fail 1): -1
+[2026-04-24T13:12:32.172Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=38 duration=1561ms active=1 calls60s=33
+[2026-04-24T13:12:32.172Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=37 duration=1752ms active=0 calls60s=34
+[2026-04-24T13:12:33.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:33.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:33.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:33.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:34.173Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=39 active=1
+[2026-04-24T13:12:34.354Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=40 active=2
+[2026-04-24T13:12:35.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:35.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:35.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:35.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:35.870Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=40 duration=1516ms active=1 calls60s=33
+[2026-04-24T13:12:35.870Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=39 duration=1697ms active=0 calls60s=34
+[2026-04-24T13:12:37.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:37.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:37.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:37.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:37.871Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=41 active=1
+[2026-04-24T13:12:38.218Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=42 active=2
+[2026-04-24T13:12:39.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:39.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:39.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:39.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:39.782Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=42 duration=1564ms active=1 calls60s=33
+[2026-04-24T13:12:39.783Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=41 duration=1912ms active=0 calls60s=34
+[2026-04-24T13:12:41.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:41.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:41.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:41.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:41.783Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=43 active=1
+[2026-04-24T13:12:41.973Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=44 active=2
+[2026-04-24T13:12:43.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:43.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:43.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:43.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:43.488Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=44 duration=1515ms active=1 calls60s=33
+[2026-04-24T13:12:43.488Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=43 duration=1705ms active=0 calls60s=34
+[2026-04-24T13:12:45.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:45.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:45.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:45.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:45.488Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=45 active=1
+[2026-04-24T13:12:45.793Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=46 active=2
+[2026-04-24T13:12:47.306Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=46 duration=1512ms active=1 calls60s=33
+[2026-04-24T13:12:47.306Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=45 duration=1818ms active=0 calls60s=34
+[2026-04-24T13:12:47.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:12:47.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:12:47.486Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:12:47.487Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:12:47.946Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Window focused, refreshing entitlements...
+[2026-04-24T13:12:47.946Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T13:12:47.947Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T13:12:47.947Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Electron window focus (passive)
+[2026-04-24T13:12:48.758Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:12:48.758Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:48.767Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +9ms
+[2026-04-24T13:12:48.768Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:48.774Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:48.983Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T13:12:48.983Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T13:12:48.984Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:12:48.984Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:49.306Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=47 active=1
+[2026-04-24T13:12:49.484Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=48 active=2
+[2026-04-24T13:12:50.460Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +1702ms
+[2026-04-24T13:12:50.461Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:50.461Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.464Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.624Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +1866ms
+[2026-04-24T13:12:50.624Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:50.625Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.628Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.785Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +2027ms
+[2026-04-24T13:12:50.786Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:50.786Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.789Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.937Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +2179ms
+[2026-04-24T13:12:50.937Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:50.938Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.941Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:50.998Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=48 duration=1514ms active=1 calls60s=33
+[2026-04-24T13:12:50.998Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=47 duration=1692ms active=0 calls60s=34
+[2026-04-24T13:12:51.096Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +2338ms
+[2026-04-24T13:12:51.096Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:51.097Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:51.100Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:51.240Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +2482ms
+[2026-04-24T13:12:51.240Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:51.241Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:51.243Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:51.380Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +2622ms
+[2026-04-24T13:12:51.381Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:12:51.381Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:51.383Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:12:52.999Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=49 active=1
+[2026-04-24T13:12:53.189Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=50 active=2
+[2026-04-24T13:12:54.737Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=50 duration=1548ms active=1 calls60s=33
+[2026-04-24T13:12:54.737Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=49 duration=1738ms active=0 calls60s=34
+[2026-04-24T13:12:56.737Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=51 active=1
+[2026-04-24T13:12:57.124Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=52 active=2
+[2026-04-24T13:12:58.648Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=52 duration=1524ms active=1 calls60s=31
+[2026-04-24T13:12:58.648Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=51 duration=1911ms active=0 calls60s=32
+[2026-04-24T13:13:00.649Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=53 active=1
+[2026-04-24T13:13:00.850Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=54 active=2
+[2026-04-24T13:13:02.366Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=54 duration=1516ms active=1 calls60s=31
+[2026-04-24T13:13:02.366Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=53 duration=1717ms active=0 calls60s=32
+[2026-04-24T13:13:04.367Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=55 active=1
+[2026-04-24T13:13:04.550Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=56 active=2
+[2026-04-24T13:13:06.080Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=56 duration=1530ms active=1 calls60s=31
+[2026-04-24T13:13:06.080Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=55 duration=1713ms active=0 calls60s=32
+[2026-04-24T13:13:08.080Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=57 active=1
+[2026-04-24T13:13:08.277Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=58 active=2
+[2026-04-24T13:13:09.835Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=58 duration=1558ms active=1 calls60s=31
+[2026-04-24T13:13:09.835Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=57 duration=1755ms active=0 calls60s=32
+[2026-04-24T13:13:11.835Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=59 active=1
+[2026-04-24T13:13:12.021Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=60 active=2
+[2026-04-24T13:13:13.552Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=60 duration=1531ms active=1 calls60s=31
+[2026-04-24T13:13:13.552Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=59 duration=1717ms active=0 calls60s=32
+[2026-04-24T13:13:15.553Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=61 active=1
+[2026-04-24T13:13:15.894Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=62 active=2
+[2026-04-24T13:13:17.412Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=62 duration=1518ms active=1 calls60s=31
+[2026-04-24T13:13:17.413Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=61 duration=1860ms active=0 calls60s=32
+[2026-04-24T13:13:19.413Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=63 active=1
+[2026-04-24T13:13:19.539Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Window focused, refreshing entitlements...
+[2026-04-24T13:13:19.539Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T13:13:19.540Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T13:13:19.540Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Electron window focus (passive)
+[2026-04-24T13:13:19.606Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=64 active=2
+[2026-04-24T13:13:20.228Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:20.478Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T13:13:20.478Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T13:13:20.478Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:20.999Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:21.000Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:13:21.010Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | fetch-categories | +10ms
+[2026-04-24T13:13:21.011Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | fetch-history | +10ms
+[2026-04-24T13:13:21.011Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:13:21.022Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:13:21.143Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=64 duration=1537ms active=1 calls60s=31
+[2026-04-24T13:13:21.143Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=63 duration=1730ms active=0 calls60s=32
+[2026-04-24T13:13:21.490Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:13:21.811Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:21.811Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:13:21.811Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [NetworkTweaks:CACHE] cache miss — initialising to idle
+[2026-04-24T13:13:21.836Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | fetch-state | +25ms
+[2026-04-24T13:13:21.836Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:13:21.863Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | fetch-state-done | +52ms
+[2026-04-24T13:13:21.863Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:13:22.381Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:13:22.621Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:22.631Z] [LOG] [PS:nic-executor] #1 queryPS SPAWN ts=1777036402631
+[2026-04-24T13:13:23.087Z] [LOG] [PS:nic-executor] #1 queryPS OK 456ms
+[2026-04-24T13:13:23.091Z] [LOG] [PS:nic-executor] #2 queryPS SPAWN ts=1777036403091
+[2026-04-24T13:13:23.144Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=65 active=1
+[2026-04-24T13:13:23.444Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=66 active=2
+[2026-04-24T13:13:23.500Z] [LOG] [PS:nic-executor] #2 queryPS OK 409ms
+[2026-04-24T13:13:23.797Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:23.798Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:13:23.812Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-state | +14ms
+[2026-04-24T13:13:23.824Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-state-done | +26ms
+[2026-04-24T13:13:24.161Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-history-done | +363ms
+[2026-04-24T13:13:24.161Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:13:24.497Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:24.498Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:24.501Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:24.510Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +12ms
+[2026-04-24T13:13:24.517Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-04-24T13:13:24.518Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:24.523Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:24.548Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | scan-start | +51ms
+[2026-04-24T13:13:24.549Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:13:24.779Z] [LOG] [AppBooster] Running processes mapped: 61 exe(s) found
+[2026-04-24T13:13:24.780Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:13:24.781Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-04-24T13:13:24.783Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-04-24T13:13:24.784Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-04-24T13:13:24.785Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-04-24T13:13:24.787Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-04-24T13:13:24.788Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-04-24T13:13:24.789Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-04-24T13:13:24.790Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-04-24T13:13:24.792Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-04-24T13:13:24.793Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-04-24T13:13:24.794Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-04-24T13:13:24.795Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-04-24T13:13:24.796Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-04-24T13:13:24.797Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-04-24T13:13:24.799Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-04-24T13:13:24.799Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-04-24T13:13:24.799Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:24.801Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] Fetching CSRF token from http://127.0.0.1:50235/api/csrf-token
+[2026-04-24T13:13:24.807Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [API] CSRF token cached in memory (cookie may be cross-origin inaccessible)
+[2026-04-24T13:13:24.808Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-04-24T13:13:24.809Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-04-24T13:13:24.811Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | scan-done | +313ms
+[2026-04-24T13:13:24.811Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:24.812Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:24.817Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:24.819Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:24.820Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:24.861Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:24.861Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:13:24.872Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-state | +11ms
+[2026-04-24T13:13:24.885Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-state-done | +24ms
+[2026-04-24T13:13:24.955Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=66 duration=1511ms active=1 calls60s=31
+[2026-04-24T13:13:24.955Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=65 duration=1811ms active=0 calls60s=32
+[2026-04-24T13:13:25.217Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-history-done | +356ms
+[2026-04-24T13:13:25.217Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:13:25.490Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:13:25.715Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:25.715Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:25.717Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:25.724Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +9ms
+[2026-04-24T13:13:25.729Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:25.731Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-04-24T13:13:25.737Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:25.738Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:25.742Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | scan-start | +27ms
+[2026-04-24T13:13:25.743Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:13:25.944Z] [LOG] [AppBooster] Running processes mapped: 61 exe(s) found
+[2026-04-24T13:13:25.944Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:13:25.945Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-04-24T13:13:25.947Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-04-24T13:13:25.948Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-04-24T13:13:25.949Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-04-24T13:13:25.950Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-04-24T13:13:25.951Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-04-24T13:13:25.953Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-04-24T13:13:25.954Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-04-24T13:13:25.955Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-04-24T13:13:25.956Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-04-24T13:13:25.957Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-04-24T13:13:25.958Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-04-24T13:13:25.960Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-04-24T13:13:25.961Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-04-24T13:13:25.962Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-04-24T13:13:25.962Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-04-24T13:13:25.962Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:25.963Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:25.964Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-04-24T13:13:25.966Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-04-24T13:13:25.967Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | scan-done | +252ms
+[2026-04-24T13:13:25.967Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:25.968Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:25.975Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:25.976Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:26.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:26.287Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:26.955Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=67 active=1
+[2026-04-24T13:13:27.304Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=68 active=2
+[2026-04-24T13:13:27.490Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:13:27.491Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:27.491Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:13:28.726Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:28.729Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-04-24T13:13:28.729Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-04-24T13:13:28.813Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=68 duration=1509ms active=1 calls60s=31
+[2026-04-24T13:13:28.813Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=67 duration=1858ms active=0 calls60s=32
+[2026-04-24T13:13:30.813Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=69 active=1
+[2026-04-24T13:13:30.994Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=70 active=2
+[2026-04-24T13:13:32.501Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=70 duration=1507ms active=1 calls60s=31
+[2026-04-24T13:13:32.502Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=69 duration=1689ms active=0 calls60s=32
+[2026-04-24T13:13:33.191Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:33.240Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:LOAD] source=zustand-persist enabled=30 total_known=47
+[2026-04-24T13:13:33.240Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:LOAD] enabled_ids=notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, superfetch, mem-opt, telemetry, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-04-24T13:13:33.241Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:SYNC] hydration start gen=1
+[2026-04-24T13:13:33.241Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=71 active=1
+[2026-04-24T13:13:33.241Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 48 checks
+[2026-04-24T13:13:33.241Z] [LOG] [PS:tweak-executor] #1 queryPowerShell SPAWN ts=1777036413241 active=1
+[2026-04-24T13:13:33.354Z] [LOG] [PS:tweak-executor] #1 queryPowerShell OK 113ms
+[2026-04-24T13:13:33.354Z] [LOG] [PS:tweak-executor] #2 queryPowerShell SPAWN ts=1777036413354 active=1
+[2026-04-24T13:13:33.438Z] [LOG] [PS:tweak-executor] #2 queryPowerShell OK 84ms
+[2026-04-24T13:13:33.439Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1777036413439 active=1
+[2026-04-24T13:13:33.523Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 84ms
+[2026-04-24T13:13:33.523Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1777036413523 active=1
+[2026-04-24T13:13:33.608Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 85ms
+[2026-04-24T13:13:33.609Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1777036413609 active=1
+[2026-04-24T13:13:33.693Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 84ms
+[2026-04-24T13:13:33.694Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1777036413694 active=1
+[2026-04-24T13:13:33.780Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 86ms
+[2026-04-24T13:13:33.781Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1777036413781 active=1
+[2026-04-24T13:13:33.868Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 87ms
+[2026-04-24T13:13:33.869Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1777036413869 active=1
+[2026-04-24T13:13:33.961Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 92ms
+[2026-04-24T13:13:33.961Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1777036413961 active=1
+[2026-04-24T13:13:34.048Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 86ms
+[2026-04-24T13:13:34.048Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1777036414048 active=1
+[2026-04-24T13:13:34.133Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 85ms
+[2026-04-24T13:13:34.134Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1777036414134 active=1
+[2026-04-24T13:13:34.135Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:34.160Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Dashboard] mounted
+[2026-04-24T13:13:34.160Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [ActivityMonitor] reused cached state — history points: 60 status: ready
+[2026-04-24T13:13:34.165Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:13:34.165Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:13:34.204Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:34.256Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 122ms
+[2026-04-24T13:13:34.256Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1777036414256 active=1
+[2026-04-24T13:13:34.501Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 245ms
+[2026-04-24T13:13:34.501Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1777036414501 active=1
+[2026-04-24T13:13:34.503Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=72 active=2
+[2026-04-24T13:13:34.601Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 100ms
+[2026-04-24T13:13:34.601Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1777036414601 active=1
+[2026-04-24T13:13:34.697Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 96ms
+[2026-04-24T13:13:34.697Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1777036414697 active=1
+[2026-04-24T13:13:34.785Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 88ms
+[2026-04-24T13:13:34.785Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1777036414785 active=1
+[2026-04-24T13:13:34.860Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=73 active=3
+[2026-04-24T13:13:34.872Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 87ms
+[2026-04-24T13:13:34.872Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1777036414872 active=1
+[2026-04-24T13:13:34.957Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 85ms
+[2026-04-24T13:13:34.957Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1777036414957 active=1
+[2026-04-24T13:13:35.051Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 94ms
+[2026-04-24T13:13:35.052Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1777036415052 active=1
+[2026-04-24T13:13:35.486Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 434ms
+[2026-04-24T13:13:35.486Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1777036415486 active=1
+[2026-04-24T13:13:35.572Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 86ms
+[2026-04-24T13:13:35.573Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1777036415573 active=1
+[2026-04-24T13:13:35.663Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 90ms
+[2026-04-24T13:13:35.663Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1777036415663 active=1
+[2026-04-24T13:13:35.749Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 86ms
+[2026-04-24T13:13:35.749Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1777036415749 active=1
+[2026-04-24T13:13:35.863Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 114ms
+[2026-04-24T13:13:35.863Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1777036415863 active=1
+[2026-04-24T13:13:35.950Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 87ms
+[2026-04-24T13:13:35.950Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1777036415950 active=1
+[2026-04-24T13:13:36.090Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 140ms
+[2026-04-24T13:13:36.091Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1777036416091 active=1
+[2026-04-24T13:13:36.177Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 86ms
+[2026-04-24T13:13:36.177Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1777036416177 active=1
+[2026-04-24T13:13:36.267Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 90ms
+[2026-04-24T13:13:36.268Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1777036416268 active=1
+[2026-04-24T13:13:36.355Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 87ms
+[2026-04-24T13:13:36.355Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1777036416355 active=1
+[2026-04-24T13:13:36.382Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=73 duration=1522ms active=2 calls60s=31
+[2026-04-24T13:13:36.382Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=72 duration=1879ms active=1 calls60s=32
+[2026-04-24T13:13:36.440Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 85ms
+[2026-04-24T13:13:36.441Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1777036416441 active=1
+[2026-04-24T13:13:36.569Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 128ms
+[2026-04-24T13:13:36.569Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-04-24T13:13:36.570Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1777036416569 active=1
+[2026-04-24T13:13:36.658Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 89ms
+[2026-04-24T13:13:36.659Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1777036416659 active=1
+[2026-04-24T13:13:36.747Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 88ms
+[2026-04-24T13:13:36.748Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1777036416748 active=1
+[2026-04-24T13:13:36.871Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 123ms
+[2026-04-24T13:13:36.871Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1777036416871 active=1
+[2026-04-24T13:13:36.976Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 105ms
+[2026-04-24T13:13:36.977Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1777036416977 active=1
+[2026-04-24T13:13:37.070Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 93ms
+[2026-04-24T13:13:37.070Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1777036417070 active=1
+[2026-04-24T13:13:37.193Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 123ms
+[2026-04-24T13:13:37.193Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1777036417193 active=1
+[2026-04-24T13:13:37.286Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 93ms
+[2026-04-24T13:13:37.286Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1777036417286 active=1
+[2026-04-24T13:13:37.377Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 91ms
+[2026-04-24T13:13:37.378Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1777036417378 active=1
+[2026-04-24T13:13:37.478Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 100ms
+[2026-04-24T13:13:37.478Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-04-24T13:13:37.478Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1777036417478 active=1
+[2026-04-24T13:13:37.578Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 100ms
+[2026-04-24T13:13:37.578Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1777036417578 active=1
+[2026-04-24T13:13:37.663Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 85ms
+[2026-04-24T13:13:37.664Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1777036417664 active=1
+[2026-04-24T13:13:37.754Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 90ms
+[2026-04-24T13:13:37.755Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1777036417755 active=1
+[2026-04-24T13:13:37.843Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 88ms
+[2026-04-24T13:13:37.843Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1777036417843 active=1
+[2026-04-24T13:13:37.931Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 88ms
+[2026-04-24T13:13:37.931Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1777036417931 active=1
+[2026-04-24T13:13:38.016Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 85ms
+[2026-04-24T13:13:38.016Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1777036418016 active=1
+[2026-04-24T13:13:38.102Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 86ms
+[2026-04-24T13:13:38.102Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1777036418102 active=1
+[2026-04-24T13:13:38.188Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 86ms
+[2026-04-24T13:13:38.188Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1777036418188 active=1
+[2026-04-24T13:13:38.274Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 86ms
+[2026-04-24T13:13:38.274Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=5033
+[2026-04-24T13:13:38.275Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=71 duration=5034ms active=0 calls60s=33
+[2026-04-24T13:13:38.278Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="gaming-mode" enabled=false (from system sync)
+[2026-04-24T13:13:38.278Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-04-24T13:13:38.278Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-04-24T13:13:38.278Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="cortana" enabled=true (from system sync)
+[2026-04-24T13:13:38.278Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="search-highlights" enabled=true (from system sync)
+[2026-04-24T13:13:38.278Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="storage-sense" enabled=true (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="compact-explorer" enabled=true (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="recent-files" enabled=true (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-04-24T13:13:38.279Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="show-file-extensions" enabled=true (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="hibernation" enabled=true (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="energy-logging" enabled=true (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="core-isolation" enabled=false (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-04-24T13:13:38.280Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="hyper-v" enabled=false (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="large-system-cache" enabled=false (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="prefetch" enabled=false (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="telemetry" enabled=true (from system sync)
+[2026-04-24T13:13:38.281Z] [ERROR] [Renderer:warn] (index-C8r5uut6.js:167) [TweakSupport] id=nvidia-telemetry, supported=false, reason="Backend confirmed this tweak is not available on this system." (runtime check)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="bluetooth" enabled=true (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="xbox-services" enabled=true (from system sync)
+[2026-04-24T13:13:38.281Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="fax-printer" enabled=true (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="synth-timers" enabled=true (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="usb-selective-suspend" enabled=true (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-delivery-opt" enabled=true (from system sync)
+[2026-04-24T13:13:38.282Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-04-24T13:13:38.283Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-04-24T13:13:38.283Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-activity-history" enabled=true (from system sync)
+[2026-04-24T13:13:38.283Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="power-throttling" enabled=true (from system sync)
+[2026-04-24T13:13:38.283Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-04-24T13:13:38.283Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-auto-restart-apps" enabled=true (from system sync)
+[2026-04-24T13:13:38.283Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:SYNC] hydration done gen=1 reconciled=47
+[2026-04-24T13:13:38.283Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:13:38.382Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=74 active=1
+[2026-04-24T13:13:38.567Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=75 active=2
+[2026-04-24T13:13:40.097Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=75 duration=1530ms active=1 calls60s=32
+[2026-04-24T13:13:40.097Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=74 duration=1715ms active=0 calls60s=33
+[2026-04-24T13:13:42.097Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=76 active=1
+[2026-04-24T13:13:42.308Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=77 active=2
+[2026-04-24T13:13:43.830Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=77 duration=1522ms active=1 calls60s=32
+[2026-04-24T13:13:43.830Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=76 duration=1733ms active=0 calls60s=33
+[2026-04-24T13:13:45.830Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=78 active=1
+[2026-04-24T13:13:46.027Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=79 active=2
+[2026-04-24T13:13:47.582Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=79 duration=1555ms active=1 calls60s=32
+[2026-04-24T13:13:47.583Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=78 duration=1753ms active=0 calls60s=33
+[2026-04-24T13:13:49.583Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=80 active=1
+[2026-04-24T13:13:49.774Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=81 active=2
+[2026-04-24T13:13:51.311Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=81 duration=1537ms active=1 calls60s=32
+[2026-04-24T13:13:51.311Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=80 duration=1728ms active=0 calls60s=33
+[2026-04-24T13:13:53.311Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=82 active=1
+[2026-04-24T13:13:53.667Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=83 active=2
+[2026-04-24T13:13:55.208Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=83 duration=1541ms active=1 calls60s=32
+[2026-04-24T13:13:55.208Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=82 duration=1897ms active=0 calls60s=33
+[2026-04-24T13:13:57.208Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=84 active=1
+[2026-04-24T13:13:57.401Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=85 active=2
+[2026-04-24T13:13:58.950Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=85 duration=1549ms active=1 calls60s=32
+[2026-04-24T13:13:58.950Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=84 duration=1742ms active=0 calls60s=33
+[2026-04-24T13:14:00.951Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=86 active=1
+[2026-04-24T13:14:01.276Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=87 active=2
+[2026-04-24T13:14:02.803Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=87 duration=1527ms active=1 calls60s=32
+[2026-04-24T13:14:02.803Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=86 duration=1852ms active=0 calls60s=33
+[2026-04-24T13:14:04.802Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=88 active=1
+[2026-04-24T13:14:04.993Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=89 active=2
+[2026-04-24T13:14:06.550Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=89 duration=1557ms active=1 calls60s=32
+[2026-04-24T13:14:06.550Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=88 duration=1748ms active=0 calls60s=33
+[2026-04-24T13:14:08.551Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=90 active=1
+[2026-04-24T13:14:08.756Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=91 active=2
+[2026-04-24T13:14:10.325Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=91 duration=1569ms active=1 calls60s=32
+[2026-04-24T13:14:10.326Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=90 duration=1775ms active=0 calls60s=33
+[2026-04-24T13:14:11.092Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Window focused, refreshing entitlements...
+[2026-04-24T13:14:11.092Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T13:14:11.093Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T13:14:11.093Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Electron window focus (passive)
+[2026-04-24T13:14:11.933Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T13:14:11.933Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T13:14:11.933Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:14:12.326Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=92 active=1
+[2026-04-24T13:14:12.679Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=93 active=2
+[2026-04-24T13:14:14.216Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=93 duration=1537ms active=1 calls60s=32
+[2026-04-24T13:14:14.216Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=92 duration=1890ms active=0 calls60s=33
+[2026-04-24T13:14:16.216Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=94 active=1
+[2026-04-24T13:14:16.407Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=95 active=2
+[2026-04-24T13:14:18.019Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=95 duration=1612ms active=1 calls60s=32
+[2026-04-24T13:14:18.019Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=94 duration=1803ms active=0 calls60s=33
+[2026-04-24T13:14:20.020Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=96 active=1
+[2026-04-24T13:14:20.213Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=97 active=2
+[2026-04-24T13:14:21.758Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=97 duration=1545ms active=1 calls60s=32
+[2026-04-24T13:14:21.759Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=96 duration=1739ms active=0 calls60s=33
+[2026-04-24T13:14:23.759Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=98 active=1
+[2026-04-24T13:14:23.957Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=99 active=2
+[2026-04-24T13:14:25.485Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=99 duration=1528ms active=1 calls60s=32
+[2026-04-24T13:14:25.486Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=98 duration=1727ms active=0 calls60s=33
+[2026-04-24T13:14:27.485Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=100 active=1
+[2026-04-24T13:14:27.870Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=101 active=2
+[2026-04-24T13:14:29.413Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=101 duration=1543ms active=1 calls60s=32
+[2026-04-24T13:14:29.413Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=100 duration=1928ms active=0 calls60s=33
+[2026-04-24T13:14:31.413Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=102 active=1
+[2026-04-24T13:14:31.762Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=103 active=2
+[2026-04-24T13:14:33.317Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=103 duration=1555ms active=1 calls60s=32
+[2026-04-24T13:14:33.318Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=102 duration=1905ms active=0 calls60s=33
+[2026-04-24T13:14:35.318Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=104 active=1
+[2026-04-24T13:14:35.510Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=105 active=2
+[2026-04-24T13:14:37.055Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=105 duration=1545ms active=1 calls60s=32
+[2026-04-24T13:14:37.056Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=104 duration=1738ms active=0 calls60s=33
+[2026-04-24T13:14:39.056Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=106 active=1
+[2026-04-24T13:14:39.389Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=107 active=2
+[2026-04-24T13:14:40.927Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=107 duration=1538ms active=1 calls60s=31
+[2026-04-24T13:14:40.927Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=106 duration=1871ms active=0 calls60s=32
+[2026-04-24T13:14:42.928Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=108 active=1
+[2026-04-24T13:14:43.118Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=109 active=2
+[2026-04-24T13:14:44.664Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=109 duration=1546ms active=1 calls60s=31
+[2026-04-24T13:14:44.665Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=108 duration=1737ms active=0 calls60s=32
+[2026-04-24T13:14:46.665Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=110 active=1
+[2026-04-24T13:14:46.980Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=111 active=2
+[2026-04-24T13:14:48.586Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=111 duration=1606ms active=1 calls60s=31
+[2026-04-24T13:14:48.586Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=110 duration=1921ms active=0 calls60s=32
+[2026-04-24T13:14:50.586Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=112 active=1
+[2026-04-24T13:14:50.949Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=113 active=2
+[2026-04-24T13:14:52.488Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=113 duration=1539ms active=1 calls60s=31
+[2026-04-24T13:14:52.488Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=112 duration=1902ms active=0 calls60s=32
+[2026-04-24T13:14:54.488Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=114 active=1
+[2026-04-24T13:14:54.691Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=115 active=2
+[2026-04-24T13:14:56.262Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=115 duration=1571ms active=1 calls60s=31
+[2026-04-24T13:14:56.262Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=114 duration=1774ms active=0 calls60s=32
+[2026-04-24T13:14:58.262Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=116 active=1
+[2026-04-24T13:14:58.459Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=117 active=2
+[2026-04-24T13:15:00.023Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=117 duration=1564ms active=1 calls60s=31
+[2026-04-24T13:15:00.023Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=116 duration=1761ms active=0 calls60s=32
+[2026-04-24T13:15:02.024Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=118 active=1
+[2026-04-24T13:15:02.219Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=119 active=2
+[2026-04-24T13:15:03.754Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=119 duration=1535ms active=1 calls60s=31
+[2026-04-24T13:15:03.754Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=118 duration=1730ms active=0 calls60s=32
+[2026-04-24T13:15:05.755Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=120 active=1
+[2026-04-24T13:15:05.948Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=121 active=2
+[2026-04-24T13:15:07.481Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=121 duration=1533ms active=1 calls60s=31
+[2026-04-24T13:15:07.482Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=120 duration=1727ms active=0 calls60s=32
+[2026-04-24T13:15:08.212Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Window focused, refreshing entitlements...
+[2026-04-24T13:15:08.213Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T13:15:08.215Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T13:15:08.216Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [App] Electron window focus (passive)
+[2026-04-24T13:15:08.970Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T13:15:08.971Z] [LOG] [Renderer:info] (index-C8r5uut6.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T13:15:08.971Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:09.482Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=122 active=1
+[2026-04-24T13:15:09.833Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=123 active=2
+[2026-04-24T13:15:11.389Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=123 duration=1556ms active=1 calls60s=31
+[2026-04-24T13:15:11.389Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=122 duration=1907ms active=0 calls60s=32
+[2026-04-24T13:15:12.164Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:12.212Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:LOAD] source=zustand-persist enabled=30 total_known=47
+[2026-04-24T13:15:12.212Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:LOAD] enabled_ids=notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, superfetch, mem-opt, telemetry, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-04-24T13:15:12.212Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:SYNC] hydration start gen=2
+[2026-04-24T13:15:12.212Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=124 active=1
+[2026-04-24T13:15:12.212Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 48 checks
+[2026-04-24T13:15:12.213Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1777036512213 active=1
+[2026-04-24T13:15:12.343Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 130ms
+[2026-04-24T13:15:12.343Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1777036512343 active=1
+[2026-04-24T13:15:12.436Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 93ms
+[2026-04-24T13:15:12.436Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1777036512436 active=1
+[2026-04-24T13:15:12.530Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 94ms
+[2026-04-24T13:15:12.531Z] [LOG] [PS:tweak-executor] #52 queryPowerShell SPAWN ts=1777036512531 active=1
+[2026-04-24T13:15:12.629Z] [LOG] [PS:tweak-executor] #52 queryPowerShell OK 98ms
+[2026-04-24T13:15:12.629Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1777036512629 active=1
+[2026-04-24T13:15:12.727Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 98ms
+[2026-04-24T13:15:12.727Z] [LOG] [PS:tweak-executor] #54 queryPowerShell SPAWN ts=1777036512727 active=1
+[2026-04-24T13:15:12.820Z] [LOG] [PS:tweak-executor] #54 queryPowerShell OK 93ms
+[2026-04-24T13:15:12.820Z] [LOG] [PS:tweak-executor] #55 queryPowerShell SPAWN ts=1777036512820 active=1
+[2026-04-24T13:15:12.859Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:12.863Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-04-24T13:15:12.863Z] [ERROR] [Renderer:error] (index-C8r5uut6.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-04-24T13:15:12.914Z] [LOG] [PS:tweak-executor] #55 queryPowerShell OK 94ms
+[2026-04-24T13:15:12.914Z] [LOG] [PS:tweak-executor] #56 queryPowerShell SPAWN ts=1777036512914 active=1
+[2026-04-24T13:15:13.006Z] [LOG] [PS:tweak-executor] #56 queryPowerShell OK 92ms
+[2026-04-24T13:15:13.006Z] [LOG] [PS:tweak-executor] #57 queryPowerShell SPAWN ts=1777036513006 active=1
+[2026-04-24T13:15:13.098Z] [LOG] [PS:tweak-executor] #57 queryPowerShell OK 92ms
+[2026-04-24T13:15:13.098Z] [LOG] [PS:tweak-executor] #58 queryPowerShell SPAWN ts=1777036513098 active=1
+[2026-04-24T13:15:13.192Z] [LOG] [PS:tweak-executor] #58 queryPowerShell OK 94ms
+[2026-04-24T13:15:13.192Z] [LOG] [PS:tweak-executor] #59 queryPowerShell SPAWN ts=1777036513192 active=1
+[2026-04-24T13:15:13.286Z] [LOG] [PS:tweak-executor] #59 queryPowerShell OK 94ms
+[2026-04-24T13:15:13.286Z] [LOG] [PS:tweak-executor] #60 queryPowerShell SPAWN ts=1777036513286 active=1
+[2026-04-24T13:15:13.379Z] [LOG] [PS:tweak-executor] #60 queryPowerShell OK 93ms
+[2026-04-24T13:15:13.379Z] [LOG] [PS:tweak-executor] #61 queryPowerShell SPAWN ts=1777036513379 active=1
+[2026-04-24T13:15:13.390Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=125 active=2
+[2026-04-24T13:15:13.475Z] [LOG] [PS:tweak-executor] #61 queryPowerShell OK 96ms
+[2026-04-24T13:15:13.475Z] [LOG] [PS:tweak-executor] #62 queryPowerShell SPAWN ts=1777036513475 active=1
+[2026-04-24T13:15:13.571Z] [LOG] [PS:tweak-executor] #62 queryPowerShell OK 96ms
+[2026-04-24T13:15:13.571Z] [LOG] [PS:tweak-executor] #63 queryPowerShell SPAWN ts=1777036513571 active=1
+[2026-04-24T13:15:13.589Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=126 active=3
+[2026-04-24T13:15:13.665Z] [LOG] [PS:tweak-executor] #63 queryPowerShell OK 94ms
+[2026-04-24T13:15:13.665Z] [LOG] [PS:tweak-executor] #64 queryPowerShell SPAWN ts=1777036513665 active=1
+[2026-04-24T13:15:13.759Z] [LOG] [PS:tweak-executor] #64 queryPowerShell OK 94ms
+[2026-04-24T13:15:13.759Z] [LOG] [PS:tweak-executor] #65 queryPowerShell SPAWN ts=1777036513759 active=1
+[2026-04-24T13:15:13.864Z] [LOG] [PS:tweak-executor] #65 queryPowerShell OK 105ms
+[2026-04-24T13:15:13.864Z] [LOG] [PS:tweak-executor] #66 queryPowerShell SPAWN ts=1777036513864 active=1
+[2026-04-24T13:15:13.921Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:13.921Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:15:13.924Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:13.934Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +14ms
+[2026-04-24T13:15:13.942Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:13.943Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-04-24T13:15:13.950Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:15:13.950Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:13.960Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | scan-start | +39ms
+[2026-04-24T13:15:13.961Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:15:14.187Z] [LOG] [AppBooster] Running processes mapped: 61 exe(s) found
+[2026-04-24T13:15:14.187Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:15:14.189Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-04-24T13:15:14.190Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-04-24T13:15:14.192Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-04-24T13:15:14.193Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-04-24T13:15:14.194Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-04-24T13:15:14.196Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-04-24T13:15:14.198Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-04-24T13:15:14.199Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-04-24T13:15:14.201Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-04-24T13:15:14.203Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-04-24T13:15:14.204Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-04-24T13:15:14.206Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-04-24T13:15:14.208Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-04-24T13:15:14.209Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-04-24T13:15:14.210Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-04-24T13:15:14.210Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-04-24T13:15:14.211Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:15:14.211Z] [LOG] [PS:tweak-executor] #66 queryPowerShell OK 347ms
+[2026-04-24T13:15:14.212Z] [LOG] [PS:tweak-executor] #67 queryPowerShell SPAWN ts=1777036514212 active=1
+[2026-04-24T13:15:14.213Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:14.215Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-04-24T13:15:14.217Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-04-24T13:15:14.218Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | scan-done | +298ms
+[2026-04-24T13:15:14.218Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:15:14.219Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:14.225Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:15:14.225Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:14.528Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:14.536Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:15:14.666Z] [LOG] [PS:tweak-executor] #67 queryPowerShell OK 454ms
+[2026-04-24T13:15:14.666Z] [LOG] [PS:tweak-executor] #68 queryPowerShell SPAWN ts=1777036514666 active=1
+[2026-04-24T13:15:14.762Z] [LOG] [PS:tweak-executor] #68 queryPowerShell OK 96ms
+[2026-04-24T13:15:14.762Z] [LOG] [PS:tweak-executor] #69 queryPowerShell SPAWN ts=1777036514762 active=1
+[2026-04-24T13:15:14.862Z] [LOG] [PS:tweak-executor] #69 queryPowerShell OK 100ms
+[2026-04-24T13:15:14.862Z] [LOG] [PS:tweak-executor] #70 queryPowerShell SPAWN ts=1777036514862 active=1
+[2026-04-24T13:15:14.959Z] [LOG] [PS:tweak-executor] #70 queryPowerShell OK 97ms
+[2026-04-24T13:15:14.959Z] [LOG] [PS:tweak-executor] #71 queryPowerShell SPAWN ts=1777036514959 active=1
+[2026-04-24T13:15:15.074Z] [LOG] [PS:tweak-executor] #71 queryPowerShell OK 115ms
+[2026-04-24T13:15:15.074Z] [LOG] [PS:tweak-executor] #72 queryPowerShell SPAWN ts=1777036515074 active=1
+[2026-04-24T13:15:15.155Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=126 duration=1566ms active=2 calls60s=31
+[2026-04-24T13:15:15.155Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=125 duration=1765ms active=1 calls60s=32
+[2026-04-24T13:15:15.167Z] [LOG] [PS:tweak-executor] #72 queryPowerShell OK 93ms
+[2026-04-24T13:15:15.167Z] [LOG] [PS:tweak-executor] #73 queryPowerShell SPAWN ts=1777036515167 active=1
+[2026-04-24T13:15:15.308Z] [LOG] [PS:tweak-executor] #73 queryPowerShell OK 141ms
+[2026-04-24T13:15:15.308Z] [LOG] [PS:tweak-executor] #74 queryPowerShell SPAWN ts=1777036515308 active=1
+[2026-04-24T13:15:15.310Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:15.310Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:15:15.322Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-state | +12ms
+[2026-04-24T13:15:15.335Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-state-done | +26ms
+[2026-04-24T13:15:15.404Z] [LOG] [PS:tweak-executor] #74 queryPowerShell OK 96ms
+[2026-04-24T13:15:15.404Z] [LOG] [PS:tweak-executor] #75 queryPowerShell SPAWN ts=1777036515404 active=1
+[2026-04-24T13:15:15.497Z] [LOG] [PS:tweak-executor] #75 queryPowerShell OK 93ms
+[2026-04-24T13:15:15.497Z] [LOG] [PS:tweak-executor] #76 queryPowerShell SPAWN ts=1777036515497 active=1
+[2026-04-24T13:15:15.498Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:15:15.585Z] [LOG] [PS:tweak-executor] #76 queryPowerShell OK 88ms
+[2026-04-24T13:15:15.585Z] [LOG] [PS:tweak-executor] #77 queryPowerShell SPAWN ts=1777036515585 active=1
+[2026-04-24T13:15:15.677Z] [LOG] [PS:tweak-executor] #77 queryPowerShell OK 92ms
+[2026-04-24T13:15:15.677Z] [LOG] [PS:tweak-executor] #78 queryPowerShell SPAWN ts=1777036515677 active=1
+[2026-04-24T13:15:15.732Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | fetch-history-done | +423ms
+[2026-04-24T13:15:15.733Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] FocusMode | mount | +0ms
+[2026-04-24T13:15:15.815Z] [LOG] [PS:tweak-executor] #78 queryPowerShell OK 138ms
+[2026-04-24T13:15:15.815Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-04-24T13:15:15.815Z] [LOG] [PS:tweak-executor] #79 queryPowerShell SPAWN ts=1777036515815 active=1
+[2026-04-24T13:15:15.903Z] [LOG] [PS:tweak-executor] #79 queryPowerShell OK 88ms
+[2026-04-24T13:15:15.904Z] [LOG] [PS:tweak-executor] #80 queryPowerShell SPAWN ts=1777036515904 active=1
+[2026-04-24T13:15:15.994Z] [LOG] [PS:tweak-executor] #80 queryPowerShell OK 90ms
+[2026-04-24T13:15:15.994Z] [LOG] [PS:tweak-executor] #81 queryPowerShell SPAWN ts=1777036515994 active=1
+[2026-04-24T13:15:16.087Z] [LOG] [PS:tweak-executor] #81 queryPowerShell OK 93ms
+[2026-04-24T13:15:16.087Z] [LOG] [PS:tweak-executor] #82 queryPowerShell SPAWN ts=1777036516087 active=1
+[2026-04-24T13:15:16.177Z] [LOG] [PS:tweak-executor] #82 queryPowerShell OK 90ms
+[2026-04-24T13:15:16.178Z] [LOG] [PS:tweak-executor] #83 queryPowerShell SPAWN ts=1777036516178 active=1
+[2026-04-24T13:15:16.268Z] [LOG] [PS:tweak-executor] #83 queryPowerShell OK 90ms
+[2026-04-24T13:15:16.268Z] [LOG] [PS:tweak-executor] #84 queryPowerShell SPAWN ts=1777036516268 active=1
+[2026-04-24T13:15:16.381Z] [LOG] [PS:tweak-executor] #84 queryPowerShell OK 113ms
+[2026-04-24T13:15:16.381Z] [LOG] [PS:tweak-executor] #85 queryPowerShell SPAWN ts=1777036516381 active=1
+[2026-04-24T13:15:16.471Z] [LOG] [PS:tweak-executor] #85 queryPowerShell OK 90ms
+[2026-04-24T13:15:16.472Z] [LOG] [PS:tweak-executor] #86 queryPowerShell SPAWN ts=1777036516472 active=1
+[2026-04-24T13:15:16.559Z] [LOG] [PS:tweak-executor] #86 queryPowerShell OK 87ms
+[2026-04-24T13:15:16.559Z] [LOG] [PS:tweak-executor] #87 queryPowerShell SPAWN ts=1777036516559 active=1
+[2026-04-24T13:15:16.665Z] [LOG] [PS:tweak-executor] #87 queryPowerShell OK 106ms
+[2026-04-24T13:15:16.665Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-04-24T13:15:16.666Z] [LOG] [PS:tweak-executor] #88 queryPowerShell SPAWN ts=1777036516666 active=1
+[2026-04-24T13:15:16.733Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:16.740Z] [LOG] [PS:nic-executor] #3 queryPS SPAWN ts=1777036516740
+[2026-04-24T13:15:16.779Z] [LOG] [PS:tweak-executor] #88 queryPowerShell OK 113ms
+[2026-04-24T13:15:16.779Z] [LOG] [PS:tweak-executor] #89 queryPowerShell SPAWN ts=1777036516779 active=1
+[2026-04-24T13:15:16.917Z] [LOG] [PS:tweak-executor] #89 queryPowerShell OK 138ms
+[2026-04-24T13:15:16.917Z] [LOG] [PS:tweak-executor] #90 queryPowerShell SPAWN ts=1777036516917 active=1
+[2026-04-24T13:15:17.031Z] [LOG] [PS:tweak-executor] #90 queryPowerShell OK 114ms
+[2026-04-24T13:15:17.031Z] [LOG] [PS:tweak-executor] #91 queryPowerShell SPAWN ts=1777036517031 active=1
+[2026-04-24T13:15:17.124Z] [LOG] [PS:tweak-executor] #91 queryPowerShell OK 93ms
+[2026-04-24T13:15:17.124Z] [LOG] [PS:tweak-executor] #92 queryPowerShell SPAWN ts=1777036517124 active=1
+[2026-04-24T13:15:17.155Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=127 active=2
+[2026-04-24T13:15:17.221Z] [LOG] [PS:tweak-executor] #92 queryPowerShell OK 96ms
+[2026-04-24T13:15:17.221Z] [LOG] [PS:tweak-executor] #93 queryPowerShell SPAWN ts=1777036517221 active=1
+[2026-04-24T13:15:17.266Z] [LOG] [PS:nic-executor] #3 queryPS OK 526ms
+[2026-04-24T13:15:17.270Z] [LOG] [PS:nic-executor] #4 queryPS SPAWN ts=1777036517270
+[2026-04-24T13:15:17.324Z] [LOG] [PS:tweak-executor] #93 queryPowerShell OK 103ms
+[2026-04-24T13:15:17.325Z] [LOG] [PS:tweak-executor] #94 queryPowerShell SPAWN ts=1777036517325 active=1
+[2026-04-24T13:15:17.425Z] [LOG] [PS:tweak-executor] #94 queryPowerShell OK 100ms
+[2026-04-24T13:15:17.425Z] [LOG] [PS:tweak-executor] #95 queryPowerShell SPAWN ts=1777036517425 active=1
+[2026-04-24T13:15:17.510Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=128 active=3
+[2026-04-24T13:15:17.524Z] [LOG] [PS:tweak-executor] #95 queryPowerShell OK 99ms
+[2026-04-24T13:15:17.524Z] [LOG] [PS:tweak-executor] #96 queryPowerShell SPAWN ts=1777036517524 active=1
+[2026-04-24T13:15:17.618Z] [LOG] [PS:tweak-executor] #96 queryPowerShell OK 94ms
+[2026-04-24T13:15:17.619Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=5407
+[2026-04-24T13:15:17.619Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=124 duration=5407ms active=2 calls60s=33
+[2026-04-24T13:15:17.620Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:17.620Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:15:17.620Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [NetworkTweaks:CACHE] cache hit — rehydrating from session cache
+[2026-04-24T13:15:17.641Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | fetch-state | +20ms
+[2026-04-24T13:15:17.641Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:15:17.661Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="gaming-mode" enabled=false (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="cortana" enabled=true (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="search-highlights" enabled=true (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="storage-sense" enabled=true (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="compact-explorer" enabled=true (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="recent-files" enabled=true (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-04-24T13:15:17.662Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="show-file-extensions" enabled=true (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="hibernation" enabled=true (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-04-24T13:15:17.663Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="energy-logging" enabled=true (from system sync)
+[2026-04-24T13:15:17.664Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-04-24T13:15:17.664Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="core-isolation" enabled=false (from system sync)
+[2026-04-24T13:15:17.664Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-04-24T13:15:17.664Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="hyper-v" enabled=false (from system sync)
+[2026-04-24T13:15:17.664Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="large-system-cache" enabled=false (from system sync)
+[2026-04-24T13:15:17.664Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-04-24T13:15:17.664Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="prefetch" enabled=false (from system sync)
+[2026-04-24T13:15:17.665Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-04-24T13:15:17.665Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-04-24T13:15:17.665Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="telemetry" enabled=true (from system sync)
+[2026-04-24T13:15:17.665Z] [ERROR] [Renderer:warn] (index-C8r5uut6.js:167) [TweakSupport] id=nvidia-telemetry, supported=false, reason="Backend confirmed this tweak is not available on this system." (runtime check)
+[2026-04-24T13:15:17.665Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-04-24T13:15:17.665Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="bluetooth" enabled=true (from system sync)
+[2026-04-24T13:15:17.665Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-04-24T13:15:17.665Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="xbox-services" enabled=true (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="fax-printer" enabled=true (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="synth-timers" enabled=true (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="usb-selective-suspend" enabled=true (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-delivery-opt" enabled=true (from system sync)
+[2026-04-24T13:15:17.666Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-activity-history" enabled=true (from system sync)
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="power-throttling" enabled=true (from system sync)
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:28) [Tweaks:SET] id="disable-auto-restart-apps" enabled=true (from system sync)
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:167) [Tweaks:SYNC] hydration done gen=2 reconciled=47
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:17.667Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:15:17.688Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | fetch-state-done | +67ms
+[2026-04-24T13:15:17.699Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:15:17.750Z] [LOG] [PS:nic-executor] #4 queryPS OK 480ms
+[2026-04-24T13:15:18.201Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:15:18.550Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:18.551Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:15:18.563Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | fetch-categories | +12ms
+[2026-04-24T13:15:18.563Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | fetch-history | +12ms
+[2026-04-24T13:15:18.563Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:15:18.577Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:15:18.994Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:19.062Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=128 duration=1552ms active=1 calls60s=32
+[2026-04-24T13:15:19.062Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=127 duration=1907ms active=0 calls60s=33
+[2026-04-24T13:15:19.725Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:19.725Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:15:19.731Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +6ms
+[2026-04-24T13:15:19.732Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:15:19.738Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:15:20.041Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:20.053Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:15:20.054Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:15:20.054Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:15:20.054Z] [LOG] [Renderer:info] (index-C8r5uut6.js:219) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:15:20.825Z] [LOG] [Renderer:info] (index-C8r5uut6.js:234) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:15:20.826Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:15:20.832Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | startup-scan | +7ms
+[2026-04-24T13:15:20.833Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Program Files\SwitchControl\resources\app.asar\main.js:2113:346
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T13:15:20.839Z] [LOG] [Renderer:info] (index-C8r5uut6.js:160) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:15:21.061Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=129 active=1
+[2026-04-24T13:15:21.248Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=130 active=2
+[2026-04-24T13:15:22.784Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=130 duration=1536ms active=1 calls60s=32
+[2026-04-24T13:15:22.784Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=129 duration=1723ms active=0 calls60s=33
+[2026-04-24T13:15:24.784Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=131 active=1
+[2026-04-24T13:15:24.975Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=132 active=2
+[2026-04-24T13:15:26.505Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=132 duration=1530ms active=1 calls60s=32
+[2026-04-24T13:15:26.506Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=131 duration=1722ms active=0 calls60s=33
+[2026-04-24T13:15:28.506Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=133 active=1
+[2026-04-24T13:15:29.042Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=134 active=2
+[2026-04-24T13:15:30.578Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=134 duration=1536ms active=1 calls60s=32
+[2026-04-24T13:15:30.579Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=133 duration=2073ms active=0 calls60s=33
+[2026-04-24T13:15:32.579Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=135 active=1
+[2026-04-24T13:15:32.772Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=136 active=2
