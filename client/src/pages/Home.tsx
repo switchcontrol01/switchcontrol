@@ -161,7 +161,7 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
   );
 
   return (
-    <PremiumCardOverlay featureName="AI Advisor" buttonText="Unlock AI Advisor" isLocked={!isPremium}>
+    <PremiumCardOverlay featureName="AI Advisor" buttonText="Unlock Premium" isLocked={!isPremium}>
       {cardContent}
     </PremiumCardOverlay>
   );
@@ -261,7 +261,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
   );
 
   return (
-    <PremiumCardOverlay featureName="BIOS Advisor" buttonText="Unlock BIOS Advisor" isLocked={!isPremium}>
+    <PremiumCardOverlay featureName="BIOS Advisor" buttonText="Unlock Premium" isLocked={!isPremium}>
       {cardContent}
     </PremiumCardOverlay>
   );

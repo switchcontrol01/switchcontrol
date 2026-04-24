@@ -1748,7 +1748,7 @@ export default function AiAdvisor() {
       {!isPremium && (
         <PremiumPageOverlay
           featureName="AI Advisor is a Premium Feature"
-          buttonText="Unlock AI Advisor"
+          buttonText="Unlock Premium"
           description="System analysis, image-based troubleshooting, AI optimization suggestions, and game-specific tuning are available with SwitchControl Premium."
         />
       )}
