@@ -57,6 +57,7 @@ export interface SchedulerStats {
   lowEndMode: boolean;
   tickCount: number;
   skippedTicks: number;
+  intervalMs: number;
   taskTimings: Record<string, { lastDurationMs: number; lastRunTs: number }>;
 }
 
@@ -114,6 +115,11 @@ let appCpuPct = 0;
 let tickCount = 0;
 let skippedTicks = 0;
 const taskTimings: Record<string, { lastDurationMs: number; lastRunTs: number }> = {};
+
+// Throttle over-budget log to once per 30 seconds
+let lastOverBudgetLogTs = 0;
+// Network stats TTL — don't poll every tick
+let lastNetTs = 0;
 
 // ── GPU controller selection ──────────────────────────────────────────────────
 
@@ -237,17 +243,24 @@ async function tick(): Promise<void> {
   const overBudget = currentAppCpu > CPU_BUDGET_PCT;
   if (overBudget) {
     skippedTicks++;
-    console.log(`[Telemetry:sched] Over budget (app=${currentAppCpu.toFixed(1)}%) — skipping heavy tasks (tick=${tickCount})`);
+    if (Date.now() - lastOverBudgetLogTs > 30000) {
+      lastOverBudgetLogTs = Date.now();
+      console.log(`[Telemetry:sched] Over budget (app=${currentAppCpu.toFixed(1)}%) — skipping heavy tasks`);
+    }
   }
 
   // ── 2. Lightweight tasks — always run, all fast ───────────────────────────
+  // Network stats run every 6 s (normal) / 10 s (low-end) to cut idle CPU cost.
+  const netTtl = lowEndMode ? 10000 : 6000;
+  const shouldPollNet = (now - lastNetTs) >= netTtl;
   const [loadRes, memRes, netRes] = await runTimed("lightweight", () =>
     Promise.all([
       si.currentLoad().catch(() => null),
       si.mem().catch(() => null),
-      si.networkStats().catch(() => null),
+      shouldPollNet ? si.networkStats().catch(() => null) : Promise.resolve(null),
     ])
   );
+  if (shouldPollNet) lastNetTs = now;
 
   // CPU load & trend
   const cpuLoad = loadRes?.currentLoad ?? lastLoad;
@@ -435,15 +448,11 @@ export function getCachedSnapshot(): TelemetrySnapshot {
   };
 }
 
-// getSnapshot: on-demand snapshot — returns cached value if fresh, else runs a
-// lightweight collection (no heavy tasks) to avoid stalling callers.
+// getSnapshot: return the current cached snapshot without forcing a tick.
+// The scheduler loop maintains the cache on its own cadence.
 export async function getSnapshot(): Promise<TelemetrySnapshot> {
-  if (cachedSnapshot && Date.now() - cachedSnapshot.ts < 4000) {
-    return cachedSnapshot;
-  }
-  // Run a tick immediately for the caller
-  await tick().catch(() => {});
-  return cachedSnapshot ?? getCachedSnapshot();
+  if (cachedSnapshot) return cachedSnapshot;
+  return getCachedSnapshot();
 }
 
 // ── Scheduler stats ───────────────────────────────────────────────────────────
@@ -454,6 +463,7 @@ export function getSchedulerStats(): SchedulerStats {
     lowEndMode,
     tickCount,
     skippedTicks,
+    intervalMs: lowEndMode ? POLL_LOW_END_MS : POLL_BASE_MS,
     taskTimings: { ...taskTimings },
   };
 }

@@ -1,0 +1,92 @@
+TASK
+Fix and redesign App Booster properly.
+
+PROBLEM
+App Booster currently has broken game management and weak UX.
+
+Bugs:
+1. Installed games cannot be deleted or removed from the installed list.
+2. Manual Add Game is broken.
+3. Adding a manual game appears to clone/copy catalog games like Apex Legends or Call of Duty instead of creating the user’s actual custom game.
+4. The detected/installed system is not reliable.
+5. The page looks bland and low quality.
+
+GOAL
+App Booster must only show real installed games or real user-added games. No fake games, no copied catalog entries, no undeletable items. The page should feel premium, advanced, and unique.
+
+IMPLEMENTATION
+
+1. Separate catalog games from installed games
+Do not mutate catalog game objects.
+Create two data types:
+- CatalogGame: template only
+- InstalledGame: real detected or manually added game
+
+InstalledGame must have its own unique id:
+manual-${Date.now()}-${random}
+or detected-${normalizedPathHash}
+
+Never use the catalog id for a manual game.
+
+2. Fix Add Game manually
+When user clicks Add manually:
+- open a modal
+- fields: game name, executable path, launcher optional, icon optional
+- require a real .exe path
+- create a new InstalledGame object from user input only
+- do not copy Apex, COD, Fortnite, or any catalog object
+- save to persistent storage
+
+3. Add remove/delete
+Every installed or manually added game card needs:
+- Remove button
+- confirmation modal
+- remove from installedGames state
+- remove from persisted storage
+- if it was manually added, delete it fully
+- if it was auto-detected, allow “hide from installed list” so it does not reappear unless user rescans or restores hidden games
+
+4. Detection rules
+Only show a game as installed if:
+- real executable path exists on disk
+- or launcher registry/install path confirms it
+- or user manually added it
+
+Do not show games just because they are in catalog.
+Do not show games just because files/folders exist without executable verification.
+
+5. Installed tab empty state
+If no installed games:
+Show a premium empty state:
+“No installed games detected”
+Buttons:
+- Scan again
+- Add game manually
+
+6. Redesign App Booster page
+Make it look premium:
+- stronger hero section with animated game-performance visual
+- detected games stat cards
+- install confidence badges
+- before/after boost graph
+- per-game optimization pipeline
+- profile action timeline
+- richer selected game panel
+- better empty states
+- glass cards with depth, glow, and motion
+- less dead blank space
+
+7. Apply logic
+The Boost/Profile apply button must target the selected InstalledGame executable path.
+If no valid executable path exists, disable apply and show “Missing executable path”.
+
+CHECKLIST
+- Adding a manual game never creates Apex/COD/Fortnite by accident.
+- Manual game name stays exactly what user typed.
+- Manual game has its own id.
+- Installed games can be removed.
+- Auto-detected games can be hidden.
+- Hidden detected games stay hidden after restart.
+- Catalog games are never treated as installed unless verified.
+- Boost button only works for a valid executable path.
+- App Booster looks high-end, not basic.

@@ -76,18 +76,20 @@ const C = {
 } as const;
 
 // ── Visual separation helper ──────────────────────────────────────────────────
-// When RAM and GPU values are within 4%, offset chart-render values so
-// lines remain distinguishable. TRUE values are preserved in ram/gpuLoad
-// fields and shown by the custom tooltip.
+// When RAM and GPU values are within 8%, push chart-render positions apart by
+// at least 8 visual points so lines remain distinguishable. TRUE values are
+// preserved in ram/gpuLoad fields and shown by the custom tooltip.
 function computeDisplayOffset(ram: number, gpuLoad: number | null): { ramDisplay: number; gpuDisplay: number | null } {
   if (gpuLoad == null) return { ramDisplay: ram, gpuDisplay: null };
   const diff = Math.abs(ram - gpuLoad);
-  if (diff <= 4) {
-    const shift = Math.max(1.0, (4 - diff) * 0.6);
-    return {
-      ramDisplay:  Math.min(100, ram + shift),
-      gpuDisplay:  Math.max(0,   gpuLoad - shift),
-    };
+  if (diff < 8) {
+    // Spread each side so total gap reaches at least 8 pts
+    const halfShift = (8 - diff) / 2 + 0.5;
+    if (ram >= gpuLoad) {
+      return { ramDisplay: Math.min(100, ram + halfShift), gpuDisplay: Math.max(0, gpuLoad - halfShift) };
+    } else {
+      return { ramDisplay: Math.max(0, ram - halfShift), gpuDisplay: Math.min(100, gpuLoad + halfShift) };
+    }
   }
   return { ramDisplay: ram, gpuDisplay: gpuLoad };
 }
@@ -254,6 +256,17 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const selectedDiskMountRef = useRef(selectedDiskMount);
   selectedDiskMountRef.current = selectedDiskMount;
 
+  // Low-end detection — updated every render so callbacks always see fresh value
+  const isLowEndRef = useRef(false);
+  const isLowEndClient = !!(
+    latest != null &&
+    ((latest.coreCount > 0 && latest.coreCount <= 4) ||
+     (latest.ramTotalGb > 0 && latest.ramTotalGb <= 4))
+  );
+  isLowEndRef.current = isLowEndClient;
+  const showGlowLines = !isLowEndClient;
+  const graphPollMs = isLowEndClient ? (expanded ? 4000 : 6000) : 2000;
+
   // ── GPU first-load tracking ───────────────────────────────────────────────
   // gpuDetectedRef: true once any tick confirms GPU is present on this machine.
   // gpuEverDetected: React state mirror — causes re-render so the GPU Line &
@@ -399,8 +412,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         diskActiveTime, diskReadKBps, diskWriteKBps,
         netRx: netRxSec, netTx: netTxSec,
       };
+      const maxPoints = isLowEndRef.current ? 30 : 60;
       const updated = [...prev, pt];
-      return updated.length > 60 ? updated.slice(-60) : updated;
+      return updated.length > maxPoints ? updated.slice(-maxPoints) : updated;
     });
   }, [wsTelemetry, isElectron]);
 
@@ -489,8 +503,9 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           diskActiveTime, diskReadKBps, diskWriteKBps,
           netRx: netRxSec, netTx: netTxSec,
         };
+        const maxPoints = isLowEndRef.current ? 30 : 60;
         const updated = [...prev, pt];
-        return updated.length > 60 ? updated.slice(-60) : updated;
+        return updated.length > maxPoints ? updated.slice(-maxPoints) : updated;
       });
     } catch {
       retryCountRef.current += 1;
@@ -505,16 +520,16 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     };
     const startPoll = () => {
-      if (intervalRef.current) return;
+      stopPoll(); // always clear old interval so graphPollMs changes take effect
       fetchTelemetry();
-      intervalRef.current = setInterval(fetchTelemetry, 2000);
+      intervalRef.current = setInterval(fetchTelemetry, graphPollMs);
     };
     const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
     document.addEventListener('visibilitychange', handleVisibility);
     if (!document.hidden) startPoll();
 
     return () => { stopPoll(); document.removeEventListener('visibilitychange', handleVisibility); };
-  }, [fetchTelemetry, isElectron]);
+  }, [fetchTelemetry, isElectron, graphPollMs]);
 
   // ── Derived state ─────────────────────────────────────────────────────────
 
@@ -803,7 +818,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* Each metric has a wide low-opacity glow pass + thinner solid pass */}
 
               {/* Disk */}
-              {hasDiskData && toggles.disk && (
+              {hasDiskData && toggles.disk && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
                   stroke={C.disk} strokeWidth={7} strokeOpacity={0.08 * lineOpacity("disk")}
                   dot={false} activeDot={false} strokeDasharray="5 2" connectNulls legendType="none" isAnimationActive={false}
@@ -817,7 +832,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
 
               {/* RAM — uses ramDisplay for chart position, tooltip reads true ram */}
-              {hasRamData && toggles.ram && (
+              {hasRamData && toggles.ram && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="ramDisplay"
                   stroke={C.ram} strokeWidth={7} strokeOpacity={0.10 * lineOpacity("ram")}
                   dot={false} activeDot={false} legendType="none" isAnimationActive={false}
@@ -835,7 +850,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
 
               {/* CPU */}
-              {toggles.cpu && (
+              {toggles.cpu && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="cpuLoad"
                   stroke={C.cpuLoad} strokeWidth={7} strokeOpacity={0.10 * lineOpacity("cpu")}
                   dot={false} activeDot={false} legendType="none" isAnimationActive={false}
@@ -855,7 +870,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* GPU — uses gpuDisplay for chart position, tooltip reads true gpuLoad.
                   connectNulls=true handles null gaps during warm-up; zero-substitution
                   in data path means there should be none. Dashed to distinguish from RAM. */}
-              {hasGpuLoad && toggles.gpu && (
+              {hasGpuLoad && toggles.gpu && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="gpuDisplay"
                   stroke={C.gpuLoad} strokeWidth={7} strokeOpacity={0.10 * lineOpacity("gpu")}
                   dot={false} activeDot={false} legendType="none" connectNulls isAnimationActive={false}
