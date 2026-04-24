@@ -30,9 +30,9 @@ if (hasCargo()) {
     if (fs.existsSync(exePath)) {
       console.warn('[build-native] Cargo build failed but existing bin/sc_memory.exe found — using cached binary.');
     } else {
-      console.error('[build-native] ERROR: Cargo build failed and no cached binary exists.');
-      console.error('[build-native] Install Rust from https://rustup.rs and try again.');
-      process.exit(1);
+      console.warn('[build-native] WARNING: Cargo build failed and no cached binary exists.');
+      console.warn('[build-native] Memory clean feature will be unavailable in this build.');
+      console.warn('[build-native] To enable it: install Rust from https://rustup.rs and rebuild.');
     }
   }
 } else if (fs.existsSync(exePath)) {
@@ -40,7 +40,8 @@ if (hasCargo()) {
   const sizeKB = Math.round(stats.size / 1024);
   console.log(`[build-native] Cargo not found — using existing bin/sc_memory.exe (${sizeKB} KB)`);
 } else {
-  console.error('[build-native] ERROR: Cargo is not installed and no pre-built bin/sc_memory.exe found.');
-  console.error('[build-native] Install Rust from https://rustup.rs then run this build again.');
-  process.exit(1);
+  console.warn('[build-native] WARNING: Cargo is not installed and no pre-built bin/sc_memory.exe found.');
+  console.warn('[build-native] Memory clean feature will be unavailable in this build.');
+  console.warn('[build-native] To enable it: install Rust from https://rustup.rs and rebuild.');
+  console.warn('[build-native] Continuing build — all other features work normally.');
 }
