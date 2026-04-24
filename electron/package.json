@@ -1,6 +1,6 @@
 {
   "name": "switchcontrol-electron",
-  "version": "1.0.7",
+    "version": "1.0.7",
   "description": "Elite Windows performance optimization suite",
   "author": "SwitchTech",
   "private": true,
@@ -109,7 +109,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": true,
-      "shortcutName": "Switchcontrol"
+      "shortcutName": "SwitchControl"
     }
   }
 }
