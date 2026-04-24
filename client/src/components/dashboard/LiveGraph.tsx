@@ -21,6 +21,9 @@ interface DataPoint {
   gpuTemp: number | null;
   gpuMemPct: number | null;
   ram: number;
+  // Display-only values for chart rendering (offset when RAM/GPU overlap)
+  ramDisplay: number;
+  gpuDisplay: number | null;
   diskActiveTime: number | null;  // disk busy % — null when unavailable
   diskReadKBps: number | null;
   diskWriteKBps: number | null;
@@ -71,6 +74,70 @@ const C = {
   netRx: "#3b82f6",
   netTx: "#8b5cf6",
 } as const;
+
+// ── Visual separation helper ──────────────────────────────────────────────────
+// When RAM and GPU values are within 4%, offset chart-render values so
+// lines remain distinguishable. TRUE values are preserved in ram/gpuLoad
+// fields and shown by the custom tooltip.
+function computeDisplayOffset(ram: number, gpuLoad: number | null): { ramDisplay: number; gpuDisplay: number | null } {
+  if (gpuLoad == null) return { ramDisplay: ram, gpuDisplay: null };
+  const diff = Math.abs(ram - gpuLoad);
+  if (diff <= 4) {
+    const shift = Math.max(1.0, (4 - diff) * 0.6);
+    return {
+      ramDisplay:  Math.min(100, ram + shift),
+      gpuDisplay:  Math.max(0,   gpuLoad - shift),
+    };
+  }
+  return { ramDisplay: ram, gpuDisplay: gpuLoad };
+}
+
+// ── Custom tooltip ─────────────────────────────────────────────────────────────
+
+function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: any[]; label?: string }) {
+  if (!active || !payload?.length) return null;
+  const pt = payload[0]?.payload as DataPoint;
+  if (!pt) return null;
+
+  const entries: { label: string; value: number; color: string; unit: string }[] = [];
+
+  entries.push({ label: "CPU", value: pt.cpuLoad, color: C.cpuLoad, unit: "%" });
+  if (pt.ram != null) entries.push({ label: "RAM", value: pt.ram, color: C.ram, unit: "%" });
+  if (pt.gpuLoad != null) entries.push({ label: "GPU", value: pt.gpuLoad, color: C.gpuLoad, unit: "%" });
+  if (pt.diskActiveTime != null) entries.push({ label: "Disk", value: pt.diskActiveTime, color: C.disk, unit: "%" });
+  if (pt.cpuTemp != null) entries.push({ label: "CPU °C", value: pt.cpuTemp, color: C.cpuTemp, unit: "°C" });
+  if (pt.gpuTemp != null) entries.push({ label: "GPU °C", value: pt.gpuTemp, color: C.gpuTemp, unit: "°C" });
+  if (pt.gpuMemPct != null) entries.push({ label: "VRAM", value: pt.gpuMemPct, color: C.gpuMemPct, unit: "%" });
+  if (pt.netRx != null) entries.push({ label: "Net ↓", value: pt.netRx, color: C.netRx, unit: " KB/s" });
+  if (pt.netTx != null) entries.push({ label: "Net ↑", value: pt.netTx, color: C.netTx, unit: " KB/s" });
+
+  entries.sort((a, b) => a.label.localeCompare(b.label));
+
+  return (
+    <div style={{
+      backgroundColor: "rgba(0,0,0,0.92)",
+      border: "1px solid rgba(255,255,255,0.10)",
+      borderRadius: "8px",
+      fontSize: "11px",
+      padding: "8px 10px",
+      boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+      minWidth: 110,
+    }}>
+      <p style={{ color: "#9ca3af", marginBottom: 6, fontSize: 10 }}>{label}</p>
+      {entries.map(e => (
+        <div key={e.label} style={{ display: "flex", justifyContent: "space-between", gap: 12, marginBottom: 3 }}>
+          <span style={{ display: "flex", alignItems: "center", gap: 5, color: "#d1d5db" }}>
+            <span style={{ width: 7, height: 7, borderRadius: "50%", backgroundColor: e.color, display: "inline-block", flexShrink: 0 }} />
+            {e.label}
+          </span>
+          <span style={{ color: "#ffffff", fontWeight: 600 }}>
+            {e.unit === "°C" ? `${e.value.toFixed(1)}°C` : e.unit === " KB/s" ? `${e.value.toFixed(0)} KB/s` : `${e.value.toFixed(1)}${e.unit}`}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 // ── Loading placeholder ───────────────────────────────────────────────────────
 
@@ -163,9 +230,20 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
   const [toggles, setToggles] = useState<MetricToggles>({ cpu: true, ram: true, disk: true, gpu: true, net: false });
+  // soloMetric: when set, other lines are dimmed — click pill to solo, click same to reset
+  const [soloMetric, setSoloMetric] = useState<keyof MetricToggles | null>(null);
 
   function toggle(key: keyof MetricToggles) {
-    setToggles(prev => ({ ...prev, [key]: !prev[key] }));
+    setSoloMetric(prev => {
+      if (prev === key) return null;
+      return key;
+    });
+  }
+  function resetView() { setSoloMetric(null); }
+  // Opacity for a given metric when soloMetric is set
+  function lineOpacity(key: keyof MetricToggles): number {
+    if (soloMetric == null) return 1;
+    return soloMetric === key ? 1 : 0.12;
   }
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -225,14 +303,19 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       const timeStr = `${t.getMinutes()}:${t.getSeconds().toString().padStart(2, "0")}`;
       // Substitute 0 for null GPU when GPU is confirmed — avoids broken start segment
       const gpuRaw = wsHistory.gpu[i] ?? null;
+      const gpuLoad = gpuKnown && gpuRaw === null ? 0 : gpuRaw;
+      const ram = wsHistory.ram[i] ?? 0;
+      const { ramDisplay, gpuDisplay } = computeDisplayOffset(ram, gpuLoad);
       return {
         time: timeStr,
         cpuLoad: cpuLoad ?? 0,
         cpuTemp: null,
-        gpuLoad: gpuKnown && gpuRaw === null ? 0 : gpuRaw,
+        gpuLoad,
         gpuTemp: null,
         gpuMemPct: wsHistory.vram[i] ?? null,
-        ram: wsHistory.ram[i] ?? 0,
+        ram,
+        ramDisplay,
+        gpuDisplay,
         diskActiveTime: wsHistory.diskActiveTime[i] ?? null,
         diskReadKBps: wsHistory.diskReadKBps[i] ?? null,
         diskWriteKBps: wsHistory.diskWriteKBps[i] ?? null,
@@ -308,10 +391,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     const now = new Date();
     const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, "0")}`;
     setData(prev => {
+      const { ramDisplay, gpuDisplay } = computeDisplayOffset(ramPercent, gpuLoad);
       const pt: DataPoint = {
         time: timeStr, cpuLoad, cpuTemp,
         gpuLoad, gpuTemp, gpuMemPct,
-        ram: ramPercent,
+        ram: ramPercent, ramDisplay, gpuDisplay,
         diskActiveTime, diskReadKBps, diskWriteKBps,
         netRx: netRxSec, netTx: netTxSec,
       };
@@ -397,10 +481,11 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
       const now = new Date();
       const timeStr = `${now.getMinutes()}:${now.getSeconds().toString().padStart(2, "0")}`;
       setData(prev => {
+        const { ramDisplay, gpuDisplay } = computeDisplayOffset(ramPercent, gpuLoad);
         const pt: DataPoint = {
           time: timeStr, cpuLoad, cpuTemp,
           gpuLoad, gpuTemp, gpuMemPct,
-          ram: ramPercent,
+          ram: ramPercent, ramDisplay, gpuDisplay,
           diskActiveTime, diskReadKBps, diskWriteKBps,
           netRx: netRxSec, netTx: netTxSec,
         };
@@ -492,19 +577,24 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   const yTickStyle = { fill: "#6b7280", fontSize: 10 };
   const axisLineStyle = { stroke: "#374151" };
 
-  const tooltipFormatter = (value: number, name: string) => {
-    if (name.includes("KB/s")) return [`${safeFixed(value, 0)} KB/s`, name];
-    if (name.includes("°C")) return [`${safeFixed(value, 1)} °C`, name];
-    if (name.includes("I/O")) return [`${safeFixed(value, 1)}`, name];
-    return [`${safeFixed(value, 1)} %`, name];
-  };
+  // Flat-line detection — all key metrics have variance < 2 over last 10 points
+  const isFlat = (() => {
+    const recent = data.slice(-10);
+    if (recent.length < 5) return false;
+    const vals = recent.flatMap(d => [d.cpuLoad, d.ram, ...(d.gpuLoad != null ? [d.gpuLoad] : [])]);
+    const range = Math.max(...vals) - Math.min(...vals);
+    return range < 2;
+  })();
 
   // Spike reference lines — draw vertical guideline at latest point when spiking
   const spikeRefIndex = latestPoint ? data.length - 1 : null;
 
   return (
     <GlassCard className="p-4" hoverEffect={false}>
-      <style>{`@keyframes sc-spike{0%{opacity:1;transform:scale(1.5)}100%{opacity:0;transform:scale(0.8)}}`}</style>
+      <style>{`
+        @keyframes sc-spike{0%{opacity:1;transform:scale(1.5)}100%{opacity:0;transform:scale(0.8)}}
+        @keyframes sc-pulse-dot{0%,100%{r:4;opacity:.5}50%{r:7;opacity:.9}}
+      `}</style>
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
@@ -609,25 +699,41 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               { key: "gpu" as const, label: "GPU", color: C.gpuLoad, show: hasGpuLoad },
               { key: "net" as const, label: "Net", color: C.netRx, show: hasNetRx || hasNetTx },
             ] as const
-          ).filter(m => m.show).map(m => (
+          ).filter(m => m.show).map(m => {
+            const isSoloed = soloMetric === m.key;
+            const isDimmed = soloMetric != null && !isSoloed;
+            return (
+              <button
+                key={m.key}
+                data-testid={`toggle-metric-${m.key}`}
+                onClick={() => toggle(m.key)}
+                title={isSoloed ? "Click to reset view" : "Click to focus this metric"}
+                className={cn(
+                  "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-all duration-150",
+                  isSoloed
+                    ? "border-white/50 bg-white/15 text-white ring-1 ring-white/20"
+                    : isDimmed
+                      ? "border-white/[0.06] bg-transparent text-white/30"
+                      : "border-white/20 bg-white/[0.07] text-white/90 hover:bg-white/10"
+                )}
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: isDimmed ? "rgba(255,255,255,0.15)" : m.color }}
+                />
+                {m.label}
+              </button>
+            );
+          })}
+          {soloMetric != null && (
             <button
-              key={m.key}
-              data-testid={`toggle-metric-${m.key}`}
-              onClick={() => toggle(m.key)}
-              className={cn(
-                "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-all duration-150",
-                toggles[m.key]
-                  ? "border-white/20 bg-white/[0.07] text-white/90"
-                  : "border-white/[0.07] bg-transparent text-white/30 line-through"
-              )}
+              onClick={resetView}
+              data-testid="button-reset-view"
+              className="px-2 py-0.5 rounded text-[10px] font-medium border border-white/20 bg-white/5 text-white/50 hover:text-white/80 hover:bg-white/10 transition-all ml-1"
             >
-              <span
-                className="w-1.5 h-1.5 rounded-full shrink-0"
-                style={{ backgroundColor: toggles[m.key] ? m.color : "rgba(255,255,255,0.2)" }}
-              />
-              {m.label}
+              Reset view
             </button>
-          ))}
+          )}
         </div>
       )}
 
@@ -670,18 +776,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 width={expanded ? 40 : 0}
               />
 
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "rgba(0,0,0,0.92)",
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  borderRadius: "8px",
-                  fontSize: "11px",
-                  boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
-                }}
-                labelStyle={{ color: "#9ca3af" }}
-                formatter={tooltipFormatter}
-              />
-              <Legend wrapperStyle={{ fontSize: "10px", paddingTop: "8px" }} iconSize={8} />
+              <Tooltip content={<ChartTooltip />} />
+
 
               {/* Spike reference lines */}
               {spikes.cpu && spikeRefIndex != null && (
@@ -704,90 +800,123 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               )}
 
               {/* ── COLLAPSED + EXPANDED: Core lines ── */}
-              {/* Disk active time — dotted amber line. hasDiskData = at least one non-null activeTimePct. */}
+              {/* Each metric has a wide low-opacity glow pass + thinner solid pass */}
+
+              {/* Disk */}
               {hasDiskData && toggles.disk && (
-                <Line
-                  yAxisId="pct" type="monotone" dataKey="diskActiveTime"
-                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
-                  dot={false} activeDot={{ r: 3 }} strokeDasharray="5 2" connectNulls
+                <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
+                  stroke={C.disk} strokeWidth={7} strokeOpacity={0.08 * lineOpacity("disk")}
+                  dot={false} activeDot={false} strokeDasharray="5 2" connectNulls legendType="none" isAnimationActive={false}
+                />
+              )}
+              {hasDiskData && toggles.disk && (
+                <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
+                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5} strokeOpacity={lineOpacity("disk")}
+                  dot={false} activeDot={{ r: 4, strokeWidth: 0 }} strokeDasharray="5 2" connectNulls isAnimationActive={false}
+                />
+              )}
+
+              {/* RAM — uses ramDisplay for chart position, tooltip reads true ram */}
+              {hasRamData && toggles.ram && (
+                <Line yAxisId="pct" type="monotone" dataKey="ramDisplay"
+                  stroke={C.ram} strokeWidth={7} strokeOpacity={0.10 * lineOpacity("ram")}
+                  dot={false} activeDot={false} legendType="none" isAnimationActive={false}
                 />
               )}
               {hasRamData && toggles.ram && (
-                <Line
-                  yAxisId="pct" type="monotone" dataKey="ram"
-                  name="RAM (%)" stroke={C.ram} strokeWidth={2}
-                  dot={false} activeDot={{ r: 3 }}
+                <Line yAxisId="pct" type="monotone" dataKey="ramDisplay"
+                  name="RAM (%)" stroke={C.ram} strokeWidth={2.5} strokeOpacity={lineOpacity("ram")}
+                  dot={isFlat ? (props: any) => {
+                    if (props.index !== data.length - 1) return <g key={props.key} />;
+                    return <circle key={props.key} cx={props.cx} cy={props.cy} r={4} fill={C.ram} opacity={0.7} style={{ animation: "sc-pulse-dot 2s ease-in-out infinite" }} />;
+                  } : false}
+                  activeDot={{ r: 5, strokeWidth: 0 }} isAnimationActive={false}
+                />
+              )}
+
+              {/* CPU */}
+              {toggles.cpu && (
+                <Line yAxisId="pct" type="monotone" dataKey="cpuLoad"
+                  stroke={C.cpuLoad} strokeWidth={7} strokeOpacity={0.10 * lineOpacity("cpu")}
+                  dot={false} activeDot={false} legendType="none" isAnimationActive={false}
                 />
               )}
               {toggles.cpu && (
-                <Line
-                  yAxisId="pct" type="monotone" dataKey="cpuLoad"
-                  name="CPU (%)" stroke={C.cpuLoad} strokeWidth={2}
-                  dot={false} activeDot={{ r: 3 }}
+                <Line yAxisId="pct" type="monotone" dataKey="cpuLoad"
+                  name="CPU (%)" stroke={C.cpuLoad} strokeWidth={2.5} strokeOpacity={lineOpacity("cpu")}
+                  dot={isFlat ? (props: any) => {
+                    if (props.index !== data.length - 1) return <g key={props.key} />;
+                    return <circle key={props.key} cx={props.cx} cy={props.cy} r={4} fill={C.cpuLoad} opacity={0.7} style={{ animation: "sc-pulse-dot 2s ease-in-out infinite 0.3s" }} />;
+                  } : false}
+                  activeDot={{ r: 5, strokeWidth: 0 }} isAnimationActive={false}
                 />
               )}
-              {/* GPU — only when platform confirms a GPU is present (gpuEverDetected).
-                  connectNulls=true is a safety net for any null gaps during warm-up;
-                  the zero-substitution in the data path means there should be none. */}
+
+              {/* GPU — uses gpuDisplay for chart position, tooltip reads true gpuLoad.
+                  connectNulls=true handles null gaps during warm-up; zero-substitution
+                  in data path means there should be none. Dashed to distinguish from RAM. */}
               {hasGpuLoad && toggles.gpu && (
-                <Line
-                  yAxisId="pct" type="monotone" dataKey="gpuLoad"
-                  name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2}
-                  dot={false} activeDot={{ r: 3 }} connectNulls={true}
+                <Line yAxisId="pct" type="monotone" dataKey="gpuDisplay"
+                  stroke={C.gpuLoad} strokeWidth={7} strokeOpacity={0.10 * lineOpacity("gpu")}
+                  dot={false} activeDot={false} legendType="none" connectNulls isAnimationActive={false}
+                />
+              )}
+              {hasGpuLoad && toggles.gpu && (
+                <Line yAxisId="pct" type="monotone" dataKey="gpuDisplay"
+                  name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2.5} strokeOpacity={lineOpacity("gpu")}
+                  strokeDasharray="7 3"
+                  dot={isFlat ? (props: any) => {
+                    if (props.index !== data.length - 1) return <g key={props.key} />;
+                    return <circle key={props.key} cx={props.cx} cy={props.cy} r={4} fill={C.gpuLoad} opacity={0.7} style={{ animation: "sc-pulse-dot 2s ease-in-out infinite 0.6s" }} />;
+                  } : false}
+                  activeDot={{ r: 5, strokeWidth: 0 }} connectNulls isAnimationActive={false}
                 />
               )}
 
               {/* ── EXPANDED ONLY: Temperature lines ── */}
               {expanded && hasCpuTemp && toggles.cpu && (
-                <Line
-                  yAxisId="pct" type="monotone" dataKey="cpuTemp"
-                  name="CPU Temp (°C)" stroke={C.cpuTemp} strokeWidth={1.5}
-                  dot={false} activeDot={{ r: 3 }} strokeDasharray="4 2" connectNulls
+                <Line yAxisId="pct" type="monotone" dataKey="cpuTemp"
+                  name="CPU Temp (°C)" stroke={C.cpuTemp} strokeWidth={2} strokeOpacity={lineOpacity("cpu")}
+                  dot={false} activeDot={{ r: 4, strokeWidth: 0 }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
               {expanded && hasGpuTemp && toggles.gpu && (
-                <Line
-                  yAxisId="pct" type="monotone" dataKey="gpuTemp"
-                  name="GPU Temp (°C)" stroke={C.gpuTemp} strokeWidth={1.5}
-                  dot={false} activeDot={{ r: 3 }} strokeDasharray="4 2" connectNulls
+                <Line yAxisId="pct" type="monotone" dataKey="gpuTemp"
+                  name="GPU Temp (°C)" stroke={C.gpuTemp} strokeWidth={2} strokeOpacity={lineOpacity("gpu")}
+                  dot={false} activeDot={{ r: 4, strokeWidth: 0 }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
               {/* VRAM */}
               {expanded && hasGpuMem && toggles.gpu && (
-                <Line
-                  yAxisId="pct" type="monotone" dataKey="gpuMemPct"
-                  name="VRAM (%)" stroke={C.gpuMemPct} strokeWidth={1.5}
-                  dot={false} activeDot={{ r: 2 }} strokeDasharray="6 3" connectNulls
+                <Line yAxisId="pct" type="monotone" dataKey="gpuMemPct"
+                  name="VRAM (%)" stroke={C.gpuMemPct} strokeWidth={1.5} strokeOpacity={lineOpacity("gpu")}
+                  dot={false} activeDot={{ r: 3, strokeWidth: 0 }} strokeDasharray="6 3" connectNulls isAnimationActive={false}
                 />
               )}
               {/* Disk read/write separate lines in expanded mode */}
               {expanded && hasDiskRW && toggles.disk && (
-                <Line
-                  yAxisId="net" type="monotone" dataKey="diskReadKBps"
-                  name="Disk R KB/s" stroke="#f59e0b" strokeWidth={1.5}
-                  dot={false} activeDot={{ r: 2 }} strokeDasharray="3 2" connectNulls
+                <Line yAxisId="net" type="monotone" dataKey="diskReadKBps"
+                  name="Disk R KB/s" stroke="#f59e0b" strokeWidth={1.5} strokeOpacity={lineOpacity("disk")}
+                  dot={false} activeDot={{ r: 3, strokeWidth: 0 }} strokeDasharray="3 2" connectNulls isAnimationActive={false}
                 />
               )}
               {expanded && hasDiskRW && toggles.disk && (
-                <Line
-                  yAxisId="net" type="monotone" dataKey="diskWriteKBps"
-                  name="Disk W KB/s" stroke="#d97706" strokeWidth={1.5}
-                  dot={false} activeDot={{ r: 2 }} strokeDasharray="3 2" connectNulls
+                <Line yAxisId="net" type="monotone" dataKey="diskWriteKBps"
+                  name="Disk W KB/s" stroke="#d97706" strokeWidth={1.5} strokeOpacity={lineOpacity("disk")}
+                  dot={false} activeDot={{ r: 3, strokeWidth: 0 }} strokeDasharray="3 2" connectNulls isAnimationActive={false}
                 />
               )}
               {/* Network */}
               {(expanded || toggles.net) && hasNetRx && toggles.net && (
-                <Line
-                  yAxisId="net" type="monotone" dataKey="netRx"
-                  name="Net ↓ KB/s" stroke={C.netRx} strokeWidth={1.5}
-                  dot={false} activeDot={{ r: 2 }} strokeDasharray="4 2" connectNulls
+                <Line yAxisId="net" type="monotone" dataKey="netRx"
+                  name="Net ↓ KB/s" stroke={C.netRx} strokeWidth={2} strokeOpacity={lineOpacity("net")}
+                  dot={false} activeDot={{ r: 3, strokeWidth: 0 }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
               {(expanded || toggles.net) && hasNetTx && toggles.net && (
-                <Line
-                  yAxisId="net" type="monotone" dataKey="netTx"
-                  name="Net ↑ KB/s" stroke={C.netTx} strokeWidth={1.5}
-                  dot={false} activeDot={{ r: 2 }} strokeDasharray="4 2" connectNulls
+                <Line yAxisId="net" type="monotone" dataKey="netTx"
+                  name="Net ↑ KB/s" stroke={C.netTx} strokeWidth={2} strokeOpacity={lineOpacity("net")}
+                  dot={false} activeDot={{ r: 3, strokeWidth: 0 }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
             </LineChart>
