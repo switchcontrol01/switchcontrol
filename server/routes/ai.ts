@@ -454,38 +454,22 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   parts.push(`Subscription: ${isPremium ? "Premium (full feature access)" : "Free tier (limited features)"}`);
 
   // ── Hardware ───────────────────────────────────────────────────────────────
-  // Prefer system intelligence from serverCtx, fall back to client-supplied strings
-  if (serverCtx?.systemIntel?.status === "available") {
-    const si = serverCtx.systemIntel;
-    const cpu = si.cpuBrand ?? context?.system?.cpu;
-    const gpus = si.gpuNames.length > 0 ? si.gpuNames.join(" / ") : context?.system?.gpu;
-    const ramParts = [
-      si.ramTotalMb ? `${Math.round(si.ramTotalMb / 1024)}GB` : null,
-      si.ramStickCount ? `${si.ramStickCount} stick${si.ramStickCount > 1 ? "s" : ""}` : null,
-      si.ramType ?? null,
-      si.ramSpeedMhz ? `@ ${si.ramSpeedMhz}MHz` : null,
-    ].filter(Boolean).join(" ");
-    const ram = ramParts || context?.system?.ram;
-    if (cpu) parts.push(`CPU: ${cpu}`);
-    if (gpus) parts.push(`GPU: ${gpus}`);
-    if (ram) parts.push(`RAM: ${ram}`);
-    if (si.motherboard) parts.push(`Motherboard: ${si.motherboard}`);
-    if (si.biosVersion) parts.push(`BIOS Version: ${si.biosVersion}`);
-    if (si.os) parts.push(`OS: ${si.os}`);
-    if (context?.system?.storage) parts.push(`Storage: ${context.system.storage}`);
-    if (si.networkAdapters.length > 0) parts.push(`Network adapters: ${si.networkAdapters.join(", ")}`);
-    else if (context?.system?.network) parts.push(`Network: ${context.system.network}`);
-    // Security flags
-    if (si.vbsEnabled) parts.push("⚠️ VBS/Memory Integrity ENABLED — adds CPU overhead and scheduler latency");
-    if (si.hypervisorPresent) parts.push("⚠️ Hyper-V hypervisor present — raises timer resolution floor");
-    if (si.resizeBarEnabled === false) parts.push("⚠️ Resizable BAR disabled — GPU performance limited");
-    if (si.xmpInference) parts.push(`XMP/EXPO status: ${si.xmpInference}`);
-  } else if (context?.system) {
+  // ALWAYS use client-supplied hardware strings. The serverCtx.systemIntel reflects
+  // the CLOUD SERVER's own hardware profile (Replit VM: EPYC CPU, 1 RAM stick, ~4 GB)
+  // — NOT the user's machine. Preferring server intel caused the AI to report the
+  // cloud server's specs (e.g. "4 GB single stick") instead of the user's real hardware.
+  // The client collects accurate hardware via Electron IPC directly from the user's OS.
+  if (context?.system) {
     const s = context.system;
-    const specs = [s.cpu, s.gpu, s.ram, s.storage, s.os].filter(Boolean).join(" | ");
-    if (specs) parts.push(`Hardware: ${specs}`);
+    if (s.cpu) parts.push(`CPU: ${s.cpu}`);
+    if (s.gpu) parts.push(`GPU: ${s.gpu}`);
+    if (s.ram) parts.push(`RAM: ${s.ram}`);
+    if (s.storage) parts.push(`Storage: ${s.storage}`);
+    if (s.os) parts.push(`OS: ${s.os}`);
     if (s.motherboard && s.motherboard !== "Unknown" && s.motherboard !== "") parts.push(`Motherboard: ${s.motherboard}`);
     if (s.network) parts.push(`Network: ${s.network}`);
+    // Notes include BIOS inference (XMP/EXPO state, VBS, Secure Boot) built client-side
+    if (s.notes) parts.push(`System notes: ${s.notes}`);
   }
 
   // ── Display signal ─────────────────────────────────────────────────────────
@@ -537,28 +521,33 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   }
 
   // ── Live telemetry ────────────────────────────────────────────────────────
-  // Prefer server-side snapshot (always fresh) over client-supplied telemetry
-  const tel = serverCtx?.telemetry?.status === "available" ? serverCtx.telemetry : null;
+  // ALWAYS prefer client-supplied telemetry. The server-side snapshot (serverCtx.telemetry)
+  // is collected from the CLOUD SERVER's own sensors — not the user's machine. Using it
+  // would show the cloud VM's CPU load and RAM usage instead of the user's real metrics.
+  // Client telemetry is pushed from the user's Electron app via the context payload.
+  const svrTel = serverCtx?.telemetry?.status === "available" ? serverCtx.telemetry : null;
   const ctxTel = context?.telemetry ?? {};
   const telParts: string[] = [];
 
-  const cpuLoad = tel?.cpuLoadPct ?? ctxTel.cpuLoadPct;
-  const cpuTemp = tel?.cpuTempC ?? ctxTel.cpuTempC;
-  const gpuLoad = tel?.gpuLoadPct ?? ctxTel.gpuLoadPct;
-  const gpuTemp = tel?.gpuTempC ?? ctxTel.gpuTempC;
+  // Client values win; server-side is only a fallback for pure-web (non-Electron) users
+  // who may not send telemetry in the context payload.
+  const cpuLoad = ctxTel.cpuLoadPct ?? svrTel?.cpuLoadPct;
+  const cpuTemp = ctxTel.cpuTempC ?? svrTel?.cpuTempC;
+  const gpuLoad = ctxTel.gpuLoadPct ?? svrTel?.gpuLoadPct;
+  const gpuTemp = ctxTel.gpuTempC ?? svrTel?.gpuTempC;
   // Treat 0 as unknown — a 0 GB reading means telemetry hasn't polled yet,
   // not that the machine genuinely has 0 bytes of RAM. Using 0 causes the AI
   // to see "RAM 0/0 GB used" and hallucinate specs from common defaults.
-  const rawRamUsed  = tel?.ramUsedGB  ?? ctxTel.ramUsedGB;
-  const rawRamTotal = tel?.ramTotalGB ?? ctxTel.ramTotalGB;
+  const rawRamUsed  = ctxTel.ramUsedGB  ?? svrTel?.ramUsedGB;
+  const rawRamTotal = ctxTel.ramTotalGB ?? svrTel?.ramTotalGB;
   const ramUsed  = (rawRamUsed  != null && rawRamUsed  > 0) ? rawRamUsed  : null;
   const ramTotal = (rawRamTotal != null && rawRamTotal > 0) ? rawRamTotal : null;
-  const vramUsed = tel?.vramUsedMb ?? ctxTel.vramUsedMb;
-  const vramTotal = tel?.vramTotalMb ?? ctxTel.vramTotalMb;
-  const vramPct = tel?.vramPct ?? ctxTel.vramPercent;
-  const loadTrend = tel?.loadTrend ?? ctxTel.loadTrend;
-  const rxKbps = tel?.networkRxKbps ?? ctxTel.networkRxKbps;
-  const txKbps = tel?.networkTxKbps ?? ctxTel.networkTxKbps;
+  const vramUsed = ctxTel.vramUsedMb ?? svrTel?.vramUsedMb;
+  const vramTotal = ctxTel.vramTotalMb ?? svrTel?.vramTotalMb;
+  const vramPct = ctxTel.vramPercent ?? svrTel?.vramPct;
+  const loadTrend = ctxTel.loadTrend ?? svrTel?.loadTrend;
+  const rxKbps = ctxTel.networkRxKbps ?? svrTel?.networkRxKbps;
+  const txKbps = ctxTel.networkTxKbps ?? svrTel?.networkTxKbps;
 
   if (cpuLoad != null) telParts.push(`CPU load ${cpuLoad}%${loadTrend ? ` [${loadTrend}]` : ""}`);
   if (cpuTemp != null) telParts.push(`CPU temp ${cpuTemp}°C${cpuTemp > 85 ? " ⚠️ HIGH" : ""}`);
@@ -587,7 +576,8 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   if (vramPct != null && vramPct > 90) parts.push("⚠️ VRAM near capacity — frame instability and stuttering likely");
   if (cpuTemp != null && cpuTemp > 90) parts.push("⚠️ CPU thermal throttling risk — temperatures above safe operating range");
   if (gpuTemp != null && gpuTemp > 88) parts.push("⚠️ GPU thermal throttling risk — temperatures elevated");
-  if (tel?.ramUsedPct != null && tel.ramUsedPct > 88) parts.push(`⚠️ RAM at ${Math.round(tel.ramUsedPct)}% — page-file spilling likely under gaming load`);
+  const ramUsedPct = ctxTel.ramUsedPct ?? svrTel?.ramUsedPct;
+  if (ramUsedPct != null && ramUsedPct > 88) parts.push(`⚠️ RAM at ${Math.round(ramUsedPct)}% — page-file spilling likely under gaming load`);
 
   // ── Recent action history ─────────────────────────────────────────────────
   const history: any[] = Array.isArray(context?.recentHistory) ? context.recentHistory.slice(0, 8) : [];
@@ -598,9 +588,6 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
     });
     parts.push(`Recent SwitchControl activity (most recent first):\n${lines.map(l => `  • ${l}`).join("\n")}`);
   }
-
-  // ── Notes from client ─────────────────────────────────────────────────────
-  if (context?.system?.notes) parts.push(`Additional notes: ${context.system.notes}`);
 
   return parts.join("\n");
 }
