@@ -337,6 +337,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
       assertString(guid, 'guid');
       return ipcRenderer.invoke('powerPlans:activateByGuid', guid);
     },
+    applyCustom:    (name, settings) => {
+      assertString(name, 'customPlanName');
+      if (!settings || typeof settings !== 'object') throw new TypeError('applyCustom: settings must be an object');
+      return ipcRenderer.invoke('powerPlans:applyCustom', name, settings);
+    },
+    getCustomMeta:  () => ipcRenderer.invoke('powerPlans:getCustomMeta'),
   },
 
   networkTweaks: {

@@ -95,6 +95,12 @@ const SETTING_DEFS = {
     label:    'Display Off',
     fmt:      (v) => v === 0 ? 'Never' : v < 120 ? `${v}s` : `After ${Math.round(v / 60)} min`,
   },
+  processorThrottleStates: {
+    subgroup: '54533251-82be-4824-96c1-47b60b740d00',
+    setting:  '3b04d4fd-1cc7-4f23-ab1c-d1337819c4bb',
+    label:    'Processor Throttle States',
+    fmt:      (v) => v === 0 ? 'Disabled' : 'Enabled',
+  },
 };
 
 // ── Preset profile definitions ────────────────────────────────────────────────
@@ -885,10 +891,15 @@ async function deleteAllScPlans() {
   // ── 3. Build confirmed-SC-owned GUID set ─────────────────────────────────────
   const confirmedGuids = new Set();
 
-  // Priority 1: power-plans.json schemeGuids
+  // Priority 1: power-plans.json schemeGuids (preset profiles) + custom plan GUID
   try {
-    const storedGuids = Object.values(loadState().schemeGuids || {});
+    const st = loadState();
+    const storedGuids = Object.values(st.schemeGuids || {});
     storedGuids.forEach(g => g && confirmedGuids.add(String(g).toLowerCase()));
+    // Also include the custom plan GUID (has no SC-name-prefix, so not caught by name fallback)
+    if (st.customPlan?.guid) {
+      confirmedGuids.add(String(st.customPlan.guid).toLowerCase());
+    }
   } catch { /* non-critical */ }
 
   // Priority 2: ownership-store records with appliedByApp=true + power_plan type
@@ -1101,6 +1112,266 @@ async function restoreBuiltinPlanNames() {
   return results;
 }
 
+// ── Custom power plan ─────────────────────────────────────────────────────────
+
+const CUSTOM_PLAN_INVALID_CHARS = /[\\/:*?"<>|]/;
+
+function validateCustomPlanName(name) {
+  if (typeof name !== 'string') return 'Name must be a string.';
+  const t = name.trim();
+  if (t.length < 3)  return 'Name must be at least 3 characters.';
+  if (t.length > 50) return 'Name must be at most 50 characters.';
+  if (CUSTOM_PLAN_INVALID_CHARS.test(t)) return 'Name contains invalid characters (\\ / : * ? " < > |).';
+  return null;
+}
+
+/**
+ * Duplicate a base scheme and return the new GUID.
+ * Handles admin (direct powercfg) and non-admin (elevated PS1 script) paths.
+ * Does NOT rename the new scheme — caller is responsible for naming.
+ *
+ * @param {string} baseGuid
+ * @returns {Promise<string|null>} new GUID in lowercase or null on failure
+ */
+async function duplicateSchemeRaw(baseGuid) {
+  const isAdminNow = await checkIsAdmin();
+  let newGuid = null;
+
+  if (isAdminNow) {
+    try {
+      const dupOut = await runPowercfg('/duplicatescheme', baseGuid);
+      const m = dupOut.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (m) newGuid = m[0].toLowerCase();
+    } catch (e) {
+      console.warn(`[PowerPlan:Custom] admin direct duplicate failed — ${e.message}`);
+    }
+  } else {
+    const scriptId   = `sc_cust_dup_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const resultPath = path.join(os.tmpdir(), `${scriptId}.txt`);
+    const scriptPath = path.join(os.tmpdir(), `${scriptId}.ps1`);
+    const scriptLines = [
+      `$ErrorActionPreference = 'Continue'`,
+      `try {`,
+      `  $raw = & powercfg /duplicatescheme ${baseGuid} 2>&1`,
+      `  $out = ($raw | Out-String).Trim()`,
+      `  $m   = [regex]::Match($out, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')`,
+      `  if ($m.Success) {`,
+      `    [System.IO.File]::WriteAllText('${resultPath.replace(/'/g, "''")}', $m.Value.ToLower())`,
+      `  }`,
+      `} catch { }`,
+    ];
+    try {
+      fs.writeFileSync(scriptPath, scriptLines.join('\r\n'), 'utf8');
+      const launchCmd = `Start-Process powershell -ArgumentList @('-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-WindowStyle','Hidden','-File','${scriptPath.replace(/'/g, "''")}') -Verb RunAs -Wait`;
+      await new Promise(resolve => {
+        execFile(
+          'powershell',
+          ['-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden', '-ExecutionPolicy', 'Bypass', '-Command', launchCmd],
+          { timeout: 60_000, windowsHide: true },
+          () => resolve()
+        );
+      });
+    } catch (e) {
+      console.warn(`[PowerPlan:Custom] elevated duplicate failed — ${e.message}`);
+    } finally {
+      try { fs.unlinkSync(scriptPath); } catch {}
+    }
+    const deadline = Date.now() + 5000;
+    while (!fs.existsSync(resultPath) && Date.now() < deadline) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    if (fs.existsSync(resultPath)) {
+      newGuid = fs.readFileSync(resultPath, 'utf8').replace(/^\uFEFF/, '').trim().toLowerCase();
+      try { fs.unlinkSync(resultPath); } catch {}
+    }
+  }
+
+  if (!newGuid || !/^[0-9a-f-]{36}$/.test(newGuid)) return null;
+  return newGuid;
+}
+
+/**
+ * Apply a custom power plan with a user-defined name and granular settings.
+ *
+ * Flow:
+ *   1. Validate name (3-50 chars, no invalid chars)
+ *   2. Reuse stored custom GUID if it still exists in Windows; otherwise duplicate base plan
+ *   3. Rename the plan to the user's exact custom name
+ *   4. Apply each selected setting via powercfg
+ *   5. Activate the plan
+ *   6. Verify active GUID matches
+ *   7. Persist { guid, name, createdAt, lastAppliedSettings } in power-plans.json
+ *
+ * @param {string} name     - User-supplied plan name (3-50 chars, no special chars)
+ * @param {object} settings - CustomSettings object from the frontend
+ */
+async function applyCustomPowerProfile(name, settings) {
+  console.log(`[PowerPlan:Custom] name input="${name}"`);
+
+  const nameErr = validateCustomPlanName(name);
+  if (nameErr) {
+    console.error(`[PowerPlan:Custom] validation failed: ${nameErr}`);
+    return { success: false, error: nameErr };
+  }
+  const cleanName = name.trim();
+  const state = loadState();
+
+  // ── Step 1: Resolve or create the custom GUID ────────────────────────────────
+  let customGuid = typeof state.customPlan?.guid === 'string' ? state.customPlan.guid.toLowerCase() : null;
+
+  if (customGuid) {
+    const listResult = await listPowerSchemes();
+    const stillExists = listResult.schemes?.some(s => s.guid.toLowerCase() === customGuid);
+    if (!stillExists) {
+      console.log(`[PowerPlan:Custom] stored GUID ${customGuid} no longer exists — will create new`);
+      customGuid = null;
+    }
+  }
+
+  if (!customGuid) {
+    const baseGuid = await resolveBasePlanGuid('high_performance');
+    console.log(`[PowerPlan:Custom] duplicating base plan ${baseGuid}`);
+    customGuid = await duplicateSchemeRaw(baseGuid);
+    console.log(`[PowerPlan:Custom] duplicated base GUID=${customGuid}`);
+    if (!customGuid) {
+      return { success: false, error: 'Could not create a new custom power plan (duplication failed or was cancelled).' };
+    }
+  }
+
+  // ── Step 2: Rename to user's exact name ──────────────────────────────────────
+  try {
+    await runPowercfg('/changename', customGuid, cleanName, 'SwitchControl custom power plan');
+    console.log(`[PowerPlan:Custom] renamed to="${cleanName}"`);
+  } catch (e) {
+    console.warn(`[PowerPlan:Custom] rename failed (non-fatal): ${e.message}`);
+  }
+
+  // ── Step 3: Build setting commands ───────────────────────────────────────────
+  const cmds = [];
+
+  function addSetting(key, value) {
+    const def = SETTING_DEFS[key];
+    if (!def) return;
+    console.log(`[PowerPlan:Custom] applying setting=${key} value=${value}`);
+    cmds.push(`powercfg /setacvalueindex ${customGuid} ${def.subgroup} ${def.setting} ${value}`);
+    cmds.push(`powercfg /setdcvalueindex ${customGuid} ${def.subgroup} ${def.setting} ${value}`);
+  }
+
+  // CPU % states — frequency scaling overrides sliders
+  const minProc = settings.disableFrequencyScaling ? 100 : (Number(settings.minProcessorState) || 5);
+  const maxProc = settings.disableFrequencyScaling ? 100 : (Number(settings.maxProcessorState) || 100);
+  addSetting('cpuMinPercentAC', minProc);
+  addSetting('cpuMaxPercentAC', maxProc);
+
+  // Core parking
+  if (settings.disableCoreParking) {
+    addSetting('coreParkingMinCoresAC', 100);
+  }
+
+  // Turbo boost (perfBoostModeAC: 2=aggressive / 0=disabled)
+  addSetting('perfBoostModeAC', settings.enableTurboBoost ? 2 : 0);
+
+  // Throttle states (0=disabled / 1=enabled)
+  addSetting('processorThrottleStates', settings.disableThrottleStates ? 0 : 1);
+
+  // USB selective suspend
+  addSetting('usbSelectiveSuspendAC', settings.disableUsbSelectiveSuspend ? 0 : 1);
+
+  // PCIe ASPM — always disable for performance in custom plans
+  addSetting('pcieAspmAC', 0);
+
+  // Sleep & hibernate
+  if (settings.disableSleep) {
+    addSetting('sleepAfterAC', 0);
+    addSetting('hibernateAfterAC', 0);
+  } else if (settings.disableHibernation) {
+    addSetting('hibernateAfterAC', 0);
+  }
+
+  // Display
+  if (settings.keepDisplayOn) {
+    addSetting('displayOffAfterAC', 0);
+  }
+
+  // Activate last
+  cmds.push(`powercfg /setactive ${customGuid}`);
+
+  // ── Step 4: Run commands ──────────────────────────────────────────────────────
+  const isAdmin = await checkIsAdmin();
+  console.log(`[PowerPlan:Custom] isAdmin=${isAdmin} — running ${cmds.length} commands`);
+  let applyResult = { ok: true, failed: [] };
+
+  if (isAdmin) {
+    const failed = [];
+    for (const cmd of cmds) {
+      try {
+        const args = cmd.split(' ').slice(1);
+        await runPowercfg(...args);
+      } catch (e) {
+        failed.push(cmd);
+        console.error(`[PowerPlan:Custom] cmd FAILED: ${cmd} — ${e.message}`);
+      }
+    }
+    applyResult = { ok: true, failed };
+  } else {
+    applyResult = await runElevatedCommands(cmds);
+    if (applyResult.cancelled) {
+      console.warn(`[PowerPlan:Custom] UAC cancelled`);
+      return { success: false, cancelled: true, error: 'Admin permission was canceled. No system changes were made.' };
+    }
+    if (!applyResult.ok) {
+      console.error(`[PowerPlan:Custom] elevation failed: ${applyResult.error}`);
+      return { success: false, error: applyResult.error || 'Elevation failed.' };
+    }
+  }
+
+  console.log(`[PowerPlan:Custom] activated GUID=${customGuid}`);
+
+  // ── Step 5: Verify ────────────────────────────────────────────────────────────
+  const activeResult = await getActivePowerScheme();
+  const activeGuid   = (activeResult.scheme?.guid ?? '').toLowerCase();
+  console.log(`[PowerPlan:Custom] verify active GUID=${activeGuid}`);
+
+  const verified = activeResult.success && activeGuid === customGuid;
+  console.log(`[PowerPlan:Custom] success/fail=${verified ? 'success' : 'fail'}`);
+
+  // ── Step 6: Persist ───────────────────────────────────────────────────────────
+  const updatedState = loadState(); // re-read to avoid clobbering concurrent writes
+  const customPlan = {
+    guid:                customGuid,
+    name:                cleanName,
+    createdAt:           updatedState.customPlan?.createdAt || Date.now(),
+    lastAppliedSettings: settings,
+  };
+  saveState({ ...updatedState, customPlan });
+  console.log(`[PowerPlan:Custom] persisted custom plan metadata guid=${customGuid} name="${cleanName}"`);
+
+  if (!verified) {
+    return {
+      success: false,
+      error: `Custom plan created but verification failed — active=${activeGuid}, expected=${customGuid}`,
+      guid:  customGuid,
+      name:  cleanName,
+    };
+  }
+
+  return {
+    success:      true,
+    verified:     true,
+    guid:         customGuid,
+    name:         cleanName,
+    activeScheme: activeResult.scheme,
+    failedCmds:   applyResult.failed ?? [],
+  };
+}
+
+/**
+ * Return stored custom plan metadata ({ guid, name, createdAt, lastAppliedSettings }) or null.
+ */
+function getCustomPlanMeta() {
+  return loadState().customPlan ?? null;
+}
+
 // ── Ownership-aware wrapper ────────────────────────────────────────────────────
 
 const ownershipStore = require('./ownership-store');
@@ -1182,6 +1453,8 @@ module.exports = {
   getPowerPlanState,
   applyPowerProfile,
   applyPowerProfileWithOwnership,
+  applyCustomPowerProfile,
+  getCustomPlanMeta,
   activatePlanByGuid,
   listSchemesForFrontend,
   getActivePowerScheme,

@@ -302,6 +302,11 @@ export default function PowerPlan() {
   const [infoToggle, setInfoToggle]     = useState<OverrideToggle | null>(null);
   const [intentMode, setIntentMode]     = useState<IntentMode>("balanced");
 
+  // Custom plan name + persisted metadata
+  const [customPlanName, setCustomPlanName] = useState("My Custom Plan");
+  const [customNameError, setCustomNameError] = useState<string | null>(null);
+  const [customPlanMeta, setCustomPlanMeta] = useState<{ guid: string; name: string; createdAt: number } | null>(null);
+
   const isElectron = isElectronWithPowerPlans();
 
   // Backend state — only show loading if we're actually in Electron (otherwise data is instant)
@@ -314,17 +319,37 @@ export default function PowerPlan() {
   const [customApplied,  setCustomApplied]  = useState(false);
   const hasFetched = useRef(false);
 
+  // ── Custom name validation ──────────────────────────────────────────────────
+  function validateCustomName(v: string): string | null {
+    const t = v.trim();
+    if (t.length < 3)  return "Name must be at least 3 characters";
+    if (t.length > 50) return "Name must be at most 50 characters";
+    if (/[\\/:*?"<>|]/.test(t)) return 'Cannot contain \\ / : * ? " < > |';
+    return null;
+  }
+
   // ── Fetch real power state on mount ────────────────────────────────────────
   const fetchPowerState = useCallback(async () => {
     if (!isElectron) { setPlanLoading(false); return; }
     setPlanLoading(true);
     setPlanError(null);
     try {
-      const result: BackendState = await (window as any).electronAPI.powerPlans.getState();
+      const api = (window as any).electronAPI?.powerPlans;
+      const result: BackendState = await api.getState();
       if (result.success) {
         setBackendState(result);
       } else {
         setPlanError(result.error ?? "Could not read power plan state from Windows.");
+      }
+      // Also load persisted custom plan metadata
+      if (api?.getCustomMeta) {
+        try {
+          const meta = await api.getCustomMeta();
+          if (meta?.guid && meta?.name) {
+            setCustomPlanMeta(meta);
+            setCustomPlanName(meta.name);
+          }
+        } catch { /* non-fatal */ }
       }
     } catch (e: any) {
       setPlanError(e?.message ?? "Unexpected error reading power state.");
@@ -419,37 +444,44 @@ export default function PowerPlan() {
 
   // ── Apply custom settings ──────────────────────────────────────────────────
   const applyCustomProfile = useCallback(async () => {
+    const nameErr = validateCustomName(customPlanName);
+    if (nameErr) { setCustomNameError(nameErr); setActiveTab("custom"); return; }
+    setCustomNameError(null);
     setApplyingCustom(true);
     setCustomApplied(false);
     try {
       if (!isElectron) {
         await new Promise(r => setTimeout(r, 700));
-        toast({ title: "Custom Profile Applied (Demo)", description: "Your custom power settings would be applied on the Windows desktop app." });
+        toast({ title: "Custom Profile Applied (Demo)", description: "Windows-only. Your custom plan would be created and activated on the desktop app." });
         setCustomApplied(true);
         return;
       }
       const api = (window as any).electronAPI?.powerPlans;
-      if (api?.applyCustom) {
-        const result = await api.applyCustom(localState.customSettings);
-        if (result?.success) {
-          toast({ title: "Custom Profile Applied", description: "Your custom power configuration is now active." });
-          setCustomApplied(true);
-          fetchPowerState();
-        } else {
-          toast({ title: "Apply Failed", description: result?.error ?? "Could not apply custom settings.", variant: "destructive" });
-        }
-      } else {
-        // Agent API not yet present — save and notify
-        await new Promise(r => setTimeout(r, 500));
-        toast({ title: "Settings Saved", description: "Custom settings saved. Update the agent to apply them directly." });
+      if (!api?.applyCustom) {
+        toast({ title: "Not Available", description: "Custom plan support requires the latest app version.", variant: "destructive" });
+        return;
+      }
+      const result = await api.applyCustom(customPlanName.trim(), localState.customSettings);
+      if (result?.cancelled) {
+        toast({ title: "Cancelled", description: "Accept the UAC prompt to apply your custom power plan." });
+        return;
+      }
+      if (result?.success) {
+        const newMeta = { guid: result.guid, name: result.name, createdAt: customPlanMeta?.createdAt ?? Date.now() };
+        setCustomPlanMeta(newMeta);
+        setCustomPlanName(result.name);
         setCustomApplied(true);
+        toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
+        fetchPowerState();
+      } else {
+        toast({ title: "Apply Failed", description: result?.error ?? "Could not apply custom power plan.", variant: "destructive" });
       }
     } catch (e: any) {
       toast({ title: "Error", description: e?.message ?? "Unexpected error applying custom profile.", variant: "destructive" });
     } finally {
       setApplyingCustom(false);
     }
-  }, [isElectron, localState.customSettings, toast, fetchPowerState]);
+  }, [customPlanName, customPlanMeta, isElectron, localState.customSettings, toast, fetchPowerState]);
 
   // ── Intent mode → profile mapping ─────────────────────────────────────────
   const INTENT_TO_PROFILE: Record<IntentMode, FrontendProfileId> = {
@@ -516,6 +548,15 @@ export default function PowerPlan() {
 
   const isCustomState = backendState?.profileMatch?.match === "custom_modified";
   const isCloseMatch  = backendState?.profileMatch?.match === "close_match";
+
+  // Custom plan is active when backend reports the same GUID we created
+  const isCustomPlanActive = !!(
+    customPlanMeta?.guid &&
+    backendState?.activeScheme?.guid?.toLowerCase() === customPlanMeta.guid.toLowerCase()
+  );
+
+  // Sync customApplied with backend truth on every state update
+  const effectiveCustomApplied = isCustomPlanActive || customApplied;
 
   return (
     <AppLayout>
@@ -696,12 +737,12 @@ export default function PowerPlan() {
                   <GlassCard
                     className={cn(
                       "p-5 transition-all duration-300 bg-gradient-to-br from-violet-500/20 to-purple-500/20 border-violet-500/30",
-                      customApplied && "ring-2 ring-primary shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]"
+                      effectiveCustomApplied && "ring-2 ring-primary shadow-[0_0_30px_-5px_hsl(var(--primary)/0.3)]"
                     )}
                     data-testid="card-profile-custom"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className={cn("size-10 rounded-lg flex items-center justify-center", customApplied ? "bg-primary/30 text-primary" : "bg-white/10 text-white/70")}>
+                      <div className={cn("size-10 rounded-lg flex items-center justify-center", effectiveCustomApplied ? "bg-primary/30 text-primary" : "bg-white/10 text-white/70")}>
                         <Settings2 className="size-5" />
                       </div>
                       <div className="flex gap-1">
@@ -709,7 +750,12 @@ export default function PowerPlan() {
                         <span className="size-6 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-3 text-white/60" /></span>
                       </div>
                     </div>
-                    <h3 className="font-semibold text-white mb-1">Custom</h3>
+                    <h3 className="font-semibold text-white mb-1" data-testid="text-custom-plan-name">
+                      {customPlanMeta?.name ?? "Custom"}
+                    </h3>
+                    {customPlanMeta?.guid && (
+                      <p className="text-[10px] text-muted-foreground/60 mb-1 font-mono truncate">{customPlanMeta.guid}</p>
+                    )}
                     <p className="text-xs text-muted-foreground mb-4 line-clamp-2">Your personal power configuration. Tune CPU, USB, sleep, and frequency settings manually.</p>
                     <div className="flex gap-2 mb-4">
                       <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="CPU"><Cpu className="size-2.5 text-white/50" /></span>
@@ -723,7 +769,7 @@ export default function PowerPlan() {
                         disabled={applyingCustom || !!applying}
                         className={cn(
                           "flex-1",
-                          customApplied
+                          effectiveCustomApplied
                             ? "bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30"
                             : "bg-white/10 hover:bg-white/20 text-white"
                         )}
@@ -731,7 +777,7 @@ export default function PowerPlan() {
                       >
                         {applyingCustom ? (
                           <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
-                        ) : customApplied ? (
+                        ) : effectiveCustomApplied ? (
                           <><Check className="size-4 mr-2" /> Active</>
                         ) : (
                           "Activate Profile"
@@ -882,6 +928,46 @@ export default function PowerPlan() {
                 </Button>
               </div>
 
+              {/* Plan name input */}
+              <div className="mb-6 p-4 rounded-lg bg-white/5 border border-white/10 space-y-2">
+                <label className="text-sm font-medium text-white flex items-center gap-2">
+                  <Settings2 className="size-4 text-primary" />
+                  Plan Name
+                  <span className="text-[10px] text-muted-foreground">(shown in Windows Power Options)</span>
+                </label>
+                <div className="flex gap-2 items-start">
+                  <div className="flex-1 space-y-1">
+                    <input
+                      type="text"
+                      value={customPlanName}
+                      onChange={(e) => {
+                        setCustomPlanName(e.target.value);
+                        setCustomNameError(validateCustomName(e.target.value));
+                      }}
+                      placeholder="e.g. Oscar Low Latency"
+                      maxLength={50}
+                      className={cn(
+                        "w-full rounded-md border bg-black/40 px-3 py-2 text-sm text-white placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1",
+                        customNameError
+                          ? "border-red-500/50 focus:ring-red-500/50"
+                          : "border-white/10 focus:ring-primary/50"
+                      )}
+                      data-testid="input-custom-plan-name"
+                    />
+                    {customNameError ? (
+                      <p className="text-[11px] text-red-400">{customNameError}</p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">{customPlanName.trim().length}/50 chars · no \\ / : * ? &quot; &lt; &gt; |</p>
+                    )}
+                  </div>
+                </div>
+                {customPlanMeta?.guid && (
+                  <p className="text-[10px] text-muted-foreground/50 font-mono">
+                    Active GUID: {customPlanMeta.guid}
+                  </p>
+                )}
+              </div>
+
               <div className="space-y-8">
                 <div className="space-y-4">
                   <motion.h3
@@ -900,30 +986,45 @@ export default function PowerPlan() {
                   >
                     {([
                       { key: "disableThrottleStates" as const,      name: "Disable Throttle States",       desc: "Prevent CPU low-power states",            tag: "Advanced" as const },
-                      { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Hardware performance state control",      tag: "Safe" as const },
+                      { key: "enableHardwarePStates" as const,       name: "Enable Hardware P-States",      desc: "Hardware performance state control",      tag: "Safe" as const,    unwired: true },
                       { key: "enableTurboBoost" as const,            name: "Enable Turbo Boost",            desc: "Allow CPU to boost above base clock",     tag: "Safe" as const },
                       { key: "disableCoreParking" as const,          name: "Disable Core Parking",          desc: "Keep all CPU cores active",               tag: "Safe" as const },
-                      { key: "disableFrequencyScaling" as const,     name: "Disable Frequency Scaling",     desc: "Lock CPU at maximum frequency",           tag: "Advanced" as const, agent: true },
-                      { key: "preferPerformanceProcesses" as const,  name: "Prefer Performance Processes",  desc: "Prioritize foreground apps",              tag: "Safe" as const },
-                      { key: "optimizePerformanceInterval" as const, name: "Optimize Check Interval",       desc: "Faster performance monitoring",           tag: "Advanced" as const },
-                    ] as const).map(item => (
+                      { key: "disableFrequencyScaling" as const,     name: "Disable Frequency Scaling",     desc: "Lock CPU at maximum frequency",           tag: "Advanced" as const },
+                      { key: "preferPerformanceProcesses" as const,  name: "Prefer Performance Processes",  desc: "Prioritize foreground apps",              tag: "Safe" as const,    unwired: true },
+                      { key: "optimizePerformanceInterval" as const, name: "Optimize Check Interval",       desc: "Faster performance monitoring",           tag: "Advanced" as const, unwired: true },
+                    ] as const).map(item => {
+                      const isUnwired = "unwired" in item && item.unwired;
+                      return (
                       <motion.div
                         key={item.key}
                         variants={staggerItem}
-                        whileHover={{ scale: 1.015, transition: { duration: 0.15 } }}
-                        className={cn("flex items-center justify-between p-3 rounded-lg border transition-colors", localState.customSettings[item.key] ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5 hover:bg-white/[0.07]")}
+                        whileHover={isUnwired ? {} : { scale: 1.015, transition: { duration: 0.15 } }}
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-lg border transition-colors",
+                          isUnwired
+                            ? "border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed"
+                            : localState.customSettings[item.key]
+                              ? "border-primary/30 bg-primary/5"
+                              : "border-white/10 bg-white/5 hover:bg-white/[0.07]"
+                        )}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-white">{item.name}</span>
+                            <span className={cn("text-sm", isUnwired ? "text-white/40" : "text-white")}>{item.name}</span>
                             <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border uppercase", item.tag === "Safe" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-blue-400 border-blue-500/30 bg-blue-500/10")}>{item.tag}</span>
-                            {"agent" in item && item.agent && <span className="text-[9px] px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400">Agent</span>}
+                            {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-white/30">Not connected yet</span>}
                           </div>
                           <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
                         </div>
-                        <Switch checked={localState.customSettings[item.key]} onCheckedChange={(v) => updateCustomSetting(item.key, v)} className="data-[state=checked]:bg-primary" />
+                        <Switch
+                          checked={isUnwired ? false : localState.customSettings[item.key]}
+                          onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
+                          disabled={isUnwired}
+                          className="data-[state=checked]:bg-primary"
+                        />
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </motion.div>
                 </div>
 
@@ -964,40 +1065,60 @@ export default function PowerPlan() {
                   >
                     {([
                       { key: "disableUsbSelectiveSuspend" as const, name: "Disable USB Selective Suspend", desc: "USB devices always powered",    tag: "Safe" as const },
-                      { key: "disableUsbPowerManagement" as const,  name: "Disable USB Power Management", desc: "Full USB power at all times",  tag: "Safe" as const },
+                      { key: "disableUsbPowerManagement" as const,  name: "Disable USB Power Management", desc: "Full USB power at all times",  tag: "Safe" as const, unwired: true },
                       { key: "keepDisplayOn" as const,              name: "Keep Display On",               desc: "Prevent display from turning off", tag: "Safe" as const },
                       { key: "disableSleep" as const,               name: "Disable Sleep",                 desc: "Prevent sleep mode",          tag: "Safe" as const },
                       { key: "disableHibernation" as const,         name: "Disable Hibernation",           desc: "Prevent hibernation",         tag: "Safe" as const },
-                    ] as const).map(item => (
+                    ] as const).map(item => {
+                      const isUnwired = "unwired" in item && item.unwired;
+                      return (
                       <motion.div
                         key={item.key}
                         variants={staggerItem}
-                        whileHover={{ scale: 1.015, transition: { duration: 0.15 } }}
-                        className={cn("flex items-center justify-between p-3 rounded-lg border transition-colors", localState.customSettings[item.key] ? "border-primary/30 bg-primary/5" : "border-white/10 bg-white/5 hover:bg-white/[0.07]")}
+                        whileHover={isUnwired ? {} : { scale: 1.015, transition: { duration: 0.15 } }}
+                        className={cn(
+                          "flex items-center justify-between p-3 rounded-lg border transition-colors",
+                          isUnwired
+                            ? "border-white/5 bg-white/[0.02] opacity-50 cursor-not-allowed"
+                            : localState.customSettings[item.key]
+                              ? "border-primary/30 bg-primary/5"
+                              : "border-white/10 bg-white/5 hover:bg-white/[0.07]"
+                        )}
                       >
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
-                            <span className="text-sm text-white">{item.name}</span>
+                            <span className={cn("text-sm", isUnwired ? "text-white/40" : "text-white")}>{item.name}</span>
                             <span className="text-[9px] px-1.5 py-0.5 rounded-full border text-emerald-400 border-emerald-500/30 bg-emerald-500/10 uppercase">{item.tag}</span>
+                            {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/10 bg-white/5 text-white/30">Not connected yet</span>}
                           </div>
                           <p className="text-[10px] text-muted-foreground mt-0.5">{item.desc}</p>
                         </div>
-                        <Switch checked={localState.customSettings[item.key]} onCheckedChange={(v) => updateCustomSetting(item.key, v)} className="data-[state=checked]:bg-primary" />
+                        <Switch
+                          checked={isUnwired ? false : localState.customSettings[item.key]}
+                          onCheckedChange={isUnwired ? undefined : (v) => updateCustomSetting(item.key, v)}
+                          disabled={isUnwired}
+                          className="data-[state=checked]:bg-primary"
+                        />
                       </motion.div>
-                    ))}
+                      );
+                    })}
                   </motion.div>
                 </div>
               </div>
 
               {/* ── Apply button ─────────────────────────────────────── */}
               <div className="pt-4 border-t border-white/10 mt-6 flex items-center justify-between gap-4">
-                <p className="text-xs text-muted-foreground">Changes are saved locally. Press Apply to activate this configuration on your system.</p>
+                <p className="text-xs text-muted-foreground">
+                  {effectiveCustomApplied
+                    ? `"${customPlanMeta?.name ?? customPlanName}" is active in Windows Power Options.`
+                    : "Press Apply to create and activate this plan in Windows."}
+                </p>
                 <Button
                   onClick={applyCustomProfile}
-                  disabled={applyingCustom}
+                  disabled={applyingCustom || !!customNameError}
                   className={cn(
                     "shrink-0 min-w-[160px]",
-                    customApplied
+                    effectiveCustomApplied
                       ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/30"
                       : "bg-primary text-white hover:bg-primary/90"
                   )}
@@ -1005,10 +1126,10 @@ export default function PowerPlan() {
                 >
                   {applyingCustom ? (
                     <><Loader2 className="size-4 mr-2 animate-spin" /> Applying…</>
-                  ) : customApplied ? (
-                    <><Check className="size-4 mr-2" /> Applied</>
+                  ) : effectiveCustomApplied ? (
+                    <><Check className="size-4 mr-2" /> Active — Re-apply</>
                   ) : (
-                    <><Zap className="size-4 mr-2" /> Apply Custom Profile</>
+                    <><Zap className="size-4 mr-2" /> Apply Custom Plan</>
                   )}
                 </Button>
               </div>

@@ -2376,6 +2376,28 @@ ipcMain.handle('powerPlans:listSchemes', async () => {
   }
 });
 
+ipcMain.handle('powerPlans:applyCustom', async (event, name, settings) => {
+  verboseLog(`[IPC] powerPlans:applyCustom name="${name}"`);
+  if (typeof name !== 'string') return { success: false, error: 'Invalid plan name' };
+  if (!settings || typeof settings !== 'object') return { success: false, error: 'Invalid settings object' };
+  try {
+    return await powerPlanManager.applyCustomPowerProfile(name, settings);
+  } catch (e) {
+    console.error('[IPC] powerPlans:applyCustom error:', e.message);
+    return { success: false, error: e.message };
+  }
+});
+
+ipcMain.handle('powerPlans:getCustomMeta', async () => {
+  verboseLog('[IPC] powerPlans:getCustomMeta');
+  try {
+    return powerPlanManager.getCustomPlanMeta();
+  } catch (e) {
+    console.error('[IPC] powerPlans:getCustomMeta error:', e.message);
+    return null;
+  }
+});
+
 ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
   verboseLog(`[IPC] powerPlans:activateByGuid: ${guid}`);
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
