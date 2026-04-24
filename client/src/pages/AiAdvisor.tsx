@@ -629,9 +629,19 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
           {!hasExtended && (
             <p className="text-[10px] text-white/25 text-center pt-2">Loading extended system profile…</p>
           )}
+          {import.meta.env.DEV && (
+            <p className="text-[9px] text-amber-400/70 font-mono mt-2 px-0.5 truncate" title={[s?.cpu, s?.gpu, s?.ram].filter(Boolean).join(", ")}>
+              AI analyzing: {[s?.cpu, s?.gpu, s?.ram].filter(Boolean).join(", ") || "specs pending…"}
+            </p>
+          )}
         </div>
       ) : (
-        <p className="text-[11px] text-white/25 text-center py-2">Specs detected when running on Windows</p>
+        <>
+          <p className="text-[11px] text-white/25 text-center py-2">Specs detected when running on Windows</p>
+          {import.meta.env.DEV && (
+            <p className="text-[9px] text-amber-400/50 font-mono text-center pb-1">AI analyzing: specs pending…</p>
+          )}
+        </>
       )}
     </motion.div>
   );
@@ -873,7 +883,7 @@ export default function AiAdvisor() {
   const { isPremium } = useAuth();
   const { openUpgradeModal } = useUpgradeModal();
   const { isOnline } = useNetworkStatus();
-  const { stats, tweaks, history } = useStore();
+  const { stats, tweaks, history, setStats } = useStore();
   const { telemetry: liveTel } = useLiveTelemetry();
   const sysIntel = useSystemIntelligence();
   const { messages: storedMessages, setMessages: syncToStore, clearMessages: clearStore } = useAiChatStore();
@@ -919,6 +929,45 @@ export default function AiAdvisor() {
   const isRevealingRef = useRef(false);
   const reqIdRef = useRef(0);
   const slowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // liveTelRef — always holds the latest telemetry so useCallback closures stay fresh
+  const liveTelRef = useRef(liveTel);
+  useEffect(() => { liveTelRef.current = liveTel; }, [liveTel]);
+
+  // ── Self-load specs on mount ─────────────────────────────────────────────
+  // Home.tsx calls api.system.getSpecs() and writes to the store, but if the
+  // user navigates directly to AiAdvisor the store may still hold MOCK_STATS
+  // (totalRamGb=0). Fetch specs here too so context is always accurate.
+  const specsLoadedRef = useRef(false);
+  useEffect(() => {
+    if (specsLoadedRef.current || stats.totalRamGb > 0) return;
+    specsLoadedRef.current = true;
+    const api = (window as any).electronAPI;
+    if (!api?.system?.getSpecs) return;
+    api.system.getSpecs().then((specs: any) => {
+      if (!specs) return;
+      setStats({
+        cpuName:    specs.cpu?.model    || 'Unavailable',
+        cpuCores:   specs.cpu?.cores    || 0,
+        cpuThreads: specs.cpu?.threads  || 0,
+        cpuSpeed:   specs.cpu?.speed    || 'Unavailable',
+        gpuName:    specs.gpu?.model    || 'Unavailable',
+        gpuVendor:  specs.gpu?.vendor   || 'Unavailable',
+        vramGb:     specs.gpu?.vramGB   || 0,
+        totalRamGb: specs.ram?.totalGB  || 0,
+        usedRamGb:  specs.ram?.usedGB   || 0,
+        freeRamGb:  specs.ram?.freeGB   || 0,
+        diskName:   specs.disk?.name    || 'Unavailable',
+        diskUsedGb: specs.disk?.usedGB  || 0,
+        diskTotalGb:specs.disk?.totalGB || 0,
+        osName:     specs.system?.os    || 'Unavailable',
+        osVersion:  specs.system?.osVersion || 'Unavailable',
+        osArch:     specs.system?.arch  || 'Unavailable',
+        hostname:   specs.system?.hostname  || 'Unavailable',
+      });
+      console.log(`[AI:SPECS] self-loaded via Electron IPC | cpu="${specs.cpu?.model}" ram=${specs.ram?.totalGB}GB gpu="${specs.gpu?.model}"`);
+    }).catch(() => {});
+  }, [stats.totalRamGb, setStats]);
 
   useEffect(() => { messagesRef.current = messages; }, [messages]);
 
@@ -1046,8 +1095,17 @@ export default function AiAdvisor() {
       networkStr = `${type}${speed}${name}`;
     }
 
-    // RAM — prefer system intelligence over store (has per-stick detail)
-    let ramStr = stats.totalRamGb ? `${stats.totalRamGb} GB` : "";
+    // RAM — priority order:
+    //   1. System intelligence (per-stick detail — most accurate)
+    //   2. Store stats (set by Home.tsx or self-loaded via getSpecs)
+    //   3. Live telemetry total (last resort — no stick detail but always current)
+    // Never use "0 GB" — if totalRamGb is 0 it means specs haven't loaded yet.
+    const liveTelRamTotal = liveTel?.ram?.totalGB;
+    let ramStr = stats.totalRamGb > 0
+      ? `${stats.totalRamGb} GB`
+      : (liveTelRamTotal != null && liveTelRamTotal > 0)
+        ? `${Math.round(liveTelRamTotal)} GB`
+        : "";
     if (si?.memory.sticks.length) {
       const s = si.memory.sticks[0];
       const speed = s.configuredClockMhz ?? s.clockMhz;
@@ -1130,6 +1188,16 @@ export default function AiAdvisor() {
     setContext(ctx);
     contextRef.current = ctx;
     if (si) console.log(`[AI:CONTEXT] system-intelligence enriched | MB=${si.baseboard.model} | BIOS=${si.bios.version} | net=${networkStr}`);
+
+    // ── [AI Specs Input] audit log — emitted every time context rebuilds ──
+    const ramTotalForLog = ctx.telemetry.ramTotalGB;
+    console.log(
+      `[AI Specs Input] cpu="${ctx.system.cpu || "none"}" ` +
+      `gpu="${ctx.system.gpu || "none"}" ` +
+      `ram="${ctx.system.ram || "none"}" ` +
+      `ramTotalGB=${ramTotalForLog ?? "null"} ` +
+      `disk="${ctx.system.storage || "none"}"`
+    );
   }, [stats, tweaks, liveTel, isPremium, sysIntel.profile, history]);
 
   // Auto-analysis welcome message
@@ -1286,6 +1354,43 @@ export default function AiAdvisor() {
         console.log(`[AI:INPUT] enabled_tweak_ids=${ctx.enabledTweaks.map((t: any) => t.id).join(", ")}`);
       }
       console.log(`[AI:INPUT] hardware cpu="${ctx?.system?.cpu || "none"}" gpu="${ctx?.system?.gpu || "none"}" ram="${ctx?.system?.ram || "none"}"`);
+
+      // ── Spec validation guard ─────────────────────────────────────────────
+      // Cross-check the ram field in the context against live telemetry.
+      // If context says < 8 GB but live shows ≥ 8 GB the context was built
+      // before specs finished loading — block the send so the AI never receives
+      // stale/mock hardware data and can never hallucinate a wrong RAM amount.
+      {
+        const currentLiveTel = liveTelRef.current;
+        const liveRamGb = currentLiveTel?.ram?.totalGB ?? 0;
+        const ctxRamStr  = ctx?.system?.ram ?? "";
+        const ctxRamGb   = parseFloat(ctxRamStr);
+        const ctxTelRamGb = ctx?.telemetry?.ramTotalGB ?? 0;
+        // "suspect" = context ram string is empty or < 8GB but live shows ≥ 8 GB
+        const ramSuspect =
+          (ctxRamStr === "" && liveRamGb >= 8) ||
+          (!isNaN(ctxRamGb) && ctxRamGb < 8 && liveRamGb >= 8) ||
+          (ctxTelRamGb > 0 && ctxTelRamGb < 8 && liveRamGb >= 8);
+        if (ramSuspect) {
+          console.warn(
+            `[AI Specs Input] MISMATCH — context ram="${ctxRamStr}" ` +
+            `telRamGB=${ctxTelRamGb} but live=${liveRamGb}GB — ` +
+            `context not yet populated, blocking send`
+          );
+          setLoading(false);
+          clearTimeout(thinkingTimer);
+          if (slowTimerRef.current) clearTimeout(slowTimerRef.current);
+          setIsSlowRequest(false);
+          if (thinkingAdded) setMessages(prev => prev.filter(m => m.id !== assistantId));
+          setMessages(prev => [...prev, {
+            id: `specs-warn-${Date.now()}`,
+            role: "system" as const,
+            content: "System specs are still loading — your hardware info will be ready in a moment. Please try again.",
+            timestamp: new Date(),
+          }]);
+          return;
+        }
+      }
 
       const requestBody: Record<string, unknown> = {
         messages: chatHistory,

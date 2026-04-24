@@ -546,8 +546,13 @@ function buildChatContext(context: any, serverCtx?: Awaited<ReturnType<typeof bu
   const cpuTemp = tel?.cpuTempC ?? ctxTel.cpuTempC;
   const gpuLoad = tel?.gpuLoadPct ?? ctxTel.gpuLoadPct;
   const gpuTemp = tel?.gpuTempC ?? ctxTel.gpuTempC;
-  const ramUsed = tel?.ramUsedGB ?? ctxTel.ramUsedGB;
-  const ramTotal = tel?.ramTotalGB ?? ctxTel.ramTotalGB;
+  // Treat 0 as unknown — a 0 GB reading means telemetry hasn't polled yet,
+  // not that the machine genuinely has 0 bytes of RAM. Using 0 causes the AI
+  // to see "RAM 0/0 GB used" and hallucinate specs from common defaults.
+  const rawRamUsed  = tel?.ramUsedGB  ?? ctxTel.ramUsedGB;
+  const rawRamTotal = tel?.ramTotalGB ?? ctxTel.ramTotalGB;
+  const ramUsed  = (rawRamUsed  != null && rawRamUsed  > 0) ? rawRamUsed  : null;
+  const ramTotal = (rawRamTotal != null && rawRamTotal > 0) ? rawRamTotal : null;
   const vramUsed = tel?.vramUsedMb ?? ctxTel.vramUsedMb;
   const vramTotal = tel?.vramTotalMb ?? ctxTel.vramTotalMb;
   const vramPct = tel?.vramPct ?? ctxTel.vramPercent;
@@ -674,6 +679,25 @@ aiRouter.post("/chat", async (req: Request, res: Response) => {
     const enabledTweakIds = (context?.enabledTweaks ?? []).map((t: any) => t?.id).filter(Boolean);
     const disabledTweakCount = (context?.disabledTweaks ?? []).length;
     console.log(`[AI:chat:context] user=${cloudUser?.id} enabled_tweaks=${enabledTweakIds.length} disabled_tweaks=${disabledTweakCount} hw_cpu="${context?.system?.cpu || "none"}" hw_gpu="${context?.system?.gpu || "none"}"`);
+
+    // ── [AI Specs Input] server-side audit log ─────────────────────────────
+    // Logs the EXACT hardware context the AI model will receive so mis-specs
+    // can be caught in server logs without enabling client-side devtools.
+    {
+      const svrRamTotal = serverCtx?.telemetry?.ramTotalGB;
+      const ctxRam = context?.system?.ram || "none";
+      const ctxRamTelGB = context?.telemetry?.ramTotalGB;
+      const effectiveRamGB = (svrRamTotal != null && svrRamTotal > 0) ? svrRamTotal : (ctxRamTelGB != null && ctxRamTelGB > 0 ? ctxRamTelGB : null);
+      console.log(
+        `[AI Specs Input] cpu="${context?.system?.cpu || "none"}" ` +
+        `gpu="${context?.system?.gpu || "none"}" ` +
+        `ram="${ctxRam}" ` +
+        `ramTotalGB=${effectiveRamGB ?? "null"} ` +
+        `disk="${context?.system?.storage || "none"}" ` +
+        `sysIntel=${serverCtx?.coverage.systemIntel ?? "none"} ` +
+        `telemetry=${serverCtx?.coverage.telemetry ?? "none"}`
+      );
+    }
     if (enabledTweakIds.length > 0) {
       console.log(`[AI:chat:context] enabled_tweak_ids=${enabledTweakIds.join(", ")}`);
     }
