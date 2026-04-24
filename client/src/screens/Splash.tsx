@@ -35,38 +35,45 @@ export default function Splash({ onComplete }: SplashProps) {
   const tagline = useMemo(() => getTagline(), []);
 
   // ── Launch handshake ──────────────────────────────────────────────────────
-  // Correct sequence (no white flash):
-  //   1. Splash mounts.  Static shell (#startup-shell) stays FULLY OPAQUE —
-  //      it must NOT fade until AFTER the window is on screen.
-  //   2. TWO animation frames pass.  Frame 1 → Chromium lays out + paints the
-  //      dark React content.  Frame 2 → compositor has promoted that frame to
-  //      the GPU pipeline.  Only then is a guaranteed-dark frame ready to show.
-  //   3. Renderer sends 'app:first-frame-ready'.
-  //   4. Main calls show() (window appears with backgroundColor #07090D, html
-  //      still opacity:0 so compositor background is what the OS sees).
-  //   5. Main immediately sends 'app:window-shown'.
-  //   6. On 'app:window-shown':
-  //        a. Start shell fade (180ms) — shell was held opaque until now so it
-  //           acts as a solid dark cover while html transitions from 0→1.
-  //        b. Set html opacity = 1 (200ms CSS transition already on <html>).
-  //      Fallback: reveal after 700 ms if IPC never arrives.
-  useEffect(() => {
-    const mountTs = performance.now();
-    console.log(`[LAUNCH:R2] Splash mounted | t=+${mountTs.toFixed(0)}ms`);
+  // Single launch state machine: hidden → mounted → visible → telemetry starts.
+  //
+  // Correct sequence:
+  //   1. Splash mounts. Static shell (#startup-shell) stays FULLY OPAQUE.
+  //      Log mount time only — do NOT send IPC yet.
+  //   2. Wait for logoReady (80ms timeout) so the logo element is in the DOM.
+  //      Sending first-frame-ready before the logo is mounted meant the window
+  //      appeared with only the background, causing a visual race where the logo
+  //      animation started after the window was already visible.
+  //   3. TWO animation frames after logo mount. Frame 1 → layout + paint.
+  //      Frame 2 → compositor has promoted the logo frame to the GPU pipeline.
+  //   4. Renderer sends 'app:first-frame-ready'.
+  //   5. Main: setOpacity(0) → show() → 16ms → setOpacity(1) → sends 'app:window-shown'.
+  //   6. On 'app:window-shown': shell fade (180ms) + html opacity 0→1 (200ms).
+  //   7. Main starts telemetry 2000ms after step 5 (after logo animation completes).
+  //      Fallback: reveal after 700ms if window-shown IPC never arrives.
 
-    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
-    let windowShownUnsub: (() => void) | undefined;
+  useEffect(() => {
+    console.log(`[LAUNCH:R2] Splash mounted | t=+${performance.now().toFixed(0)}ms`);
+  }, []);
+
+  useEffect(() => {
+    // ── Wait for logo to be in the DOM before signalling readiness ────────────
+    // logoReady becomes true after the 80ms timeout in the animation effect below.
+    // We only want to signal the main process once the logo element exists so the
+    // window appears with logo + background both rendered (not background-only).
+    if (!logoReady) return;
+
     let raf1: number;
     let raf2: number;
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+    let windowShownUnsub: (() => void) | undefined;
 
-    // ── Steps 1-5: two-frame wait then IPC ──────────────────────────────
-    // Shell deliberately NOT touched here — it stays opaque while hidden.
     raf1 = requestAnimationFrame(() => {
-      // Frame 1 complete: layout + paint committed.
+      // Frame 1 complete: logo layout + paint committed.
       raf2 = requestAnimationFrame(() => {
-        // Frame 2 complete: compositor has promoted the dark frame.
+        // Frame 2 complete: compositor has promoted the logo frame.
         const readyTs = performance.now();
-        console.log(`[LAUNCH:R3] first-frame-ready: sending IPC | t=+${readyTs.toFixed(0)}ms (2 rAFs after mount)`);
+        console.log(`[LAUNCH:R3] first-frame-ready: sending IPC (logo + bg mounted) | t=+${readyTs.toFixed(0)}ms`);
         const api = (window as any).electronAPI;
 
         if (api?.signalFirstFrameReady) {
@@ -80,19 +87,12 @@ export default function Splash({ onComplete }: SplashProps) {
             console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
 
             // ── body::before teardown ─────────────────────────────────────
-            // Adding 'sc-first-frame-ready' triggers the CSS transition that
-            // fades body::before (z-index:2147483647) from opaque to transparent
-            // over 120ms.  This is the primary anti-flash guard — it must be
-            // removed FIRST, before the shell and html transitions start, so
-            // the startup-shell behind it becomes visible as the cover fades.
+            // 'sc-first-frame-ready' fades body::before (z-index:2147483647)
+            // from opaque to transparent over 120ms — primary anti-flash guard.
             document.body.classList.add('sc-first-frame-ready');
             console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
 
-            // ── Shell fade starts NOW — window is on screen ──────────────
-            // The shell was opaque during the hidden phase so backgroundColor
-            // (#07090D) was the only visible surface.  Now that the window is
-            // showing, fade the shell out while html fades in — both start
-            // simultaneously so the shell acts as a dark cover.
+            // ── Shell fade + html reveal ──────────────────────────────────
             const shell = document.getElementById('startup-shell');
             if (shell) {
               shell.style.transition = 'opacity 180ms ease-out';
@@ -103,7 +103,6 @@ export default function Splash({ onComplete }: SplashProps) {
               }, 200);
             }
 
-            // html opacity 0→1 (200ms transition already declared in index.html)
             document.documentElement.style.opacity = '1';
             console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+${performance.now().toFixed(0)}ms`);
             setTimeout(() => {
@@ -120,16 +119,14 @@ export default function Splash({ onComplete }: SplashProps) {
             reveal('app:window-shown');
           });
 
-          // Fallback: if IPC confirmation never arrives, reveal anyway
+          // Fallback: reveal after 700ms if IPC confirmation never arrives
           fallbackTimer = setTimeout(() => {
-            console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700 ms fallback');
+            console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700ms fallback');
             reveal('fallback-timeout');
           }, 700);
 
         } else {
-          // Non-Electron (website) path — no handshake needed, reveal immediately.
-          // sc-first-frame-ready may already be set by the inline script in index.html
-          // for the website path, but set it here too as a belt-and-suspenders guard.
+          // Non-Electron (website) path — reveal immediately.
           document.body.classList.add('sc-first-frame-ready');
           const shell = document.getElementById('startup-shell');
           if (shell) {
@@ -148,7 +145,7 @@ export default function Splash({ onComplete }: SplashProps) {
       clearTimeout(fallbackTimer);
       windowShownUnsub?.();
     };
-  }, []);
+  }, [logoReady]);
 
   useEffect(() => {
     // Logo first — brand established quickly.

@@ -637,10 +637,12 @@ function createWindow() {
   }
   lockDevTools(mainWindow); // no-op in dev; full lockdown in production
 
-  // ── Auto-open DevTools on launch (dev only) ───────────────────────────────────
-  if (isDev) {
+  // ── Auto-open DevTools on launch (DEBUG_MODE=true only) ──────────────────────
+  // Opt-in via DEBUG_MODE=true so normal dev launches stay clean.
+  // This prevents DevTools initialisation overhead during the first-paint window.
+  if (isDev && process.env.DEBUG_MODE === 'true') {
     mainWindow.webContents.once('did-finish-load', () => {
-      console.log('[DevTools] Auto-opening DevTools (dev mode)');
+      console.log('[DevTools] Auto-opening DevTools (DEBUG_MODE=true)');
       mainWindow.webContents.openDevTools({ mode: 'detach' });
     });
   }
@@ -852,6 +854,8 @@ function createWindow() {
       mainWindow.show();
       mainWindow.webContents.send('app:window-shown');
       mainWindow.focus();
+      // Start telemetry even from the fallback path (no animation to protect here)
+      startTelemetryPolling().catch(e => console.error('[telemetry:poll] fallback startTelemetryPolling error:', e.message));
     }
   }, 5000);
 
@@ -884,6 +888,18 @@ function createWindow() {
       console.log(`[LAUNCH:5c] app:window-shown sent to renderer | ${launchMs()}`);
       mainWindow.focus();
       console.log(`[LAUNCH:6] focus() — launch sequence complete | ${launchMs()}`);
+
+      // ── Deferred telemetry start ───────────────────────────────────────────
+      // Telemetry (including heavy GPU prewarm / PowerShell perf counter cold-start)
+      // is intentionally delayed until 2000ms AFTER the window is on screen and the
+      // logo/splash animation has had time to complete its first render pass.
+      // Starting telemetry immediately caused a visual race: GPU perf-counter cold-start
+      // (2-4s PowerShell startup) competed for CPU/GPU with the first-paint animation.
+      // State machine: hidden → mounted → visible (now) → telemetry starts (+2000ms)
+      setTimeout(() => {
+        console.log(`[LAUNCH:7] starting telemetry — 2000ms post window-shown | ${launchMs()}`);
+        startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
+      }, 2000);
     }, 16);
   });
 
@@ -3167,8 +3183,8 @@ app.whenReady().then(async () => {
   }
 
   // ── C. Create main window ─────────────────────────────────────────────────────
-  // Start telemetry poll before window so first getLive call finds a primed cache.
-  startTelemetryPolling().catch(e => console.error('[telemetry:poll] startTelemetryPolling error:', e.message));
+  // Telemetry starts AFTER window is shown + 2000ms (see ipcMain.once 'app:first-frame-ready').
+  // This prevents GPU prewarm / PowerShell cold-start from racing with first-paint animations.
   createWindow();
 
   // ── D. Start backend safely (packaged mode only) ──────────────────────────────
