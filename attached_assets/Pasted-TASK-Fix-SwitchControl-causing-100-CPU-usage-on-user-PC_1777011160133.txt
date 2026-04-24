@@ -1,0 +1,66 @@
+TASK
+Fix SwitchControl causing 100% CPU usage on user PCs.
+
+PROBLEM
+Multiple users report CPU usage hitting 100% while SwitchControl is open. This is not isolated to one machine. Treat this as a critical performance bug.
+
+LIKELY ROOT CAUSE
+The app is polling telemetry, tweak status, GPU counters, disk/network stats, or PowerShell-based checks too aggressively. React charts may also be re-rendering too often.
+
+GOAL
+SwitchControl must idle below 3-5% CPU on normal systems and below 8-10% on low-end systems.
+
+REQUIRED AUDIT
+Check:
+- electron/main.js telemetry polling loop
+- telemetryManager frontend polling/websocket logic
+- all setInterval / setTimeout loops
+- tweak:syncAll calls
+- tweak:checkStatus calls
+- networkTweaks:checkAll calls
+- security scan polling
+- dashboard live charts
+- useEffect dependencies that re-trigger scans on route changes
+- any PowerShell exec/execFile usage
+
+REQUIRED FIXES
+1. Add a global performance governor:
+- normal mode: telemetry every 2000ms minimum
+- low performance mode: telemetry every 5000ms
+- if CPU > 70%, auto slow telemetry
+- if CPU > 85%, pause non-critical scans
+
+2. Stop all PowerShell background polling.
+PowerShell may only run from explicit user actions or manual refresh, not dashboard idle.
+
+3. Prevent duplicate polling loops.
+Ensure telemetry loop starts once only.
+Do not start a new loop on every tab switch, login, or dashboard remount.
+
+4. Throttle frontend chart updates.
+Charts should update at most once per second, preferably once every 2 seconds.
+
+5. Pause telemetry when:
+- app minimized
+- window not visible
+- user is on non-dashboard pages unless needed
+
+6. Add logging:
+Log every background task start with:
+[PERF:TASK] name=... source=... interval=... reason=...
+Log every PowerShell spawn with:
+[PS-SPAWN] reason=... command=...
+
+7. Add a debug panel or log output showing:
+- active intervals
+- active polling loops
+- last telemetry poll time
+- PowerShell spawn count per minute
+- current app CPU estimate
+
+FINAL ACCEPTANCE
+With app idle on dashboard:
+- no more than 1 telemetry loop active
+- zero PowerShell spawns per minute
+- CPU under 5% on normal PC
+- CPU under 10% on low-end PC

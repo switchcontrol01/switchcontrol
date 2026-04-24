@@ -24,7 +24,7 @@ interface DiskTelemetryModalProps {
 
 const isElectron = typeof window !== "undefined" && !!(window as any).electronAPI?.isElectron;
 const BUFFER_SIZE = 30;
-const POLL_MS = 800;
+const POLL_MS = 2000;
 
 function safeDivide(a: number, b: number, fallback = 0): number {
   if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return fallback;

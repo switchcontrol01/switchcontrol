@@ -105,7 +105,7 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
     };
 
     fetchData();
-    intervalRef.current = setInterval(fetchData, 1000);
+    intervalRef.current = setInterval(fetchData, 2000);
 
     return () => {
       if (intervalRef.current) {

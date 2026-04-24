@@ -172,16 +172,37 @@ const GPU_COUNTER_REFRESH_TTL = 30_000; // ms — minimum gap between PowerShell
 // load pending" so the chart series is always structurally present from frame 1.
 let gpuExistsOnHardware = false;
 
+// ── Performance governor ──────────────────────────────────────────────────────
+// Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
+// Auto-throttles to TELEMETRY_SLOW_MS when load is high.
+const TELEMETRY_BASE_MS = 2000;  // was 1000 — halves CPU overhead at idle
+const TELEMETRY_SLOW_MS = 4000;  // engaged when cpu > 70%
+let _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
+
+// Slow-rate caches: si.fsSize() (slow drive scan) and si.cpuTemperature() (WMI)
+// are expensive and do NOT need to be re-read every poll tick.
+// They are only refreshed when their TTL has expired.
+const FS_SIZE_TTL_MS   = 10_000; // refresh filesystem sizes every 10 s
+const CPU_TEMP_TTL_MS  =  3_000; // refresh CPU temp every 3 s
+let _fsSizeCache        = [];
+let _fsSizeLastTs       = 0;
+let _cpuTempCache       = { main: 0, max: 0, cores: [] };
+let _cpuTempLastTs      = 0;
+
 // Safe async telemetry loop — replaces setInterval so each poll only starts
 // after the previous one fully completes (including PowerShell GPU counter).
 // Set _telemetryLoopActive = false to stop cleanly.
+// Set _telemetryLoopPaused = true to pause without stopping (window minimized).
 let _telemetryLoopActive = false;
+let _telemetryLoopPaused = false;
 
 async function _telemetryLoop() {
-  verboseLog('[telemetry:poll] async loop started');
+  verboseLog('[PERF:TASK] name=telemetryLoop source=main.js interval=' + TELEMETRY_BASE_MS + 'ms reason=startup');
   while (_telemetryLoopActive) {
-    await pollTelemetry();
-    if (_telemetryLoopActive) await new Promise(r => setTimeout(r, 1000));
+    if (!_telemetryLoopPaused) {
+      await pollTelemetry();
+    }
+    if (_telemetryLoopActive) await new Promise(r => setTimeout(r, _telemetryCurrentIntervalMs));
   }
   verboseLog('[telemetry:poll] async loop exited');
 }
@@ -190,11 +211,25 @@ async function pollTelemetry() {
   const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'pollTelemetry', reason: 'telemetry-poll' });
   if (!_token) return; // already running — loop will retry after current poll finishes
   try {
-    const [load, mem, temps, fsData, netStats, rawDiskIO] = await Promise.all([
+    const now = Date.now();
+
+    // si.fsSize() — slow drive scan, refresh every 10 s only
+    if (now - _fsSizeLastTs > FS_SIZE_TTL_MS) {
+      _fsSizeCache  = await si.fsSize().catch(() => []);
+      _fsSizeLastTs = Date.now();
+    }
+    const fsData = _fsSizeCache;
+
+    // si.cpuTemperature() — WMI call, refresh every 3 s only
+    if (now - _cpuTempLastTs > CPU_TEMP_TTL_MS) {
+      _cpuTempCache  = await si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] }));
+      _cpuTempLastTs = Date.now();
+    }
+    const temps = _cpuTempCache;
+
+    const [load, mem, netStats, rawDiskIO] = await Promise.all([
       si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
       si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: 0, available: 0 }; }),
-      si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] })),
-      si.fsSize().catch(() => []),
       si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; }),
       si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return null; }),
     ]);
@@ -304,6 +339,17 @@ async function pollTelemetry() {
     gpuPollCache = newGpu;
 
     liveTelemetryCache = { load, mem, temps, fsData: fsData || [], netStats: netStats || [], diskIO, timestamp: Date.now() };
+
+    // ── Performance governor: auto-throttle when CPU is high ─────────────────
+    // If CPU > 70% slow the poll loop so SwitchControl doesn't compete with
+    // the workload it's measuring.  Only update when crossing a threshold to
+    // avoid log spam.
+    const cpuPct = load?.currentLoad ?? 0;
+    const targetMs = cpuPct > 70 ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS;
+    if (targetMs !== _telemetryCurrentIntervalMs) {
+      verboseLog(`[PERF:TASK] name=telemetryLoop — governor: cpu=${cpuPct.toFixed(0)}% → interval ${_telemetryCurrentIntervalMs}ms → ${targetMs}ms`);
+      _telemetryCurrentIntervalMs = targetMs;
+    }
   } catch (e) {
     console.error('[telemetry:poll] unexpected error:', e.message);
   } finally {
@@ -672,6 +718,27 @@ function createWindow() {
   mainWindow.on('focus', () => {
     if (rendererReady && mainWindow) {
       mainWindow.webContents.send('window-focus');
+    }
+  });
+
+  // ── Telemetry pause on minimize / restore ────────────────────────────────
+  // Zero CPU is wasted polling telemetry while the window is minimized or
+  // hidden — no UI is visible to consume the data anyway.
+  mainWindow.on('minimize', () => {
+    _telemetryLoopPaused = true;
+    verboseLog('[PERF:TASK] name=telemetryLoop — paused (window minimized)');
+  });
+  mainWindow.on('restore', () => {
+    _telemetryLoopPaused = false;
+    // Immediately poll so charts are populated as soon as the window reopens
+    pollTelemetry().catch(() => {});
+    verboseLog('[PERF:TASK] name=telemetryLoop — resumed (window restored)');
+  });
+  mainWindow.on('show', () => {
+    if (_telemetryLoopPaused) {
+      _telemetryLoopPaused = false;
+      pollTelemetry().catch(() => {});
+      verboseLog('[PERF:TASK] name=telemetryLoop — resumed (window show)');
     }
   });
 

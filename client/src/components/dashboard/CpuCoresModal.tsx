@@ -104,7 +104,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
     };
 
     fetchCores();
-    intervalRef.current = setInterval(fetchCores, 700);
+    intervalRef.current = setInterval(fetchCores, 1500);
 
     return () => {
       if (intervalRef.current) {

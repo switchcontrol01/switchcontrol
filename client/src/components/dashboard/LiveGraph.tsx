@@ -416,7 +416,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   useEffect(() => {
     if (!isElectron) return;
     fetchTelemetry();
-    intervalRef.current = setInterval(fetchTelemetry, 1000);
+    intervalRef.current = setInterval(fetchTelemetry, 2000);
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchTelemetry, isElectron]);
 
