@@ -488,6 +488,7 @@ function OverviewTab({
 function ProtectionTab({
   securityStatus, advancedProtection, hasSecurity, scanning,
   onRefresh, onRefreshAdvanced, advProtStatus, advProtError,
+  defenderAction, runDefenderAction, togglingOption, toggleDefenderOption,
 }: {
   securityStatus: SecurityStatus | null;
   advancedProtection: AdvancedProtection | null;
@@ -497,6 +498,10 @@ function ProtectionTab({
   onRefreshAdvanced: () => void;
   advProtStatus: "idle"|"loading"|"success"|"empty"|"error";
   advProtError: string | null;
+  defenderAction: { type: "quickScan"|"updateSignatures"; status: "running"|"done"|"error" } | null;
+  runDefenderAction: (type: "quickScan"|"updateSignatures") => void;
+  togglingOption: string | null;
+  toggleDefenderOption: (option: string, enabled: boolean) => void;
 }) {
   return (
     <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
@@ -1312,6 +1317,8 @@ export default function Security() {
                 hasSecurity={hasSecurity} scanning={scanning}
                 onRefresh={refreshStatus} onRefreshAdvanced={refreshAdvanced}
                 advProtStatus={advProtStatus} advProtError={advProtError}
+                defenderAction={defenderAction} runDefenderAction={runDefenderAction}
+                togglingOption={togglingOption} toggleDefenderOption={toggleDefenderOption}
               />
             )}
             {activeTab === "startup" && (
