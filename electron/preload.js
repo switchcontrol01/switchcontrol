@@ -342,7 +342,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
       if (!settings || typeof settings !== 'object') throw new TypeError('applyCustom: settings must be an object');
       return ipcRenderer.invoke('powerPlans:applyCustom', name, settings);
     },
-    getCustomMeta:  () => ipcRenderer.invoke('powerPlans:getCustomMeta'),
+    getCustomMeta:     () => ipcRenderer.invoke('powerPlans:getCustomMeta'),
+    getStoredSCGuids:  () => ipcRenderer.invoke('powerPlans:getStoredSCGuids'),
   },
 
   networkTweaks: {

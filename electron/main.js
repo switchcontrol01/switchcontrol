@@ -2414,6 +2414,15 @@ ipcMain.handle('powerPlans:getCustomMeta', async () => {
   }
 });
 
+ipcMain.handle('powerPlans:getStoredSCGuids', () => {
+  try {
+    const guids = Object.values(powerPlanManager.getStoredSchemeGuids());
+    return guids.filter(Boolean).map(g => String(g).toLowerCase());
+  } catch {
+    return [];
+  }
+});
+
 ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
   verboseLog(`[IPC] powerPlans:activateByGuid: ${guid}`);
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

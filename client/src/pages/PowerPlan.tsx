@@ -745,10 +745,12 @@ export default function PowerPlan() {
     setCustomApplied(false);
     setShowComparison(false);
 
-    // Capture prev profile before switching (for before/after comparison)
+    // Capture prev profile and GUID before switching (for before/after comparison + ownership)
     const capturedPrev = backendState?.profileMatch
       ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
       : null;
+    const prevGuidCustom: string = backendState?.activeScheme?.guid ?? '';
+    const prevNameCustom: string = backendState?.activeScheme?.name ?? '';
 
     try {
       if (!isElectron) {
@@ -777,6 +779,18 @@ export default function PowerPlan() {
         setPrevProfileId(capturedPrev);
         setShowComparison(true);
         toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
+
+        // Record ownership so the revert engine can clean up on trial expiry.
+        // Only record if the GUID actually changed (plan switched, not a re-apply).
+        const appliedGuidCustom: string = result.guid ?? '';
+        if (prevGuidCustom && appliedGuidCustom && prevGuidCustom.toLowerCase() !== appliedGuidCustom.toLowerCase()) {
+          useTweakOwnershipStore.getState().recordPowerPlanApply(
+            prevGuidCustom, prevNameCustom,
+            appliedGuidCustom,
+            result.name,
+          );
+        }
+
         fetchPowerState();
       } else {
         toast({ title: "Apply Failed", description: result?.error ?? "Could not apply custom power plan.", variant: "destructive" });

@@ -239,9 +239,12 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
   }
 
   // ── Step 2: Is the current plan a SwitchControl-managed plan? ───────────────
-  // Detection via:
+  // Detection via three independent checks (any one is sufficient):
   //   A. GUID matches what we applied (from Zustand ownership record)
   //   B. Plan name starts with the SC prefix (covers missing ownership records)
+  //   C. GUID is in the power-plans.json stored SC GUIDs (covers built-in-plan
+  //      reuse where the plan wasn't renamed, e.g. High Performance used as base
+  //      without a "SwitchControl -" rename — the most common false-negative case)
   const guidMatchesSC = !!(
     rec?.appliedByApp &&
     rec.appliedPlanGuid &&
@@ -249,7 +252,21 @@ async function revertPowerPlan(): Promise<PowerPlanRevertResult> {
     currentGuid === rec.appliedPlanGuid.toLowerCase()
   );
   const nameMatchesSC = currentName.startsWith(SC_PLAN_NAME_PREFIX);
-  const activeIsSCPlan = guidMatchesSC || nameMatchesSC;
+
+  let guidInStoredSC = false;
+  if (currentGuid && !guidMatchesSC && !nameMatchesSC) {
+    try {
+      const storedGuids: string[] = (await (api as any).getStoredSCGuids?.()) ?? [];
+      guidInStoredSC = storedGuids.map((g: string) => g.toLowerCase()).includes(currentGuid);
+      if (guidInStoredSC) {
+        console.log(`[Revert:PLAN] Active plan "${currentName}" (${currentGuid}) matched stored SC GUID list — treating as SC-managed`);
+      }
+    } catch (e) {
+      console.warn('[Revert:PLAN] getStoredSCGuids unavailable (non-fatal):', e);
+    }
+  }
+
+  const activeIsSCPlan = guidMatchesSC || nameMatchesSC || guidInStoredSC;
 
   if (!activeIsSCPlan) {
     // Active plan is not SC-managed — user already moved away. Nothing to do.
