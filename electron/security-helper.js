@@ -205,40 +205,59 @@ ipcMain.handle('security:getTopProcesses', async () => {
 
 // ---------------------------------------------------------------------------
 // IPC: startup:setEnabled
-// Enables or disables a startup item using the Windows StartupApproved registry key.
-// This is the same mechanism used by Task Manager — does not delete the run entry.
+// Enables or disables a startup entry using the correct Windows mechanism for
+// each source type (registry Run keys, startup folders, Task Scheduler tasks).
+// Params: { source, registryName, taskPath, folderPath, enabled }
 // ---------------------------------------------------------------------------
 
-ipcMain.handle('startup:setEnabled', async (event, { name, registryKey, enabled }) => {
+ipcMain.handle('startup:setEnabled', async (event, params) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows' };
   }
 
+  const { source, registryName, taskPath, folderPath, enabled } = params || {};
+  const flag = enabled ? 2 : 3; // 2=enabled, 3=disabled (Task Manager convention)
+
   try {
-    // Determine the StartupApproved subkey from the run key location
-    let approvedKey;
-    if (registryKey && registryKey.includes('HKLM')) {
-      approvedKey = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+    let cmd = '';
+
+    if (source === 'registry-hkcu' && registryName) {
+      const safeName = registryName.replace(/'/g, "''");
+      const approvedPath = 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+      cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
+
+    } else if (source === 'registry-hklm' && registryName) {
+      const safeName = registryName.replace(/'/g, "''");
+      const approvedPath = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+      cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
+
+    } else if (source === 'startup-folder-user' && folderPath) {
+      const safeName = require('path').basename(folderPath).replace(/'/g, "''");
+      const approvedPath = 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder';
+      cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
+
+    } else if (source === 'startup-folder-common' && folderPath) {
+      const safeName = require('path').basename(folderPath).replace(/'/g, "''");
+      const approvedPath = 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder';
+      cmd = `$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0); If(!(Test-Path '${approvedPath}')){New-Item -Path '${approvedPath}' -Force|Out-Null}; Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary -Force; Write-Output 'ok'`;
+
+    } else if (source === 'task-scheduler' && taskPath) {
+      const parts = taskPath.split('\\').filter(Boolean);
+      const taskName = parts.pop() || taskPath;
+      const taskFolder = parts.length > 0 ? '\\' + parts.join('\\') + '\\' : '\\';
+      const safeFolder = taskFolder.replace(/'/g, "''");
+      const safeTName = taskName.replace(/'/g, "''");
+      const verb = enabled ? 'Enable' : 'Disable';
+      cmd = `${verb}-ScheduledTask -TaskPath '${safeFolder}' -TaskName '${safeTName}' -EA SilentlyContinue | Out-Null; Write-Output 'ok'`;
+
     } else {
-      approvedKey = 'HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run';
+      return { ok: false, error: 'Unknown source or missing params' };
     }
-
-    // 02 00... = enabled, 03 00... = disabled (Task Manager convention)
-    const byteValue = enabled
-      ? '[byte[]](2,0,0,0,0,0,0,0,0,0,0,0)'
-      : '[byte[]](3,0,0,0,0,0,0,0,0,0,0,0)';
-
-    const cmd = `
-      $key = '${approvedKey}'
-      If (!(Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
-      Set-ItemProperty -Path $key -Name '${name}' -Value ${byteValue} -Type Binary -Force
-      Write-Output 'ok'
-    `;
 
     const result = await runPowerShell(cmd, 8000);
     const success = result.trim().includes('ok');
-    console.log(`[Startup] setEnabled name=${name} enabled=${enabled} → ${success ? 'ok' : 'fail'}`);
-    return { ok: success, name, enabled };
+    console.log(`[Startup] setEnabled source=${source} enabled=${enabled} → ${success ? 'ok' : 'fail'}`);
+    return { ok: success };
   } catch (err) {
     console.warn(`[Startup] setEnabled ERROR: ${err?.message}`);
     return { ok: false, error: err?.message };

@@ -2210,9 +2210,10 @@ ipcMain.handle('psLimiter:getState', () => {
   return psLimiter.getState();
 });
 
-// ── Startup Apps: real Windows scan ──────────────────────────────────────────
-// Reads registry Run keys, StartupApproved state, startup folders, and
-// Task Scheduler logon/boot tasks. Returns only entries that actually exist.
+// ── Startup Apps ─────────────────────────────────────────────────────────────
+// startup:setEnabled is registered in security-helper.js (handles all source types)
+// startup:scan — reads registry Run keys, StartupApproved state, startup folders,
+// and Task Scheduler logon/boot tasks. Returns only entries that actually exist.
 ipcMain.handle('startup:scan', async () => {
   if (process.platform !== 'win32') {
     return { ok: false, error: 'Windows only', entries: [] };
@@ -2255,80 +2256,6 @@ try{Get-ScheduledTask -EA SilentlyContinue|ForEach-Object{$t=$_;$ht=$t.Triggers|
         console.error('[startup:scan] JSON parse error:', parseErr.message, stdout?.slice(0, 300));
         resolve({ ok: false, error: 'JSON parse failed', entries: [] });
       }
-    });
-  });
-});
-
-// startup:setEnabled — toggles a startup entry via the correct Windows mechanism
-// params: { source, registryName, taskPath, folderPath, enabled }
-ipcMain.handle('startup:setEnabled', async (_event, params) => {
-  if (process.platform !== 'win32') return { ok: false, error: 'Windows only' };
-
-  const { source, registryName, taskPath, folderPath, enabled } = params || {};
-  const flag = enabled ? 2 : 3; // 2 = enabled, 3 = disabled (Windows StartupApproved format)
-
-  let psCmd = '';
-
-  if (source === 'registry-hkcu' && registryName) {
-    const safeName = registryName.replace(/'/g, "''");
-    const approvedPath = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
-    psCmd = `
-$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
-New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
-Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary
-"ok"
-`.trim();
-  } else if (source === 'registry-hklm' && registryName) {
-    const safeName = registryName.replace(/'/g, "''");
-    const approvedPath = "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
-    psCmd = `
-$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
-New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
-Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary
-"ok"
-`.trim();
-  } else if (source === 'startup-folder-user' && folderPath) {
-    const safeName = require('path').basename(folderPath);
-    const safeFolderName = safeName.replace(/'/g, "''");
-    const approvedPath = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder";
-    psCmd = `
-$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
-New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
-Set-ItemProperty -Path '${approvedPath}' -Name '${safeFolderName}' -Value $val -Type Binary
-"ok"
-`.trim();
-  } else if (source === 'startup-folder-common' && folderPath) {
-    const safeName = require('path').basename(folderPath);
-    const safeFolderName = safeName.replace(/'/g, "''");
-    const approvedPath = "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder";
-    psCmd = `
-$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
-New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
-Set-ItemProperty -Path '${approvedPath}' -Name '${safeFolderName}' -Value $val -Type Binary
-"ok"
-`.trim();
-  } else if (source === 'task-scheduler' && taskPath) {
-    const parts = taskPath.split('\\').filter(Boolean);
-    const taskName = parts.pop() || taskPath;
-    const taskFolder = parts.length > 0 ? '\\' + parts.join('\\') + '\\' : '\\';
-    const safeFolder = taskFolder.replace(/'/g, "''");
-    const safeTName = taskName.replace(/'/g, "''");
-    const verb = enabled ? 'Enable' : 'Disable';
-    psCmd = `${verb}-ScheduledTask -TaskPath '${safeFolder}' -TaskName '${safeTName}' -EA SilentlyContinue | Out-Null; "ok"`;
-  } else {
-    return { ok: false, error: 'Unknown source or missing params' };
-  }
-
-  return new Promise((resolve) => {
-    execFile('powershell', [
-      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
-      '-ExecutionPolicy', 'Bypass', '-Command', psCmd,
-    ], { windowsHide: true, timeout: 10000 }, (err, stdout, stderr) => {
-      if (err) {
-        console.error('[startup:setEnabled] error:', err.message, stderr?.slice(0, 200));
-        return resolve({ ok: false, error: err.message });
-      }
-      resolve({ ok: true });
     });
   });
 });

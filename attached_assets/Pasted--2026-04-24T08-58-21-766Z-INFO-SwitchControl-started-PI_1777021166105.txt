@@ -1,0 +1,556 @@
+
+[2026-04-24T08:58:21.766Z] [INFO] SwitchControl started — PID:10752 platform:win32/x64 node:20.18.3
+[2026-04-24T08:58:21.832Z] [LOG] [Security] IPC handlers registered
+[2026-04-24T08:58:21.834Z] [LOG] [Debloat] IPC handlers registered
+[2026-04-24T08:58:21.835Z] [LOG] [Cleaner] IPC handlers registered
+[2026-04-24T08:58:21.835Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-04-24T08:58:21.838Z] [WARN] [DeepLink] mainWindow=null on second-instance — re-creating window
+[2026-04-24T08:58:21.858Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-04-24T08:58:21.859Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-04-24T08:58:21.866Z] [FATAL] uncaughtException: Error: Attempted to register a second handler for 'startup:setEnabled'
+    at IpcMainImpl.handle (node:electron/js2c/browser_init:2:104552)
+    at Object.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\main.js:2264:9)
+    at Module._compile (node:internal/modules/cjs/loader:1484:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1564:10)
+    at Module.load (node:internal/modules/cjs/loader:1295:32)
+    at Module._load (node:internal/modules/cjs/loader:1111:12)
+    at c._load (node:electron/js2c/node_init:2:16955)
+    at node:electron/js2c/browser_init:2:129756
+    at node:electron/js2c/browser_init:2:129965
+    at node:electron/js2c/browser_init:2:129969
+[2026-04-24T08:58:22.063Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [Entitlements] AUTH_DOMAIN resolved — packaged=true domain="https://switchcontrol.org"
+[2026-04-24T08:58:22.065Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [AUTH BOOT] persisted jwt length: 217 token present: true user present: true
+[2026-04-24T08:58:22.065Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [API] Init: electron=true, packaged=true, protocol=file:
+[2026-04-24T08:58:22.066Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:22.067Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [API] Electron fetch interceptor installed | packaged=true (URL-rewrite=true, auth-inject=true)
+[2026-04-24T08:58:22.069Z] [LOG] [Renderer:info] (index-D-f910lh.js:28) [Store:REHYDRATE] total_stored=47 enabled=37 source=localStorage
+[2026-04-24T08:58:22.069Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-04-24T08:58:22.076Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [BiosStore] hydrated | scores from storage: null
+[2026-04-24T08:58:22.077Z] [LOG] [Renderer:info] (index-D-f910lh.js:11) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-04-24T08:58:22.078Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [LAUNCH:R0] renderer bootstrap — opacity locked to 0 | t=+218ms
+[2026-04-24T08:58:22.078Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [LAUNCH:R1] createRoot dispatching | t=+218ms
+[2026-04-24T08:58:22.079Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:448) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-04-24T08:58:22.079Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:449) [SwitchControl Desktop] Platform: win32
+[2026-04-24T08:58:22.079Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-04-24T08:58:22.079Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-04-24T08:58:22.080Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 14ms, attempt 1)
+[2026-04-24T08:58:22.084Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T08:58:22.099Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R2] Splash mounted | t=+240ms
+[2026-04-24T08:58:22.100Z] [ERROR] [Renderer:warn] (index-D-f910lh.js:11) [IntervalGuard] ⚠ setInterval(36ms) clamped to 2000ms. Caller:     at file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-D-f910lh.js:29:41263 |     at Vf (file:///C:/Program%20Files/SwitchControl/resources/dist/assets/index-D-f910lh.js:9:93554)
+[2026-04-24T08:58:22.100Z] [LOG] [Renderer:info] (index-D-f910lh.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T08:58:22.100Z] [LOG] [Renderer:info] (index-D-f910lh.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T08:58:22.101Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [App] Registering deep link auth callback (once)
+[2026-04-24T08:58:22.111Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R3] first-frame-ready: sending IPC | t=+251ms (2 rAFs after mount)
+[2026-04-24T08:58:22.112Z] [LOG] [LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | +247ms
+[2026-04-24T08:58:22.128Z] [LOG] [LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | +263ms
+[2026-04-24T08:58:22.132Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T08:58:22.132Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [App] Electron window focus (passive)
+[2026-04-24T08:58:22.145Z] [LOG] [LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | +280ms
+[2026-04-24T08:58:22.145Z] [LOG] [LAUNCH:5c] app:window-shown sent to renderer | +280ms
+[2026-04-24T08:58:22.146Z] [LOG] [LAUNCH:6] focus() — launch sequence complete | +281ms
+[2026-04-24T08:58:22.147Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [LAUNCH] app:window-shown received — starting opacity reveal
+[2026-04-24T08:58:22.148Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R3b] app:window-shown received | t=+286ms
+[2026-04-24T08:58:22.148Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R4] reveal triggered by app:window-shown | t=+286ms
+[2026-04-24T08:58:22.149Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)
+[2026-04-24T08:58:22.149Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+286ms
+[2026-04-24T08:58:22.279Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:22.280Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 215ms, attempt 2)
+[2026-04-24T08:58:22.347Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R4b] startup-shell removed from DOM
+[2026-04-24T08:58:22.347Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+487ms
+[2026-04-24T08:58:22.600Z] [LOG] [Renderer:info] (index-D-f910lh.js:26) [TourTransition] unmounted
+[2026-04-24T08:58:22.600Z] [LOG] [Renderer:info] (index-D-f910lh.js:26) [TourTransition] unmounted
+[2026-04-24T08:58:22.680Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:22.681Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [API] Backend port not ready, retrying in 800ms… (elapsed 616ms, attempt 3)
+[2026-04-24T08:58:23.482Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:23.485Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [API] Backend port not ready, retrying in 1600ms… (elapsed 1420ms, attempt 4)
+[2026-04-24T08:58:23.900Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-04-24T08:58:23.900Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T08:58:23.905Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [Auth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-04-24T08:58:23.905Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [Entitlements] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-04-24T08:58:23.905Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [Auth] Using stored user data: 64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium: true
+[2026-04-24T08:58:23.906Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T08:58:23.908Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T08:58:24.638Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T08:58:24.638Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=false authMode=jwt
+[2026-04-24T08:58:24.638Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T08:58:24.639Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [Entitlements] startup fetch OK — isPremium: true plan: premium
+[2026-04-24T08:58:24.639Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-04-24T08:58:24.640Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:24.675Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:24.726Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [Network] Heartbeat started (interval=30000ms)
+[2026-04-24T08:58:24.726Z] [LOG] [Renderer:info] (index-D-f910lh.js:28) [Telemetry] Manager starting
+[2026-04-24T08:58:24.727Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:24.727Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T08:58:24.729Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Dashboard] mounted
+[2026-04-24T08:58:24.729Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-04-24T08:58:24.754Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [Handoff] dashboard fade-in started
+[2026-04-24T08:58:24.760Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [PremiumExpiry] Initial state recorded — active=true
+[2026-04-24T08:58:24.760Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-04-24T08:58:24.760Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:24.821Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [CloudAPI] 2026-04-24T08:58:24.820Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-04-24T08:58:25.088Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:25.089Z] [LOG] [Renderer:info] (index-D-f910lh.js:10) [API] Backend port not ready, retrying in 3200ms… (elapsed 3024ms, attempt 5)
+[2026-04-24T08:58:25.125Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [Handoff] dashboard fade-in complete — layout stable
+[2026-04-24T08:58:25.231Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [TourTransition] dashboard stable — tours unblocked
+[2026-04-24T08:58:25.232Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:25.244Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: false isFirstTimeUser: true isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-04-24T08:58:25.245Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [AppFlow] No flow conditions met — staying idle
+[2026-04-24T08:58:25.505Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-04-24T08:58:25.507Z] [LOG] [Renderer:info] (index-D-f910lh.js:29) [DeviceLock] Valid device
+[2026-04-24T08:58:25.508Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:26.006Z] [LOG] [Renderer:info] (index-D-f910lh.js:28) [Telemetry] WebSocket closed — reconnecting in 3000ms
+[2026-04-24T08:58:26.729Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T08:58:27.017Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT LHM: false
+[2026-04-24T08:58:27.103Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:28.291Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:28.731Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T08:58:28.874Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:28.897Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:28.899Z] [ERROR] Error occurred in handler for 'powerPlans:getState': Error: No handler registered for 'powerPlans:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.007Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.372Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:29.415Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.447Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.448Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.448Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.449Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.449Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.449Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.450Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.450Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.450Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.450Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.450Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.451Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.451Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.451Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.451Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.451Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.452Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.452Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.452Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.452Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.453Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.453Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.453Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.453Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.454Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.454Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.454Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.454Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.455Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.455Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.455Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.455Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.456Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.456Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.456Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.456Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.457Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.457Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.457Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.457Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.458Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.458Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.458Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.458Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.459Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.459Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.459Z] [ERROR] Error occurred in handler for 'tweak:readValue': Error: No handler registered for 'tweak:readValue'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.459Z] [ERROR] Error occurred in handler for 'tweak:readValue': Error: No handler registered for 'tweak:readValue'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.459Z] [ERROR] Error occurred in handler for 'tweak:readValue': Error: No handler registered for 'tweak:readValue'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.460Z] [ERROR] Error occurred in handler for 'tweak:readValue': Error: No handler registered for 'tweak:readValue'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.460Z] [ERROR] Error occurred in handler for 'tweak:readValue': Error: No handler registered for 'tweak:readValue'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.460Z] [ERROR] Error occurred in handler for 'tweak:readValue': Error: No handler registered for 'tweak:readValue'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.460Z] [ERROR] Error occurred in handler for 'tweak:readValue': Error: No handler registered for 'tweak:readValue'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.460Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.461Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [Tweaks:LOAD] source=zustand-persist enabled=37 total_known=47
+[2026-04-24T08:58:29.461Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [Tweaks:LOAD] enabled_ids=gaming-mode, notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, xbox-bar, disable-fso, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, hyper-v, large-system-cache, page-combining, prefetch, superfetch, mem-opt, telemetry, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, win-search-index, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-04-24T08:58:29.461Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [Tweaks:SYNC] hydration start gen=1
+[2026-04-24T08:58:29.461Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=1 active=1
+[2026-04-24T08:58:29.462Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 48 checks
+[2026-04-24T08:58:29.462Z] [LOG] [PS:tweak-executor] #1 queryPowerShell SPAWN ts=1777021109462 active=1
+[2026-04-24T08:58:29.472Z] [ERROR] Error occurred in handler for 'app:isAdmin': Error: No handler registered for 'app:isAdmin'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.649Z] [LOG] [PS:tweak-executor] #1 queryPowerShell OK 187ms
+[2026-04-24T08:58:29.650Z] [LOG] [PS:tweak-executor] #2 queryPowerShell SPAWN ts=1777021109650 active=1
+[2026-04-24T08:58:29.829Z] [LOG] [PS:tweak-executor] #2 queryPowerShell OK 179ms
+[2026-04-24T08:58:29.830Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1777021109830 active=1
+[2026-04-24T08:58:29.840Z] [LOG] [Renderer:info] (index-D-f910lh.js:28) [Telemetry] WebSocket closed — reconnecting in 6000ms
+[2026-04-24T08:58:29.860Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:29.887Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:29.888Z] [ERROR] Error occurred in handler for 'powerPlans:getState': Error: No handler registered for 'powerPlans:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:30.007Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 177ms
+[2026-04-24T08:58:30.008Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1777021110008 active=1
+[2026-04-24T08:58:30.187Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 179ms
+[2026-04-24T08:58:30.187Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1777021110187 active=1
+[2026-04-24T08:58:30.367Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 180ms
+[2026-04-24T08:58:30.367Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1777021110367 active=1
+[2026-04-24T08:58:30.545Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 178ms
+[2026-04-24T08:58:30.545Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1777021110545 active=1
+[2026-04-24T08:58:30.729Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 184ms
+[2026-04-24T08:58:30.730Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1777021110730 active=1
+[2026-04-24T08:58:30.907Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 177ms
+[2026-04-24T08:58:30.907Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1777021110907 active=1
+[2026-04-24T08:58:31.083Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 176ms
+[2026-04-24T08:58:31.083Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1777021111083 active=1
+[2026-04-24T08:58:31.185Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:31.187Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] AppBooster | mount | +0ms
+[2026-04-24T08:58:31.192Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T08:58:31.198Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:31.208Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] AppBooster | mount | +22ms
+[2026-04-24T08:58:31.209Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [AppBooster] mounted — isElectron: true appBoosterEnabled: true
+[2026-04-24T08:58:31.209Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [AppBooster] loadGames — start
+[2026-04-24T08:58:31.226Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [GameIcon] LOAD OK — slug="fortnite" canon="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T08:58:31.261Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 178ms
+[2026-04-24T08:58:31.261Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1777021111261 active=1
+[2026-04-24T08:58:31.448Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 187ms
+[2026-04-24T08:58:31.448Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1777021111448 active=1
+[2026-04-24T08:58:31.638Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 190ms
+[2026-04-24T08:58:31.638Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1777021111638 active=1
+[2026-04-24T08:58:31.739Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:31.740Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] FocusMode | mount | +0ms
+[2026-04-24T08:58:31.753Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:31.763Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] FocusMode | fetch-state | +22ms
+[2026-04-24T08:58:31.821Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 183ms
+[2026-04-24T08:58:31.821Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1777021111821 active=1
+[2026-04-24T08:58:31.994Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 173ms
+[2026-04-24T08:58:31.995Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1777021111995 active=1
+[2026-04-24T08:58:32.171Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 176ms
+[2026-04-24T08:58:32.171Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1777021112171 active=1
+[2026-04-24T08:58:32.203Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:32.213Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:32.220Z] [ERROR] Error occurred in handler for 'nic:getAdapters': Error: No handler registered for 'nic:getAdapters'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:32.220Z] [ERROR] Error occurred in handler for 'nic:getPropertyMeta': Error: No handler registered for 'nic:getPropertyMeta'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:32.352Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 181ms
+[2026-04-24T08:58:32.352Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1777021112352 active=1
+[2026-04-24T08:58:32.531Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 179ms
+[2026-04-24T08:58:32.531Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1777021112531 active=1
+[2026-04-24T08:58:32.699Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:32.700Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T08:58:32.700Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [NetworkTweaks:CACHE] cache miss — initialising to idle
+[2026-04-24T08:58:32.720Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 189ms
+[2026-04-24T08:58:32.721Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1777021112721 active=1
+[2026-04-24T08:58:32.741Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:32.743Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] NetworkTweaks | fetch-state | +43ms
+[2026-04-24T08:58:32.743Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T08:58:33.293Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:33.353Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:33.366Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:33.606Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 885ms
+[2026-04-24T08:58:33.607Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1777021113607 active=1
+[2026-04-24T08:58:33.785Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 178ms
+[2026-04-24T08:58:33.786Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1777021113786 active=1
+[2026-04-24T08:58:33.967Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:33.979Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:33.980Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 194ms
+[2026-04-24T08:58:33.981Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1777021113981 active=1
+[2026-04-24T08:58:33.991Z] [LOG] [Renderer:info] (index-D-f910lh.js:179) [AI:CONTEXT] source=zustand-store enabled=37 disabled=25
+[2026-04-24T08:58:33.991Z] [LOG] [Renderer:info] (index-D-f910lh.js:179) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, hyper-v, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, large-system-cache, page-combining, prefetch, superfetch, storage-sense, win-search-index, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, gaming-mode, synth-timers, disable-fso, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-bar, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T08:58:33.991Z] [LOG] [Renderer:info] (index-D-f910lh.js:179) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT" ram="31.6 GB" ramTotalGB=31.6 disk="C:"
+[2026-04-24T08:58:34.156Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 175ms
+[2026-04-24T08:58:34.157Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1777021114157 active=1
+[2026-04-24T08:58:34.401Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 244ms
+[2026-04-24T08:58:34.401Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1777021114401 active=1
+[2026-04-24T08:58:34.584Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 183ms
+[2026-04-24T08:58:34.585Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1777021114585 active=1
+[2026-04-24T08:58:34.860Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 275ms
+[2026-04-24T08:58:34.860Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1777021114860 active=1
+[2026-04-24T08:58:34.947Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:34.948Z] [LOG] [Renderer:info] (index-D-f910lh.js:114) [calculateBiosScores] settings=36 | latencyTotal=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 | clamped: latency=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 cr=28
+[2026-04-24T08:58:34.968Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:34.998Z] [ERROR] [Renderer:error] (index-D-f910lh.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T08:58:35.042Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 182ms
+[2026-04-24T08:58:35.042Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1777021115042 active=1
+[2026-04-24T08:58:35.217Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 175ms
+[2026-04-24T08:58:35.217Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1777021115217 active=1
+[2026-04-24T08:58:35.386Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 169ms
+[2026-04-24T08:58:35.387Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1777021115387 active=1
+[2026-04-24T08:58:35.558Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 171ms
+[2026-04-24T08:58:35.558Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1777021115558 active=1
+[2026-04-24T08:58:35.586Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:35.586Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] Security | mount | +0ms
+[2026-04-24T08:58:35.611Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:35.619Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] Security | shell | +32ms
+[2026-04-24T08:58:35.835Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 277ms
+[2026-04-24T08:58:35.835Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-04-24T08:58:35.835Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1777021115835 active=1
+[2026-04-24T08:58:35.845Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:36.018Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 183ms
+[2026-04-24T08:58:36.018Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1777021116018 active=1
+[2026-04-24T08:58:36.073Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:36.074Z] [LOG] [Renderer:info] (index-D-f910lh.js:114) [calculateBiosScores] settings=36 | latencyTotal=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 | clamped: latency=30.120000000000008 frametime=26.699999999999996 stability=19.60000000000001 cr=28
+[2026-04-24T08:58:36.089Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:36.106Z] [ERROR] [Renderer:error] (index-D-f910lh.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T08:58:36.187Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 169ms
+[2026-04-24T08:58:36.188Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1777021116188 active=1
+[2026-04-24T08:58:36.329Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 141ms
+[2026-04-24T08:58:36.329Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1777021116329 active=1
+[2026-04-24T08:58:36.468Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 139ms
+[2026-04-24T08:58:36.468Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1777021116468 active=1
+[2026-04-24T08:58:36.602Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 133ms
+[2026-04-24T08:58:36.602Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1777021116602 active=1
+[2026-04-24T08:58:36.784Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 182ms
+[2026-04-24T08:58:36.785Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1777021116785 active=1
+[2026-04-24T08:58:36.923Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 138ms
+[2026-04-24T08:58:36.923Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1777021116923 active=1
+[2026-04-24T08:58:37.060Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 137ms
+[2026-04-24T08:58:37.061Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1777021117061 active=1
+[2026-04-24T08:58:37.079Z] [LOG] [Renderer:info] (index-D-f910lh.js:28) [Telemetry] WebSocket closed — reconnecting in 12000ms
+[2026-04-24T08:58:37.225Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 164ms
+[2026-04-24T08:58:37.225Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-04-24T08:58:37.225Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1777021117225 active=1
+[2026-04-24T08:58:37.250Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:37.266Z] [ERROR] Error occurred in handler for 'updater:getState': Error: No handler registered for 'updater:getState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:37.282Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T08:58:37.283Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Dashboard] mounted
+[2026-04-24T08:58:37.283Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-04-24T08:58:37.391Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:37.465Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 240ms
+[2026-04-24T08:58:37.465Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1777021117465 active=1
+[2026-04-24T08:58:37.677Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 212ms
+[2026-04-24T08:58:37.677Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1777021117677 active=1
+[2026-04-24T08:58:37.827Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 150ms
+[2026-04-24T08:58:37.827Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1777021117827 active=1
+[2026-04-24T08:58:37.965Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 138ms
+[2026-04-24T08:58:37.966Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1777021117966 active=1
+[2026-04-24T08:58:38.107Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 141ms
+[2026-04-24T08:58:38.107Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1777021118107 active=1
+[2026-04-24T08:58:38.244Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 137ms
+[2026-04-24T08:58:38.244Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1777021118244 active=1
+[2026-04-24T08:58:38.297Z] [ERROR] Error occurred in handler for 'app:getBackendPort': Error: No handler registered for 'app:getBackendPort'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:38.382Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 138ms
+[2026-04-24T08:58:38.383Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1777021118382 active=1
+[2026-04-24T08:58:38.528Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 146ms
+[2026-04-24T08:58:38.528Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1777021118528 active=1
+[2026-04-24T08:58:38.619Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] Security | getStatus-start | +3033ms
+[2026-04-24T08:58:38.666Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 138ms
+[2026-04-24T08:58:38.666Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=9204
+[2026-04-24T08:58:38.666Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=1 duration=9205ms active=0 calls60s=1
+[2026-04-24T08:58:38.668Z] [ERROR] Error occurred in handler for 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87136)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T08:58:38.669Z] [ERROR] [Renderer:error] (index-D-f910lh.js:28) [TweakExecutor] syncAll failed: Error: Error invoking remote method 'tweak:getLocalState': Error: No handler registered for 'tweak:getLocalState'
+[2026-04-24T08:58:38.669Z] [LOG] [Renderer:info] (index-D-f910lh.js:127) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-04-24T08:58:39.119Z] [LOG] [Renderer:info] (index-D-f910lh.js:193) [AdvancedProtection] page mounted — starting fetch
+[2026-04-24T08:58:39.119Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] Security | getAdvancedProtection-start | +3533ms
+[2026-04-24T08:58:39.272Z] [WARN] [Security] getAdvancedProtection ERROR: Command failed: powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command 
+      $mp   = Get-MpComputerStatus -ErrorAction SilentlyContinue
+      $pref = Get-MpPreference    -ErrorAction SilentlyContinue
+      $svc  = (Get-Service -Name WinDefend -ErrorAction SilentlyContinue)?.Status
+
+      $signatureAge = $null
+      if ($mp?.AntivirusSignatureLastUpdated) {
+        $signatureAge = [int]([DateTime]::UtcNow - $mp.AntivirusSignatureLastUpdated.ToUniversalTime()).TotalDays
+      }
+      $quickScanAge = $null
+      if ($mp?.QuickScanEndTime -and $mp.QuickScanEndTime.Year -gt 2000) {
+        $quickScanAge = [int]([DateTime]::UtcNow - $mp.QuickScanEndTime.ToUniversalTime()).TotalDays
+      }
+      $fullScanAge = $null
+      if ($mp?.FullScanEndTime -and $mp.FullScanEndTime.Year -gt 2000) {
+        $fullScanAge = [int]([DateTime]::UtcNow - $mp.FullScanEndTime.ToUniversalTime()).TotalDays
+      }
+
+      $smartScreen = $null
+      try {
+        $ss = (Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name SmartScreenEnabled -ErrorAction Stop).SmartScreenEnabled
+        $smartScreen = ($ss -ne 'Off')
+      } catch {}
+
+      @{
+        cloudProtection         = if ($pref) { $pref.MAPSReporting -ne 0 } else { $null }
+        sampleSubmission        = if ($pref) { $pref.SubmitSamplesConsent -in @(1,3) } else { $null }
+        controlledFolderAccess  = if ($pref) { $pref.EnableControlledFolderAccess -ne 0 } else { $null }
+        puaProtection           = if ($pref) { $pref.PUAProtection -ne 0 } else { $null }
+        smartScreen             = $smartScreen
+        signatureVersion        = $mp?.AntivirusSignatureVersion
+        signatureAge            = $signatureAge
+        quickScanAge            = $quickScanAge
+        fullScanAge             = $fullScanAge
+        defenderServiceRunning  = ($svc -eq 'Running')
+      } | ConvertTo-Json -Compress
+    
+At line:4 char:74
++ ... = (Get-Service -Name WinDefend -ErrorAction SilentlyContinue)?.Status
++                                                                  ~~~~~~~~
+Unexpected token '?.Status' in expression or statement.
+    + CategoryInfo          : ParserError: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : UnexpectedToken
+ 
+
+[2026-04-24T08:58:39.273Z] [LOG] [Renderer:info] (index-D-f910lh.js:193) [AdvancedProtection] IPC response received: [object Object]
+[2026-04-24T08:58:39.273Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] Security | getAdvancedProtection-done | +3687ms
+[2026-04-24T08:58:39.273Z] [ERROR] [Renderer:warn] (index-D-f910lh.js:193) [AdvancedProtection] IPC returned unavailable: error
+[2026-04-24T08:58:39.282Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T08:58:39.675Z] [LOG] [Security] getStatus OK | realtime=null firewall=false
+[2026-04-24T08:58:39.675Z] [LOG] [Renderer:info] (index-D-f910lh.js:120) [Timing] Security | getStatus-done | +4089ms
+[2026-04-24T08:58:39.709Z] [LOG] [Renderer:info] (index-D-f910lh.js:194) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T08:58:41.282Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
