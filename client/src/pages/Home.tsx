@@ -16,7 +16,7 @@ import { LatencyMap } from "@/components/intelligence/LatencyMap";
 import { SystemAura } from "@/components/intelligence/SystemAura";
 import { Button } from "@/components/ui/button";
 import { GlassCard } from "@/components/ui/glass-card";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Progress } from "@/components/ui/progress";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { format } from "date-fns";
@@ -310,6 +310,7 @@ function useLiveStatus(): string {
 }
 
 export default function Home() {
+  const [, navigate] = useLocation();
   const { stats, account, setStats } = useStore();
   const { telemetry: liveTel, status: telStatus, history: telHistory } = useLiveTelemetry();
 
@@ -628,21 +629,22 @@ export default function Home() {
                 </span>
               </div>
 
-              <Button variant="outline" className="gap-2 hidden sm:flex" data-testid="button-view-logs" asChild>
-                <Link href="/history">
-                  <Activity className="size-4" />
-                  View Logs
-                </Link>
+              <Button
+                variant="outline"
+                className="gap-2 hidden sm:flex"
+                data-testid="button-view-logs"
+                onClick={() => navigate("/history")}
+              >
+                <Activity className="size-4" />
+                View Logs
               </Button>
               <Button
                 className="gap-2 bg-primary hover:bg-primary/90 text-white font-medium border-0"
                 data-testid="button-optimize-now"
-                asChild
+                onClick={() => navigate("/tweaks")}
               >
-                <Link href="/tweaks">
-                  <Zap className="size-4" />
-                  Optimize Now
-                </Link>
+                <Zap className="size-4" />
+                Optimize Now
               </Button>
             </motion.div>
           </div>
