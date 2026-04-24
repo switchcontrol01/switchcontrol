@@ -198,8 +198,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getMemoryDetails:     () => ipcRenderer.invoke('telemetry:getMemoryDetails'),
     getGpu:               () => ipcRenderer.invoke('telemetry:getGpu'),
     getDisk:              (selectedDiskMount) => ipcRenderer.invoke('telemetry:getDisk', selectedDiskMount),
-    getHardwareTelemetry: () => ipcRenderer.invoke('telemetry:getHardwareTelemetry'),
-    refreshGpuLoad:       () => ipcRenderer.invoke('telemetry:refreshGpuLoad'),
+    getHardwareTelemetry:  () => ipcRenderer.invoke('telemetry:getHardwareTelemetry'),
+    refreshGpuLoad:        () => ipcRenderer.invoke('telemetry:refreshGpuLoad'),
+    refreshDeepHardware:   () => ipcRenderer.invoke('telemetry:refreshDeepHardware'),
+    getSchedulerStats:     () => ipcRenderer.invoke('telemetry:getSchedulerStats'),
   },
 
   // ── Packaged config store — persisted secrets (e.g. OPENAI_API_KEY) ─────────

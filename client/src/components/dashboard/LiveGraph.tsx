@@ -265,7 +265,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   );
   isLowEndRef.current = isLowEndClient;
   const showGlowLines = !isLowEndClient;
-  const graphPollMs = isLowEndClient ? (expanded ? 4000 : 6000) : 2000;
+  const graphPollMs = isLowEndClient ? 10000 : 4000;
 
   // ── GPU first-load tracking ───────────────────────────────────────────────
   // gpuDetectedRef: true once any tick confirms GPU is present on this machine.
@@ -412,6 +412,17 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
         diskActiveTime, diskReadKBps, diskWriteKBps,
         netRx: netRxSec, netTx: netTxSec,
       };
+      // Render-skip: if all key metrics changed by less than 1%, don't push a new point
+      const last = prev[prev.length - 1];
+      if (
+        last &&
+        Math.abs(last.cpuLoad - cpuLoad) < 1 &&
+        Math.abs(last.ram - ramPercent) < 1 &&
+        Math.abs((last.gpuLoad ?? 0) - (gpuLoad ?? 0)) < 1 &&
+        Math.abs((last.diskActiveTime ?? 0) - (diskActiveTime ?? 0)) < 1
+      ) {
+        return prev;
+      }
       const maxPoints = isLowEndRef.current ? 30 : 60;
       const updated = [...prev, pt];
       return updated.length > maxPoints ? updated.slice(-maxPoints) : updated;
@@ -503,6 +514,17 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           diskActiveTime, diskReadKBps, diskWriteKBps,
           netRx: netRxSec, netTx: netTxSec,
         };
+        // Render-skip: if all key metrics changed by less than 1%, don't push a new point
+        const last = prev[prev.length - 1];
+        if (
+          last &&
+          Math.abs(last.cpuLoad - cpuLoad) < 1 &&
+          Math.abs(last.ram - ramPercent) < 1 &&
+          Math.abs((last.gpuLoad ?? 0) - (gpuLoad ?? 0)) < 1 &&
+          Math.abs((last.diskActiveTime ?? 0) - (diskActiveTime ?? 0)) < 1
+        ) {
+          return prev;
+        }
         const maxPoints = isLowEndRef.current ? 30 : 60;
         const updated = [...prev, pt];
         return updated.length > maxPoints ? updated.slice(-maxPoints) : updated;

@@ -175,18 +175,18 @@ let gpuExistsOnHardware = false;
 // ── Performance governor ──────────────────────────────────────────────────────
 // Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
 // Auto-throttles to TELEMETRY_SLOW_MS when load exceeds the threshold.
-const TELEMETRY_BASE_MS      = 2000;   // normal polling cadence
-const TELEMETRY_SLOW_MS      = 5000;   // low-end / over-budget mode
+const TELEMETRY_BASE_MS      = 4000;   // normal polling cadence
+const TELEMETRY_SLOW_MS      = 10000;  // low-end / over-budget mode
 const TELEMETRY_GOVERNOR_PCT = 50;     // engage slow mode when cpu > 50%
 let _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
 
 // ── Per-task TTLs — heavy tasks run NO MORE OFTEN than their TTL ──────────────
 // Only ONE heavy task fires per tick (rotation). Lightweight tasks (currentLoad,
 // mem, networkStats) are fast OS reads and run every tick.
-const FS_SIZE_TTL_MS    = 12_000; // si.fsSize()         — full drive scan
-const CPU_TEMP_TTL_MS   =  8_000; // si.cpuTemperature() — WMI/ACPI, expensive
-const DISK_IO_TTL_MS    =  4_000; // si.disksIO()        — kernel counter read
-const LHM_POLL_TTL_MS   =  4_000; // getLhmTelemetry()   — HTTP to localhost:8085
+// LHM is NOT polled in the background loop — use telemetry:refreshDeepHardware.
+const FS_SIZE_TTL_MS    = 30_000; // si.fsSize()         — full drive scan
+const CPU_TEMP_TTL_MS   = 15_000; // si.cpuTemperature() — WMI/ACPI, expensive
+const DISK_IO_TTL_MS    =  8_000; // si.disksIO()        — kernel counter read
 
 // Per-task caches + timestamps
 let _fsSizeCache        = [];
@@ -194,8 +194,8 @@ let _fsSizeLastTs       = 0;
 let _cpuTempCache       = { main: 0, max: 0, cores: [] };
 let _cpuTempLastTs      = 0;
 let _diskIoLastTs       = 0;    // last time si.disksIO() ran
-let _lhmLastTs          = 0;    // last time getLhmTelemetry() ran
-let _lhmCache           = null; // last LHM result
+let _lhmLastTs          = 0;    // last time getLhmTelemetry() ran (on-demand only)
+let _lhmCache           = null; // last LHM result (on-demand via refreshDeepHardware IPC)
 
 // ── Low-end mode ──────────────────────────────────────────────────────────────
 // Enabled when: logical CPU cores <= 4  OR  sustained average load > 50%.
@@ -207,11 +207,14 @@ const LOAD_HIST_LEN     = 5;    // ticks to average for sustained-load check
 
 // ── CPU budget ────────────────────────────────────────────────────────────────
 // If SwitchControl's own Node process exceeds CPU_BUDGET_PCT, skip heavy tasks
-// this tick to avoid competing with the game the user is trying to run.
-const CPU_BUDGET_PCT    = 5;
+// for 15s after the budget is exceeded (prevents competing with the game).
+const CPU_BUDGET_PCT    = 3;
 let _lastProcCpuUsage   = process.cpuUsage();
 let _lastProcCpuTs      = Date.now();
 let _appCpuPct          = 0;
+let heavyCooldownUntil  = 0;   // skip heavy tasks until this timestamp (15s cooldown)
+let _tickCount          = 0;   // total poll ticks executed
+let _skippedTicks       = 0;   // ticks where heavy tasks were skipped due to cooldown/budget
 
 // ── Per-task timing ───────────────────────────────────────────────────────────
 // Each entry: { lastDurationMs, lastRunTs }
@@ -251,6 +254,7 @@ async function pollTelemetry() {
   if (!_token) return; // already running — loop will retry after current poll finishes
   try {
     const now = Date.now();
+    _tickCount++;
 
     // ── 1. CPU budget check ───────────────────────────────────────────────────
     // Measure this process's own CPU usage since the last tick.
@@ -262,8 +266,11 @@ async function pollTelemetry() {
     _lastProcCpuUsage = process.cpuUsage();
     _lastProcCpuTs = now;
     const _overBudget = _appCpuPct > CPU_BUDGET_PCT;
+    const inCooldown = now < heavyCooldownUntil;
     if (_overBudget) {
-      verboseLog(`[telemetry:poll] Over budget (app=${_appCpuPct.toFixed(1)}%) — skipping heavy tasks this tick`);
+      heavyCooldownUntil = now + 15_000;
+      _skippedTicks++;
+      verboseLog(`[telemetry:poll] Over budget (app=${_appCpuPct.toFixed(1)}%) — heavy tasks suppressed for 15s`);
     }
 
     // ── 2. Lightweight tasks — always run, fast OS reads ─────────────────────
@@ -292,18 +299,18 @@ async function pollTelemetry() {
     const cpuPct = load?.currentLoad ?? 0;
 
     // ── 4. Heavy task rotation — ONE task per tick, serial ───────────────────
-    // Priority: cpuTemp → diskIO → LHM → fsSize
+    // Priority: cpuTemp → diskIO → fsSize
+    // LHM is NOT polled here — use telemetry:refreshDeepHardware for on-demand data.
     // In low-end mode: diskIO is disabled; all TTLs double.
-    // Over-budget ticks skip ALL heavy tasks.
+    // Over-budget or in-cooldown ticks skip ALL heavy tasks.
     //
     // Disk delta uses existing lastDiskSnapshot — computed below after rawDiskIO.
     let rawDiskIO = null;
     const temps = _cpuTempCache; // used below; may be refreshed in this block
 
-    if (!_overBudget) {
+    if (!_overBudget && !inCooldown) {
       const _tempTtl  = _lowEndMode ? CPU_TEMP_TTL_MS * 2 : CPU_TEMP_TTL_MS;
       const _diskTtl  = _lowEndMode ? Infinity            : DISK_IO_TTL_MS;
-      const _lhmTtl   = _lowEndMode ? LHM_POLL_TTL_MS * 2 : LHM_POLL_TTL_MS;
       const _fsTtl    = _lowEndMode ? FS_SIZE_TTL_MS  * 2 : FS_SIZE_TTL_MS;
 
       if (now - _cpuTempLastTs > _tempTtl) {
@@ -320,20 +327,15 @@ async function pollTelemetry() {
         _diskIoLastTs  = Date.now();
         _recordTiming('diskIO', _t0);
 
-      } else if (now - _lhmLastTs > _lhmTtl) {
-        // Task C: LHM telemetry — HTTP to LibreHardwareMonitor on localhost:8085
-        const _t0 = Date.now();
-        _lhmCache  = await getLhmTelemetry().catch(() => null);
-        _lhmLastTs = Date.now();
-        _recordTiming('lhm', _t0);
-
       } else if (now - _fsSizeLastTs > _fsTtl) {
-        // Task D: Filesystem sizes — full drive scan, lowest priority
+        // Task C: Filesystem sizes — full drive scan, lowest priority
         const _t0 = Date.now();
         _fsSizeCache  = await si.fsSize().catch(() => []);
         _fsSizeLastTs = Date.now();
         _recordTiming('fsSize', _t0);
       }
+    } else if (inCooldown && !_overBudget) {
+      _skippedTicks++;
     }
 
     // Use cached cpuTemp (may have just been refreshed above)
@@ -407,17 +409,13 @@ async function pollTelemetry() {
       diskIO.source = 'unavailable';
     }
 
-    // ── 6. GPU cache update from LHM ─────────────────────────────────────────
-    // LHM is now polled on its own TTL (Task C above). gpuStatic (si.graphics()
-    // VRAM) is unchanged — it has its own 60s TTL via getGpuStatic().
-    // GPU perf counter (PS-based) is NOT called here; use telemetry:refreshGpuLoad IPC.
+    // ── 6. GPU VRAM update (static cache — si.graphics with 60s TTL) ─────────
+    // LHM is NOT read in the background loop — GPU temp/power come from
+    // telemetry:refreshDeepHardware (on-demand).  GPU perf counter (PS-based)
+    // is NOT called here; use telemetry:refreshGpuLoad IPC for on-demand load.
     {
-      const lhm = _lhmCache;
       const gpuStatic = await getGpuStatic().catch(() => null);
       const newGpu = { ...gpuPollCache };
-      if (lhm?.gpuLoad != null) { newGpu.load = lhm.gpuLoad; newGpu.source = 'lhm'; }
-      if (lhm?.gpuTemp  != null && lhm.gpuTemp  > 0) newGpu.temp  = lhm.gpuTemp;
-      if (lhm?.gpuPower != null && lhm.gpuPower > 0) newGpu.power = lhm.gpuPower;
       if (gpuStatic?.memUsedMb  != null) newGpu.memUsedMb  = gpuStatic.memUsedMb;
       if (gpuStatic?.memTotalMb != null) newGpu.memTotalMb = gpuStatic.memTotalMb;
       gpuPollCache = newGpu;
@@ -477,23 +475,9 @@ async function startTelemetryPolling() {
     }
   }).catch(() => {});
 
-  getGpuPerfCounterLoad().then(load => {
-    if (load != null) {
-      gpuPollCache = { ...gpuPollCache, load, source: 'perf-counter' };
-      verboseLog('[telemetry:poll] GPU pre-warm (perf counter) complete: load=' + load + '%');
-    }
-  }).catch(() => {});
-
-  getLhmTelemetry().then(lhm => {
-    if (lhm) {
-      const upd = { ...gpuPollCache };
-      if (lhm.gpuLoad != null && upd.load == null) { upd.load = lhm.gpuLoad; upd.source = 'lhm'; }
-      if (lhm.gpuTemp  != null && lhm.gpuTemp  > 0) upd.temp  = lhm.gpuTemp;
-      if (lhm.gpuPower != null && lhm.gpuPower > 0) upd.power = lhm.gpuPower;
-      gpuPollCache = upd;
-      verboseLog('[telemetry:poll] GPU pre-warm (LHM) complete: load=' + lhm.gpuLoad + ' temp=' + lhm.gpuTemp);
-    }
-  }).catch(() => {});
+  // GPU perf counter and LHM prewarm removed — both are expensive at launch.
+  // GPU load: use telemetry:refreshGpuLoad IPC (on-demand).
+  // GPU/LHM deep data: use telemetry:refreshDeepHardware IPC (on-demand).
 
   // First call to differential APIs always returns 0 — prime them and seed lastDiskSnapshot
   // so that the first real pollTelemetry() can compute disk deltas immediately.
@@ -1761,6 +1745,52 @@ ipcMain.handle('telemetry:getHardwareTelemetry', async () => {
   }
 });
 
+// ── Deep-hardware on-demand IPC (LHM + si.graphics + cpuTemp + memLayout) ─────
+// NOT called from the background loop — only when the user opens a hardware
+// details modal, the GPU panel, or triggers an AI Advisor deep scan.
+// Results are cached for 60s to prevent re-hammering on rapid opens.
+let _deepHardwareCache   = null;
+let _deepHardwareCacheTs = 0;
+const DEEP_HARDWARE_TTL_MS = 60_000;
+
+ipcMain.handle('telemetry:refreshDeepHardware', async () => {
+  const now = Date.now();
+  if (_deepHardwareCache && (now - _deepHardwareCacheTs) < DEEP_HARDWARE_TTL_MS) {
+    return { ..._deepHardwareCache, cached: true };
+  }
+  try {
+    const [lhmResult, graphicsResult, cpuTempResult, memLayoutResult] = await Promise.allSettled([
+      getLhmTelemetry().catch(() => null),
+      si.graphics().catch(() => null),
+      si.cpuTemperature().catch(() => null),
+      si.memLayout().catch(() => []),
+    ]);
+    const lhm       = lhmResult.status       === 'fulfilled' ? lhmResult.value       : null;
+    const graphics   = graphicsResult.status  === 'fulfilled' ? graphicsResult.value  : null;
+    const cpuTemp    = cpuTempResult.status   === 'fulfilled' ? cpuTempResult.value   : null;
+    const memLayout  = memLayoutResult.status === 'fulfilled' ? memLayoutResult.value : [];
+
+    // Propagate LHM GPU data into the live poll cache so getLive() benefits immediately
+    if (lhm) {
+      _lhmCache  = lhm;
+      _lhmLastTs = now;
+      const upd = { ...gpuPollCache };
+      if (lhm.gpuLoad != null) { upd.load = lhm.gpuLoad; upd.source = 'lhm'; }
+      if (lhm.gpuTemp  != null && lhm.gpuTemp  > 0) upd.temp  = lhm.gpuTemp;
+      if (lhm.gpuPower != null && lhm.gpuPower > 0) upd.power = lhm.gpuPower;
+      gpuPollCache = upd;
+    }
+
+    const result = { lhm, graphics, cpuTemperature: cpuTemp, memLayout, timestamp: now, cached: false };
+    _deepHardwareCache   = result;
+    _deepHardwareCacheTs = now;
+    return result;
+  } catch (e) {
+    console.error('[telemetry:refreshDeepHardware] error:', e.message);
+    return null;
+  }
+});
+
 // Alias handlers for preload/main name alignment
 ipcMain.handle('system:getSpecs', async () => {
   return await loadSystemSpecs();
@@ -3008,6 +3038,24 @@ ipcMain.handle('auth:debugCookies', async () => {
   }));
 });
 
+// ── Scheduler stats (lightweight — safe to call from devtools/debug panels) ────
+ipcMain.handle('telemetry:getSchedulerStats', () => {
+  const _now = Date.now();
+  return {
+    appCpuPct:            parseFloat(_appCpuPct.toFixed(2)),
+    lowEndMode:           _lowEndMode,
+    heavyCooldownUntil,
+    heavyCooldownActiveMs: heavyCooldownUntil > _now ? heavyCooldownUntil - _now : 0,
+    tickCount:            _tickCount,
+    skippedTicks:         _skippedTicks,
+    taskTimings:          _taskTimings,
+    currentIntervalMs:    _telemetryCurrentIntervalMs,
+    baseIntervalMs:       TELEMETRY_BASE_MS,
+    slowIntervalMs:       TELEMETRY_SLOW_MS,
+    budgetPct:            CPU_BUDGET_PCT,
+  };
+});
+
 // ── Performance diagnostics ────────────────────────────────────────────────────
 // Access from renderer: window.electronAPI.debug.getPerformanceInfo()
 ipcMain.handle('debug:getPerformanceInfo', () => {
@@ -3028,22 +3076,25 @@ ipcMain.handle('debug:getPerformanceInfo', () => {
       slowIntervalMs:    TELEMETRY_SLOW_MS,
     },
     scheduler: {
-      appCpuPct:     parseFloat(_appCpuPct.toFixed(2)),
-      lowEndMode:    _lowEndMode,
-      budgetPct:     CPU_BUDGET_PCT,
-      governorPct:   TELEMETRY_GOVERNOR_PCT,
-      taskTimings:   _taskTimings,
+      appCpuPct:          parseFloat(_appCpuPct.toFixed(2)),
+      lowEndMode:         _lowEndMode,
+      budgetPct:          CPU_BUDGET_PCT,
+      governorPct:        TELEMETRY_GOVERNOR_PCT,
+      tickCount:          _tickCount,
+      skippedTicks:       _skippedTicks,
+      heavyCooldownUntil,
+      heavyCooldownActiveMs: heavyCooldownUntil > _now ? heavyCooldownUntil - _now : 0,
+      taskTimings:        _taskTimings,
       taskTtls: {
         cpuTemp:    CPU_TEMP_TTL_MS,
         diskIO:     DISK_IO_TTL_MS,
-        lhm:        LHM_POLL_TTL_MS,
         fsSize:     FS_SIZE_TTL_MS,
       },
       taskAges: {
-        cpuTemp:    _cpuTempLastTs ? _now - _cpuTempLastTs : null,
-        diskIO:     _diskIoLastTs  ? _now - _diskIoLastTs  : null,
-        lhm:        _lhmLastTs     ? _now - _lhmLastTs     : null,
-        fsSize:     _fsSizeLastTs  ? _now - _fsSizeLastTs  : null,
+        cpuTemp:     _cpuTempLastTs ? _now - _cpuTempLastTs : null,
+        diskIO:      _diskIoLastTs  ? _now - _diskIoLastTs  : null,
+        fsSize:      _fsSizeLastTs  ? _now - _fsSizeLastTs  : null,
+        lhmOnDemand: _lhmLastTs     ? _now - _lhmLastTs     : null,
       },
     },
     powerShell: {

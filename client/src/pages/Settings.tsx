@@ -315,7 +315,6 @@ const SUPPORT_EMAIL = 'switchcontrol67@gmail.com';
 export default function Settings() {
   const { 
     account, resetData, 
-    enhancedSensorsEnabled, setEnhancedSensorsEnabled,
     appBoosterEnabled, setAppBoosterEnabled,
     realtimeMetricsEnabled, setRealtimeMetricsEnabled,
     pauseWhenMinimized, setPauseWhenMinimized,
@@ -407,38 +406,6 @@ export default function Settings() {
                   />
                 </div>
               </motion.div>
-              {isElectron && (
-                <>
-                  <Separator className="bg-border/50" />
-                  <motion.div
-                    initial={{ opacity: 0, x: -6 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.3, delay: 0.23, ease: [0.22, 1, 0.36, 1] }}
-                  >
-                    <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
-                      <div className="space-y-0.5">
-                        <Label className="flex items-center gap-2">
-                          Enhanced Sensors
-                          <span className="text-[9px] text-amber-400 uppercase font-medium px-1.5 py-0.5 bg-amber-500/10 rounded">Experimental</span>
-                        </Label>
-                        <p className="text-xs text-muted-foreground">Use LibreHardwareMonitor for motherboard, VRM, and chipset temps.</p>
-                      </div>
-                      <Switch 
-                        checked={enhancedSensorsEnabled} 
-                        onCheckedChange={(checked) => {
-                          setEnhancedSensorsEnabled(checked);
-                          toast({
-                            title: checked ? "Enhanced Sensors Enabled" : "Enhanced Sensors Disabled",
-                            description: checked 
-                              ? "Motherboard temps may now be available if supported." 
-                              : "Using default system sensors.",
-                          });
-                        }}
-                      />
-                    </div>
-                  </motion.div>
-                </>
-              )}
             </CardContent>
           </Card>
           </Reveal>
