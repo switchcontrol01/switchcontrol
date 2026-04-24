@@ -39,6 +39,9 @@ interface TweakCardProps {
   isVerifying?: boolean;
   /** Pulse-highlight this card — used when deep-linked from Detected Issues */
   isHighlighted?: boolean;
+  /** Runtime-detected unsupported reason from the backend (e.g. "Power setting not found").
+   *  Overrides the static registry reason when set. Causes the card to show as unsupported. */
+  runtimeUnsupportedReason?: string;
 }
 
 interface FailureInfo {
@@ -179,7 +182,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
 }
 
 // ── Main card ─────────────────────────────────────────────────────────────────
-export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isHighlighted = false }: TweakCardProps) {
+export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isHighlighted = false, runtimeUnsupportedReason }: TweakCardProps) {
   const [open, setOpen]               = useState(false);
   const [trustOpen, setTrustOpen]     = useState(false);
   const [failureInfo, setFailureInfo] = useState<FailureInfo | null>(null);
@@ -194,9 +197,10 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
   const isLocked       = isPremiumTweak && !isPremium;
   const isExecuting    = executing === tweak.id;
   const isReal         = isElectronWithTweaks() && isRealTweak(tweak.id);
-  const isUnsupported  = isUnsupportedTweak(tweak.id);
+  const isUnsupported  = isUnsupportedTweak(tweak.id) || !!runtimeUnsupportedReason;
   const needsAdmin     = isAdminTweak(tweak.id);
-  const unsupportedMsg = UNSUPPORTED_TWEAKS[tweak.id];
+  // runtimeUnsupportedReason overrides static registry reason when set
+  const unsupportedMsg = runtimeUnsupportedReason ?? UNSUPPORTED_TWEAKS[tweak.id];
 
   const closeModal = useCallback(() => setOpen(false), []);
   const openModal  = useCallback(() => setOpen(true),  []);

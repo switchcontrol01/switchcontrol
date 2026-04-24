@@ -219,7 +219,7 @@ const BASE: BaseTweak[] = [
     category: "System and Power", level: "Experimental", risk: "Risky",
     requiresAgent: true,
     supported: false,
-    unsupportedReason: "Requires a runtime agent process for CPU P-state control. Cannot be applied persistently via registry.",
+    unsupportedReason: "Requires driver/service not installed — CPU P-state control needs a kernel-mode agent calling ACPI driver interfaces. Cannot be applied persistently via registry.",
     requiresAdmin: true,
   },
   {
@@ -552,7 +552,7 @@ const BASE: BaseTweak[] = [
     category: "Gaming and Latency", level: "Experimental", risk: "Risky",
     requiresAgent: true,
     supported: false,
-    unsupportedReason: "Requires kernel-level interrupt affinity control not accessible from user-mode.",
+    unsupportedReason: "Requires driver/service not installed — interrupt affinity control is not accessible from user-mode. Needs a signed kernel driver or MSR write access.",
     requiresAdmin: true,
   },
   {
@@ -581,7 +581,7 @@ const BASE: BaseTweak[] = [
     category: "Gaming and Latency", level: "Advanced", risk: "Safe",
     requiresAgent: true,
     supported: false,
-    unsupportedReason: "Timer resolution requires a persistent runtime process. The effect resets on process exit. Requires agent.",
+    unsupportedReason: "Helper not bundled — timer resolution requires a persistent agent calling timeBeginPeriod(). The effect resets when the process exits. No agent is shipped in this build.",
     requiresAdmin: false,
   },
   {
@@ -654,7 +654,7 @@ const BASE: BaseTweak[] = [
     expected: { gpu: "Medium", latency: "Low", cpu: "Low", ram: "None", disk: "None", network: "None", stabilityRisk: "High" },
     category: "GPU and Graphics", level: "Experimental", risk: "Moderate",
     supported: false,
-    unsupportedReason: "Desktop Window Manager cannot be disabled on Windows 10/11. This is a legacy Windows XP/Vista feature.",
+    unsupportedReason: "Unsupported on Windows 10/11 — Desktop Window Manager (DWM) is an integral system compositor and cannot be disabled. Disabling DWM was only possible on Windows XP/Vista.",
     requiresAdmin: true,
   },
   {
@@ -669,7 +669,7 @@ const BASE: BaseTweak[] = [
     expected: { gpu: "None", latency: "None", cpu: "None", ram: "None", disk: "None", network: "None", stabilityRisk: "Medium" },
     category: "GPU and Graphics", level: "Experimental", risk: "Risky",
     supported: false,
-    unsupportedReason: "HDCP enforcement is controlled at hardware/driver level and cannot be reliably toggled via software.",
+    unsupportedReason: "Requires driver/service not installed — HDCP enforcement is controlled at the GPU hardware/display-driver level and cannot be reliably toggled via software or registry.",
     requiresAdmin: true,
   },
   {
@@ -936,7 +936,7 @@ const BASE: BaseTweak[] = [
       technicalNote: "Controls the mouclass.sys kernel driver input queue. DISABLED in SwitchControl v1.0.2+ due to unrecoverable input-loss risk on certain hardware configurations.",
     },
     supported: false, requiresAdmin: true,
-    unsupportedReason: "Disabled for safety: a bad value in the mouclass kernel driver can leave the system with no mouse input, requiring Safe Mode recovery.",
+    unsupportedReason: "Requires driver/service not installed — MouseDataQueueSize (mouclass kernel driver) modification can cause complete mouse failure requiring Safe Mode recovery. Disabled for safety.",
   },
   {
     id: "kbd-queue-size",
@@ -962,7 +962,7 @@ const BASE: BaseTweak[] = [
       technicalNote: "Controls the kbdclass.sys kernel driver queue. DISABLED in SwitchControl v1.0.2+ due to unrecoverable input-loss risk on certain hardware configurations.",
     },
     supported: false, requiresAdmin: true,
-    unsupportedReason: "Disabled for safety: a bad value in the kbdclass kernel driver can leave the system with no keyboard input, requiring Safe Mode recovery.",
+    unsupportedReason: "Requires driver/service not installed — KeyboardDataQueueSize (kbdclass kernel driver) modification can cause complete keyboard failure requiring Safe Mode recovery. Disabled for safety.",
   },
   {
     id: "sys-responsiveness",

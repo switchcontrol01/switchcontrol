@@ -65,6 +65,9 @@ export function TweaksList() {
   const [syncing, setSyncing]       = useState(false);
   const [syncFailed, setSyncFailed] = useState(false);
   const [warnLevel, setWarnLevel]   = useState<string | null>(null); // level name that needs confirmation
+  // Runtime-detected unsupported reasons from backend (e.g. USB power setting not found).
+  // These override/supplement the static frontend registry reasons.
+  const [runtimeUnsupportedReasons, setRuntimeUnsupportedReasons] = useState<Record<string, string>>({});
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const seenWarnings = useRef<Set<string>>(new Set());
 
@@ -140,14 +143,26 @@ export function TweaksList() {
           return;
         }
         let reconciled = 0;
+        const runtimeReasons: Record<string, string> = {};
         Object.entries(results).forEach(([tweakId, status]) => {
-          const s = status as { isApplied: boolean; applied: boolean; unsupported?: boolean; error: string | null };
-          if (!s.error && !s.unsupported && isRealTweak(tweakId)) {
+          const s = status as { isApplied: boolean; applied: boolean; unsupported?: boolean; unsupportedReason?: string; error: string | null };
+          if (s.unsupported) {
+            // Runtime unsupported — backend confirmed this tweak cannot run on this system.
+            // Log prominently so it appears in logs even if the UI still shows the card.
+            const reason = s.unsupportedReason ?? 'Backend confirmed this tweak is not available on this system.';
+            console.warn(`[TweakSupport] id=${tweakId}, supported=false, reason="${reason}" (runtime check)`);
+            runtimeReasons[tweakId] = reason;
+            return;
+          }
+          if (!s.error && isRealTweak(tweakId)) {
             const finalState = s.isApplied ?? s.applied ?? false;
             setTweak(tweakId, finalState);
             reconciled++;
           }
         });
+        if (Object.keys(runtimeReasons).length > 0) {
+          setRuntimeUnsupportedReasons(prev => ({ ...prev, ...runtimeReasons }));
+        }
         console.log(`[Tweaks:SYNC] hydration done gen=${myGen} reconciled=${reconciled}`);
       })
       .catch((err) => {
@@ -397,6 +412,7 @@ export function TweaksList() {
                     !getTweakEnabled(tweak.id)
                   }
                   isHighlighted={tweak.id === highlightId}
+                  runtimeUnsupportedReason={runtimeUnsupportedReasons[tweak.id]}
                 />
               )}
             </motion.div>

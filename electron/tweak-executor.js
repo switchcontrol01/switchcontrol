@@ -339,18 +339,38 @@ function enrichFailure(baseResult, failureType) {
 // ─── UNSUPPORTED tweaks ────────────────────────────────────────────────────────
 // These tweaks cannot be implemented with persistent registry/command changes.
 // They are kept visible and honestly marked, toggle is disabled in UI.
+// Reason format follows the [TweakSupport] audit standard:
+//   "Unsupported on Windows 10/11" | "Helper not bundled" | "Requires driver/service not installed" | "Power setting not found"
 const UNSUPPORTED_TWEAKS = {
-  'p-states': "Requires a runtime agent process for CPU P-state control via driver calls. Cannot be applied persistently via registry.",
-  'irq-priority': "Requires kernel-level interrupt affinity control not accessible from user-mode. Needs a signed kernel driver or MSR access.",
-  'timer-res': "Timer resolution requires a persistent runtime process calling timeBeginPeriod(). The effect is not persistent via registry and resets when the process exits. Requires agent.",
-  'desktop-comp': "Desktop Window Manager (DWM) cannot be disabled on Windows 10/11. This is a legacy Windows XP/Vista feature and has no modern equivalent.",
-  'hdcp': "HDCP enforcement is controlled at the hardware/display-driver level and cannot be reliably toggled via registry or PowerShell.",
+  'p-states':         "Requires driver/service not installed — CPU P-state control needs a kernel-mode agent calling ACPI driver interfaces. Cannot be applied persistently via registry.",
+  'irq-priority':     "Requires driver/service not installed — interrupt affinity control is not accessible from user-mode. Needs a signed kernel driver or MSR write access.",
+  'timer-res':        "Helper not bundled — timer resolution requires a persistent agent calling timeBeginPeriod(). The effect resets when the process exits. No agent is shipped in this build.",
+  'desktop-comp':     "Unsupported on Windows 10/11 — Desktop Window Manager (DWM) is an integral system compositor and cannot be disabled. Disabling DWM was only possible on Windows XP/Vista.",
+  'hdcp':             "Requires driver/service not installed — HDCP enforcement is controlled at the GPU hardware/display-driver level and cannot be reliably toggled via software or registry.",
   // Disabled in v1.0.2 — kernel input driver parameters can cause unrecoverable
   // mouse/keyboard loss if set incorrectly.  These are handled by slider-tweak-executor
   // with a hard block; this entry prevents any accidental toggle-path execution.
-  'mouse-queue-size': "Disabled for safety: modifying MouseDataQueueSize (mouclass kernel driver) can cause complete mouse failure requiring Safe Mode recovery.",
-  'kbd-queue-size':   "Disabled for safety: modifying KeyboardDataQueueSize (kbdclass kernel driver) can cause complete keyboard failure requiring Safe Mode recovery.",
+  'mouse-queue-size': "Requires driver/service not installed — MouseDataQueueSize (mouclass kernel driver) modification can cause complete mouse failure requiring Safe Mode recovery. Disabled for safety.",
+  'kbd-queue-size':   "Requires driver/service not installed — KeyboardDataQueueSize (kbdclass kernel driver) modification can cause complete keyboard failure requiring Safe Mode recovery. Disabled for safety.",
 };
+
+// ─── TweakSupport audit logger ────────────────────────────────────────────────
+// Emits structured [TweakSupport] lines so log analysis can quickly identify
+// every support decision made at runtime.  Call this whenever a tweak's support
+// status is evaluated — both on positive (supported) and negative (unsupported)
+// paths.
+//
+// Format: [TweakSupport] id=<id>, supported=<bool>, reason=<reason>, os=<os>, helperFound=<bool|n/a>
+function logTweakSupport(tweakId, supported, reason, extras = {}) {
+  const os = require('os');
+  const helperFound = extras.helperFound !== undefined ? String(extras.helperFound) : 'n/a';
+  const osRelease   = extras.osRelease   || os.release();
+  const extra = Object.entries(extras)
+    .filter(([k]) => k !== 'helperFound' && k !== 'osRelease')
+    .map(([k, v]) => `, ${k}=${v}`)
+    .join('');
+  console.log(`[TweakSupport] id=${tweakId}, supported=${supported}, reason="${reason}", os=${osRelease}, helperFound=${helperFound}${extra}`);
+}
 
 // ─── HKCU tweaks (no admin required) ──────────────────────────────────────────
 const HKCU_TWEAKS = {
@@ -802,18 +822,46 @@ async function executeNvidiaTelemetry(action) {
 
 // ─── Core functions ────────────────────────────────────────────────────────────
 async function verifyTweak(tweakId) {
-  if (UNSUPPORTED_TWEAKS[tweakId]) return { isApplied: false, unsupported: true };
+  const osVer = require('os').release();
+
+  if (UNSUPPORTED_TWEAKS[tweakId]) {
+    logTweakSupport(tweakId, false, UNSUPPORTED_TWEAKS[tweakId], { osRelease: osVer });
+    return { isApplied: false, unsupported: true, unsupportedReason: UNSUPPORTED_TWEAKS[tweakId] };
+  }
 
   const tweak = ALL_TWEAKS[tweakId];
   if (!tweak) return { isApplied: false, verified: false };
 
   if (tweak._special === 'nvidia-telemetry') {
     const hasNv = await checkPowerShell("(Get-CimInstance Win32_VideoController -EA SilentlyContinue | Where-Object { $_.Name -like '*NVIDIA*' }) -ne $null");
-    if (!hasNv) return { isApplied: false, unsupported: true, message: 'No NVIDIA GPU detected.' };
+    if (!hasNv) {
+      logTweakSupport(tweakId, false, 'No NVIDIA GPU detected', { osRelease: osVer, helperFound: false });
+      return { isApplied: false, unsupported: true, message: 'No NVIDIA GPU detected.' };
+    }
+    logTweakSupport(tweakId, true, 'NVIDIA GPU present', { osRelease: osVer, helperFound: true });
     const applied = await checkPowerShell(
       `$tasks = Get-ScheduledTask -EA SilentlyContinue | Where-Object { $_.TaskName -like "NvTm*" -or $_.TaskName -like "NvNode*" }; if ($tasks.Count -eq 0) { $svc = Get-Service -Name NvTelemetryContainer -EA SilentlyContinue; $svc -and ($svc.StartType -eq "Disabled") } else { ($tasks | Where-Object { $_.State -ne "Disabled" }).Count -eq 0 }`
     );
     return { isApplied: applied, verified: true };
+  }
+
+  // USB Selective Suspend — runtime probe: verify the power setting GUID actually
+  // exists in the current power scheme before trying the boolean check.
+  // On VMs or headless builds powercfg may not expose the USB sub-group.
+  if (tweakId === 'usb-selective-suspend') {
+    const probeResult = await queryPowerShell(
+      `$out = (& powercfg /query SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 2>&1 | Out-String).Trim(); ` +
+      `if ($out -match "does not exist|GUID is invalid|not found|error 0x8007|No Power Scheme") { Write-Output "SETTING_MISSING" } ` +
+      `elseif ($out -match "Current AC Power Setting Index: 0x00000000") { Write-Output "APPLIED" } ` +
+      `else { Write-Output "NOT_APPLIED" }`
+    );
+    if (probeResult === 'SETTING_MISSING') {
+      const reason = 'Power setting not found — USB Selective Suspend GUID is not available in the current power scheme';
+      logTweakSupport(tweakId, false, reason, { osRelease: osVer, helperFound: false });
+      return { isApplied: false, unsupported: true, unsupportedReason: reason };
+    }
+    logTweakSupport(tweakId, true, 'powercfg USB setting present', { osRelease: osVer, helperFound: true });
+    return { isApplied: probeResult === 'APPLIED', verified: true };
   }
 
   try {
@@ -830,15 +878,18 @@ async function executeTweak(tweakId, action) {
 
   // 1. Unsupported?
   if (UNSUPPORTED_TWEAKS[tweakId]) {
+    const reason = UNSUPPORTED_TWEAKS[tweakId];
+    logTweakSupport(tweakId, false, reason, { osRelease: require('os').release() });
     const result = enrichFailure({
       success: false,
       unsupported: true,
-      message: UNSUPPORTED_TWEAKS[tweakId],
+      message: reason,
+      unsupportedReason: reason,
       commandsRun: [],
       requiresReboot: false,
       requiresAdmin:  false,
       error: null,
-      hint: UNSUPPORTED_TWEAKS[tweakId],
+      hint: reason,
     }, 'unsupported');
     logEntry({ tweakId, action, result, ms: 0 });
     return result;
@@ -1057,7 +1108,9 @@ async function executeTweak(tweakId, action) {
 
 async function checkTweakStatus(tweakId) {
   if (UNSUPPORTED_TWEAKS[tweakId]) {
-    return { tweakId, isApplied: false, applied: false, unsupported: true, error: null };
+    const reason = UNSUPPORTED_TWEAKS[tweakId];
+    logTweakSupport(tweakId, false, reason, { osRelease: require('os').release() });
+    return { tweakId, isApplied: false, applied: false, unsupported: true, unsupportedReason: reason, error: null };
   }
 
   const tweak = ALL_TWEAKS[tweakId];
@@ -1065,7 +1118,14 @@ async function checkTweakStatus(tweakId) {
 
   try {
     const result = await verifyTweak(tweakId);
-    return { tweakId, isApplied: result.isApplied, applied: result.isApplied, unsupported: result.unsupported || false, error: result.error || null };
+    return {
+      tweakId,
+      isApplied:        result.isApplied,
+      applied:          result.isApplied,
+      unsupported:      result.unsupported || false,
+      unsupportedReason: result.unsupportedReason || null,
+      error:            result.error || null,
+    };
   } catch (error) {
     return { tweakId, isApplied: false, applied: false, error: error.message };
   }
