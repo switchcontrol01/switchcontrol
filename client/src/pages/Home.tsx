@@ -628,21 +628,22 @@ export default function Home() {
                 </span>
               </div>
 
-              <Link href="/history">
-                <Button variant="outline" className="gap-2 hidden sm:flex" data-testid="button-view-logs">
+              <Button variant="outline" className="gap-2 hidden sm:flex" data-testid="button-view-logs" asChild>
+                <Link href="/history">
                   <Activity className="size-4" />
                   View Logs
-                </Button>
-              </Link>
-              <Link href="/tweaks">
-                <Button
-                  className="gap-2 bg-primary hover:bg-primary/90 text-white font-medium border-0"
-                  data-testid="button-optimize-now"
-                >
+                </Link>
+              </Button>
+              <Button
+                className="gap-2 bg-primary hover:bg-primary/90 text-white font-medium border-0"
+                data-testid="button-optimize-now"
+                asChild
+              >
+                <Link href="/tweaks">
                   <Zap className="size-4" />
                   Optimize Now
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </motion.div>
           </div>
         </div>
