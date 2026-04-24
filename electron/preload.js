@@ -176,6 +176,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTopProcesses:      () => ipcRenderer.invoke('security:getTopProcesses'),
     getAdvancedProtection: () => ipcRenderer.invoke('security:getAdvancedProtection'),
     getAdvancedAudit:     () => ipcRenderer.invoke('security:getAdvancedAudit'),
+    setDefenderOption:    (option, enabled) => ipcRenderer.invoke('security:setDefenderOption', option, enabled),
+    runDefenderAction:    (action) => ipcRenderer.invoke('security:runDefenderAction', action),
     getProcessDetails:    () => ipcRenderer.invoke('security:getProcessDetails'),
     getScheduledTasks:    () => ipcRenderer.invoke('security:getScheduledTasks'),
     getServices:          () => ipcRenderer.invoke('security:getServices'),

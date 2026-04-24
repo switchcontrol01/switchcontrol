@@ -751,4 +751,79 @@ ipcMain.handle('security:openStartupLocation', async (event, command) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// IPC: security:setDefenderOption
+// Toggles individual Windows Defender / SmartScreen settings.
+// option: 'cloudProtection' | 'puaProtection' | 'controlledFolderAccess' |
+//         'sampleSubmission' | 'smartScreen'
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:setDefenderOption', async (_event, option, enabled) => {
+  if (process.platform !== 'win32') return { ok: false, reason: 'not-windows' };
+
+  let cmd = '';
+  switch (option) {
+    case 'cloudProtection':
+      cmd = `Set-MpPreference -MAPSReporting ${enabled ? 2 : 0} -EA Stop; Write-Output 'ok'`;
+      break;
+    case 'puaProtection':
+      cmd = `Set-MpPreference -PUAProtection ${enabled ? 1 : 0} -EA Stop; Write-Output 'ok'`;
+      break;
+    case 'controlledFolderAccess':
+      cmd = `Set-MpPreference -EnableControlledFolderAccess ${enabled ? 1 : 0} -EA Stop; Write-Output 'ok'`;
+      break;
+    case 'sampleSubmission':
+      cmd = `Set-MpPreference -SubmitSamplesConsent ${enabled ? 1 : 2} -EA Stop; Write-Output 'ok'`;
+      break;
+    case 'smartScreen': {
+      const val = enabled ? 'Warn' : 'Off';
+      cmd = `Set-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer' -Name SmartScreenEnabled -Value '${val}' -EA Stop; Write-Output 'ok'`;
+      break;
+    }
+    default:
+      return { ok: false, error: 'Unknown option' };
+  }
+
+  try {
+    const result = await runPowerShell(cmd, 12000);
+    const ok = result.trim().includes('ok');
+    console.log(`[Security] setDefenderOption option=${option} enabled=${enabled} → ${ok ? 'ok' : 'fail'}`);
+    return { ok };
+  } catch (err) {
+    console.warn(`[Security] setDefenderOption ERROR: ${err?.message}`);
+    return { ok: false, error: err?.message };
+  }
+});
+
+// ---------------------------------------------------------------------------
+// IPC: security:runDefenderAction
+// Runs a one-shot Defender maintenance action.
+// action: 'quickScan' | 'updateSignatures'
+// ---------------------------------------------------------------------------
+
+ipcMain.handle('security:runDefenderAction', async (_event, action) => {
+  if (process.platform !== 'win32') return { ok: false, reason: 'not-windows' };
+
+  let cmd = '';
+  switch (action) {
+    case 'quickScan':
+      cmd = `Start-MpScan -ScanType QuickScan -EA SilentlyContinue; Write-Output 'ok'`;
+      break;
+    case 'updateSignatures':
+      cmd = `Update-MpSignature -EA SilentlyContinue; Write-Output 'ok'`;
+      break;
+    default:
+      return { ok: false, error: 'Unknown action' };
+  }
+
+  try {
+    await runPowerShell(cmd, 60000);
+    console.log(`[Security] runDefenderAction action=${action} → ok`);
+    return { ok: true };
+  } catch (err) {
+    console.warn(`[Security] runDefenderAction ERROR: ${err?.message}`);
+    return { ok: false, error: err?.message };
+  }
+});
+
 console.log('[Security] IPC handlers registered');

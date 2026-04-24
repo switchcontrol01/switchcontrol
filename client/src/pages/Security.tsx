@@ -10,12 +10,14 @@ import { Progress } from "@/components/ui/progress";
 import { generateRecommendations } from "@/lib/securityAnalysis";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence, useMotion } from "@/lib/motion";
+import { Switch } from "@/components/ui/switch";
 import {
   Shield, ShieldCheck, ShieldAlert, ShieldOff,
   Scan, Zap, CheckCircle2, AlertTriangle, AlertCircle, Info,
   RefreshCw, X, Eye, Cpu, MonitorPlay,
   Play, Loader2, Clock, ImageIcon, Server, List,
   Activity, Lock, ChevronRight, BarChart2,
+  CloudUpload, FolderLock, Bug, Globe, Wifi,
 } from "lucide-react";
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
@@ -567,7 +569,6 @@ function ProtectionTab({
           )}
         </div>
         <AnimatePresence mode="wait">
-          {/* Not on Windows Electron */}
           {!hasSecurity && (
             <motion.div key="adv-no-electron" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="text-center py-6 text-muted-foreground text-sm" data-testid="adv-state-no-electron">
@@ -575,15 +576,13 @@ function ProtectionTab({
               Available on Windows desktop
             </motion.div>
           )}
-          {/* Loading */}
           {hasSecurity && advProtStatus === "loading" && (
             <motion.div key="adv-loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex flex-col items-center gap-3 py-6" data-testid="adv-state-loading">
               <Loader2 className="size-6 text-primary animate-spin" />
-              <p className="text-xs text-muted-foreground">Fetching advanced defender data…</p>
+              <p className="text-xs text-muted-foreground">Reading Defender settings…</p>
             </motion.div>
           )}
-          {/* Idle — never scanned yet, offer manual trigger */}
           {hasSecurity && advProtStatus === "idle" && (
             <motion.div key="adv-idle" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex flex-col items-center gap-3 py-6" data-testid="adv-state-idle">
@@ -591,11 +590,10 @@ function ProtectionTab({
               <p className="text-xs text-muted-foreground">Advanced data not loaded yet.</p>
               <Button size="sm" variant="secondary" className="gap-2 text-xs" onClick={onRefreshAdvanced}
                 data-testid="button-run-advanced-scan">
-                <Scan className="size-3.5" />Run Advanced Scan
+                <Scan className="size-3.5" />Load Settings
               </Button>
             </motion.div>
           )}
-          {/* Error */}
           {hasSecurity && advProtStatus === "error" && (
             <motion.div key="adv-error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex flex-col items-center gap-3 py-5" data-testid="adv-state-error">
@@ -610,39 +608,162 @@ function ProtectionTab({
               </Button>
             </motion.div>
           )}
-          {/* Empty — IPC responded but Defender returned no data */}
+          {/* Org-managed or no data — still offer actions */}
           {hasSecurity && advProtStatus === "empty" && !advancedProtection && (
             <motion.div key="adv-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex flex-col items-center gap-3 py-5" data-testid="adv-state-empty">
-              <ShieldOff className="size-7 opacity-30" />
-              <p className="text-xs text-muted-foreground text-center">
-                Defender returned no advanced data.<br />Defender may be managed by your organisation.
-              </p>
-              <Button size="sm" variant="secondary" className="gap-2 text-xs" onClick={onRefreshAdvanced}
-                data-testid="button-retry-advanced-scan-empty">
-                <RefreshCw className="size-3.5" />Retry
-              </Button>
+              className="space-y-4" data-testid="adv-state-empty">
+              <div className="flex items-start gap-3 bg-amber-400/5 border border-amber-400/20 rounded-xl p-3">
+                <AlertCircle className="size-4 text-amber-400 mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Defender settings are restricted — your policy may be managed by your IT team. You can still run maintenance actions below.
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  size="sm" variant="secondary"
+                  className={cn("gap-2 text-xs h-9 w-full", defenderAction?.type === "quickScan" && defenderAction.status === "done" && "text-emerald-400")}
+                  disabled={defenderAction?.status === "running"}
+                  onClick={() => runDefenderAction("quickScan")}
+                  data-testid="button-quick-scan-empty"
+                >
+                  {defenderAction?.type === "quickScan" && defenderAction.status === "running"
+                    ? <Loader2 className="size-3.5 animate-spin" />
+                    : defenderAction?.type === "quickScan" && defenderAction.status === "done"
+                    ? <CheckCircle2 className="size-3.5 text-emerald-400" />
+                    : <Zap className="size-3.5" />}
+                  Quick Scan
+                </Button>
+                <Button
+                  size="sm" variant="secondary"
+                  className={cn("gap-2 text-xs h-9 w-full", defenderAction?.type === "updateSignatures" && defenderAction.status === "done" && "text-emerald-400")}
+                  disabled={defenderAction?.status === "running"}
+                  onClick={() => runDefenderAction("updateSignatures")}
+                  data-testid="button-update-sigs-empty"
+                >
+                  {defenderAction?.type === "updateSignatures" && defenderAction.status === "running"
+                    ? <Loader2 className="size-3.5 animate-spin" />
+                    : defenderAction?.type === "updateSignatures" && defenderAction.status === "done"
+                    ? <CheckCircle2 className="size-3.5 text-emerald-400" />
+                    : <RefreshCw className="size-3.5" />}
+                  Update Sigs
+                </Button>
+              </div>
             </motion.div>
           )}
-          {/* Success — render rows */}
-          {hasSecurity && advancedProtection && (advProtStatus === "success" || advProtStatus === "empty") && (
-            <motion.div key="adv-success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="space-y-0.5" data-testid="adv-state-success">
-              {[
-                { label: "Defender Service",          v: advancedProtection.defenderServiceRunning, yes: "Running",  no: "Stopped" },
-                { label: "Cloud-delivered Protection", v: advancedProtection.cloudProtection,        yes: "On",       no: "Off" },
-                { label: "Sample Submission",          v: advancedProtection.sampleSubmission,       yes: "Enabled",  no: "Disabled" },
-                { label: "Controlled Folder Access",   v: advancedProtection.controlledFolderAccess, yes: "On",       no: "Off" },
-                { label: "PUA Protection",             v: advancedProtection.puaProtection,          yes: "Enabled",  no: "Disabled" },
-                { label: "SmartScreen",                v: advancedProtection.smartScreen,            yes: "On",       no: "Off" },
-              ].map(row => (
-                <StatusRow key={row.label} label={row.label}
-                  value={row.v === true ? row.yes : row.v === false ? row.no : "Unknown"}
-                  state={row.v === true ? "ok" : row.v === false ? "off" : "unknown"}
-                />
-              ))}
-            </motion.div>
-          )}
+          {/* Success — interactive toggles + score ring */}
+          {hasSecurity && advancedProtection && (advProtStatus === "success" || advProtStatus === "empty") && (() => {
+            const features = [
+              { key: "cloudProtection",        label: "Cloud Protection",        icon: CloudUpload, desc: "Real-time cloud-based threat detection" },
+              { key: "puaProtection",           label: "PUA Protection",          icon: Bug,         desc: "Block potentially unwanted apps" },
+              { key: "controlledFolderAccess",  label: "Controlled Folder Access",icon: FolderLock,  desc: "Ransomware protection for key folders" },
+              { key: "sampleSubmission",        label: "Sample Submission",       icon: Globe,       desc: "Send suspicious files to Microsoft" },
+              { key: "smartScreen",             label: "SmartScreen",             icon: Wifi,        desc: "Block malicious websites and downloads" },
+            ] as const;
+            const enabledCount = features.filter(f => (advancedProtection as any)[f.key] === true).length;
+            const totalCount = features.filter(f => (advancedProtection as any)[f.key] !== null).length || features.length;
+            const sigFresh = advancedProtection.signatureAge !== null && advancedProtection.signatureAge <= 3;
+            const score = Math.round(
+              (enabledCount / features.length) * 80 +
+              (advancedProtection.defenderServiceRunning ? 10 : 0) +
+              (sigFresh ? 10 : advancedProtection.signatureAge !== null && advancedProtection.signatureAge <= 7 ? 5 : 0)
+            );
+            const R = 36; const C = 2 * Math.PI * R;
+            const scoreColor = score >= 80 ? "#34d399" : score >= 50 ? "#fbbf24" : "#f87171";
+            return (
+              <motion.div key="adv-success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="space-y-4" data-testid="adv-state-success">
+                {/* Score ring + stats */}
+                <div className="flex items-center gap-4 bg-white/[0.02] rounded-xl p-3">
+                  <svg width="88" height="88" viewBox="0 0 88 88" className="shrink-0">
+                    <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
+                    <circle cx="44" cy="44" r={R} fill="none"
+                      stroke={scoreColor}
+                      strokeWidth="7"
+                      strokeLinecap="round"
+                      strokeDasharray={C}
+                      strokeDashoffset={C * (1 - score / 100)}
+                      transform="rotate(-90 44 44)"
+                      style={{ transition: "stroke-dashoffset 0.8s ease, stroke 0.5s" }}
+                    />
+                    <text x="44" y="40" textAnchor="middle" fill={scoreColor} fontSize="18" fontWeight="700" fontFamily="inherit">{score}</text>
+                    <text x="44" y="54" textAnchor="middle" fill="rgba(255,255,255,0.35)" fontSize="9" fontFamily="inherit">/ 100</text>
+                  </svg>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold leading-tight" style={{ color: scoreColor }}>
+                      {score >= 80 ? "Well Protected" : score >= 50 ? "Partially Protected" : "Needs Attention"}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">{enabledCount} of {features.length} features active</p>
+                    {advancedProtection.signatureAge !== null && (
+                      <p className={cn("text-xs mt-1", advancedProtection.signatureAge <= 3 ? "text-emerald-400" : advancedProtection.signatureAge <= 7 ? "text-amber-400" : "text-red-400")}>
+                        Signatures: {advancedProtection.signatureAge === 0 ? "updated today" : `${advancedProtection.signatureAge}d old`}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {/* Feature toggles */}
+                <div className="space-y-1">
+                  {features.map(f => {
+                    const val = (advancedProtection as any)[f.key] as boolean | null;
+                    const isToggling = togglingOption === f.key;
+                    return (
+                      <div key={f.key}
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/[0.03] transition-colors"
+                        data-testid={`row-defender-${f.key}`}
+                      >
+                        <f.icon className={cn("size-3.5 shrink-0", val ? "text-primary" : "text-muted-foreground/40")} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium leading-none">{f.label}</p>
+                          <p className="text-[10px] text-muted-foreground/50 mt-0.5 leading-none truncate">{f.desc}</p>
+                        </div>
+                        {isToggling
+                          ? <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                          : val === null
+                          ? <span className="text-[10px] text-muted-foreground/40">—</span>
+                          : <Switch
+                              checked={val}
+                              disabled={!!togglingOption}
+                              onCheckedChange={(v) => toggleDefenderOption(f.key, v)}
+                              data-testid={`toggle-defender-${f.key}`}
+                            />
+                        }
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Action buttons */}
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button
+                    size="sm" variant="secondary"
+                    className={cn("gap-2 text-xs h-9", defenderAction?.type === "quickScan" && defenderAction.status === "done" && "text-emerald-400")}
+                    disabled={defenderAction?.status === "running"}
+                    onClick={() => runDefenderAction("quickScan")}
+                    data-testid="button-quick-scan"
+                  >
+                    {defenderAction?.type === "quickScan" && defenderAction.status === "running"
+                      ? <Loader2 className="size-3.5 animate-spin" />
+                      : defenderAction?.type === "quickScan" && defenderAction.status === "done"
+                      ? <CheckCircle2 className="size-3.5 text-emerald-400" />
+                      : <Zap className="size-3.5" />}
+                    Quick Scan
+                  </Button>
+                  <Button
+                    size="sm" variant="secondary"
+                    className={cn("gap-2 text-xs h-9", defenderAction?.type === "updateSignatures" && defenderAction.status === "done" && "text-emerald-400")}
+                    disabled={defenderAction?.status === "running"}
+                    onClick={() => runDefenderAction("updateSignatures")}
+                    data-testid="button-update-signatures"
+                  >
+                    {defenderAction?.type === "updateSignatures" && defenderAction.status === "running"
+                      ? <Loader2 className="size-3.5 animate-spin" />
+                      : defenderAction?.type === "updateSignatures" && defenderAction.status === "done"
+                      ? <CheckCircle2 className="size-3.5 text-emerald-400" />
+                      : <RefreshCw className="size-3.5" />}
+                    Update Sigs
+                  </Button>
+                </div>
+              </motion.div>
+            );
+          })()}
         </AnimatePresence>
       </GlassCard>
 
@@ -803,6 +924,8 @@ export default function Security() {
   const [advancedProtection, setAdvancedProtection] = useState<AdvancedProtection | null>(null);
   const [advProtStatus, setAdvProtStatus] = useState<"idle"|"loading"|"success"|"empty"|"error">("idle");
   const [advProtError,  setAdvProtError]  = useState<string | null>(null);
+  const [togglingOption, setTogglingOption] = useState<string | null>(null);
+  const [defenderAction, setDefenderAction] = useState<{type: "quickScan"|"updateSignatures", status: "running"|"done"|"error"} | null>(null);
   const [startupItems,      setStartupItems]      = useState<StartupItem[]>([]);
   const [processTrust,      setProcessTrust]      = useState<ProcessTrustItem[]>([]);
   const [recommendations,   setRecommendations]   = useState<SecurityRecommendation[]>([]);
@@ -902,6 +1025,33 @@ export default function Security() {
       setAdvProtError(err?.message ?? "Advanced scan failed");
     }
   }, [hasSecurity]);
+
+  const toggleDefenderOption = useCallback(async (option: string, enabled: boolean) => {
+    if (!hasSecurity || togglingOption) return;
+    setTogglingOption(option);
+    try {
+      const r = await (eAPI() as any).security.setDefenderOption(option, enabled);
+      if (r?.ok) {
+        setAdvancedProtection(prev => prev ? { ...prev, [option]: enabled } : prev);
+      }
+    } catch (_) {}
+    setTogglingOption(null);
+  }, [hasSecurity, togglingOption]);
+
+  const runDefenderAction = useCallback(async (type: "quickScan" | "updateSignatures") => {
+    if (!hasSecurity || defenderAction?.status === "running") return;
+    setDefenderAction({ type, status: "running" });
+    try {
+      const r = await (eAPI() as any).security.runDefenderAction(type);
+      setDefenderAction({ type, status: r?.ok ? "done" : "error" });
+      if (r?.ok && type === "updateSignatures") {
+        setTimeout(() => refreshAdvanced(), 2000);
+      }
+    } catch (_) {
+      setDefenderAction({ type, status: "error" });
+    }
+    setTimeout(() => setDefenderAction(null), 3000);
+  }, [hasSecurity, defenderAction, refreshAdvanced]);
 
   const startScan = useCallback(async (type: "quick" | "smart") => {
     if (scanStatus === "scanning") return;
