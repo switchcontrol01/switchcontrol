@@ -275,6 +275,249 @@ function ImpactBar({ label, value, color }: { label: string; value: number; colo
   );
 }
 
+// ── Impact Comparison Panel (Before / After SVG) ─────────────────────────────
+
+function RadarChart({
+  before,
+  after,
+  accentColor,
+}: {
+  before: { latency: number; speed: number; battery: number };
+  after:  { latency: number; speed: number; battery: number };
+  accentColor: string;
+}) {
+  const cx = 120, cy = 105, r = 78;
+
+  function pt(angleDeg: number, value: number) {
+    const rad = (angleDeg - 90) * (Math.PI / 180);
+    const len = (value / 100) * r;
+    return { x: cx + len * Math.cos(rad), y: cy + len * Math.sin(rad) };
+  }
+
+  const axes = [
+    { angle: 0,   key: "latency" as const, label: "Latency" },
+    { angle: 120, key: "speed"   as const, label: "Speed" },
+    { angle: 240, key: "battery" as const, label: "Battery" },
+  ];
+
+  function polygon(data: { latency: number; speed: number; battery: number }) {
+    return axes.map(a => pt(a.angle, data[a.key]));
+  }
+
+  function pStr(pts: { x: number; y: number }[]) {
+    return pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  }
+
+  const bPts  = polygon(before);
+  const aPts  = polygon(after);
+  const grids = [25, 50, 75, 100];
+  const gid   = `rg-after-${accentColor.replace(/[^a-z0-9]/gi, "")}`;
+
+  return (
+    <svg width="240" height="210" viewBox="0 0 240 210" aria-hidden>
+      <defs>
+        <radialGradient id={gid} cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor={accentColor} stopOpacity="0.35" />
+          <stop offset="100%" stopColor={accentColor} stopOpacity="0.05" />
+        </radialGradient>
+      </defs>
+
+      {grids.map(g => (
+        <polygon
+          key={g}
+          points={pStr(polygon({ latency: g, speed: g, battery: g }))}
+          fill="none"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth="1"
+        />
+      ))}
+
+      {axes.map(a => {
+        const edge = pt(a.angle, 100);
+        return (
+          <line key={a.angle}
+            x1={cx} y1={cy}
+            x2={edge.x} y2={edge.y}
+            stroke="rgba(255,255,255,0.08)"
+            strokeWidth="1"
+          />
+        );
+      })}
+
+      {axes.map(a => {
+        const lp = pt(a.angle, 118);
+        return (
+          <text key={a.angle}
+            x={lp.x} y={lp.y}
+            textAnchor="middle" dominantBaseline="middle"
+            fontSize="9" fill="rgba(255,255,255,0.35)"
+            fontFamily="system-ui, sans-serif"
+          >
+            {a.label}
+          </text>
+        );
+      })}
+
+      <polygon
+        points={pStr(bPts)}
+        fill="rgba(255,255,255,0.04)"
+        stroke="rgba(255,255,255,0.22)"
+        strokeWidth="1.5"
+        strokeDasharray="4 2"
+      />
+
+      <motion.polygon
+        points={pStr(aPts)}
+        fill={`url(#${gid})`}
+        stroke={accentColor}
+        strokeWidth="2"
+        initial={{ opacity: 0, scale: 0.2 }}
+        animate={{ opacity: 1, scale: 1 }}
+        style={{ transformOrigin: `${cx}px ${cy}px` }}
+        transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+      />
+
+      <circle cx={cx} cy={cy} r="3" fill={accentColor} opacity="0.7" />
+    </svg>
+  );
+}
+
+function AnimatedMetricBar({
+  label,
+  from,
+  to,
+  color,
+}: {
+  label: string;
+  from: number;
+  to: number;
+  color: string;
+}) {
+  const [display, setDisplay] = useState(from);
+
+  useEffect(() => {
+    const start = Date.now();
+    const dur   = 850;
+    const diff  = to - from;
+    let raf: number;
+
+    function tick() {
+      const elapsed  = Date.now() - start;
+      const progress = Math.min(elapsed / dur, 1);
+      const eased    = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.round(from + diff * eased));
+      if (progress < 1) raf = requestAnimationFrame(tick);
+    }
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [from, to]);
+
+  return (
+    <div className="space-y-1">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="text-white/45">{label}</span>
+        <span className="font-semibold tabular-nums" style={{ color }}>{display}%</span>
+      </div>
+      <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+        <motion.div
+          className="h-full rounded-full"
+          style={{ backgroundColor: color }}
+          initial={{ width: `${from}%` }}
+          animate={{ width: `${to}%` }}
+          transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function ImpactComparisonPanel({
+  fromId,
+  toId,
+}: {
+  fromId: FrontendProfileId | null;
+  toId:   FrontendProfileId;
+}) {
+  const fromImpact = fromId ? PROFILE_IMPACT[fromId] : { latency: 0, speed: 0, battery: 0 };
+  const toImpact   = PROFILE_IMPACT[toId];
+  const toTheme    = PROFILE_THEME[toId];
+  const fromTheme  = fromId ? PROFILE_THEME[fromId] : null;
+  const toName     = toId === "custom" ? "Custom Plan" : (POWER_PROFILES.find(p => p.id === toId)?.name ?? toId);
+  const fromName   = fromId === "custom" ? "Custom Plan" : fromId
+    ? (POWER_PROFILES.find(p => p.id === fromId)?.name ?? "Previous")
+    : "Baseline";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="rounded-2xl border overflow-hidden"
+      style={{
+        background: "linear-gradient(145deg,rgba(0,0,0,0.72) 0%,rgba(10,10,22,0.82) 100%)",
+        borderColor: `${toTheme.accent}30`,
+      }}
+      data-testid="panel-impact-comparison"
+    >
+      <div className="h-[2px] w-full" style={{ background: `linear-gradient(90deg,transparent 0%,${toTheme.accent} 50%,transparent 100%)` }} />
+
+      <div className="p-5">
+        <div className="flex items-center gap-2 mb-5 flex-wrap">
+          <Activity className="size-4 shrink-0" style={{ color: toTheme.accent }} />
+          <span className="text-sm font-semibold text-white">Performance Impact</span>
+          <span className="text-xs text-white/25">— estimated visual comparison</span>
+          <span
+            className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full font-medium border"
+            style={{ backgroundColor: `${toTheme.accent}18`, color: toTheme.accent, borderColor: `${toTheme.accent}30` }}
+          >
+            {toName} applied
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-6 items-center">
+          {/* Before */}
+          <div className="space-y-3.5">
+            <div className="text-center mb-1">
+              <p className="text-[9px] uppercase tracking-widest text-white/20 font-semibold mb-0.5">Before</p>
+              <p className="text-sm font-bold" style={{ color: fromTheme?.accent ?? "rgba(255,255,255,0.35)" }}>
+                {fromName}
+              </p>
+            </div>
+            <AnimatedMetricBar label="Latency Reduction" from={fromImpact.latency} to={fromImpact.latency} color={fromTheme?.accent ?? "#6b7280"} />
+            <AnimatedMetricBar label="Responsiveness"    from={fromImpact.speed}   to={fromImpact.speed}   color={fromTheme?.accent ?? "#6b7280"} />
+            <AnimatedMetricBar label="Battery Efficiency" from={fromImpact.battery} to={fromImpact.battery} color="#4b5563" />
+          </div>
+
+          {/* Radar chart */}
+          <div className="flex flex-col items-center gap-1">
+            <RadarChart before={fromImpact} after={toImpact} accentColor={toTheme.accent} />
+            <p className="text-[9px] text-white/18 text-center">
+              <span className="inline-block mr-2" style={{ borderBottom: "1.5px dashed rgba(255,255,255,0.3)", width: 18, verticalAlign: "middle" }} />
+              Before
+              <span className="mx-2">·</span>
+              <span className="inline-block mr-2" style={{ borderBottom: `2px solid ${toTheme.accent}`, width: 18, verticalAlign: "middle" }} />
+              After
+            </p>
+          </div>
+
+          {/* After */}
+          <div className="space-y-3.5">
+            <div className="text-center mb-1">
+              <p className="text-[9px] uppercase tracking-widest text-white/20 font-semibold mb-0.5">After</p>
+              <p className="text-sm font-bold" style={{ color: toTheme.accent }}>{toName}</p>
+            </div>
+            <AnimatedMetricBar label="Latency Reduction" from={fromImpact.latency} to={toImpact.latency}   color={toTheme.accent} />
+            <AnimatedMetricBar label="Responsiveness"    from={fromImpact.speed}   to={toImpact.speed}     color={toTheme.accent} />
+            <AnimatedMetricBar label="Battery Efficiency" from={fromImpact.battery} to={toImpact.battery}  color="#6b7280" />
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ── InfoModal ─────────────────────────────────────────────────────────────────
 
 function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () => void }) {
@@ -366,6 +609,8 @@ export default function PowerPlan() {
   const [applyResult,    setApplyResult]    = useState<{ profileId: string; success: boolean; match: string } | null>(null);
   const [applyingCustom, setApplyingCustom] = useState(false);
   const [customApplied,  setCustomApplied]  = useState(false);
+  const [prevProfileId,  setPrevProfileId]  = useState<FrontendProfileId | null>(null);
+  const [showComparison, setShowComparison] = useState(false);
   const hasFetched = useRef(false);
 
   function validateCustomName(v: string): string | null {
@@ -429,8 +674,14 @@ export default function PowerPlan() {
     const prevGuid: string = backendState?.activeScheme?.guid ?? '';
     const prevName: string = backendState?.activeScheme?.name ?? backendState?.activeScheme?.guid ?? 'Unknown';
 
+    // Capture the currently-active profile before switching (for before/after comparison)
+    const currentActiveFrontendId = backendState?.profileMatch
+      ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
+      : null;
+
     setApplying(frontendId);
     setApplyResult(null);
+    setShowComparison(false);
     try {
       const result = await (window as any).electronAPI.powerPlans.applyProfile(profile.backendId);
 
@@ -451,6 +702,12 @@ export default function PowerPlan() {
         profileMatch: result.profileMatch,
         settingsErrors: result.settingsErrors,
       });
+
+      // Fix: clear custom-applied flag so only ONE plan shows "Active"
+      setCustomApplied(false);
+      // Record prev for before/after comparison
+      setPrevProfileId(currentActiveFrontendId);
+      setShowComparison(true);
 
       const match = result.profileMatch?.match ?? "unknown";
       setApplyResult({ profileId: frontendId, success: true, match });
@@ -486,11 +743,20 @@ export default function PowerPlan() {
     setCustomNameError(null);
     setApplyingCustom(true);
     setCustomApplied(false);
+    setShowComparison(false);
+
+    // Capture prev profile before switching (for before/after comparison)
+    const capturedPrev = backendState?.profileMatch
+      ? backendIdToFrontendId(backendState.profileMatch.profileId ?? null)
+      : null;
+
     try {
       if (!isElectron) {
         await new Promise(r => setTimeout(r, 700));
         toast({ title: "Custom Profile Applied (Demo)", description: "Windows-only. Your custom plan would be created and activated on the desktop app." });
         setCustomApplied(true);
+        setPrevProfileId(capturedPrev);
+        setShowComparison(true);
         return;
       }
       const api = (window as any).electronAPI?.powerPlans;
@@ -508,6 +774,8 @@ export default function PowerPlan() {
         setCustomPlanMeta(newMeta);
         setCustomPlanName(result.name);
         setCustomApplied(true);
+        setPrevProfileId(capturedPrev);
+        setShowComparison(true);
         toast({ title: "Custom Plan Applied", description: `"${result.name}" is now active in Windows.` });
         fetchPowerState();
       } else {
@@ -518,7 +786,7 @@ export default function PowerPlan() {
     } finally {
       setApplyingCustom(false);
     }
-  }, [customPlanName, customPlanMeta, isElectron, localState.customSettings, toast, fetchPowerState]);
+  }, [customPlanName, customPlanMeta, isElectron, localState.customSettings, toast, fetchPowerState, backendState]);
 
   const INTENT_TO_PROFILE: Record<IntentMode, FrontendProfileId> = {
     competitive: "performance",
@@ -959,6 +1227,16 @@ export default function PowerPlan() {
                 </motion.div>
               </motion.div>
             )}
+
+            {/* ── Before / After Impact Comparison ─────────────────── */}
+            <AnimatePresence>
+              {showComparison && (activeProfileId || effectiveCustomApplied) && (
+                <ImpactComparisonPanel
+                  fromId={prevProfileId}
+                  toId={activeProfileId ?? "custom"}
+                />
+              )}
+            </AnimatePresence>
 
             {/* ── Active Profile Deep Breakdown ─────────────────────── */}
             {displayProfile && displayBreakdown && !planLoading && (
