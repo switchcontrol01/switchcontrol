@@ -1,18 +1,13 @@
 {
-  "version": "1.0.6",
-  "title": "SwitchControl 1.0.6 — Performance & Stability",
-  "headline": "Dashboard CPU usage is dramatically lower. The AI Advisor now reads your real hardware specs. Tweaks that don't apply to your system are clearly labeled.",
+  "version": "1.0.7",
+  "title": "SwitchControl 1.0.7 — Smoother Launch",
+  "headline": "The app now opens with a clean, stutter-free animation every time. Logo loads before the window appears and heavy background tasks wait until you're in the app.",
   "date": "2026-04-24",
   "changes": [
-    "Reduced app CPU usage by up to 80% — telemetry now runs one task at a time instead of all at once",
-    "Added low-end mode: automatically slows down background tasks on 4-core CPUs or when system load is high",
-    "App now skips background data collection entirely when it's already using too much CPU itself",
-    "AI Advisor now always reads your actual RAM, CPU, and GPU — fixed cases where it would guess wrong specs",
-    "Fixed AI Advisor reporting incorrect memory (e.g. '4 GB') when your real RAM is 16 GB or higher",
-    "Tweaks that don't work on your hardware now show a clear reason instead of silently failing",
-    "USB power management tweak now checks whether your system actually supports the setting before showing it",
-    "Fixed startup white flash on app launch — window is now always dark before content appears",
-    "Added per-task timing data to the performance diagnostics panel for easier debugging"
+    "Fixed launch visual race — logo and background are now fully rendered before the window becomes visible",
+    "GPU performance data collection now starts 2 seconds after launch instead of competing with the opening animation",
+    "Eliminated stutter during the splash screen caused by PowerShell cold-start running at the same moment as first paint",
+    "Developer tools no longer auto-open during normal launches, removing hidden overhead on startup"
   ],
   "type": "patch"
 }
