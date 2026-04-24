@@ -25,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useStore } from "@/lib/store";
 import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
-import { Link } from "wouter";
+import { useHashLocation } from "wouter/use-hash-location";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -92,10 +92,28 @@ const CONFIDENCE_LABEL: Record<DetectedIssue["confidence"], string> = {
   unknown: "Unverified",
 };
 
-// ── Route for fix-linked tweaks ───────────────────────────────────────────────
-// Maps tweak IDs to the page that fixes them. Falls back to "/tweaks" by default.
-// Add entries here only when the destination differs from /tweaks.
-const TWEAK_ROUTE: Record<string, string> = {};
+// ── Issue → Tweak mapping ─────────────────────────────────────────────────────
+// Maps each issue ID (from issueDetector.ts) to its real tweakId in the registry
+// and the chip tab it lives under on the Tweaks page.
+// DO NOT use text/label matching — these are exact registry IDs.
+const ISSUE_FIX_MAP: Record<string, { tweakId: string; chip: string }> = {
+  "timer-res-off":              { tweakId: "timer-res",            chip: "Latency"     },
+  "synth-timers-on":            { tweakId: "synth-timers",         chip: "Latency"     },
+  "irq-priority-default":       { tweakId: "irq-priority",         chip: "Latency"     },
+  "mmcss-not-configured":       { tweakId: "mmcss-gaming",         chip: "Latency"     },
+  "p-states-on":                { tweakId: "p-states",             chip: "Performance" },
+  "power-throttling-on":        { tweakId: "power-throttling",     chip: "Performance" },
+  "win32-priority-sep-default": { tweakId: "win32-priority-sep",   chip: "Latency"     },
+  "mpo-enabled":                { tweakId: "disable-mpo",          chip: "Performance" },
+  "fso-enabled":                { tweakId: "disable-fso",          chip: "Latency"     },
+  "pcie-link-state-on":         { tweakId: "pcie-link-state",      chip: "Performance" },
+  "xbox-bar-running":           { tweakId: "xbox-bar",             chip: "Services"    },
+  "xbox-services-running":      { tweakId: "xbox-services",        chip: "Services"    },
+  "delivery-opt-on":            { tweakId: "disable-delivery-opt", chip: "Privacy"     },
+  "net-throttle-active":        { tweakId: "net-throttle-index",   chip: "Latency"     },
+  "gaming-mode-off":            { tweakId: "gaming-mode",          chip: "Latency"     },
+  "sys-responsiveness-default": { tweakId: "sys-responsiveness",   chip: "Latency"     },
+};
 
 // ── Single issue card ─────────────────────────────────────────────────────────
 
@@ -109,13 +127,23 @@ function IssueCard({
   onDismiss: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [, setLocation] = useHashLocation();
   const cfg = SEV_CONFIG[issue.severity];
   const SevIcon = cfg.icon;
   const CatIcon = CATEGORY_ICON[issue.category] ?? AlertTriangle;
-  const primaryTweakId = issue.linkedTweakIds?.[0];
-  const fixRoute = primaryTweakId
-    ? (TWEAK_ROUTE[primaryTweakId] ?? `/tweaks?tweak=${encodeURIComponent(primaryTweakId)}`)
-    : "/tweaks";
+
+  const fixMapping = ISSUE_FIX_MAP[issue.id];
+
+  const handleFixNow = () => {
+    console.log(`[DetectedIssue:FixNow] clicked issueId=${issue.id}`);
+    if (!fixMapping) {
+      console.warn(`[DetectedIssue:FixNow] no mapping found for issueId=${issue.id}`);
+      return;
+    }
+    console.log(`[DetectedIssue:FixNow] mapped tweakId=${fixMapping.tweakId}`);
+    console.log(`[DetectedIssue:FixNow] navigating route=/tweaks category=${fixMapping.chip}`);
+    setLocation(`/tweaks?tweak=${encodeURIComponent(fixMapping.tweakId)}`);
+  };
 
   return (
     <motion.div
@@ -208,16 +236,27 @@ function IssueCard({
                 </div>
 
                 {issue.autoFixAvailable && issue.linkedTweakIds && issue.linkedTweakIds.length > 0 && (
-                  <Link href={fixRoute}>
+                  fixMapping ? (
                     <Button
                       size="sm"
                       className="h-7 px-3 text-xs gap-1.5 bg-primary/20 text-primary border border-primary/30 hover:bg-primary/30 mt-1"
                       data-testid={`button-issue-fix-${issue.id}`}
+                      onClick={handleFixNow}
                     >
                       Fix Now
                       <ArrowRight className="size-3" />
                     </Button>
-                  </Link>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="h-7 px-3 text-xs gap-1.5 mt-1"
+                      variant="ghost"
+                      disabled
+                      data-testid={`button-issue-fix-${issue.id}`}
+                    >
+                      No automated fix available
+                    </Button>
+                  )
                 )}
               </div>
             </motion.div>

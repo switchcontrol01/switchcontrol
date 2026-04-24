@@ -1,0 +1,101 @@
+TASK
+Fix Custom Power Plan so it creates and activates a real Windows power plan using the user’s custom name.
+
+PROBLEM
+Power Plan has four profiles:
+- Efficiency
+- Balanced Gaming
+- Maximum Performance
+- Custom
+
+Custom is broken. When I apply Custom, Windows Power Options still shows "SwitchControl - Max Performance" instead of the custom name I typed.
+
+Also the custom sliders/buttons look like frontend-only controls. They must be wired to real backend logic or removed/disabled until real.
+
+GOAL
+Custom profile must:
+1. Let the user type a custom name
+2. Create/rename a real Windows power plan using that exact name
+3. Activate that custom plan
+4. Show that exact name in Windows Power Options
+5. Persist the custom GUID/name in app state
+6. Reopen app and still know that custom plan is active
+7. Never fake active UI unless Windows confirms it
+
+IMPLEMENTATION
+
+1. Add a customPowerPlanName input field.
+Validate:
+- 3 to 50 characters
+- no empty names
+- trim whitespace
+- block invalid Windows characters: \ / : * ? " < > |
+
+2. Backend power plan flow:
+When applying Custom:
+- duplicate a safe base plan
+- rename duplicated plan to the user name
+- apply slider/button settings to that duplicated GUID
+- activate that GUID
+- verify active GUID using powercfg /getactivescheme
+- return { success, guid, name, verified }
+
+3. Do not reuse Maximum Performance GUID for Custom.
+Custom must have its own GUID.
+
+4. Save custom plan metadata:
+{
+  customPowerPlan: {
+    guid,
+    name,
+    createdAt,
+    lastAppliedSettings
+  }
+}
+
+5. Fix UI state:
+- Custom card should show the user’s custom name
+- Windows active plan text should show the real active plan from powercfg
+- If verification fails, do not show Active
+
+6. Wire all custom controls to real backend:
+- Disable throttle states
+- Enable turbo boost
+- Disable frequency scaling
+- Optimize check interval
+- Min processor state
+- Max processor state
+- Enable hardware P-states
+- Disable core parking
+- Prefer performance processes
+- Disable USB selective suspend
+- Disable USB power management
+- Disable sleep
+
+Every control must either:
+A. apply real powercfg/registry logic, or
+B. show "Not wired yet" and be disabled
+
+No fake frontend switches.
+
+7. Add logs:
+[PowerPlan:Custom] name input=
+[PowerPlan:Custom] duplicated base GUID=
+[PowerPlan:Custom] renamed to=
+[PowerPlan:Custom] applying setting=
+[PowerPlan:Custom] activated GUID=
+[PowerPlan:Custom] verify active GUID=
+[PowerPlan:Custom] success/fail=
+
+CHECKLIST
+- Type "Oscar Low Latency"
+- Apply Custom
+- Windows Power Options shows "Oscar Low Latency"
+- It is selected in Windows
+- Restart app
+- Custom still shows active
+- Maximum Performance does not become active unless clicked
+- No custom control visually toggles unless backend confirms it
+
+FINAL OUTPUT
+Custom power plan is a real Windows plan with user-defined name, real GUID, real settings, real verification, and persistent state.

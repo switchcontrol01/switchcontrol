@@ -71,17 +71,29 @@ export function TweaksList() {
   const [highlightId, setHighlightId] = useState<string | null>(null);
   const seenWarnings = useRef<Set<string>>(new Set());
 
-  // Read ?tweak=<id> deep-link param on mount and scroll to that card
+  // Read ?tweak=<id> deep-link param on mount and scroll to that card.
+  // The Electron app uses a hash-based router, so the param may live inside
+  // window.location.hash (e.g. "#/tweaks?tweak=timer-res") rather than in
+  // window.location.search — check both.
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tweakId = params.get("tweak");
+    const hashStr  = window.location.hash;            // "#/tweaks?tweak=timer-res"
+    const qIdx     = hashStr.indexOf("?");
+    const searchStr = qIdx >= 0 ? hashStr.slice(qIdx + 1) : window.location.search;
+    const params   = new URLSearchParams(searchStr);
+    const tweakId  = params.get("tweak");
     if (!tweakId) return;
     const target = TWEAKS_DATA.find((t) => t.id === tweakId);
     if (!target) return;
     // Clear the URL param so a refresh shows the full list
-    const url = new URL(window.location.href);
-    url.searchParams.delete("tweak");
-    window.history.replaceState({}, "", url.toString());
+    if (qIdx >= 0) {
+      // Hash-router: strip ?... from the hash, preserve the path fragment
+      const newHash = hashStr.slice(0, qIdx);
+      window.history.replaceState({}, "", window.location.pathname + window.location.search + newHash);
+    } else {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("tweak");
+      window.history.replaceState({}, "", url.toString());
+    }
     // Pre-fill search so the tweak is visible, reset filters
     setSearch(target.title);
     setActiveChip("All");
