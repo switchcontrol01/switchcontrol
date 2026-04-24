@@ -2506,3 +2506,13 @@ button, a, nav, header, footer, label {
 .glass-surface-bg {
   background: rgba(12, 12, 20, 0.18);
 }
+
+/* ── Auth / booting phase background accents (CSS-only, no framer-motion) ──── */
+@keyframes sc-auth-pink {
+  0%, 100% { opacity: 0.5; }
+  50%       { opacity: 0.85; }
+}
+@keyframes sc-auth-cyan {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 0.75; }
+}

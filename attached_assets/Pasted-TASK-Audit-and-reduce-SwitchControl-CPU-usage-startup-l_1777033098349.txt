@@ -1,0 +1,99 @@
+TASK
+Audit and reduce SwitchControl CPU usage, startup lag, and UI jank across the entire app without breaking telemetry, tweaks, premium logic, or backend startup.
+
+PROBLEM
+The app still uses too much CPU at idle and startup feels slightly laggy. The UI background appears before some assets/logo/content, causing a non-fluid launch. We also need to make sure no PowerShell, telemetry, animation, interval, polling, or backend loop is running unnecessarily.
+
+GOAL
+Make the app feel instant, smooth, and low CPU:
+- idle CPU should be as low as realistically possible
+- no duplicate intervals or loops
+- no unnecessary PowerShell polling
+- no heavy telemetry while hidden, minimized, locked, or not visible
+- no expensive animations running offscreen
+- startup should fade/blur in smoothly with logo/content already ready
+- no feature regressions
+
+AUDIT FIRST
+Before editing, scan every relevant file for:
+- setInterval
+- setTimeout loops
+- requestAnimationFrame loops
+- framer-motion infinite animations
+- CSS infinite animations
+- PowerShell exec/execFile usage
+- systeminformation calls
+- telemetry polling
+- WebSocket loops
+- React useEffect loops without cleanup
+- duplicate event listeners
+- repeated API calls
+- expensive charts rerendering
+- background blur/glow effects
+- route/page remount jank
+- startup preload/render timing
+
+FILES TO CHECK
+Check at minimum:
+- electron/main.js
+- electron/preload.js
+- electron/backend-launcher.js
+- server/lib/telemetry.ts
+- server/index.ts
+- client/src/components/LiveGraph.tsx
+- client/src/hooks/useLiveTelemetry.ts
+- client/src/App.tsx
+- client/src/AppLayout.tsx
+- all dashboard cards/widgets
+- all premium overlay components
+- all animated background components
+- all pages with charts, graphs, particles, glow, or telemetry
+
+IMPLEMENTATION RULES
+1. Do not delete working features blindly.
+2. First identify the actual CPU sources.
+3. Add debug logs only behind DEBUG_MODE or dev mode.
+4. Remove logs from production hot paths.
+5. All intervals must have cleanup.
+6. No duplicate telemetry loops.
+7. No PowerShell in background polling unless absolutely required.
+8. If PowerShell is needed, make it on-demand only and TTL cached.
+9. Pause telemetry when app is minimized, hidden, or backgrounded.
+10. Pause/reduce graph updates when dashboard is not visible.
+11. Reduce chart history size if needed.
+12. Memoize expensive components.
+13. Do not animate large blurred backgrounds every frame.
+14. Disable or reduce offscreen infinite glow animations.
+15. Use CSS opacity/transform only for startup animations.
+16. Avoid backdrop-filter on huge full-screen layers if it causes GPU/CPU load.
+17. Make startup wait until logo, background, and shell are ready before reveal.
+18. Add a smooth launch sequence: dark base -> background ready -> logo ready -> app shell fade/blur in.
+19. Do not break auth, premium, tweaks, telemetry, or updater.
+
+SPECIFIC THINGS TO FIX
+- Audit LibreHardwareMonitor calls. If LHM is causing CPU or startup delay, make it optional, cached, and on-demand.
+- Audit GPU telemetry. Do not run GPU PowerShell counters repeatedly.
+- Audit disk telemetry. Do not scan disks too often.
+- Audit fsSize, cpuTemperature, si.graphics, si.processes. These should never run rapidly.
+- Audit Recharts rendering. Avoid rerendering the whole chart every tiny update if possible.
+- Audit background effects. Large animated glow/blur layers should be throttled or static.
+- Audit premium overlays. Locked hidden pages should not keep heavy components running behind the blur.
+- Audit route transitions. Avoid remounting heavy dashboard components unnecessarily.
+- Audit startup. Fix the slight delay where background appears before logo/content.
+
+OUTPUT REQUIRED
+After audit, provide:
+1. List of top CPU sources found.
+2. Exact files changed.
+3. What was changed and why.
+4. Before/after expected CPU impact.
+5. Any risks.
+6. How to test:
+   - idle on dashboard
+   - dashboard with graph open
+   - minimized app
+   - startup launch
+   - switch routes
+   - premium locked page
+   - telemetry unavailable
+   - low-end PC

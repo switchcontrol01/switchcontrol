@@ -979,28 +979,25 @@ function ElectronAppContent() {
           Shown from booting onward so there is never a blank gap after splash. */}
       {(phase === "booting" || phase === "unauthenticated" || phase === "login_success" || phase === "welcome") && (
         <div className="fixed inset-0 pointer-events-none" style={{ zIndex: 0, background: "#080810" }}>
-          <motion.div
+          {/* Static centre glow — no JS interpolation */}
+          <div
             className="absolute inset-0"
-            animate={{
-              background: [
-                "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)",
-                "radial-gradient(ellipse 70% 55% at 48% 44%, rgba(139,92,246,0.26) 0%, rgba(168,85,247,0.09) 35%, transparent 60%)",
-                "radial-gradient(ellipse 90% 60% at 52% 52%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)",
-              ]
+            style={{ background: "radial-gradient(ellipse 90% 60% at 50% 48%, rgba(139,92,246,0.20) 0%, rgba(99,102,241,0.07) 35%, transparent 60%)" }}
+          />
+          {/* CSS-animated accents — compositor-only, zero JS frames */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.10) 0%, transparent 42%)",
+              animation: "sc-auth-pink 6s ease-in-out infinite",
             }}
-            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
           />
-          <motion.div
+          <div
             className="absolute inset-0"
-            style={{ background: "radial-gradient(circle at 28% 18%, rgba(236,72,153,0.10) 0%, transparent 42%)" }}
-            animate={{ opacity: [0.5, 0.85, 0.5] }}
-            transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div
-            className="absolute inset-0"
-            style={{ background: "radial-gradient(circle at 72% 78%, rgba(56,189,248,0.08) 0%, transparent 40%)" }}
-            animate={{ opacity: [0.4, 0.75, 0.4] }}
-            transition={{ duration: 7.5, repeat: Infinity, ease: "easeInOut", delay: 1.2 }}
+            style={{
+              background: "radial-gradient(circle at 72% 78%, rgba(56,189,248,0.08) 0%, transparent 40%)",
+              animation: "sc-auth-cyan 7.5s ease-in-out 1.2s infinite",
+            }}
           />
         </div>
       )}
@@ -1038,24 +1035,13 @@ function ElectronAppContent() {
           >
             <div className="flex flex-col items-center gap-5">
               <div className="relative flex items-center justify-center w-8 h-8">
-                <motion.div
-                  className="absolute w-8 h-8 rounded-full border border-purple-400/20"
-                  animate={{ scale: [1, 1.7, 1], opacity: [0.5, 0, 0.5] }}
-                  transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
-                />
-                <motion.div
-                  className="w-2 h-2 rounded-full bg-purple-400/60"
-                  animate={{ opacity: [0.4, 1, 0.4] }}
-                  transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-                />
+                {/* CSS animate-ping is compositor-only — no JS frames */}
+                <span className="absolute w-8 h-8 rounded-full border border-purple-400/20 animate-ping" style={{ animationDuration: "2.2s" }} />
+                <span className="w-2 h-2 rounded-full bg-purple-400/60 animate-pulse" style={{ animationDuration: "1.6s" }} />
               </div>
-              <motion.p
-                className="text-[10px] text-white/20 tracking-[0.28em] uppercase"
-                animate={{ opacity: [0.3, 0.65, 0.3] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut", delay: 0.3 }}
-              >
+              <p className="text-[10px] text-white/20 tracking-[0.28em] uppercase animate-pulse" style={{ animationDuration: "2.4s", animationDelay: "0.3s" }}>
                 Starting
-              </motion.p>
+              </p>
             </div>
           </motion.div>
         )}

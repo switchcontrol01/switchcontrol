@@ -38,12 +38,14 @@ export function SystemStateBar() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }}
     >
-      {/* Pulsing status dot */}
-      <motion.span
-        className={cn("w-2 h-2 rounded-full shrink-0", state.dotColor)}
+      {/* Pulsing status dot — CSS animate-pulse keeps this off the JS thread */}
+      <span
+        className={cn(
+          "w-2 h-2 rounded-full shrink-0",
+          state.dotColor,
+          !prefersReducedMotion && "animate-pulse",
+        )}
         style={{ boxShadow: DOT_GLOW[state.dotColor] ?? "none" }}
-        animate={prefersReducedMotion ? {} : { opacity: [1, 0.35, 1] }}
-        transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
       />
 
       {/* State label */}
