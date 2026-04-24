@@ -1366,10 +1366,14 @@ export default function AiAdvisor() {
         const ctxRamStr  = ctx?.system?.ram ?? "";
         const ctxRamGb   = parseFloat(ctxRamStr);
         const ctxTelRamGb = ctx?.telemetry?.ramTotalGB ?? 0;
+        // Multi-stick strings like "2x16GB DDR5 @ 6200MHz" start with the
+        // stick count ("2"), so parseFloat returns 2 — not total GB.
+        // Skip the numeric comparison for any string matching NxMGB format.
+        const isMultiStickStr = /^\d+x\d/i.test(ctxRamStr);
         // "suspect" = context ram string is empty or < 8GB but live shows ≥ 8 GB
         const ramSuspect =
           (ctxRamStr === "" && liveRamGb >= 8) ||
-          (!isNaN(ctxRamGb) && ctxRamGb < 8 && liveRamGb >= 8) ||
+          (!isMultiStickStr && !isNaN(ctxRamGb) && ctxRamGb < 8 && liveRamGb >= 8) ||
           (ctxTelRamGb > 0 && ctxTelRamGb < 8 && liveRamGb >= 8);
         if (ramSuspect) {
           console.warn(
