@@ -155,16 +155,20 @@ let liveTelemetryCache = null;
 // We compute per-second rates ourselves from consecutive snapshots.
 let lastDiskSnapshot = null; // { rIO, wIO, ms, ts }
 
-// GPU telemetry cache — updated by the telemetry loop (LHM) and by one-time startup pre-warm.
-// Windows Perf Counter load is refreshed on-demand via telemetry:refreshGpuLoad IPC only —
-// it is NOT polled continuously, so no PowerShell is spawned in the background loop.
+// GPU telemetry cache — updated continuously by pollTelemetry() each loop tick.
+// GPU load is now polled in the background loop via getGpuPerfCounterLoad().
+// telemetry:refreshGpuLoad IPC remains for manual on-demand refresh (e.g. GPU panel open).
 // { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
 let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
 
-// On-demand GPU perf counter refresh — throttled by TTL to prevent rapid PS spawning.
-// Calls from telemetry:refreshGpuLoad IPC are silently coalesced within this window.
+// On-demand GPU perf counter refresh — used only by telemetry:refreshGpuLoad IPC.
+// The background loop uses its own _gpuLoadPollLastTs tracker below.
 let _gpuCounterLastRefreshTs = 0;
-const GPU_COUNTER_REFRESH_TTL = 30_000; // ms — minimum gap between PowerShell GPU counter calls
+const GPU_COUNTER_REFRESH_TTL = 5_000; // ms — IPC on-demand minimum gap (reduced from 30s)
+
+// Background-loop GPU load poll tracker — separate from the IPC TTL.
+// GPU load is refreshed on every telemetry tick when GPU exists and system is not over-budget.
+let _gpuLoadPollLastTs = 0;
 
 // Fast GPU existence flag — set true as soon as si.graphics() confirms a controller.
 // si.graphics() completes in ~300–600ms (no PowerShell overhead), so this is known
@@ -175,8 +179,8 @@ let gpuExistsOnHardware = false;
 // ── Performance governor ──────────────────────────────────────────────────────
 // Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
 // Auto-throttles to TELEMETRY_SLOW_MS when load exceeds the threshold.
-const TELEMETRY_BASE_MS      = 4000;   // normal polling cadence
-const TELEMETRY_SLOW_MS      = 10000;  // low-end / over-budget mode
+const TELEMETRY_BASE_MS      = 2000;   // normal polling cadence (2s for responsive chart)
+const TELEMETRY_SLOW_MS      = 8000;   // low-end / over-budget mode
 const TELEMETRY_GOVERNOR_PCT = 50;     // engage slow mode when cpu > 50%
 let _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
 
@@ -407,15 +411,31 @@ async function pollTelemetry() {
       diskIO.source = 'unavailable';
     }
 
-    // ── 6. GPU VRAM update (static cache — si.graphics with 60s TTL) ─────────
-    // LHM is NOT read in the background loop — GPU temp/power come from
-    // telemetry:refreshDeepHardware (on-demand).  GPU perf counter (PS-based)
-    // is NOT called here; use telemetry:refreshGpuLoad IPC for on-demand load.
+    // ── 6. GPU updates ────────────────────────────────────────────────────────
+    // 6a. VRAM (static — si.graphics, 60s TTL)
+    // 6b. GPU load — polled every tick via Windows perf counter when GPU exists
+    //     and system is not over-budget. getGpuPerfCounterLoad() acquires its own
+    //     psLimiter slot (key="main.js::getGpuPerfCounterLoad") — different from
+    //     the pollTelemetry slot — so both can be held concurrently (MAX_CONCURRENT_PS=6).
     {
       const gpuStatic = await getGpuStatic().catch(() => null);
       const newGpu = { ...gpuPollCache };
       if (gpuStatic?.memUsedMb  != null) newGpu.memUsedMb  = gpuStatic.memUsedMb;
       if (gpuStatic?.memTotalMb != null) newGpu.memTotalMb = gpuStatic.memTotalMb;
+
+      // GPU load — refresh every tick when GPU is confirmed on hardware
+      if (!_overBudget && !inCooldown && gpuExistsOnHardware) {
+        const _gpuT0 = Date.now();
+        const gpuLoad = await getGpuPerfCounterLoad().catch(() => null);
+        if (gpuLoad != null) {
+          newGpu.load   = gpuLoad;
+          newGpu.source = 'perf-counter';
+          _gpuCounterLastRefreshTs = Date.now(); // keep IPC TTL clock in sync
+          _gpuLoadPollLastTs = Date.now();
+          verboseLog(`[telemetry:poll] GPU load refreshed: ${gpuLoad.toFixed(1)}% (${Date.now() - _gpuT0}ms)`);
+        }
+      }
+
       gpuPollCache = newGpu;
     }
 
