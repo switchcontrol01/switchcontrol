@@ -190,7 +190,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
   const analyzeCause = useCallback(async () => {
     setCauseLoading(true);
     try {
-      const data = await fetchJSON<CausationData>("/api/dashboard-intelligence/what-caused-that");
+      const data = await fetchJSON<CausationData>(`/api/dashboard-intelligence/what-caused-that?t=${Date.now()}`);
       setCausation(data);
     } catch (_) {}
     setCauseLoading(false);
