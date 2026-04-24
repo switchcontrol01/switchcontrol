@@ -806,7 +806,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 onClick={() => toggle(m.key)}
                 title={isSoloed ? "Click to reset view" : "Click to focus this metric"}
                 className={cn(
-                  "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-all duration-150",
+                  "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors duration-200",
                   isSoloed
                     ? "border-white/50 bg-white/15 text-white ring-1 ring-white/20"
                     : isDimmed
@@ -940,19 +940,21 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {hasDiskData && toggles.disk && (
                 <Area yAxisId="pct" type="monotone" dataKey="diskActiveTime"
                   stroke="none" fill="url(#lsg-disk)"
-                  fillOpacity={lineOpacity("disk") * 0.7}
+                  style={{ fillOpacity: lineOpacity("disk") * 0.7, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} connectNulls isAnimationActive={false} legendType="none"
                 />
               )}
               {hasDiskData && toggles.disk && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
-                  stroke={C.disk} strokeWidth={10} strokeOpacity={0.18 * lineOpacity("disk")}
+                  stroke={C.disk} strokeWidth={10}
+                  style={{ strokeOpacity: 0.18 * lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={false} strokeDasharray="5 2" connectNulls legendType="none" isAnimationActive={false}
                 />
               )}
               {hasDiskData && toggles.disk && (
                 <Line yAxisId="pct" type="monotone" dataKey="diskActiveTime"
-                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5} strokeOpacity={lineOpacity("disk")}
+                  name="Disk %" stroke={C.disk} strokeWidth={expanded ? 2 : 1.5}
+                  style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: C.disk }} strokeDasharray="5 2" connectNulls isAnimationActive={false}
                 />
               )}
@@ -961,20 +963,21 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {hasRamData && toggles.ram && (
                 <Area yAxisId="pct" type="monotone" dataKey="ramDisplay"
                   stroke="none" fill="url(#lsg-ram)"
-                  fillOpacity={lineOpacity("ram") * 0.9}
+                  style={{ fillOpacity: lineOpacity("ram") * 0.9, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} isAnimationActive={false} legendType="none"
                 />
               )}
               {hasRamData && toggles.ram && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="ramDisplay"
-                  stroke={C.ram} strokeWidth={10} strokeOpacity={0.22 * lineOpacity("ram")}
+                  stroke={C.ram} strokeWidth={10}
+                  style={{ strokeOpacity: 0.22 * lineOpacity("ram"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={false} legendType="none" isAnimationActive={false}
                 />
               )}
               {hasRamData && toggles.ram && (
                 <Line yAxisId="pct" type="monotone" dataKey="ramDisplay"
-                  name="RAM (%)" stroke={C.ram} strokeWidth={2.5} strokeOpacity={lineOpacity("ram")}
-                  style={{ filter: showGlowLines ? `drop-shadow(0 0 2px ${C.ram}88)` : undefined, animation: "sc-line-breathe 3s ease-in-out infinite" }}
+                  name="RAM (%)" stroke={C.ram} strokeWidth={2.5}
+                  style={{ strokeOpacity: lineOpacity("ram"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.ram}88)` : undefined, animation: "sc-line-breathe 3s ease-in-out infinite" }}
                   dot={(props: any) => {
                     if (props.index !== data.length - 1) return <g key={props.key} />;
                     return (
@@ -992,20 +995,21 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {toggles.cpu && (
                 <Area yAxisId="pct" type="monotone" dataKey="cpuLoad"
                   stroke="none" fill="url(#lsg-cpu)"
-                  fillOpacity={lineOpacity("cpu") * 0.9}
+                  style={{ fillOpacity: lineOpacity("cpu") * 0.9, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} isAnimationActive={false} legendType="none"
                 />
               )}
               {toggles.cpu && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="cpuLoad"
-                  stroke={C.cpuLoad} strokeWidth={10} strokeOpacity={0.22 * lineOpacity("cpu")}
+                  stroke={C.cpuLoad} strokeWidth={10}
+                  style={{ strokeOpacity: 0.22 * lineOpacity("cpu"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={false} legendType="none" isAnimationActive={false}
                 />
               )}
               {toggles.cpu && (
                 <Line yAxisId="pct" type="monotone" dataKey="cpuLoad"
-                  name="CPU (%)" stroke={C.cpuLoad} strokeWidth={2.5} strokeOpacity={lineOpacity("cpu")}
-                  style={{ filter: showGlowLines ? `drop-shadow(0 0 2px ${C.cpuLoad}88)` : undefined, animation: "sc-line-breathe 3.4s ease-in-out infinite 0.6s" }}
+                  name="CPU (%)" stroke={C.cpuLoad} strokeWidth={2.5}
+                  style={{ strokeOpacity: lineOpacity("cpu"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.cpuLoad}88)` : undefined, animation: "sc-line-breathe 3.4s ease-in-out infinite 0.6s" }}
                   dot={(props: any) => {
                     if (props.index !== data.length - 1) return <g key={props.key} />;
                     return (
@@ -1023,21 +1027,22 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {hasGpuLoad && toggles.gpu && (
                 <Area yAxisId="pct" type="monotone" dataKey="gpuDisplay"
                   stroke="none" fill="url(#lsg-gpu)"
-                  fillOpacity={lineOpacity("gpu") * 0.85}
+                  style={{ fillOpacity: lineOpacity("gpu") * 0.85, transition: "fill-opacity 250ms ease" }}
                   dot={false} activeDot={false} connectNulls isAnimationActive={false} legendType="none"
                 />
               )}
               {hasGpuLoad && toggles.gpu && showGlowLines && (
                 <Line yAxisId="pct" type="monotone" dataKey="gpuDisplay"
-                  stroke={C.gpuLoad} strokeWidth={10} strokeOpacity={0.20 * lineOpacity("gpu")}
+                  stroke={C.gpuLoad} strokeWidth={10}
+                  style={{ strokeOpacity: 0.20 * lineOpacity("gpu"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={false} legendType="none" connectNulls isAnimationActive={false}
                 />
               )}
               {hasGpuLoad && toggles.gpu && (
                 <Line yAxisId="pct" type="monotone" dataKey="gpuDisplay"
-                  name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2.5} strokeOpacity={lineOpacity("gpu")}
+                  name="GPU (%)" stroke={C.gpuLoad} strokeWidth={2.5}
                   strokeDasharray="7 3"
-                  style={{ filter: showGlowLines ? `drop-shadow(0 0 2px ${C.gpuLoad}88)` : undefined, animation: "sc-line-breathe 2.8s ease-in-out infinite 1.1s" }}
+                  style={{ strokeOpacity: lineOpacity("gpu"), transition: "stroke-opacity 250ms ease", filter: showGlowLines ? `drop-shadow(0 0 2px ${C.gpuLoad}88)` : undefined, animation: "sc-line-breathe 2.8s ease-in-out infinite 1.1s" }}
                   dot={(props: any) => {
                     if (props.index !== data.length - 1) return <g key={props.key} />;
                     return (
@@ -1054,46 +1059,53 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
               {/* ── EXPANDED ONLY: Temperature lines ── */}
               {expanded && hasCpuTemp && toggles.cpu && (
                 <Line yAxisId="pct" type="monotone" dataKey="cpuTemp"
-                  name="CPU Temp (°C)" stroke={C.cpuTemp} strokeWidth={2} strokeOpacity={lineOpacity("cpu")}
+                  name="CPU Temp (°C)" stroke={C.cpuTemp} strokeWidth={2}
+                  style={{ strokeOpacity: lineOpacity("cpu"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: C.cpuTemp }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
               {expanded && hasGpuTemp && toggles.gpu && (
                 <Line yAxisId="pct" type="monotone" dataKey="gpuTemp"
-                  name="GPU Temp (°C)" stroke={C.gpuTemp} strokeWidth={2} strokeOpacity={lineOpacity("gpu")}
+                  name="GPU Temp (°C)" stroke={C.gpuTemp} strokeWidth={2}
+                  style={{ strokeOpacity: lineOpacity("gpu"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 4, strokeWidth: 0, fill: C.gpuTemp }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
               {/* VRAM */}
               {expanded && hasGpuMem && toggles.gpu && (
                 <Line yAxisId="pct" type="monotone" dataKey="gpuMemPct"
-                  name="VRAM (%)" stroke={C.gpuMemPct} strokeWidth={1.5} strokeOpacity={lineOpacity("gpu")}
+                  name="VRAM (%)" stroke={C.gpuMemPct} strokeWidth={1.5}
+                  style={{ strokeOpacity: lineOpacity("gpu"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: C.gpuMemPct }} strokeDasharray="6 3" connectNulls isAnimationActive={false}
                 />
               )}
               {/* Disk read/write separate lines in expanded mode */}
               {expanded && hasDiskRW && toggles.disk && (
                 <Line yAxisId="net" type="monotone" dataKey="diskReadKBps"
-                  name="Disk R KB/s" stroke="#f59e0b" strokeWidth={1.5} strokeOpacity={lineOpacity("disk")}
+                  name="Disk R KB/s" stroke="#f59e0b" strokeWidth={1.5}
+                  style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: "#f59e0b" }} strokeDasharray="3 2" connectNulls isAnimationActive={false}
                 />
               )}
               {expanded && hasDiskRW && toggles.disk && (
                 <Line yAxisId="net" type="monotone" dataKey="diskWriteKBps"
-                  name="Disk W KB/s" stroke="#d97706" strokeWidth={1.5} strokeOpacity={lineOpacity("disk")}
+                  name="Disk W KB/s" stroke="#d97706" strokeWidth={1.5}
+                  style={{ strokeOpacity: lineOpacity("disk"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: "#d97706" }} strokeDasharray="3 2" connectNulls isAnimationActive={false}
                 />
               )}
               {/* Network */}
               {(expanded || toggles.net) && hasNetRx && toggles.net && (
                 <Line yAxisId="net" type="monotone" dataKey="netRx"
-                  name="Net ↓ KB/s" stroke={C.netRx} strokeWidth={2} strokeOpacity={lineOpacity("net")}
+                  name="Net ↓ KB/s" stroke={C.netRx} strokeWidth={2}
+                  style={{ strokeOpacity: lineOpacity("net"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: C.netRx }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
               {(expanded || toggles.net) && hasNetTx && toggles.net && (
                 <Line yAxisId="net" type="monotone" dataKey="netTx"
-                  name="Net ↑ KB/s" stroke={C.netTx} strokeWidth={2} strokeOpacity={lineOpacity("net")}
+                  name="Net ↑ KB/s" stroke={C.netTx} strokeWidth={2}
+                  style={{ strokeOpacity: lineOpacity("net"), transition: "stroke-opacity 250ms ease" }}
                   dot={false} activeDot={{ r: 3, strokeWidth: 0, fill: C.netTx }} strokeDasharray="4 2" connectNulls isAnimationActive={false}
                 />
               )}
