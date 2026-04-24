@@ -33,6 +33,16 @@
         overflow: hidden;
       }
 
+      /* Web path: sc-web class is added synchronously by the inline script below.
+         CSS selectors apply to elements parsed AFTER the class is set, so #root
+         (which appears after the script tag) correctly picks up these overrides. */
+      html.sc-web,
+      html.sc-web body,
+      html.sc-web #root {
+        overflow: auto !important;
+        height: auto !important;
+      }
+
       /* Bulletproof dark cover — painted by the browser before ANY JS runs.
          Sits above everything. Removed only once sc-first-frame-ready is set. */
       body::before {
@@ -111,13 +121,10 @@
       }else{
         var s=document.getElementById('startup-shell');if(s)s.style.display='none';
         document.documentElement.style.opacity='1';
-        document.documentElement.style.overflow='auto';
-        document.documentElement.style.height='auto';
-        document.body.style.overflow='auto';
-        document.body.style.height='auto';
-        // Website path: body::before not needed, remove it immediately
+        // sc-web class unlocks overflow/height on html, body, AND #root (parsed later)
+        // via the html.sc-web CSS rule in the <style> block above.
+        document.documentElement.classList.add('sc-web');
         document.body.classList.add('sc-first-frame-ready');
-        var r=document.getElementById('root');if(r){r.style.height='auto';r.style.overflow='auto';}
       }
     </script>
 
