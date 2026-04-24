@@ -203,15 +203,23 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
     setFetchError(null);
     errorCountRef.current = 0;
     console.log(`[DiskModal] Starting poll for disk: ${selectedDiskMount ?? 'default'}`);
-    fetchDisk();
-    intervalRef.current = setInterval(fetchDisk, POLL_MS);
+
+    const stopPoll = () => {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    };
+    const startPoll = () => {
+      if (intervalRef.current) return;
+      fetchDisk();
+      intervalRef.current = setInterval(fetchDisk, POLL_MS);
+    };
+    const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (!document.hidden) startPoll();
 
     return () => {
       mountedRef.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      stopPoll();
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [open, fetchDisk, selectedDiskMount]);
 

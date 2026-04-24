@@ -103,14 +103,21 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
       }
     };
 
-    fetchCores();
-    intervalRef.current = setInterval(fetchCores, 1500);
+    const stopPoll = () => {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    };
+    const startPoll = () => {
+      if (intervalRef.current) return;
+      fetchCores();
+      intervalRef.current = setInterval(fetchCores, 1500);
+    };
+    const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (!document.hidden) startPoll();
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      stopPoll();
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [open, coreCount]);
 

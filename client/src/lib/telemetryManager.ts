@@ -19,6 +19,7 @@
  */
 
 import { useTelemetryStore } from "@/stores/telemetryStore";
+import { usePerformanceStore } from "@/stores/performanceStore";
 
 const SPIKE_THRESHOLD = 15;
 const UNAVAILABLE_TIMEOUT_MS = 8000;
@@ -133,6 +134,9 @@ function connect() {
               if (ramSpike) scheduleResetSpike("ram");
               if (gpuSpike) scheduleResetSpike("gpu");
             }
+
+            // Report CPU to LPM auto-governor (no-op if manual mode)
+            usePerformanceStore.getState().reportCpu(cpuVal ?? 0);
 
             // Single batched set() — one React render pass instead of 3
             st._onTick(

@@ -415,9 +415,20 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
   useEffect(() => {
     if (!isElectron) return;
-    fetchTelemetry();
-    intervalRef.current = setInterval(fetchTelemetry, 2000);
-    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+
+    const stopPoll = () => {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    };
+    const startPoll = () => {
+      if (intervalRef.current) return;
+      fetchTelemetry();
+      intervalRef.current = setInterval(fetchTelemetry, 2000);
+    };
+    const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (!document.hidden) startPoll();
+
+    return () => { stopPoll(); document.removeEventListener('visibilitychange', handleVisibility); };
   }, [fetchTelemetry, isElectron]);
 
   // ── Derived state ─────────────────────────────────────────────────────────

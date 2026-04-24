@@ -358,6 +358,13 @@ async function pollTelemetry() {
 }
 
 async function startTelemetryPolling() {
+  // ── Singleton guard ────────────────────────────────────────────────────────
+  // If the loop is already running (should never happen — only called once from
+  // app.whenReady), bail out immediately rather than creating a second loop.
+  if (_telemetryLoopActive) {
+    console.warn('[Perf] telemetry loop already active, skipping duplicate start');
+    return;
+  }
   verboseLog('[telemetry:poll] priming differential APIs + pre-warming GPU sources...');
 
   // ── GPU pre-warm (fire-and-forget, runs in parallel with CPU/disk prime) ──
@@ -2815,6 +2822,33 @@ ipcMain.handle('auth:debugCookies', async () => {
     sameSite: c.sameSite,
     expirationDate: c.expirationDate
   }));
+});
+
+// ── Performance diagnostics ────────────────────────────────────────────────────
+// Access from renderer: window.electronAPI.debug.getPerformanceInfo()
+ipcMain.handle('debug:getPerformanceInfo', () => {
+  const psStats = psLimiter.getState ? psLimiter.getState() : {};
+  return {
+    telemetryLoop: {
+      active:          _telemetryLoopActive,
+      paused:          _telemetryLoopPaused,
+      currentIntervalMs: _telemetryCurrentIntervalMs,
+      baseIntervalMs:  TELEMETRY_BASE_MS,
+      slowIntervalMs:  TELEMETRY_SLOW_MS,
+    },
+    fsSizeCache: {
+      ageMs: _fsSizeLastTs ? Date.now() - _fsSizeLastTs : null,
+      ttlMs: FS_SIZE_TTL_MS,
+    },
+    cpuTempCache: {
+      ageMs: _cpuTempLastTs ? Date.now() - _cpuTempLastTs : null,
+      ttlMs: CPU_TEMP_TTL_MS,
+    },
+    powerShell: psStats,
+    focusHelper: {
+      triggerLoopActive: typeof _triggerLoopActive !== 'undefined' ? _triggerLoopActive : 'n/a',
+    },
+  };
 });
 
 // ── ipcReady flag — set true only after registerCriticalIPC() completes ───────

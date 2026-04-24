@@ -78,6 +78,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   isBackendReady:  () => ipcRenderer.invoke('app:isBackendReady'),
   getBackendError: () => ipcRenderer.invoke('app:getBackendError'),
   debugCookies:    () => ipcRenderer.invoke('auth:debugCookies'),
+  debug: {
+    getPerformanceInfo: () => ipcRenderer.invoke('debug:getPerformanceInfo'),
+  },
   openLogs:        () => ipcRenderer.invoke('app:openLogs'),
 
   // ── Controlled privileged actions ───────────────────────────────────────────

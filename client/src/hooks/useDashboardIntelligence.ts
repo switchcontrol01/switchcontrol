@@ -212,22 +212,45 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     if (!enabled) return;
     if (initRef.current) return;
     initRef.current = true;
-    fetchAll();
 
-    const intervals = [
-      // Instability uses cached telemetry — safe at 8 s (was 5 s)
-      setInterval(() => fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability").then(setInstability).catch(() => {}),          8_000),
-      // System DNA changes slowly — 20 s is plenty (was 12 s)
-      setInterval(() => fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna").then(setDna).catch(() => {}),                    20_000),
-      // Active problems — refresh every 15 s (was 8 s)
-      setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}),     15_000),
-      // Latency estimate changes rarely — 12 s (was 6 s)
-      setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),            12_000),
-      // /ram-analysis (si.mem + si.processes): server caches 8s — poll at 30s (unchanged)
-      setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),               30_000),
-    ];
-    return () => {
+    let intervals: ReturnType<typeof setInterval>[] = [];
+
+    const startIntervals = () => {
+      if (intervals.length > 0) return; // already running
+      fetchAll();
+      intervals = [
+        // Instability uses cached telemetry — 8 s
+        setInterval(() => fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability").then(setInstability).catch(() => {}),          8_000),
+        // System DNA changes slowly — 20 s
+        setInterval(() => fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna").then(setDna).catch(() => {}),                    20_000),
+        // Active problems — 15 s
+        setInterval(() => fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems").then(setProblems).catch(() => {}),     15_000),
+        // Latency estimate changes rarely — 12 s
+        setInterval(() => fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate").then(setLatency).catch(() => {}),            12_000),
+        // /ram-analysis: server caches 8 s — poll at 30 s
+        setInterval(() => fetchJSON<SmartRamProfile>("/api/dashboard-intelligence/ram-analysis").then(setRam).catch(() => {}),               30_000),
+      ];
+    };
+
+    const stopIntervals = () => {
       intervals.forEach(clearInterval);
+      intervals = [];
+    };
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        stopIntervals();
+      } else {
+        startIntervals();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (!document.hidden) startIntervals();
+
+    return () => {
+      stopIntervals();
+      document.removeEventListener('visibilitychange', handleVisibility);
       initRef.current = false; // allow re-arm if disabled then re-enabled
     };
   }, [enabled, fetchAll]);

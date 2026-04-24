@@ -104,14 +104,21 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
       }
     };
 
-    fetchData();
-    intervalRef.current = setInterval(fetchData, 2000);
+    const stopPoll = () => {
+      if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    };
+    const startPoll = () => {
+      if (intervalRef.current) return;
+      fetchData();
+      intervalRef.current = setInterval(fetchData, 2000);
+    };
+    const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
+    document.addEventListener('visibilitychange', handleVisibility);
+    if (!document.hidden) startPoll();
 
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      stopPoll();
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [open]);
 
