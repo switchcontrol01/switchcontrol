@@ -28,7 +28,7 @@ import { systemIntelligenceRouter } from "./routes/systemIntelligence";
 import issueDetectorRouter from "./routes/issueDetector";
 import advisorContextRouter from "./routes/advisorContext";
 import { getSystemIntelligence } from "./lib/systemIntelligence";
-import { getSnapshot, getSystemSpecs, startTelemetryPolling } from "./lib/telemetry";
+import { getSnapshot, getSystemSpecs, getSchedulerStats, startTelemetryPolling } from "./lib/telemetry";
 import { setupWebSocketServer } from "./lib/wsServer";
 import { signJwt } from "./lib/jwt";
 
@@ -403,6 +403,10 @@ export async function registerRoutes(
       console.error("Telemetry error:", error);
       res.status(500).json({ error: "Failed to fetch telemetry" });
     }
+  });
+
+  app.get("/api/debug/scheduler", (req, res) => {
+    res.json(getSchedulerStats());
   });
 
   app.get("/api/specs", requireJwt, async (req, res) => {

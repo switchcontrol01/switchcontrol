@@ -174,20 +174,51 @@ let gpuExistsOnHardware = false;
 
 // ── Performance governor ──────────────────────────────────────────────────────
 // Base poll interval.  Stays at TELEMETRY_BASE_MS while CPU is normal.
-// Auto-throttles to TELEMETRY_SLOW_MS when load is high.
-const TELEMETRY_BASE_MS = 2000;  // was 1000 — halves CPU overhead at idle
-const TELEMETRY_SLOW_MS = 4000;  // engaged when cpu > 70%
+// Auto-throttles to TELEMETRY_SLOW_MS when load exceeds the threshold.
+const TELEMETRY_BASE_MS      = 2000;   // normal polling cadence
+const TELEMETRY_SLOW_MS      = 5000;   // low-end / over-budget mode
+const TELEMETRY_GOVERNOR_PCT = 50;     // engage slow mode when cpu > 50%
 let _telemetryCurrentIntervalMs = TELEMETRY_BASE_MS;
 
-// Slow-rate caches: si.fsSize() (slow drive scan) and si.cpuTemperature() (WMI)
-// are expensive and do NOT need to be re-read every poll tick.
-// They are only refreshed when their TTL has expired.
-const FS_SIZE_TTL_MS   = 10_000; // refresh filesystem sizes every 10 s
-const CPU_TEMP_TTL_MS  =  3_000; // refresh CPU temp every 3 s
+// ── Per-task TTLs — heavy tasks run NO MORE OFTEN than their TTL ──────────────
+// Only ONE heavy task fires per tick (rotation). Lightweight tasks (currentLoad,
+// mem, networkStats) are fast OS reads and run every tick.
+const FS_SIZE_TTL_MS    = 12_000; // si.fsSize()         — full drive scan
+const CPU_TEMP_TTL_MS   =  8_000; // si.cpuTemperature() — WMI/ACPI, expensive
+const DISK_IO_TTL_MS    =  4_000; // si.disksIO()        — kernel counter read
+const LHM_POLL_TTL_MS   =  4_000; // getLhmTelemetry()   — HTTP to localhost:8085
+
+// Per-task caches + timestamps
 let _fsSizeCache        = [];
 let _fsSizeLastTs       = 0;
 let _cpuTempCache       = { main: 0, max: 0, cores: [] };
 let _cpuTempLastTs      = 0;
+let _diskIoLastTs       = 0;    // last time si.disksIO() ran
+let _lhmLastTs          = 0;    // last time getLhmTelemetry() ran
+let _lhmCache           = null; // last LHM result
+
+// ── Low-end mode ──────────────────────────────────────────────────────────────
+// Enabled when: logical CPU cores <= 4  OR  sustained average load > 50%.
+// In low-end mode: all TTLs double, disk scanning is disabled, interval → SLOW_MS.
+let _lowEndMode         = false;
+let _lowEndCoresKnown   = false;
+const LOW_END_CORE_MAX  = 4;    // <= this many logical cores → low-end
+const LOAD_HIST_LEN     = 5;    // ticks to average for sustained-load check
+
+// ── CPU budget ────────────────────────────────────────────────────────────────
+// If SwitchControl's own Node process exceeds CPU_BUDGET_PCT, skip heavy tasks
+// this tick to avoid competing with the game the user is trying to run.
+const CPU_BUDGET_PCT    = 5;
+let _lastProcCpuUsage   = process.cpuUsage();
+let _lastProcCpuTs      = Date.now();
+let _appCpuPct          = 0;
+
+// ── Per-task timing ───────────────────────────────────────────────────────────
+// Each entry: { lastDurationMs, lastRunTs }
+const _taskTimings      = {};
+function _recordTiming(name, startMs) {
+  _taskTimings[name] = { lastDurationMs: Date.now() - startMs, lastRunTs: startMs };
+}
 
 // Safe async telemetry loop — replaces setInterval so each poll only starts
 // after the previous one fully completes (including PowerShell GPU counter).
@@ -221,30 +252,97 @@ async function pollTelemetry() {
   try {
     const now = Date.now();
 
-    // si.fsSize() — slow drive scan, refresh every 10 s only
-    if (now - _fsSizeLastTs > FS_SIZE_TTL_MS) {
-      _fsSizeCache  = await si.fsSize().catch(() => []);
-      _fsSizeLastTs = Date.now();
+    // ── 1. CPU budget check ───────────────────────────────────────────────────
+    // Measure this process's own CPU usage since the last tick.
+    const _procUsageDelta = process.cpuUsage(_lastProcCpuUsage);
+    const _elapsedUs = (now - _lastProcCpuTs) * 1000;
+    if (_elapsedUs > 0) {
+      _appCpuPct = Math.min(100, ((_procUsageDelta.user + _procUsageDelta.sys) / _elapsedUs) * 100);
     }
-    const fsData = _fsSizeCache;
-
-    // si.cpuTemperature() — WMI call, refresh every 3 s only
-    if (now - _cpuTempLastTs > CPU_TEMP_TTL_MS) {
-      _cpuTempCache  = await si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] }));
-      _cpuTempLastTs = Date.now();
+    _lastProcCpuUsage = process.cpuUsage();
+    _lastProcCpuTs = now;
+    const _overBudget = _appCpuPct > CPU_BUDGET_PCT;
+    if (_overBudget) {
+      verboseLog(`[telemetry:poll] Over budget (app=${_appCpuPct.toFixed(1)}%) — skipping heavy tasks this tick`);
     }
-    const temps = _cpuTempCache;
 
-    const [load, mem, netStats, rawDiskIO] = await Promise.all([
+    // ── 2. Lightweight tasks — always run, fast OS reads ─────────────────────
+    // currentLoad, mem, networkStats are fast (/proc reads or OS counters).
+    // Run them in parallel — they are all non-blocking and low-overhead.
+    const _t0Light = Date.now();
+    const [load, mem, netStats] = await Promise.all([
       si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
       si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: 0, available: 0 }; }),
       si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; }),
-      si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return null; }),
     ]);
+    _recordTiming('lightweight', _t0Light);
 
-    // ── Disk delta computation ────────────────────────────────────────────────
+    // ── 3. Low-end mode detection ─────────────────────────────────────────────
+    // Detect from core count on first tick; also check sustained load average.
+    if (!_lowEndCoresKnown && load?.cpus?.length) {
+      _lowEndCoresKnown = true;
+      const _cores = load.cpus.length;
+      if (_cores <= LOW_END_CORE_MAX) {
+        _lowEndMode = true;
+        console.log(`[telemetry:poll] Low-end mode ENABLED — ${_cores} logical cores`);
+      }
+    }
+    // Sustained load check uses the global LOAD_HISTORY (written below in caller's scope)
+    // We read cpuPct now and let the governor below also update the interval.
+    const cpuPct = load?.currentLoad ?? 0;
+
+    // ── 4. Heavy task rotation — ONE task per tick, serial ───────────────────
+    // Priority: cpuTemp → diskIO → LHM → fsSize
+    // In low-end mode: diskIO is disabled; all TTLs double.
+    // Over-budget ticks skip ALL heavy tasks.
+    //
+    // Disk delta uses existing lastDiskSnapshot — computed below after rawDiskIO.
+    let rawDiskIO = null;
+    const temps = _cpuTempCache; // used below; may be refreshed in this block
+
+    if (!_overBudget) {
+      const _tempTtl  = _lowEndMode ? CPU_TEMP_TTL_MS * 2 : CPU_TEMP_TTL_MS;
+      const _diskTtl  = _lowEndMode ? Infinity            : DISK_IO_TTL_MS;
+      const _lhmTtl   = _lowEndMode ? LHM_POLL_TTL_MS * 2 : LHM_POLL_TTL_MS;
+      const _fsTtl    = _lowEndMode ? FS_SIZE_TTL_MS  * 2 : FS_SIZE_TTL_MS;
+
+      if (now - _cpuTempLastTs > _tempTtl) {
+        // Task A: CPU temperature (WMI/ACPI — most expensive per-call)
+        const _t0 = Date.now();
+        _cpuTempCache  = await si.cpuTemperature().catch(() => ({ main: 0, max: 0, cores: [] }));
+        _cpuTempLastTs = Date.now();
+        _recordTiming('cpuTemp', _t0);
+
+      } else if (now - _diskIoLastTs > _diskTtl && !_lowEndMode) {
+        // Task B: Disk I/O — kernel counter, only when not in low-end mode
+        const _t0 = Date.now();
+        rawDiskIO      = await si.disksIO().catch(e => { console.warn('[telemetry:poll] disksIO error:', e.message); return null; });
+        _diskIoLastTs  = Date.now();
+        _recordTiming('diskIO', _t0);
+
+      } else if (now - _lhmLastTs > _lhmTtl) {
+        // Task C: LHM telemetry — HTTP to LibreHardwareMonitor on localhost:8085
+        const _t0 = Date.now();
+        _lhmCache  = await getLhmTelemetry().catch(() => null);
+        _lhmLastTs = Date.now();
+        _recordTiming('lhm', _t0);
+
+      } else if (now - _fsSizeLastTs > _fsTtl) {
+        // Task D: Filesystem sizes — full drive scan, lowest priority
+        const _t0 = Date.now();
+        _fsSizeCache  = await si.fsSize().catch(() => []);
+        _fsSizeLastTs = Date.now();
+        _recordTiming('fsSize', _t0);
+      }
+    }
+
+    // Use cached cpuTemp (may have just been refreshed above)
+    // temps variable was set before the rotation block; re-read cache now.
+    const _temps = _cpuTempCache;
+
+    // ── 5. Disk delta computation ─────────────────────────────────────────────
     // disksIO() returns cumulative rIO/wIO (sectors, 512 bytes each) and ms (ms busy).
-    // We compute per-second rates from consecutive snapshots, matching server/lib/telemetry.ts.
+    // We compute per-second rates from consecutive snapshots.
     //
     // available: true  → real rates were successfully computed (safe to display)
     // available: false → warming up, unavailable, or source failed (must NOT fake as zero)
@@ -260,7 +358,6 @@ async function pollTelemetry() {
       const rIO = typeof d.rIO === 'number' ? d.rIO : null;
       const wIO = typeof d.wIO === 'number' ? d.wIO : null;
       const msTotal = typeof d.ms === 'number' ? d.ms : null;
-      // systeminformation may provide its own per-second rates on some platforms
       const msSec = d.ms_sec != null ? d.ms_sec : (d.tIO_sec != null ? d.tIO_sec : null);
 
       if (lastDiskSnapshot && rIO != null && wIO != null) {
@@ -268,30 +365,24 @@ async function pollTelemetry() {
         if (dt_s > 0.1) {
           const deltaR = Math.max(0, rIO - lastDiskSnapshot.rIO);
           const deltaW = Math.max(0, wIO - lastDiskSnapshot.wIO);
-          // 1 sector = 512 bytes = 0.5 KB
           diskIO.readKBps = parseFloat((deltaR / dt_s / 2).toFixed(1));
           diskIO.writeKBps = parseFloat((deltaW / dt_s / 2).toFixed(1));
-
           if (msSec != null && msSec >= 0) {
             diskIO.activeTimePct = parseFloat(Math.min(msSec / 10, 100).toFixed(1));
           } else if (msTotal != null && msTotal > 0) {
             const deltaMs = Math.max(0, msTotal - lastDiskSnapshot.ms);
             diskIO.activeTimePct = parseFloat(Math.min((deltaMs / (dt_s * 1000)) * 100, 100).toFixed(1));
           } else {
-            // ms data missing — estimate from throughput
             const combined = (diskIO.readKBps ?? 0) + (diskIO.writeKBps ?? 0);
             diskIO.activeTimePct = parseFloat(Math.min(combined / 100, 100).toFixed(1));
           }
-          // Real rates successfully computed
           diskIO.available = true;
           diskIO.source = 'disksio';
         } else {
-          // dt too small — warming, do not emit values
           diskIO.available = false;
           diskIO.source = 'warming';
         }
       } else if (rIO == null && (d.rIO_sec != null || d.wIO_sec != null)) {
-        // Platform only gives per-second rates, no cumulative — use them directly
         const rSec = d.rIO_sec || 0;
         const wSec = d.wIO_sec || 0;
         diskIO.readKBps = parseFloat((rSec / 2).toFixed(1));
@@ -302,60 +393,49 @@ async function pollTelemetry() {
         diskIO.available = true;
         diskIO.source = 'disksio-persec';
       } else {
-        // Strategy C: rawDiskIO responded but no prior snapshot to diff yet (first call warmup)
         diskIO.available = false;
         diskIO.source = 'warming';
       }
-
       if (rIO != null && wIO != null) {
         lastDiskSnapshot = { rIO, wIO, ms: msTotal != null ? msTotal : 0, ts: diskNow };
       }
+    } else if (_lowEndMode || _overBudget) {
+      // In low-end or over-budget mode disksIO was skipped — preserve last cached result.
+      // liveTelemetryCache.diskIO from the previous tick is reused by getLive().
     } else {
-      // Strategy D: si.disksIO() rejected entirely — PDH counter unavailable on this system
       diskIO.available = false;
       diskIO.source = 'unavailable';
     }
 
-    // ── GPU polling (PS-free — no PowerShell spawned in this loop) ──────────────
-    // LHM (HTTP to localhost:8085) provides load/temp/power for users with LHM running.
-    // si.graphics() provides VRAM — pure WMI, no PS overhead.
-    // GPU perf counter (PS-based) is NOT called here; use telemetry:refreshGpuLoad IPC
-    // for on-demand refresh (manual trigger, AI advisor, diagnostics).
-    const [lhmResult, gpuStaticResult] = await Promise.allSettled([
-      getLhmTelemetry(),
-      getGpuStatic(),
-    ]);
-
-    const lhm = lhmResult.status === 'fulfilled' ? lhmResult.value : null;
-    const gpuStatic = gpuStaticResult.status === 'fulfilled' ? gpuStaticResult.value : null;
-
-    // Build GPU cache: LHM for load/temp/power, si.graphics() for VRAM.
-    // Perf counter load value persists from last on-demand refresh — never reset to null here.
-    const newGpu = { ...gpuPollCache };
-
-    if (lhm?.gpuLoad != null) {
-      newGpu.load = lhm.gpuLoad;
-      newGpu.source = 'lhm';
+    // ── 6. GPU cache update from LHM ─────────────────────────────────────────
+    // LHM is now polled on its own TTL (Task C above). gpuStatic (si.graphics()
+    // VRAM) is unchanged — it has its own 60s TTL via getGpuStatic().
+    // GPU perf counter (PS-based) is NOT called here; use telemetry:refreshGpuLoad IPC.
+    {
+      const lhm = _lhmCache;
+      const gpuStatic = await getGpuStatic().catch(() => null);
+      const newGpu = { ...gpuPollCache };
+      if (lhm?.gpuLoad != null) { newGpu.load = lhm.gpuLoad; newGpu.source = 'lhm'; }
+      if (lhm?.gpuTemp  != null && lhm.gpuTemp  > 0) newGpu.temp  = lhm.gpuTemp;
+      if (lhm?.gpuPower != null && lhm.gpuPower > 0) newGpu.power = lhm.gpuPower;
+      if (gpuStatic?.memUsedMb  != null) newGpu.memUsedMb  = gpuStatic.memUsedMb;
+      if (gpuStatic?.memTotalMb != null) newGpu.memTotalMb = gpuStatic.memTotalMb;
+      gpuPollCache = newGpu;
     }
-    // Temperature and power — always prefer LHM
-    if (lhm?.gpuTemp != null && lhm.gpuTemp > 0) newGpu.temp = lhm.gpuTemp;
-    if (lhm?.gpuPower != null && lhm.gpuPower > 0) newGpu.power = lhm.gpuPower;
-    // VRAM from si.graphics() (static, changes slowly)
-    if (gpuStatic?.memUsedMb != null) newGpu.memUsedMb = gpuStatic.memUsedMb;
-    if (gpuStatic?.memTotalMb != null) newGpu.memTotalMb = gpuStatic.memTotalMb;
 
-    gpuPollCache = newGpu;
+    // Preserve last diskIO if this tick didn't refresh it
+    const _diskResult = rawDiskIO != null
+      ? diskIO
+      : (liveTelemetryCache?.diskIO ?? diskIO);
 
-    liveTelemetryCache = { load, mem, temps, fsData: fsData || [], netStats: netStats || [], diskIO, timestamp: Date.now() };
+    liveTelemetryCache = { load, mem, temps: _temps, fsData: _fsSizeCache || [], netStats: netStats || [], diskIO: _diskResult, timestamp: Date.now() };
 
-    // ── Performance governor: auto-throttle when CPU is high ─────────────────
-    // If CPU > 70% slow the poll loop so SwitchControl doesn't compete with
-    // the workload it's measuring.  Only update when crossing a threshold to
-    // avoid log spam.
-    const cpuPct = load?.currentLoad ?? 0;
-    const targetMs = cpuPct > 70 ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS;
+    // ── 7. Performance governor ───────────────────────────────────────────────
+    // Engage slow mode when CPU is high OR we are in low-end mode.
+    // Disengage once CPU drops below the threshold and low-end mode is off.
+    const targetMs = (_lowEndMode || cpuPct > TELEMETRY_GOVERNOR_PCT) ? TELEMETRY_SLOW_MS : TELEMETRY_BASE_MS;
     if (targetMs !== _telemetryCurrentIntervalMs) {
-      verboseLog(`[PERF:TASK] name=telemetryLoop — governor: cpu=${cpuPct.toFixed(0)}% → interval ${_telemetryCurrentIntervalMs}ms → ${targetMs}ms`);
+      verboseLog(`[PERF:TASK] name=telemetryLoop — governor: cpu=${cpuPct.toFixed(0)}% lowEnd=${_lowEndMode} appCpu=${_appCpuPct.toFixed(1)}% → interval ${_telemetryCurrentIntervalMs}ms → ${targetMs}ms`);
       _telemetryCurrentIntervalMs = targetMs;
     }
   } catch (e) {
@@ -2836,11 +2916,11 @@ ipcMain.handle('auth:debugCookies', async () => {
 ipcMain.handle('debug:getPerformanceInfo', () => {
   const psStats = psLimiter.getState ? psLimiter.getState() : {};
   // process.getCPUUsage() is an Electron API: returns { percentCPUUsage, idleWakeupsPerSecond }
-  // It measures the main process CPU since last call (delta). Fine to call here.
   let processCpu = null;
   try { processCpu = process.getCPUUsage(); } catch (_) {}
 
-  const win = mainWindow; // mainWindow ref from createWindow closure
+  const win = mainWindow;
+  const _now = Date.now();
   return {
     telemetryLoop: {
       active:            _telemetryLoopActive,
@@ -2850,13 +2930,24 @@ ipcMain.handle('debug:getPerformanceInfo', () => {
       baseIntervalMs:    TELEMETRY_BASE_MS,
       slowIntervalMs:    TELEMETRY_SLOW_MS,
     },
-    fsSizeCache: {
-      ageMs: _fsSizeLastTs  ? Date.now() - _fsSizeLastTs  : null,
-      ttlMs: FS_SIZE_TTL_MS,
-    },
-    cpuTempCache: {
-      ageMs: _cpuTempLastTs ? Date.now() - _cpuTempLastTs : null,
-      ttlMs: CPU_TEMP_TTL_MS,
+    scheduler: {
+      appCpuPct:     parseFloat(_appCpuPct.toFixed(2)),
+      lowEndMode:    _lowEndMode,
+      budgetPct:     CPU_BUDGET_PCT,
+      governorPct:   TELEMETRY_GOVERNOR_PCT,
+      taskTimings:   _taskTimings,
+      taskTtls: {
+        cpuTemp:    CPU_TEMP_TTL_MS,
+        diskIO:     DISK_IO_TTL_MS,
+        lhm:        LHM_POLL_TTL_MS,
+        fsSize:     FS_SIZE_TTL_MS,
+      },
+      taskAges: {
+        cpuTemp:    _cpuTempLastTs ? _now - _cpuTempLastTs : null,
+        diskIO:     _diskIoLastTs  ? _now - _diskIoLastTs  : null,
+        lhm:        _lhmLastTs     ? _now - _lhmLastTs     : null,
+        fsSize:     _fsSizeLastTs  ? _now - _fsSizeLastTs  : null,
+      },
     },
     powerShell: {
       callsLast60s:      psStats.callsLast60s  ?? 0,
@@ -2865,9 +2956,9 @@ ipcMain.handle('debug:getPerformanceInfo', () => {
       recentCalls:       psStats.recentCalls ?? [],
     },
     process: {
-      cpuPercent:          processCpu?.percentCPUUsage ?? null,
+      cpuPercent:           processCpu?.percentCPUUsage ?? null,
       idleWakeupsPerSecond: processCpu?.idleWakeupsPerSecond ?? null,
-      pid:                 process.pid,
+      pid:                  process.pid,
     },
     window: {
       visible:   win ? !win.isMinimized() && win.isVisible() : null,
