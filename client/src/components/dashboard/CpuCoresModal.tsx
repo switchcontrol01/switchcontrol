@@ -109,7 +109,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
     const startPoll = () => {
       if (intervalRef.current) return;
       fetchCores();
-      intervalRef.current = setInterval(fetchCores, 1500);
+      intervalRef.current = setInterval(fetchCores, 2000);
     };
     const handleVisibility = () => { document.hidden ? stopPoll() : startPoll(); };
     document.addEventListener('visibilitychange', handleVisibility);

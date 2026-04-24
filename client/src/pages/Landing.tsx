@@ -417,7 +417,7 @@ function HeroAppMockup() {
         const next = prev + (Math.random() > 0.5 ? 1 : -1);
         return Math.max(11, Math.min(17, next));
       });
-    }, 1800);
+    }, 2500);
     return () => clearInterval(id);
   }, []);
 
@@ -426,19 +426,19 @@ function HeroAppMockup() {
       label: "CPU", base: 4, range: 7, barBase: 4, barRange: 7,
       barColor: "bg-emerald-500", textColor: "text-emerald-400",
       accentL: "hsl(160,80%,50%)", tintBg: "rgba(0,0,0,0.32)",
-      borderColor: "rgba(52,211,153,0.25)", interval: 1200,
+      borderColor: "rgba(52,211,153,0.25)", interval: 2200,
     },
     {
       label: "RAM", base: 34, range: 9, barBase: 34, barRange: 9,
       barColor: "bg-sky-500", textColor: "text-sky-400",
       accentL: "hsl(200,85%,55%)", tintBg: "rgba(0,0,0,0.32)",
-      borderColor: "rgba(56,189,248,0.25)", interval: 1400,
+      borderColor: "rgba(56,189,248,0.25)", interval: 2500,
     },
     {
       label: "GPU", base: 2, range: 6, barBase: 2, barRange: 6,
       barColor: "bg-violet-500", textColor: "text-violet-400",
       accentL: "hsl(270,75%,62%)", tintBg: "rgba(0,0,0,0.32)",
-      borderColor: "rgba(167,139,250,0.25)", interval: 1300,
+      borderColor: "rgba(167,139,250,0.25)", interval: 2000,
     },
   ] as const;
 
@@ -543,7 +543,7 @@ function HeroAppMockup() {
               <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>Latency</div>
               <div className="flex items-end justify-between">
                 <div className="text-[19px] font-bold font-mono text-emerald-400 leading-none">
-                  −<LiveMockupValue base={8} range={7} suffix="ms" interval={1200} />
+                  −<LiveMockupValue base={8} range={7} suffix="ms" interval={2000} />
                 </div>
                 <MiniSparkline stroke="hsl(160,78%,50%)"
                   pts="2,17 6,15 10,16 14,13 18,12 22,11 26,10 30,11 34,8 38,7 44,5" />
@@ -558,7 +558,7 @@ function HeroAppMockup() {
               <div className="text-[8.5px] uppercase tracking-widest font-semibold mb-2" style={{ color: "rgba(255,255,255,0.35)" }}>FPS Stability</div>
               <div className="flex items-end justify-between">
                 <div className="text-[19px] font-bold font-mono leading-none" style={{ color: "hsl(190,85%,54%)" }}>
-                  +<LiveMockupValue base={13} range={9} suffix="%" interval={1300} />
+                  +<LiveMockupValue base={13} range={9} suffix="%" interval={2000} />
                 </div>
                 <MiniSparkline stroke="hsl(190,80%,54%)"
                   pts="2,17 6,16 10,15 14,14 18,12 22,10 26,9 30,8 34,7 38,5 44,3" />

@@ -1,7 +1,13 @@
 import { createRoot } from "react-dom/client";
 import "./lib/api"; // must be first — installs global fetch interceptor for Electron
+import { installIntervalGuard } from "./lib/intervalGuard";
 import App from "./App";
 import "./index.css";
+
+// Install the 2000ms minimum interval guard before any component code runs.
+// This must happen synchronously before createRoot so every subsequent
+// setInterval call in any component or hook goes through the guard.
+installIntervalGuard();
 
 // ── Global renderer error pipeline ───────────────────────────────────────────
 // Captures window-level exceptions and unhandled promise rejections that escape

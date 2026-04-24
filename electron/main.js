@@ -195,16 +195,24 @@ let _cpuTempLastTs      = 0;
 // Set _telemetryLoopPaused = true to pause without stopping (window minimized).
 let _telemetryLoopActive = false;
 let _telemetryLoopPaused = false;
+let _telemetryLoopCount  = 0; // incremented every time the loop actually starts; must stay ≤ 1
 
 async function _telemetryLoop() {
-  verboseLog('[PERF:TASK] name=telemetryLoop source=main.js interval=' + TELEMETRY_BASE_MS + 'ms reason=startup');
+  _telemetryLoopCount++;
+  verboseLog('[PERF:TASK] name=telemetryLoop source=main.js interval=' + TELEMETRY_BASE_MS + 'ms reason=startup loopInstance=' + _telemetryLoopCount);
+  if (_telemetryLoopCount > 1) {
+    console.error('[CRITICAL] Duplicate telemetry loop detected! loopCount=' + _telemetryLoopCount + ' — this will double CPU usage. Aborting duplicate.');
+    _telemetryLoopCount--;
+    return;
+  }
   while (_telemetryLoopActive) {
     if (!_telemetryLoopPaused) {
       await pollTelemetry();
     }
     if (_telemetryLoopActive) await new Promise(r => setTimeout(r, _telemetryCurrentIntervalMs));
   }
-  verboseLog('[telemetry:poll] async loop exited');
+  _telemetryLoopCount = Math.max(0, _telemetryLoopCount - 1);
+  verboseLog('[telemetry:poll] async loop exited loopCount=' + _telemetryLoopCount);
 }
 
 async function pollTelemetry() {
@@ -733,19 +741,18 @@ function createWindow() {
   // hidden — no UI is visible to consume the data anyway.
   mainWindow.on('minimize', () => {
     _telemetryLoopPaused = true;
-    verboseLog('[PERF:TASK] name=telemetryLoop — paused (window minimized)');
+    console.log('[Perf] minimized → pausing all loops (telemetry, no IPC polls while hidden)');
   });
   mainWindow.on('restore', () => {
     _telemetryLoopPaused = false;
-    // Immediately poll so charts are populated as soon as the window reopens
+    console.log('[Perf] restored → resuming telemetry loop');
     pollTelemetry().catch(() => {});
-    verboseLog('[PERF:TASK] name=telemetryLoop — resumed (window restored)');
   });
   mainWindow.on('show', () => {
     if (_telemetryLoopPaused) {
       _telemetryLoopPaused = false;
+      console.log('[Perf] window show → resuming telemetry loop');
       pollTelemetry().catch(() => {});
-      verboseLog('[PERF:TASK] name=telemetryLoop — resumed (window show)');
     }
   });
 
@@ -2828,25 +2835,44 @@ ipcMain.handle('auth:debugCookies', async () => {
 // Access from renderer: window.electronAPI.debug.getPerformanceInfo()
 ipcMain.handle('debug:getPerformanceInfo', () => {
   const psStats = psLimiter.getState ? psLimiter.getState() : {};
+  // process.getCPUUsage() is an Electron API: returns { percentCPUUsage, idleWakeupsPerSecond }
+  // It measures the main process CPU since last call (delta). Fine to call here.
+  let processCpu = null;
+  try { processCpu = process.getCPUUsage(); } catch (_) {}
+
+  const win = mainWindow; // mainWindow ref from createWindow closure
   return {
     telemetryLoop: {
-      active:          _telemetryLoopActive,
-      paused:          _telemetryLoopPaused,
+      active:            _telemetryLoopActive,
+      paused:            _telemetryLoopPaused,
+      instances:         _telemetryLoopCount,
       currentIntervalMs: _telemetryCurrentIntervalMs,
-      baseIntervalMs:  TELEMETRY_BASE_MS,
-      slowIntervalMs:  TELEMETRY_SLOW_MS,
+      baseIntervalMs:    TELEMETRY_BASE_MS,
+      slowIntervalMs:    TELEMETRY_SLOW_MS,
     },
     fsSizeCache: {
-      ageMs: _fsSizeLastTs ? Date.now() - _fsSizeLastTs : null,
+      ageMs: _fsSizeLastTs  ? Date.now() - _fsSizeLastTs  : null,
       ttlMs: FS_SIZE_TTL_MS,
     },
     cpuTempCache: {
       ageMs: _cpuTempLastTs ? Date.now() - _cpuTempLastTs : null,
       ttlMs: CPU_TEMP_TTL_MS,
     },
-    powerShell: psStats,
-    focusHelper: {
-      triggerLoopActive: typeof _triggerLoopActive !== 'undefined' ? _triggerLoopActive : 'n/a',
+    powerShell: {
+      callsLast60s:      psStats.callsLast60s  ?? 0,
+      lastCallTimestamp: psStats.lastCallTimestamp ?? null,
+      activeSlots:       psStats.active ?? 0,
+      recentCalls:       psStats.recentCalls ?? [],
+    },
+    process: {
+      cpuPercent:          processCpu?.percentCPUUsage ?? null,
+      idleWakeupsPerSecond: processCpu?.idleWakeupsPerSecond ?? null,
+      pid:                 process.pid,
+    },
+    window: {
+      visible:   win ? !win.isMinimized() && win.isVisible() : null,
+      minimized: win ? win.isMinimized() : null,
+      focused:   win ? win.isFocused() : null,
     },
   };
 });

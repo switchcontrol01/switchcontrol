@@ -27,7 +27,7 @@ function FocusModeBanner() {
       if (ms === 0) setRemaining(null);
     };
     tick();
-    const id = setInterval(tick, 1000);
+    const id = setInterval(tick, 2000);
     return () => clearInterval(id);
   }, [active, expiresAt]);
 

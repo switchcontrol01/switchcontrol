@@ -1,4 +1,5 @@
 import React, { useEffect, useState, createContext, useContext, useCallback, lazy, Suspense } from "react";
+import { PerformanceOverlay } from "@/components/debug/PerformanceOverlay";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { Router, Route, Switch } from "wouter";
 import { useHashLocation } from "wouter/use-hash-location";
@@ -1364,6 +1365,7 @@ export default function App() {
           </TooltipProvider>
         </MotionProvider>
       </QueryClientProvider>
+      <PerformanceOverlay />
     </ErrorBoundary>
   );
 }

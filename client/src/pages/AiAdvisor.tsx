@@ -261,7 +261,7 @@ function ThinkingDots() {
 function ThinkingStatus({ slow }: { slow?: boolean }) {
   const [phase, setPhase] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setPhase(p => (p + 1) % THINKING_PHASES.length), 1800);
+    const t = setInterval(() => setPhase(p => (p + 1) % THINKING_PHASES.length), 2500);
     return () => clearInterval(t);
   }, []);
   return (
