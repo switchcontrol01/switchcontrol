@@ -2392,6 +2392,33 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
     return null;
   }
 
+  // ── Step E source: build running-process map (exeName.lower → directory) ──
+  // This is the most reliable fallback: if the game exe is live in memory we
+  // know exactly where it lives, even if manifest / disk scans miss it.
+  const runningProcMap = {}; // e.g. "fortniteclient-win64-shipping.exe" → "C:\...\Win64"
+  try {
+    const { execSync } = require('child_process');
+    const psOut = execSync(
+      'powershell.exe -NoProfile -NonInteractive -Command ' +
+      '"Get-WmiObject Win32_Process | Where-Object { $_.ExecutablePath } | ' +
+      'ForEach-Object { $_.ExecutablePath } | ConvertTo-Json -Compress"',
+      { timeout: 6000, encoding: 'utf8', windowsHide: true }
+    );
+    let paths = [];
+    try { paths = JSON.parse(psOut.trim()); } catch { /* single result, not array */ }
+    if (typeof paths === 'string') paths = [paths];
+    for (const exeFullPath of (Array.isArray(paths) ? paths : [])) {
+      if (!exeFullPath) continue;
+      const base = path.basename(exeFullPath).toLowerCase();
+      if (!runningProcMap[base]) {
+        runningProcMap[base] = path.dirname(exeFullPath);
+      }
+    }
+    console.log(`[AppBooster] Running processes mapped: ${Object.keys(runningProcMap).length} exe(s) found`);
+  } catch (e) {
+    console.log('[AppBooster] Running process map failed (non-fatal):', e.message?.slice(0, 120));
+  }
+
   // ── Per-game detection ────────────────────────────────────────────────────
   const results = [];
   for (const g of (games || [])) {
@@ -2454,6 +2481,14 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
           }
         }
       }
+    }
+
+    // Step E: running-process fallback — catches games that are live but
+    // installed to an unexpected path (e.g. custom drive, non-standard Epic dir)
+    if (!detected && runningProcMap[exeLower]) {
+      const p = runningProcMap[exeLower];
+      detected = true; installPath = p;
+      console.log(`[AppBooster]   ${g.slug}: found via running process → ${p}`);
     }
 
     console.log(`[AppBooster]   ${g.slug}: detected=${detected}${installPath ? ` path=${installPath}` : ''}`);
