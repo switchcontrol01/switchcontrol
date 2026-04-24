@@ -2210,6 +2210,129 @@ ipcMain.handle('psLimiter:getState', () => {
   return psLimiter.getState();
 });
 
+// ── Startup Apps: real Windows scan ──────────────────────────────────────────
+// Reads registry Run keys, StartupApproved state, startup folders, and
+// Task Scheduler logon/boot tasks. Returns only entries that actually exist.
+ipcMain.handle('startup:scan', async () => {
+  if (process.platform !== 'win32') {
+    return { ok: false, error: 'Windows only', entries: [] };
+  }
+
+  const PS_SCAN = `
+$entries=[System.Collections.Generic.List[hashtable]]::new();$errs=@()
+function EP($c){if(!$c){return $null};$c=$c.Trim();if($c -match '^"([^"]+)"'){return $Matches[1]};if($c -match '^([^\\s]+\\.[eE][xX][eE])'){return $Matches[1]};if($c -match '^([^\\s]+)'){return $Matches[1]};return $null}
+function TE($p){try{$p -and (Test-Path $p -PathType Leaf -EA SilentlyContinue)}catch{$false}}
+function GP($p){try{if(!$p -or !(Test-Path $p -EA SilentlyContinue)){return $null};$v=[Diagnostics.FileVersionInfo]::GetVersionInfo($p);if($v.CompanyName){return $v.CompanyName.Trim()}}catch{};return $null}
+function GA($rp){$m=@{};try{$k=Get-Item $rp -EA SilentlyContinue;if($k){foreach($n in $k.GetValueNames()){try{$b=$k.GetValue($n,$null,'DoNotExpandEnvironmentNames');$m[$n]=($b -is [byte[]] -and $b.Length -gt 0 -and $b[0] -eq 2)}catch{}}}}catch{};return $m}
+function MID($s){[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($s)) -replace '[^A-Za-z0-9]',''}
+function RRK($src,$rp,$ap){$ap2=GA $ap;try{$k=Get-Item $rp -EA SilentlyContinue;if(!$k){return};foreach($n in $k.GetValueNames()){try{$cmd=$k.GetValue($n,$null,'DoNotExpandEnvironmentNames');if(!$cmd){continue};$exe=EP $cmd;$ex=TE $exe;$pub=if($ex){GP $exe}else{$null};$en=if($ap2.ContainsKey($n)){$ap2[$n]}else{$true};$entries.Add(@{id=(MID "$src-$n");name=$n;publisher=$pub;executablePath=$exe;commandLine="$cmd";source=$src;enabled=$en;fileExists=$ex;broken=(!$ex);registryName=$n})}catch{}}}catch{$errs+="RunKey $src: $_"}}
+RRK 'registry-hkcu' 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run'
+RRK 'registry-hklm' 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run' 'HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run'
+function RF($src,$folder){if(!(Test-Path $folder -EA SilentlyContinue)){return};Get-ChildItem $folder -Filter '*.lnk' -EA SilentlyContinue|ForEach-Object{try{$sh=New-Object -ComObject WScript.Shell;$lnk=$sh.CreateShortcut($_.FullName);$exe=$lnk.TargetPath;$a2=$lnk.Arguments;$cmd=if($a2){"$([char]34)$exe$([char]34) $a2"}else{$exe};$ex=TE $exe;$pub=if($ex){GP $exe}else{$null};$n=$_.BaseName;$entries.Add(@{id=(MID "$src-$n");name=$n;publisher=$pub;executablePath=$exe;commandLine=$cmd;source=$src;enabled=$true;fileExists=$ex;broken=(!$ex);folderPath=$_.FullName})}catch{}}}
+RF 'startup-folder-user' ([Environment]::GetFolderPath('Startup'))
+RF 'startup-folder-common' ([Environment]::GetFolderPath('CommonStartup'))
+try{Get-ScheduledTask -EA SilentlyContinue|ForEach-Object{$t=$_;$ht=$t.Triggers|Where-Object{$_.CimClass.CimClassName -match 'Logon|Boot'};if(!$ht){return};$a=$t.Actions|Select-Object -First 1;if(!$a -or !$a.Execute){return};$exe=$a.Execute;$cmd=if($a.Arguments){"$([char]34)$exe$([char]34) $($a.Arguments)"}else{$exe};$ex=TE $exe;$pub=if($ex){GP $exe}else{$null};$tf="$($t.TaskPath)$($t.TaskName)";$entries.Add(@{id=(MID "task-$tf");name=$t.TaskName;publisher=$pub;executablePath=$exe;commandLine=$cmd;source='task-scheduler';enabled=($t.State -ne 'Disabled');fileExists=$ex;broken=(!$ex);taskPath=$tf})}}catch{$errs+="TaskSched: $_"}
+[ordered]@{entries=$entries;errors=$errs}|ConvertTo-Json -Depth 4 -Compress
+`.trim();
+
+  return new Promise((resolve) => {
+    execFile('powershell', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-ExecutionPolicy', 'Bypass', '-Command', PS_SCAN,
+    ], { windowsHide: true, timeout: 20000 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('[startup:scan] powershell error:', err.message, stderr?.slice(0, 300));
+        return resolve({ ok: false, error: err.message, entries: [] });
+      }
+      try {
+        const raw = JSON.parse(stdout.trim());
+        const entries = Array.isArray(raw.entries) ? raw.entries : [];
+        if (raw.errors && raw.errors.length > 0) {
+          console.warn('[startup:scan] partial errors:', raw.errors);
+        }
+        resolve({ ok: true, entries });
+      } catch (parseErr) {
+        console.error('[startup:scan] JSON parse error:', parseErr.message, stdout?.slice(0, 300));
+        resolve({ ok: false, error: 'JSON parse failed', entries: [] });
+      }
+    });
+  });
+});
+
+// startup:setEnabled — toggles a startup entry via the correct Windows mechanism
+// params: { source, registryName, taskPath, folderPath, enabled }
+ipcMain.handle('startup:setEnabled', async (_event, params) => {
+  if (process.platform !== 'win32') return { ok: false, error: 'Windows only' };
+
+  const { source, registryName, taskPath, folderPath, enabled } = params || {};
+  const flag = enabled ? 2 : 3; // 2 = enabled, 3 = disabled (Windows StartupApproved format)
+
+  let psCmd = '';
+
+  if (source === 'registry-hkcu' && registryName) {
+    const safeName = registryName.replace(/'/g, "''");
+    const approvedPath = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    psCmd = `
+$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
+New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
+Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary
+"ok"
+`.trim();
+  } else if (source === 'registry-hklm' && registryName) {
+    const safeName = registryName.replace(/'/g, "''");
+    const approvedPath = "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\Run";
+    psCmd = `
+$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
+New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
+Set-ItemProperty -Path '${approvedPath}' -Name '${safeName}' -Value $val -Type Binary
+"ok"
+`.trim();
+  } else if (source === 'startup-folder-user' && folderPath) {
+    const safeName = require('path').basename(folderPath);
+    const safeFolderName = safeName.replace(/'/g, "''");
+    const approvedPath = "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder";
+    psCmd = `
+$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
+New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
+Set-ItemProperty -Path '${approvedPath}' -Name '${safeFolderName}' -Value $val -Type Binary
+"ok"
+`.trim();
+  } else if (source === 'startup-folder-common' && folderPath) {
+    const safeName = require('path').basename(folderPath);
+    const safeFolderName = safeName.replace(/'/g, "''");
+    const approvedPath = "HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\StartupApproved\\StartupFolder";
+    psCmd = `
+$val=[byte[]](${flag},0,0,0,0,0,0,0,0,0,0,0)
+New-Item -Path '${approvedPath}' -Force -EA SilentlyContinue | Out-Null
+Set-ItemProperty -Path '${approvedPath}' -Name '${safeFolderName}' -Value $val -Type Binary
+"ok"
+`.trim();
+  } else if (source === 'task-scheduler' && taskPath) {
+    const parts = taskPath.split('\\').filter(Boolean);
+    const taskName = parts.pop() || taskPath;
+    const taskFolder = parts.length > 0 ? '\\' + parts.join('\\') + '\\' : '\\';
+    const safeFolder = taskFolder.replace(/'/g, "''");
+    const safeTName = taskName.replace(/'/g, "''");
+    const verb = enabled ? 'Enable' : 'Disable';
+    psCmd = `${verb}-ScheduledTask -TaskPath '${safeFolder}' -TaskName '${safeTName}' -EA SilentlyContinue | Out-Null; "ok"`;
+  } else {
+    return { ok: false, error: 'Unknown source or missing params' };
+  }
+
+  return new Promise((resolve) => {
+    execFile('powershell', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-ExecutionPolicy', 'Bypass', '-Command', psCmd,
+    ], { windowsHide: true, timeout: 10000 }, (err, stdout, stderr) => {
+      if (err) {
+        console.error('[startup:setEnabled] error:', err.message, stderr?.slice(0, 200));
+        return resolve({ ok: false, error: err.message });
+      }
+      resolve({ ok: true });
+    });
+  });
+});
+
 ipcMain.handle('tweak:getLocalState', () => {
   return tweakExecutor.getLocalState();
 });

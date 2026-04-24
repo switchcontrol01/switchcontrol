@@ -376,6 +376,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 
   startup: {
+    scan:        ()       => ipcRenderer.invoke('startup:scan'),
     setEnabled:  (params) => ipcRenderer.invoke('startup:setEnabled', params),
     setDelay:    (params) => ipcRenderer.invoke('startup:setDelay', params),
     verifyState: (params) => ipcRenderer.invoke('startup:verifyState', params),

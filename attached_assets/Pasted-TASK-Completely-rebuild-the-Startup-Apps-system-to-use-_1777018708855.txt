@@ -1,0 +1,104 @@
+TASK
+Completely rebuild the Startup Apps system to use only real Windows startup entries. No mock data, no predefined app list, no assumptions.
+
+PROBLEM
+The current system shows apps (Steam, Epic, Battle.net, Discord, Spotify, etc.) even when they are not installed or not configured to run at startup. This is incorrect and destroys user trust.
+
+GOAL
+The Startup Apps page must ONLY show apps that:
+1. Actually exist on the user’s PC
+2. Are actually configured to run at startup
+
+Nothing else should ever appear.
+
+IMPLEMENTATION
+
+1. REMOVE ALL STATIC OR HARDCODED DATA
+- Delete any predefined list of apps
+- Delete any mock/fake startup entries
+- The UI must render ONLY from real system data
+
+2. READ REAL WINDOWS STARTUP SOURCES
+
+Pull startup entries from:
+
+Registry:
+- HKCU\Software\Microsoft\Windows\CurrentVersion\Run
+- HKLM\Software\Microsoft\Windows\CurrentVersion\Run
+
+Startup approval (enabled/disabled state):
+- HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run
+- HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\Run
+
+Startup folders:
+- %APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup
+- %PROGRAMDATA%\Microsoft\Windows\Start Menu\Programs\Startup
+
+Task Scheduler:
+- Only include tasks with triggers:
+  - At logon
+  - At startup
+
+3. VALIDATE EVERY ENTRY
+
+For each entry:
+- Extract executable path
+- Confirm file exists on disk
+- If file does NOT exist:
+  → label as “Broken startup entry”
+  → DO NOT display as a normal app
+
+4. DISPLAY RULES
+
+ONLY show entries that:
+- Exist AND are valid startup entries
+
+If none exist:
+→ show “No startup apps detected”
+
+DO NOT:
+- Guess apps
+- Suggest apps
+- Show apps just because they are installed
+- Show apps just because they are common
+
+5. DISABLE / ENABLE FUNCTION
+
+Disable:
+- Remove or disable the exact startup source:
+  - Registry entry → delete or move to disabled state
+  - Startup folder → remove shortcut
+  - Task Scheduler → disable task
+
+Enable:
+- Restore the exact original entry
+
+NO FAKE TOGGLES
+
+6. METRICS (IMPORTANT)
+
+Boot time and RAM:
+- REMOVE fake numbers
+- If not measured in real-time → DO NOT SHOW
+- OR label clearly as “estimated”
+
+7. REFRESH LOGIC
+
+- Every refresh must re-read Windows sources
+- No cached fake data
+- UI must reflect actual system state
+
+CHECKLIST
+
+- No Steam unless Steam has a real startup entry
+- No Epic unless Epic has a real startup entry
+- No Battle.net unless Battle.net has a real startup entry
+- No Discord unless Discord has a real startup entry
+- No Spotify unless Spotify has a real startup entry
+- No OneDrive unless OneDrive has a real startup entry
+- Empty state works correctly
+- Disable actually prevents app from launching at boot
+- Enable restores it correctly
+
+FINAL OUTPUT
+Startup Apps page shows ONLY real startup entries from the user’s system. No fake apps. No assumptions. Fully accurate.
