@@ -1,0 +1,721 @@
+
+[2026-04-24T11:07:56.534Z] [INFO] SwitchControl started — PID:17004 platform:win32/x64 node:20.18.3
+[2026-04-24T11:07:56.564Z] [LOG] [Security] IPC handlers registered
+[2026-04-24T11:07:56.566Z] [LOG] [Debloat] IPC handlers registered
+[2026-04-24T11:07:56.567Z] [LOG] [Cleaner] IPC handlers registered
+[2026-04-24T11:07:56.567Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-04-24T11:07:56.587Z] [LOG] [STARTUP] whenReady — v1.0.7 | isDev:false | pid:17004
+[2026-04-24T11:07:56.590Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-04-24T11:07:56.604Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-04-24T11:07:56.605Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\dist\index.html | exists: true
+[2026-04-24T11:07:56.609Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-04-24T11:07:56.609Z] [LOG] [Backend] process.execPath: C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\Switchcontrol.exe
+[2026-04-24T11:07:56.609Z] [LOG] [Backend] process.resourcesPath: C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources
+[2026-04-24T11:07:56.610Z] [LOG] [Backend] app.isPackaged: true
+[2026-04-24T11:07:56.610Z] [LOG] [Backend] app.getAppPath(): C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar
+[2026-04-24T11:07:56.610Z] [LOG] [Backend] Expected bundle path: C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\dist\index.cjs
+[2026-04-24T11:07:56.610Z] [LOG] [Backend] Bundle size: 2.8 MB
+[2026-04-24T11:07:56.660Z] [LOG] [Updater] init — v1.0.7 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-04-24T11:07:56.660Z] [LOG] [STARTUP] app ready — 73ms from whenReady
+[2026-04-24T11:07:56.662Z] [LOG] [Backend] Free port found: 62647
+[2026-04-24T11:07:56.662Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-04-24T11:07:56.662Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-04-24T11:07:56.662Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-24T11:07:56.662Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-24T11:07:56.662Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-04-24T11:07:56.662Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T11:07:56.662Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend] =====================================
+[2026-04-24T11:07:56.663Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-04-24T11:07:56.663Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-04-24T11:07:56.663Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-04-24T11:07:56.663Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-04-24T11:07:56.663Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-04-24T11:07:56.663Z] [LOG] [Backend] ==========================================
+[2026-04-24T11:07:56.664Z] [LOG] [Backend] Spawning child process...
+[2026-04-24T11:07:56.664Z] [LOG] [Backend]   execPath: C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\Switchcontrol.exe
+[2026-04-24T11:07:56.664Z] [LOG] [Backend]   script: C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\dist\index.cjs
+[2026-04-24T11:07:56.664Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-04-24T11:07:56.664Z] [LOG] [Backend]   PORT: 62647
+[2026-04-24T11:07:56.664Z] [LOG] [Backend]   cwd: C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\dist
+[2026-04-24T11:07:56.669Z] [LOG] [Backend] Child process spawned, PID: 20628
+[2026-04-24T11:07:56.669Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:62647/api/health
+[2026-04-24T11:07:56.750Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-04-24T11:07:56.751Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-24T11:07:56.751Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-24T11:07:56.751Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-04-24T11:07:56.751Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-04-24T11:07:56.751Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-04-24T11:07:56.793Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [Entitlements] AUTH_DOMAIN resolved — packaged=true domain="https://switchcontrol.org"
+[2026-04-24T11:07:56.794Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [AUTH BOOT] persisted jwt length: 217 token present: true user present: true
+[2026-04-24T11:07:56.794Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Init: electron=true, packaged=true, protocol=file:
+[2026-04-24T11:07:56.795Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Electron fetch interceptor installed | packaged=true (URL-rewrite=true, auth-inject=true)
+[2026-04-24T11:07:56.797Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Store:REHYDRATE] total_stored=47 enabled=30 source=localStorage
+[2026-04-24T11:07:56.797Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-04-24T11:07:56.801Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [BiosStore] hydrated | scores from storage: {"latency":43,"frametime":43,"stability":28,"competitiveReadiness":41,"grade":"Needs Tuning","profileBias":"Smoothness-focused"}
+[2026-04-24T11:07:56.801Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [BiosStore] hydrated | sanitized scores: {"latency":43,"frametime":43,"stability":28,"competitiveReadiness":41,"grade":"Needs Tuning","profileBias":"Smoothness-focused"}
+[2026-04-24T11:07:56.802Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:11) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-04-24T11:07:56.802Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [LAUNCH:R0] renderer bootstrap — opacity locked to 0 | t=+197ms
+[2026-04-24T11:07:56.802Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [LAUNCH:R1] createRoot dispatching | t=+197ms
+[2026-04-24T11:07:56.803Z] [LOG] [Renderer:info] (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar\preload.js:456) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-04-24T11:07:56.803Z] [LOG] [Renderer:info] (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar\preload.js:457) [SwitchControl Desktop] Platform: win32
+[2026-04-24T11:07:56.804Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-04-24T11:07:56.804Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-04-24T11:07:56.804Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 9ms, attempt 1)
+[2026-04-24T11:07:56.807Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T11:07:56.807Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-04-24T11:07:56.815Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-04-24T11:07:56.818Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R2] Splash mounted | t=+212ms
+[2026-04-24T11:07:56.818Z] [ERROR] [Renderer:warn] (index-DOfGqdIm.js:11) [IntervalGuard] ⚠ setInterval(36ms) clamped to 2000ms. Caller:     at file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/index-DOfGqdIm.js:29:41287 |     at Hf (file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/index-DOfGqdIm.js:9:93638)
+[2026-04-24T11:07:56.818Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T11:07:56.818Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T11:07:56.818Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [App] Registering deep link auth callback (once)
+[2026-04-24T11:07:56.845Z] [LOG] [Backend:stdout] [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-04-24T11:07:56.853Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-04-24T11:07:56.854Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1779620876
+[2026-04-24T11:07:56.854Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-04-24T11:07:56.854Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-04-24T11:07:56.855Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-04-24T11:07:56.855Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-04-24T11:07:56.855Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-04-24T11:07:56.855Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-04-24T11:07:56.855Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-24T11:07:56.855Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-04-24T11:07:56.856Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-04-24T11:07:56.856Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-04-24T11:07:56.856Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-04-24T11:07:56.856Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-04-24T11:07:56.856Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-04-24T11:07:56.856Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-24T11:07:56.857Z] [LOG] [Backend:stdout] [SysIntelligence] Collecting full system profile…
+[2026-04-24T11:07:56.862Z] [LOG] [Backend:stdout] [Telemetry] Scheduler started — base=2s, low-end=6s, budget=5%
+[2026-04-24T11:07:56.862Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry
+[2026-04-24T11:07:56.904Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R3] first-frame-ready: sending IPC (logo + bg mounted) | t=+299ms
+[2026-04-24T11:07:56.905Z] [LOG] [LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | +296ms
+[2026-04-24T11:07:56.920Z] [LOG] [LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | +311ms
+[2026-04-24T11:07:56.922Z] [LOG] [Renderer:info] (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T11:07:56.922Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [App] Electron window focus (passive)
+[2026-04-24T11:07:56.936Z] [LOG] [LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | +327ms
+[2026-04-24T11:07:56.936Z] [LOG] [LAUNCH:5c] app:window-shown sent to renderer | +327ms
+[2026-04-24T11:07:56.936Z] [LOG] [LAUNCH:6] focus() — launch sequence complete | +327ms
+[2026-04-24T11:07:56.936Z] [LOG] [Renderer:info] (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar\preload.js:137) [LAUNCH] app:window-shown received — starting opacity reveal
+[2026-04-24T11:07:56.937Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R3b] app:window-shown received | t=+331ms
+[2026-04-24T11:07:56.937Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R4] reveal triggered by app:window-shown | t=+331ms
+[2026-04-24T11:07:56.937Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)
+[2026-04-24T11:07:56.937Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+331ms
+[2026-04-24T11:07:57.004Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 210ms, attempt 2)
+[2026-04-24T11:07:57.101Z] [LOG] [Backend:stdout] 11:07:57 PM [express] serving on 127.0.0.1:62647
+[2026-04-24T11:07:57.137Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R4b] startup-shell removed from DOM
+[2026-04-24T11:07:57.138Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+532ms
+[2026-04-24T11:07:57.236Z] [LOG] [Backend] Health check PASSED — attempt 8, 566ms elapsed, body={"status":"ok","timestamp":1777028877233}
+[2026-04-24T11:07:57.237Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-04-24T11:07:57.237Z] [LOG] [Backend] PID: 20628
+[2026-04-24T11:07:57.237Z] [LOG] [Backend] Port: 62647
+[2026-04-24T11:07:57.238Z] [LOG] [Backend] Ready: true
+[2026-04-24T11:07:57.238Z] [LOG] [Backend] getBackendPort() will return: 62647
+[2026-04-24T11:07:57.238Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-04-24T11:07:57.238Z] [LOG] [Backend] ========================
+[2026-04-24T11:07:57.238Z] [LOG] [STARTUP] backend ready — port 62647 (651ms)
+[2026-04-24T11:07:57.240Z] [LOG] [Renderer:info] (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar\preload.js:104) [Backend] backend-ready event received, port: 62647
+[2026-04-24T11:07:57.240Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Backend-ready push: base=http://127.0.0.1:62647/api (was: unset)
+[2026-04-24T11:07:57.241Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Backend port resolved: 62647 (446ms, push or poll)
+[2026-04-24T11:07:57.241Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Packaged Electron API base: http://127.0.0.1:62647/api
+[2026-04-24T11:07:57.241Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Resolved: http://127.0.0.1:62647/api | electron=true packaged=true
+[2026-04-24T11:07:57.318Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:26) [TourTransition] unmounted
+[2026-04-24T11:07:57.319Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:26) [TourTransition] unmounted
+[2026-04-24T11:07:58.618Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-04-24T11:07:58.619Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T11:07:58.622Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [Auth] Boot: token present: true jwt present: true user present: true premium: true
+[2026-04-24T11:07:58.622Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [Entitlements] startup restore begin — hasCredential: true cached isPremium: true plan: premium
+[2026-04-24T11:07:58.623Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [Auth] Using stored user data: 64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium: true
+[2026-04-24T11:07:58.623Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T11:07:58.625Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T11:07:58.936Z] [LOG] [LAUNCH:7] starting telemetry — 2000ms post window-shown | +2327ms
+[2026-04-24T11:07:58.937Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=1 active=1
+[2026-04-24T11:08:00.401Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T11:08:00.402Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T11:08:00.402Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: true
+[2026-04-24T11:08:00.402Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [Entitlements] startup fetch OK — isPremium: true plan: premium
+[2026-04-24T11:08:00.402Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [Premium] Grace snapshot updated — isPremium=true plan=premium userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-04-24T11:08:00.403Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:00.437Z] [LOG] [Backend:stdout] [SysIntelligence] Collection complete in 3580ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-04-24T11:08:00.465Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [Network] Heartbeat started (interval=30000ms)
+[2026-04-24T11:08:00.465Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Telemetry] Manager starting
+[2026-04-24T11:08:00.466Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T11:08:00.467Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Dashboard] mounted
+[2026-04-24T11:08:00.467Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-04-24T11:08:00.471Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [Handoff] dashboard fade-in started
+[2026-04-24T11:08:00.472Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [PremiumExpiry] Initial state recorded — active=true
+[2026-04-24T11:08:00.472Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-04-24T11:08:00.472Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:00.487Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=1 duration=1550ms active=0 calls60s=1
+[2026-04-24T11:08:00.500Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [CloudAPI] 2026-04-24T11:08:00.500Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-04-24T11:08:00.556Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Telemetry] WebSocket connected
+[2026-04-24T11:08:00.591Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.592Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.592Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [SysIntelligence] Profile loaded | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor
+[2026-04-24T11:08:00.611Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.612Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.627Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.627Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.692Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.693Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:00.841Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [Handoff] dashboard fade-in complete — layout stable
+[2026-04-24T11:08:00.969Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [TourTransition] dashboard stable — tours unblocked
+[2026-04-24T11:08:00.969Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:00.976Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: true isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-04-24T11:08:00.976Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [AppFlow] No flow conditions met — staying idle
+[2026-04-24T11:08:01.029Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=2 active=1
+[2026-04-24T11:08:01.088Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-04-24T11:08:01.089Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:29) [DeviceLock] Valid device
+[2026-04-24T11:08:01.089Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:01.377Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=2 duration=348ms active=0 calls60s=2
+[2026-04-24T11:08:01.378Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=3 active=1
+[2026-04-24T11:08:01.558Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=3 duration=180ms active=0 calls60s=3
+[2026-04-24T11:08:02.148Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT LHM: false
+[2026-04-24T11:08:02.168Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:03.560Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=4 active=1
+[2026-04-24T11:08:03.754Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=4 duration=194ms active=0 calls60s=4
+[2026-04-24T11:08:04.558Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:04.660Z] [INFO] Checking for update
+[2026-04-24T11:08:04.661Z] [LOG] [Updater] Checking for update...
+[2026-04-24T11:08:04.800Z] [INFO] Update for version 1.0.7 is not available (latest version: 1.0.7, downgrade is allowed).
+[2026-04-24T11:08:04.801Z] [LOG] [Updater] No update available — current version is latest.
+[2026-04-24T11:08:05.754Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=5 active=1
+[2026-04-24T11:08:05.942Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=5 duration=188ms active=0 calls60s=5
+[2026-04-24T11:08:07.943Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=6 active=1
+[2026-04-24T11:08:08.140Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=6 duration=197ms active=0 calls60s=6
+[2026-04-24T11:08:10.141Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=7 active=1
+[2026-04-24T11:08:10.482Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=7 duration=341ms active=0 calls60s=7
+[2026-04-24T11:08:12.482Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=8 active=1
+[2026-04-24T11:08:12.674Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=8 duration=192ms active=0 calls60s=8
+[2026-04-24T11:08:14.675Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=9 active=1
+[2026-04-24T11:08:14.862Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=9 duration=187ms active=0 calls60s=9
+[2026-04-24T11:08:16.863Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=10 active=1
+[2026-04-24T11:08:17.062Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=10 duration=199ms active=0 calls60s=10
+[2026-04-24T11:08:19.062Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=11 active=1
+[2026-04-24T11:08:19.409Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=11 duration=347ms active=0 calls60s=11
+[2026-04-24T11:08:21.409Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=12 active=1
+[2026-04-24T11:08:21.603Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=12 duration=194ms active=0 calls60s=12
+[2026-04-24T11:08:23.603Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=13 active=1
+[2026-04-24T11:08:23.797Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=13 duration=194ms active=0 calls60s=13
+[2026-04-24T11:08:25.797Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=14 active=1
+[2026-04-24T11:08:25.985Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=14 duration=188ms active=0 calls60s=14
+[2026-04-24T11:08:27.985Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=15 active=1
+[2026-04-24T11:08:28.337Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=15 duration=352ms active=0 calls60s=15
+[2026-04-24T11:08:30.337Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=16 active=1
+[2026-04-24T11:08:30.529Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=16 duration=192ms active=0 calls60s=16
+[2026-04-24T11:08:30.532Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:30.593Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:LOAD] source=zustand-persist enabled=30 total_known=47
+[2026-04-24T11:08:30.593Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:LOAD] enabled_ids=notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, superfetch, mem-opt, telemetry, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-04-24T11:08:30.593Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:SYNC] hydration start gen=1
+[2026-04-24T11:08:30.594Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=17 active=1
+[2026-04-24T11:08:30.594Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 48 checks
+[2026-04-24T11:08:30.594Z] [LOG] [PS:tweak-executor] #1 queryPowerShell SPAWN ts=1777028910594 active=1
+[2026-04-24T11:08:30.734Z] [LOG] [PS:tweak-executor] #1 queryPowerShell OK 140ms
+[2026-04-24T11:08:30.734Z] [LOG] [PS:tweak-executor] #2 queryPowerShell SPAWN ts=1777028910734 active=1
+[2026-04-24T11:08:30.825Z] [LOG] [PS:tweak-executor] #2 queryPowerShell OK 91ms
+[2026-04-24T11:08:30.826Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1777028910826 active=1
+[2026-04-24T11:08:30.916Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 90ms
+[2026-04-24T11:08:30.917Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1777028910917 active=1
+[2026-04-24T11:08:31.011Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 94ms
+[2026-04-24T11:08:31.011Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1777028911011 active=1
+[2026-04-24T11:08:31.105Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 94ms
+[2026-04-24T11:08:31.105Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1777028911105 active=1
+[2026-04-24T11:08:31.196Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 91ms
+[2026-04-24T11:08:31.196Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1777028911196 active=1
+[2026-04-24T11:08:31.286Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 90ms
+[2026-04-24T11:08:31.287Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1777028911287 active=1
+[2026-04-24T11:08:31.374Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 87ms
+[2026-04-24T11:08:31.375Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1777028911375 active=1
+[2026-04-24T11:08:31.465Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 90ms
+[2026-04-24T11:08:31.465Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1777028911465 active=1
+[2026-04-24T11:08:31.554Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 89ms
+[2026-04-24T11:08:31.554Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1777028911554 active=1
+[2026-04-24T11:08:31.643Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 89ms
+[2026-04-24T11:08:31.643Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1777028911643 active=1
+[2026-04-24T11:08:31.719Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:31.729Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 86ms
+[2026-04-24T11:08:31.729Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1777028911729 active=1
+[2026-04-24T11:08:31.749Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Dashboard] mounted
+[2026-04-24T11:08:31.749Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [ActivityMonitor] reused cached state — history points: 18 status: ready
+[2026-04-24T11:08:31.754Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:31.755Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:31.791Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:31.843Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 114ms
+[2026-04-24T11:08:31.844Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1777028911844 active=1
+[2026-04-24T11:08:31.966Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 122ms
+[2026-04-24T11:08:31.966Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1777028911966 active=1
+[2026-04-24T11:08:32.062Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 96ms
+[2026-04-24T11:08:32.062Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1777028912062 active=1
+[2026-04-24T11:08:32.188Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 126ms
+[2026-04-24T11:08:32.188Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1777028912188 active=1
+[2026-04-24T11:08:32.241Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:32.303Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:LOAD] source=zustand-persist enabled=30 total_known=47
+[2026-04-24T11:08:32.304Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:LOAD] enabled_ids=notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, superfetch, mem-opt, telemetry, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-04-24T11:08:32.304Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:SYNC] hydration start gen=2
+[2026-04-24T11:08:32.304Z] [LOG] [PS-Limiter] acquire SKIPPED file=main.js fn=tweak:syncAll reason=tweak-sync-all activeOwner=main.js::tweak:syncAll activeSince=2026-04-24T11:08:30.594Z
+[2026-04-24T11:08:32.304Z] [LOG] [tweak:syncAll] returning explicit skipped result — sync already in progress
+[2026-04-24T11:08:32.305Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 117ms
+[2026-04-24T11:08:32.305Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1777028912305 active=1
+[2026-04-24T11:08:32.336Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [TweakExecutor] syncAll skipped by main process — using cached state
+[2026-04-24T11:08:32.337Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:SYNC] skipped (no results from syncAll)
+[2026-04-24T11:08:32.419Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 114ms
+[2026-04-24T11:08:32.419Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1777028912419 active=1
+[2026-04-24T11:08:32.530Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=18 active=2
+[2026-04-24T11:08:32.725Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=18 duration=195ms active=1 calls60s=17
+[2026-04-24T11:08:32.894Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 475ms
+[2026-04-24T11:08:32.894Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1777028912894 active=1
+[2026-04-24T11:08:32.899Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:32.929Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Dashboard] mounted
+[2026-04-24T11:08:32.929Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [ActivityMonitor] reused cached state — history points: 19 status: ready
+[2026-04-24T11:08:32.934Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:32.935Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T11:08:32.972Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:32.999Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 105ms
+[2026-04-24T11:08:32.999Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1777028912999 active=1
+[2026-04-24T11:08:33.152Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 153ms
+[2026-04-24T11:08:33.152Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1777028913152 active=1
+[2026-04-24T11:08:33.246Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 94ms
+[2026-04-24T11:08:33.246Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1777028913246 active=1
+[2026-04-24T11:08:33.362Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 116ms
+[2026-04-24T11:08:33.362Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1777028913362 active=1
+[2026-04-24T11:08:33.449Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 87ms
+[2026-04-24T11:08:33.450Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1777028913450 active=1
+[2026-04-24T11:08:33.594Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 144ms
+[2026-04-24T11:08:33.594Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1777028913594 active=1
+[2026-04-24T11:08:33.684Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 90ms
+[2026-04-24T11:08:33.684Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1777028913684 active=1
+[2026-04-24T11:08:33.774Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 90ms
+[2026-04-24T11:08:33.774Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1777028913774 active=1
+[2026-04-24T11:08:33.861Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 87ms
+[2026-04-24T11:08:33.861Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1777028913861 active=1
+[2026-04-24T11:08:33.949Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 88ms
+[2026-04-24T11:08:33.950Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1777028913950 active=1
+[2026-04-24T11:08:34.092Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 142ms
+[2026-04-24T11:08:34.093Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-04-24T11:08:34.093Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1777028914093 active=1
+[2026-04-24T11:08:34.190Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 97ms
+[2026-04-24T11:08:34.190Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1777028914190 active=1
+[2026-04-24T11:08:34.291Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 101ms
+[2026-04-24T11:08:34.292Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1777028914292 active=1
+[2026-04-24T11:08:34.382Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 90ms
+[2026-04-24T11:08:34.382Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1777028914382 active=1
+[2026-04-24T11:08:34.476Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 94ms
+[2026-04-24T11:08:34.476Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1777028914476 active=1
+[2026-04-24T11:08:34.568Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 92ms
+[2026-04-24T11:08:34.568Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1777028914568 active=1
+[2026-04-24T11:08:34.680Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 112ms
+[2026-04-24T11:08:34.680Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1777028914680 active=1
+[2026-04-24T11:08:34.769Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 89ms
+[2026-04-24T11:08:34.769Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1777028914769 active=1
+[2026-04-24T11:08:34.862Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 93ms
+[2026-04-24T11:08:34.863Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1777028914863 active=1
+[2026-04-24T11:08:34.969Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 106ms
+[2026-04-24T11:08:34.969Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-04-24T11:08:34.969Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1777028914969 active=1
+[2026-04-24T11:08:35.081Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 112ms
+[2026-04-24T11:08:35.081Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1777028915081 active=1
+[2026-04-24T11:08:35.173Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 92ms
+[2026-04-24T11:08:35.174Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1777028915174 active=1
+[2026-04-24T11:08:35.268Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 94ms
+[2026-04-24T11:08:35.268Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1777028915268 active=1
+[2026-04-24T11:08:35.357Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 89ms
+[2026-04-24T11:08:35.357Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1777028915357 active=1
+[2026-04-24T11:08:35.451Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 94ms
+[2026-04-24T11:08:35.451Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1777028915451 active=1
+[2026-04-24T11:08:35.547Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 96ms
+[2026-04-24T11:08:35.547Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1777028915547 active=1
+[2026-04-24T11:08:35.638Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 91ms
+[2026-04-24T11:08:35.639Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1777028915639 active=1
+[2026-04-24T11:08:35.728Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 89ms
+[2026-04-24T11:08:35.728Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1777028915728 active=1
+[2026-04-24T11:08:35.817Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 89ms
+[2026-04-24T11:08:35.818Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=5224
+[2026-04-24T11:08:35.818Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=17 duration=5224ms active=0 calls60s=18
+[2026-04-24T11:08:35.820Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:SYNC] stale result discarded gen=1 current=2
+[2026-04-24T11:08:37.725Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=19 active=1
+[2026-04-24T11:08:38.073Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=19 duration=348ms active=0 calls60s=19
+[2026-04-24T11:08:40.073Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=20 active=1
+[2026-04-24T11:08:40.268Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=20 duration=195ms active=0 calls60s=20
+[2026-04-24T11:08:42.268Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=21 active=1
+[2026-04-24T11:08:42.331Z] [LOG] [Renderer:info] (C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T11:08:42.331Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [App] Electron window focus (passive)
+[2026-04-24T11:08:42.465Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=21 duration=197ms active=0 calls60s=21
+[2026-04-24T11:08:44.465Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=22 active=1
+[2026-04-24T11:08:44.659Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=22 duration=194ms active=0 calls60s=22
+[2026-04-24T11:08:45.620Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:45.668Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:LOAD] source=zustand-persist enabled=30 total_known=47
+[2026-04-24T11:08:45.669Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:LOAD] enabled_ids=notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, superfetch, mem-opt, telemetry, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-04-24T11:08:45.669Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:SYNC] hydration start gen=3
+[2026-04-24T11:08:45.669Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=23 active=1
+[2026-04-24T11:08:45.670Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 48 checks
+[2026-04-24T11:08:45.670Z] [LOG] [PS:tweak-executor] #49 queryPowerShell SPAWN ts=1777028925670 active=1
+[2026-04-24T11:08:45.787Z] [LOG] [PS:tweak-executor] #49 queryPowerShell OK 117ms
+[2026-04-24T11:08:45.787Z] [LOG] [PS:tweak-executor] #50 queryPowerShell SPAWN ts=1777028925787 active=1
+[2026-04-24T11:08:45.876Z] [LOG] [PS:tweak-executor] #50 queryPowerShell OK 89ms
+[2026-04-24T11:08:45.876Z] [LOG] [PS:tweak-executor] #51 queryPowerShell SPAWN ts=1777028925876 active=1
+[2026-04-24T11:08:45.966Z] [LOG] [PS:tweak-executor] #51 queryPowerShell OK 90ms
+[2026-04-24T11:08:45.966Z] [LOG] [PS:tweak-executor] #52 queryPowerShell SPAWN ts=1777028925966 active=1
+[2026-04-24T11:08:46.070Z] [LOG] [PS:tweak-executor] #52 queryPowerShell OK 104ms
+[2026-04-24T11:08:46.070Z] [LOG] [PS:tweak-executor] #53 queryPowerShell SPAWN ts=1777028926070 active=1
+[2026-04-24T11:08:46.166Z] [LOG] [PS:tweak-executor] #53 queryPowerShell OK 96ms
+[2026-04-24T11:08:46.167Z] [LOG] [PS:tweak-executor] #54 queryPowerShell SPAWN ts=1777028926167 active=1
+[2026-04-24T11:08:46.256Z] [LOG] [PS:tweak-executor] #54 queryPowerShell OK 89ms
+[2026-04-24T11:08:46.257Z] [LOG] [PS:tweak-executor] #55 queryPowerShell SPAWN ts=1777028926257 active=1
+[2026-04-24T11:08:46.349Z] [LOG] [PS:tweak-executor] #55 queryPowerShell OK 92ms
+[2026-04-24T11:08:46.350Z] [LOG] [PS:tweak-executor] #56 queryPowerShell SPAWN ts=1777028926350 active=1
+[2026-04-24T11:08:46.442Z] [LOG] [PS:tweak-executor] #56 queryPowerShell OK 92ms
+[2026-04-24T11:08:46.442Z] [LOG] [PS:tweak-executor] #57 queryPowerShell SPAWN ts=1777028926442 active=1
+[2026-04-24T11:08:46.532Z] [LOG] [PS:tweak-executor] #57 queryPowerShell OK 90ms
+[2026-04-24T11:08:46.532Z] [LOG] [PS:tweak-executor] #58 queryPowerShell SPAWN ts=1777028926532 active=1
+[2026-04-24T11:08:46.620Z] [LOG] [PS:tweak-executor] #58 queryPowerShell OK 88ms
+[2026-04-24T11:08:46.621Z] [LOG] [PS:tweak-executor] #59 queryPowerShell SPAWN ts=1777028926621 active=1
+[2026-04-24T11:08:46.659Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=24 active=2
+[2026-04-24T11:08:46.714Z] [LOG] [PS:tweak-executor] #59 queryPowerShell OK 93ms
+[2026-04-24T11:08:46.714Z] [LOG] [PS:tweak-executor] #60 queryPowerShell SPAWN ts=1777028926714 active=1
+[2026-04-24T11:08:46.802Z] [LOG] [PS:tweak-executor] #60 queryPowerShell OK 88ms
+[2026-04-24T11:08:46.803Z] [LOG] [PS:tweak-executor] #61 queryPowerShell SPAWN ts=1777028926803 active=1
+[2026-04-24T11:08:46.894Z] [LOG] [PS:tweak-executor] #61 queryPowerShell OK 91ms
+[2026-04-24T11:08:46.894Z] [LOG] [PS:tweak-executor] #62 queryPowerShell SPAWN ts=1777028926894 active=1
+[2026-04-24T11:08:46.988Z] [LOG] [PS:tweak-executor] #62 queryPowerShell OK 94ms
+[2026-04-24T11:08:46.989Z] [LOG] [PS:tweak-executor] #63 queryPowerShell SPAWN ts=1777028926989 active=1
+[2026-04-24T11:08:47.013Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=24 duration=354ms active=1 calls60s=23
+[2026-04-24T11:08:47.081Z] [LOG] [PS:tweak-executor] #63 queryPowerShell OK 92ms
+[2026-04-24T11:08:47.081Z] [LOG] [PS:tweak-executor] #64 queryPowerShell SPAWN ts=1777028927081 active=1
+[2026-04-24T11:08:47.169Z] [LOG] [PS:tweak-executor] #64 queryPowerShell OK 88ms
+[2026-04-24T11:08:47.169Z] [LOG] [PS:tweak-executor] #65 queryPowerShell SPAWN ts=1777028927169 active=1
+[2026-04-24T11:08:47.260Z] [LOG] [PS:tweak-executor] #65 queryPowerShell OK 91ms
+[2026-04-24T11:08:47.260Z] [LOG] [PS:tweak-executor] #66 queryPowerShell SPAWN ts=1777028927260 active=1
+[2026-04-24T11:08:47.350Z] [LOG] [PS:tweak-executor] #66 queryPowerShell OK 90ms
+[2026-04-24T11:08:47.350Z] [LOG] [PS:tweak-executor] #67 queryPowerShell SPAWN ts=1777028927350 active=1
+[2026-04-24T11:08:47.786Z] [LOG] [PS:tweak-executor] #67 queryPowerShell OK 436ms
+[2026-04-24T11:08:47.786Z] [LOG] [PS:tweak-executor] #68 queryPowerShell SPAWN ts=1777028927786 active=1
+[2026-04-24T11:08:47.873Z] [LOG] [PS:tweak-executor] #68 queryPowerShell OK 87ms
+[2026-04-24T11:08:47.874Z] [LOG] [PS:tweak-executor] #69 queryPowerShell SPAWN ts=1777028927874 active=1
+[2026-04-24T11:08:47.966Z] [LOG] [PS:tweak-executor] #69 queryPowerShell OK 92ms
+[2026-04-24T11:08:47.967Z] [LOG] [PS:tweak-executor] #70 queryPowerShell SPAWN ts=1777028927967 active=1
+[2026-04-24T11:08:48.056Z] [LOG] [PS:tweak-executor] #70 queryPowerShell OK 89ms
+[2026-04-24T11:08:48.056Z] [LOG] [PS:tweak-executor] #71 queryPowerShell SPAWN ts=1777028928056 active=1
+[2026-04-24T11:08:48.172Z] [LOG] [PS:tweak-executor] #71 queryPowerShell OK 116ms
+[2026-04-24T11:08:48.172Z] [LOG] [PS:tweak-executor] #72 queryPowerShell SPAWN ts=1777028928172 active=1
+[2026-04-24T11:08:48.263Z] [LOG] [PS:tweak-executor] #72 queryPowerShell OK 91ms
+[2026-04-24T11:08:48.263Z] [LOG] [PS:tweak-executor] #73 queryPowerShell SPAWN ts=1777028928263 active=1
+[2026-04-24T11:08:48.399Z] [LOG] [PS:tweak-executor] #73 queryPowerShell OK 136ms
+[2026-04-24T11:08:48.399Z] [LOG] [PS:tweak-executor] #74 queryPowerShell SPAWN ts=1777028928399 active=1
+[2026-04-24T11:08:48.489Z] [LOG] [PS:tweak-executor] #74 queryPowerShell OK 90ms
+[2026-04-24T11:08:48.489Z] [LOG] [PS:tweak-executor] #75 queryPowerShell SPAWN ts=1777028928489 active=1
+[2026-04-24T11:08:48.579Z] [LOG] [PS:tweak-executor] #75 queryPowerShell OK 90ms
+[2026-04-24T11:08:48.580Z] [LOG] [PS:tweak-executor] #76 queryPowerShell SPAWN ts=1777028928579 active=1
+[2026-04-24T11:08:48.667Z] [LOG] [PS:tweak-executor] #76 queryPowerShell OK 88ms
+[2026-04-24T11:08:48.667Z] [LOG] [PS:tweak-executor] #77 queryPowerShell SPAWN ts=1777028928667 active=1
+[2026-04-24T11:08:48.755Z] [LOG] [PS:tweak-executor] #77 queryPowerShell OK 88ms
+[2026-04-24T11:08:48.755Z] [LOG] [PS:tweak-executor] #78 queryPowerShell SPAWN ts=1777028928755 active=1
+[2026-04-24T11:08:48.886Z] [LOG] [PS:tweak-executor] #78 queryPowerShell OK 131ms
+[2026-04-24T11:08:48.886Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-04-24T11:08:48.886Z] [LOG] [PS:tweak-executor] #79 queryPowerShell SPAWN ts=1777028928886 active=1
+[2026-04-24T11:08:48.975Z] [LOG] [PS:tweak-executor] #79 queryPowerShell OK 89ms
+[2026-04-24T11:08:48.975Z] [LOG] [PS:tweak-executor] #80 queryPowerShell SPAWN ts=1777028928975 active=1
+[2026-04-24T11:08:49.013Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=25 active=2
+[2026-04-24T11:08:49.070Z] [LOG] [PS:tweak-executor] #80 queryPowerShell OK 95ms
+[2026-04-24T11:08:49.070Z] [LOG] [PS:tweak-executor] #81 queryPowerShell SPAWN ts=1777028929070 active=1
+[2026-04-24T11:08:49.160Z] [LOG] [PS:tweak-executor] #81 queryPowerShell OK 90ms
+[2026-04-24T11:08:49.160Z] [LOG] [PS:tweak-executor] #82 queryPowerShell SPAWN ts=1777028929160 active=1
+[2026-04-24T11:08:49.207Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=25 duration=194ms active=1 calls60s=24
+[2026-04-24T11:08:49.253Z] [LOG] [PS:tweak-executor] #82 queryPowerShell OK 93ms
+[2026-04-24T11:08:49.254Z] [LOG] [PS:tweak-executor] #83 queryPowerShell SPAWN ts=1777028929254 active=1
+[2026-04-24T11:08:49.350Z] [LOG] [PS:tweak-executor] #83 queryPowerShell OK 96ms
+[2026-04-24T11:08:49.350Z] [LOG] [PS:tweak-executor] #84 queryPowerShell SPAWN ts=1777028929350 active=1
+[2026-04-24T11:08:49.467Z] [LOG] [PS:tweak-executor] #84 queryPowerShell OK 117ms
+[2026-04-24T11:08:49.468Z] [LOG] [PS:tweak-executor] #85 queryPowerShell SPAWN ts=1777028929468 active=1
+[2026-04-24T11:08:49.557Z] [LOG] [PS:tweak-executor] #85 queryPowerShell OK 89ms
+[2026-04-24T11:08:49.557Z] [LOG] [PS:tweak-executor] #86 queryPowerShell SPAWN ts=1777028929557 active=1
+[2026-04-24T11:08:49.645Z] [LOG] [PS:tweak-executor] #86 queryPowerShell OK 88ms
+[2026-04-24T11:08:49.646Z] [LOG] [PS:tweak-executor] #87 queryPowerShell SPAWN ts=1777028929646 active=1
+[2026-04-24T11:08:49.749Z] [LOG] [PS:tweak-executor] #87 queryPowerShell OK 103ms
+[2026-04-24T11:08:49.749Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-04-24T11:08:49.749Z] [LOG] [PS:tweak-executor] #88 queryPowerShell SPAWN ts=1777028929749 active=1
+[2026-04-24T11:08:49.852Z] [LOG] [PS:tweak-executor] #88 queryPowerShell OK 103ms
+[2026-04-24T11:08:49.852Z] [LOG] [PS:tweak-executor] #89 queryPowerShell SPAWN ts=1777028929852 active=1
+[2026-04-24T11:08:49.939Z] [LOG] [PS:tweak-executor] #89 queryPowerShell OK 87ms
+[2026-04-24T11:08:49.939Z] [LOG] [PS:tweak-executor] #90 queryPowerShell SPAWN ts=1777028929939 active=1
+[2026-04-24T11:08:50.032Z] [LOG] [PS:tweak-executor] #90 queryPowerShell OK 93ms
+[2026-04-24T11:08:50.033Z] [LOG] [PS:tweak-executor] #91 queryPowerShell SPAWN ts=1777028930033 active=1
+[2026-04-24T11:08:50.124Z] [LOG] [PS:tweak-executor] #91 queryPowerShell OK 91ms
+[2026-04-24T11:08:50.125Z] [LOG] [PS:tweak-executor] #92 queryPowerShell SPAWN ts=1777028930125 active=1
+[2026-04-24T11:08:50.213Z] [LOG] [PS:tweak-executor] #92 queryPowerShell OK 88ms
+[2026-04-24T11:08:50.213Z] [LOG] [PS:tweak-executor] #93 queryPowerShell SPAWN ts=1777028930213 active=1
+[2026-04-24T11:08:50.300Z] [LOG] [PS:tweak-executor] #93 queryPowerShell OK 87ms
+[2026-04-24T11:08:50.300Z] [LOG] [PS:tweak-executor] #94 queryPowerShell SPAWN ts=1777028930300 active=1
+[2026-04-24T11:08:50.395Z] [LOG] [PS:tweak-executor] #94 queryPowerShell OK 95ms
+[2026-04-24T11:08:50.396Z] [LOG] [PS:tweak-executor] #95 queryPowerShell SPAWN ts=1777028930396 active=1
+[2026-04-24T11:08:50.486Z] [LOG] [PS:tweak-executor] #95 queryPowerShell OK 90ms
+[2026-04-24T11:08:50.486Z] [LOG] [PS:tweak-executor] #96 queryPowerShell SPAWN ts=1777028930486 active=1
+[2026-04-24T11:08:50.573Z] [LOG] [PS:tweak-executor] #96 queryPowerShell OK 87ms
+[2026-04-24T11:08:50.573Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=4903
+[2026-04-24T11:08:50.573Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=23 duration=4904ms active=0 calls60s=25
+[2026-04-24T11:08:50.575Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="gaming-mode" enabled=false (from system sync)
+[2026-04-24T11:08:50.575Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="cortana" enabled=true (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="search-highlights" enabled=true (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="storage-sense" enabled=true (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="compact-explorer" enabled=true (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="recent-files" enabled=true (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-04-24T11:08:50.576Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="show-file-extensions" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="hibernation" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="energy-logging" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="core-isolation" enabled=false (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-04-24T11:08:50.577Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="hyper-v" enabled=false (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="large-system-cache" enabled=false (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="prefetch" enabled=false (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="telemetry" enabled=true (from system sync)
+[2026-04-24T11:08:50.578Z] [ERROR] [Renderer:warn] (index-DOfGqdIm.js:130) [TweakSupport] id=nvidia-telemetry, supported=false, reason="Backend confirmed this tweak is not available on this system." (runtime check)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="bluetooth" enabled=true (from system sync)
+[2026-04-24T11:08:50.578Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="xbox-services" enabled=true (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="fax-printer" enabled=true (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="synth-timers" enabled=true (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="usb-selective-suspend" enabled=true (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-delivery-opt" enabled=true (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-04-24T11:08:50.579Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-04-24T11:08:50.580Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-activity-history" enabled=true (from system sync)
+[2026-04-24T11:08:50.580Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="power-throttling" enabled=true (from system sync)
+[2026-04-24T11:08:50.580Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-04-24T11:08:50.580Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:28) [Tweaks:SET] id="disable-auto-restart-apps" enabled=true (from system sync)
+[2026-04-24T11:08:50.580Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [Tweaks:SYNC] hydration done gen=3 reconciled=47
+[2026-04-24T11:08:50.580Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:51.207Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=26 active=1
+[2026-04-24T11:08:51.402Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=26 duration=195ms active=0 calls60s=26
+[2026-04-24T11:08:53.402Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=27 active=1
+[2026-04-24T11:08:53.588Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=27 duration=186ms active=0 calls60s=27
+[2026-04-24T11:08:54.357Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:08:54.360Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-04-24T11:08:54.361Z] [ERROR] [Renderer:error] (index-DOfGqdIm.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-04-24T11:08:55.588Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=28 active=1
+[2026-04-24T11:08:55.949Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=28 duration=361ms active=0 calls60s=28
+[2026-04-24T11:08:57.950Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=29 active=1
+[2026-04-24T11:08:58.150Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=29 duration=200ms active=0 calls60s=29
+[2026-04-24T11:09:00.150Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=30 active=1
+[2026-04-24T11:09:00.516Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=30 duration=366ms active=0 calls60s=29
+[2026-04-24T11:09:02.516Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=31 active=1
+[2026-04-24T11:09:02.705Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=31 duration=189ms active=0 calls60s=28
+[2026-04-24T11:09:04.706Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=32 active=1
+[2026-04-24T11:09:04.882Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:09:04.882Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:04.888Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:04.897Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +15ms
+[2026-04-24T11:09:04.907Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-04-24T11:09:04.908Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:04.911Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:04.920Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | scan-start | +38ms
+[2026-04-24T11:09:04.921Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T11:09:04.935Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T11:09:04.937Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-04-24T11:09:04.938Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-04-24T11:09:04.940Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-04-24T11:09:04.941Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-04-24T11:09:04.942Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-04-24T11:09:04.944Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-04-24T11:09:04.945Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-04-24T11:09:04.946Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-04-24T11:09:04.947Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-04-24T11:09:04.949Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-04-24T11:09:04.950Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-04-24T11:09:04.951Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-04-24T11:09:04.952Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-04-24T11:09:04.953Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-04-24T11:09:04.955Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-04-24T11:09:04.955Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-04-24T11:09:04.955Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:04.956Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] Fetching CSRF token from http://127.0.0.1:62647/api/csrf-token
+[2026-04-24T11:09:04.958Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:10) [API] CSRF token cached in memory (cookie may be cross-origin inaccessible)
+[2026-04-24T11:09:04.959Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-04-24T11:09:04.962Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-04-24T11:09:04.963Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | scan-done | +80ms
+[2026-04-24T11:09:04.963Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:04.964Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:04.968Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:04.970Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:04.971Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:05.047Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=32 duration=341ms active=0 calls60s=28
+[2026-04-24T11:09:05.275Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:05.281Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:06.868Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:06.869Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:06.869Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:07.047Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=33 active=1
+[2026-04-24T11:09:07.237Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=33 duration=190ms active=0 calls60s=28
+[2026-04-24T11:09:08.869Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:08.870Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:08.870Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:09.237Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=34 active=1
+[2026-04-24T11:09:09.428Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=34 duration=191ms active=0 calls60s=28
+[2026-04-24T11:09:10.311Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:10.312Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:10.312Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:10.869Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:10.870Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:10.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:11.428Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=35 active=1
+[2026-04-24T11:09:11.616Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=35 duration=188ms active=0 calls60s=28
+[2026-04-24T11:09:11.892Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:11.893Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:11.894Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:12.869Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:12.870Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:12.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:13.617Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=36 active=1
+[2026-04-24T11:09:13.956Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=36 duration=339ms active=0 calls60s=28
+[2026-04-24T11:09:13.999Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:14.001Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:14.002Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="minecraft" → canon="minecraft" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-04-24T11:09:14.002Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:14.014Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:14.014Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] LOAD OK — slug="minecraft" src="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-04-24T11:09:14.870Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:14.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:14.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="minecraft" → canon="minecraft" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-04-24T11:09:14.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:15.956Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=37 active=1
+[2026-04-24T11:09:16.181Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=37 duration=225ms active=0 calls60s=28
+[2026-04-24T11:09:16.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:16.872Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:16.873Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="minecraft" → canon="minecraft" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-04-24T11:09:16.873Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:17.867Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:17.868Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:17.869Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="minecraft" → canon="minecraft" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-04-24T11:09:17.877Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:17.877Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:17.878Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="minecraft" → canon="minecraft" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-04-24T11:09:18.181Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=38 active=1
+[2026-04-24T11:09:18.366Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=38 duration=185ms active=0 calls60s=28
+[2026-04-24T11:09:18.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:18.873Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:18.873Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="minecraft" → canon="minecraft" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/minecraft-BN8Y9AuC.png"
+[2026-04-24T11:09:19.508Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:19.509Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:19.514Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:20.367Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=39 active=1
+[2026-04-24T11:09:20.555Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=39 duration=188ms active=0 calls60s=28
+[2026-04-24T11:09:20.872Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] AppBooster | mount | +0ms
+[2026-04-24T11:09:20.873Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Users/SwitchTech/Downloads/SwitchControl/SwitchControl/electron/dist/win-unpacked/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T11:09:21.618Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:09:21.619Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | mount | +0ms
+[2026-04-24T11:09:21.635Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | fetch-state | +16ms
+[2026-04-24T11:09:21.649Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | fetch-state-done | +29ms
+[2026-04-24T11:09:22.007Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | fetch-history-done | +387ms
+[2026-04-24T11:09:22.007Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | mount | +0ms
+[2026-04-24T11:09:22.555Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=40 active=1
+[2026-04-24T11:09:22.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | mount | +0ms
+[2026-04-24T11:09:22.894Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=40 duration=339ms active=0 calls60s=28
+[2026-04-24T11:09:24.872Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | mount | +0ms
+[2026-04-24T11:09:24.894Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=41 active=1
+[2026-04-24T11:09:25.081Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=41 duration=187ms active=0 calls60s=28
+[2026-04-24T11:09:26.191Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [FocusMode] profile selected: competitive
+[2026-04-24T11:09:26.192Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | mount | +0ms
+[2026-04-24T11:09:26.635Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:130) [FocusMode] Hydration complete — auto-triggers now armed
+[2026-04-24T11:09:26.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | mount | +0ms
+[2026-04-24T11:09:27.082Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=42 active=1
+[2026-04-24T11:09:27.267Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=42 duration=185ms active=0 calls60s=28
+[2026-04-24T11:09:28.872Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] FocusMode | mount | +0ms
+[2026-04-24T11:09:29.268Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=43 active=1
+[2026-04-24T11:09:29.457Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=43 duration=189ms active=0 calls60s=28
+[2026-04-24T11:09:29.640Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:09:29.648Z] [LOG] [PS:nic-executor] #1 queryPS SPAWN ts=1777028969648
+[2026-04-24T11:09:30.069Z] [LOG] [PS:nic-executor] #1 queryPS OK 421ms
+[2026-04-24T11:09:30.073Z] [LOG] [PS:nic-executor] #2 queryPS SPAWN ts=1777028970073
+[2026-04-24T11:09:30.395Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:09:30.395Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T11:09:30.396Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [NetworkTweaks:CACHE] cache miss — initialising to idle
+[2026-04-24T11:09:30.422Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] NetworkTweaks | fetch-state | +26ms
+[2026-04-24T11:09:30.422Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T11:09:30.449Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] NetworkTweaks | fetch-state-done | +54ms
+[2026-04-24T11:09:30.450Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T11:09:30.486Z] [LOG] [PS:nic-executor] #2 queryPS OK 413ms
+[2026-04-24T11:09:30.871Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T11:09:30.902Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T11:09:31.068Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:09:31.069Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T11:09:31.082Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] SystemCleaner | fetch-categories | +14ms
+[2026-04-24T11:09:31.082Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] SystemCleaner | fetch-history | +14ms
+[2026-04-24T11:09:31.082Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T11:09:31.095Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T11:09:31.104Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T11:09:31.457Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=44 active=1
+[2026-04-24T11:09:31.569Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:09:31.803Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=44 duration=346ms active=0 calls60s=28
+[2026-04-24T11:09:32.024Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:197) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T11:09:32.024Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] StartupApps | mount | +0ms
+[2026-04-24T11:09:32.031Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] StartupApps | startup-scan | +8ms
+[2026-04-24T11:09:32.032Z] [ERROR] Error occurred in handler for 'startup:scan': ReferenceError: src is not defined
+    at C:\Users\SwitchTech\Downloads\SwitchControl\SwitchControl\electron\dist\win-unpacked\resources\app.asar\main.js:2245:519
+    at WebContents.<anonymous> (node:electron/js2c/browser_init:2:87039)
+    at WebContents.emit (node:events:518:28)
+[2026-04-24T11:09:32.038Z] [LOG] [Renderer:info] (index-DOfGqdIm.js:123) [Timing] StartupApps | mount | +0ms
+[2026-04-24T11:09:33.805Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=45 active=1
+[2026-04-24T11:09:33.992Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=45 duration=187ms active=0 calls60s=28
+[2026-04-24T11:09:35.993Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=46 active=1
+[2026-04-24T11:09:36.179Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=46 duration=186ms active=0 calls60s=28
+[2026-04-24T11:09:38.180Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=47 active=1
+[2026-04-24T11:09:38.364Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=47 duration=184ms active=0 calls60s=28
+[2026-04-24T11:09:40.365Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=48 active=1
+[2026-04-24T11:09:40.702Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=48 duration=337ms active=0 calls60s=28
+[2026-04-24T11:09:42.702Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=49 active=1
+[2026-04-24T11:09:42.913Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=49 duration=211ms active=0 calls60s=28
+[2026-04-24T11:09:44.914Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=50 active=1
+[2026-04-24T11:09:45.103Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=50 duration=189ms active=0 calls60s=28
+[2026-04-24T11:09:47.103Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=51 active=1
+[2026-04-24T11:09:47.302Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=51 duration=199ms active=0 calls60s=28
+[2026-04-24T11:09:49.303Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=52 active=1
+[2026-04-24T11:09:49.646Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=52 duration=343ms active=0 calls60s=28
+[2026-04-24T11:09:51.646Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=53 active=1
+[2026-04-24T11:09:51.829Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=53 duration=183ms active=0 calls60s=27
+[2026-04-24T11:09:53.829Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=54 active=1
+[2026-04-24T11:09:54.014Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=54 duration=185ms active=0 calls60s=27
+[2026-04-24T11:09:56.015Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=55 active=1
+[2026-04-24T11:09:56.212Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=55 duration=198ms active=0 calls60s=27
+[2026-04-24T11:09:58.212Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=56 active=1
+[2026-04-24T11:09:58.546Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=56 duration=334ms active=0 calls60s=27
+[2026-04-24T11:10:00.547Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=57 active=1
+[2026-04-24T11:10:00.910Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=57 duration=363ms active=0 calls60s=27
+[2026-04-24T11:10:02.910Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=58 active=1
+[2026-04-24T11:10:03.094Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=58 duration=184ms active=0 calls60s=27
+[2026-04-24T11:10:05.094Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=59 active=1
+[2026-04-24T11:10:05.279Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=59 duration=185ms active=0 calls60s=27
+[2026-04-24T11:10:07.280Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=60 active=1
+[2026-04-24T11:10:07.625Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=60 duration=345ms active=0 calls60s=27
+[2026-04-24T11:10:09.626Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=61 active=1
+[2026-04-24T11:10:09.814Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=61 duration=188ms active=0 calls60s=27
+[2026-04-24T11:10:11.814Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=62 active=1
+[2026-04-24T11:10:12.017Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=62 duration=203ms active=0 calls60s=27
+[2026-04-24T11:10:14.018Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=63 active=1
+[2026-04-24T11:10:14.226Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=63 duration=208ms active=0 calls60s=27
+[2026-04-24T11:10:16.227Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=64 active=1
+[2026-04-24T11:10:16.602Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=64 duration=375ms active=0 calls60s=27

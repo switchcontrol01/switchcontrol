@@ -210,6 +210,9 @@ ipcMain.handle('security:getTopProcesses', async () => {
 // Params: { source, registryName, taskPath, folderPath, enabled }
 // ---------------------------------------------------------------------------
 
+// Guard: remove any previously registered handler so this file is safe to
+// require more than once and won't crash with "second handler" error.
+ipcMain.removeHandler('startup:setEnabled');
 ipcMain.handle('startup:setEnabled', async (event, params) => {
   if (process.platform !== 'win32') {
     return { ok: false, reason: 'not-windows' };
