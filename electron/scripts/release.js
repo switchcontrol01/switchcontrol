@@ -109,10 +109,23 @@ if (fs.existsSync(rootPkgPath)) {
 // ── Find artifacts ────────────────────────────────────────────────────────────
 
 const distDir = path.join(__dirname, '..', 'dist');
+const rootDistDir = path.join(__dirname, '..', '..', 'dist');
 
 if (!fs.existsSync(distDir)) {
   console.error('ERROR: dist/ not found. Run `npm run dist:win` first.');
   process.exit(1);
+}
+
+if (!fs.existsSync(path.join(distDir, 'latest.yml')) && fs.existsSync(rootDistDir)) {
+  const rootExe = fs.readdirSync(rootDistDir).find(f => f.endsWith('.exe') && !f.endsWith('.exe.blockmap'));
+  if (rootExe) {
+    fs.mkdirSync(distDir, { recursive: true });
+    for (const entry of fs.readdirSync(rootDistDir)) {
+      const src = path.join(rootDistDir, entry);
+      const dst = path.join(distDir, entry);
+      if (fs.statSync(src).isFile()) fs.copyFileSync(src, dst);
+    }
+  }
 }
 
 // Auto-generate latest.yml if electron-builder didn't produce it.
