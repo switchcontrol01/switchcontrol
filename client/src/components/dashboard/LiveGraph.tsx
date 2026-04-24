@@ -288,7 +288,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   );
   isLowEndRef.current = isLowEndClient;
   const showGlowLines = !isLowEndClient;
-  const graphPollMs = isLowEndClient ? 6000 : 2000;
+  const graphPollMs = isLowEndClient ? 5000 : 2500;
 
   // ── GPU first-load tracking ───────────────────────────────────────────────
   // gpuDetectedRef: true once any tick confirms GPU is present on this machine.
@@ -815,19 +815,6 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
           <GraphLoadingPlaceholder height={chartHeight} />
         ) : (
           <>
-            {/* Scan-line sweep — top-lit horizontal shimmer across the chart */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-10 overflow-hidden rounded"
-            >
-              <div
-                className="absolute inset-y-0 w-[35%]"
-                style={{
-                  background: "linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.032) 50%,transparent 100%)",
-                  animation: "sc-scanline 3.5s linear infinite",
-                }}
-              />
-            </div>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart data={data} margin={{ top: 4, right: expanded ? 44 : 4, left: -20, bottom: 4 }}>
               {/* Gradient defs for area fills */}
