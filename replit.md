@@ -8,6 +8,12 @@ SwitchControl is a web-based gaming optimization dashboard prototype. It offers 
 
 Preferred communication style: Simple, everyday language.
 
+## Build Commands
+
+- **Electron installer (Windows)**: `npm run electron:build` — NOT `npm run dist:win`
+- **Frontend (web)**: `npm run build` then site is served from `dist/`
+- After any frontend change, rebuild with `npm run build` before deploying.
+
 ## System Architecture
 
 ### Core Technologies
