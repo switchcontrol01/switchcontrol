@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import logoImg from "@/assets/logo.webp";
 import { getTagline } from "@/lib/taglines";
@@ -28,160 +28,193 @@ const STREAKS = [
 ];
 
 export default function Splash({ onComplete }: SplashProps) {
-  const [logoReady, setLogoReady]   = useState(false);
-  const [textReady, setTextReady]   = useState(false);
-  const [sweepReady, setSweepReady] = useState(false);
-  const [progress, setProgress]     = useState(0);
+  // ── Splash-ready gate ─────────────────────────────────────────────────────
+  // Nothing is visible until `ready` flips true:
+  //   1. logo image is decoded (guaranteed in browser memory)
+  //   2. two rAF ticks have passed (layout + compositor promotion)
+  // The outer container transitions from opacity:0 → 1 atomically,
+  // so the background and logo/text appear together — no background-only frame.
+  const [ready, setReady]         = useState(false);
+  const [logoVisible, setLogoVisible] = useState(false);
+  const [textVisible, setTextVisible] = useState(false);
+  const [sweepVisible, setSweepVisible] = useState(false);
+  const [progress, setProgress]   = useState(0);
   const tagline = useMemo(() => getTagline(), []);
 
-  // ── Launch handshake ──────────────────────────────────────────────────────
-  // Single launch state machine: hidden → mounted → visible → telemetry starts.
-  //
-  // Correct sequence:
-  //   1. Splash mounts. Static shell (#startup-shell) stays FULLY OPAQUE.
-  //      Log mount time only — do NOT send IPC yet.
-  //   2. Wait for logoReady (80ms timeout) so the logo element is in the DOM.
-  //      Sending first-frame-ready before the logo is mounted meant the window
-  //      appeared with only the background, causing a visual race where the logo
-  //      animation started after the window was already visible.
-  //   3. TWO animation frames after logo mount. Frame 1 → layout + paint.
-  //      Frame 2 → compositor has promoted the logo frame to the GPU pipeline.
-  //   4. Renderer sends 'app:first-frame-ready'.
-  //   5. Main: setOpacity(0) → show() → 16ms → setOpacity(1) → sends 'app:window-shown'.
-  //   6. On 'app:window-shown': shell fade (180ms) + html opacity 0→1 (200ms).
-  //   7. Main starts telemetry 2000ms after step 5 (after logo animation completes).
-  //      Fallback: reveal after 700ms if window-shown IPC never arrives.
-
+  // ── Logo decode + double-rAF handshake ───────────────────────────────────
   useEffect(() => {
-    console.log(`[LAUNCH:R2] Splash mounted | t=+${performance.now().toFixed(0)}ms`);
-  }, []);
-
-  useEffect(() => {
-    // ── Wait for logo to be in the DOM before signalling readiness ────────────
-    // logoReady becomes true after the 80ms timeout in the animation effect below.
-    // We only want to signal the main process once the logo element exists so the
-    // window appears with logo + background both rendered (not background-only).
-    if (!logoReady) return;
-
+    let cancelled = false;
     let raf1: number;
     let raf2: number;
     let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
     let windowShownUnsub: (() => void) | undefined;
 
-    raf1 = requestAnimationFrame(() => {
-      // Frame 1 complete: logo layout + paint committed.
-      raf2 = requestAnimationFrame(() => {
-        // Frame 2 complete: compositor has promoted the logo frame.
-        const readyTs = performance.now();
-        console.log(`[LAUNCH:R3] first-frame-ready: sending IPC (logo + bg mounted) | t=+${readyTs.toFixed(0)}ms`);
-        const api = (window as any).electronAPI;
+    async function prepareSplash() {
+      console.log(`[LAUNCH:R2] Splash mounted | t=+${performance.now().toFixed(0)}ms`);
 
-        if (api?.signalFirstFrameReady) {
-          api.signalFirstFrameReady();
+      const img = new Image();
+      img.src = logoImg;
+      try {
+        if ("decode" in img) await img.decode();
+      } catch {}
 
-          let revealed = false;
-          const reveal = (source: string) => {
-            if (revealed) return;
-            revealed = true;
-            const revealTs = performance.now();
-            console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
+      raf1 = requestAnimationFrame(() => {
+        raf2 = requestAnimationFrame(() => {
+          if (cancelled) return;
 
-            // ── body::before teardown ─────────────────────────────────────
-            // 'sc-first-frame-ready' fades body::before (z-index:2147483647)
-            // from opaque to transparent over 120ms — primary anti-flash guard.
+          const readyTs = performance.now();
+          console.log(`[LAUNCH:R3] splash ready: logo decoded, compositor frame ready | t=+${readyTs.toFixed(0)}ms`);
+
+          setReady(true);
+
+          const api = (window as any).electronAPI;
+
+          if (api?.signalFirstFrameReady) {
+            api.signalFirstFrameReady();
+            console.log(`[LAUNCH:R3] first-frame-ready IPC sent | t=+${performance.now().toFixed(0)}ms`);
+
+            let revealed = false;
+            const reveal = (source: string) => {
+              if (revealed) return;
+              revealed = true;
+              const revealTs = performance.now();
+              console.log(`[LAUNCH:R4] reveal triggered by ${source} | t=+${revealTs.toFixed(0)}ms`);
+
+              document.body.classList.add('sc-first-frame-ready');
+              console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
+
+              const shell = document.getElementById('startup-shell');
+              if (shell) {
+                shell.style.transition = 'opacity 180ms ease-out';
+                shell.style.opacity = '0';
+                setTimeout(() => {
+                  if (shell.parentNode) shell.parentNode.removeChild(shell);
+                  console.log('[LAUNCH:R4b] startup-shell removed from DOM');
+                }, 200);
+              }
+
+              document.documentElement.style.opacity = '1';
+              console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+${performance.now().toFixed(0)}ms`);
+              setTimeout(() => {
+                console.log(`[LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
+              }, 200);
+            };
+
+            windowShownUnsub = api.onWindowShown?.(() => {
+              clearTimeout(fallbackTimer);
+              windowShownUnsub = undefined;
+              const shownTs = performance.now();
+              console.log(`[LAUNCH:R3b] app:window-shown received | t=+${shownTs.toFixed(0)}ms`);
+              reveal('app:window-shown');
+            });
+
+            fallbackTimer = setTimeout(() => {
+              console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700ms fallback');
+              reveal('fallback-timeout');
+            }, 700);
+
+          } else {
+            // Non-Electron (website) path — reveal immediately
             document.body.classList.add('sc-first-frame-ready');
-            console.log('[LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)');
-
-            // ── Shell fade + html reveal ──────────────────────────────────
             const shell = document.getElementById('startup-shell');
             if (shell) {
               shell.style.transition = 'opacity 180ms ease-out';
               shell.style.opacity = '0';
-              setTimeout(() => {
-                if (shell.parentNode) shell.parentNode.removeChild(shell);
-                console.log('[LAUNCH:R4b] startup-shell removed from DOM');
-              }, 200);
+              setTimeout(() => { if (shell.parentNode) shell.parentNode.removeChild(shell); }, 200);
             }
-
             document.documentElement.style.opacity = '1';
-            console.log(`[LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+${performance.now().toFixed(0)}ms`);
-            setTimeout(() => {
-              console.log(`[LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+${performance.now().toFixed(0)}ms`);
-            }, 200);
-          };
-
-          // Primary: reveal once main confirms window is on screen
-          windowShownUnsub = api.onWindowShown?.(() => {
-            clearTimeout(fallbackTimer);
-            windowShownUnsub = undefined;
-            const shownTs = performance.now();
-            console.log(`[LAUNCH:R3b] app:window-shown received | t=+${shownTs.toFixed(0)}ms`);
-            reveal('app:window-shown');
-          });
-
-          // Fallback: reveal after 700ms if IPC confirmation never arrives
-          fallbackTimer = setTimeout(() => {
-            console.warn('[LAUNCH:FALLBACK] app:window-shown never received — revealing after 700ms fallback');
-            reveal('fallback-timeout');
-          }, 700);
-
-        } else {
-          // Non-Electron (website) path — reveal immediately.
-          document.body.classList.add('sc-first-frame-ready');
-          const shell = document.getElementById('startup-shell');
-          if (shell) {
-            shell.style.transition = 'opacity 180ms ease-out';
-            shell.style.opacity = '0';
-            setTimeout(() => { if (shell.parentNode) shell.parentNode.removeChild(shell); }, 200);
           }
-          document.documentElement.style.opacity = '1';
-        }
+        });
       });
-    });
+    }
+
+    prepareSplash();
 
     return () => {
+      cancelled = true;
       cancelAnimationFrame(raf1);
       cancelAnimationFrame(raf2);
       clearTimeout(fallbackTimer);
       windowShownUnsub?.();
     };
-  }, [logoReady]);
+  }, []);
 
+  // ── Staggered content reveal (fires after ready) ──────────────────────────
+  // Logo appears immediately when the container reveals.
+  // Text follows +120ms later for a polished sequential entry.
+  // Sweep fires at +400ms for the diagonal light effect.
+  // onComplete at +1750ms hands off to App.tsx.
   useEffect(() => {
-    // Logo first — brand established quickly.
-    const t1 = setTimeout(() => setLogoReady(true),  80);
-    // Title follows logo.
-    const t2 = setTimeout(() => setTextReady(true),  220);
-    // Diagonal sweep fires after foreground is visible.
-    const t3 = setTimeout(() => setSweepReady(true), 480);
-    // Hand off to App — App.tsx AnimatePresence handles the exit fade (0.65s).
-    // No internal exit animation here; having two exit animations caused a blank frame.
+    if (!ready) return;
+
+    setLogoVisible(true);
+
+    const t2   = setTimeout(() => setTextVisible(true),  120);
+    const t3   = setTimeout(() => setSweepVisible(true), 400);
     const done = setTimeout(() => {
       console.log('[LAUNCH:R5] Splash onComplete — handing off to App');
       onComplete();
-    }, 1800);
-
-    // Progress bar — fills to ~90% in 1.8 s, slows near the end (never quite hits 100%)
-    const pi = setInterval(() => {
-      setProgress(p => {
-        if (p >= 100) return 100;
-        const r = 100 - p;
-        if (p < 60) return p + 3.2;
-        if (p < 85) return p + Math.max(r * 0.14, 0.8);
-        return p + Math.max(r * 0.07, 0.25);
-      });
-    }, 36);
+    }, 1750);
 
     return () => {
-      clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(done);
-      clearInterval(pi);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(done);
     };
-  }, [onComplete]);
+  }, [ready, onComplete]);
+
+  // ── Progress bar — rAF-based to avoid IntervalGuard 2000ms clamp ──────────
+  // The old setInterval(pi, 36) was clamped to 2000ms by IntervalGuard,
+  // making the bar visually stutter. rAF runs at native 60 fps with no clamping.
+  const progressRef = useRef(0);
+  useEffect(() => {
+    let rafId: number;
+    let lastTs = 0;
+
+    function step(ts: number) {
+      if (lastTs === 0) lastTs = ts;
+      const dt = ts - lastTs;
+      lastTs = ts;
+
+      progressRef.current = (() => {
+        const p = progressRef.current;
+        if (p >= 100) return 100;
+        const r = 100 - p;
+        // Scale increments to elapsed time so rate is frame-rate independent.
+        // Original rate: ~3.2 per 36ms at the start → same average, but smooth.
+        const scale = dt / 36;
+        if (p < 60) return p + 3.2 * scale;
+        if (p < 85) return p + Math.max(r * 0.14, 0.8) * scale;
+        return p + Math.max(r * 0.07, 0.25) * scale;
+      })();
+
+      setProgress(Math.min(100, progressRef.current));
+
+      if (progressRef.current < 100) {
+        rafId = requestAnimationFrame(step);
+      }
+    }
+
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, []);
 
   return (
     <div
       className="fixed inset-0 overflow-hidden flex items-center justify-center"
-      style={{ background: "#07090D" }}
+      style={{
+        background: "#07090D",
+        // Container starts invisible — reveals atomically once logo is decoded
+        // and two compositor frames have passed. opacity/transform only — no
+        // per-frame blur repaint on the full layer stack.
+        opacity:    ready ? 1 : 0,
+        transform:  ready ? "scale(1)" : "scale(0.985)",
+        transition: ready
+          ? "opacity 0.22s ease-out, transform 0.28s cubic-bezier(0.22,1,0.36,1)"
+          : "none",
+        // Keep the dark base visible to the OS during decode so there's no white flash
+        willChange: "opacity, transform",
+      }}
     >
       {/* ── Layer A: wide atmospheric hazes ── */}
       <motion.div
@@ -300,7 +333,7 @@ export default function Splash({ onComplete }: SplashProps) {
 
       {/* ── Layer E: diagonal reveal sweep ── */}
       <AnimatePresence>
-        {sweepReady && (
+        {sweepVisible && (
           <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ zIndex: 4 }}>
             <motion.div
               style={{
@@ -336,11 +369,11 @@ export default function Splash({ onComplete }: SplashProps) {
       <div className="relative flex flex-col items-center gap-8" style={{ zIndex: 10 }}>
 
         <AnimatePresence>
-          {logoReady && (
+          {logoVisible && (
             <motion.div
-              initial={{ opacity: 0, y: 16, filter: "blur(18px)" }}
+              initial={{ opacity: 0, y: 14, filter: "blur(16px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-              transition={{ duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
+              transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
               className="relative"
             >
               <motion.div
@@ -394,7 +427,7 @@ export default function Splash({ onComplete }: SplashProps) {
         </AnimatePresence>
 
         <AnimatePresence>
-          {textReady && (
+          {textVisible && (
             <motion.div
               initial={{ opacity: 0, y: 14, filter: "blur(10px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -427,7 +460,7 @@ export default function Splash({ onComplete }: SplashProps) {
                     boxShadow: "0 0 8px rgba(139,92,246,0.60), 0 0 18px rgba(0,210,255,0.30)",
                   }}
                   animate={{ width: `${progress}%` }}
-                  transition={{ duration: 0.28, ease: "easeOut" }}
+                  transition={{ duration: 0.1, ease: "linear" }}
                 />
                 <motion.div
                   className="absolute top-0 h-full w-16"
