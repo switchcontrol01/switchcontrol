@@ -93,11 +93,30 @@ function detectCategory(entry: Pick<StartupEntry, "name" | "publisher" | "execut
   return "unknown";
 }
 
+function safeStr(v: unknown): string | null {
+  if (typeof v === "string") return v;
+  if (v == null) return null;
+  return null; // drop raw objects — never render them
+}
+
 function enrichEntries(raw: Omit<StartupEntry, "category">[]): StartupEntry[] {
-  return raw.map((e) => ({
-    ...e,
-    category: detectCategory(e),
-  }));
+  return raw
+    .filter((e): e is Omit<StartupEntry, "category"> => !!e && typeof e === "object")
+    .map((e) => ({
+      id:             typeof e.id === "string" ? e.id : String(e.id ?? ""),
+      name:           typeof e.name === "string" ? e.name : String(e.name ?? ""),
+      publisher:      safeStr(e.publisher),
+      executablePath: safeStr(e.executablePath),
+      commandLine:    typeof e.commandLine === "string" ? e.commandLine : String(e.commandLine ?? ""),
+      source:         (e.source as StartupEntry["source"]) ?? "registry-hkcu",
+      enabled:        Boolean(e.enabled),
+      fileExists:     Boolean(e.fileExists),
+      broken:         Boolean(e.broken),
+      registryName:   safeStr(e.registryName) ?? undefined,
+      taskPath:       safeStr(e.taskPath) ?? undefined,
+      folderPath:     safeStr(e.folderPath) ?? undefined,
+      category:       detectCategory(e),
+    }));
 }
 
 // ── Electron helper ───────────────────────────────────────────────────────────

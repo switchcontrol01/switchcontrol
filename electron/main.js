@@ -2131,7 +2131,30 @@ try{Get-ScheduledTask -EA SilentlyContinue|ForEach-Object{$t=$_;$ht=$t.Triggers|
       }
       try {
         const raw = JSON.parse(stdout.trim());
-        const entries = Array.isArray(raw.entries) ? raw.entries : [];
+        // Sanitize every entry — PowerShell can return raw FileInfo/CimInstance
+        // objects as field values (e.g. publisher, executablePath) which would
+        // crash React when rendered. Enforce primitive types on all fields.
+        const toStr = (v) => (typeof v === 'string' ? v : v == null ? null : null);
+        const sanitize = (e) => {
+          if (!e || typeof e !== 'object') return null;
+          return {
+            id:             typeof e.id === 'string'             ? e.id             : String(e.id ?? ''),
+            name:           typeof e.name === 'string'           ? e.name           : String(e.name ?? ''),
+            publisher:      toStr(e.publisher),
+            executablePath: toStr(e.executablePath),
+            commandLine:    typeof e.commandLine === 'string'    ? e.commandLine    : String(e.commandLine ?? ''),
+            source:         typeof e.source === 'string'         ? e.source         : String(e.source ?? ''),
+            enabled:        Boolean(e.enabled),
+            fileExists:     Boolean(e.fileExists),
+            broken:         Boolean(e.broken),
+            ...(e.registryName != null ? { registryName: typeof e.registryName === 'string' ? e.registryName : null } : {}),
+            ...(e.taskPath    != null ? { taskPath:    typeof e.taskPath    === 'string' ? e.taskPath    : null } : {}),
+            ...(e.folderPath  != null ? { folderPath:  typeof e.folderPath  === 'string' ? e.folderPath  : null } : {}),
+          };
+        };
+        const entries = Array.isArray(raw.entries)
+          ? raw.entries.map(sanitize).filter(Boolean)
+          : [];
         if (raw.errors && raw.errors.length > 0) {
           console.warn('[startup:scan] partial errors:', raw.errors);
         }

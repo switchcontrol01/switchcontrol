@@ -1,0 +1,783 @@
+
+[2026-04-24T13:40:53.163Z] [INFO] SwitchControl started — PID:15744 platform:win32/x64 node:20.18.3
+[2026-04-24T13:40:53.192Z] [LOG] [Security] IPC handlers registered
+[2026-04-24T13:40:53.193Z] [LOG] [Debloat] IPC handlers registered
+[2026-04-24T13:40:53.193Z] [LOG] [Cleaner] IPC handlers registered
+[2026-04-24T13:40:53.194Z] [LOG] [FocusHelper] IPC handlers registered
+[2026-04-24T13:40:53.212Z] [LOG] [STARTUP] whenReady — v1.0.7 | isDev:false | pid:15744
+[2026-04-24T13:40:53.214Z] [LOG] [ConfigStore] Initialized — file: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\sc-config.json
+[2026-04-24T13:40:53.227Z] [LOG] [LAUNCH:1] BrowserWindow constructed — show:false, paintWhenInitiallyHidden:true, isVisible: false
+[2026-04-24T13:40:53.228Z] [LOG] [LAUNCH:2] packaged mode — indexPath: C:\Program Files\SwitchControl\resources\dist\index.html | exists: true
+[2026-04-24T13:40:53.231Z] [LOG] [Backend] ===== STARTUP DIAGNOSTICS =====
+[2026-04-24T13:40:53.232Z] [LOG] [Backend] process.execPath: C:\Program Files\SwitchControl\Switchcontrol.exe
+[2026-04-24T13:40:53.232Z] [LOG] [Backend] process.resourcesPath: C:\Program Files\SwitchControl\resources
+[2026-04-24T13:40:53.232Z] [LOG] [Backend] app.isPackaged: true
+[2026-04-24T13:40:53.232Z] [LOG] [Backend] app.getAppPath(): C:\Program Files\SwitchControl\resources\app.asar
+[2026-04-24T13:40:53.232Z] [LOG] [Backend] Expected bundle path: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-04-24T13:40:53.232Z] [LOG] [Backend] Bundle size: 2.8 MB
+[2026-04-24T13:40:53.274Z] [LOG] [Updater] init — v1.0.7 | channel:stable | https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev
+[2026-04-24T13:40:53.274Z] [LOG] [STARTUP] app ready — 62ms from whenReady
+[2026-04-24T13:40:53.275Z] [LOG] [Backend] Free port found: 58671
+[2026-04-24T13:40:53.276Z] [LOG] [Backend] ELECTRON_USER_DATA: C:\Users\SwitchTech\AppData\Roaming\SwitchControl
+[2026-04-24T13:40:53.276Z] [LOG] [Backend] ===== ENV KEY DIAGNOSTICS =====
+[2026-04-24T13:40:53.276Z] [LOG] [Backend]   OPENAI_API_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:40:53.276Z] [LOG] [Backend]   STRIPE_SECRET_KEY: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:40:53.276Z] [LOG] [Backend]   GOOGLE_CLIENT_ID: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:40:53.276Z] [LOG] [Backend]   GOOGLE_CLIENT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:40:53.276Z] [LOG] [Backend]   JWT_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:40:53.276Z] [LOG] [Backend]   SESSION_SECRET: parent_env=false | config_file=false | will_use=false
+[2026-04-24T13:40:53.276Z] [LOG] [Backend] =====================================
+[2026-04-24T13:40:53.276Z] [LOG] [Backend] ===== CHILD ENV KEY DIAGNOSTICS =====
+[2026-04-24T13:40:53.276Z] [LOG] [Backend]   child_env OPENAI_API_KEY: false
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   child_env STRIPE_SECRET_KEY: false
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_ID: false
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   child_env GOOGLE_CLIENT_SECRET: false
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   child_env JWT_SECRET: false
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   child_env SESSION_SECRET: false
+[2026-04-24T13:40:53.277Z] [LOG] [Backend] AI_MODEL in child env: (not set, will use gpt-4o-mini)
+[2026-04-24T13:40:53.277Z] [LOG] [Backend] DATABASE_URL in child env: NO — Electron offline mode (expected; cloud DB unreachable from user machine)
+[2026-04-24T13:40:53.277Z] [LOG] [Backend] ELECTRON_BACKEND in child env: 1
+[2026-04-24T13:40:53.277Z] [LOG] [Backend] ==========================================
+[2026-04-24T13:40:53.277Z] [LOG] [Backend] Spawning child process...
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   execPath: C:\Program Files\SwitchControl\Switchcontrol.exe
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   script: C:\Program Files\SwitchControl\resources\dist\index.cjs
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   ELECTRON_RUN_AS_NODE: 1 (runs as plain Node.js)
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   PORT: 58671
+[2026-04-24T13:40:53.277Z] [LOG] [Backend]   cwd: C:\Program Files\SwitchControl\resources\dist
+[2026-04-24T13:40:53.283Z] [LOG] [Backend] Child process spawned, PID: 21288
+[2026-04-24T13:40:53.283Z] [LOG] [Backend] Polling health endpoint: http://127.0.0.1:58671/api/health
+[2026-04-24T13:40:53.361Z] [LOG] [Backend:stdout] [DesktopSecrets] ELECTRON_BACKEND mode — bootstrapping secrets
+[2026-04-24T13:40:53.361Z] [LOG] [Backend:stdout] [DesktopSecrets] Secrets file path: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-24T13:40:53.362Z] [LOG] [Backend:stdout] [DesktopSecrets] Loaded persisted secrets from: C:\Users\SwitchTech\AppData\Roaming\SwitchControl\desktop-secrets.json
+[2026-04-24T13:40:53.362Z] [LOG] [Backend:stdout] [DesktopSecrets] JWT_SECRET: loaded from persisted file
+[2026-04-24T13:40:53.362Z] [LOG] [Backend:stdout] [DesktopSecrets] SESSION_SECRET: loaded from persisted file
+[2026-04-24T13:40:53.362Z] [LOG] [Backend:stdout] [DesktopSecrets] Bootstrap complete — JWT_SECRET and SESSION_SECRET are set
+[2026-04-24T13:40:53.400Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [Entitlements] AUTH_DOMAIN resolved — packaged=true domain="https://switchcontrol.org"
+[2026-04-24T13:40:53.401Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [AUTH BOOT] persisted jwt length: 217 token present: true user present: true
+[2026-04-24T13:40:53.401Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Init: electron=true, packaged=true, protocol=file:
+[2026-04-24T13:40:53.402Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Electron fetch interceptor installed | packaged=true (URL-rewrite=true, auth-inject=true)
+[2026-04-24T13:40:53.404Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Store:REHYDRATE] total_stored=47 enabled=30 source=localStorage
+[2026-04-24T13:40:53.404Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [CloudAPI] base=https://switchcontrol.org/api packaged=true electron=true
+[2026-04-24T13:40:53.408Z] [LOG] [Renderer:info] (index-BH1mEikA.js:160) [BiosStore] hydrated | scores from storage: null
+[2026-04-24T13:40:53.409Z] [LOG] [Renderer:info] (index-BH1mEikA.js:11) [IntervalGuard] installed — min interval enforced at 2000ms
+[2026-04-24T13:40:53.409Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [LAUNCH:R0] renderer bootstrap — opacity locked to 0 | t=+181ms
+[2026-04-24T13:40:53.409Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [LAUNCH:R1] createRoot dispatching | t=+181ms
+[2026-04-24T13:40:53.410Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:459) [SwitchControl Desktop] Preload initialized - unified API ready
+[2026-04-24T13:40:53.410Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:460) [SwitchControl Desktop] Platform: win32
+[2026-04-24T13:40:53.410Z] [LOG] [LAUNCH:3] did-finish-load — HTML/JS fully parsed by Chromium (first-frame-ready IPC pending)
+[2026-04-24T13:40:53.411Z] [LOG] [LAUNCH:2] loadFile() promise RESOLVED
+[2026-04-24T13:40:53.411Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Backend port not ready, retrying in 200ms… (elapsed 9ms, attempt 1)
+[2026-04-24T13:40:53.413Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-04-24T13:40:53.416Z] [LOG] [Backend:stdout] [DB] Electron offline mode — no DATABASE_URL present, using in-memory mock storage.
+[2026-04-24T13:40:53.424Z] [LOG] [Backend:stdout] [Stripe] Billing not configured on local backend — expected in Electron mode.
+[2026-04-24T13:40:53.424Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R2] Splash mounted | t=+196ms
+[2026-04-24T13:40:53.424Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T13:40:53.425Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T13:40:53.425Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [App] Registering deep link auth callback (once)
+[2026-04-24T13:40:53.440Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R3] splash ready: logo decoded, compositor frame ready | t=+211ms
+[2026-04-24T13:40:53.440Z] [LOG] [LAUNCH:4] first-frame-ready received — 2-rAF dark frame confirmed | +209ms
+[2026-04-24T13:40:53.454Z] [LOG] [LAUNCH:5] mainWindow.show() — opacity:0 (anti-DWM-flash) | +223ms
+[2026-04-24T13:40:53.455Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R3] first-frame-ready IPC sent | t=+211ms
+[2026-04-24T13:40:53.457Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T13:40:53.457Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [App] Electron window focus (passive)
+[2026-04-24T13:40:53.463Z] [LOG] [Backend:stdout] [FocusMode] Skipping DB init — running without database (Electron offline / dev no-DB mode).
+[2026-04-24T13:40:53.471Z] [LOG] [LAUNCH:5b] opacity restored to 1 — dark frame in DWM pipeline | +240ms
+[2026-04-24T13:40:53.471Z] [LOG] [LAUNCH:5c] app:window-shown sent to renderer | +240ms
+[2026-04-24T13:40:53.471Z] [LOG] [LAUNCH:6] focus() — launch sequence complete | +240ms
+[2026-04-24T13:40:53.471Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:137) [LAUNCH] app:window-shown received — starting opacity reveal
+[2026-04-24T13:40:53.471Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R3b] app:window-shown received | t=+243ms
+[2026-04-24T13:40:53.472Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R4] reveal triggered by app:window-shown | t=+243ms
+[2026-04-24T13:40:53.472Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R4] sc-first-frame-ready set — body::before fading (120ms)
+[2026-04-24T13:40:53.472Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R5] renderer reveal started — opacity 0→1 | t=+243ms
+[2026-04-24T13:40:53.472Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST START =====
+[2026-04-24T13:40:53.472Z] [LOG] [Backend:stdout] [JWT] PASS: valid token → sub=self-test-user-000 exp=1779630053
+[2026-04-24T13:40:53.473Z] [LOG] [Backend:stdout] [JWT] PASS: invalid token → null (rejected)
+[2026-04-24T13:40:53.473Z] [LOG] [Backend:stdout] [JWT] PASS: expired token → null (rejected)
+[2026-04-24T13:40:53.473Z] [LOG] [Backend:stdout] [JWT] PASS: empty token → null (fallback to cookie path)
+[2026-04-24T13:40:53.473Z] [LOG] [Backend:stdout] [JWT] PASS: alg=none token → null (rejected)
+[2026-04-24T13:40:53.473Z] [LOG] [Backend:stdout] [JWT] PASS: wrong issuer token → null (rejected)
+[2026-04-24T13:40:53.473Z] [LOG] [Backend:stdout] [JWT] ===== SELF-TEST END =====
+[2026-04-24T13:40:53.474Z] [LOG] [Backend:stdout] [AUTH] Google OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-24T13:40:53.474Z] [LOG] [Backend:stdout] [AUTH] Using memory session store (NO-DB / Electron desktop mode)
+[2026-04-24T13:40:53.474Z] [LOG] [Backend:stdout] [AUTH] ===== SESSION COOKIE CONFIG =====
+[2026-04-24T13:40:53.474Z] [LOG] [Backend:stdout] [AUTH] production: true
+[2026-04-24T13:40:53.474Z] [LOG] [Backend:stdout] [AUTH] electronBackend: true
+[2026-04-24T13:40:53.474Z] [LOG] [Backend:stdout] [AUTH] cookie: {"httpOnly":true,"secure":false,"sameSite":"lax","maxAge":604800000,"path":"/"}
+[2026-04-24T13:40:53.474Z] [LOG] [Backend:stdout] [AUTH] ================================
+[2026-04-24T13:40:53.475Z] [LOG] [Backend:stdout] [AUTH] Discord OAuth not configured on local backend — expected in Electron mode (auth handled by cloud server).
+[2026-04-24T13:40:53.475Z] [LOG] [Backend:stdout] [SysIntelligence] Collecting full system profile…
+[2026-04-24T13:40:53.481Z] [LOG] [Backend:stdout] [Telemetry] Scheduler started — base=2s, low-end=6s, budget=5%
+[2026-04-24T13:40:53.481Z] [LOG] [Backend:stdout] [WS] Live telemetry WebSocket server ready at /ws/telemetry
+[2026-04-24T13:40:53.611Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Backend port not ready, retrying in 400ms… (elapsed 209ms, attempt 2)
+[2026-04-24T13:40:53.672Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R4b] startup-shell removed from DOM
+[2026-04-24T13:40:53.673Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R6] renderer reveal completed (200ms elapsed) | t=+444ms
+[2026-04-24T13:40:53.710Z] [LOG] [Backend:stdout] 1:40:53 AM [express] serving on 127.0.0.1:58671
+[2026-04-24T13:40:53.852Z] [LOG] [Backend] Health check PASSED — attempt 8, 569ms elapsed, body={"status":"ok","timestamp":1777038053848}
+[2026-04-24T13:40:53.853Z] [LOG] [Backend] ===== BACKEND READY =====
+[2026-04-24T13:40:53.853Z] [LOG] [Backend] PID: 21288
+[2026-04-24T13:40:53.853Z] [LOG] [Backend] Port: 58671
+[2026-04-24T13:40:53.853Z] [LOG] [Backend] Ready: true
+[2026-04-24T13:40:53.853Z] [LOG] [Backend] getBackendPort() will return: 58671
+[2026-04-24T13:40:53.854Z] [LOG] [Backend] isBackendReady() will return: true
+[2026-04-24T13:40:53.854Z] [LOG] [Backend] ========================
+[2026-04-24T13:40:53.854Z] [LOG] [STARTUP] backend ready — port 58671 (642ms)
+[2026-04-24T13:40:53.854Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:104) [Backend] backend-ready event received, port: 58671
+[2026-04-24T13:40:53.854Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Backend-ready push: base=http://127.0.0.1:58671/api (was: unset)
+[2026-04-24T13:40:53.855Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Backend port resolved: 58671 (453ms, push or poll)
+[2026-04-24T13:40:53.855Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Packaged Electron API base: http://127.0.0.1:58671/api
+[2026-04-24T13:40:53.855Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Resolved: http://127.0.0.1:58671/api | electron=true packaged=true
+[2026-04-24T13:40:53.925Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] unmounted
+[2026-04-24T13:40:53.925Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] unmounted
+[2026-04-24T13:40:55.191Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [LAUNCH:R5] Splash onComplete — handing off to App
+[2026-04-24T13:40:55.191Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-04-24T13:40:55.194Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [Auth] Boot: token present: true jwt present: true user present: true premium: false
+[2026-04-24T13:40:55.194Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [Entitlements] startup restore begin — hasCredential: true cached isPremium: false plan: trial_expired
+[2026-04-24T13:40:55.195Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [Auth] Using stored user data: 64f0e669-6db6-42e7-a68a-681f9f5db567 isPremium: false
+[2026-04-24T13:40:55.195Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T13:40:55.195Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-04-24T13:40:55.471Z] [LOG] [LAUNCH:7] starting telemetry — 2000ms post window-shown | +2240ms
+[2026-04-24T13:40:56.296Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=false plan=trial_expired trialEndsAt=2026-04-24T13:18:36.177Z hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true
+[2026-04-24T13:40:56.296Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [PremiumFlow] refreshEntitlements end isPremium=false plan=trial_expired trialEndsAt=2026-04-24T13:18:36.177Z hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=true hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T13:40:56.296Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: false isPremium: false storedIsPremium: false
+[2026-04-24T13:40:56.297Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [Entitlements] startup fetch OK — isPremium: false plan: trial_expired
+[2026-04-24T13:40:56.297Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [Premium] Grace snapshot updated — isPremium=false plan=trial_expired userId=64f0e669-6db6-42e7-a68a-681f9f5db567
+[2026-04-24T13:40:56.297Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:40:56.348Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [Network] Heartbeat started (interval=30000ms)
+[2026-04-24T13:40:56.348Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Telemetry] Manager starting
+[2026-04-24T13:40:56.349Z] [WARN] [telemetry:getLive] cache not ready yet — returning zeros. Will populate within 2s.
+[2026-04-24T13:40:56.349Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Dashboard] mounted
+[2026-04-24T13:40:56.349Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [ActivityMonitor] mounted — no cached history yet, status: loading
+[2026-04-24T13:40:56.353Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [Handoff] dashboard fade-in started
+[2026-04-24T13:40:56.353Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [PremiumExpiry] Initial state recorded — active=false
+[2026-04-24T13:40:56.353Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [PremiumExpiry] Running startup power plan sanity check...
+[2026-04-24T13:40:56.353Z] [LOG] [IPC] premium:powerPlanSanityCheck — checking active power plan
+[2026-04-24T13:40:56.355Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [TourTransition] phase entered authenticated — waiting 500ms for dashboard to stabilize
+[2026-04-24T13:40:56.364Z] [LOG] [Sanity] Power plan check clean — active plan is not SC-managed (guid=11111111-1111-1111-1111-111111111111 name="Atlas Power Scheme")
+[2026-04-24T13:40:56.365Z] [LOG] [IPC] premium:powerPlanSanityCheck done — action=clean
+[2026-04-24T13:40:56.411Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [PremiumExpiry] Sanity check result: [object Object]
+[2026-04-24T13:40:56.416Z] [LOG] [PowerPlan] deleteAllScPlans: no SC plans found to delete
+[2026-04-24T13:40:56.419Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Telemetry] WebSocket connected
+[2026-04-24T13:40:56.451Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:40:56.451Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:40:56.708Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [Handoff] dashboard fade-in complete — layout stable
+[2026-04-24T13:40:56.724Z] [LOG] [Backend:stdout] [SysIntelligence] Collection complete in 3249ms | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor | GPUs=1 | RAMsticks=2
+[2026-04-24T13:40:56.725Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [SysIntelligence] Profile loaded | MB=X870E AORUS PRO ICE | BIOS=F12a | CPU=Ryzen 7 9800X3D 8-Core Processor
+[2026-04-24T13:40:56.864Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [TourTransition] dashboard stable — tours unblocked
+[2026-04-24T13:40:56.870Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:40:56.881Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] Flow eval — isPremium: false plan: trial_expired trialEndsAt: 2026-04-24T13:18:36.177Z hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-04-24T13:40:56.881Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] No flow conditions met — staying idle
+[2026-04-24T13:40:57.536Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=1 active=1
+[2026-04-24T13:40:57.654Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:40:57.676Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:40:57.676Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:40:57.676Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:40:57.676Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Unavailable" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:40:57.953Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=2 active=2
+[2026-04-24T13:40:58.055Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT
+[2026-04-24T13:40:58.078Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:40:58.079Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:40:58.079Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:40:58.079Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:40:58.080Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:40:59.296Z] [LOG] [SwitchControl] System specs loaded: Ryzen 7 9800X3D 8-Core Processor AMD Radeon RX 7800 XT
+[2026-04-24T13:40:59.297Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:SPECS] self-loaded via Electron IPC | cpu="Ryzen 7 9800X3D 8-Core Processor" ram=31.6GB gpu="AMD Radeon RX 7800 XT"
+[2026-04-24T13:40:59.297Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:40:59.299Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:40:59.300Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:40:59.300Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:40:59.300Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:40:59.387Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:40:59.387Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:40:59.397Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] StartupApps | startup-scan | +10ms
+[2026-04-24T13:40:59.525Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=2 duration=1572ms active=1 calls60s=1
+[2026-04-24T13:40:59.525Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=1 duration=1989ms active=0 calls60s=2
+[2026-04-24T13:40:59.525Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=3 active=1
+[2026-04-24T13:40:59.711Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=4 active=2
+[2026-04-24T13:40:59.835Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:40:59.914Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] StartupApps | startup-scan-done | +526ms
+[2026-04-24T13:41:00.698Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:00.698Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:41:00.711Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | fetch-categories | +13ms
+[2026-04-24T13:41:00.711Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | fetch-history | +13ms
+[2026-04-24T13:41:00.712Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:41:00.727Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:41:00.751Z] [LOG] [Backend:stdout] [Telemetry:sched] Low-end mode ENABLED — sustained CPU avg 51%
+[2026-04-24T13:41:01.235Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=4 duration=1524ms active=1 calls60s=3
+[2026-04-24T13:41:01.235Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=3 duration=1710ms active=0 calls60s=4
+[2026-04-24T13:41:01.274Z] [INFO] Checking for update
+[2026-04-24T13:41:01.275Z] [LOG] [Updater] Checking for update...
+[2026-04-24T13:41:01.314Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:01.315Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] StartupApps | mount | +0ms
+[2026-04-24T13:41:01.321Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] StartupApps | startup-scan | +7ms
+[2026-04-24T13:41:01.527Z] [ERROR] Error: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jmvrhrms\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9f1585ef2df91c4c-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Fri, 24 Apr 2026 13:41:02 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-04-24T13:41:01.528Z] [ERROR] [Updater] Error (consecutive failures: 1): Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jmvrhrms\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9f1585ef2df91c4c-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Fri, 24 Apr 2026 13:41:02 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+[2026-04-24T13:41:01.528Z] [FATAL] unhandledRejection: Error: Cannot find channel "latest.yml" update info: HttpError: 404 Not Found
+"method: GET url: https://pub-c4010f9528c14cbd9848f2c9c7c2306d.r2.dev/latest.yml?noCache=1jmvrhrms\n\nPlease double check that your authentication token is correct. Due to security reasons, actual status maybe not reported, but 404.\n"
+Headers: {
+  "cf-ray": "9f1585ef2df91c4c-AKL",
+  "connection": "keep-alive",
+  "content-length": "27150",
+  "content-type": "text/html",
+  "date": "Fri, 24 Apr 2026 13:41:02 GMT",
+  "server": "cloudflare"
+}
+    at createHttpError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:21:12)
+    at ElectronHttpExecutor.handleResponse (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:121:20)
+    at ClientRequest.<anonymous> (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\httpExecutor.js:87:26)
+    at ClientRequest.emit (node:events:518:28)
+    at SimpleURLLoaderWrapper.<anonymous> (node:electron/js2c/browser_init:2:118140)
+    at SimpleURLLoaderWrapper.emit (node:events:518:28)
+    at newError (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\node_modules\builder-util-runtime\out\error.js:5:19)
+    at GenericProvider.getLatestVersion (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\providers\GenericProvider.js:27:63)
+    at async NsisUpdater.getUpdateInfoAndProvider (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:389:19)
+    at async NsisUpdater.doCheckForUpdates (C:\Program Files\SwitchControl\resources\app.asar\node_modules\electron-updater\out\AppUpdater.js:402:24)
+[2026-04-24T13:41:01.589Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:01.590Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:41:01.599Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | fetch-categories | +9ms
+[2026-04-24T13:41:01.599Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | fetch-history | +9ms
+[2026-04-24T13:41:01.599Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:41:01.614Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] SystemCleaner | mount | +0ms
+[2026-04-24T13:41:01.810Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] StartupApps | startup-scan-done | +496ms
+[2026-04-24T13:41:02.978Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:02.986Z] [LOG] [PS:nic-executor] #1 queryPS SPAWN ts=1777038062986
+[2026-04-24T13:41:03.235Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=5 active=1
+[2026-04-24T13:41:03.402Z] [LOG] [PS:nic-executor] #1 queryPS OK 416ms
+[2026-04-24T13:41:03.406Z] [LOG] [PS:nic-executor] #2 queryPS SPAWN ts=1777038063406
+[2026-04-24T13:41:03.545Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=6 active=2
+[2026-04-24T13:41:03.548Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:03.549Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:41:03.552Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:41:03.562Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | mount | +13ms
+[2026-04-24T13:41:03.568Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:41:03.570Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 0
+[2026-04-24T13:41:03.573Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:41:03.611Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | scan-start | +62ms
+[2026-04-24T13:41:03.612Z] [LOG] [AppBooster] Epic manifest: fortnitelauncher.exe → C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:41:03.833Z] [LOG] [AppBooster] Running processes mapped: 64 exe(s) found
+[2026-04-24T13:41:03.834Z] [LOG] [AppBooster]   fortnite: detected=true path=C:\Program Files\Epic Games\Fortnite\FortniteGame\Binaries\Win64
+[2026-04-24T13:41:03.835Z] [LOG] [AppBooster]   apex-legends: detected=false
+[2026-04-24T13:41:03.837Z] [LOG] [AppBooster]   warzone: detected=false
+[2026-04-24T13:41:03.838Z] [LOG] [AppBooster]   valorant: detected=false
+[2026-04-24T13:41:03.839Z] [LOG] [AppBooster]   cs2: detected=false
+[2026-04-24T13:41:03.841Z] [LOG] [AppBooster]   overwatch2: detected=false
+[2026-04-24T13:41:03.842Z] [LOG] [AppBooster]   rainbow-six-siege: detected=false
+[2026-04-24T13:41:03.843Z] [LOG] [AppBooster]   msfs-2024: detected=false
+[2026-04-24T13:41:03.844Z] [LOG] [AppBooster]   msfs-2020: detected=false
+[2026-04-24T13:41:03.846Z] [LOG] [AppBooster]   gta5: detected=false
+[2026-04-24T13:41:03.847Z] [LOG] [AppBooster]   cyberpunk: detected=false
+[2026-04-24T13:41:03.849Z] [LOG] [AppBooster]   elden-ring: detected=false
+[2026-04-24T13:41:03.850Z] [LOG] [AppBooster]   league-of-legends: detected=false
+[2026-04-24T13:41:03.851Z] [LOG] [AppBooster]   world-of-warcraft: detected=false
+[2026-04-24T13:41:03.852Z] [LOG] [AppBooster]   rocket-league: detected=false
+[2026-04-24T13:41:03.853Z] [LOG] [AppBooster]   minecraft: detected=false
+[2026-04-24T13:41:03.854Z] [LOG] [AppBooster] scanGames done — 1/16 detected
+[2026-04-24T13:41:03.854Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:41:03.855Z] [LOG] [PS:nic-executor] #2 queryPS OK 449ms
+[2026-04-24T13:41:03.857Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] Fetching CSRF token from http://127.0.0.1:58671/api/csrf-token
+[2026-04-24T13:41:03.861Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [API] CSRF token cached in memory (cookie may be cross-origin inaccessible)
+[2026-04-24T13:41:03.862Z] [LOG] [Backend:stdout] [AppBooster] POST /games/scan userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — 16 result(s), 1 detected
+[2026-04-24T13:41:03.864Z] [LOG] [Backend:stdout] [AppBooster] GET /games userId=64f0e669-6db6-42e7-a68a-681f9f5db567 — catalog: 16, installed: 1
+[2026-04-24T13:41:03.866Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | scan-done | +317ms
+[2026-04-24T13:41:03.866Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:41:03.867Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:41:03.872Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [GameIcon] LOAD OK — slug="fortnite" src="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:41:03.873Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] AppBooster | mount | +0ms
+[2026-04-24T13:41:03.874Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [GameIcon] slug="fortnite" → canon="fortnite" source=vite-bundle url="file:///C:/Program%20Files/SwitchControl/resources/dist/assets/fortnite-DrcFSly3.png"
+[2026-04-24T13:41:03.906Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:03.956Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [Tweaks:LOAD] source=zustand-persist enabled=30 total_known=47
+[2026-04-24T13:41:03.956Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [Tweaks:LOAD] enabled_ids=notifications, copilot, cortana, search-highlights, storage-sense, compact-explorer, recent-files, disable-pointer-precision, disable-animations, show-file-extensions, hibernation, fast-startup, energy-logging, maintenance, vbs, page-combining, superfetch, mem-opt, telemetry, bluetooth, xbox-services, fax-printer, synth-timers, disable-mpo, usb-selective-suspend, pcie-link-state, disable-delivery-opt, disable-activity-history, power-throttling, disable-auto-restart-apps
+[2026-04-24T13:41:03.956Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [Tweaks:SYNC] hydration start gen=1
+[2026-04-24T13:41:03.957Z] [LOG] [PS] start file=main.js fn=tweak:syncAll reason=tweak-sync-all id=7 active=3
+[2026-04-24T13:41:03.957Z] [LOG] [PS-Exec] start file=main.js fn=tweak:syncAll reason=tweak-sync-all — 48 checks
+[2026-04-24T13:41:03.957Z] [LOG] [PS:tweak-executor] #1 queryPowerShell SPAWN ts=1777038063957 active=1
+[2026-04-24T13:41:04.077Z] [LOG] [PS:tweak-executor] #1 queryPowerShell OK 120ms
+[2026-04-24T13:41:04.077Z] [LOG] [PS:tweak-executor] #2 queryPowerShell SPAWN ts=1777038064077 active=1
+[2026-04-24T13:41:04.163Z] [LOG] [PS:tweak-executor] #2 queryPowerShell OK 86ms
+[2026-04-24T13:41:04.164Z] [LOG] [PS:tweak-executor] #3 queryPowerShell SPAWN ts=1777038064164 active=1
+[2026-04-24T13:41:04.250Z] [LOG] [PS:tweak-executor] #3 queryPowerShell OK 86ms
+[2026-04-24T13:41:04.250Z] [LOG] [PS:tweak-executor] #4 queryPowerShell SPAWN ts=1777038064250 active=1
+[2026-04-24T13:41:04.340Z] [LOG] [PS:tweak-executor] #4 queryPowerShell OK 90ms
+[2026-04-24T13:41:04.340Z] [LOG] [PS:tweak-executor] #5 queryPowerShell SPAWN ts=1777038064340 active=1
+[2026-04-24T13:41:04.397Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:04.400Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-04-24T13:41:04.400Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-04-24T13:41:04.429Z] [LOG] [PS:tweak-executor] #5 queryPowerShell OK 89ms
+[2026-04-24T13:41:04.429Z] [LOG] [PS:tweak-executor] #6 queryPowerShell SPAWN ts=1777038064429 active=1
+[2026-04-24T13:41:04.517Z] [LOG] [PS:tweak-executor] #6 queryPowerShell OK 88ms
+[2026-04-24T13:41:04.517Z] [LOG] [PS:tweak-executor] #7 queryPowerShell SPAWN ts=1777038064517 active=1
+[2026-04-24T13:41:04.602Z] [LOG] [PS:tweak-executor] #7 queryPowerShell OK 85ms
+[2026-04-24T13:41:04.603Z] [LOG] [PS:tweak-executor] #8 queryPowerShell SPAWN ts=1777038064603 active=1
+[2026-04-24T13:41:04.687Z] [LOG] [PS:tweak-executor] #8 queryPowerShell OK 84ms
+[2026-04-24T13:41:04.688Z] [LOG] [PS:tweak-executor] #9 queryPowerShell SPAWN ts=1777038064688 active=1
+[2026-04-24T13:41:04.772Z] [LOG] [PS:tweak-executor] #9 queryPowerShell OK 84ms
+[2026-04-24T13:41:04.772Z] [LOG] [PS:tweak-executor] #10 queryPowerShell SPAWN ts=1777038064772 active=1
+[2026-04-24T13:41:04.856Z] [LOG] [PS:tweak-executor] #10 queryPowerShell OK 84ms
+[2026-04-24T13:41:04.856Z] [LOG] [PS:tweak-executor] #11 queryPowerShell SPAWN ts=1777038064856 active=1
+[2026-04-24T13:41:04.940Z] [LOG] [PS:tweak-executor] #11 queryPowerShell OK 84ms
+[2026-04-24T13:41:04.940Z] [LOG] [PS:tweak-executor] #12 queryPowerShell SPAWN ts=1777038064940 active=1
+[2026-04-24T13:41:05.024Z] [LOG] [PS:tweak-executor] #12 queryPowerShell OK 84ms
+[2026-04-24T13:41:05.024Z] [LOG] [PS:tweak-executor] #13 queryPowerShell SPAWN ts=1777038065024 active=1
+[2026-04-24T13:41:05.101Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=6 duration=1556ms active=2 calls60s=5
+[2026-04-24T13:41:05.102Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=5 duration=1867ms active=1 calls60s=6
+[2026-04-24T13:41:05.109Z] [LOG] [PS:tweak-executor] #13 queryPowerShell OK 85ms
+[2026-04-24T13:41:05.109Z] [LOG] [PS:tweak-executor] #14 queryPowerShell SPAWN ts=1777038065109 active=1
+[2026-04-24T13:41:05.198Z] [LOG] [PS:tweak-executor] #14 queryPowerShell OK 89ms
+[2026-04-24T13:41:05.198Z] [LOG] [PS:tweak-executor] #15 queryPowerShell SPAWN ts=1777038065198 active=1
+[2026-04-24T13:41:05.285Z] [LOG] [PS:tweak-executor] #15 queryPowerShell OK 87ms
+[2026-04-24T13:41:05.286Z] [LOG] [PS:tweak-executor] #16 queryPowerShell SPAWN ts=1777038065286 active=1
+[2026-04-24T13:41:05.374Z] [LOG] [PS:tweak-executor] #16 queryPowerShell OK 88ms
+[2026-04-24T13:41:05.374Z] [LOG] [PS:tweak-executor] #17 queryPowerShell SPAWN ts=1777038065374 active=1
+[2026-04-24T13:41:05.388Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:05.415Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Dashboard] mounted
+[2026-04-24T13:41:05.415Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [ActivityMonitor] reused cached state — history points: 6 status: ready
+[2026-04-24T13:41:05.417Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:41:05.417Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:41:05.455Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:05.480Z] [LOG] [PS:tweak-executor] #17 queryPowerShell OK 106ms
+[2026-04-24T13:41:05.481Z] [LOG] [PS:tweak-executor] #18 queryPowerShell SPAWN ts=1777038065481 active=1
+[2026-04-24T13:41:05.625Z] [LOG] [PS:tweak-executor] #18 queryPowerShell OK 144ms
+[2026-04-24T13:41:05.626Z] [LOG] [PS:tweak-executor] #19 queryPowerShell SPAWN ts=1777038065626 active=1
+[2026-04-24T13:41:06.050Z] [LOG] [PS:tweak-executor] #19 queryPowerShell OK 424ms
+[2026-04-24T13:41:06.050Z] [LOG] [PS:tweak-executor] #20 queryPowerShell SPAWN ts=1777038066050 active=1
+[2026-04-24T13:41:06.138Z] [LOG] [PS:tweak-executor] #20 queryPowerShell OK 88ms
+[2026-04-24T13:41:06.138Z] [LOG] [PS:tweak-executor] #21 queryPowerShell SPAWN ts=1777038066138 active=1
+[2026-04-24T13:41:06.239Z] [LOG] [PS:tweak-executor] #21 queryPowerShell OK 101ms
+[2026-04-24T13:41:06.240Z] [LOG] [PS:tweak-executor] #22 queryPowerShell SPAWN ts=1777038066240 active=1
+[2026-04-24T13:41:06.338Z] [LOG] [PS:tweak-executor] #22 queryPowerShell OK 98ms
+[2026-04-24T13:41:06.338Z] [LOG] [PS:tweak-executor] #23 queryPowerShell SPAWN ts=1777038066338 active=1
+[2026-04-24T13:41:06.461Z] [LOG] [PS:tweak-executor] #23 queryPowerShell OK 123ms
+[2026-04-24T13:41:06.461Z] [LOG] [PS:tweak-executor] #24 queryPowerShell SPAWN ts=1777038066461 active=1
+[2026-04-24T13:41:06.556Z] [LOG] [PS:tweak-executor] #24 queryPowerShell OK 95ms
+[2026-04-24T13:41:06.557Z] [LOG] [PS:tweak-executor] #25 queryPowerShell SPAWN ts=1777038066557 active=1
+[2026-04-24T13:41:06.710Z] [LOG] [PS:tweak-executor] #25 queryPowerShell OK 153ms
+[2026-04-24T13:41:06.711Z] [LOG] [PS:tweak-executor] #26 queryPowerShell SPAWN ts=1777038066711 active=1
+[2026-04-24T13:41:06.807Z] [LOG] [PS:tweak-executor] #26 queryPowerShell OK 96ms
+[2026-04-24T13:41:06.807Z] [LOG] [PS:tweak-executor] #27 queryPowerShell SPAWN ts=1777038066807 active=1
+[2026-04-24T13:41:06.906Z] [LOG] [PS:tweak-executor] #27 queryPowerShell OK 99ms
+[2026-04-24T13:41:06.906Z] [LOG] [PS:tweak-executor] #28 queryPowerShell SPAWN ts=1777038066906 active=1
+[2026-04-24T13:41:07.001Z] [LOG] [PS:tweak-executor] #28 queryPowerShell OK 95ms
+[2026-04-24T13:41:07.001Z] [LOG] [PS:tweak-executor] #29 queryPowerShell SPAWN ts=1777038067001 active=1
+[2026-04-24T13:41:07.095Z] [LOG] [PS:tweak-executor] #29 queryPowerShell OK 94ms
+[2026-04-24T13:41:07.096Z] [LOG] [PS:tweak-executor] #30 queryPowerShell SPAWN ts=1777038067096 active=1
+[2026-04-24T13:41:07.102Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=8 active=2
+[2026-04-24T13:41:07.247Z] [LOG] [PS:tweak-executor] #30 queryPowerShell OK 151ms
+[2026-04-24T13:41:07.248Z] [LOG] [TweakSupport] id=nvidia-telemetry, supported=false, reason="No NVIDIA GPU detected", os=10.0.26200, helperFound=false
+[2026-04-24T13:41:07.248Z] [LOG] [PS:tweak-executor] #31 queryPowerShell SPAWN ts=1777038067248 active=1
+[2026-04-24T13:41:07.308Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=9 active=3
+[2026-04-24T13:41:07.349Z] [LOG] [PS:tweak-executor] #31 queryPowerShell OK 101ms
+[2026-04-24T13:41:07.349Z] [LOG] [PS:tweak-executor] #32 queryPowerShell SPAWN ts=1777038067349 active=1
+[2026-04-24T13:41:07.445Z] [LOG] [PS:tweak-executor] #32 queryPowerShell OK 96ms
+[2026-04-24T13:41:07.445Z] [LOG] [PS:tweak-executor] #33 queryPowerShell SPAWN ts=1777038067445 active=1
+[2026-04-24T13:41:07.550Z] [LOG] [PS:tweak-executor] #33 queryPowerShell OK 105ms
+[2026-04-24T13:41:07.551Z] [LOG] [PS:tweak-executor] #34 queryPowerShell SPAWN ts=1777038067551 active=1
+[2026-04-24T13:41:07.651Z] [LOG] [PS:tweak-executor] #34 queryPowerShell OK 100ms
+[2026-04-24T13:41:07.652Z] [LOG] [PS:tweak-executor] #35 queryPowerShell SPAWN ts=1777038067652 active=1
+[2026-04-24T13:41:07.749Z] [LOG] [PS:tweak-executor] #35 queryPowerShell OK 97ms
+[2026-04-24T13:41:07.749Z] [LOG] [PS:tweak-executor] #36 queryPowerShell SPAWN ts=1777038067749 active=1
+[2026-04-24T13:41:07.839Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:07.871Z] [LOG] [PS:tweak-executor] #36 queryPowerShell OK 122ms
+[2026-04-24T13:41:07.872Z] [LOG] [PS:tweak-executor] #37 queryPowerShell SPAWN ts=1777038067872 active=1
+[2026-04-24T13:41:07.969Z] [LOG] [PS:tweak-executor] #37 queryPowerShell OK 97ms
+[2026-04-24T13:41:07.969Z] [LOG] [PS:tweak-executor] #38 queryPowerShell SPAWN ts=1777038067969 active=1
+[2026-04-24T13:41:08.059Z] [LOG] [PS:tweak-executor] #38 queryPowerShell OK 90ms
+[2026-04-24T13:41:08.059Z] [LOG] [PS:tweak-executor] #39 queryPowerShell SPAWN ts=1777038068059 active=1
+[2026-04-24T13:41:08.169Z] [LOG] [PS:tweak-executor] #39 queryPowerShell OK 110ms
+[2026-04-24T13:41:08.169Z] [LOG] [TweakSupport] id=usb-selective-suspend, supported=true, reason="powercfg USB setting present", os=10.0.26200, helperFound=true
+[2026-04-24T13:41:08.169Z] [LOG] [PS:tweak-executor] #40 queryPowerShell SPAWN ts=1777038068169 active=1
+[2026-04-24T13:41:08.282Z] [LOG] [PS:tweak-executor] #40 queryPowerShell OK 113ms
+[2026-04-24T13:41:08.282Z] [LOG] [PS:tweak-executor] #41 queryPowerShell SPAWN ts=1777038068282 active=1
+[2026-04-24T13:41:08.380Z] [LOG] [PS:tweak-executor] #41 queryPowerShell OK 98ms
+[2026-04-24T13:41:08.380Z] [LOG] [PS:tweak-executor] #42 queryPowerShell SPAWN ts=1777038068380 active=1
+[2026-04-24T13:41:08.480Z] [LOG] [PS:tweak-executor] #42 queryPowerShell OK 100ms
+[2026-04-24T13:41:08.480Z] [LOG] [PS:tweak-executor] #43 queryPowerShell SPAWN ts=1777038068480 active=1
+[2026-04-24T13:41:08.571Z] [LOG] [PS:tweak-executor] #43 queryPowerShell OK 91ms
+[2026-04-24T13:41:08.572Z] [LOG] [PS:tweak-executor] #44 queryPowerShell SPAWN ts=1777038068572 active=1
+[2026-04-24T13:41:08.665Z] [LOG] [PS:tweak-executor] #44 queryPowerShell OK 93ms
+[2026-04-24T13:41:08.666Z] [LOG] [PS:tweak-executor] #45 queryPowerShell SPAWN ts=1777038068666 active=1
+[2026-04-24T13:41:08.758Z] [LOG] [PS:tweak-executor] #45 queryPowerShell OK 92ms
+[2026-04-24T13:41:08.758Z] [LOG] [PS:tweak-executor] #46 queryPowerShell SPAWN ts=1777038068758 active=1
+[2026-04-24T13:41:08.850Z] [LOG] [PS:tweak-executor] #46 queryPowerShell OK 92ms
+[2026-04-24T13:41:08.851Z] [LOG] [PS:tweak-executor] #47 queryPowerShell SPAWN ts=1777038068851 active=1
+[2026-04-24T13:41:08.890Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=9 duration=1582ms active=2 calls60s=7
+[2026-04-24T13:41:08.891Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=8 duration=1789ms active=1 calls60s=8
+[2026-04-24T13:41:08.947Z] [LOG] [PS:tweak-executor] #47 queryPowerShell OK 96ms
+[2026-04-24T13:41:08.947Z] [LOG] [PS:tweak-executor] #48 queryPowerShell SPAWN ts=1777038068947 active=1
+[2026-04-24T13:41:09.043Z] [LOG] [PS:tweak-executor] #48 queryPowerShell OK 96ms
+[2026-04-24T13:41:09.044Z] [LOG] [PS-Exec] done file=main.js fn=tweak:syncAll ms=5087
+[2026-04-24T13:41:09.044Z] [LOG] [PS] end file=main.js fn=tweak:syncAll id=7 duration=5087ms active=0 calls60s=9
+[2026-04-24T13:41:09.045Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="gaming-mode" enabled=false (from system sync)
+[2026-04-24T13:41:09.045Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="notifications" enabled=true (from system sync)
+[2026-04-24T13:41:09.045Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="copilot" enabled=true (from system sync)
+[2026-04-24T13:41:09.045Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="cortana" enabled=true (from system sync)
+[2026-04-24T13:41:09.045Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="search-highlights" enabled=true (from system sync)
+[2026-04-24T13:41:09.045Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="storage-sense" enabled=true (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="compact-explorer" enabled=true (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="recent-files" enabled=true (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="xbox-bar" enabled=false (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="bg-apps" enabled=false (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-fso" enabled=false (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-pointer-precision" enabled=true (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-transparency" enabled=false (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-animations" enabled=true (from system sync)
+[2026-04-24T13:41:09.046Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="show-file-extensions" enabled=true (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="explorer-separate-process" enabled=false (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="hibernation" enabled=true (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="fast-startup" enabled=true (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="energy-logging" enabled=true (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="maintenance" enabled=true (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="core-isolation" enabled=false (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="vbs" enabled=true (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="hyper-v" enabled=false (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="large-system-cache" enabled=false (from system sync)
+[2026-04-24T13:41:09.047Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="page-combining" enabled=true (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="prefetch" enabled=false (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="superfetch" enabled=true (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="mem-opt" enabled=true (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="telemetry" enabled=true (from system sync)
+[2026-04-24T13:41:09.048Z] [ERROR] [Renderer:warn] (index-BH1mEikA.js:179) [TweakSupport] id=nvidia-telemetry, supported=false, reason="Backend confirmed this tweak is not available on this system." (runtime check)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="tune-priority" enabled=false (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="bluetooth" enabled=true (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="wifi" enabled=false (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="xbox-services" enabled=true (from system sync)
+[2026-04-24T13:41:09.048Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="fax-printer" enabled=true (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="synth-timers" enabled=true (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="preemption" enabled=false (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-mpo" enabled=true (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="usb-selective-suspend" enabled=true (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="pcie-link-state" enabled=true (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="mmcss-gaming" enabled=false (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-delivery-opt" enabled=true (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-wer" enabled=false (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="win-search-index" enabled=false (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-activity-history" enabled=true (from system sync)
+[2026-04-24T13:41:09.049Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="power-throttling" enabled=true (from system sync)
+[2026-04-24T13:41:09.050Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="ntfs-last-access" enabled=false (from system sync)
+[2026-04-24T13:41:09.050Z] [LOG] [Renderer:info] (index-BH1mEikA.js:28) [Tweaks:SET] id="disable-auto-restart-apps" enabled=true (from system sync)
+[2026-04-24T13:41:09.050Z] [LOG] [Renderer:info] (index-BH1mEikA.js:179) [Tweaks:SYNC] hydration done gen=1 reconciled=47
+[2026-04-24T13:41:09.050Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: false storedIsPremium: false
+[2026-04-24T13:41:10.891Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=10 active=1
+[2026-04-24T13:41:11.083Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=11 active=2
+[2026-04-24T13:41:12.634Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=11 duration=1551ms active=1 calls60s=10
+[2026-04-24T13:41:12.634Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=10 duration=1743ms active=0 calls60s=11
+[2026-04-24T13:41:14.635Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=12 active=1
+[2026-04-24T13:41:14.973Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=13 active=2
+[2026-04-24T13:41:16.493Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=13 duration=1520ms active=1 calls60s=12
+[2026-04-24T13:41:16.493Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=12 duration=1858ms active=0 calls60s=13
+[2026-04-24T13:41:18.494Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=14 active=1
+[2026-04-24T13:41:18.688Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=15 active=2
+[2026-04-24T13:41:18.693Z] [LOG] [Backend:stdout] [Telemetry:sched] Low-end mode DISABLED — sustained CPU avg 35%
+[2026-04-24T13:41:20.178Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=15 duration=1490ms active=1 calls60s=14
+[2026-04-24T13:41:20.179Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=14 duration=1685ms active=0 calls60s=15
+[2026-04-24T13:41:20.232Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [App] Window focused, refreshing entitlements...
+[2026-04-24T13:41:20.232Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [Entitlements] refreshEntitlements → https://switchcontrol.org/api/me jwt=present
+[2026-04-24T13:41:20.233Z] [LOG] [Renderer:info] (C:\Program Files\SwitchControl\resources\app.asar\preload.js:124) [Window] Focus event received
+[2026-04-24T13:41:20.233Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [App] Electron window focus (passive)
+[2026-04-24T13:41:20.578Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [PremiumFlow] /api/me status=200 authMode=jwt loggedIn=true isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=false
+[2026-04-24T13:41:20.578Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [PremiumFlow] refreshEntitlements end isPremium=true plan=premium trialEndsAt=null hasSeenTrialActivation=true hasSeenTrialTour=true hasSeenPremiumUnlock=false hasSeenPremiumTour=true authMode=jwt
+[2026-04-24T13:41:20.578Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:20.586Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: false hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: false trialUnlockFired: false
+[2026-04-24T13:41:20.586Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] PRIORITY 4: Premium unlock animation — triggering
+[2026-04-24T13:41:20.587Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:20.603Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [CloudAPI] 2026-04-24T13:41:20.603Z | POST /device/premium-validate | auth=true | base=https://switchcontrol.org/api
+[2026-04-24T13:41:21.249Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [CloudAPI] OK | POST /device/premium-validate | status=200
+[2026-04-24T13:41:21.250Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [DeviceLock] First bind — device registered
+[2026-04-24T13:41:21.250Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:21.365Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] Unlock animation complete — transitioning to premiumTour
+[2026-04-24T13:41:21.365Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [PremiumUnlock] posting unlock-seen...
+[2026-04-24T13:41:21.365Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:21.372Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] mounted (invisible)
+[2026-04-24T13:41:21.432Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:41:21.433Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:41:21.452Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] revealed — first visible frame
+[2026-04-24T13:41:21.769Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [PremiumUnlock] unlock-seen success
+[2026-04-24T13:41:21.770Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:21.784Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] card fully visible
+[2026-04-24T13:41:22.179Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=16 active=1
+[2026-04-24T13:41:22.367Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=17 active=2
+[2026-04-24T13:41:23.849Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=17 duration=1482ms active=1 calls60s=16
+[2026-04-24T13:41:23.850Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=16 duration=1671ms active=0 calls60s=17
+[2026-04-24T13:41:25.850Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=18 active=1
+[2026-04-24T13:41:26.049Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=19 active=2
+[2026-04-24T13:41:27.526Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=19 duration=1477ms active=1 calls60s=18
+[2026-04-24T13:41:27.526Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=18 duration=1676ms active=0 calls60s=19
+[2026-04-24T13:41:29.526Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=20 active=1
+[2026-04-24T13:41:29.718Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=21 active=2
+[2026-04-24T13:41:31.204Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=21 duration=1486ms active=1 calls60s=20
+[2026-04-24T13:41:31.205Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=20 duration=1679ms active=0 calls60s=21
+[2026-04-24T13:41:33.074Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] Premium tour complete — persisting before clearing flow
+[2026-04-24T13:41:33.075Z] [LOG] [Renderer:info] (index-BH1mEikA.js:10) [PremiumTour] posting tour-seen...
+[2026-04-24T13:41:33.075Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:33.125Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:41:33.125Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:11) Error: <circle> attribute r: Expected length, "undefined".
+[2026-04-24T13:41:33.205Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=22 active=1
+[2026-04-24T13:41:33.338Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:10) [PremiumTour] tour-seen failed status=500
+[2026-04-24T13:41:33.341Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:33.347Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] tour dismissed — fading out
+[2026-04-24T13:41:33.348Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] Flow eval — isPremium: true plan: premium trialEndsAt: null hasSeenTrialActivation: true hasSeenTrialTour: true hasSeenUnlock: true hasSeenTour: true isFirstTimeUser: false isFirstLogin: false entitlementsAttempted: true entitlementsOk: true unlockFired: true trialUnlockFired: false
+[2026-04-24T13:41:33.348Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [AppFlow] No flow conditions met — staying idle
+[2026-04-24T13:41:33.553Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=23 active=2
+[2026-04-24T13:41:33.851Z] [LOG] [Renderer:info] (index-BH1mEikA.js:26) [TourTransition] unmounted
+[2026-04-24T13:41:35.032Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=23 duration=1479ms active=1 calls60s=22
+[2026-04-24T13:41:35.032Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=22 duration=1827ms active=0 calls60s=23
+[2026-04-24T13:41:35.344Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:35.344Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:41:35.344Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [NetworkTweaks:CACHE] cache miss — initialising to idle
+[2026-04-24T13:41:35.370Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] NetworkTweaks | fetch-state | +26ms
+[2026-04-24T13:41:35.370Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:41:35.395Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] NetworkTweaks | fetch-state-done | +51ms
+[2026-04-24T13:41:35.396Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:41:35.488Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:41:35.935Z] [LOG] [Renderer:info] (index-BH1mEikA.js:172) [Timing] NetworkTweaks | mount | +0ms
+[2026-04-24T13:41:37.012Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:37.014Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:9) Error: <path> attribute d: Expected path command, "M -200 70% Q 300 55% 600 …".
+[2026-04-24T13:41:37.015Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:9) Error: <path> attribute d: Expected path command, "M 0 20% Q 400 35% 700 …".
+[2026-04-24T13:41:37.032Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=24 active=1
+[2026-04-24T13:41:37.215Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=25 active=2
+[2026-04-24T13:41:38.690Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=25 duration=1475ms active=1 calls60s=24
+[2026-04-24T13:41:38.690Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=24 duration=1658ms active=0 calls60s=25
+[2026-04-24T13:41:40.690Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=26 active=1
+[2026-04-24T13:41:40.996Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=27 active=2
+[2026-04-24T13:41:41.154Z] [LOG] [Renderer:info] (index-BH1mEikA.js:246) [PremiumTruth] authContextValue — entitlementsVerified: true isPremium: true storedIsPremium: true
+[2026-04-24T13:41:41.168Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:41.169Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:41.169Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:41.169Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:41.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:41.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:41.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:41.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:42.469Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=27 duration=1473ms active=1 calls60s=26
+[2026-04-24T13:41:42.469Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=26 duration=1779ms active=0 calls60s=27
+[2026-04-24T13:41:43.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:43.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:43.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:43.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:44.468Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=28 active=1
+[2026-04-24T13:41:44.652Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=29 active=2
+[2026-04-24T13:41:45.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:45.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:45.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:45.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:45.518Z] [LOG] [Renderer:info] (index-BH1mEikA.js:239) [AI:INPUT] sending_message="what is my ram?"
+[2026-04-24T13:41:45.519Z] [LOG] [Renderer:info] (index-BH1mEikA.js:239) [AI:INPUT] enabled_tweaks=30 disabled_tweaks=32
+[2026-04-24T13:41:45.519Z] [LOG] [Renderer:info] (index-BH1mEikA.js:239) [AI:INPUT] enabled_tweak_ids=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:45.519Z] [LOG] [Renderer:info] (index-BH1mEikA.js:239) [AI:INPUT] hardware cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz"
+[2026-04-24T13:41:45.525Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [CloudAPI] 2026-04-24T13:41:45.525Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api
+[2026-04-24T13:41:46.087Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:29) [CloudAPI] HTTP 500 | POST /ai/chat | SwitchControl services are temporarily unavailable. Local tools still work.
+[2026-04-24T13:41:46.087Z] [ERROR] [Renderer:warn] (index-BH1mEikA.js:29) [CloudAPI] Server error (500) on attempt 1, retrying in 1500ms...
+[2026-04-24T13:41:46.119Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=29 duration=1467ms active=1 calls60s=28
+[2026-04-24T13:41:46.119Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=28 duration=1651ms active=0 calls60s=29
+[2026-04-24T13:41:47.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:47.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:47.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:47.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:47.587Z] [LOG] [Renderer:info] (index-BH1mEikA.js:29) [CloudAPI] 2026-04-24T13:41:47.587Z | POST /ai/chat | auth=true | base=https://switchcontrol.org/api | retry=1
+[2026-04-24T13:41:48.005Z] [ERROR] [Renderer:error] (index-BH1mEikA.js:29) [CloudAPI] HTTP 500 | POST /ai/chat | SwitchControl services are temporarily unavailable. Local tools still work.
+[2026-04-24T13:41:48.119Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=30 active=1
+[2026-04-24T13:41:48.303Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=31 active=2
+[2026-04-24T13:41:49.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:49.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:49.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:49.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:49.772Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=31 duration=1469ms active=1 calls60s=30
+[2026-04-24T13:41:49.773Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=30 duration=1654ms active=0 calls60s=31
+[2026-04-24T13:41:51.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:51.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:51.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:51.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:51.773Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=32 active=1
+[2026-04-24T13:41:52.103Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=33 active=2
+[2026-04-24T13:41:53.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:53.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:53.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:53.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:53.569Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=33 duration=1466ms active=1 calls60s=32
+[2026-04-24T13:41:53.569Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=32 duration=1796ms active=0 calls60s=33
+[2026-04-24T13:41:55.491Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:55.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:55.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:55.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:55.570Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=34 active=1
+[2026-04-24T13:41:55.919Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=35 active=2
+[2026-04-24T13:41:57.386Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=35 duration=1467ms active=1 calls60s=34
+[2026-04-24T13:41:57.386Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=34 duration=1816ms active=0 calls60s=35
+[2026-04-24T13:41:57.492Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:57.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:57.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:57.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:59.387Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=36 active=1
+[2026-04-24T13:41:59.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:41:59.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:41:59.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:41:59.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:41:59.569Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=37 active=2
+[2026-04-24T13:42:01.041Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=37 duration=1472ms active=1 calls60s=34
+[2026-04-24T13:42:01.042Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=36 duration=1655ms active=0 calls60s=35
+[2026-04-24T13:42:01.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:01.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:01.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:01.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:03.042Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=38 active=1
+[2026-04-24T13:42:03.224Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=39 active=2
+[2026-04-24T13:42:03.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:03.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:03.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:03.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:04.734Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=39 duration=1510ms active=1 calls60s=34
+[2026-04-24T13:42:04.734Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=38 duration=1692ms active=0 calls60s=35
+[2026-04-24T13:42:05.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:05.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:05.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:05.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:06.735Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=40 active=1
+[2026-04-24T13:42:06.923Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=41 active=2
+[2026-04-24T13:42:07.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:07.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:07.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:07.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:08.443Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=41 duration=1520ms active=1 calls60s=34
+[2026-04-24T13:42:08.443Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=40 duration=1708ms active=0 calls60s=35
+[2026-04-24T13:42:09.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:09.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:09.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:09.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:10.444Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=42 active=1
+[2026-04-24T13:42:10.803Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=43 active=2
+[2026-04-24T13:42:11.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:11.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:11.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:11.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:12.347Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=43 duration=1544ms active=1 calls60s=33
+[2026-04-24T13:42:12.347Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=42 duration=1903ms active=0 calls60s=34
+[2026-04-24T13:42:13.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:13.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:13.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:13.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:14.348Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=44 active=1
+[2026-04-24T13:42:14.549Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=45 active=2
+[2026-04-24T13:42:15.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:15.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:15.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:15.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:16.095Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=45 duration=1546ms active=1 calls60s=33
+[2026-04-24T13:42:16.096Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=44 duration=1748ms active=0 calls60s=34
+[2026-04-24T13:42:17.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:17.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:17.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:17.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:18.096Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=46 active=1
+[2026-04-24T13:42:18.411Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=47 active=2
+[2026-04-24T13:42:19.493Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:19.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:19.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:19.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:19.993Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=47 duration=1582ms active=1 calls60s=33
+[2026-04-24T13:42:19.993Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=46 duration=1897ms active=0 calls60s=34
+[2026-04-24T13:42:21.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:21.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:21.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:21.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:21.992Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=48 active=1
+[2026-04-24T13:42:22.178Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=49 active=2
+[2026-04-24T13:42:23.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:23.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:23.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:23.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:23.702Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=49 duration=1524ms active=1 calls60s=33
+[2026-04-24T13:42:23.702Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=48 duration=1710ms active=0 calls60s=34
+[2026-04-24T13:42:25.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:25.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:25.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:25.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:25.703Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=50 active=1
+[2026-04-24T13:42:25.898Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=51 active=2
+[2026-04-24T13:42:27.425Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=51 duration=1527ms active=1 calls60s=33
+[2026-04-24T13:42:27.425Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=50 duration=1722ms active=0 calls60s=34
+[2026-04-24T13:42:27.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:27.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:27.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:27.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:29.426Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=52 active=1
+[2026-04-24T13:42:29.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:29.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:29.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:29.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:29.767Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=53 active=2
+[2026-04-24T13:42:31.309Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=53 duration=1542ms active=1 calls60s=31
+[2026-04-24T13:42:31.310Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=52 duration=1884ms active=0 calls60s=32
+[2026-04-24T13:42:31.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:31.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:31.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:31.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:33.310Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=54 active=1
+[2026-04-24T13:42:33.496Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=55 active=2
+[2026-04-24T13:42:33.497Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:33.498Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:33.498Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:33.498Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:35.022Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=55 duration=1526ms active=1 calls60s=33
+[2026-04-24T13:42:35.022Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=54 duration=1712ms active=0 calls60s=34
+[2026-04-24T13:42:35.494Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:35.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:35.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:35.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:37.022Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=56 active=1
+[2026-04-24T13:42:37.213Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=57 active=2
+[2026-04-24T13:42:37.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:37.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:37.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:37.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:38.741Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=57 duration=1528ms active=1 calls60s=31
+[2026-04-24T13:42:38.741Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=56 duration=1719ms active=0 calls60s=32
+[2026-04-24T13:42:39.495Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:39.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:39.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:39.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:40.742Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=58 active=1
+[2026-04-24T13:42:40.944Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=59 active=2
+[2026-04-24T13:42:41.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:41.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:41.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:41.496Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:42.476Z] [LOG] [PS] end file=main.js fn=getGpuPerfCounterLoad id=59 duration=1532ms active=1 calls60s=31
+[2026-04-24T13:42:42.476Z] [LOG] [PS] end file=main.js fn=pollTelemetry id=58 duration=1734ms active=0 calls60s=32
+[2026-04-24T13:42:43.497Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] source=zustand-store enabled=30 disabled=32
+[2026-04-24T13:42:43.497Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] enabled_tweaks=hibernation, fast-startup, energy-logging, maintenance, vbs, notifications, power-throttling, pcie-link-state, disable-auto-restart-apps, mem-opt, page-combining, superfetch, storage-sense, telemetry, copilot, cortana, search-highlights, disable-delivery-opt, disable-activity-history, synth-timers, usb-selective-suspend, disable-pointer-precision, disable-mpo, bluetooth, xbox-services, fax-printer, compact-explorer, recent-files, disable-animations, show-file-extensions
+[2026-04-24T13:42:43.497Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI:CONTEXT] system-intelligence enriched | MB=X870E AORUS PRO ICE | BIOS=F12a | net=Wi-Fi 866.7Mbps (Wi-Fi)
+[2026-04-24T13:42:43.497Z] [LOG] [Renderer:info] (index-BH1mEikA.js:231) [AI Specs Input] cpu="Ryzen 7 9800X3D 8-Core Processor" gpu="AMD Radeon RX 7800 XT 16GB VRAM" ram="2x16GB DDR5 @ 6200MHz" ramTotalGB=31.61 disk="SKHynix_HFS512GEJ9X115N 512.1GB SSD"
+[2026-04-24T13:42:44.476Z] [LOG] [PS] start file=main.js fn=pollTelemetry reason=telemetry-poll id=60 active=1
+[2026-04-24T13:42:44.677Z] [LOG] [PS] start file=main.js fn=getGpuPerfCounterLoad reason=gpu-counter id=61 active=2
