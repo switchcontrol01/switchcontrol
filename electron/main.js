@@ -194,8 +194,6 @@ let _fsSizeLastTs       = 0;
 let _cpuTempCache       = { main: 0, max: 0, cores: [] };
 let _cpuTempLastTs      = 0;
 let _diskIoLastTs       = 0;    // last time si.disksIO() ran
-let _lhmLastTs          = 0;    // last time getLhmTelemetry() ran (on-demand only)
-let _lhmCache           = null; // last LHM result (on-demand via refreshDeepHardware IPC)
 
 // ── Low-end mode ──────────────────────────────────────────────────────────────
 // Enabled when: logical CPU cores <= 4  OR  sustained average load > 50%.
@@ -952,144 +950,6 @@ function getNvidiaGpuLoad() {
   });
 }
 
-// LHM detection cache
-let lhmAvailable = null;
-let lhmLastCheck = 0;
-const LHM_CHECK_INTERVAL = 30000; // Re-check every 30 seconds
-
-// Helper: Check if LibreHardwareMonitor is running and accessible
-async function checkLibreHardwareMonitor() {
-  const now = Date.now();
-  if (lhmAvailable !== null && (now - lhmLastCheck) < LHM_CHECK_INTERVAL) {
-    return lhmAvailable;
-  }
-  
-  return new Promise((resolve) => {
-    // LHM Web Server default port is 8085
-    const http = require('http');
-    const req = http.get('http://localhost:8085/data.json', { timeout: 2000 }, (res) => {
-      lhmAvailable = res.statusCode === 200;
-      lhmLastCheck = now;
-      res.resume(); // Consume response to free up memory
-      resolve(lhmAvailable);
-    });
-    
-    req.on('error', () => {
-      lhmAvailable = false;
-      lhmLastCheck = now;
-      resolve(false);
-    });
-    
-    req.on('timeout', () => {
-      req.destroy();
-      lhmAvailable = false;
-      lhmLastCheck = now;
-      resolve(false);
-    });
-  });
-}
-
-// Helper: Fetch telemetry from LibreHardwareMonitor
-async function getLhmTelemetry() {
-  if (!await checkLibreHardwareMonitor()) {
-    return null;
-  }
-  
-  return new Promise((resolve) => {
-    const http = require('http');
-    const req = http.get('http://localhost:8085/data.json', { timeout: 3000 }, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try {
-          const json = JSON.parse(data);
-          const result = parseLhmData(json);
-          resolve(result);
-        } catch (e) {
-          resolve(null);
-        }
-      });
-    });
-    
-    req.on('error', () => resolve(null));
-    req.on('timeout', () => {
-      req.destroy();
-      resolve(null);
-    });
-  });
-}
-
-// Helper: Parse LHM JSON structure to extract temps/loads
-function parseLhmData(data) {
-  const result = {
-    cpuTemp: null,
-    gpuTemp: null,
-    gpuLoad: null,
-    moboTemp: null,
-    fans: [],
-    packagePower: null,
-    vcoreVoltage: null,
-    cpuBoostClock: null,
-    thermalThrottling: false,
-    gpuPower: null,
-  };
-  
-  function traverse(node) {
-    if (!node) return;
-    
-    const name = (node.Text || '').toLowerCase();
-    const value = parseFloat(node.Value);
-    const type = (node.Type || '').toLowerCase();
-    
-    if (type === 'temperature' && name.includes('cpu') && name.includes('package')) {
-      if (Number.isFinite(value)) {
-        result.cpuTemp = safeNum(value);
-        if (value >= 95) result.thermalThrottling = true;
-      }
-    }
-    
-    if (type === 'temperature' && name.includes('gpu') && name.includes('core')) {
-      if (Number.isFinite(value)) result.gpuTemp = safeNum(value);
-    }
-    
-    if (type === 'load' && name.includes('gpu') && name.includes('core')) {
-      if (Number.isFinite(value)) result.gpuLoad = safeNum(value);
-    }
-    
-    if (type === 'temperature' && (name.includes('system') || name.includes('motherboard'))) {
-      if (Number.isFinite(value) && result.moboTemp === null) {
-        result.moboTemp = safeNum(value);
-      }
-    }
-
-    if (type === 'power' && name.includes('cpu') && name.includes('package')) {
-      if (Number.isFinite(value)) result.packagePower = safeNum(value);
-    }
-
-    if (type === 'power' && name.includes('gpu') && (name.includes('package') || name.includes('total') || name.includes('board'))) {
-      if (Number.isFinite(value)) result.gpuPower = safeNum(value);
-    }
-
-    if (type === 'voltage' && (name.includes('vcore') || (name.includes('cpu') && name.includes('core')))) {
-      if (Number.isFinite(value) && value > 0.5 && value < 2.0 && result.vcoreVoltage === null) {
-        result.vcoreVoltage = Math.round(value * 1000) / 1000;
-      }
-    }
-
-    if (type === 'clock' && name.includes('cpu') && name.includes('core') && !name.includes('bus')) {
-      if (Number.isFinite(value) && value > (result.cpuBoostClock || 0)) {
-        result.cpuBoostClock = Math.round(value);
-      }
-    }
-    
-    if (node.Children && Array.isArray(node.Children)) {
-      node.Children.forEach(traverse);
-    }
-  }
-  
-  traverse(data);
-  return result;
-}
 
 // ─── Windows GPU Performance Counter ─────────────────────────────────────────
 // Reads "\GPU Engine(*)\Utilization Percentage" counters via PowerShell.
@@ -1579,14 +1439,14 @@ async function loadSystemSpecs() {
         osVersion: os.release() || 'Unknown',
         arch: os.arch() || 'Unknown',
         hostname: os.hostname() || 'Unknown',
-        hasLibreHardwareMonitor: await checkLibreHardwareMonitor()
+        hasLibreHardwareMonitor: false
       },
       disk: disks[0] || { name: 'C:', usedGB: 0, totalGB: 0, usePercent: 0 },
       disks: disks
     };
 
     cachedSpecsTime = Date.now();
-    console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model, 'LHM:', cachedSpecs.system.hasLibreHardwareMonitor);
+    console.log('[SwitchControl] System specs loaded:', cachedSpecs.cpu.model, cachedSpecs.gpu.model);
     return cachedSpecs;
 
   } catch (e) {
@@ -1686,7 +1546,6 @@ ipcMain.handle('telemetry:getEnhanced', async () => {
 ipcMain.handle('telemetry:getHardwareTelemetry', async () => {
   try {
     const specs = await loadSystemSpecs();
-    const lhm = await getLhmTelemetry();
 
     const [mem, memLayout] = await Promise.all([
       si.mem().catch(() => ({ total: 0, available: 0 })),
@@ -1703,41 +1562,33 @@ ipcMain.handle('telemetry:getHardwareTelemetry', async () => {
       if (maxSpeed > 0) memoryFrequency = maxSpeed;
     }
 
-    let memoryTimings = null;
     const physicalCores = specs?.cpu?.cores || null;
     const logicalCores = specs?.cpu?.threads || null;
 
     const speedMatch = specs?.cpu?.speed?.match(/[\d.]+/);
     const baseClock = speedMatch ? Math.round(parseFloat(speedMatch[0]) * 1000) : null;
-
-    const cpuBoostClock = lhm?.cpuBoostClock || (baseClock ? Math.round(baseClock * 1.15) : null);
-    const cpuBaseClock = baseClock;
-    const packagePower = lhm?.packagePower || null;
-    const vcoreVoltage = lhm?.vcoreVoltage ?? null;
-    const cpuTemp = lhm?.cpuTemp ?? null;
-    const thermalThrottling = lhm ? lhm.thermalThrottling : null;
-    const gpuPower = lhm?.gpuPower ?? null;
+    const cpuBoostClock = baseClock ? Math.round(baseClock * 1.15) : null;
 
     return {
       cpuBoostClock,
-      cpuBaseClock,
-      packagePower,
-      ppt: null,
-      tdc: null,
-      edc: null,
+      cpuBaseClock: baseClock,
+      packagePower:     null,
+      ppt:              null,
+      tdc:              null,
+      edc:              null,
       memoryFrequency,
-      memoryTimings,
+      memoryTimings:    null,
       physicalCores,
       logicalCores,
-      cStateResidency: null,
+      cStateResidency:  null,
       cpuModel,
       gpuModel,
       ramTotalGB,
-      rebarSupported: null,
-      vcoreVoltage,
-      cpuTemp,
-      thermalThrottling,
-      gpuPower,
+      rebarSupported:   null,
+      vcoreVoltage:     null,
+      cpuTemp:          null,
+      thermalThrottling: null,
+      gpuPower:         null,
     };
   } catch (e) {
     console.error('[SwitchControl] hardware telemetry error:', e.message);
@@ -1745,7 +1596,7 @@ ipcMain.handle('telemetry:getHardwareTelemetry', async () => {
   }
 });
 
-// ── Deep-hardware on-demand IPC (LHM + si.graphics + cpuTemp + memLayout) ─────
+// ── Deep-hardware on-demand IPC (si.graphics + cpuTemp + memLayout) ───────────
 // NOT called from the background loop — only when the user opens a hardware
 // details modal, the GPU panel, or triggers an AI Advisor deep scan.
 // Results are cached for 60s to prevent re-hammering on rapid opens.
@@ -1759,29 +1610,16 @@ ipcMain.handle('telemetry:refreshDeepHardware', async () => {
     return { ..._deepHardwareCache, cached: true };
   }
   try {
-    const [lhmResult, graphicsResult, cpuTempResult, memLayoutResult] = await Promise.allSettled([
-      getLhmTelemetry().catch(() => null),
+    const [graphicsResult, cpuTempResult, memLayoutResult] = await Promise.allSettled([
       si.graphics().catch(() => null),
       si.cpuTemperature().catch(() => null),
       si.memLayout().catch(() => []),
     ]);
-    const lhm       = lhmResult.status       === 'fulfilled' ? lhmResult.value       : null;
-    const graphics   = graphicsResult.status  === 'fulfilled' ? graphicsResult.value  : null;
-    const cpuTemp    = cpuTempResult.status   === 'fulfilled' ? cpuTempResult.value   : null;
-    const memLayout  = memLayoutResult.status === 'fulfilled' ? memLayoutResult.value : [];
+    const graphics  = graphicsResult.status  === 'fulfilled' ? graphicsResult.value  : null;
+    const cpuTemp   = cpuTempResult.status   === 'fulfilled' ? cpuTempResult.value   : null;
+    const memLayout = memLayoutResult.status === 'fulfilled' ? memLayoutResult.value : [];
 
-    // Propagate LHM GPU data into the live poll cache so getLive() benefits immediately
-    if (lhm) {
-      _lhmCache  = lhm;
-      _lhmLastTs = now;
-      const upd = { ...gpuPollCache };
-      if (lhm.gpuLoad != null) { upd.load = lhm.gpuLoad; upd.source = 'lhm'; }
-      if (lhm.gpuTemp  != null && lhm.gpuTemp  > 0) upd.temp  = lhm.gpuTemp;
-      if (lhm.gpuPower != null && lhm.gpuPower > 0) upd.power = lhm.gpuPower;
-      gpuPollCache = upd;
-    }
-
-    const result = { lhm, graphics, cpuTemperature: cpuTemp, memLayout, timestamp: now, cached: false };
+    const result = { graphics, cpuTemperature: cpuTemp, memLayout, timestamp: now, cached: false };
     _deepHardwareCache   = result;
     _deepHardwareCacheTs = now;
     return result;
@@ -2023,39 +1861,19 @@ ipcMain.handle('telemetry:getGpu', async () => {
     const isAmd = vendorLower.includes('amd') || vendorLower.includes('advanced micro');
 
     // Base info from systeminformation
-    // For AMD, si.graphics() often returns 0 for load/temp — treat 0 as missing so LHM can override
+    // For AMD, si.graphics() often returns 0 for load/temp — treat 0 as missing/unavailable
     const result = {
       model: ctrl.model || 'Unknown GPU',
       vendor: ctrl.vendor || '',
       driverVersion: ctrl.driverVersion || null,
       vram: ctrl.vram > 0 ? safeNum(ctrl.vram) : null,             // MB
       memoryUsed: ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null, // MB
-      // For AMD, treat 0 from si as "no data" (LHM will fill); for NVIDIA 0 is valid (GPU idle)
       temperature: ctrl.temperatureGpu > 0 ? safeNum(ctrl.temperatureGpu) : null,
       load: (!isAmd && ctrl.utilizationGpu >= 0) ? safeNum(ctrl.utilizationGpu) : null,
       powerDraw: null,
       clockCore: null,
       clockMemory: null,
     };
-
-    // LHM takes priority — covers AMD RX series + NVIDIA, provides real sensor values
-    // For AMD, LHM is the only reliable source; for NVIDIA it supplements si
-    try {
-      const lhm = await getLhmTelemetry();
-      if (lhm) {
-        // AMD: always prefer LHM over si (si returns 0 for AMD which is meaningless)
-        // NVIDIA: only fill in gaps
-        if (lhm.gpuTemp > 0 && (isAmd || result.temperature === null)) {
-          result.temperature = lhm.gpuTemp;
-        }
-        if (lhm.gpuLoad != null && (isAmd || result.load === null)) {
-          result.load = lhm.gpuLoad;
-        }
-        if (lhm.gpuPower > 0 && result.powerDraw === null) {
-          result.powerDraw = lhm.gpuPower;
-        }
-      }
-    } catch {}
 
     // nvidia-smi for NVIDIA as last resort (skip for AMD — no smi support)
     if (!isAmd && cachedSpecs?.gpu?.isNvidia && (result.temperature === null || result.load === null)) {
@@ -3091,10 +2909,9 @@ ipcMain.handle('debug:getPerformanceInfo', () => {
         fsSize:     FS_SIZE_TTL_MS,
       },
       taskAges: {
-        cpuTemp:     _cpuTempLastTs ? _now - _cpuTempLastTs : null,
-        diskIO:      _diskIoLastTs  ? _now - _diskIoLastTs  : null,
-        fsSize:      _fsSizeLastTs  ? _now - _fsSizeLastTs  : null,
-        lhmOnDemand: _lhmLastTs     ? _now - _lhmLastTs     : null,
+        cpuTemp: _cpuTempLastTs ? _now - _cpuTempLastTs : null,
+        diskIO:  _diskIoLastTs  ? _now - _diskIoLastTs  : null,
+        fsSize:  _fsSizeLastTs  ? _now - _fsSizeLastTs  : null,
       },
     },
     powerShell: {
