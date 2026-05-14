@@ -14,6 +14,7 @@ import {
   Minus, PcCase, Radio, Settings2, Package,
 } from "lucide-react";
 import { InstalledAppsPanel } from "@/components/debloater/InstalledAppsPanel";
+import { ApplyProgressOverlay, ApplyProgressState, ApplyProgressItem } from "@/components/debloater/ApplyProgressOverlay";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -241,6 +242,8 @@ export default function Debloater() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [activeView, setActiveView] = useState<"items" | "results" | "history">("items");
+  const [applyProgress, setApplyProgress] = useState<ApplyProgressState | null>(null);
+  const [showApplyOverlay, setShowApplyOverlay] = useState(false);
 
   // ── Fetch items from backend ────────────────────────────────────────────────
 
@@ -375,6 +378,29 @@ export default function Debloater() {
     setApplying(true);
     setActiveView("results");
 
+    // ── Init progress overlay ──
+    const total = selectedItems.length;
+    const startTime = Date.now();
+    const progressItems: ApplyProgressItem[] = selectedItems.map(i => ({
+      id: i.id, name: i.name, status: "pending",
+    }));
+    const initProgress: ApplyProgressState = {
+      phase: "preparing",
+      items: progressItems,
+      totalCount: total,
+      completedCount: 0,
+      failedCount: 0,
+      skippedCount: 0,
+      currentItemName: null,
+      startTime,
+      restorePointCreated: false,
+      error: null,
+    };
+    setApplyProgress(initProgress);
+    setShowApplyOverlay(true);
+    // eslint-disable-next-line no-console
+    console.log(`[DebloatApply] started selectedCount=${total} level=${level} role=${role}`);
+
     // Build preliminary result list
     const prelimResults: ApplyResult[] = selectedItems.map(i => ({
       id: i.id, name: i.name, status: "pending",
@@ -389,10 +415,19 @@ export default function Debloater() {
 
     const electronResults: Record<string, { ok: boolean; status?: string; error?: string }> = {};
 
-    // If Electron is available, execute IPC per item
+    // ── Electron execution per item ──
     if (isElectron()) {
-      for (const item of selectedItems) {
+      setApplyProgress(p => p ? { ...p, phase: "running" } : p);
+      for (let idx = 0; idx < selectedItems.length; idx++) {
+        const item = selectedItems[idx];
         setProcessingId(item.id);
+        setApplyProgress(p => p ? {
+          ...p,
+          currentItemName: item.name,
+          items: p.items.map(i => i.id === item.id ? { ...i, status: "processing" } : i),
+        } : p);
+        // eslint-disable-next-line no-console
+        console.log(`[DebloatApply] stage=removing item=${item.name}`);
         try {
           const ipcPayload = buildIpcPayload(item);
           const result = await window.electronAPI!.debloat!.removeItem(ipcPayload);
@@ -401,6 +436,16 @@ export default function Debloater() {
             status: result.status,
             error: result.error,
           };
+          // Update live progress
+          const isFailed = !result.ok;
+          const isSkipped = result.ok && result.status === "already-absent";
+          setApplyProgress(p => p ? {
+            ...p,
+            completedCount: p.completedCount + 1,
+            failedCount: isFailed ? p.failedCount + 1 : p.failedCount,
+            skippedCount: isSkipped ? p.skippedCount + 1 : p.skippedCount,
+            items: p.items.map(i => i.id === item.id ? { ...i, status: isFailed ? "failed" : isSkipped ? "skipped" : "done" } : i),
+          } : p);
           // Update preliminary result live
           setSession(prev => prev ? {
             ...prev,
@@ -410,11 +455,19 @@ export default function Debloater() {
           } : null);
         } catch (e: any) {
           electronResults[item.id] = { ok: false, error: e.message };
+          setApplyProgress(p => p ? {
+            ...p,
+            completedCount: p.completedCount + 1,
+            failedCount: p.failedCount + 1,
+            items: p.items.map(i => i.id === item.id ? { ...i, status: "failed" } : i),
+          } : p);
         }
       }
+      setProcessingId(null);
+      setApplyProgress(p => p ? { ...p, phase: "verifying" } : p);
+      // eslint-disable-next-line no-console
+      console.log("[DebloatApply] stage=verifying");
     }
-
-    setProcessingId(null);
 
     // POST to backend with results
     try {
@@ -430,24 +483,40 @@ export default function Debloater() {
       const data = await res.json();
 
       if (data.ok) {
+        const failed = data.results.filter((r: ApplyResult) => r.status === "failed").length;
+        const skipped = data.results.filter((r: ApplyResult) => r.status === "already-absent").length;
         setSession({
           role, level, results: data.results,
           successCount: data.successCount, failCount: data.failCount,
           requiresRestart: data.requiresRestart, requiresSignOut: data.requiresSignOut,
           appliedAt: new Date().toISOString(), action: "apply",
         });
+        setApplyProgress(p => p ? {
+          ...p,
+          phase: "complete",
+          completedCount: data.successCount + data.failCount,
+          failedCount: data.failCount,
+          skippedCount: skipped,
+          currentItemName: null,
+          requiresRestart: data.requiresRestart,
+          requiresSignOut: data.requiresSignOut,
+          restorePointCreated: false,
+        } : p);
         fetchHistory();
+        // eslint-disable-next-line no-console
+        console.log(`[DebloatApply] complete removed=${data.successCount} skipped=${skipped} failed=${data.failCount}`);
 
         toast({
           title: isElectron()
             ? `${data.successCount} items processed`
             : "Debloat queued for next boot",
           description: isElectron()
-            ? data.failCount > 0 ? `${data.failCount} failed — see results` : "All items handled."
+            ? data.failCount > 0 ? `${data.failCount} failed \u2014 see results` : "All items handled."
             : "Running on Windows will execute changes in real-time.",
         });
       }
     } catch (e) {
+      setApplyProgress(p => p ? { ...p, phase: "complete", error: "Backend error occurred." } : p);
       toast({ title: "Backend error", variant: "destructive" });
     } finally {
       setApplying(false);
@@ -1355,6 +1424,21 @@ export default function Debloater() {
         </>)}
 
       </Reveal>
+
+      {/* Apply progress overlay */}
+      <AnimatePresence>
+        {showApplyOverlay && applyProgress && (
+          <ApplyProgressOverlay
+            isOpen={showApplyOverlay}
+            state={applyProgress}
+            onClose={() => setShowApplyOverlay(false)}
+            onViewResults={() => {
+              setShowApplyOverlay(false);
+              setActiveView("results");
+            }}
+          />
+        )}
+      </AnimatePresence>
     </AppLayout>
   );
 }
