@@ -75,14 +75,19 @@ function LiveLineChart({
     const fill1 = svg.querySelector("[data-fill='1']") as SVGPathElement | null;
     const fill2 = svg.querySelector("[data-fill='2']") as SVGPathElement | null;
 
+    /* GPU: throttle decorative chart to ~3 fps — still feels alive, not CPU-heavy */
+    let frameCount = 0;
     const tick = () => {
-      tRef.current += 0.4;
-      const d1 = buildPath(points1, tRef.current);
-      const d2 = buildPath(points2, tRef.current);
-      if (path1) path1.setAttribute("d", d1);
-      if (path2) path2.setAttribute("d", d2);
-      if (fill1) fill1.setAttribute("d", d1 + ` L ${W} ${H} L 0 ${H} Z`);
-      if (fill2) fill2.setAttribute("d", d2 + ` L ${W} ${H} L 0 ${H} Z`);
+      frameCount++;
+      if (frameCount % 10 === 0) {
+        tRef.current += 4;
+        const d1 = buildPath(points1, tRef.current);
+        const d2 = buildPath(points2, tRef.current);
+        if (path1) path1.setAttribute("d", d1);
+        if (path2) path2.setAttribute("d", d2);
+        if (fill1) fill1.setAttribute("d", d1 + ` L ${W} ${H} L 0 ${H} Z`);
+        if (fill2) fill2.setAttribute("d", d2 + ` L ${W} ${H} L 0 ${H} Z`);
+      }
       frameRef.current = requestAnimationFrame(tick);
     };
 
@@ -425,17 +430,22 @@ function TelemetryDashboard() {
 
   useEffect(() => {
     if (!inView) return;
+    /* GPU: throttle live metrics to ~6 fps — still feels alive, not CPU-heavy */
+    let frameCount = 0;
     const tick = () => {
-      tRef.current += 0.06;
-      const t = tRef.current;
-      const cpu = Math.round(30 + Math.sin(t * 0.8) * 14 + Math.sin(t * 2.3) * 6);
-      const ram = Math.round(58 + Math.cos(t * 0.5) * 8 + Math.sin(t * 1.4) * 4);
-      const gpu = Math.round(42 + Math.sin(t * 1.1) * 16 + Math.cos(t * 0.7) * 7);
-      const temp = Math.round(58 + Math.sin(t * 0.6) * 8);
-      setMetrics({ cpu, ram, gpu, temp });
-      sparkRef.current.cpu = [...sparkRef.current.cpu.slice(1), cpu];
-      sparkRef.current.ram = [...sparkRef.current.ram.slice(1), ram];
-      sparkRef.current.gpu = [...sparkRef.current.gpu.slice(1), gpu];
+      frameCount++;
+      if (frameCount % 5 === 0) {
+        tRef.current += 0.36;
+        const t = tRef.current;
+        const cpu = Math.round(30 + Math.sin(t * 0.8) * 14 + Math.sin(t * 2.3) * 6);
+        const ram = Math.round(58 + Math.cos(t * 0.5) * 8 + Math.sin(t * 1.4) * 4);
+        const gpu = Math.round(42 + Math.sin(t * 1.1) * 16 + Math.cos(t * 0.7) * 7);
+        const temp = Math.round(58 + Math.sin(t * 0.6) * 8);
+        setMetrics({ cpu, ram, gpu, temp });
+        sparkRef.current.cpu = [...sparkRef.current.cpu.slice(1), cpu];
+        sparkRef.current.ram = [...sparkRef.current.ram.slice(1), ram];
+        sparkRef.current.gpu = [...sparkRef.current.gpu.slice(1), gpu];
+      }
       frameRef.current = requestAnimationFrame(tick);
     };
     frameRef.current = requestAnimationFrame(tick);

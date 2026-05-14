@@ -61,7 +61,7 @@ export interface DiagnosticsState {
 }
 
 const HISTORY_MAX = 60;
-const POLL_INTERVAL_MS = 2500;
+const POLL_INTERVAL_MS = 8000;
 const SPIKE_MULTIPLIER = 1.5;
 const SPIKE_MIN_DELTA_MS = 20;
 

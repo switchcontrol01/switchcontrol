@@ -320,7 +320,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   );
   isLowEndRef.current = isLowEndClient;
   const showGlowLines = !isLowEndClient;
-  const graphPollMs = isLowEndClient ? 5000 : 3700;
+  const graphPollMs = isLowEndClient ? 8000 : 5000;
 
   // ── GPU first-load tracking ───────────────────────────────────────────────
   // gpuDetectedRef: true once any tick confirms GPU is present on this machine.

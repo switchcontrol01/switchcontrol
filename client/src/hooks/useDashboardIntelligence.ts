@@ -225,11 +225,11 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
     runningRef.current = true;
 
     const TTL = {
-      latency: 2000,
-      instability: 8000,
-      problems: 15000,
-      dna: 20000,
-      ram: 30000,
+      latency: 8000,
+      instability: 15000,
+      problems: 30000,
+      dna: 60000,
+      ram: 60000,
     };
 
     async function schedulerTick() {
@@ -316,7 +316,7 @@ export function useDashboardIntelligence(enabled = true): DashboardIntelligenceS
 
       while (!cancelled && runningRef.current) {
         await schedulerTick();
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise((r) => setTimeout(r, 5000));
       }
     }
 

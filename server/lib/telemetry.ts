@@ -63,8 +63,8 @@ export interface SchedulerStats {
 
 // ── Scheduler constants ───────────────────────────────────────────────────────
 
-const POLL_BASE_MS    = 2000;   // normal loop interval
-const POLL_LOW_END_MS = 6000;   // low-end / budget-exceeded mode
+const POLL_BASE_MS    = 5000;   // normal loop interval
+const POLL_LOW_END_MS = 15000;  // low-end / budget-exceeded mode
 const CPU_TEMP_TTL_MS = 8000;   // si.cpuTemperature() — expensive WMI-style call
 const DISK_IO_TTL_MS  = 4000;   // si.disksIO()
 const GPU_TTL_MS      = 8000;   // si.graphics()
