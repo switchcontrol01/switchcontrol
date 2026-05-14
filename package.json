@@ -9,7 +9,7 @@
     "dev": "tsx server/index.ts",
     "build": "npx tsx script/build.ts",
     "start": "node dist/index.cjs",
-    "electron:build": "npm run build && electron-builder --win"
+    "electron:build": "npm run build && node electron/scripts/build-native.js && electron-builder --win"
   },
   "dependencies": {
     "@electron/asar": "^3.4.1",

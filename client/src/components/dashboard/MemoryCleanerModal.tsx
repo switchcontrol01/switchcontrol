@@ -143,7 +143,15 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
 
         if (rawRes.error) {
           console.warn('[MemoryCleaner] helper returned error:', rawRes.message);
-          toast({ title: "Memory clean failed", description: rawRes.message || "An error occurred.", variant: "destructive" });
+          if (rawRes.helperMissing) {
+            toast({
+              title: "Memory cleaner unavailable",
+              description: rawRes.message || "Please reinstall SwitchControl to restore this feature.",
+              variant: "destructive",
+            });
+          } else {
+            toast({ title: "Memory clean failed", description: rawRes.message || "An error occurred.", variant: "destructive" });
+          }
           return;
         }
 

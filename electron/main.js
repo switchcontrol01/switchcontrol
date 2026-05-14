@@ -1142,21 +1142,26 @@ ipcMain.handle('memory:clean', async (event, mode) => {
     exePath = path.join(__dirname, 'bin', exeName);
   }
 
-  console.log(`[Memory] mode=${mode} exePath=${exePath} isPackaged=${app.isPackaged}`);
+  console.log(`[Memory] mode=${mode} expected helper: ${exePath} | exists: ${fs.existsSync(exePath)} | isPackaged: ${app.isPackaged}`);
 
-  const fs = require('fs');
   if (!fs.existsSync(exePath)) {
     console.error('[Memory] Helper binary not found at:', exePath);
-    return { error: true, message: 'Memory helper not found. Feature requires the desktop app.' };
+    return {
+      error: true,
+      helperMissing: true,
+      message: 'Memory cleaner helper is missing. Please reinstall SwitchControl or check for an update.',
+    };
   }
 
   return new Promise((resolve) => {
-    const { execFile } = require('child_process');
     execFile(exePath, ['--mode', mode], { timeout: 10000, windowsHide: true }, (err, stdout, stderr) => {
       if (stderr) console.log('[Memory] stderr:', stderr.trim());
       if (err) {
         console.error('[Memory] execFile error:', err.message, 'killed:', err.killed);
-        resolve({ error: true, message: 'Memory clean failed: ' + (err.killed ? 'timeout' : err.message) });
+        resolve({
+          error: true,
+          message: 'Memory clean failed: ' + (err.killed ? 'timeout' : err.message),
+        });
         return;
       }
 

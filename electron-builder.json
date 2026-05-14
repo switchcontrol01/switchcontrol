@@ -11,6 +11,13 @@
     "electron/**/*",
     "node_modules/**/*"
   ],
+  "extraResources": [
+    {
+      "from": "electron/bin",
+      "to": "bin",
+      "filter": ["**/*"]
+    }
+  ],
   "win": {
     "target": "nsis",
     "icon": "dist/app-icon.ico",
