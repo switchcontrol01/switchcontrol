@@ -110,7 +110,7 @@ const DEBLOAT_LEVELS: {
 ];
 
 const CATEGORY_META: Record<DebloatCategory, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
-  "consumer-apps":   { label: "Consumer Apps",   icon: Layers,     color: "text-purple-400" },
+  "consumer-apps":   { label: "Consumer Apps",   icon: Layers,     color: "text-[#00D4FF]" },
   "telemetry":       { label: "Telemetry",        icon: Eye,        color: "text-cyan-400" },
   "gaming":          { label: "Gaming",           icon: Gamepad2,   color: "text-blue-400" },
   "cloud":           { label: "Cloud",            icon: MemoryStick, color: "text-sky-400" },
@@ -169,7 +169,7 @@ function ImpactBar({ label, value, max, color, unit }: {
           {value > 0 ? `${value} ${unit}` : "—"}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className={cn("h-full rounded-full", color.replace("text-", "bg-"))}
           initial={{ width: 0 }}
@@ -706,7 +706,7 @@ export default function Debloater() {
         />
 
         {/* ── Main tab bar ─────────────────────────────────────────────────── */}
-        <div className="flex gap-1 p-1 rounded-xl bg-white/[0.04] border border-white/[0.07] w-fit">
+        <div className="flex gap-1 p-1 rounded-xl bg-[#21262D] border border-[#2A313A] w-fit">
           {([
             { id: "curated",   label: "Curated Removals",  icon: ShieldCheck },
             { id: "installed", label: "Installed Apps",     icon: Package },
@@ -722,7 +722,7 @@ export default function Debloater() {
                   "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                   active
                     ? "bg-primary/15 text-primary border border-primary/25 shadow-sm"
-                    : "text-muted-foreground hover:text-foreground/80 hover:bg-white/[0.04]"
+                    : "text-muted-foreground hover:text-foreground/80 hover:bg-[#21262D]"
                 )}
               >
                 <Icon className="size-4 shrink-0" />
@@ -741,20 +741,20 @@ export default function Debloater() {
         {/* Live telemetry strip */}
         {liveTel && (
           <motion.div
-            className="flex items-center gap-4 px-3 py-2 rounded-lg border border-white/8 bg-white/3 text-[11px] text-muted-foreground"
+            className="flex items-center gap-4 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26] text-[11px] text-muted-foreground"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
           >
             <span>{liveTel.processes.total} processes</span>
-            <span className="w-px h-3 bg-white/15" />
+            <span className="w-px h-3 bg-[#2A313A]" />
             <span>RAM <span className={cn("font-mono", liveTel.ram.usedPercent > 80 ? "text-red-400" : "text-cyan-400")}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
-            <span className="w-px h-3 bg-white/15" />
+            <span className="w-px h-3 bg-[#2A313A]" />
             <span>CPU <span className="font-mono">{liveTel.cpu.load.toFixed(0)}%</span></span>
             {isElectron() && (
               <>
-                <span className="w-px h-3 bg-white/15" />
+                <span className="w-px h-3 bg-[#2A313A]" />
                 <button
                   onClick={runScan} disabled={scanning || loading}
-                  className="ml-1 text-purple-400 hover:text-purple-300 flex items-center gap-1 transition-colors"
+                  className="ml-1 text-[#00D4FF] hover:text-[#33E0FF] flex items-center gap-1 transition-colors"
                   data-testid="button-scan"
                 >
                   <RefreshCw className={cn("size-3", scanning && "animate-spin")} />
@@ -787,7 +787,7 @@ export default function Debloater() {
                     "cursor-pointer transition-all duration-200 h-full group",
                     active
                       ? "bg-primary/12 border-primary shadow-[0_0_0_1px_hsl(var(--primary)/0.4)]"
-                      : "bg-card/40 border-border/40 hover:border-white/20 hover:bg-white/5"
+                      : "bg-card/40 border-border/40 hover:border-[#2A313A] hover:bg-[#21262D]"
                   )}
                   onClick={() => setRole(r.id)}
                   data-testid={`role-${r.id}`}
@@ -795,11 +795,11 @@ export default function Debloater() {
                   <CardContent className="p-4 text-center">
                     <div className={cn(
                       "size-9 rounded-xl mx-auto mb-2.5 flex items-center justify-center transition-colors",
-                      active ? "bg-primary/20" : "bg-white/5 group-hover:bg-white/8"
+                      active ? "bg-primary/20" : "bg-[#21262D] group-hover:bg-[#1A1F26]"
                     )}>
                       <Icon className={cn("size-4.5", active ? "text-primary" : "text-muted-foreground")} />
                     </div>
-                    <p className={cn("font-semibold text-xs leading-tight", active ? "text-white" : "text-muted-foreground")}>{r.name}</p>
+                    <p className={cn("font-semibold text-xs leading-tight", active ? "text-[#E6EAF0]" : "text-muted-foreground")}>{r.name}</p>
                     <p className="text-[10px] text-muted-foreground/70 mt-0.5 leading-snug">{r.description}</p>
                   </CardContent>
                 </Card>
@@ -826,7 +826,7 @@ export default function Debloater() {
                   "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-200",
                   level === l.id
                     ? `${l.bg} ${l.accent} ${l.border}`
-                    : "bg-white/3 border-white/10 text-muted-foreground hover:text-white hover:bg-white/6"
+                    : "bg-[#1A1F26] border-[#2A313A] text-muted-foreground hover:text-[#E6EAF0] hover:bg-[#1A1F26]"
                 )}
               >
                 {l.name}
@@ -837,7 +837,7 @@ export default function Debloater() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveView("history")}
-              className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-white/5 transition-colors"
+              className="text-xs text-muted-foreground hover:text-[#E6EAF0] flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[#21262D] transition-colors"
               data-testid="button-history"
             >
               <History className="size-3.5" />History
@@ -845,7 +845,7 @@ export default function Debloater() {
             {session && (
               <button
                 onClick={() => setActiveView(activeView === "results" ? "items" : "results")}
-                className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-purple-500/10 transition-colors"
+                className="text-xs text-[#00D4FF] hover:text-[#33E0FF] flex items-center gap-1.5 px-2 py-1.5 rounded hover:bg-[#00D4FF] transition-colors"
               >
                 <BarChart3 className="size-3.5" />
                 {activeView === "results" ? "Back to items" : "View results"}
@@ -900,7 +900,7 @@ export default function Debloater() {
                     label="Disk freed (est.)"
                     value={stats.totalDisk}
                     max={stats.allDisk || 1}
-                    color="text-purple-400"
+                    color="text-[#00D4FF]"
                     unit="MB"
                   />
                 </div>
@@ -912,7 +912,7 @@ export default function Debloater() {
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Selected</span>
-                      <span className="font-mono font-semibold text-white">{stats.count} / {visibleItems.length}</span>
+                      <span className="font-mono font-semibold text-[#E6EAF0]">{stats.count} / {visibleItems.length}</span>
                     </div>
                     <div className="text-xs text-muted-foreground">Risk distribution</div>
                     <SafetyRing safe={stats.safeCnt} medium={stats.medCnt} high={stats.highCnt} />
@@ -929,7 +929,7 @@ export default function Debloater() {
                         ? "bg-emerald-500/10 text-emerald-400"
                         : stats.restorableCnt > 0
                         ? "bg-amber-500/10 text-amber-400"
-                        : "bg-white/5 text-muted-foreground"
+                        : "bg-[#21262D] text-muted-foreground"
                     )}>
                       <RotateCcw className="size-3 shrink-0" />
                       {stats.count === 0
@@ -952,7 +952,7 @@ export default function Debloater() {
 
               {/* Category footprint bar */}
               {stats.count > 0 && (
-                <div className="mt-4 pt-4 border-t border-white/6 space-y-2">
+                <div className="mt-4 pt-4 border-t border-[#2A313A] space-y-2">
                   <div className="text-[10px] text-muted-foreground mb-2">Selected by category</div>
                   <div className="flex gap-1 h-2 rounded-full overflow-hidden">
                     {categories.map(cat => {
@@ -961,7 +961,7 @@ export default function Debloater() {
                       if (pct === 0) return null;
                       const meta = CATEGORY_META[cat];
                       const colorMap: Record<string, string> = {
-                        "text-purple-400": "bg-purple-400",
+                        "text-[#00D4FF]": "bg-[#00D4FF]",
                         "text-cyan-400":   "bg-cyan-400",
                         "text-blue-400":   "bg-blue-400",
                         "text-sky-400":    "bg-sky-400",
@@ -971,7 +971,7 @@ export default function Debloater() {
                       return (
                         <div
                           key={cat}
-                          className={cn("h-full transition-all duration-500", colorMap[meta.color] ?? "bg-white/30")}
+                          className={cn("h-full transition-all duration-500", colorMap[meta.color] ?? "bg-[#1A1F26]0")}
                           style={{ width: `${pct}%` }}
                           title={`${meta.label}: ${catItems.length} item${catItems.length !== 1 ? "s" : ""}`}
                         />
@@ -1016,8 +1016,8 @@ export default function Debloater() {
                     : `${visibleItems.length} items available at ${currentLevel.name} level`}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={selectAll} className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors" data-testid="button-select-all">All</button>
-                  <button onClick={clearAll}  className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5 transition-colors" data-testid="button-clear-all">None</button>
+                  <button onClick={selectAll} className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D] transition-colors" data-testid="button-select-all">All</button>
+                  <button onClick={clearAll}  className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D] transition-colors" data-testid="button-clear-all">None</button>
                 </div>
               </div>
 
@@ -1046,14 +1046,14 @@ export default function Debloater() {
                   return (
                     <Card key={category} className="bg-card/40 border-border/40 overflow-hidden">
                       <CardHeader
-                        className="py-3 px-4 cursor-pointer hover:bg-white/3 transition-colors"
+                        className="py-3 px-4 cursor-pointer hover:bg-[#1A1F26] transition-colors"
                         onClick={() => toggleCategory(category)}
                         data-testid={`category-${category}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2.5">
                             <Icon className={cn("size-4", meta.color)} />
-                            <span className="font-semibold text-white text-sm">{meta.label}</span>
+                            <span className="font-semibold text-[#E6EAF0] text-sm">{meta.label}</span>
                             {selCount > 0 && (
                               <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px] h-4 px-1.5">
                                 {selCount} selected
@@ -1091,7 +1091,7 @@ export default function Debloater() {
                                       "flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-all duration-150",
                                       isSelected
                                         ? "bg-primary/8 border-primary/25 hover:border-primary/40"
-                                        : "bg-white/2 border-white/6 hover:bg-white/4 hover:border-white/12",
+                                        : "bg-[#1A1F26] border-[#2A313A] hover:bg-[#21262D] hover:border-[#2A313A]2",
                                       isProcessing && "opacity-60 pointer-events-none"
                                     )}
                                     onClick={() => toggleItem(item.id)}
@@ -1103,18 +1103,18 @@ export default function Debloater() {
                                       "mt-0.5 size-4 rounded shrink-0 border flex items-center justify-center transition-all",
                                       isSelected
                                         ? "bg-primary border-primary"
-                                        : "bg-transparent border-white/20"
+                                        : "bg-transparent border-[#2A313A]"
                                     )}>
-                                      {isSelected && <CheckCircle className="size-3 text-white" />}
+                                      {isSelected && <CheckCircle className="size-3 text-[#E6EAF0]" />}
                                     </div>
 
                                     {/* Content */}
                                     <div className="flex-1 min-w-0">
                                       <div className="flex items-center gap-2 flex-wrap">
-                                        <span className="font-semibold text-sm text-white">{item.name}</span>
+                                        <span className="font-semibold text-sm text-[#E6EAF0]">{item.name}</span>
 
                                         {/* Type badge */}
-                                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-white/12 text-muted-foreground uppercase tracking-wide">
+                                        <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-[#2A313A]2 text-muted-foreground uppercase tracking-wide">
                                           {item.type}
                                         </Badge>
 
@@ -1129,7 +1129,7 @@ export default function Debloater() {
                                             <RotateCcw className="size-2.5" />Restorable
                                           </Badge>
                                         ) : (
-                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-white/5 border-white/10 text-muted-foreground/60 flex items-center gap-1">
+                                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 bg-[#21262D] border-[#2A313A] text-muted-foreground/60 flex items-center gap-1">
                                             <Minus className="size-2.5" />Not restorable
                                           </Badge>
                                         )}
@@ -1184,7 +1184,7 @@ export default function Debloater() {
                                       )}
                                       {item.estimatedDiskMb > 0 && (
                                         <div>
-                                          <p className="text-xs font-mono font-semibold text-purple-400">
+                                          <p className="text-xs font-mono font-semibold text-[#00D4FF]">
                                             -{item.estimatedDiskMb}MB
                                           </p>
                                           <p className="text-[9px] text-muted-foreground">Disk est.</p>
@@ -1236,7 +1236,7 @@ export default function Debloater() {
                       </span>
                       <button
                         onClick={() => setActiveView("items")}
-                        className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5"
+                        className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D]"
                       >
                         ← Back
                       </button>
@@ -1277,13 +1277,13 @@ export default function Debloater() {
                             : result.status === "failed" || result.status === "verification-failed"
                             ? "bg-red-500/6 border-red-500/15"
                             : result.status === "unsupported"
-                            ? "bg-white/3 border-white/8"
-                            : "bg-white/4 border-white/10"
+                            ? "bg-[#1A1F26] border-[#2A313A]"
+                            : "bg-[#21262D] border-[#2A313A]"
                         )}
                       >
                         <div className="flex items-center gap-2">
                           <Icon className={cn("size-3.5 shrink-0", cfg.color)} />
-                          <span className="text-white text-xs font-medium">{result.name}</span>
+                          <span className="text-[#E6EAF0] text-xs font-medium">{result.name}</span>
                           {result.storeRequired && (
                             <span className="text-[10px] text-amber-400">— install from Store</span>
                           )}
@@ -1349,7 +1349,7 @@ export default function Debloater() {
                     </CardTitle>
                     <button
                       onClick={() => setActiveView("items")}
-                      className="text-xs text-muted-foreground hover:text-white px-2 py-1 rounded hover:bg-white/5"
+                      className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1 rounded hover:bg-[#21262D]"
                     >
                       ← Back
                     </button>
@@ -1364,7 +1364,7 @@ export default function Debloater() {
                     history.slice(0, 50).map(entry => (
                       <div
                         key={entry.id}
-                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/3 border border-white/6 text-xs"
+                        className="flex items-center justify-between px-3 py-2 rounded-lg bg-[#1A1F26] border border-[#2A313A] text-xs"
                       >
                         <div className="flex items-center gap-2">
                           <span className={cn(
@@ -1375,7 +1375,7 @@ export default function Debloater() {
                               ? "text-red-400"
                               : "text-muted-foreground"
                           )}>{entry.item_name}</span>
-                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-white/10 text-muted-foreground uppercase">
+                          <Badge variant="outline" className="text-[9px] h-4 px-1.5 border-[#2A313A] text-muted-foreground uppercase">
                             {entry.action}
                           </Badge>
                           {entry.role && (

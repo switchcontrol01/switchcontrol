@@ -123,12 +123,12 @@ export function PremiumUnlockAnimation() {
                   duration: 0.5
                 }}
               >
-                <Crown className="w-12 h-12 text-white" />
+                <Crown className="w-12 h-12 text-[#E6EAF0]" />
               </motion.div>
             </motion.div>
 
             <motion.h2
-              className="text-3xl md:text-4xl font-bold text-white mb-3"
+              className="text-3xl md:text-4xl font-bold text-[#E6EAF0] mb-3"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.8, duration: 0.5 }}
@@ -137,7 +137,7 @@ export function PremiumUnlockAnimation() {
             </motion.h2>
 
             <motion.p
-              className="text-lg text-white/70 mb-6"
+              className="text-lg text-[#E6EAF0] mb-6"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 1, duration: 0.5 }}

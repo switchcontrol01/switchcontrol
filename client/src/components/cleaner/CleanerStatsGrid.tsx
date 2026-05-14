@@ -29,9 +29,9 @@ export function CleanerStatsGrid({
       raw: totalFound,
       sub: hasData ? "removable items detected" : "Run a scan to see results",
       icon: HardDrive,
-      color: "text-purple-400",
-      bg: "bg-purple-500/10",
-      border: "border-purple-500/20",
+      color: "text-[#00D4FF]",
+      bg: "bg-[#00D4FF]",
+      border: "border-[#00D4FF]",
       glow: totalFound > 100 * 1024 * 1024,
     },
     {
@@ -83,7 +83,7 @@ export function CleanerStatsGrid({
                 "p-3.5 border transition-all duration-300",
                 card.glow
                   ? cn(card.border, "shadow-[0_0_20px_rgba(0,212,255,0.12)]")
-                  : "border-white/[0.07]"
+                  : "border-[#2A313A]"
               )}
             >
               <div className={cn("size-7 rounded-lg flex items-center justify-center mb-2.5", card.bg)}>

@@ -107,7 +107,7 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
                 }}
                 transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Crown className="w-7 h-7 text-white" />
+                <Crown className="w-7 h-7 text-[#E6EAF0]" />
               </motion.div>
 
               <h2 className="text-[19px] font-bold leading-snug mb-1.5" style={{ color: "rgba(255,255,255,0.95)" }}>
@@ -147,7 +147,7 @@ export function PremiumModal({ open, onOpenChange, feature }: PremiumModalProps)
 
             {/* CTA */}
             <motion.button
-              className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-[14px] font-semibold text-white mb-2.5"
+              className="w-full h-11 rounded-xl flex items-center justify-center gap-2 text-[14px] font-semibold text-[#E6EAF0] mb-2.5"
               style={{
                 background: "linear-gradient(135deg, rgba(168,85,247,0.9) 0%, rgba(139,92,246,0.85) 100%)",
                 border: "1px solid rgba(168,85,247,0.4)",

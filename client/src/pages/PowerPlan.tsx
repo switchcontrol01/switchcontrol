@@ -142,7 +142,7 @@ const PROFILE_KEY_SETTINGS: Record<FrontendProfileId, string[]> = {
 // Per-profile visual theme
 const PROFILE_THEME: Record<FrontendProfileId, { accent: string; glow: string; borderColor: string; bgGrad: string }> = {
   performance: { accent: "#ef4444", glow: "rgba(239,68,68,0.25)",    borderColor: "rgba(239,68,68,0.35)",   bgGrad: "linear-gradient(160deg,rgba(239,68,68,0.18) 0%,rgba(234,88,12,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
-  balanced:    { accent: "#8b5cf6", glow: "rgba(139,92,246,0.25)",   borderColor: "rgba(139,92,246,0.35)",  bgGrad: "linear-gradient(160deg,rgba(139,92,246,0.18) 0%,rgba(6,182,212,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
+  balanced:    { accent: "#00D4FF", glow: "rgba(139,92,246,0.25)",   borderColor: "rgba(139,92,246,0.35)",  bgGrad: "linear-gradient(160deg,rgba(139,92,246,0.18) 0%,rgba(6,182,212,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
   efficiency:  { accent: "#10b981", glow: "rgba(16,185,129,0.25)",   borderColor: "rgba(16,185,129,0.35)",  bgGrad: "linear-gradient(160deg,rgba(16,185,129,0.18) 0%,rgba(20,184,166,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
   custom:      { accent: "#a78bfa", glow: "rgba(167,139,250,0.25)",  borderColor: "rgba(167,139,250,0.35)", bgGrad: "linear-gradient(160deg,rgba(167,139,250,0.18) 0%,rgba(139,92,246,0.08) 50%,rgba(0,0,0,0.6) 100%)" },
 };
@@ -239,13 +239,13 @@ function EnergyLines() {
 }
 
 function VerificationBadge({ match, loading }: { match?: string; loading?: boolean }) {
-  if (loading) return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] text-white/40"><span className="size-1.5 rounded-full bg-white/20 animate-pulse" /> Checking…</span>;
+  if (loading) return <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#21262D] border border-[#2A313A] text-[11px] text-[#6B7380]"><span className="size-1.5 rounded-full bg-[#1A1F26]0 animate-pulse" /> Checking…</span>;
   if (!match) return null;
   const states = {
     exact_match:      { icon: <ShieldCheck className="size-3" />, label: "Verified — Exact Match", cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" },
     close_match:      { icon: <AlertTriangle className="size-3" />, label: "Close Match", cls: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
     custom_modified:  { icon: <Settings2 className="size-3" />, label: "Custom State", cls: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-    unknown:          { icon: <ShieldX className="size-3" />, label: "Unknown State", cls: "bg-white/10 text-white/40 border-white/10" },
+    unknown:          { icon: <ShieldX className="size-3" />, label: "Unknown State", cls: "bg-[#2A313A] text-[#6B7380] border-[#2A313A]" },
   } as const;
   const s = states[match as keyof typeof states] ?? states.unknown;
   return (
@@ -259,10 +259,10 @@ function ImpactBar({ label, value, color }: { label: string; value: number; colo
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[10px]">
-        <span className="text-white/50">{label}</span>
+        <span className="text-[#A0A8B3]">{label}</span>
         <span className="font-medium" style={{ color }}>{value}%</span>
       </div>
-      <div className="h-1 rounded-full bg-white/[0.07] overflow-hidden">
+      <div className="h-1 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -416,10 +416,10 @@ function AnimatedMetricBar({
   return (
     <div className="space-y-1">
       <div className="flex items-center justify-between text-[11px]">
-        <span className="text-white/45">{label}</span>
+        <span className="text-[#A0A8B3]">{label}</span>
         <span className="font-semibold tabular-nums" style={{ color }}>{display}%</span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full"
           style={{ backgroundColor: color }}
@@ -466,8 +466,8 @@ function ImpactComparisonPanel({
       <div className="p-5">
         <div className="flex items-center gap-2 mb-5 flex-wrap">
           <Activity className="size-4 shrink-0" style={{ color: toTheme.accent }} />
-          <span className="text-sm font-semibold text-white">Performance Impact</span>
-          <span className="text-xs text-white/25">— estimated visual comparison</span>
+          <span className="text-sm font-semibold text-[#E6EAF0]">Performance Impact</span>
+          <span className="text-xs text-[#6B7380]">— estimated visual comparison</span>
           <span
             className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full font-medium border"
             style={{ backgroundColor: `${toTheme.accent}18`, color: toTheme.accent, borderColor: `${toTheme.accent}30` }}
@@ -480,7 +480,7 @@ function ImpactComparisonPanel({
           {/* Before */}
           <div className="space-y-3.5">
             <div className="text-center mb-1">
-              <p className="text-[9px] uppercase tracking-widest text-white/20 font-semibold mb-0.5">Before</p>
+              <p className="text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold mb-0.5">Before</p>
               <p className="text-sm font-bold" style={{ color: fromTheme?.accent ?? "rgba(255,255,255,0.35)" }}>
                 {fromName}
               </p>
@@ -493,7 +493,7 @@ function ImpactComparisonPanel({
           {/* Radar chart */}
           <div className="flex flex-col items-center gap-1">
             <RadarChart before={fromImpact} after={toImpact} accentColor={toTheme.accent} />
-            <p className="text-[9px] text-white/18 text-center">
+            <p className="text-[9px] text-[#E6EAF0]/18 text-center">
               <span className="inline-block mr-2" style={{ borderBottom: "1.5px dashed rgba(255,255,255,0.3)", width: 18, verticalAlign: "middle" }} />
               Before
               <span className="mx-2">·</span>
@@ -505,7 +505,7 @@ function ImpactComparisonPanel({
           {/* After */}
           <div className="space-y-3.5">
             <div className="text-center mb-1">
-              <p className="text-[9px] uppercase tracking-widest text-white/20 font-semibold mb-0.5">After</p>
+              <p className="text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold mb-0.5">After</p>
               <p className="text-sm font-bold" style={{ color: toTheme.accent }}>{toName}</p>
             </div>
             <AnimatedMetricBar label="Latency Reduction" from={fromImpact.latency} to={toImpact.latency}   color={toTheme.accent} />
@@ -530,17 +530,17 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
 
   return createPortal(
     <>
-      <motion.div className="fixed inset-0 z-40 bg-black/35 pointer-events-auto" onClick={onClose} variants={modalBackdrop} initial="initial" animate="animate" exit="exit" />
+      <motion.div className="fixed inset-0 z-40 bg-[#14181D]/80 pointer-events-auto" onClick={onClose} variants={modalBackdrop} initial="initial" animate="animate" exit="exit" />
       <motion.div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md pointer-events-auto" variants={modalContent} initial="initial" animate="animate" exit="exit">
         <GlassModalSurface className="p-6">
           <motion.button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
-            className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity cursor-pointer"
+            className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-[#2A313A] transition-opacity cursor-pointer"
             data-testid="button-close-info-modal"
             whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }} whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}>
-            <X className="h-5 w-5 text-white" />
+            <X className="h-5 w-5 text-[#E6EAF0]" />
           </motion.button>
           <div className="space-y-1.5 pr-8">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-[#E6EAF0] flex items-center gap-2">
               {toggle.name}
               <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border uppercase", toggle.tag === "Safe" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20")}>{toggle.tag}</span>
             </h2>
@@ -562,17 +562,17 @@ function InfoModal({ toggle, onClose }: { toggle: OverrideToggle; onClose: () =>
 
 function OverrideToggleCard({ toggle, enabled, onToggle, onInfo }: { toggle: OverrideToggle; enabled: boolean; onToggle: () => void; onInfo: () => void }) {
   return (
-    <div className={cn("group flex items-center justify-between p-3 rounded-lg border transition-all duration-200", enabled ? "border-primary/30 bg-primary/5" : "border-white/5 bg-white/5 hover:bg-white/10")}>
+    <div className={cn("group flex items-center justify-between p-3 rounded-lg border transition-all duration-200", enabled ? "border-primary/30 bg-primary/5" : "border-[#2A313A] bg-[#21262D] hover:bg-[#2A313A]")}>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm font-medium text-white truncate">{toggle.name}</span>
+          <span className="text-sm font-medium text-[#E6EAF0] truncate">{toggle.name}</span>
           <span className={cn("text-[9px] font-medium px-1.5 py-0.5 rounded-full border uppercase", toggle.tag === "Safe" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-blue-500/10 text-blue-400 border-blue-500/20")}>{toggle.tag}</span>
           {toggle.requiresAgent && <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-amber-500/30 bg-amber-500/10 text-amber-400">Agent</span>}
         </div>
         <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{toggle.description}</p>
       </div>
       <div className="flex items-center gap-2 pl-3">
-        <button onClick={onInfo} className="size-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-white hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all">
+        <button onClick={onInfo} className="size-7 flex items-center justify-center rounded-full text-muted-foreground hover:text-[#E6EAF0] hover:bg-[#2A313A] opacity-0 group-hover:opacity-100 transition-all">
           <Info className="size-3.5" />
         </button>
         <Switch checked={enabled} onCheckedChange={onToggle} className="data-[state=checked]:bg-primary" />
@@ -912,7 +912,7 @@ export default function PowerPlan() {
             SECTION 1 — HERO STATUS PANEL
         ══════════════════════════════════════════════════════════════════ */}
         <div
-          className="relative overflow-hidden rounded-2xl border border-white/[0.07] p-6 md:p-8"
+          className="relative overflow-hidden rounded-2xl border border-[#2A313A] p-6 md:p-8"
           style={{ background: "linear-gradient(135deg, rgba(10,10,20,0.98) 0%, rgba(30,15,50,0.4) 50%, rgba(10,10,20,0.98) 100%)", boxShadow: "0 0 80px -20px rgba(139,92,246,0.18), inset 0 1px 0 rgba(255,255,255,0.04)" }}
         >
           <EnergyLines />
@@ -928,23 +928,23 @@ export default function PowerPlan() {
               <button
                 onClick={fetchPowerState}
                 disabled={planLoading}
-                className="mt-1 size-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+                className="mt-1 size-8 flex items-center justify-center rounded-full bg-[#21262D] hover:bg-[#2A313A] border border-[#2A313A] transition-colors"
                 title="Refresh power state"
                 data-testid="button-refresh-power-state"
               >
-                <RefreshCw className={cn("size-3.5 text-white/50", planLoading && "animate-spin")} />
+                <RefreshCw className={cn("size-3.5 text-[#A0A8B3]", planLoading && "animate-spin")} />
               </button>
             </div>
 
             {/* Active plan name */}
             {planLoading ? (
               <div className="space-y-2 mb-4">
-                <div className="h-8 w-72 rounded-lg bg-white/[0.06] animate-pulse" />
-                <div className="h-4 w-48 rounded bg-white/[0.04] animate-pulse" />
+                <div className="h-8 w-72 rounded-lg bg-[#21262D] animate-pulse" />
+                <div className="h-4 w-48 rounded bg-[#21262D] animate-pulse" />
               </div>
             ) : (
               <div className="mb-4">
-                <h2 className="text-2xl md:text-3xl font-bold text-white tracking-tight leading-tight">
+                <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] tracking-tight leading-tight">
                   {backendState?.activeScheme?.name ?? "No Plan Detected"}
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
@@ -958,7 +958,7 @@ export default function PowerPlan() {
               <VerificationBadge match={backendState?.profileMatch?.match} loading={planLoading} />
 
               {backendState?.activeScheme?.guid && !planLoading && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/40 border border-white/10 text-[11px] font-mono text-white/40" title={backendState.activeScheme.guid}>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#14181D]/80 border border-[#2A313A] text-[11px] font-mono text-[#6B7380]" title={backendState.activeScheme.guid}>
                   GUID: {backendState.activeScheme.guid.slice(0, 8)}…{backendState.activeScheme.guid.slice(-4)}
                 </span>
               )}
@@ -991,7 +991,7 @@ export default function PowerPlan() {
           <GlassCard className="p-5">
             <div className="flex items-center gap-2 mb-3">
               <Rocket className="size-4 text-primary" />
-              <span className="text-sm font-semibold text-white">System Intent</span>
+              <span className="text-sm font-semibold text-[#E6EAF0]">System Intent</span>
               <span className="text-[10px] text-muted-foreground">Quick-select your use case</span>
             </div>
             <IntentModeSelector value={intentMode} onChange={handleIntentMode} />
@@ -1003,7 +1003,7 @@ export default function PowerPlan() {
             SECTION 3 — TABS
         ══════════════════════════════════════════════════════════════════ */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "profiles" | "custom")} className="space-y-6">
-          <TabsList className="bg-black/40 border border-white/10">
+          <TabsList className="bg-[#14181D]/80 border border-[#2A313A]">
             <TabsTrigger value="profiles" className="data-[state=active]:bg-primary/20 data-[state=active]:text-primary">
               <Gauge className="size-4 mr-2" /> Power Profiles
             </TabsTrigger>
@@ -1021,7 +1021,7 @@ export default function PowerPlan() {
             {planLoading && isElectron && (
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[0,1,2,3].map(i => (
-                  <div key={i} className="h-[360px] rounded-2xl bg-white/[0.04] border border-white/[0.06] animate-pulse" />
+                  <div key={i} className="h-[360px] rounded-2xl bg-[#21262D] border border-[#2A313A] animate-pulse" />
                 ))}
               </div>
             )}
@@ -1086,29 +1086,29 @@ export default function PowerPlan() {
                               )}
                               <div className="flex gap-1">
                                 {profile.compatibility.includes("desktop") && (
-                                  <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-white/40" /></span>
+                                  <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-[#6B7380]" /></span>
                                 )}
                                 {profile.compatibility.includes("laptop") && (
-                                  <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-white/40" /></span>
+                                  <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-[#6B7380]" /></span>
                                 )}
                               </div>
                             </div>
                           </div>
 
                           {/* Name + desc */}
-                          <h3 className="text-base font-bold text-white mb-1.5">{profile.name}</h3>
+                          <h3 className="text-base font-bold text-[#E6EAF0] mb-1.5">{profile.name}</h3>
                           <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{profile.description}</p>
 
                           {/* Key settings pills */}
                           <div className="flex flex-wrap gap-1 mb-4">
                             {keySettings.map(s => (
-                              <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/55">{s}</span>
+                              <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-[#21262D] border border-[#2A313A] text-[#A0A8B3]">{s}</span>
                             ))}
                           </div>
 
                           {/* Estimated impact bars */}
                           <div className="space-y-2 mb-5">
-                            <p className="text-[10px] uppercase tracking-widest text-white/25 font-medium mb-2.5 flex items-center gap-1.5">
+                            <p className="text-[10px] uppercase tracking-widest text-[#6B7380] font-medium mb-2.5 flex items-center gap-1.5">
                               <TrendingDown className="size-2.5" />
                               Estimated Impact
                             </p>
@@ -1167,23 +1167,23 @@ export default function PowerPlan() {
                     <div className="p-5 flex-1 flex flex-col">
                       <div className="flex items-start justify-between mb-4">
                         <div className="size-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#a78bfa22", border: "1px solid #a78bfa44" }}>
-                          <Settings2 className="size-6 text-violet-300" />
+                          <Settings2 className="size-6 text-[#33E0FF]" />
                         </div>
                         <div className="flex flex-col items-end gap-1.5">
                           {effectiveCustomApplied && (
-                            <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-medium flex items-center gap-1.5 text-violet-300" style={{ backgroundColor: "#a78bfa18", borderColor: "#a78bfa44" }}>
-                              <span className="size-1.5 rounded-full bg-violet-400 animate-pulse" />
+                            <span className="text-[10px] px-2.5 py-0.5 rounded-full border font-medium flex items-center gap-1.5 text-[#33E0FF]" style={{ backgroundColor: "#a78bfa18", borderColor: "#a78bfa44" }}>
+                              <span className="size-1.5 rounded-full bg-[#00D4FF] animate-pulse" />
                               Active
                             </span>
                           )}
                           <div className="flex gap-1">
-                            <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-white/40" /></span>
-                            <span className="size-5 rounded bg-white/10 flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-white/40" /></span>
+                            <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Desktop"><Monitor className="size-2.5 text-[#6B7380]" /></span>
+                            <span className="size-5 rounded bg-[#2A313A] flex items-center justify-center" title="Laptop"><Laptop className="size-2.5 text-[#6B7380]" /></span>
                           </div>
                         </div>
                       </div>
 
-                      <h3 className="text-base font-bold text-white mb-1.5" data-testid="text-custom-plan-name">
+                      <h3 className="text-base font-bold text-[#E6EAF0] mb-1.5" data-testid="text-custom-plan-name">
                         {customPlanMeta?.name ?? "Custom Plan"}
                       </h3>
                       {customPlanMeta?.guid && (
@@ -1193,12 +1193,12 @@ export default function PowerPlan() {
 
                       <div className="flex flex-wrap gap-1 mb-4">
                         {PROFILE_KEY_SETTINGS.custom.map(s => (
-                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/[0.08] text-white/55">{s}</span>
+                          <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-[#21262D] border border-[#2A313A] text-[#A0A8B3]">{s}</span>
                         ))}
                       </div>
 
                       <div className="space-y-2 mb-5">
-                        <p className="text-[10px] uppercase tracking-widest text-white/25 font-medium mb-2.5 flex items-center gap-1.5">
+                        <p className="text-[10px] uppercase tracking-widest text-[#6B7380] font-medium mb-2.5 flex items-center gap-1.5">
                           <TrendingDown className="size-2.5" />
                           Estimated Impact
                         </p>
@@ -1232,7 +1232,7 @@ export default function PowerPlan() {
                           variant="ghost"
                           size="icon"
                           onClick={() => setActiveTab("custom")}
-                          className="size-10 shrink-0 bg-white/5 hover:bg-white/10 border border-white/10"
+                          className="size-10 shrink-0 bg-[#21262D] hover:bg-[#2A313A] border border-[#2A313A]"
                           title="Edit custom settings"
                           data-testid="button-edit-custom"
                         >
@@ -1261,7 +1261,7 @@ export default function PowerPlan() {
                 <GlassCard className="p-6" data-testid="panel-profile-breakdown">
                   <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
                     <div>
-                      <h3 className="text-base font-semibold text-white flex items-center gap-2">
+                      <h3 className="text-base font-semibold text-[#E6EAF0] flex items-center gap-2">
                         <displayProfile.icon className="size-4 text-primary" />
                         {displayProfile.name} — Windows Configuration
                       </h3>
@@ -1276,7 +1276,7 @@ export default function PowerPlan() {
                         <Activity className="size-3" /> Live from Windows
                       </span>
                     ) : (
-                      <span className="text-[11px] px-3 py-1 rounded-full bg-white/[0.07] text-white/40 border border-white/[0.08]">Preset values</span>
+                      <span className="text-[11px] px-3 py-1 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A]">Preset values</span>
                     )}
                   </div>
 
@@ -1298,7 +1298,7 @@ export default function PowerPlan() {
                             "p-3.5 rounded-xl border transition-colors",
                             isVerified  ? "bg-emerald-500/[0.06] border-emerald-500/20 hover:bg-emerald-500/10"
                             : mismatch  ? "bg-amber-500/[0.06] border-amber-500/20 hover:bg-amber-500/10"
-                                        : "bg-white/[0.04] border-white/[0.08] hover:bg-white/[0.07]"
+                                        : "bg-[#21262D] border-[#2A313A] hover:bg-[#21262D]"
                           )}
                         >
                           <div className="flex items-center justify-between mb-1.5">
@@ -1308,7 +1308,7 @@ export default function PowerPlan() {
                             {isVerified && <ShieldCheck className="size-3 text-emerald-400 shrink-0" />}
                             {mismatch   && <AlertTriangle className="size-3 text-amber-400 shrink-0" />}
                           </div>
-                          <p className="text-sm font-medium text-white">{value}</p>
+                          <p className="text-sm font-medium text-[#E6EAF0]">{value}</p>
                           {mismatch && (
                             <p className="text-[10px] text-amber-400/65 mt-1">
                               Expected {(mismatch as any).expected}, got {(mismatch as any).actual}
@@ -1324,10 +1324,10 @@ export default function PowerPlan() {
                     const t = PROFILE_THEME[activeProfileId];
                     const impact = PROFILE_IMPACT[activeProfileId];
                     return (
-                      <div className="mt-6 pt-5 border-t border-white/[0.06]">
-                        <p className="text-[10px] uppercase tracking-widest text-white/25 font-semibold mb-4">
+                      <div className="mt-6 pt-5 border-t border-[#2A313A]">
+                        <p className="text-[10px] uppercase tracking-widest text-[#6B7380] font-semibold mb-4">
                           Estimated Performance Impact
-                          <span className="ml-1.5 normal-case text-white/20 font-normal">vs baseline Windows Balanced</span>
+                          <span className="ml-1.5 normal-case text-[#6B7380]/50 font-normal">vs baseline Windows Balanced</span>
                         </p>
                         <div className="grid gap-4 sm:grid-cols-3">
                           {[
@@ -1337,10 +1337,10 @@ export default function PowerPlan() {
                           ].map(bar => (
                             <div key={bar.label} className="space-y-1.5">
                               <div className="flex items-center justify-between text-[11px]">
-                                <span className="text-white/55">{bar.label}</span>
+                                <span className="text-[#A0A8B3]">{bar.label}</span>
                                 <span className="font-semibold" style={{ color: bar.color }}>{bar.value}%</span>
                               </div>
-                              <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                              <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
                                 <motion.div
                                   className="h-full rounded-full"
                                   style={{ backgroundColor: bar.color }}
@@ -1365,10 +1365,10 @@ export default function PowerPlan() {
                 <div className="p-5 rounded-xl bg-blue-500/[0.07] border border-blue-500/20 flex items-start gap-3">
                   <Settings2 className="size-5 text-blue-400 shrink-0 mt-0.5" />
                   <div>
-                    <h3 className="text-sm font-medium text-white mb-1">Custom Windows Power State</h3>
+                    <h3 className="text-sm font-medium text-[#E6EAF0] mb-1">Custom Windows Power State</h3>
                     <p className="text-xs text-muted-foreground">Your current Windows settings do not match any SwitchControl preset. Activate a profile to restore a known state.</p>
                     {backendState?.activeScheme && (
-                      <p className="text-xs text-white/40 mt-1 font-mono">{backendState.activeScheme.name} · {backendState.activeScheme.guid.slice(0, 18)}…</p>
+                      <p className="text-xs text-[#6B7380] mt-1 font-mono">{backendState.activeScheme.name} · {backendState.activeScheme.guid.slice(0, 18)}…</p>
                     )}
                   </div>
                 </div>
@@ -1379,7 +1379,7 @@ export default function PowerPlan() {
             <Reveal delay={0.16}>
               <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>
                 <CollapsibleTrigger asChild>
-                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.07] border border-white/[0.08] transition-colors text-sm font-medium text-white">
+                  <button className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-[#21262D] hover:bg-[#21262D] border border-[#2A313A] transition-colors text-sm font-medium text-[#E6EAF0]">
                     <span className="flex items-center gap-2"><Settings2 className="size-4 text-primary/70" /> Advanced Overrides</span>
                     <div className="flex items-center gap-2 text-muted-foreground text-xs">
                       <span>Fine-grained Windows controls</span>
@@ -1398,7 +1398,7 @@ export default function PowerPlan() {
                     const { label, Icon } = catConfig[cat];
                     return (
                       <div key={cat} className="space-y-3">
-                        <h3 className="text-xs font-semibold text-white/70 uppercase tracking-wider flex items-center gap-2">
+                        <h3 className="text-xs font-semibold text-[#E6EAF0] uppercase tracking-wider flex items-center gap-2">
                           <Icon className="size-3.5 text-primary/60" /> {label}
                         </h3>
                         <div className="grid gap-2 sm:grid-cols-2">
@@ -1440,13 +1440,13 @@ export default function PowerPlan() {
             <GlassCard className="p-6">
               <div className="flex items-start justify-between mb-5">
                 <div>
-                  <h2 className="text-base font-semibold text-white flex items-center gap-2">
+                  <h2 className="text-base font-semibold text-[#E6EAF0] flex items-center gap-2">
                     <Settings2 className="size-4 text-primary" />
                     Plan Identity
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">This name appears in Windows Power Options</p>
                 </div>
-                <Button variant="ghost" size="sm" onClick={resetCustomSettings} className="text-muted-foreground hover:text-white text-xs gap-1.5">
+                <Button variant="ghost" size="sm" onClick={resetCustomSettings} className="text-muted-foreground hover:text-[#E6EAF0] text-xs gap-1.5">
                   <RotateCcw className="size-3.5" /> Reset
                 </Button>
               </div>
@@ -1463,10 +1463,10 @@ export default function PowerPlan() {
                     placeholder="e.g. Oscar Low Latency"
                     maxLength={50}
                     className={cn(
-                      "w-full rounded-xl border bg-black/50 px-4 py-3 text-sm text-white placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 transition-all",
+                      "w-full rounded-xl border bg-[#14181D]/80 px-4 py-3 text-sm text-[#E6EAF0] placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 transition-all",
                       customNameError
                         ? "border-red-500/50 focus:ring-red-500/30"
-                        : "border-white/[0.10] focus:ring-primary/30 focus:border-primary/40"
+                        : "border-[#2A313A] focus:ring-primary/30 focus:border-primary/40"
                     )}
                     data-testid="input-custom-plan-name"
                   />
@@ -1484,7 +1484,7 @@ export default function PowerPlan() {
 
             {/* ── CPU Settings ─────────────────────────────────────────── */}
             <GlassCard className="p-6">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+              <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Cpu className="size-4 text-primary" /> CPU Behavior
               </h3>
               <motion.div className="grid gap-2.5 sm:grid-cols-2" variants={staggerContainer} initial="initial" animate="animate">
@@ -1505,17 +1505,17 @@ export default function PowerPlan() {
                       className={cn(
                         "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
                         isUnwired
-                          ? "border-white/[0.04] bg-white/[0.02] opacity-45 cursor-not-allowed"
+                          ? "border-[#2A313A] bg-[#1A1F26] opacity-45 cursor-not-allowed"
                           : localState.customSettings[item.key]
                             ? "border-primary/30 bg-primary/[0.06] hover:bg-primary/10"
-                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
+                            : "border-[#2A313A] bg-[#1A1F26] hover:bg-[#21262D]"
                       )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                          <span className={cn("text-sm font-medium", isUnwired ? "text-white/35" : "text-white")}>{item.name}</span>
+                          <span className={cn("text-sm font-medium", isUnwired ? "text-[#6B7380]" : "text-[#E6EAF0]")}>{item.name}</span>
                           <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border uppercase font-medium", item.tag === "Safe" ? "text-emerald-400 border-emerald-500/30 bg-emerald-500/10" : "text-blue-400 border-blue-500/30 bg-blue-500/10")}>{item.tag}</span>
-                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-white/25">Coming soon</span>}
+                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] bg-[#21262D] text-[#6B7380]">Coming soon</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground">{item.desc}</p>
                       </div>
@@ -1533,13 +1533,13 @@ export default function PowerPlan() {
 
             {/* ── Processor State Range ─────────────────────────────────── */}
             <GlassCard className="p-6">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+              <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Gauge className="size-4 text-primary" /> Processor State Range
               </h3>
               <div className="space-y-5">
                 <div className="space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/70">Minimum Processor State</span>
+                    <span className="text-[#E6EAF0]">Minimum Processor State</span>
                     <span className="text-primary font-semibold tabular-nums">{localState.customSettings.minProcessorState}%</span>
                   </div>
                   <div className="px-1">
@@ -1550,13 +1550,13 @@ export default function PowerPlan() {
                       className="w-full"
                     />
                   </div>
-                  <div className="flex justify-between text-[10px] text-white/30">
+                  <div className="flex justify-between text-[10px] text-[#6B7380]">
                     <span>0% (Power save)</span><span>100% (Max)</span>
                   </div>
                 </div>
-                <div className="border-t border-white/[0.06] pt-5 space-y-3">
+                <div className="border-t border-[#2A313A] pt-5 space-y-3">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-white/70">Maximum Processor State</span>
+                    <span className="text-[#E6EAF0]">Maximum Processor State</span>
                     <span className="text-primary font-semibold tabular-nums">{localState.customSettings.maxProcessorState}%</span>
                   </div>
                   <div className="px-1">
@@ -1567,7 +1567,7 @@ export default function PowerPlan() {
                       className="w-full"
                     />
                   </div>
-                  <div className="flex justify-between text-[10px] text-white/30">
+                  <div className="flex justify-between text-[10px] text-[#6B7380]">
                     <span>0%</span><span>100% (Full Turbo)</span>
                   </div>
                 </div>
@@ -1576,7 +1576,7 @@ export default function PowerPlan() {
 
             {/* ── USB & Sleep ───────────────────────────────────────────── */}
             <GlassCard className="p-6">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
+              <h3 className="text-sm font-semibold text-[#E6EAF0] flex items-center gap-2 mb-4">
                 <Usb className="size-4 text-primary" /> USB & Sleep
               </h3>
               <motion.div className="grid gap-2.5 sm:grid-cols-2" variants={staggerContainer} initial="initial" animate="animate">
@@ -1595,17 +1595,17 @@ export default function PowerPlan() {
                       className={cn(
                         "flex items-center justify-between p-3.5 rounded-xl border transition-colors",
                         isUnwired
-                          ? "border-white/[0.04] bg-white/[0.02] opacity-45 cursor-not-allowed"
+                          ? "border-[#2A313A] bg-[#1A1F26] opacity-45 cursor-not-allowed"
                           : localState.customSettings[item.key]
                             ? "border-primary/30 bg-primary/[0.06] hover:bg-primary/10"
-                            : "border-white/[0.08] bg-white/[0.03] hover:bg-white/[0.06]"
+                            : "border-[#2A313A] bg-[#1A1F26] hover:bg-[#21262D]"
                       )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap mb-0.5">
-                          <span className={cn("text-sm font-medium", isUnwired ? "text-white/35" : "text-white")}>{item.name}</span>
+                          <span className={cn("text-sm font-medium", isUnwired ? "text-[#6B7380]" : "text-[#E6EAF0]")}>{item.name}</span>
                           <span className="text-[9px] px-1.5 py-0.5 rounded-full border text-emerald-400 border-emerald-500/30 bg-emerald-500/10 uppercase font-medium">{item.tag}</span>
-                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-white/[0.08] bg-white/[0.04] text-white/25">Coming soon</span>}
+                          {isUnwired && <span className="text-[9px] px-1.5 py-0.5 rounded border border-[#2A313A] bg-[#21262D] text-[#6B7380]">Coming soon</span>}
                         </div>
                         <p className="text-[10px] text-muted-foreground">{item.desc}</p>
                       </div>
@@ -1622,10 +1622,10 @@ export default function PowerPlan() {
             </GlassCard>
 
             {/* ── Apply button ─────────────────────────────────────────── */}
-            <div className="relative overflow-hidden rounded-2xl border border-white/[0.07] p-5" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(0,0,0,0.6) 100%)" }}>
+            <div className="relative overflow-hidden rounded-2xl border border-[#2A313A] p-5" style={{ background: "linear-gradient(135deg, rgba(139,92,246,0.12) 0%, rgba(0,0,0,0.6) 100%)" }}>
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <p className="text-sm font-medium text-white">
+                  <p className="text-sm font-medium text-[#E6EAF0]">
                     {effectiveCustomApplied
                       ? `"${customPlanMeta?.name ?? customPlanName}" is active`
                       : "Ready to create your custom Windows power plan"}
@@ -1644,7 +1644,7 @@ export default function PowerPlan() {
                     "shrink-0 min-w-[180px] font-semibold",
                     effectiveCustomApplied
                       ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/30"
-                      : "bg-primary hover:bg-primary/90 text-white shadow-[0_0_24px_-4px_rgba(139,92,246,0.5)]"
+                      : "bg-primary hover:bg-primary/90 text-[#E6EAF0] shadow-[0_0_24px_-4px_rgba(139,92,246,0.5)]"
                   )}
                   data-testid="button-apply-custom"
                 >
@@ -1662,48 +1662,48 @@ export default function PowerPlan() {
             {/* ── Debug Drawer ─────────────────────────────────────────── */}
             <Collapsible open={debugOpen} onOpenChange={setDebugOpen}>
               <CollapsibleTrigger asChild>
-                <button className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] border border-white/[0.06] transition-colors text-xs text-white/40 hover:text-white/60">
+                <button className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl bg-[#1A1F26] hover:bg-[#21262D] border border-[#2A313A] transition-colors text-xs text-[#6B7380] hover:text-[#A0A8B3]">
                   <span className="flex items-center gap-2"><Bug className="size-3.5" /> Debug / Diagnostics</span>
                   {debugOpen ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
                 </button>
               </CollapsibleTrigger>
               <CollapsibleContent className="pt-3 animate-in slide-in-from-top-2 duration-200">
-                <div className="rounded-xl bg-black/60 border border-white/[0.06] p-4 space-y-3 font-mono text-[11px]">
-                  <div className="flex items-center gap-2 text-white/40 mb-2">
+                <div className="rounded-xl bg-[#14181D] border border-[#2A313A] p-4 space-y-3 font-mono text-[11px]">
+                  <div className="flex items-center gap-2 text-[#6B7380] mb-2">
                     <Terminal className="size-3.5" />
                     <span className="text-[10px] uppercase tracking-widest font-sans">Power Plan State</span>
                   </div>
-                  <div className="space-y-1.5 text-white/50">
+                  <div className="space-y-1.5 text-[#A0A8B3]">
                     <div className="flex justify-between gap-4">
-                      <span className="text-white/30">Active GUID</span>
+                      <span className="text-[#6B7380]">Active GUID</span>
                       <span className="text-right truncate">{backendState?.activeScheme?.guid ?? "—"}</span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span className="text-white/30">Active Name</span>
+                      <span className="text-[#6B7380]">Active Name</span>
                       <span className="text-right">{backendState?.activeScheme?.name ?? "—"}</span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span className="text-white/30">Match State</span>
+                      <span className="text-[#6B7380]">Match State</span>
                       <span className="text-right">{backendState?.profileMatch?.match ?? "—"}</span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span className="text-white/30">Profile ID</span>
+                      <span className="text-[#6B7380]">Profile ID</span>
                       <span className="text-right">{backendState?.profileMatch?.profileId ?? "—"}</span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span className="text-white/30">Custom GUID</span>
+                      <span className="text-[#6B7380]">Custom GUID</span>
                       <span className="text-right truncate">{customPlanMeta?.guid ?? "None"}</span>
                     </div>
                     <div className="flex justify-between gap-4">
-                      <span className="text-white/30">Custom Name</span>
+                      <span className="text-[#6B7380]">Custom Name</span>
                       <span className="text-right">{customPlanMeta?.name ?? "—"}</span>
                     </div>
                     {backendState?.profileMatch?.mismatches && Object.keys(backendState.profileMatch.mismatches).length > 0 && (
-                      <div className="mt-2 pt-2 border-t border-white/[0.06]">
+                      <div className="mt-2 pt-2 border-t border-[#2A313A]">
                         <p className="text-[10px] text-amber-400/60 mb-1.5">Setting Mismatches</p>
                         {Object.entries(backendState.profileMatch.mismatches).map(([k, v]) => (
                           <div key={k} className="flex justify-between gap-4 text-amber-400/50">
-                            <span className="text-white/30">{k}</span>
+                            <span className="text-[#6B7380]">{k}</span>
                             <span>exp {(v as any).expected} · got {(v as any).actual}</span>
                           </div>
                         ))}

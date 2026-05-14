@@ -48,7 +48,7 @@ export function CleanerFilters({ search, filter, onSearch, onFilter, foundCount,
           value={search}
           onChange={e => onSearch(e.target.value)}
           placeholder="Search items by name or description…"
-          className="pl-9 h-9 bg-white/[0.04] border-[#2A313A]0 text-sm"
+          className="pl-9 h-9 bg-[#21262D] border-[#2A313A] text-sm"
           data-testid="input-search-items"
         />
         {search && (
@@ -73,7 +73,7 @@ export function CleanerFilters({ search, filter, onSearch, onFilter, foundCount,
               "px-2.5 py-1 rounded-full text-[11px] border transition-all",
               filter === f.id
                 ? "bg-primary/15 border-primary/30 text-primary"
-                : "border-white/[0.08] text-muted-foreground hover:text-foreground/80 hover:border-[#2A313A]5"
+                : "border-[#2A313A] text-muted-foreground hover:text-foreground/80 hover:border-[#2A313A]5"
             )}
           >
             {f.label}

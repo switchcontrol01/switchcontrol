@@ -382,7 +382,7 @@ export function PremiumUpgradeAnimation({ show, onComplete }: Props) {
                         fontWeight: 700,
                         letterSpacing: '-0.01em',
                         lineHeight: 1.15,
-                        background: 'linear-gradient(138deg, #ffffff 0%, #d8b4fe 45%, #a855f7 100%)',
+                        background: 'linear-gradient(138deg, #ffffff 0%, #d8b4fe 45%, #00D4FF 100%)',
                         WebkitBackgroundClip: 'text',
                         backgroundClip: 'text',
                         WebkitTextFillColor: 'transparent',

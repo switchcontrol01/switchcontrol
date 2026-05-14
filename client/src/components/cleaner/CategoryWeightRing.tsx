@@ -60,9 +60,9 @@ export function CategoryWeightRing({
             onClick={() => onSelect?.(r.id)}
             className={cn(
               "relative flex flex-col items-center justify-center rounded-xl",
-              "border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm",
+              "border border-[#2A313A] bg-[#1A1F26] backdrop-blur-sm",
               "px-3 py-4 transition-colors",
-              isSelected && "bg-white/[0.05] border-white/[0.12]",
+              isSelected && "bg-[#21262D] border-[#2A313A]",
               isCleaned && "opacity-40"
             )}
             initial={{ opacity: 0, scale: 0.92 }}
@@ -145,11 +145,11 @@ export function CategoryWeightRing({
             </svg>
 
             {/* Label */}
-            <span className="text-[11px] font-medium text-white/80 leading-tight text-center">
+            <span className="text-[11px] font-medium text-[#E6EAF0] leading-tight text-center">
               {r.label}
             </span>
             <motion.span
-              className="text-[10px] text-white/40 mt-0.5 tabular-nums"
+              className="text-[10px] text-[#6B7380] mt-0.5 tabular-nums"
               animate={{
                 opacity: isCleaned ? 0.4 : 1,
               }}

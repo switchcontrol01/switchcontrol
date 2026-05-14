@@ -281,7 +281,7 @@ function StatCard({
       "rounded-xl border px-3 py-2.5 flex flex-col gap-0.5",
       warn ? "border-red-500/20 bg-red-500/5" :
         accent ? "border-primary/20 bg-primary/5" :
-          "border-[#2A313A] bg-white/[0.03]",
+          "border-[#2A313A] bg-[#1A1F26]",
     )}>
       <span className="text-[9px] font-medium uppercase tracking-widest text-muted-foreground/70 leading-none">
         {label}
@@ -293,7 +293,7 @@ function StatCard({
         transition={{ duration: 0.25 }}
         className={cn(
           "text-base font-bold font-mono tabular-nums leading-tight",
-          warn ? "text-red-400" : accent ? "text-primary" : "text-white",
+          warn ? "text-red-400" : accent ? "text-primary" : "text-[#E6EAF0]",
         )}
       >
         {value}<span className="text-[10px] font-normal text-muted-foreground ml-0.5">{unit}</span>
@@ -335,7 +335,7 @@ function SpikeHeuristic({ spikesPerMin, current }: { spikesPerMin: number; curre
 
 const VERDICT_CONFIG = {
   improved: { label: "Improved", cls: "text-emerald-400 border-emerald-500/20 bg-emerald-500/8", icon: TrendingDown },
-  unchanged: { label: "Unchanged", cls: "text-muted-foreground border-[#2A313A]0 bg-white/[0.03]", icon: null },
+  unchanged: { label: "Unchanged", cls: "text-muted-foreground border-[#2A313A] bg-[#1A1F26]", icon: null },
   worse: { label: "Worse", cls: "text-red-400 border-red-500/20 bg-red-500/8", icon: TrendingUp },
 } as const;
 
@@ -361,9 +361,9 @@ function DeltaRow({
   return (
     <div className="flex items-center gap-3 py-2 border-b border-[#2A313A] last:border-0">
       <span className="text-xs text-muted-foreground w-16 shrink-0">{label}</span>
-      <span className="text-xs font-mono text-white">{before}{unit}</span>
+      <span className="text-xs font-mono text-[#E6EAF0]">{before}{unit}</span>
       <span className="text-muted-foreground/40">→</span>
-      <span className="text-xs font-mono text-white">{after}{unit}</span>
+      <span className="text-xs font-mono text-[#E6EAF0]">{after}{unit}</span>
       {Math.abs(delta) >= (unit === "%" ? 0.5 : 1) && (
         <span className={cn("text-[10px] font-mono ml-auto", verdict === "improved" ? "text-emerald-400" : verdict === "worse" ? "text-red-400" : "text-muted-foreground")}>
           {sign}{delta.toFixed(1)}{unit}
@@ -417,7 +417,7 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
                          "bg-[#1A1F26]0",
           )} />
 
-          <h2 className="text-sm font-semibold text-white tracking-tight">Live Network Diagnostics</h2>
+          <h2 className="text-sm font-semibold text-[#E6EAF0] tracking-tight">Live Network Diagnostics</h2>
 
           <AnimatePresence mode="wait">
             {isLive && (
@@ -466,7 +466,7 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
               size="sm"
               variant="outline"
               onClick={retryMonitoring}
-              className="text-xs gap-1.5 border-[#2A313A]0 hover:bg-[#21262D] text-muted-foreground"
+              className="text-xs gap-1.5 border-[#2A313A] hover:bg-[#21262D] text-muted-foreground"
               data-testid="button-retry-monitoring"
             >
               <RefreshCw className="size-3" /> Retry
@@ -479,7 +479,7 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
             className={cn(
               "text-xs gap-1.5",
               isMonitoring
-                ? "border-[#2A313A]0 hover:bg-[#21262D] text-muted-foreground"
+                ? "border-[#2A313A] hover:bg-[#21262D] text-muted-foreground"
                 : "bg-primary hover:bg-primary/90",
             )}
             data-testid="button-toggle-monitoring"
@@ -501,11 +501,11 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="flex flex-col items-center justify-center h-40 gap-3 text-center"
             >
-              <div className="size-10 rounded-full border border-[#2A313A]0 bg-white/[0.03] flex items-center justify-center">
+              <div className="size-10 rounded-full border border-[#2A313A] bg-[#1A1F26] flex items-center justify-center">
                 <Activity className="size-5 text-muted-foreground/40" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm text-white/60">Latency monitoring is off</p>
+                <p className="text-sm text-[#A0A8B3]">Latency monitoring is off</p>
                 <p className="text-xs text-muted-foreground/50">
                   Start monitoring to see live ping, jitter, and spike data
                 </p>
@@ -523,7 +523,7 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
                 <Activity className="size-4 text-primary/60" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm text-white/70">Probing network…</p>
+                <p className="text-sm text-[#E6EAF0]">Probing network…</p>
                 <p className="text-xs text-muted-foreground/50">
                   Measuring TCP round-trip to Cloudflare, Google, and OpenDNS
                 </p>
@@ -540,7 +540,7 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
                 <AlertCircle className="size-5 text-red-400" />
               </div>
               <div className="space-y-1">
-                <p className="text-sm text-white/70">Probe failed</p>
+                <p className="text-sm text-[#E6EAF0]">Probe failed</p>
                 <p className="text-xs text-muted-foreground/50 max-w-xs">
                   {monitorError ?? "Could not reach network probe endpoint"}
                 </p>
@@ -614,8 +614,8 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
             { label: "Spike Freq",   desc: "Intermittent large jumps. Spike frequency can feel worse than average ping elevation." },
             { label: "Health Score", desc: "Composite score from latency consistency, jitter, loss, and spike frequency. Not a guarantee of performance." },
           ].map(({ label, desc }) => (
-            <div key={label} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 space-y-1">
-              <p className="text-[10px] font-semibold text-white/70 uppercase tracking-wide">{label}</p>
+            <div key={label} className="rounded-lg border border-[#2A313A] bg-[#1A1F26] p-2.5 space-y-1">
+              <p className="text-[10px] font-semibold text-[#E6EAF0] uppercase tracking-wide">{label}</p>
               <p className="text-[10px] text-muted-foreground/60 leading-relaxed">{desc}</p>
             </div>
           ))}
@@ -644,14 +644,14 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
               <Zap className="size-4 text-primary" />
-              <h3 className="text-sm font-semibold text-white">Apply + Benchmark</h3>
+              <h3 className="text-sm font-semibold text-[#E6EAF0]">Apply + Benchmark</h3>
             </div>
             <p className="text-xs text-muted-foreground">
               Measure before and after applying tweaks. Results are honest — no improvements are fabricated.
             </p>
           </div>
           {benchmarkState === "done" && (
-            <Button size="sm" variant="outline" onClick={resetBenchmark} className="text-xs border-[#2A313A]0 shrink-0">
+            <Button size="sm" variant="outline" onClick={resetBenchmark} className="text-xs border-[#2A313A] shrink-0">
               <RefreshCw className="size-3 mr-1.5" /> Reset
             </Button>
           )}
@@ -666,9 +666,9 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
               className="space-y-3"
             >
               <div className="text-xs text-muted-foreground leading-relaxed space-y-1.5">
-                <p>1. Click <span className="text-white font-medium">Run Baseline</span> to record current latency (~3 seconds).</p>
+                <p>1. Click <span className="text-[#E6EAF0] font-medium">Run Baseline</span> to record current latency (~3 seconds).</p>
                 <p>2. Enable or adjust tweaks on this page.</p>
-                <p>3. Click <span className="text-white font-medium">Run Comparison</span> to measure the difference.</p>
+                <p>3. Click <span className="text-[#E6EAF0] font-medium">Run Comparison</span> to measure the difference.</p>
               </div>
               <Button
                 size="sm"
@@ -691,7 +691,7 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
                 <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
               </div>
               <div>
-                <p className="text-sm text-white">
+                <p className="text-sm text-[#E6EAF0]">
                   {benchmarkState === "baseline" ? "Recording baseline…" : "Running comparison test…"}
                 </p>
                 <p className="text-xs text-muted-foreground">Sampling 8 probes across multiple hosts — about 3 seconds</p>
@@ -708,7 +708,7 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
               <div className="flex items-start gap-2.5 p-3 rounded-xl border border-primary/20 bg-primary/5 text-sm">
                 <CheckCircle2 className="size-4 text-primary shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-white font-medium text-xs">Baseline recorded</p>
+                  <p className="text-[#E6EAF0] font-medium text-xs">Baseline recorded</p>
                   <p className="text-muted-foreground text-xs mt-0.5">
                     Now apply or adjust tweaks on this page, then run the comparison below.
                   </p>
@@ -739,7 +739,7 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
                     <div key={key} className={cn(
                       "rounded-xl border px-3 py-2 text-center space-y-1",
                       v === "improved" ? "border-emerald-500/20 bg-emerald-500/5" :
-                        v === "worse" ? "border-red-500/20 bg-red-500/5" : "border-[#2A313A] bg-white/[0.02]",
+                        v === "worse" ? "border-red-500/20 bg-red-500/5" : "border-[#2A313A] bg-[#1A1F26]",
                     )}>
                       <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60">
                         {key === "latency" ? "Avg Latency" : key === "jitter" ? "Jitter" : "Packet Loss"}
@@ -751,7 +751,7 @@ export function NetworkBenchmarkCard(props: DiagnosticsState) {
               </div>
 
               {/* Detailed before/after rows */}
-              <div className="rounded-xl border border-[#2A313A] bg-white/[0.02] px-4 py-1 divide-y divide-white/5">
+              <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] px-4 py-1 divide-y divide-white/5">
                 <DeltaRow label="Avg Ping" before={benchmarkResult.before.avg} after={benchmarkResult.after.avg} verdict={benchmarkResult.verdict.latency} />
                 <DeltaRow label="Jitter" before={benchmarkResult.before.jitter} after={benchmarkResult.after.jitter} verdict={benchmarkResult.verdict.jitter} />
                 <DeltaRow label="Packet Loss" before={benchmarkResult.before.loss} after={benchmarkResult.after.loss} unit="%" verdict={benchmarkResult.verdict.loss} />
@@ -788,14 +788,14 @@ export function PcVsInternetCard(props: DiagnosticsState) {
           <div className="space-y-0.5">
             <div className="flex items-center gap-2">
               <Monitor className="size-4 text-primary" />
-              <h3 className="text-sm font-semibold text-white">Is It Your PC or Your Internet?</h3>
+              <h3 className="text-sm font-semibold text-[#E6EAF0]">Is It Your PC or Your Internet?</h3>
             </div>
             <p className="text-xs text-muted-foreground">
               Runs probes to two independent external providers to estimate where instability originates. Results are diagnostic estimates, not certainties.
             </p>
           </div>
           {pcVsInternetState === "done" && (
-            <Button size="sm" variant="outline" onClick={resetPcVsInternet} className="text-xs border-[#2A313A]0 shrink-0">
+            <Button size="sm" variant="outline" onClick={resetPcVsInternet} className="text-xs border-[#2A313A] shrink-0">
               <RefreshCw className="size-3 mr-1.5" /> Again
             </Button>
           )}
@@ -821,7 +821,7 @@ export function PcVsInternetCard(props: DiagnosticsState) {
                 <div className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
               </div>
               <div>
-                <p className="text-sm text-white">Probing two independent providers…</p>
+                <p className="text-sm text-[#E6EAF0]">Probing two independent providers…</p>
                 <p className="text-xs text-muted-foreground">Cloudflare + Google, 2 samples each — a few seconds</p>
               </div>
             </motion.div>
@@ -845,7 +845,7 @@ export function PcVsInternetCard(props: DiagnosticsState) {
                     "text-[9px] font-medium px-2 py-0.5 rounded-full border uppercase tracking-wide",
                     pcVsInternetResult.confidence === "high" ? "border-emerald-500/20 text-emerald-400" :
                       pcVsInternetResult.confidence === "medium" ? "border-amber-500/20 text-amber-400" :
-                        "border-[#2A313A]0 text-muted-foreground",
+                        "border-[#2A313A] text-muted-foreground",
                   )}>
                     {pcVsInternetResult.confidence} confidence
                   </span>
@@ -856,15 +856,15 @@ export function PcVsInternetCard(props: DiagnosticsState) {
               {(pcVsInternetResult.cloudflare || pcVsInternetResult.google) && (
                 <div className="grid grid-cols-2 gap-2">
                   {pcVsInternetResult.cloudflare != null && (
-                    <div className="rounded-xl border border-[#2A313A] bg-white/[0.02] px-3 py-2.5">
+                    <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] px-3 py-2.5">
                       <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60 mb-1">Cloudflare (1.1.1.1)</p>
-                      <p className="text-sm font-bold font-mono text-white">{pcVsInternetResult.cloudflare}<span className="text-xs font-normal text-muted-foreground ml-0.5">ms</span></p>
+                      <p className="text-sm font-bold font-mono text-[#E6EAF0]">{pcVsInternetResult.cloudflare}<span className="text-xs font-normal text-muted-foreground ml-0.5">ms</span></p>
                     </div>
                   )}
                   {pcVsInternetResult.google != null && (
-                    <div className="rounded-xl border border-[#2A313A] bg-white/[0.02] px-3 py-2.5">
+                    <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] px-3 py-2.5">
                       <p className="text-[9px] uppercase tracking-widest text-muted-foreground/60 mb-1">Google (8.8.8.8)</p>
-                      <p className="text-sm font-bold font-mono text-white">{pcVsInternetResult.google}<span className="text-xs font-normal text-muted-foreground ml-0.5">ms</span></p>
+                      <p className="text-sm font-bold font-mono text-[#E6EAF0]">{pcVsInternetResult.google}<span className="text-xs font-normal text-muted-foreground ml-0.5">ms</span></p>
                     </div>
                   )}
                 </div>
@@ -872,7 +872,7 @@ export function PcVsInternetCard(props: DiagnosticsState) {
 
               {pcVsInternetResult.providerVariance > 0 && (
                 <p className="text-[10px] text-muted-foreground/50">
-                  Provider variance: <span className="font-mono text-white/40">{pcVsInternetResult.providerVariance}ms</span> — variance above ~35ms between independent providers suggests routing inconsistency on the external path.
+                  Provider variance: <span className="font-mono text-[#6B7380]">{pcVsInternetResult.providerVariance}ms</span> — variance above ~35ms between independent providers suggests routing inconsistency on the external path.
                 </p>
               )}
             </motion.div>
@@ -889,9 +889,9 @@ export function NetworkDiagnosticsFooter(props: DiagnosticsState) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-3">
-        <div className="h-px flex-1 bg-white/[0.06]" />
+        <div className="h-px flex-1 bg-[#21262D]" />
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground/40 font-medium">Advanced Diagnostics</span>
-        <div className="h-px flex-1 bg-white/[0.06]" />
+        <div className="h-px flex-1 bg-[#21262D]" />
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
         <NetworkBenchmarkCard {...props} />

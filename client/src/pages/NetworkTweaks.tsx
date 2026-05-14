@@ -329,8 +329,8 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
             : hasFailed
             ? "border-red-500/20 bg-red-500/5"
             : isVerifying && isIdle
-            ? "border-white/[0.09] animate-pulse"
-            : "hover:bg-white/5"
+            ? "border-[#2A313A] animate-pulse"
+            : "hover:bg-[#21262D]"
         )}
         hoverEffect={false}
       >
@@ -342,7 +342,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 ? "text-muted-foreground"
                 : isEnabled
                 ? "text-primary-foreground"
-                : "text-foreground group-hover:text-white"
+                : "text-foreground group-hover:text-[#E6EAF0]"
             )}>
               {tweak.name}
             </h3>
@@ -387,7 +387,7 @@ function NetworkTweakCard({ tweak, tweakState, onToggle, onInfoClick, isVerifyin
                 size="icon"
                 onClick={onInfoClick}
                 data-testid={`button-info-${tweak.id}`}
-                className="size-8 text-muted-foreground hover:text-foreground hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
+                className="size-8 text-muted-foreground hover:text-foreground hover:bg-[#2A313A] opacity-0 group-hover:opacity-100 transition-all duration-300 rounded-full"
               >
                 <Info className="size-4" />
               </Button>
@@ -442,7 +442,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
       {tweak && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-black/35 pointer-events-auto"
+            className="fixed inset-0 z-40 bg-[#14181D]/80 pointer-events-auto"
             onClick={onClose}
             data-testid="modal-backdrop"
             variants={modalBackdrop}
@@ -464,17 +464,17 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
               <motion.button
                 type="button"
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClose(); }}
-                className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-white/10 transition-opacity focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
+                className="absolute right-4 top-4 z-[60] rounded-sm p-2 opacity-70 hover:opacity-100 hover:bg-[#2A313A] transition-opacity focus:outline-none focus:ring-2 focus:ring-ring cursor-pointer"
                 data-testid="button-close-modal"
                 whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
                 whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
               >
-                <X className="h-5 w-5 text-white" />
+                <X className="h-5 w-5 text-[#E6EAF0]" />
                 <span className="sr-only">Close</span>
               </motion.button>
 
               <div className="space-y-1.5 pr-8">
-                <h2 className="text-lg font-semibold text-white flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-semibold text-[#E6EAF0] flex items-center gap-2 flex-wrap">
                   {tweak.name}
                   <SafetyBadge level={tweak.safety} />
                 </h2>
@@ -493,13 +493,13 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
 
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-white">Description</h4>
+                  <h4 className="text-sm font-medium text-[#E6EAF0]">Description</h4>
                   <p className="text-sm text-muted-foreground">{tweak.description}</p>
                 </div>
 
                 {activeExpected.length > 0 && (
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-white">Expected Change</h4>
+                    <h4 className="text-sm font-medium text-[#E6EAF0]">Expected Change</h4>
                     <div className="flex flex-wrap gap-1.5">
                       {activeExpected.map(([label, value]) => (
                         <ImpactPill key={label} label={label} value={value!} />
@@ -509,7 +509,7 @@ function InfoPanel({ tweak, onClose }: InfoPanelProps) {
                 )}
 
                 <div className="space-y-2">
-                  <h4 className="text-sm font-medium text-white">Impact</h4>
+                  <h4 className="text-sm font-medium text-[#E6EAF0]">Impact</h4>
                   <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                     {tweak.impact.map((item, index) => (
                       <li
@@ -933,7 +933,7 @@ function NetworkTweaksContent() {
             <div className="flex gap-3">
               <Info className="size-5 text-[hsl(270,60%,55%)] shrink-0 mt-0.5" />
               <div className="space-y-2">
-                <h3 className="text-sm font-medium text-white">Real system changes — applied immediately</h3>
+                <h3 className="text-sm font-medium text-[#E6EAF0]">Real system changes — applied immediately</h3>
                 <ul className="text-xs text-muted-foreground space-y-1.5">
                   <li>Every toggle writes real registry values or executes netsh/PowerShell commands — there is no placebo behavior.</li>
                   <li>Grayed-out tweaks have been audited and disabled because they are fake, legacy, duplicate, or unsafe without benefit.</li>
@@ -956,7 +956,7 @@ function NetworkTweaksContent() {
                 placeholder="Search network tweaks..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 bg-black/40 border-white/10"
+                className="pl-10 bg-[#14181D]/80 border-[#2A313A]"
                 data-testid="input-search-network"
               />
             </div>
@@ -970,7 +970,7 @@ function NetworkTweaksContent() {
                   "text-xs",
                   activeCategory === "All"
                     ? "bg-primary text-primary-foreground"
-                    : "bg-black/40 border-white/10 hover:bg-white/10"
+                    : "bg-[#14181D]/80 border-[#2A313A] hover:bg-[#2A313A]"
                 )}
                 data-testid="filter-all"
               >
@@ -986,7 +986,7 @@ function NetworkTweaksContent() {
                     "text-xs",
                     activeCategory === category
                       ? "bg-primary text-primary-foreground"
-                      : "bg-black/40 border-white/10 hover:bg-white/10"
+                      : "bg-[#14181D]/80 border-[#2A313A] hover:bg-[#2A313A]"
                   )}
                   data-testid={`filter-${category.toLowerCase().replace("/", "-")}`}
                 >
@@ -1022,11 +1022,11 @@ function NetworkTweaksContent() {
                       data-testid={`category-${category.toLowerCase().replace("/", "-")}`}
                     >
                       {expandedCategories.has(category) ? (
-                        <ChevronDown className="size-5 text-muted-foreground group-hover:text-white transition-colors" />
+                        <ChevronDown className="size-5 text-muted-foreground group-hover:text-[#E6EAF0] transition-colors" />
                       ) : (
-                        <ChevronRight className="size-5 text-muted-foreground group-hover:text-white transition-colors" />
+                        <ChevronRight className="size-5 text-muted-foreground group-hover:text-[#E6EAF0] transition-colors" />
                       )}
-                      <h2 className="text-lg font-semibold text-white group-hover:text-primary transition-colors">
+                      <h2 className="text-lg font-semibold text-[#E6EAF0] group-hover:text-primary transition-colors">
                         {category}
                       </h2>
                       <span className="text-xs text-muted-foreground ml-2">

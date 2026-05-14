@@ -32,7 +32,7 @@ function Reveal({ children, delay = 0, className }: { children: React.ReactNode;
 
 // ─── Animated line chart ──────────────────────────────────────────────────────
 function LiveLineChart({
-  color = "#a855f7",
+  color = "#00D4FF",
   color2 = "#38bdf8",
   height = 80,
   animated = true,
@@ -131,10 +131,10 @@ function AnimBar({ value, color, label, sublabel }: { value: number; color: stri
   return (
     <div ref={ref} className="space-y-1.5">
       <div className="flex justify-between text-xs">
-        <span className="text-white/60">{label}</span>
+        <span className="text-[#A0A8B3]">{label}</span>
         <span className="font-semibold" style={{ color }}>{value}%</span>
       </div>
-      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-2 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full"
           style={{ background: `linear-gradient(90deg, ${color}bb, ${color})`, boxShadow: `0 0 8px ${color}66` }}
@@ -143,7 +143,7 @@ function AnimBar({ value, color, label, sublabel }: { value: number; color: stri
           transition={{ duration: 1.1, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
         />
       </div>
-      {sublabel && <p className="text-[10px] text-white/30">{sublabel}</p>}
+      {sublabel && <p className="text-[10px] text-[#6B7380]">{sublabel}</p>}
     </div>
   );
 }
@@ -202,9 +202,9 @@ function AIChatPreview() {
           animate={visible > i ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
           transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
           className={cn("rounded-xl px-4 py-3 text-sm leading-relaxed max-w-[90%]", {
-            "bg-white/[0.04] border border-white/[0.06] text-white/50 text-xs": msg.role === "system",
-            "ml-auto bg-primary/20 border border-primary/25 text-white/90": msg.role === "user",
-            "bg-white/[0.06] border border-white/[0.1] text-white/85": msg.role === "ai",
+            "bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] text-xs": msg.role === "system",
+            "ml-auto bg-primary/20 border border-primary/25 text-[#E6EAF0]": msg.role === "user",
+            "bg-[#21262D] border border-[#2A313A] text-[#E6EAF0]/85": msg.role === "ai",
           })}
         >
           {msg.role === "ai" && (
@@ -221,11 +221,11 @@ function AIChatPreview() {
 
 // ─── BIOS node graph ──────────────────────────────────────────────────────────
 const BIOS_NODES = [
-  { id: "cpu",  label: "CPU",        x: 50,  y: 20,  color: "#a855f7", active: true  },
+  { id: "cpu",  label: "CPU",        x: 50,  y: 20,  color: "#00D4FF", active: true  },
   { id: "ram",  label: "RAM Timing", x: 20,  y: 55,  color: "#38bdf8", active: true  },
   { id: "pcie", label: "PCIe",       x: 80,  y: 55,  color: "#34d399", active: true  },
   { id: "xmp",  label: "XMP/EXPO",   x: 20,  y: 85,  color: "#f59e0b", active: false },
-  { id: "pbo",  label: "PBO",        x: 50,  y: 85,  color: "#a855f7", active: false },
+  { id: "pbo",  label: "PBO",        x: 50,  y: 85,  color: "#00D4FF", active: false },
   { id: "imc",  label: "IMC",        x: 80,  y: 85,  color: "#38bdf8", active: false },
 ];
 const BIOS_EDGES = [
@@ -332,12 +332,12 @@ function WorkflowTimeline() {
               }}
             >
               <step.icon className="w-6 h-6 text-primary/80" />
-              <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary/80 flex items-center justify-center text-[10px] font-bold text-white">
+              <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-primary/80 flex items-center justify-center text-[10px] font-bold text-[#E6EAF0]">
                 {i + 1}
               </div>
             </div>
-            <p className="text-sm font-semibold text-white mb-1">{step.label}</p>
-            <p className="text-xs text-white/40 leading-relaxed">{step.desc}</p>
+            <p className="text-sm font-semibold text-[#E6EAF0] mb-1">{step.label}</p>
+            <p className="text-xs text-[#6B7380] leading-relaxed">{step.desc}</p>
           </motion.div>
         ))}
       </div>
@@ -347,12 +347,12 @@ function WorkflowTimeline() {
 
 // ─── Feature card ─────────────────────────────────────────────────────────────
 const FEATURE_CARDS = [
-  { icon: Bot,         title: "AI Advisor",       desc: "Context-aware recommendations ranked by impact for your hardware.", color: "#a855f7" },
+  { icon: Bot,         title: "AI Advisor",       desc: "Context-aware recommendations ranked by impact for your hardware.", color: "#00D4FF" },
   { icon: CircuitBoard,title: "BIOS Advisor",      desc: "Understand and action BIOS settings with guided explanations.", color: "#38bdf8" },
   { icon: Activity,    title: "Live Telemetry",    desc: "Real-time CPU, RAM, GPU, disk — know what's actually happening.", color: "#34d399" },
   { icon: Brain,       title: "Intelligent Ranks", desc: "Tweaks ranked by measurable impact — never blindly applied.", color: "#f59e0b" },
   { icon: Shield,      title: "Safe Rollback",     desc: "Every change is reversible. No registry nightmares.", color: "#ef4444" },
-  { icon: Layers,      title: "Guided Workflow",   desc: "Analyze → recommend → explain → apply → monitor → refine.", color: "#a855f7" },
+  { icon: Layers,      title: "Guided Workflow",   desc: "Analyze → recommend → explain → apply → monitor → refine.", color: "#00D4FF" },
   { icon: Zap,         title: "Gaming Focus",      desc: "Designed for frame rates, 1% lows, and input latency — not bloat removal.", color: "#38bdf8" },
   { icon: BarChart3,   title: "Performance Data",  desc: "Visual benchmarks and session history to track real gains.", color: "#34d399" },
   { icon: Settings2,   title: "Precise Control",   desc: "Deep settings without the danger — power-user depth, consumer safety.", color: "#f59e0b" },
@@ -385,8 +385,8 @@ function FeatureCard({ feature, delay }: { feature: typeof FEATURE_CARDS[0]; del
       >
         <feature.icon className="w-5 h-5" style={{ color: feature.color }} />
       </div>
-      <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
-      <p className="text-sm text-white/50 leading-relaxed">{feature.desc}</p>
+      <h3 className="font-semibold text-[#E6EAF0] mb-2">{feature.title}</h3>
+      <p className="text-sm text-[#A0A8B3] leading-relaxed">{feature.desc}</p>
       {hovered && (
         <motion.div
           className="absolute inset-0 rounded-2xl pointer-events-none"
@@ -472,7 +472,7 @@ function TelemetryDashboard() {
   };
 
   const METRICS_DISPLAY = [
-    { key: "cpu" as const, label: "CPU", value: metrics.cpu, color: "#a855f7", unit: "%" },
+    { key: "cpu" as const, label: "CPU", value: metrics.cpu, color: "#00D4FF", unit: "%" },
     { key: "ram" as const, label: "RAM", value: metrics.ram, color: "#38bdf8", unit: "%" },
     { key: "gpu" as const, label: "GPU", value: metrics.gpu, color: "#34d399", unit: "%" },
     { key: null, label: "TEMP", value: metrics.temp, color: "#f59e0b", unit: "°C" },
@@ -485,27 +485,27 @@ function TelemetryDashboard() {
       backdropFilter: "blur(24px)",
     }}>
       {/* Titlebar */}
-      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-[#2A313A]">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-primary/80 animate-pulse" />
-          <span className="text-xs text-white/60 font-mono">Live System Monitor</span>
+          <span className="text-xs text-[#A0A8B3] font-mono">Live System Monitor</span>
         </div>
-        <span className="text-[10px] text-white/30 font-mono">60Hz · 4 sensors</span>
+        <span className="text-[10px] text-[#6B7380] font-mono">60Hz · 4 sensors</span>
       </div>
 
       {/* Metric rows */}
-      <div className="grid grid-cols-2 gap-px bg-white/[0.04]">
+      <div className="grid grid-cols-2 gap-px bg-[#21262D]">
         {METRICS_DISPLAY.map((m) => (
           <div key={m.label} className="bg-[rgba(10,8,28,0.9)] p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-white/40 font-mono">{m.label}</span>
+              <span className="text-xs text-[#6B7380] font-mono">{m.label}</span>
               <span className="text-base font-bold font-mono" style={{ color: m.color }}>
                 {m.value}{m.unit}
               </span>
             </div>
             {m.key ? sparklinePath(sparkRef.current[m.key], m.color) : (
               <div className="w-20 h-7 flex items-end">
-                <div className="w-full h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="w-full h-1.5 rounded-full bg-[#21262D] overflow-hidden">
                   <motion.div
                     className="h-full rounded-full"
                     style={{ background: m.color, width: `${m.value}%` }}
@@ -520,7 +520,7 @@ function TelemetryDashboard() {
 
       {/* Bottom chart */}
       <div className="px-5 pt-3 pb-4">
-        <div className="text-[10px] text-white/30 font-mono mb-1">30s history</div>
+        <div className="text-[10px] text-[#6B7380] font-mono mb-1">30s history</div>
         <LiveLineChart height={56} />
       </div>
     </div>
@@ -549,39 +549,39 @@ function HeroDashboardMockup() {
         backdropFilter: "blur(32px)",
       }}>
         {/* Fake titlebar */}
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-white/[0.06] bg-white/[0.02]">
+        <div className="flex items-center gap-2 px-4 py-3 border-b border-[#2A313A] bg-[#1A1F26]">
           <div className="flex gap-1.5">
             {["#ef4444","#f59e0b","#34d399"].map(c => <div key={c} className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />)}
           </div>
-          <div className="text-[11px] text-white/30 font-mono ml-2">SwitchControl · Dashboard</div>
+          <div className="text-[11px] text-[#6B7380] font-mono ml-2">SwitchControl · Dashboard</div>
         </div>
 
-        <div className="grid grid-cols-3 gap-px bg-white/[0.04]">
+        <div className="grid grid-cols-3 gap-px bg-[#21262D]">
           {/* Left mini sidebar */}
           <div className="col-span-1 bg-[rgba(8,6,22,0.95)] p-3 space-y-1">
             {["Dashboard","Tweaks","Power Plan","AI Advisor","BIOS Advisor","Telemetry"].map((label, i) => (
               <div key={label} className={cn("text-[10px] px-2 py-1.5 rounded-lg font-medium",
-                i === 0 ? "bg-primary/15 text-primary/90" : "text-white/30"
+                i === 0 ? "bg-primary/15 text-primary/90" : "text-[#6B7380]"
               )}>{label}</div>
             ))}
           </div>
 
           {/* Main content */}
           <div className="col-span-2 bg-[rgba(10,8,28,0.9)] p-4 space-y-3">
-            <div className="text-[11px] text-white/50 font-semibold">System Overview</div>
+            <div className="text-[11px] text-[#A0A8B3] font-semibold">System Overview</div>
 
             {/* Metric bars */}
             {[
-              { label: "CPU", val: 38, color: "#a855f7" },
+              { label: "CPU", val: 38, color: "#00D4FF" },
               { label: "RAM", val: 61, color: "#38bdf8" },
               { label: "GPU", val: 45, color: "#34d399" },
             ].map(m => (
               <div key={m.label} className="space-y-0.5">
                 <div className="flex justify-between text-[9px]">
-                  <span className="text-white/40">{m.label}</span>
+                  <span className="text-[#6B7380]">{m.label}</span>
                   <span style={{ color: m.color }} className="font-mono">{m.val}%</span>
                 </div>
-                <div className="h-1 rounded-full bg-white/[0.06]">
+                <div className="h-1 rounded-full bg-[#21262D]">
                   <motion.div className="h-full rounded-full" style={{ background: m.color, width: `${m.val}%` }}
                     initial={{ width: 0 }} animate={{ width: `${m.val}%` }}
                     transition={{ duration: 1, delay: 0.8 + m.val * 0.005 }}
@@ -598,10 +598,10 @@ function HeroDashboardMockup() {
             {/* Optimization score */}
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] text-white/40">Readiness Estimate</div>
-                <div className="text-xl font-bold text-primary font-mono">—<span className="text-xs text-white/30">/100</span></div>
+                <div className="text-[10px] text-[#6B7380]">Readiness Estimate</div>
+                <div className="text-xl font-bold text-primary font-mono">—<span className="text-xs text-[#6B7380]">/100</span></div>
               </div>
-              <div className="text-[10px] text-right text-white/30">
+              <div className="text-[10px] text-right text-[#6B7380]">
                 <div>Run a scan for your estimate</div>
               </div>
             </div>
@@ -643,20 +643,20 @@ export default function Features() {
               </motion.div>
 
               <motion.h1
-                className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight text-white mb-6"
+                className="text-5xl md:text-6xl font-extrabold leading-tight tracking-tight text-[#E6EAF0] mb-6"
                 initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
               >
                 Not just tweaks.<br />
-                <span className="bg-gradient-to-r from-primary via-violet-400 to-sky-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-primary via-[#00D4FF] to-sky-400 bg-clip-text text-transparent">
                   Real performance
                 </span>{" "}
                 intelligence.
               </motion.h1>
 
               <motion.p
-                className="text-lg text-white/55 leading-relaxed mb-8 max-w-lg"
+                className="text-lg text-[#A0A8B3] leading-relaxed mb-8 max-w-lg"
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
@@ -682,7 +682,7 @@ export default function Features() {
 
               {/* Hero stats */}
               <motion.div
-                className="flex gap-8 mt-10 pt-8 border-t border-white/[0.06]"
+                className="flex gap-8 mt-10 pt-8 border-t border-[#2A313A]"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
@@ -693,10 +693,10 @@ export default function Features() {
                   { label: "Response Time", val: 8,  suffix: "ms faster" },
                 ].map(s => (
                   <div key={s.label}>
-                    <div className="text-2xl font-bold text-white font-mono">
+                    <div className="text-2xl font-bold text-[#E6EAF0] font-mono">
                       <CountUp to={s.val} suffix={s.suffix} />
                     </div>
-                    <div className="text-xs text-white/40 mt-0.5">{s.label}</div>
+                    <div className="text-xs text-[#6B7380] mt-0.5">{s.label}</div>
                   </div>
                 ))}
               </motion.div>
@@ -743,7 +743,7 @@ export default function Features() {
                     "Random script packs from forum threads",
                     "One-click button that feels like placebo",
                   ].map(t => (
-                    <li key={t} className="flex items-start gap-2.5 text-sm text-white/45">
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-[#A0A8B3]">
                       <XIcon className="w-3.5 h-3.5 text-red-400/60 mt-0.5 shrink-0" />
                       {t}
                     </li>
@@ -776,7 +776,7 @@ export default function Features() {
                     "Curated, tested, and validated optimization paths",
                     "Transparent control — you decide, you understand",
                   ].map(t => (
-                    <li key={t} className="flex items-start gap-2.5 text-sm text-white/75">
+                    <li key={t} className="flex items-start gap-2.5 text-sm text-[#E6EAF0]/75">
                       <Check className="w-3.5 h-3.5 text-primary/80 mt-0.5 shrink-0" />
                       {t}
                     </li>
@@ -805,17 +805,17 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 {/* Titlebar */}
-                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-[#2A313A]">
                   <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center">
                     <Bot className="w-3.5 h-3.5 text-primary/80" />
                   </div>
                   <div>
-                    <div className="text-xs font-semibold text-white/80">AI Advisor</div>
-                    <div className="text-[10px] text-white/35">Precision diagnosis engine</div>
+                    <div className="text-xs font-semibold text-[#E6EAF0]">AI Advisor</div>
+                    <div className="text-[10px] text-[#6B7380]">Precision diagnosis engine</div>
                   </div>
                   <div className="ml-auto flex items-center gap-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-green-400" />
-                    <span className="text-[10px] text-white/30">Live</span>
+                    <span className="text-[10px] text-[#6B7380]">Live</span>
                   </div>
                 </div>
                 <div className="p-4 min-h-[320px]">
@@ -823,8 +823,8 @@ export default function Features() {
                 </div>
                 {/* Input bar */}
                 <div className="px-4 pb-4">
-                  <div className="h-10 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center px-3">
-                    <span className="text-xs text-white/25">Ask about your setup...</span>
+                  <div className="h-10 rounded-xl bg-[#21262D] border border-[#2A313A] flex items-center px-3">
+                    <span className="text-xs text-[#6B7380]">Ask about your setup...</span>
                   </div>
                 </div>
               </div>
@@ -836,11 +836,11 @@ export default function Features() {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-5 bg-primary/10 border border-primary/20 text-primary/90">
                   <Bot className="w-3 h-3" /> AI Advisor
                 </span>
-                <h2 className="text-4xl font-extrabold text-white leading-tight mb-4">
+                <h2 className="text-4xl font-extrabold text-[#E6EAF0] leading-tight mb-4">
                   Ask why, not{" "}
-                  <span className="bg-gradient-to-r from-primary to-violet-400 bg-clip-text text-transparent">just what.</span>
+                  <span className="bg-gradient-to-r from-primary to-[#00D4FF] bg-clip-text text-transparent">just what.</span>
                 </h2>
-                <p className="text-white/55 leading-relaxed mb-6">
+                <p className="text-[#A0A8B3] leading-relaxed mb-6">
                   AI Advisor isn't a chatbot bolted on for marketing. It reads your live system state, understands your hardware, and gives ranked recommendations with real explanations — so you stop copying settings blindly and start optimizing with clarity.
                 </p>
               </Reveal>
@@ -857,8 +857,8 @@ export default function Features() {
                         <item.icon className="w-4 h-4 text-primary/80" />
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-white mb-0.5">{item.title}</div>
-                        <div className="text-sm text-white/45">{item.desc}</div>
+                        <div className="text-sm font-semibold text-[#E6EAF0] mb-0.5">{item.title}</div>
+                        <div className="text-sm text-[#A0A8B3]">{item.desc}</div>
                       </div>
                     </div>
                   </Reveal>
@@ -883,11 +883,11 @@ export default function Features() {
                 <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-5 bg-sky-500/10 border border-sky-500/20 text-sky-400">
                   <CircuitBoard className="w-3 h-3" /> BIOS Advisor
                 </span>
-                <h2 className="text-4xl font-extrabold text-white leading-tight mb-4">
+                <h2 className="text-4xl font-extrabold text-[#E6EAF0] leading-tight mb-4">
                   The settings most tools{" "}
                   <span className="bg-gradient-to-r from-sky-400 to-cyan-300 bg-clip-text text-transparent">never touch.</span>
                 </h2>
-                <p className="text-white/55 leading-relaxed mb-6">
+                <p className="text-[#A0A8B3] leading-relaxed mb-6">
                   BIOS configuration is the single largest untapped performance lever for most systems. Memory subtimings, power delivery, PCIe settings — they matter enormously. SwitchControl makes them understandable and actionable without requiring an engineering degree.
                 </p>
               </Reveal>
@@ -895,7 +895,7 @@ export default function Features() {
               <div className="space-y-3 mt-4">
                 {[
                   { label: "XMP/EXPO Profile",    impact: 88, color: "#38bdf8" },
-                  { label: "Core Parking Policy",  impact: 76, color: "#a855f7" },
+                  { label: "Core Parking Policy",  impact: 76, color: "#00D4FF" },
                   { label: "PCIe Gen Selection",   impact: 64, color: "#34d399" },
                   { label: "DRAM Subtimings",      impact: 52, color: "#f59e0b" },
                 ].map(item => (
@@ -911,9 +911,9 @@ export default function Features() {
                 border: "1px solid rgba(56,189,248,0.18)",
                 boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 0 40px rgba(56,189,248,0.08)",
               }}>
-                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-white/[0.06]">
+                <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-[#2A313A]">
                   <CircuitBoard className="w-4 h-4 text-sky-400/70" />
-                  <span className="text-xs font-semibold text-white/70">BIOS Advisor · Configuration Map</span>
+                  <span className="text-xs font-semibold text-[#E6EAF0]">BIOS Advisor · Configuration Map</span>
                 </div>
                 <div className="p-5">
                   <BiosNodeGraph />
@@ -923,13 +923,13 @@ export default function Features() {
                       { label: "XMP/EXPO",    status: "Recommended", color: "#f59e0b" },
                       { label: "Core Parking","status": "Apply Now",  color: "#34d399" },
                       { label: "PCIe Gen 4",  status: "Enabled",     color: "#38bdf8" },
-                      { label: "PBO/MCE",     status: "Review",      color: "#a855f7" },
+                      { label: "PBO/MCE",     status: "Review",      color: "#00D4FF" },
                     ].map(item => (
                       <div key={item.label} className="rounded-xl px-3 py-2.5 text-xs" style={{
                         background: item.color + "12",
                         border: `1px solid ${item.color}28`,
                       }}>
-                        <div className="text-white/60 mb-0.5">{item.label}</div>
+                        <div className="text-[#A0A8B3] mb-0.5">{item.label}</div>
                         <div className="font-semibold" style={{ color: item.color }}>{item.status}</div>
                       </div>
                     ))}
@@ -961,8 +961,8 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between">
-                  <div className="text-sm font-semibold text-white/70">CPU + RAM Load — Live</div>
-                  <div className="flex items-center gap-3 text-[11px] text-white/40">
+                  <div className="text-sm font-semibold text-[#E6EAF0]">CPU + RAM Load — Live</div>
+                  <div className="flex items-center gap-3 text-[11px] text-[#6B7380]">
                     <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-primary inline-block rounded" /> CPU</span>
                     <span className="flex items-center gap-1"><span className="w-2 h-0.5 bg-sky-400 inline-block rounded" /> RAM</span>
                   </div>
@@ -972,11 +972,11 @@ export default function Features() {
                 {/* Grid of metrics */}
                 <div className="grid grid-cols-3 gap-3 pt-2">
                   {[
-                    { label: "CPU",    val: 38, color: "#a855f7", icon: Cpu          },
+                    { label: "CPU",    val: 38, color: "#00D4FF", icon: Cpu          },
                     { label: "RAM",    val: 61, color: "#38bdf8", icon: MemoryStick  },
                     { label: "Disk",   val: 14, color: "#34d399", icon: HardDrive    },
                     { label: "Net",    val: 7,  color: "#f59e0b", icon: Wifi         },
-                    { label: "GPU",    val: 45, color: "#a855f7", icon: MonitorDot   },
+                    { label: "GPU",    val: 45, color: "#00D4FF", icon: MonitorDot   },
                     { label: "Temp",   val: 61, color: "#ef4444", icon: Thermometer  },
                   ].map(m => (
                     <div key={m.label} className="rounded-xl p-3 text-center" style={{
@@ -984,7 +984,7 @@ export default function Features() {
                     }}>
                       <m.icon className="w-3.5 h-3.5 mx-auto mb-1" style={{ color: m.color + "bb" }} />
                       <div className="text-lg font-bold font-mono" style={{ color: m.color }}>{m.val}%</div>
-                      <div className="text-[10px] text-white/30">{m.label}</div>
+                      <div className="text-[10px] text-[#6B7380]">{m.label}</div>
                     </div>
                   ))}
                 </div>
@@ -1048,9 +1048,9 @@ export default function Features() {
               backdropFilter: "blur(24px)",
             }}>
               {/* Header row */}
-              <div className="grid grid-cols-3 bg-white/[0.03] border-b border-white/[0.06]">
-                <div className="px-6 py-4 text-sm text-white/40">Feature</div>
-                <div className="px-4 py-4 text-sm text-center font-semibold text-white/50">Typical Optimizer</div>
+              <div className="grid grid-cols-3 bg-[#1A1F26] border-b border-[#2A313A]">
+                <div className="px-6 py-4 text-sm text-[#6B7380]">Feature</div>
+                <div className="px-4 py-4 text-sm text-center font-semibold text-[#A0A8B3]">Typical Optimizer</div>
                 <div className="px-4 py-4 text-sm text-center font-semibold text-primary/90">SwitchControl</div>
               </div>
 
@@ -1062,16 +1062,16 @@ export default function Features() {
                   viewport={{ once: true, margin: "-20px" }}
                   transition={{ delay: i * 0.04, duration: 0.4 }}
                   className={cn(
-                    "grid grid-cols-3 border-b border-white/[0.04]",
-                    i % 2 === 0 ? "bg-white/[0.01]" : ""
+                    "grid grid-cols-3 border-b border-[#2A313A]",
+                    i % 2 === 0 ? "bg-[#1A1F26]" : ""
                   )}
                 >
-                  <div className="px-6 py-3.5 text-sm text-white/60">{row.label}</div>
+                  <div className="px-6 py-3.5 text-sm text-[#A0A8B3]">{row.label}</div>
                   <div className="px-4 py-3.5 flex justify-center">
                     {row.them === true ? (
-                      <Check className="w-4 h-4 text-white/30" />
+                      <Check className="w-4 h-4 text-[#6B7380]" />
                     ) : row.them === "partial" ? (
-                      <span className="text-[11px] text-white/30 font-medium">Partial</span>
+                      <span className="text-[11px] text-[#6B7380] font-medium">Partial</span>
                     ) : (
                       <XIcon className="w-4 h-4 text-red-400/50" />
                     )}
@@ -1112,24 +1112,24 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between mb-5">
-                  <div className="text-sm font-semibold text-white/70">Average FPS Improvement</div>
+                  <div className="text-sm font-semibold text-[#E6EAF0]">Average FPS Improvement</div>
                   <span className="text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">vs baseline</span>
                 </div>
                 <div className="space-y-4">
                   {[
-                    { game: "Warzone",          before: 112, after: 141, color: "#a855f7" },
+                    { game: "Warzone",          before: 112, after: 141, color: "#00D4FF" },
                     { game: "Apex Legends",     before: 168, after: 204, color: "#38bdf8" },
                     { game: "Valorant",         before: 280, after: 334, color: "#34d399" },
                     { game: "Cyberpunk 2077",   before: 74,  after: 89,  color: "#f59e0b" },
                   ].map((g, i) => (
                     <div key={g.game} className="space-y-1.5">
-                      <div className="flex justify-between text-xs text-white/50">
+                      <div className="flex justify-between text-xs text-[#A0A8B3]">
                         <span>{g.game}</span>
                         <span style={{ color: g.color }} className="font-semibold">
                           +{Math.round((g.after - g.before) / g.before * 100)}% · {g.after} fps
                         </span>
                       </div>
-                      <div className="relative h-6 rounded-lg overflow-hidden bg-white/[0.04]">
+                      <div className="relative h-6 rounded-lg overflow-hidden bg-[#21262D]">
                         {/* Before */}
                         <motion.div
                           className="absolute inset-y-1 left-1 rounded"
@@ -1152,8 +1152,8 @@ export default function Features() {
                     </div>
                   ))}
                 </div>
-                <div className="flex gap-4 mt-4 pt-4 border-t border-white/[0.05] text-[11px] text-white/35">
-                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-white/15 inline-block" />Baseline</span>
+                <div className="flex gap-4 mt-4 pt-4 border-t border-[#2A313A] text-[11px] text-[#6B7380]">
+                  <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-[#2A313A] inline-block" />Baseline</span>
                   <span className="flex items-center gap-1.5"><span className="w-3 h-1.5 rounded bg-primary/60 inline-block" />After SwitchControl</span>
                 </div>
               </div>
@@ -1167,24 +1167,24 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between mb-5">
-                  <div className="text-sm font-semibold text-white/70">1% Lows & Frametimes</div>
+                  <div className="text-sm font-semibold text-[#E6EAF0]">1% Lows & Frametimes</div>
                   <span className="text-xs text-sky-400/70 bg-sky-400/10 px-2 py-1 rounded-full">Smoothness</span>
                 </div>
 
-                <LiveLineChart height={100} color="#38bdf8" color2="#a855f7" />
+                <LiveLineChart height={100} color="#38bdf8" color2="#00D4FF" />
 
                 <div className="grid grid-cols-3 gap-3 mt-4">
                   {[
                     { label: "Avg Frametime",  val: "4.2ms",   sub: "↓ from 6.8ms", color: "#38bdf8" },
-                    { label: "1% Low Gain",    val: "+31%",    sub: "Smoother feel",  color: "#a855f7" },
+                    { label: "1% Low Gain",    val: "+31%",    sub: "Smoother feel",  color: "#00D4FF" },
                     { label: "Input Latency",  val: "−8ms",    sub: "Real response",  color: "#34d399" },
                   ].map(s => (
                     <div key={s.label} className="rounded-xl p-3 text-center" style={{
                       background: s.color + "0a", border: `1px solid ${s.color}22`,
                     }}>
                       <div className="text-base font-bold font-mono mb-0.5" style={{ color: s.color }}>{s.val}</div>
-                      <div className="text-[10px] text-white/35 leading-tight">{s.label}</div>
-                      <div className="text-[9px] text-white/25 mt-0.5">{s.sub}</div>
+                      <div className="text-[10px] text-[#6B7380] leading-tight">{s.label}</div>
+                      <div className="text-[9px] text-[#6B7380] mt-0.5">{s.sub}</div>
                     </div>
                   ))}
                 </div>
@@ -1205,13 +1205,13 @@ export default function Features() {
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium mb-6 bg-primary/10 border border-primary/20 text-primary/90">
               <Clock className="w-3 h-3" /> Stop guessing. Start knowing.
             </span>
-            <h2 className="text-5xl font-extrabold text-white mb-6 leading-tight">
+            <h2 className="text-5xl font-extrabold text-[#E6EAF0] mb-6 leading-tight">
               Your system deserves better than{" "}
-              <span className="bg-gradient-to-r from-primary via-violet-400 to-sky-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-primary via-[#00D4FF] to-sky-400 bg-clip-text text-transparent">
                 blind scripts.
               </span>
             </h2>
-            <p className="text-lg text-white/50 leading-relaxed mb-10 max-w-xl mx-auto">
+            <p className="text-lg text-[#A0A8B3] leading-relaxed mb-10 max-w-xl mx-auto">
               SwitchControl gives you the analysis, the intelligence, and the workflow to optimize your system with clarity — not chance.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
@@ -1227,15 +1227,15 @@ export default function Features() {
               </Link>
             </div>
 
-            <div className="mt-12 pt-10 border-t border-white/[0.06] grid grid-cols-3 gap-8">
+            <div className="mt-12 pt-10 border-t border-[#2A313A] grid grid-cols-3 gap-8">
               {[
                 { val: "46+",   label: "Optimizations"   },
                 { val: "Free",  label: "Core tier"       },
                 { val: "AI",    label: "Guided advisor"  },
               ].map(s => (
                 <div key={s.label} className="text-center">
-                  <div className="text-3xl font-bold text-white mb-1">{s.val}</div>
-                  <div className="text-sm text-white/35">{s.label}</div>
+                  <div className="text-3xl font-bold text-[#E6EAF0] mb-1">{s.val}</div>
+                  <div className="text-sm text-[#6B7380]">{s.label}</div>
                 </div>
               ))}
             </div>

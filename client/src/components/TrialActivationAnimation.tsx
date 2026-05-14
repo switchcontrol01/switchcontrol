@@ -40,7 +40,7 @@ const ORBITERS = Array.from({ length: 8 }, (_, i) => ({
 }));
 
 const FEATURES = [
-  { icon: Brain, label: 'AI Advisor',       sub: 'Smart tuning',    color: '#8b5cf6', glow: 'rgba(139,92,246,0.35)' },
+  { icon: Brain, label: 'AI Advisor',       sub: 'Smart tuning',    color: '#00D4FF', glow: 'rgba(139,92,246,0.35)' },
   { icon: Cpu,   label: 'BIOS Advisor',     sub: 'Hardware unlock', color: '#06b6d4', glow: 'rgba(6,182,212,0.35)'  },
   { icon: Wifi,  label: 'Network Tweaks',   sub: 'Latency cuts',    color: '#3b82f6', glow: 'rgba(59,130,246,0.35)' },
   { icon: Zap,   label: 'Power Plans',      sub: 'FPS boost',       color: '#34d399', glow: 'rgba(52,211,153,0.35)' },
@@ -74,7 +74,7 @@ function CountdownDisplay({ trialEndsAt }: { trialEndsAt: string | null }) {
           <defs>
             <linearGradient id="cdRingGrad" x1="0" y1="0" x2="1" y2="0">
               <stop offset="0%"   stopColor="#06b6d4" />
-              <stop offset="100%" stopColor="#8b5cf6" />
+              <stop offset="100%" stopColor="#00D4FF" />
             </linearGradient>
           </defs>
           <motion.circle
@@ -475,7 +475,7 @@ export function TrialActivationAnimation({ show, onComplete }: Props) {
                           <Icon className="w-3.5 h-3.5" style={{ color: feat.color }} />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[11px] font-semibold leading-none text-white truncate">
+                          <div className="text-[11px] font-semibold leading-none text-[#E6EAF0] truncate">
                             {feat.label}
                           </div>
                           <div className="text-[9px] mt-0.5 leading-none truncate" style={{ color: 'rgba(255,255,255,0.38)' }}>

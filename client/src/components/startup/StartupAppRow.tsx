@@ -32,13 +32,13 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
       className={cn(
         "rounded-xl border transition-all duration-200 overflow-hidden",
         isEnabled
-          ? "bg-white/[0.02] border-white/[0.06]"
-          : "bg-white/[0.01] border-white/[0.03] opacity-60"
+          ? "bg-[#1A1F26] border-[#2A313A]"
+          : "bg-[#1A1F26] border-white/[0.03] opacity-60"
       )}
     >
       {/* Main row */}
       <div
-        className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer hover:bg-[#1A1F26] transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         {/* Risk indicator */}
@@ -48,7 +48,7 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium text-white truncate">{app.entry.name}</span>
+            <span className="text-xs font-medium text-[#E6EAF0] truncate">{app.entry.name}</span>
             {/* Tags */}
             {app.isMicrosoft && (
               <span className="text-[9px] px-1 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400">
@@ -86,7 +86,7 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
         {/* Toggle */}
         <div className="shrink-0" onClick={e => e.stopPropagation()}>
           {loading ? (
-            <span className="size-4 border-2 border-white/20 border-t-white/60 rounded-full animate-spin inline-block" />
+            <span className="size-4 border-2 border-[#2A313A] border-t-white/60 rounded-full animate-spin inline-block" />
           ) : (
             <Switch
               checked={isEnabled}
@@ -102,7 +102,7 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
         <motion.div
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: "auto", opacity: 1 }}
-          className="border-t border-white/[0.04] px-3.5 py-2.5 space-y-1.5"
+          className="border-t border-[#2A313A] px-3.5 py-2.5 space-y-1.5"
         >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             <DetailPill label="Est. Delay" value={`${Math.round(app.delayMs)}ms`} />
@@ -123,9 +123,9 @@ export function StartupAppRow({ app, onToggle, loading }: Props) {
 
 function DetailPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-white/[0.02] border border-white/[0.04] px-2 py-1.5">
+    <div className="rounded-md bg-[#1A1F26] border border-[#2A313A] px-2 py-1.5">
       <p className="text-[9px] text-muted-foreground/40">{label}</p>
-      <p className="text-[11px] text-white/70 font-medium tabular-nums">{value}</p>
+      <p className="text-[11px] text-[#E6EAF0] font-medium tabular-nums">{value}</p>
     </div>
   );
 }

@@ -130,7 +130,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
               </div>
 
               {/* Glass surface */}
-              <div className="relative rounded-2xl overflow-hidden border border-white/[0.09] shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.09)]"
+              <div className="relative rounded-2xl overflow-hidden border border-[#2A313A] shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.04),inset_0_1px_0_rgba(255,255,255,0.09)]"
                 style={{
                   background: "linear-gradient(145deg, rgba(18,14,30,0.96) 0%, rgba(10,10,18,0.98) 60%, rgba(8,12,24,0.97) 100%)",
                   backdropFilter: "blur(40px) saturate(1.4)",
@@ -185,7 +185,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
 
                   {/* Title */}
                   <motion.h2
-                    className="text-[18px] font-bold tracking-tight text-white leading-tight mb-2"
+                    className="text-[18px] font-bold tracking-tight text-[#E6EAF0] leading-tight mb-2"
                     style={{ letterSpacing: "-0.02em" }}
                     variants={headerChildren.title} initial="initial" animate="animate"
                     data-testid="text-patch-notes-title"
@@ -247,7 +247,7 @@ export function PatchNotesModal({ show, onDismiss }: PatchNotesModalProps) {
                   <button
                     onClick={handleDismiss}
                     data-testid="button-patch-notes-continue"
-                    className="flex-1 relative overflow-hidden flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-semibold text-white transition-all duration-300 hover:opacity-90 active:scale-[0.98]"
+                    className="flex-1 relative overflow-hidden flex items-center justify-center gap-2 h-10 rounded-xl text-sm font-semibold text-[#E6EAF0] transition-all duration-300 hover:opacity-90 active:scale-[0.98]"
                     style={{
                       background: "linear-gradient(135deg, hsl(265,70%,55%) 0%, hsl(280,65%,50%) 50%, hsl(260,70%,52%) 100%)",
                       boxShadow: "0 0 24px rgba(139,92,246,0.35), 0 4px 12px rgba(0,0,0,0.35)",

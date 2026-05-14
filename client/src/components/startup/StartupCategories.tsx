@@ -7,7 +7,7 @@ import {
 } from "lucide-react";
 
 const TAB_META: Record<StartupCategory, { label: string; icon: typeof HardDrive; color: string }> = {
-  system:    { label: "System",    icon: HardDrive,  color: "text-purple-400" },
+  system:    { label: "System",    icon: HardDrive,  color: "text-[#00D4FF]" },
   drivers:   { label: "Drivers",   icon: Wrench,     color: "text-cyan-400" },
   userApps:  { label: "User Apps", icon: Gamepad2,   color: "text-orange-400" },
   scheduled: { label: "Scheduled", icon: CalendarDays, color: "text-emerald-400" },
@@ -44,7 +44,7 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
     <div className="flex flex-wrap items-center gap-1.5">
       {tabs.map(tab => {
         const meta = tab === "all"
-          ? { label: "All", icon: HardDrive, color: "text-white" }
+          ? { label: "All", icon: HardDrive, color: "text-[#E6EAF0]" }
           : TAB_META[tab];
         const Icon = meta.icon;
         const c = counts[tab] ?? { count: 0, delayMs: 0, enabled: 0 };
@@ -57,14 +57,14 @@ export function StartupCategories({ apps, activeTab, onTabChange, visible }: Pro
             className={cn(
               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
               isActive
-                ? "bg-[#2A313A] border-white/20 text-white"
-                : "bg-transparent border-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.03]"
+                ? "bg-[#2A313A] border-[#2A313A] text-[#E6EAF0]"
+                : "bg-transparent border-[#2A313A] text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#1A1F26]"
             )}
           >
             <Icon className={cn("size-3.5", meta.color)} />
             <span>{meta.label}</span>
             {c.count > 0 && (
-              <span className={cn("text-[10px] tabular-nums", isActive ? "text-white/60" : "text-white/30")}>
+              <span className={cn("text-[10px] tabular-nums", isActive ? "text-[#A0A8B3]" : "text-[#6B7380]")}>
                 {c.enabled}/{c.count}
               </span>
             )}

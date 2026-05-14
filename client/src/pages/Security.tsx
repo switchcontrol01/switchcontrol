@@ -193,7 +193,7 @@ function detectChanges(prev: ScanHistoryEntry | null, curr: ScanHistoryEntry): S
 export function StatusRow({ label, value, state }: { label: string; value: string; state: "ok"|"warn"|"off"|"unknown" }) {
   const cfg = { ok: { cls: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30", dot: "bg-emerald-400" }, warn: { cls: "bg-amber-500/20 text-amber-400 border-amber-500/30", dot: "bg-amber-400" }, off: { cls: "bg-red-500/20 text-red-400 border-red-500/30", dot: "bg-red-400" }, unknown: { cls: "bg-zinc-500/20 text-zinc-400 border-zinc-500/30", dot: "bg-zinc-500" } }[state];
   return (
-    <div className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-[#2A313A] last:border-0">
       <span className="text-sm text-muted-foreground">{label}</span>
       <Badge variant="outline" className={cn("font-medium text-xs gap-1.5", cfg.cls)}>
         <span className={cn("size-1.5 rounded-full", cfg.dot)} />
@@ -225,7 +225,7 @@ function PostureBar({ label, score, color }: { label: string; score: number; col
         <span className="text-muted-foreground">{label}</span>
         <span className={color}>{score}</span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div className={cn("h-full rounded-full", color.replace("text-", "bg-"))}
           initial={{ width: 0 }} animate={{ width: `${score}%` }}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }} />
@@ -333,7 +333,7 @@ function OverviewTab({
                       { label: "Background", value: `${scanSummary.backgroundIssues} heavy`,  bad: scanSummary.backgroundIssues > 0 },
                       { label: "Score",      value: `${healthScore}/100`,                     bad: healthScore < 60 },
                     ].map(item => (
-                      <div key={item.label} className="bg-white/[0.03] rounded-lg p-2.5">
+                      <div key={item.label} className="bg-[#1A1F26] rounded-lg p-2.5">
                         <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.label}</p>
                         <p className={cn("text-sm font-semibold mt-0.5", item.bad ? "text-amber-400" : "text-foreground")}>{item.value}</p>
                       </div>
@@ -343,7 +343,7 @@ function OverviewTab({
               </motion.div>
             ) : (
               <motion.div key="health-empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-4 py-4">
-                <div className="w-24 h-24 rounded-full border-[3px] border-white/10 flex items-center justify-center shrink-0">
+                <div className="w-24 h-24 rounded-full border-[3px] border-[#2A313A] flex items-center justify-center shrink-0">
                   <Zap className="size-8 opacity-20" />
                 </div>
                 <div>
@@ -364,7 +364,7 @@ function OverviewTab({
           <div className="space-y-3">
             <PostureBar label="Protection" score={protectionScore} color="text-emerald-400" />
             <PostureBar label="Startup hygiene" score={startupScore} color="text-cyan-400" />
-            <PostureBar label="Background processes" score={bgScore} color="text-violet-400" />
+            <PostureBar label="Background processes" score={bgScore} color="text-[#00D4FF]" />
             <PostureBar label="Configuration" score={configScore} color="text-amber-400" />
           </div>
           <p className="text-[10px] text-muted-foreground/50 mt-3">Based on last completed scan</p>
@@ -466,7 +466,7 @@ function OverviewTab({
               {recommendations.map(rec => {
                 const cfg = SEVERITY_CONFIG[rec.severity as keyof typeof SEVERITY_CONFIG];
                 return (
-                  <div key={rec.id} className="flex items-start gap-2 py-1.5 border-b border-white/5 last:border-0">
+                  <div key={rec.id} className="flex items-start gap-2 py-1.5 border-b border-[#2A313A] last:border-0">
                     <cfg.Icon className={cn("size-3.5 mt-0.5 shrink-0", cfg.color)} />
                     <div className="min-w-0">
                       <p className="text-xs font-medium truncate">{rec.title}</p>
@@ -532,7 +532,7 @@ function ProtectionTab({
               />
             ))}
             {securityStatus.engineVersion && (
-              <div className="pt-2 mt-1 border-t border-white/5 text-xs text-muted-foreground flex justify-between">
+              <div className="pt-2 mt-1 border-t border-[#2A313A] text-xs text-muted-foreground flex justify-between">
                 <span>Engine</span><span className="font-mono text-[10px]">{securityStatus.engineVersion}</span>
               </div>
             )}
@@ -678,7 +678,7 @@ function ProtectionTab({
               <motion.div key="adv-success" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 className="space-y-4" data-testid="adv-state-success">
                 {/* Score ring + stats */}
-                <div className="flex items-center gap-4 bg-white/[0.02] rounded-xl p-3">
+                <div className="flex items-center gap-4 bg-[#1A1F26] rounded-xl p-3">
                   <svg width="88" height="88" viewBox="0 0 88 88" className="shrink-0">
                     <circle cx="44" cy="44" r={R} fill="none" stroke="rgba(255,255,255,0.06)" strokeWidth="7" />
                     <circle cx="44" cy="44" r={R} fill="none"
@@ -712,7 +712,7 @@ function ProtectionTab({
                     const isToggling = togglingOption === f.key;
                     return (
                       <div key={f.key}
-                        className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-white/[0.03] transition-colors"
+                        className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-[#1A1F26] transition-colors"
                         data-testid={`row-defender-${f.key}`}
                       >
                         <f.icon className={cn("size-3.5 shrink-0", val ? "text-primary" : "text-muted-foreground/40")} />
@@ -790,7 +790,7 @@ function ProtectionTab({
               const label = val === null ? "Unknown" : val === 0 ? "Today" : `${val} day${val !== 1 ? "s" : ""} ago`;
               const rec = val !== null && val >= item.critical ? "Overdue — action recommended" : val !== null && val >= item.warn ? "Getting stale" : "Fresh";
               return (
-                <div key={item.label} className="bg-white/[0.03] rounded-xl p-3">
+                <div key={item.label} className="bg-[#1A1F26] rounded-xl p-3">
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">{item.label}</p>
                   <p className={cn("text-xl font-bold", color)}>{label}</p>
                   <p className={cn("text-xs mt-0.5", color)}>{rec}</p>
@@ -866,17 +866,17 @@ function ScreenshotAnalysisCard() {
       <div className="flex items-center gap-2 mb-3">
         <Eye className="size-4 text-primary" />
         <h3 className="font-semibold text-sm">Screenshot Analysis</h3>
-        <Badge variant="outline" className="ml-auto text-[10px] px-1.5 text-violet-400 border-violet-500/30 bg-violet-500/10">AI</Badge>
+        <Badge variant="outline" className="ml-auto text-[10px] px-1.5 text-[#00D4FF] border-[#00D4FF] bg-[#00D4FF]">AI</Badge>
       </div>
       <p className="text-xs text-muted-foreground mb-3">Upload a Task Manager, Windows Security, or startup apps screenshot for AI analysis.</p>
       {imagePreview ? (
         <div className="space-y-3">
-          <div className="rounded-lg overflow-hidden border border-white/10"><img src={imagePreview} alt="Screenshot" className="w-full max-h-40 object-cover" /></div>
+          <div className="rounded-lg overflow-hidden border border-[#2A313A]"><img src={imagePreview} alt="Screenshot" className="w-full max-h-40 object-cover" /></div>
           <div className="flex gap-2">
             <Button className="flex-1 gap-2 text-sm" onClick={analyze} disabled={imageAnalyzing} data-testid="button-analyze-image">
               {imageAnalyzing ? <><Loader2 className="size-3.5 animate-spin" />Analyzing…</> : <><Eye className="size-3.5" />Analyze</>}
             </Button>
-            <Button variant="outline" size="icon" onClick={clear} className="shrink-0 border-white/10 hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors" data-testid="button-clear-image"><X className="size-4" /></Button>
+            <Button variant="outline" size="icon" onClick={clear} className="shrink-0 border-[#2A313A] hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-400 transition-colors" data-testid="button-clear-image"><X className="size-4" /></Button>
           </div>
           {imageError && <p className="text-xs text-red-400">{imageError}</p>}
           {imageResult && (
@@ -895,7 +895,7 @@ function ScreenshotAnalysisCard() {
         </div>
       ) : (
         <button onClick={() => fileInputRef.current?.click()}
-          className="w-full border border-dashed border-white/15 rounded-xl py-6 flex flex-col items-center gap-2 text-muted-foreground hover:border-white/30 hover:bg-white/[0.02] transition-all"
+          className="w-full border border-dashed border-[#2A313A]5 rounded-xl py-6 flex flex-col items-center gap-2 text-muted-foreground hover:border-[#2A313A] hover:bg-[#1A1F26] transition-all"
           data-testid="button-upload-screenshot">
           <ImageIcon className="size-7 opacity-40" />
           <span className="text-xs">Click to upload screenshot</span>
@@ -1210,7 +1210,7 @@ export default function Security() {
         {/* Live telemetry strip */}
         {liveTel && (
           <motion.div
-            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-white/8 bg-white/3 flex-wrap"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26] flex-wrap"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.25 }}
           >
             <div className="flex items-center gap-1.5">
@@ -1219,14 +1219,14 @@ export default function Security() {
                 CPU <span className={liveTel.cpu.load > 75 ? "text-red-400" : liveTel.cpu.load > 50 ? "text-amber-400" : "text-emerald-400"}>{liveTel.cpu.load.toFixed(0)}%</span>
               </span>
             </div>
-            <div className="h-3 w-px bg-white/15" />
+            <div className="h-3 w-px bg-[#2A313A]" />
             <span className="text-[11px] font-mono tabular-nums text-muted-foreground">
               RAM <span className={liveTel.ram.usedPercent > 80 ? "text-red-400" : liveTel.ram.usedPercent > 60 ? "text-amber-400" : "text-cyan-400"}>{liveTel.ram.usedPercent.toFixed(0)}%</span>
             </span>
-            <div className="h-3 w-px bg-white/15" />
+            <div className="h-3 w-px bg-[#2A313A]" />
             <span className="text-[11px] text-muted-foreground">{liveTel.processes.total} processes</span>
             {liveTel.load_trend !== "stable" && (
-              <><div className="h-3 w-px bg-white/15" /><span className={cn("text-[10px]", liveTel.load_trend === "rising" ? "text-amber-400" : "text-emerald-400")}>Load {liveTel.load_trend}</span></>
+              <><div className="h-3 w-px bg-[#2A313A]" /><span className={cn("text-[10px]", liveTel.load_trend === "rising" ? "text-amber-400" : "text-emerald-400")}>Load {liveTel.load_trend}</span></>
             )}
             <span className="ml-auto text-[9px] text-muted-foreground/50">Live</span>
           </motion.div>
@@ -1268,7 +1268,7 @@ export default function Security() {
                     { label: `${scanSummary.startupIssues} startup issue${scanSummary.startupIssues !== 1 ? "s" : ""}`, active: scanSummary.startupIssues > 0, cls: "text-amber-400 border-amber-500/25 bg-amber-500/10", Icon: MonitorPlay },
                     { label: `${scanSummary.backgroundIssues} background`, active: scanSummary.backgroundIssues > 0, cls: "text-orange-400 border-orange-500/25 bg-orange-500/10", Icon: Cpu },
                   ].map(chip => (
-                    <Badge key={chip.label} variant="outline" className={cn("gap-1.5 py-1 px-2.5 text-xs font-medium", chip.active ? chip.cls : "text-muted-foreground border-white/10 bg-white/5")}>
+                    <Badge key={chip.label} variant="outline" className={cn("gap-1.5 py-1 px-2.5 text-xs font-medium", chip.active ? chip.cls : "text-muted-foreground border-[#2A313A] bg-[#21262D]")}>
                       <chip.Icon className="size-3" />{chip.label}
                     </Badge>
                   ))}
@@ -1279,7 +1279,7 @@ export default function Security() {
         </div>
 
         {/* Tab nav */}
-        <div className="flex gap-0 border-b border-white/8">
+        <div className="flex gap-0 border-b border-[#2A313A]">
           {TABS.map(tab => (
             <button
               key={tab.id}

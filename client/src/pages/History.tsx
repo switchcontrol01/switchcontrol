@@ -32,14 +32,14 @@ export interface EnrichedItem extends HistoryItem {
 // ── Constants ─────────────────────────────────────────────────────────────
 
 export const MODULE_CONFIG: Record<string, { label: string; cls: string }> = {
-  Tweaks:        { label: "Tweaks",       cls: "bg-violet-500/15 text-violet-400 border-violet-500/25" },
+  Tweaks:        { label: "Tweaks",       cls: "bg-[#00D4FF] text-[#00D4FF] border-[#00D4FF]" },
   Security:      { label: "Security",     cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
   Power:         { label: "Power",        cls: "bg-amber-500/15 text-amber-400 border-amber-500/25" },
   Network:       { label: "Network",      cls: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
   Cleaner:       { label: "Cleaner",      cls: "bg-orange-500/15 text-orange-400 border-orange-500/25" },
   Debloat:       { label: "Debloat",      cls: "bg-pink-500/15 text-pink-400 border-pink-500/25" },
   Startup:       { label: "Startup",      cls: "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" },
-  "AI Advisor":  { label: "AI",           cls: "bg-fuchsia-500/15 text-fuchsia-400 border-fuchsia-500/25" },
+  "AI Advisor":  { label: "AI",           cls: "bg-#F59E0B/15 text-[#F59E0B] border-#F59E0B/25" },
   "BIOS Advisor":{ label: "BIOS",         cls: "bg-yellow-500/15 text-yellow-400 border-yellow-500/25" },
   Dashboard:     { label: "Dashboard",    cls: "bg-sky-500/15 text-sky-400 border-sky-500/25" },
   "App Booster": { label: "App Booster",  cls: "bg-lime-500/15 text-lime-400 border-lime-500/25" },
@@ -226,7 +226,7 @@ function SummaryCard({
       <GlassCard className="p-3.5 sm:p-4 h-full">
         <div className="flex items-start justify-between gap-2 mb-2">
           <p className="text-[11px] text-muted-foreground uppercase tracking-wide font-medium leading-tight">{label}</p>
-          <div className="size-7 rounded-lg bg-white/[0.05] border border-white/[0.08] flex items-center justify-center shrink-0">
+          <div className="size-7 rounded-lg bg-[#21262D] border border-[#2A313A] flex items-center justify-center shrink-0">
             <Icon className="size-3.5 text-muted-foreground" />
           </div>
         </div>
@@ -250,7 +250,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
   return (
     <div
       className={cn(
-        "rounded-xl border-l-2 border border-white/[0.07] overflow-hidden transition-all",
+        "rounded-xl border-l-2 border border-[#2A313A] overflow-hidden transition-all",
         sCfg.lborder,
         item.status === "failed" && "bg-red-500/[0.03]",
       )}
@@ -258,7 +258,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
     >
       {/* Summary row */}
       <button
-        className="w-full flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 text-left hover:bg-white/[0.025] transition-colors"
+        className="w-full flex items-center gap-2.5 sm:gap-3 p-3 sm:p-3.5 text-left hover:bg-[#1A1F26] transition-colors"
         onClick={() => setOpen(o => !o)}
         aria-expanded={open}
       >
@@ -313,7 +313,7 @@ function EventRow({ item, index }: { item: EnrichedItem; index: number }) {
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/[0.06] px-3.5 sm:px-5 py-3.5 bg-white/[0.015] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2.5">
+            <div className="border-t border-[#2A313A] px-3.5 sm:px-5 py-3.5 bg-[#1A1F26] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-x-4 gap-y-2.5">
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Timestamp</p>
                 <p className="text-xs font-mono">{format(new Date(item.timestamp), "MMM d yyyy, HH:mm:ss")}</p>
@@ -411,7 +411,7 @@ function EmptyState() {
           { icon: TrendingUp,   text: "Change Power Plan" },
           { icon: Info,         text: "Analyze BIOS" },
         ].map(({ icon: Icon, text }) => (
-          <div key={text} className="flex items-center gap-2 bg-white/[0.03] border border-white/[0.06] rounded-lg px-3 py-2">
+          <div key={text} className="flex items-center gap-2 bg-[#1A1F26] border border-[#2A313A] rounded-lg px-3 py-2">
             <Icon className="size-3.5 text-primary/60 shrink-0" />
             <span className="text-xs text-muted-foreground">{text}</span>
           </div>
@@ -548,17 +548,17 @@ export default function History() {
                   <motion.div
                     initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
-                    className="absolute right-0 top-full mt-1.5 bg-zinc-900 border border-[#2A313A]0 rounded-xl shadow-2xl z-20 overflow-hidden min-w-44"
+                    className="absolute right-0 top-full mt-1.5 bg-zinc-900 border border-[#2A313A] rounded-xl shadow-2xl z-20 overflow-hidden min-w-44"
                   >
-                    <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-white/8 transition-colors text-left"
+                    <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-[#1A1F26] transition-colors text-left"
                       onClick={exportAllJSON} data-testid="button-export-all-json">
-                      <FileJson className="size-3.5 text-violet-400" />All history (JSON)
+                      <FileJson className="size-3.5 text-[#00D4FF]" />All history (JSON)
                     </button>
-                    <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-white/8 transition-colors text-left"
+                    <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-[#1A1F26] transition-colors text-left"
                       onClick={exportFilteredJSON} data-testid="button-export-filtered-json">
                       <FileJson className="size-3.5 text-cyan-400" />Filtered view (JSON)
                     </button>
-                    <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-white/8 transition-colors text-left"
+                    <button className="w-full flex items-center gap-2 px-3.5 py-2.5 text-xs hover:bg-[#1A1F26] transition-colors text-left"
                       onClick={exportFilteredCSV} data-testid="button-export-csv">
                       <FileText className="size-3.5 text-emerald-400" />Filtered view (CSV)
                     </button>
@@ -627,7 +627,7 @@ export default function History() {
               <Input
                 value={search} onChange={e => setSearch(e.target.value)}
                 placeholder="Search actions, modules, results…"
-                className="pl-9 bg-white/[0.04] border-[#2A313A]0 h-9 text-sm"
+                className="pl-9 bg-[#21262D] border-[#2A313A] h-9 text-sm"
                 data-testid="input-search-history"
               />
               {search && (
@@ -637,11 +637,11 @@ export default function History() {
                 </button>
               )}
             </div>
-            <Button variant="outline" size="icon" className={cn("h-9 w-9 border-[#2A313A]0 shrink-0", showFilters && "bg-[#2A313A] border-white/20")}
+            <Button variant="outline" size="icon" className={cn("h-9 w-9 border-[#2A313A] shrink-0", showFilters && "bg-[#2A313A] border-[#2A313A]")}
               onClick={() => setShowFilters(v => !v)} data-testid="button-toggle-filters">
               <Filter className="size-3.5" />
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 border-[#2A313A]0 shrink-0"
+            <Button variant="outline" size="icon" className="h-9 w-9 border-[#2A313A] shrink-0"
               onClick={() => setSortDesc(v => !v)} title={sortDesc ? "Newest first" : "Oldest first"}
               data-testid="button-sort-toggle">
               <ArrowUpDown className="size-3.5" />
@@ -667,7 +667,7 @@ export default function History() {
                             "px-2.5 py-1 rounded-full text-[11px] border transition-colors",
                             modFilter === m
                               ? "bg-primary/15 border-primary/30 text-primary"
-                              : "border-white/[0.08] text-muted-foreground hover:text-foreground/80"
+                              : "border-[#2A313A] text-muted-foreground hover:text-foreground/80"
                           )}
                           data-testid={`filter-module-${m.toLowerCase().replace(/\s/g,"-")}`}
                         >
@@ -689,7 +689,7 @@ export default function History() {
                               "px-2.5 py-1 rounded-full text-[11px] border capitalize transition-colors",
                               statFilter === s
                                 ? (cfg ? cn(cfg.bg, cfg.color) : "bg-primary/15 border-primary/30 text-primary")
-                                : "border-white/[0.08] text-muted-foreground hover:text-foreground/80"
+                                : "border-[#2A313A] text-muted-foreground hover:text-foreground/80"
                             )}
                             data-testid={`filter-status-${s}`}
                           >
@@ -703,7 +703,7 @@ export default function History() {
 
                 {/* Active filters summary + clear */}
                 {hasFilters && (
-                  <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-white/[0.06]">
+                  <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-[#2A313A]">
                     <span className="text-[11px] text-muted-foreground">{filtered.length} of {enriched.length} events shown</span>
                     <button onClick={clearFilters} className="text-[11px] text-primary hover:underline ml-auto">Clear all</button>
                   </div>
@@ -738,7 +738,7 @@ export default function History() {
                       <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/50 shrink-0">
                         {group.label}
                       </p>
-                      <div className="h-px flex-1 bg-white/[0.06]" />
+                      <div className="h-px flex-1 bg-[#21262D]" />
                       <span className="text-[10px] text-muted-foreground/40 shrink-0">{group.items.length}</span>
                     </div>
 

@@ -51,7 +51,7 @@ const MODULES = [
     icon: Rocket,
     description: "Per-app performance profiles",
     details: "Create custom optimization profiles for specific games and applications.",
-    color: "from-pink-500/20 to-pink-600/10",
+    color: "from-[#00D4FF]/20 to-[#00D4FF]/10",
     preview: ["Fortnite Profile", "Valorant Profile", "Custom Profiles"]
   },
   {
@@ -138,7 +138,7 @@ export function ModuleShowcase() {
                 )} />
                 <p className={cn(
                   "text-xs font-medium transition-colors",
-                  isActive ? "text-white" : "text-muted-foreground group-hover:text-white"
+                  isActive ? "text-[#E6EAF0]" : "text-muted-foreground group-hover:text-[#E6EAF0]"
                 )}>
                   {module.name}
                 </p>
@@ -157,16 +157,16 @@ export function ModuleShowcase() {
             exit={{ opacity: 0, y: prefersReducedMotion ? -5 : -10, height: 0 }}
             transition={{ duration: prefersReducedMotion ? 0.15 : 0.3 }}
           >
-            <Card className={cn("bg-gradient-to-br border-[#2A313A]0 overflow-hidden", activeModule.color)}>
+            <Card className={cn("bg-gradient-to-br border-[#2A313A] overflow-hidden", activeModule.color)}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-3 rounded-xl bg-[#2A313A]">
-                      <activeModule.icon className="size-6 text-white" />
+                      <activeModule.icon className="size-6 text-[#E6EAF0]" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold text-white">{activeModule.name}</h3>
-                      <p className="text-sm text-white/70">{activeModule.description}</p>
+                      <h3 className="text-xl font-bold text-[#E6EAF0]">{activeModule.name}</h3>
+                      <p className="text-sm text-[#E6EAF0]">{activeModule.description}</p>
                     </div>
                   </div>
                   <button 
@@ -175,11 +175,11 @@ export function ModuleShowcase() {
                     aria-label="Close module details"
                     data-testid="button-close-module"
                   >
-                    <X className="size-4 text-white/50 hover:text-white" />
+                    <X className="size-4 text-[#A0A8B3] hover:text-[#E6EAF0]" />
                   </button>
                 </div>
                 
-                <p className="text-white/80 mb-4 leading-relaxed">{activeModule.details}</p>
+                <p className="text-[#E6EAF0] mb-4 leading-relaxed">{activeModule.details}</p>
                 
                 <div className="flex flex-wrap gap-2">
                   {activeModule.preview.map((item, i) => (
@@ -189,7 +189,7 @@ export function ModuleShowcase() {
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * (prefersReducedMotion ? 0.05 : 0.1) }}
                     >
-                      <Badge variant="outline" className="bg-[#2A313A] border-white/20 text-white/90">
+                      <Badge variant="outline" className="bg-[#2A313A] border-[#2A313A] text-[#E6EAF0]">
                         {item}
                       </Badge>
                     </motion.div>
@@ -197,12 +197,12 @@ export function ModuleShowcase() {
                 </div>
                 
                 <motion.div
-                  className="mt-4 pt-4 border-t border-[#2A313A]0"
+                  className="mt-4 pt-4 border-t border-[#2A313A]"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: prefersReducedMotion ? 0.15 : 0.3 }}
                 >
-                  <p className="text-xs text-white/50 flex items-center gap-1">
+                  <p className="text-xs text-[#A0A8B3] flex items-center gap-1">
                     <ArrowRight className="size-3" />
                     Available in the dashboard
                   </p>

@@ -73,7 +73,7 @@ function StatBadge({ label, value, color }: { label: string; value: string; colo
   return (
     <div className="flex flex-col items-center gap-0.5 min-w-[48px]">
       <span className={cn("text-sm font-mono font-bold tabular-nums leading-none", color)}>{value}</span>
-      <span className="text-[9px] text-white/30 uppercase tracking-widest leading-none">{label}</span>
+      <span className="text-[9px] text-[#6B7380] uppercase tracking-widest leading-none">{label}</span>
     </div>
   );
 }
@@ -93,17 +93,17 @@ function GraphHeader({
 }) {
   return (
     <div className="flex items-center gap-2 mb-3">
-      <div className="w-5 h-5 rounded-md bg-[#21262D] border border-[#2A313A]0 flex items-center justify-center shrink-0">
-        <Icon className="size-2.5 text-white/50" />
+      <div className="w-5 h-5 rounded-md bg-[#21262D] border border-[#2A313A] flex items-center justify-center shrink-0">
+        <Icon className="size-2.5 text-[#A0A8B3]" />
       </div>
       <div className="flex-1 min-w-0">
-        <span className="text-xs font-semibold text-white/70">{title}</span>
-        {subtitle && <span className="text-[10px] text-white/30 ml-1.5">{subtitle}</span>}
+        <span className="text-xs font-semibold text-[#E6EAF0]">{title}</span>
+        {subtitle && <span className="text-[10px] text-[#6B7380] ml-1.5">{subtitle}</span>}
       </div>
       {live && (
         <div className="flex items-center gap-1 shrink-0">
           <span className="w-1 h-1 rounded-full bg-cyan-400 animate-pulse" style={{ boxShadow: "0 0 5px #06b6d4" }} />
-          <span className="text-[9px] text-white/25 uppercase tracking-widest">Live</span>
+          <span className="text-[9px] text-[#6B7380] uppercase tracking-widest">Live</span>
         </div>
       )}
     </div>
@@ -148,11 +148,11 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
 
       <div className="flex items-center gap-4 mb-2.5">
         <StatBadge label="Used" value={`${currentUsed.toFixed(0)}%`} color="text-cyan-400" />
-        <StatBadge label="Total" value={`${totalGB.toFixed(0)}G`} color="text-white/50" />
-        <StatBadge label="Live" value={`${usedGB.toFixed(1)}G`} color="text-violet-400" />
-        <div className="flex items-center gap-2.5 ml-auto text-[9px] text-white/25 uppercase tracking-widest">
+        <StatBadge label="Total" value={`${totalGB.toFixed(0)}G`} color="text-[#A0A8B3]" />
+        <StatBadge label="Live" value={`${usedGB.toFixed(1)}G`} color="text-[#00D4FF]" />
+        <div className="flex items-center gap-2.5 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-cyan-400/70" />Used</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-violet-400/50" />Free</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-[#00D4FF]/50" />Free</span>
         </div>
       </div>
 
@@ -164,11 +164,11 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
               <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.02" />
             </linearGradient>
             <linearGradient id={`mf-${id}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.16" />
-              <stop offset="100%" stopColor="#7c3aed" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="#00D4FF" stopOpacity="0.16" />
+              <stop offset="100%" stopColor="#00D4FF" stopOpacity="0.01" />
             </linearGradient>
             <linearGradient id={`ml-${id}`} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.8" />
+              <stop offset="0%" stopColor="#00D4FF" stopOpacity="0.8" />
               <stop offset="100%" stopColor="#06b6d4" stopOpacity="1" />
             </linearGradient>
             <filter id={`mg-${id}`}>
@@ -186,7 +186,7 @@ export function MemoryPressureGraph({ delay = 0 }: { delay?: number }) {
           {usedArea && <motion.path d={usedArea} fill={`url(#mu-${id})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.4, duration: 0.5 }} />}
 
           {freeLine && (
-            <motion.path d={freeLine} fill="none" stroke="#8b5cf6" strokeWidth="1.2" strokeOpacity="0.5" strokeLinecap="round"
+            <motion.path d={freeLine} fill="none" stroke="#00D4FF" strokeWidth="1.2" strokeOpacity="0.5" strokeLinecap="round"
               initial={{ strokeDasharray: freeLen, strokeDashoffset: freeLen }}
               animate={{ strokeDashoffset: 0 }}
               transition={{ delay: delay + 0.2, duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
@@ -260,8 +260,8 @@ export function StorageActivityGraph({ delay = 0 }: { delay?: number }) {
       <div className="flex items-center gap-4 mb-2.5">
         <StatBadge label="Read" value={fmtKB(readKBps)} color="text-amber-400" />
         <StatBadge label="Write" value={fmtKB(writeKBps)} color="text-orange-400" />
-        <StatBadge label="Active" value={`${activeTime.toFixed(0)}%`} color="text-white/40" />
-        <div className="flex items-center gap-2.5 ml-auto text-[9px] text-white/25 uppercase tracking-widest">
+        <StatBadge label="Active" value={`${activeTime.toFixed(0)}%`} color="text-[#6B7380]" />
+        <div className="flex items-center gap-2.5 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-amber-400/70" />R</span>
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px bg-orange-400/50" />W</span>
         </div>
@@ -361,10 +361,10 @@ export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
       <div className="flex items-center gap-4 mb-2.5">
         <StatBadge label="CPU" value={`${cpu.toFixed(0)}%`} color="text-primary" />
         <StatBadge label="RAM" value={`${ram.toFixed(0)}%`} color="text-cyan-400" />
-        {gpu !== null && <StatBadge label="GPU" value={`${gpu.toFixed(0)}%`} color="text-violet-400" />}
-        <div className="flex items-center gap-2 ml-auto text-[9px] text-white/25 uppercase tracking-widest">
+        {gpu !== null && <StatBadge label="GPU" value={`${gpu.toFixed(0)}%`} color="text-[#00D4FF]" />}
+        <div className="flex items-center gap-2 ml-auto text-[9px] text-[#6B7380] uppercase tracking-widest">
           <span className="flex items-center gap-1"><span className="inline-block w-5 h-px" style={{ background: "#06b6d4" }} />CPU</span>
-          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px" style={{ background: "#8b5cf6", opacity: 0.6 }} />GPU</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-5 h-px" style={{ background: "#00D4FF", opacity: 0.6 }} />GPU</span>
         </div>
       </div>
 
@@ -376,11 +376,11 @@ export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
               <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.01" />
             </linearGradient>
             <linearGradient id={`rga-${id}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0.01" />
+              <stop offset="0%" stopColor="#00D4FF" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#00D4FF" stopOpacity="0.01" />
             </linearGradient>
             <linearGradient id={`rcl-${id}`} x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#7c3aed" />
+              <stop offset="0%" stopColor="#00D4FF" />
               <stop offset="100%" stopColor="#06b6d4" />
             </linearGradient>
             <filter id={`rg-${id}`}>
@@ -398,7 +398,7 @@ export function SystemRhythmGraph({ delay = 0 }: { delay?: number }) {
           {cpuArea && <motion.path d={cpuArea} fill={`url(#rca-${id})`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.45, duration: 0.5 }} />}
 
           {gpuLine && (
-            <motion.path d={gpuLine} fill="none" stroke="#8b5cf6" strokeWidth="1.2" strokeOpacity="0.55" strokeLinecap="round"
+            <motion.path d={gpuLine} fill="none" stroke="#00D4FF" strokeWidth="1.2" strokeOpacity="0.55" strokeLinecap="round"
               initial={{ strokeDasharray: lineLen, strokeDashoffset: lineLen }}
               animate={{ strokeDashoffset: 0 }}
               transition={{ delay: delay + 0.2, duration: 0.85, ease: [0.22, 1, 0.36, 1] }}
@@ -460,9 +460,9 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
 
 function SignalField({ label, value, mono = false }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-white/[0.05] last:border-0">
-      <span className="text-[10px] text-white/35 uppercase tracking-widest shrink-0">{label}</span>
-      <span className={cn("text-[11px] font-medium text-right truncate max-w-[55%]", mono ? "font-mono text-white/80" : "text-white/60")}>
+    <div className="flex items-center justify-between gap-2 py-1.5 border-b border-[#2A313A] last:border-0">
+      <span className="text-[10px] text-[#6B7380] uppercase tracking-widest shrink-0">{label}</span>
+      <span className={cn("text-[11px] font-medium text-right truncate max-w-[55%]", mono ? "font-mono text-[#E6EAF0]" : "text-[#A0A8B3]")}>
         {value}
       </span>
     </div>
@@ -519,9 +519,9 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
   const connectionColor =
     profile?.connectionType?.toUpperCase().includes("DP")          ? "#06b6d4"
     : profile?.connectionType?.toUpperCase().includes("HDMI 2.1")  ? "#a78bfa"
-    : profile?.connectionType?.toUpperCase().includes("HDMI")      ? "#8b5cf6"
+    : profile?.connectionType?.toUpperCase().includes("HDMI")      ? "#00D4FF"
     : profile?.connectionType?.toUpperCase().includes("VNC")       ? "#6b7280"
-    :                                                                  "#d946ef";
+    :                                                                  "#00D4FF";
 
   const unknown = "Unknown";
 
@@ -531,7 +531,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
       animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
       transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
     >
-      <GlassCard className="relative overflow-hidden border-violet-500/10 bg-violet-500/[0.015]">
+      <GlassCard className="relative overflow-hidden border-[#00D4FF] bg-[#00D4FF]/[0.015]">
         <SweepLine active={changed || !profile} />
 
         <div className="absolute inset-0 pointer-events-none"
@@ -541,15 +541,15 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
           {/* Header */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Monitor className="size-4 text-violet-400" />
-              <span className="text-[11px] font-semibold text-white/80 uppercase tracking-widest">Display Signal</span>
+              <Monitor className="size-4 text-[#00D4FF]" />
+              <span className="text-[11px] font-semibold text-[#E6EAF0] uppercase tracking-widest">Display Signal</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className={cn(
                 "size-1.5 rounded-full",
                 profile ? "bg-emerald-400 animate-pulse" : "bg-[#1A1F26]0"
               )} />
-              <span className="text-[9px] text-white/30 uppercase tracking-widest">
+              <span className="text-[9px] text-[#6B7380] uppercase tracking-widest">
                 {profile ? "Live" : "Loading"}
               </span>
             </div>
@@ -560,8 +560,8 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
             {score !== null ? (
               <ScoreRing score={score} color={scoreColor} />
             ) : (
-              <div className="w-[52px] h-[52px] rounded-full border-2 border-[#2A313A]0 flex items-center justify-center shrink-0">
-                <span className="text-[9px] text-white/25">—</span>
+              <div className="w-[52px] h-[52px] rounded-full border-2 border-[#2A313A] flex items-center justify-center shrink-0">
+                <span className="text-[9px] text-[#6B7380]">—</span>
               </div>
             )}
 
@@ -570,12 +570,12 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
                 <span className="text-xl font-bold tabular-nums font-mono" style={{ color: connectionColor }}>
                   {profile?.refreshHz !== null && profile?.refreshHz !== undefined ? `${profile.refreshHz}Hz` : "—Hz"}
                 </span>
-                <span className="text-xs text-white/30">@</span>
-                <span className="text-xs font-mono text-white/55">
+                <span className="text-xs text-[#6B7380]">@</span>
+                <span className="text-xs font-mono text-[#A0A8B3]">
                   {profile?.resolution ?? "—"}
                 </span>
               </div>
-              <p className="text-[10px] text-white/40 leading-snug line-clamp-2">
+              <p className="text-[10px] text-[#6B7380] leading-snug line-clamp-2">
                 {profile?.qualityReason ?? "Collecting display data…"}
               </p>
               {profile?.qualityAction && (
@@ -587,7 +587,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
           </div>
 
           {/* Signal attribute grid */}
-          <div className="rounded-lg bg-white/[0.025] border border-white/[0.06] px-3 py-0.5">
+          <div className="rounded-lg bg-white/[0.025] border border-[#2A313A] px-3 py-0.5">
             <SignalField label="Monitor"     value={profile?.monitorName    ?? unknown} />
             <SignalField label="Connection"  value={profile?.connectionType ?? unknown} />
             <SignalField label="GPU"         value={profile?.gpuName        ?? unknown} />
@@ -599,7 +599,7 @@ export function DisplaySignalGraph({ delay = 0 }: { delay?: number }) {
 
           {/* Display count */}
           {profile && profile.displayCount > 1 && (
-            <p className="text-[9px] text-white/25 mt-2 text-right">
+            <p className="text-[9px] text-[#6B7380] mt-2 text-right">
               {profile.displayCount} displays detected · showing primary
             </p>
           )}

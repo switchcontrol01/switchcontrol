@@ -79,10 +79,10 @@ function trialMsRemaining(endsAt: string | null): number {
 
 function PlanBadge({ plan }: { plan: string }) {
   const styles: Record<string, string> = {
-    premium: "bg-violet-500/20 text-violet-300 border-violet-500/30",
+    premium: "bg-[#00D4FF] text-[#33E0FF] border-[#00D4FF]",
     trial: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
     trial_expired: "bg-orange-500/20 text-orange-300 border-orange-500/30",
-    free: "bg-white/5 text-white/40 border-white/10",
+    free: "bg-[#21262D] text-[#6B7380] border-[#2A313A]",
   };
   const labels: Record<string, string> = {
     premium: "Premium",
@@ -130,18 +130,18 @@ interface ConfirmModalProps {
 function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, onConfirm, onClose, loading, error }: ConfirmModalProps) {
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#14181D]/80 backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-white/10 p-6 shadow-2xl"
+        className="relative w-full max-w-sm rounded-2xl border border-[#2A313A] p-6 shadow-2xl"
         style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(7,9,13,0.97) 100%)" }}
       >
-        <h3 className="text-base font-semibold text-white mb-2">{title}</h3>
-        <div className="text-sm text-white/55 mb-5">{description}</div>
+        <h3 className="text-base font-semibold text-[#E6EAF0] mb-2">{title}</h3>
+        <div className="text-sm text-[#A0A8B3] mb-5">{description}</div>
         {error && (
           <p className="text-red-400 text-xs mb-4 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
         )}
         <div className="flex gap-3">
-          <button onClick={onClose} disabled={loading} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50">
+          <button onClick={onClose} disabled={loading} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors disabled:opacity-50">
             Cancel
           </button>
           <button
@@ -151,7 +151,7 @@ function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, on
             className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
               danger
                 ? "bg-red-600/25 border-red-500/35 text-red-300 hover:bg-red-600/40"
-                : "bg-violet-600/25 border-violet-500/35 text-violet-200 hover:bg-violet-600/40"
+                : "bg-[#00D4FF]/25 border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF]/40"
             }`}
           >
             {loading ? "Working…" : confirmLabel}
@@ -192,17 +192,17 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#14181D]/80 backdrop-blur-sm" onClick={onClose} />
       <div
         className="relative w-full max-w-sm rounded-2xl border border-red-500/20 p-6 shadow-2xl"
         style={{ background: "linear-gradient(145deg, rgba(239,68,68,0.05) 0%, rgba(7,9,13,0.97) 100%)" }}
       >
         <h3 className="text-base font-semibold text-red-300 mb-1">Delete User</h3>
-        <p className="text-sm text-white/50 mb-4">
-          This will permanently delete <strong className="text-white/80">{user.displayName}</strong> and all their associated data. This action cannot be undone.
+        <p className="text-sm text-[#A0A8B3] mb-4">
+          This will permanently delete <strong className="text-[#E6EAF0]">{user.displayName}</strong> and all their associated data. This action cannot be undone.
         </p>
-        <label className="block text-xs text-white/40 mb-1.5">
-          Type <span className="font-mono text-white/60">{user.email || user.id}</span> to confirm
+        <label className="block text-xs text-[#6B7380] mb-1.5">
+          Type <span className="font-mono text-[#A0A8B3]">{user.email || user.id}</span> to confirm
         </label>
         <input
           type="text"
@@ -210,13 +210,13 @@ function DeleteUserModal({ user, onClose, onDeleted }: { user: AdminUser; onClos
           onChange={(e) => setConfirm(e.target.value)}
           data-testid="input-delete-confirm"
           placeholder={user.email || user.id || ""}
-          className="w-full rounded-lg bg-white/5 border border-red-500/20 px-3 py-2 text-sm text-white placeholder-white/20 outline-none focus:border-red-500/50 transition-colors mb-4"
+          className="w-full rounded-lg bg-[#21262D] border border-red-500/20 px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-red-500/50 transition-colors mb-4"
         />
         {error && (
           <p className="text-red-400 text-xs mb-4 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
         )}
         <div className="flex gap-3">
-          <button onClick={onClose} disabled={loading} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-white/5 border border-white/10 text-white/60 hover:text-white transition-colors disabled:opacity-50">
+          <button onClick={onClose} disabled={loading} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors disabled:opacity-50">
             Cancel
           </button>
           <button
@@ -287,13 +287,13 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#14181D] backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative w-full max-w-md rounded-2xl border border-white/10 p-6 shadow-2xl"
+        className="relative w-full max-w-md rounded-2xl border border-[#2A313A] p-6 shadow-2xl"
         style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.08) 0%, rgba(10,7,28,0.95) 100%)" }}
       >
-        <h3 className="text-lg font-semibold text-white mb-1">Set Plan</h3>
-        <p className="text-sm text-white/50 mb-5">{user.displayName}</p>
+        <h3 className="text-lg font-semibold text-[#E6EAF0] mb-1">Set Plan</h3>
+        <p className="text-sm text-[#A0A8B3] mb-5">{user.displayName}</p>
 
         <div className="grid grid-cols-3 gap-2 mb-5">
           {(["free", "trial", "premium"] as PlanOption[]).map((p) => (
@@ -303,10 +303,10 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
               onClick={() => setSelectedPlan(p)}
               className={`rounded-xl px-3 py-2.5 text-sm font-medium border transition-all ${
                 selectedPlan === p
-                  ? p === "premium" ? "bg-violet-500/30 border-violet-400/50 text-violet-200"
+                  ? p === "premium" ? "bg-[#00D4FF] border-[#00D4FF]/50 text-[#00D4FF]"
                   : p === "trial" ? "bg-cyan-500/30 border-cyan-400/50 text-cyan-200"
-                  : "bg-white/15 border-white/20 text-white"
-                  : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
+                  : "bg-[#2A313A] border-[#2A313A] text-[#E6EAF0]"
+                  : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:bg-[#2A313A] hover:text-[#E6EAF0]"
               }`}
             >
               {p.charAt(0).toUpperCase() + p.slice(1)}
@@ -316,7 +316,7 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
 
         {selectedPlan === "trial" && (
           <div className="mb-4 space-y-3">
-            <label className="block text-xs text-white/50">Trial Duration</label>
+            <label className="block text-xs text-[#A0A8B3]">Trial Duration</label>
             <div className="grid grid-cols-5 gap-2">
               {TRIAL_PRESETS.map((p) => (
                 <button
@@ -326,7 +326,7 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
                   className={`rounded-lg px-2 py-2 text-xs font-medium border transition-all ${
                     !useCustom && trialPreset === p.hours
                       ? "bg-cyan-500/25 border-cyan-400/45 text-cyan-200"
-                      : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10 hover:text-white/70"
+                      : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:bg-[#2A313A] hover:text-[#E6EAF0]"
                   }`}
                 >
                   {p.label}
@@ -337,7 +337,7 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
               <button
                 onClick={() => setUseCustom(true)}
                 className={`text-xs rounded-lg px-3 py-1.5 border transition-all ${
-                  useCustom ? "bg-cyan-500/20 border-cyan-400/35 text-cyan-300" : "bg-white/5 border-white/10 text-white/40 hover:text-white/60"
+                  useCustom ? "bg-cyan-500/20 border-cyan-400/35 text-cyan-300" : "bg-[#21262D] border-[#2A313A] text-[#6B7380] hover:text-[#A0A8B3]"
                 }`}
               >
                 Custom
@@ -351,12 +351,12 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
                   onChange={(e) => setCustomHours(e.target.value)}
                   data-testid="input-custom-hours"
                   placeholder="Hours"
-                  className="flex-1 rounded-lg bg-white/5 border border-white/10 px-3 py-1.5 text-sm text-white outline-none focus:border-cyan-500/60 transition-colors"
+                  className="flex-1 rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-1.5 text-sm text-[#E6EAF0] outline-none focus:border-cyan-500/60 transition-colors"
                 />
               )}
             </div>
             {previewEnd && (
-              <p className="text-xs text-white/35">
+              <p className="text-xs text-[#6B7380]">
                 Expires: <span className="text-cyan-300/70">{fmtFull(previewEnd)}</span>
               </p>
             )}
@@ -364,7 +364,7 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
         )}
 
         <div className="mb-5">
-          <label className="block text-xs text-white/50 mb-1.5">Reason (optional)</label>
+          <label className="block text-xs text-[#A0A8B3] mb-1.5">Reason (optional)</label>
           <input
             type="text"
             placeholder="Support request, compensation, test…"
@@ -372,21 +372,21 @@ function SetPlanDialog({ user, onClose, onSuccess }: { user: AdminUser; onClose:
             onChange={(e) => setReason(e.target.value)}
             data-testid="input-reason"
             maxLength={500}
-            className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/25 outline-none focus:border-violet-500/60 transition-colors"
+            className="w-full rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
           />
         </div>
 
         {error && <p className="text-red-400 text-xs mb-4 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-white/5 border border-white/10 text-white/60 hover:text-white transition-colors">
+          <button onClick={onClose} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors">
             Cancel
           </button>
           <button
             data-testid="button-confirm-plan"
             onClick={submit}
             disabled={loading}
-            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all disabled:opacity-50 bg-violet-600/30 border-violet-500/40 text-violet-200 hover:bg-violet-600/40`}
+            className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all disabled:opacity-50 bg-[#00D4FF]/30 border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF]/40`}
           >
             {loading ? "Saving…" : "Confirm"}
           </button>
@@ -430,13 +430,13 @@ function ResetFlagsDialog({ user, onClose, onSuccess }: { user: AdminUser; onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#14181D] backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-white/10 p-6 shadow-2xl"
+        className="relative w-full max-w-sm rounded-2xl border border-[#2A313A] p-6 shadow-2xl"
         style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(7,9,13,0.97) 100%)" }}
       >
-        <h3 className="text-base font-semibold text-white mb-1">Reset User Flags</h3>
-        <p className="text-sm text-white/45 mb-4">{user.displayName}</p>
+        <h3 className="text-base font-semibold text-[#E6EAF0] mb-1">Reset User Flags</h3>
+        <p className="text-sm text-[#A0A8B3] mb-4">{user.displayName}</p>
 
         <div className="space-y-3 mb-4">
           {[
@@ -449,46 +449,46 @@ function ResetFlagsDialog({ user, onClose, onSuccess }: { user: AdminUser; onClo
                 onClick={() => f.set(!f.val)}
                 data-testid={`checkbox-${f.id}`}
                 className={`mt-0.5 w-4 h-4 rounded border transition-colors flex-shrink-0 cursor-pointer ${
-                  f.val ? "bg-violet-500 border-violet-400" : "bg-white/5 border-white/20 group-hover:border-white/40"
+                  f.val ? "bg-#00D4FF border-[#00D4FF]" : "bg-[#21262D] border-[#2A313A] group-hover:border-[#2A313A]"
                 }`}
               >
                 {f.val && (
-                  <svg viewBox="0 0 12 12" fill="none" className="w-4 h-4 -mt-0 -ml-0 text-white">
+                  <svg viewBox="0 0 12 12" fill="none" className="w-4 h-4 -mt-0 -ml-0 text-[#E6EAF0]">
                     <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 )}
               </div>
               <div>
-                <p className="text-sm text-white/75">{f.label}</p>
-                <p className="text-xs text-white/30">{f.hint}</p>
+                <p className="text-sm text-[#E6EAF0]/75">{f.label}</p>
+                <p className="text-xs text-[#6B7380]">{f.hint}</p>
               </div>
             </label>
           ))}
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs text-white/40 mb-1.5">Reason (optional)</label>
+          <label className="block text-xs text-[#6B7380] mb-1.5">Reason (optional)</label>
           <input
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g. Re-testing onboarding flow"
             maxLength={500}
-            className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/20 outline-none focus:border-violet-500/50 transition-colors"
+            className="w-full rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
           />
         </div>
 
         {error && <p className="text-red-400 text-xs mb-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-white/5 border border-white/10 text-white/60 hover:text-white transition-colors">
+          <button onClick={onClose} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors">
             Cancel
           </button>
           <button
             onClick={submit}
             disabled={noneSelected || loading}
             data-testid="button-confirm-reset-flags"
-            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium border bg-violet-600/20 border-violet-500/30 text-violet-300 hover:bg-violet-600/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium border bg-[#00D4FF]/20 border-[#00D4FF] text-[#33E0FF] hover:bg-[#00D4FF]/30 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           >
             {loading ? "Resetting…" : "Reset Selected"}
           </button>
@@ -532,13 +532,13 @@ function ExtendTrialModal({ user, onClose, onSuccess }: { user: AdminUser; onClo
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#14181D] backdrop-blur-sm" onClick={onClose} />
       <div
-        className="relative w-full max-w-sm rounded-2xl border border-white/10 p-6 shadow-2xl"
+        className="relative w-full max-w-sm rounded-2xl border border-[#2A313A] p-6 shadow-2xl"
         style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(7,9,13,0.97) 100%)" }}
       >
-        <h3 className="text-base font-semibold text-white mb-1">Extend Trial</h3>
-        <p className="text-sm text-white/45 mb-4">{user.displayName}</p>
+        <h3 className="text-base font-semibold text-[#E6EAF0] mb-1">Extend Trial</h3>
+        <p className="text-sm text-[#A0A8B3] mb-4">{user.displayName}</p>
 
         <div className="grid grid-cols-4 gap-2 mb-3">
           {[0.5, 1, 24, 72].map((h) => (
@@ -546,7 +546,7 @@ function ExtendTrialModal({ user, onClose, onSuccess }: { user: AdminUser; onClo
               key={h}
               onClick={() => setExtraHours(h)}
               className={`rounded-lg px-2 py-2 text-xs font-medium border transition-all ${
-                extraHours === h ? "bg-cyan-500/25 border-cyan-400/40 text-cyan-200" : "bg-white/5 border-white/10 text-white/50 hover:bg-white/10"
+                extraHours === h ? "bg-cyan-500/25 border-cyan-400/40 text-cyan-200" : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:bg-[#2A313A]"
               }`}
             >
               {h < 1 ? `${h * 60}m` : h < 24 ? `${h}h` : `${h / 24}d`}
@@ -555,7 +555,7 @@ function ExtendTrialModal({ user, onClose, onSuccess }: { user: AdminUser; onClo
         </div>
 
         <div className="mb-3">
-          <label className="block text-xs text-white/40 mb-1.5">Custom hours</label>
+          <label className="block text-xs text-[#6B7380] mb-1.5">Custom hours</label>
           <input
             type="number"
             min={0.5}
@@ -563,27 +563,27 @@ function ExtendTrialModal({ user, onClose, onSuccess }: { user: AdminUser; onClo
             value={extraHours}
             onChange={(e) => setExtraHours(parseFloat(e.target.value) || 1)}
             data-testid="input-extend-hours"
-            className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500/60 transition-colors"
+            className="w-full rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-2 text-sm text-[#E6EAF0] outline-none focus:border-cyan-500/60 transition-colors"
           />
-          <p className="text-xs text-white/30 mt-1">New end: <span className="text-cyan-300/60">{fmtFull(previewEnd)}</span></p>
+          <p className="text-xs text-[#6B7380] mt-1">New end: <span className="text-cyan-300/60">{fmtFull(previewEnd)}</span></p>
         </div>
 
         <div className="mb-4">
-          <label className="block text-xs text-white/40 mb-1.5">Reason (optional)</label>
+          <label className="block text-xs text-[#6B7380] mb-1.5">Reason (optional)</label>
           <input
             type="text"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g. Support extension"
             maxLength={500}
-            className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm text-white placeholder-white/20 outline-none focus:border-violet-500/50 transition-colors"
+            className="w-full rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
           />
         </div>
 
         {error && <p className="text-red-400 text-xs mb-3 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>}
 
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-white/5 border border-white/10 text-white/60 hover:text-white transition-colors">
+          <button onClick={onClose} className="flex-1 rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors">
             Cancel
           </button>
           <button
@@ -637,8 +637,8 @@ function QuickTrialButton({ label, hours, userId, onSuccess }: { label: string; 
 function Row({ label, value, mono }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
     <div className="flex justify-between gap-4 items-start">
-      <span className="text-white/40 flex-shrink-0">{label}</span>
-      <span className={`text-white/75 text-right truncate max-w-xs ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
+      <span className="text-[#6B7380] flex-shrink-0">{label}</span>
+      <span className={`text-[#E6EAF0]/75 text-right truncate max-w-xs ${mono ? "font-mono text-xs" : ""}`}>{value}</span>
     </div>
   );
 }
@@ -699,7 +699,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
 
   const revokeTrial = () => setConfirm({
     title: "Revoke Trial",
-    description: <>Revoke active trial for <strong className="text-white/80">{localUser.displayName}</strong>? They will immediately lose access.</>,
+    description: <>Revoke active trial for <strong className="text-[#E6EAF0]">{localUser.displayName}</strong>? They will immediately lose access.</>,
     confirmLabel: "Revoke Trial",
     danger: true,
     action: async () => { await postAction(`/api/admin/users/${localUser.id}/revoke-trial`); },
@@ -707,7 +707,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
 
   const resetTrial = () => setConfirm({
     title: "Reset Trial Fields",
-    description: <>Clear all trial data for <strong className="text-white/80">{localUser.displayName}</strong>? This resets hasUsedTrial and all trial timestamps.</>,
+    description: <>Clear all trial data for <strong className="text-[#E6EAF0]">{localUser.displayName}</strong>? This resets hasUsedTrial and all trial timestamps.</>,
     confirmLabel: "Reset Trial",
     danger: true,
     action: async () => { await postAction(`/api/admin/users/${localUser.id}/reset-trial`); },
@@ -715,7 +715,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
 
   const revertToFree = () => setConfirm({
     title: "Revert to Free",
-    description: <>Set <strong className="text-white/80">{localUser.displayName}</strong> to Free plan? This will revoke premium and any active trial immediately.</>,
+    description: <>Set <strong className="text-[#E6EAF0]">{localUser.displayName}</strong> to Free plan? This will revoke premium and any active trial immediately.</>,
     confirmLabel: "Revert to Free",
     danger: true,
     action: async () => {
@@ -732,7 +732,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
 
   const upgradePremium = () => setConfirm({
     title: "Upgrade to Premium",
-    description: <>Grant permanent premium access to <strong className="text-white/80">{localUser.displayName}</strong>?</>,
+    description: <>Grant permanent premium access to <strong className="text-[#E6EAF0]">{localUser.displayName}</strong>?</>,
     confirmLabel: "Grant Premium",
     action: async () => {
       const r = await fetch(`/api/admin/users/${localUser.id}/revert-plan`, {
@@ -750,9 +750,9 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     title: "Reset Device Lock",
     description: (
       <>
-        Clear the device binding for <strong className="text-white/80">{localUser.displayName}</strong>?
+        Clear the device binding for <strong className="text-[#E6EAF0]">{localUser.displayName}</strong>?
         {localUser.premiumBoundDeviceId && (
-          <span className="block mt-1 text-xs text-white/40 font-mono">{localUser.premiumBoundDeviceId}</span>
+          <span className="block mt-1 text-xs text-[#6B7380] font-mono">{localUser.premiumBoundDeviceId}</span>
         )}
         {" "}Their premium will re-bind to whichever machine they next log in from.
       </>
@@ -799,41 +799,41 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
       <div className="fixed inset-0 z-40 flex">
         <div className="flex-1" onClick={onClose} />
         <div
-          className="w-full max-w-md h-full overflow-y-auto border-l border-white/8 shadow-2xl"
+          className="w-full max-w-md h-full overflow-y-auto border-l border-[#2A313A] shadow-2xl"
           style={{ background: "linear-gradient(180deg, rgba(20,12,45,0.98) 0%, rgba(7,9,13,0.99) 100%)" }}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-5 border-b border-white/8 sticky top-0 z-10"
+          <div className="flex items-center justify-between p-5 border-b border-[#2A313A] sticky top-0 z-10"
             style={{ background: "rgba(10,7,28,0.95)", backdropFilter: "blur(12px)" }}>
-            <h3 className="text-base font-semibold text-white">User Detail</h3>
+            <h3 className="text-base font-semibold text-[#E6EAF0]">User Detail</h3>
             <button onClick={onClose} data-testid="button-close-detail"
-              className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:text-white transition-colors">
+              className="w-8 h-8 rounded-lg bg-[#21262D] border border-[#2A313A] flex items-center justify-center text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors">
               ✕
             </button>
           </div>
 
           <div className="p-5 space-y-4 pb-12">
             {/* Identity */}
-            <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
+            <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-300 font-semibold text-sm flex-shrink-0">
+                <div className="w-10 h-10 rounded-full bg-[#00D4FF] border border-[#00D4FF] flex items-center justify-center text-[#33E0FF] font-semibold text-sm flex-shrink-0">
                   {(localUser.displayName || "?")[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-white truncate">{localUser.displayName}</p>
-                  <p className="text-xs text-white/40 truncate">{localUser.email || "No email"}</p>
+                  <p className="font-medium text-[#E6EAF0] truncate">{localUser.displayName}</p>
+                  <p className="text-xs text-[#6B7380] truncate">{localUser.email || "No email"}</p>
                   <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                     <PlanBadge plan={localUser.effectivePlan} />
                     {localUser.isAdmin && <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-orange-500/20 text-orange-300 border-orange-500/30">Admin</span>}
-                    <span className="text-xs text-white/30 capitalize">{localUser.provider}</span>
+                    <span className="text-xs text-[#6B7380] capitalize">{localUser.provider}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Plan Details */}
-            <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
-              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Plan Details</p>
+            <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider mb-3">Plan Details</p>
               <div className="space-y-2.5 text-sm">
                 <Row label="Effective Plan" value={<PlanBadge plan={localUser.effectivePlan} />} />
                 <Row label="DB Plan" value={localUser.plan || "—"} />
@@ -847,7 +847,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             {(isActiveTrial || isExpiredTrial || localUser.plan === "trial") && (
               <div className={`rounded-xl border p-4 ${isActiveTrial ? "border-cyan-500/20" : "border-orange-500/15"}`}
                 style={{ background: isActiveTrial ? "rgba(6,182,212,0.04)" : "rgba(251,146,60,0.04)" }}>
-                <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Trial Status</p>
+                <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider mb-3">Trial Status</p>
                 <div className="space-y-2.5 text-sm">
                   <Row label="Status" value={<TrialCountdown endsAt={localUser.trialEndsAt} />} />
                   <Row label="Started" value={fmtFull(localUser.trialStartedAt)} />
@@ -866,7 +866,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                       Revoke
                     </button>
                     <button onClick={resetTrial} data-testid="button-reset-trial"
-                      className="text-xs rounded-lg px-3 py-1.5 border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 transition-all">
+                      className="text-xs rounded-lg px-3 py-1.5 border border-[#2A313A] bg-[#21262D] text-[#6B7380] hover:bg-[#2A313A] transition-all">
                       Reset Fields
                     </button>
                   </div>
@@ -874,7 +874,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                 {isExpiredTrial && (
                   <div className="mt-3">
                     <button onClick={resetTrial} data-testid="button-reset-expired-trial"
-                      className="text-xs rounded-lg px-3 py-1.5 border border-white/10 bg-white/5 text-white/40 hover:bg-white/10 transition-all">
+                      className="text-xs rounded-lg px-3 py-1.5 border border-[#2A313A] bg-[#21262D] text-[#6B7380] hover:bg-[#2A313A] transition-all">
                       Clear Trial Data
                     </button>
                   </div>
@@ -886,16 +886,16 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                 regardless of current plan. Trial users can inherit a stale binding from
                 a previous premium period; admins need to see and clear it in those cases. */}
             {(localUser.isPremium || localUser.premiumBoundDeviceId) && (
-              <div className={`rounded-xl border p-4 ${localUser.premiumBoundDeviceId ? "border-amber-500/20" : "border-white/8"}`}
+              <div className={`rounded-xl border p-4 ${localUser.premiumBoundDeviceId ? "border-amber-500/20" : "border-[#2A313A]"}`}
                 style={{ background: localUser.premiumBoundDeviceId ? "rgba(245,158,11,0.04)" : "rgba(255,255,255,0.03)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-white/40 uppercase tracking-wider">Device Lock</p>
+                  <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">Device Lock</p>
                   {localUser.premiumBoundDeviceId && (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-300/80 font-medium">Locked</span>
                   )}
                 </div>
                 <div className="space-y-2.5 text-sm">
-                  <Row label="Bound Device ID" value={localUser.premiumBoundDeviceId ? <span className="font-mono text-amber-300/80">{localUser.premiumBoundDeviceId}</span> : <span className="text-white/30">None</span>} />
+                  <Row label="Bound Device ID" value={localUser.premiumBoundDeviceId ? <span className="font-mono text-amber-300/80">{localUser.premiumBoundDeviceId}</span> : <span className="text-[#6B7380]">None</span>} />
                   <Row label="Bound At" value={localUser.premiumBoundAt ? fmtFull(localUser.premiumBoundAt) : "—"} />
                 </div>
                 {localUser.premiumBoundDeviceId && (
@@ -910,8 +910,8 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             )}
 
             {/* Activity */}
-            <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
-              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Activity</p>
+            <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider mb-3">Activity</p>
               <div className="space-y-2.5 text-sm">
                 <Row label="Last Login" value={fmtFull(localUser.lastLoginAt)} />
                 <Row label="Last App Active" value={fmtFull(localUser.lastAppActiveAt)} />
@@ -920,7 +920,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                   value={
                     localUser.hasInstalledApp
                       ? <span className="text-green-400 text-xs font-medium">Yes</span>
-                      : <span className="text-white/30 text-xs">No</span>
+                      : <span className="text-[#6B7380] text-xs">No</span>
                   }
                 />
                 <Row label="Member Since" value={fmtFull(localUser.createdAt)} />
@@ -929,8 +929,8 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             </div>
 
             {/* Quick Trial Grants */}
-            <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
-              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Quick Trial Grant</p>
+            <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider mb-3">Quick Trial Grant</p>
               <div className="flex gap-2 flex-wrap">
                 {TRIAL_PRESETS.map((p) => (
                   <QuickTrialButton key={p.label} label={p.label} hours={p.hours} userId={localUser.id} onSuccess={update} />
@@ -941,13 +941,13 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             {/* Main Actions */}
             <div className="space-y-2">
               <button onClick={() => setShowSetPlan(true)} data-testid="button-set-plan"
-                className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-violet-600/22 border border-violet-500/30 text-violet-200 hover:bg-violet-600/32 transition-all">
+                className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-[#00D4FF]/22 border border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF]/32 transition-all">
                 Set Plan
               </button>
 
               {effectivePlan !== "premium" && (
                 <button onClick={upgradePremium} data-testid="button-upgrade-premium"
-                  className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-violet-500/15 border border-violet-400/25 text-violet-300 hover:bg-violet-500/22 transition-all">
+                  className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-[#00D4FF] border border-[#00D4FF]/25 text-[#33E0FF] hover:bg-[#00D4FF] transition-all">
                   Upgrade to Premium
                 </button>
               )}
@@ -960,7 +960,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
               )}
 
               <button onClick={() => setShowResetFlags(true)} data-testid="button-reset-flags"
-                className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-white/5 border border-white/10 text-white/55 hover:bg-white/10 hover:text-white/75 transition-all">
+                className="w-full rounded-xl px-4 py-3 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:bg-[#2A313A] hover:text-[#E6EAF0]/75 transition-all">
                 Reset Flags
               </button>
 
@@ -971,7 +971,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
                 className={`w-full rounded-xl px-4 py-3 text-sm font-medium border transition-all disabled:opacity-50 ${
                   localUser.isAdmin
                     ? "bg-orange-500/15 border-orange-500/25 text-orange-300 hover:bg-orange-500/22"
-                    : "bg-white/5 border-white/10 text-white/55 hover:bg-white/10 hover:text-white/75"
+                    : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:bg-[#2A313A] hover:text-[#E6EAF0]/75"
                 }`}
               >
                 {settingAdmin ? "Updating…" : localUser.isAdmin ? "Revoke Admin" : "Grant Admin"}
@@ -986,8 +986,8 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             </div>
 
             {/* Flags */}
-            <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
-              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Flags</p>
+            <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider mb-3">Flags</p>
               <div className="space-y-2.5 text-sm">
                 <Row label="Seen Unlock Screen" value={localUser.hasSeenPremiumUnlock ? "Yes" : "No"} />
                 <Row label="Seen Premium Tour" value={localUser.hasSeenPremiumTour ? "Yes" : "No"} />
@@ -995,19 +995,19 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
             </div>
 
             {/* Admin Logs */}
-            <div className="rounded-xl border border-white/8 p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
-              <p className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">Recent Admin Actions</p>
+            <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider mb-3">Recent Admin Actions</p>
               {localLogs.length === 0 ? (
-                <p className="text-xs text-white/25 italic">No admin actions recorded for this user.</p>
+                <p className="text-xs text-[#6B7380] italic">No admin actions recorded for this user.</p>
               ) : (
                 <div className="space-y-2.5">
                   {localLogs.map((log) => (
                     <div key={log.id} className="flex items-start gap-2.5 text-xs">
-                      <div className="w-1.5 h-1.5 rounded-full bg-violet-500/60 mt-1.5 flex-shrink-0" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-[#00D4FF] mt-1.5 flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <span className="text-white/70 font-medium">{log.action.replace(/_/g, " ")}</span>
-                        {log.metadata?.reason && <span className="text-white/30"> — {log.metadata.reason}</span>}
-                        <p className="text-white/25 mt-0.5">{fmtFull(log.createdAt)}</p>
+                        <span className="text-[#E6EAF0] font-medium">{log.action.replace(/_/g, " ")}</span>
+                        {log.metadata?.reason && <span className="text-[#6B7380]"> — {log.metadata.reason}</span>}
+                        <p className="text-[#6B7380] mt-0.5">{fmtFull(log.createdAt)}</p>
                       </div>
                     </div>
                   ))}
@@ -1187,7 +1187,7 @@ export default function AdminPage() {
   if (authorized === null) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#14181D" }}>
-        <div className="w-8 h-8 rounded-full border-2 border-violet-500/40 border-t-violet-400 animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-[#00D4FF] border-t-[#00D4FF] animate-spin" />
       </div>
     );
   }
@@ -1196,11 +1196,11 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: "#14181D" }}>
         <div className="text-4xl">🔒</div>
-        <h1 className="text-xl font-semibold text-white">Admin Access Required</h1>
-        <p className="text-sm text-white/40">
+        <h1 className="text-xl font-semibold text-[#E6EAF0]">Admin Access Required</h1>
+        <p className="text-sm text-[#6B7380]">
           {user ? "Your account does not have admin privileges." : "Please log in with an admin account."}
         </p>
-        <a href="/" className="text-violet-400 text-sm hover:text-violet-300 transition-colors mt-2">← Back to home</a>
+        <a href="/" className="text-[#00D4FF] text-sm hover:text-[#33E0FF] transition-colors mt-2">← Back to home</a>
       </div>
     );
   }
@@ -1213,20 +1213,20 @@ export default function AdminPage() {
   ];
 
   return (
-    <div className="min-h-screen text-white" style={{ background: "#14181D" }}>
+    <div className="min-h-screen text-[#E6EAF0]" style={{ background: "#14181D" }}>
       {/* Header */}
-      <div className="border-b border-white/8 px-6 py-4 sticky top-0 z-20"
+      <div className="border-b border-[#2A313A] px-6 py-4 sticky top-0 z-20"
         style={{ background: "rgba(7,9,13,0.95)", backdropFilter: "blur(12px)" }}>
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <a href="/" className="text-white/50 hover:text-white transition-colors text-sm">SwitchControl</a>
-            <span className="text-white/20">/</span>
-            <span className="text-white font-semibold">Admin</span>
+            <a href="/" className="text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors text-sm">SwitchControl</a>
+            <span className="text-[#6B7380]/50">/</span>
+            <span className="text-[#E6EAF0] font-semibold">Admin</span>
             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border bg-orange-500/20 text-orange-300 border-orange-500/30">
               Internal
             </span>
           </div>
-          <div className="flex items-center gap-2 text-sm text-white/40">
+          <div className="flex items-center gap-2 text-sm text-[#6B7380]">
             <span className="w-2 h-2 rounded-full bg-green-400" style={{ boxShadow: "0 0 6px rgba(74,222,128,0.6)" }} />
             {total.toLocaleString()} users
           </div>
@@ -1237,7 +1237,7 @@ export default function AdminPage() {
         {/* Search + Filter */}
         <div className="flex gap-3 mb-6">
           <div className="flex-1 relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7380]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
@@ -1246,14 +1246,14 @@ export default function AdminPage() {
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
               data-testid="input-search-users"
-              className="w-full rounded-xl bg-white/5 border border-white/10 pl-9 pr-4 py-2.5 text-sm text-white placeholder-white/25 outline-none focus:border-violet-500/50 transition-colors"
+              className="w-full rounded-xl bg-[#21262D] border border-[#2A313A] pl-9 pr-4 py-2.5 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
             />
           </div>
           <select
             value={planFilter}
             onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }}
             data-testid="select-plan-filter"
-            className="rounded-xl bg-white/5 border border-white/10 px-4 py-2.5 text-sm text-white/70 outline-none focus:border-violet-500/50 cursor-pointer appearance-none pr-8"
+            className="rounded-xl bg-[#21262D] border border-[#2A313A] px-4 py-2.5 text-sm text-[#E6EAF0] outline-none focus:border-[#00D4FF] cursor-pointer appearance-none pr-8"
             style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center", backgroundSize: "20px" }}
           >
             {planOptions.map((o) => (
@@ -1263,7 +1263,7 @@ export default function AdminPage() {
           <button
             onClick={() => fetchUsers(page, search, planFilter)}
             data-testid="button-refresh-users"
-            className="rounded-xl px-4 py-2.5 text-sm font-medium bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            className="rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
           >
             Refresh
           </button>
@@ -1280,7 +1280,7 @@ export default function AdminPage() {
               onChange={(e) => setDeviceLookupId(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && lookupByDeviceId()}
               data-testid="input-device-lookup"
-              className="flex-1 rounded-xl bg-white/5 border border-white/10 px-4 py-2 text-sm text-white font-mono placeholder-white/25 outline-none focus:border-amber-500/50 transition-colors"
+              className="flex-1 rounded-xl bg-[#21262D] border border-[#2A313A] px-4 py-2 text-sm text-[#E6EAF0] font-mono placeholder-[#6B7380] outline-none focus:border-amber-500/50 transition-colors"
             />
             <button
               onClick={lookupByDeviceId}
@@ -1297,8 +1297,8 @@ export default function AdminPage() {
           {deviceLookupResult && (
             <div className="mt-3 flex items-center justify-between rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
               <div>
-                <p className="text-sm font-medium text-white">{deviceLookupResult.displayName}</p>
-                <p className="text-xs text-white/40">{deviceLookupResult.email || deviceLookupResult.id}</p>
+                <p className="text-sm font-medium text-[#E6EAF0]">{deviceLookupResult.displayName}</p>
+                <p className="text-xs text-[#6B7380]">{deviceLookupResult.email || deviceLookupResult.id}</p>
               </div>
               <button
                 onClick={() => { setSelectedUser(deviceLookupResult); setSelectedLogs([]); }}
@@ -1316,20 +1316,20 @@ export default function AdminPage() {
         )}
 
         {/* Table */}
-        <div className="rounded-2xl border border-white/8 overflow-hidden"
+        <div className="rounded-2xl border border-[#2A313A] overflow-hidden"
           style={{ background: "linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%)" }}>
-          <div className="grid grid-cols-[1fr_140px_150px_150px_100px_80px] gap-4 px-5 py-3 border-b border-white/6">
+          <div className="grid grid-cols-[1fr_140px_150px_150px_100px_80px] gap-4 px-5 py-3 border-b border-[#2A313A]">
             {["User", "Plan", "Last Login", "Last App", "App?", ""].map((h) => (
-              <span key={h} className="text-xs font-semibold text-white/35 uppercase tracking-wider">{h}</span>
+              <span key={h} className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">{h}</span>
             ))}
           </div>
 
           {loading ? (
             <div className="py-16 flex items-center justify-center">
-              <div className="w-6 h-6 rounded-full border-2 border-violet-500/30 border-t-violet-400 animate-spin" />
+              <div className="w-6 h-6 rounded-full border-2 border-[#00D4FF] border-t-[#00D4FF] animate-spin" />
             </div>
           ) : users.length === 0 ? (
-            <div className="py-16 text-center text-sm text-white/30">
+            <div className="py-16 text-center text-sm text-[#6B7380]">
               {search ? "No users match your search." : "No users yet."}
             </div>
           ) : (
@@ -1337,18 +1337,18 @@ export default function AdminPage() {
               <div
                 key={u.id}
                 data-testid={`row-user-${u.id}`}
-                className={`grid grid-cols-[1fr_140px_150px_150px_100px_80px] gap-4 px-5 py-3.5 items-center hover:bg-white/4 transition-colors cursor-pointer ${
-                  i !== users.length - 1 ? "border-b border-white/5" : ""
+                className={`grid grid-cols-[1fr_140px_150px_150px_100px_80px] gap-4 px-5 py-3.5 items-center hover:bg-[#21262D] transition-colors cursor-pointer ${
+                  i !== users.length - 1 ? "border-b border-[#2A313A]" : ""
                 }`}
                 onClick={() => openUserDetail(u)}
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-7 h-7 rounded-full bg-violet-500/15 border border-violet-500/25 flex items-center justify-center text-violet-300 font-semibold text-xs flex-shrink-0">
+                  <div className="w-7 h-7 rounded-full bg-[#00D4FF] border border-[#00D4FF] flex items-center justify-center text-[#33E0FF] font-semibold text-xs flex-shrink-0">
                     {(u.displayName || "?")[0].toUpperCase()}
                   </div>
                   <div className="min-w-0">
-                    <p className="text-sm text-white/85 truncate">{u.displayName}</p>
-                    <p className="text-xs text-white/30 truncate">{u.email || "—"}</p>
+                    <p className="text-sm text-[#E6EAF0]/85 truncate">{u.displayName}</p>
+                    <p className="text-xs text-[#6B7380] truncate">{u.email || "—"}</p>
                   </div>
                   {u.isAdmin && (
                     <span className="flex-shrink-0 text-xs bg-orange-500/15 text-orange-300 border border-orange-500/25 rounded-full px-1.5 py-0.5">Admin</span>
@@ -1360,15 +1360,15 @@ export default function AdminPage() {
                     <div className="mt-0.5"><TrialCountdown endsAt={u.trialEndsAt} /></div>
                   )}
                 </div>
-                <span className="text-sm text-white/45">{fmt(u.lastLoginAt)}</span>
-                <span className="text-sm text-white/45">{fmt(u.lastAppActiveAt)}</span>
-                <span className={`text-xs font-medium ${u.hasInstalledApp ? "text-green-400/80" : "text-white/20"}`}>
+                <span className="text-sm text-[#A0A8B3]">{fmt(u.lastLoginAt)}</span>
+                <span className="text-sm text-[#A0A8B3]">{fmt(u.lastAppActiveAt)}</span>
+                <span className={`text-xs font-medium ${u.hasInstalledApp ? "text-green-400/80" : "text-[#6B7380]/50"}`}>
                   {u.hasInstalledApp ? "✓ Yes" : "No"}
                 </span>
                 <button
                   data-testid={`button-detail-${u.id}`}
                   onClick={(e) => { e.stopPropagation(); openUserDetail(u); }}
-                  className="text-xs text-violet-400 hover:text-violet-300 transition-colors text-right"
+                  className="text-xs text-[#00D4FF] hover:text-[#33E0FF] transition-colors text-right"
                 >
                   Details →
                 </button>
@@ -1380,15 +1380,15 @@ export default function AdminPage() {
         {/* Pagination */}
         {pages > 1 && (
           <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-white/30">Showing {(page - 1) * 30 + 1}–{Math.min(page * 30, total)} of {total}</p>
+            <p className="text-sm text-[#6B7380]">Showing {(page - 1) * 30 + 1}–{Math.min(page * 30, total)} of {total}</p>
             <div className="flex gap-2">
               <button disabled={page <= 1} onClick={() => setPage((p) => p - 1)} data-testid="button-prev-page"
-                className="rounded-lg px-3 py-1.5 text-sm bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                className="rounded-lg px-3 py-1.5 text-sm bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                 ← Prev
               </button>
-              <span className="flex items-center px-3 text-sm text-white/40">{page} / {pages}</span>
+              <span className="flex items-center px-3 text-sm text-[#6B7380]">{page} / {pages}</span>
               <button disabled={page >= pages} onClick={() => setPage((p) => p + 1)} data-testid="button-next-page"
-                className="rounded-lg px-3 py-1.5 text-sm bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                className="rounded-lg px-3 py-1.5 text-sm bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
                 Next →
               </button>
             </div>

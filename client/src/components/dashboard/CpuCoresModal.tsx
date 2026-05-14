@@ -42,7 +42,7 @@ function CoreBar({ core, index }: { core: CpuCore; index: number }) {
           {load}%
         </span>
       </div>
-      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden relative">
+      <div className="h-2 rounded-full bg-[#21262D] overflow-hidden relative">
         <motion.div
           className={cn(
             "h-full rounded-full transition-colors duration-300",
@@ -50,7 +50,7 @@ function CoreBar({ core, index }: { core: CpuCore; index: number }) {
               ? "bg-gradient-to-r from-red-500 to-red-400"
               : isHigh
               ? "bg-gradient-to-r from-amber-500 to-amber-400"
-              : "bg-gradient-to-r from-purple-500 to-violet-400"
+              : "bg-gradient-to-r from-[#00D4FF] to-[#00D4FF]"
           )}
           initial={{ width: 0 }}
           animate={{ width: `${load}%` }}
@@ -130,7 +130,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
       onOpenChange={onOpenChange}
       title={
         <>
-          <HwBadge color="violet"><Cpu className="size-3.5 text-violet-300" /></HwBadge>
+          <HwBadge color="violet"><Cpu className="size-3.5 text-[#33E0FF]" /></HwBadge>
           CPU Core Monitor
         </>
       }
@@ -148,7 +148,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
               ? "border-red-500/30 bg-red-500/5"
               : isHighAvg
               ? "border-amber-500/30 bg-amber-500/5"
-              : "border-purple-500/30 bg-purple-500/5"
+              : "border-[#00D4FF] bg-[#00D4FF]"
           )}
         >
           {isCriticalAvg && (
@@ -157,7 +157,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
           <p
             className={cn(
               "text-2xl font-bold tabular-nums relative z-10",
-              isCriticalAvg ? "text-red-400" : isHighAvg ? "text-amber-400" : "text-purple-400"
+              isCriticalAvg ? "text-red-400" : isHighAvg ? "text-amber-400" : "text-[#00D4FF]"
             )}
             data-testid="text-avg-cpu-load"
           >

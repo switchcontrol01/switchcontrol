@@ -19,14 +19,14 @@ const BAD_SIDE = [
   { icon: XCircle, label: "No verification", desc: "Settings applied blindly", color: "#ef4444" },
   { icon: AlertTriangle, label: "No rollback", desc: "One-way changes, no undo", color: "#f97316" },
   { icon: Gauge, label: "Fake FPS claims", desc: "Numbers without proof", color: "#eab308" },
-  { icon: Copy, label: "Copied scripts", desc: "Same tweaks for everyone", color: "#a855f7" },
+  { icon: Copy, label: "Copied scripts", desc: "Same tweaks for everyone", color: "#00D4FF" },
   { icon: ShieldCheck, label: "Unsafe apply-all", desc: "Breaks what it touches", color: "#ec4899" },
 ];
 
 const GOOD_SIDE = [
   { icon: CheckCircle2, label: "Verifies state", desc: "Checks before changing", color: "#22c55e" },
   { icon: RotateCcw, label: "Reverts safely", desc: "Full rollback built in", color: "#06b6d4" },
-  { icon: FileSearch, label: "Labels risk", desc: "Knows what each tweak does", color: "#8b5cf6" },
+  { icon: FileSearch, label: "Labels risk", desc: "Knows what each tweak does", color: "#00D4FF" },
   { icon: Gauge, label: "Real telemetry", desc: "Measures actual impact", color: "#f59e0b" },
   { icon: ShieldCheck, label: "Tracks ownership", desc: "Knows who changed what", color: "#10b981" },
 ];

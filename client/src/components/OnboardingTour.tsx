@@ -82,14 +82,14 @@ function DashboardPreview() {
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30">Live Performance</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">Live Performance</span>
           <motion.div
             className="flex items-center gap-1"
             animate={{ opacity: [1, 0.4, 1] }}
             transition={{ duration: 1.8, repeat: Infinity }}
           >
             <div className="w-1 h-1 rounded-full bg-emerald-400" />
-            <span className="text-[8px] text-white/25">live</span>
+            <span className="text-[8px] text-[#6B7380]">live</span>
           </motion.div>
         </div>
 
@@ -160,7 +160,7 @@ function TweaksPreview() {
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30">Applied Tweaks</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">Applied Tweaks</span>
           <motion.span
             className="text-[9px] font-semibold px-1.5 py-0.5 rounded-md"
             style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.25)', color: 'rgba(168,85,247,0.9)' }}
@@ -413,7 +413,7 @@ function AiAdvisorPreview() {
     <GlassPanel>
       <div className="p-3 space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-white/30">AI Chat</span>
+          <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">AI Chat</span>
           <motion.span
             className="text-[8px] px-1.5 py-0.5 rounded-md"
             style={{ background: 'rgba(168,85,247,0.12)', border: '1px solid rgba(168,85,247,0.22)', color: 'rgba(168,85,247,0.8)' }}
@@ -666,7 +666,7 @@ const ONBOARDING_STEPS: TourStep[] = [
             window.open(url, '_blank', 'noopener,noreferrer');
           }
         }}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium text-sm transition-colors w-full justify-center"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-[#E6EAF0] font-medium text-sm transition-colors w-full justify-center"
         data-testid="tour-join-discord"
       >
         <DiscordIcon className="w-4 h-4" />

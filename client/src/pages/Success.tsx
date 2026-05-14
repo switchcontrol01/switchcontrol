@@ -133,7 +133,7 @@ function LaunchButton({ onClick }: { onClick: () => void }) {
       onClick={handleClick}
       disabled={launching}
       data-testid="button-open-app"
-      className="group relative w-full h-14 rounded-xl border border-purple-500/30 bg-white/[0.03] backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-purple-400/50 hover:bg-white/[0.05] disabled:pointer-events-none"
+      className="group relative w-full h-14 rounded-xl border border-[#00D4FF] bg-[#1A1F26] backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-[#00D4FF]/50 hover:bg-[#21262D] disabled:pointer-events-none"
       style={{
         boxShadow: launching
           ? "0 0 40px rgba(168,132,255,0.4), inset 0 0 20px rgba(168,132,255,0.1)"
@@ -155,17 +155,17 @@ function LaunchButton({ onClick }: { onClick: () => void }) {
         }}
       />
 
-      <div className="relative z-10 flex items-center justify-center gap-2.5 text-white/90 font-medium tracking-wide">
+      <div className="relative z-10 flex items-center justify-center gap-2.5 text-[#E6EAF0] font-medium tracking-wide">
         {launching ? (
           <>
-            <div className="size-4 border-2 border-purple-300/60 border-t-transparent rounded-full animate-spin" />
+            <div className="size-4 border-2 border-[#00D4FF]/60 border-t-transparent rounded-full animate-spin" />
             <span className="text-sm" style={{ animation: "fadeInUp 0.2s ease-out" }}>
               Launching desktop client…
             </span>
           </>
         ) : (
           <>
-            <ExternalLink className="size-4 text-purple-300/80 transition-transform duration-300 group-hover:translate-x-0.5" />
+            <ExternalLink className="size-4 text-[#33E0FF]/80 transition-transform duration-300 group-hover:translate-x-0.5" />
             <span className="text-sm">Open SwitchControl</span>
           </>
         )}
@@ -343,7 +343,7 @@ export default function Success() {
               </svg>
             </div>
             <p
-              className="text-sm text-white/40 tracking-widest uppercase"
+              className="text-sm text-[#6B7380] tracking-widest uppercase"
               style={{ letterSpacing: "0.2em", animation: "loadingPulse 2s ease-in-out infinite" }}
             >
               Verifying payment
@@ -372,12 +372,12 @@ export default function Success() {
               </svg>
             </div>
             <p
-              className="text-sm text-white/60 tracking-widest uppercase mb-2"
+              className="text-sm text-[#A0A8B3] tracking-widest uppercase mb-2"
               style={{ letterSpacing: "0.2em", animation: "loadingPulse 2s ease-in-out infinite" }}
             >
               Payment confirmed
             </p>
-            <p className="text-xs text-white/25 tracking-wider" style={{ letterSpacing: "0.1em" }}>
+            <p className="text-xs text-[#6B7380] tracking-wider" style={{ letterSpacing: "0.1em" }}>
               Activating your premium account…
             </p>
           </div>
@@ -395,15 +395,15 @@ export default function Success() {
               }}
             >
               <p
-                className="text-xs text-purple-300/60 tracking-widest uppercase mb-3"
+                className="text-xs text-[#33E0FF]/60 tracking-widest uppercase mb-3"
                 style={{ letterSpacing: "0.25em" }}
               >
                 Premium Activated
               </p>
-              <h1 className="text-2xl font-semibold text-white/90 mb-2 tracking-tight">
+              <h1 className="text-2xl font-semibold text-[#E6EAF0] mb-2 tracking-tight">
                 System Upgraded
               </h1>
-              <p className="text-sm text-white/35 leading-relaxed max-w-xs mx-auto">
+              <p className="text-sm text-[#6B7380] leading-relaxed max-w-xs mx-auto">
                 Your SwitchControl system has been upgraded. All premium optimizations are now unlocked.
               </p>
             </div>
@@ -420,7 +420,7 @@ export default function Success() {
 
               <Link href="/download">
                 <button
-                  className="w-full h-11 rounded-lg border border-white/[0.06] bg-transparent text-white/30 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/50 hover:border-[#2A313A]0 flex items-center justify-center gap-2"
+                  className="w-full h-11 rounded-lg border border-[#2A313A] bg-transparent text-[#6B7380] text-xs tracking-wider uppercase transition-all duration-300 hover:text-[#A0A8B3] hover:border-[#2A313A] flex items-center justify-center gap-2"
                   data-testid="button-goto-download"
                 >
                   <Download className="size-3.5" />
@@ -442,10 +442,10 @@ export default function Success() {
             <p className="text-xs text-red-400/50 tracking-widest uppercase mb-3" style={{ letterSpacing: "0.2em" }}>
               Verification Failed
             </p>
-            <p className="text-sm text-white/40 mb-8 max-w-xs mx-auto">{error}</p>
+            <p className="text-sm text-[#6B7380] mb-8 max-w-xs mx-auto">{error}</p>
             <Link href="/pricing">
               <button
-                className="h-11 px-8 rounded-lg border border-white/[0.08] text-white/40 text-xs tracking-wider uppercase transition-all duration-300 hover:text-white/60 hover:border-[#2A313A]5"
+                className="h-11 px-8 rounded-lg border border-[#2A313A] text-[#6B7380] text-xs tracking-wider uppercase transition-all duration-300 hover:text-[#A0A8B3] hover:border-[#2A313A]5"
                 data-testid="button-back-to-pricing"
               >
                 Back to pricing
@@ -456,7 +456,7 @@ export default function Success() {
       </div>
 
       <div
-        className="fixed bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-white/10 tracking-widest uppercase"
+        className="fixed bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-[#E6EAF0]/10 tracking-widest uppercase"
         style={{ letterSpacing: "0.3em" }}
       >
         SwitchControl

@@ -319,7 +319,7 @@ export function WhatIsSwitchControl() {
                 {/* Title */}
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <span
-                    className="text-2xl md:text-3xl font-bold text-white/90"
+                    className="text-2xl md:text-3xl font-bold text-[#E6EAF0]"
                     style={{ fontFamily: '"Playfair Display", serif', letterSpacing: '0.01em' }}
                   >
                     What is
@@ -390,8 +390,8 @@ export function WhatIsSwitchControl() {
                         className={cn(
                           'flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200',
                           isActive
-                            ? 'bg-white/[0.08] text-white shadow-sm'
-                            : 'text-white/40 hover:text-white/60 hover:bg-white/[0.04]'
+                            ? 'bg-[#21262D] text-[#E6EAF0] shadow-sm'
+                            : 'text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#21262D]'
                         )}
                       >
                         {t.icon}
@@ -420,8 +420,8 @@ export function WhatIsSwitchControl() {
                       }}
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-semibold text-white/40">{activeGraph.before.label}</span>
-                        <span className="text-[11px] text-white/30">{activeGraph.yLabel}</span>
+                        <span className="text-xs font-semibold text-[#6B7380]">{activeGraph.before.label}</span>
+                        <span className="text-[11px] text-[#6B7380]">{activeGraph.yLabel}</span>
                       </div>
                       <LiveSparkline
                         initialPoints={activeGraph.before.points}
@@ -433,8 +433,8 @@ export function WhatIsSwitchControl() {
                         <span className="text-xl font-bold" style={{ color: activeGraph.before.color.replace('rgba', '').replace(',', '') === '239,68,68' ? '#ef4444' : activeGraph.before.color.replace('rgba', '').replace(',', '') === '249,115,22' ? '#f97316' : '#ef4444' }}>
                           {activeGraph.before.stat}
                         </span>
-                        <span className="text-[11px] text-white/40">{activeGraph.before.unit}</span>
-                        <span className="ml-auto text-[11px] text-white/25">{activeGraph.before.caption}</span>
+                        <span className="text-[11px] text-[#6B7380]">{activeGraph.before.unit}</span>
+                        <span className="ml-auto text-[11px] text-[#6B7380]">{activeGraph.before.caption}</span>
                       </div>
                     </div>
 
@@ -448,7 +448,7 @@ export function WhatIsSwitchControl() {
                     >
                       <div className="flex items-center justify-between mb-3">
                         <span className="text-xs font-semibold text-primary/70">{activeGraph.after.label}</span>
-                        <span className="text-[11px] text-white/30">{activeGraph.yLabel}</span>
+                        <span className="text-[11px] text-[#6B7380]">{activeGraph.yLabel}</span>
                       </div>
                       <LiveSparkline
                         initialPoints={activeGraph.after.points}
@@ -457,11 +457,11 @@ export function WhatIsSwitchControl() {
                         uid={`after-${activeGraph.id}`}
                       />
                       <div className="mt-2 flex items-baseline gap-1.5">
-                        <span className="text-xl font-bold" style={{ color: activeGraph.after.color.replace('rgba', '').replace(',', '') === '168,85,247' ? '#a855f7' : activeGraph.after.color.replace('rgba', '').replace(',', '') === '34,197,94' ? '#22c55e' : '#06b6d4' }}>
+                        <span className="text-xl font-bold" style={{ color: activeGraph.after.color.replace('rgba', '').replace(',', '') === '168,85,247' ? '#00D4FF' : activeGraph.after.color.replace('rgba', '').replace(',', '') === '34,197,94' ? '#22c55e' : '#06b6d4' }}>
                           {activeGraph.after.stat}
                         </span>
-                        <span className="text-[11px] text-white/40">{activeGraph.after.unit}</span>
-                        <span className="ml-auto text-[11px] text-white/25">{activeGraph.after.caption}</span>
+                        <span className="text-[11px] text-[#6B7380]">{activeGraph.after.unit}</span>
+                        <span className="ml-auto text-[11px] text-[#6B7380]">{activeGraph.after.caption}</span>
                       </div>
                     </div>
                   </motion.div>
@@ -469,12 +469,12 @@ export function WhatIsSwitchControl() {
               </div>
 
               {/* ── Bottom trust strip ── */}
-              <div className="flex items-center justify-center gap-5 text-[11px] text-white/25">
+              <div className="flex items-center justify-center gap-5 text-[11px] text-[#6B7380]">
                 <span className="flex items-center gap-1.5">
                   <RotateCcw className="w-3 h-3" />
                   Safe to revert
                 </span>
-                <span className="w-1 h-1 rounded-full bg-white/15" />
+                <span className="w-1 h-1 rounded-full bg-[#2A313A]" />
                 <span className="flex items-center gap-1.5">
                   <Shield className="w-3 h-3" />
                   No background services

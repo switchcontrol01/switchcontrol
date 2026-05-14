@@ -76,7 +76,7 @@ export const tourPalette = {
     c2: 'rgba(168,85,247,',
     c3: 'rgba(192,132,252,',
     accentHex:  '#a855f7',
-    accentHex2: '#7c3aed',
+    accentHex2: '#00D4FF',
   },
 } as const;
 

@@ -32,7 +32,7 @@ export function PageHeader({
       transition={{ duration: 0.5, ease }}
     >
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3 flex-wrap">
+        <h1 className="text-3xl font-bold tracking-tight text-[#E6EAF0] flex items-center gap-3 flex-wrap">
           <motion.span
             className="inline-flex"
             initial={{ rotate: -18, scale: 0.55, opacity: 0 }}

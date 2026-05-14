@@ -98,7 +98,7 @@ function AnimatedProgress({ cleaning }: { cleaning: boolean }) {
 
   return (
     <div className="space-y-2 w-full">
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-primary/80 to-primary"
           initial={{ width: "0%" }}
@@ -222,7 +222,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
       blocked={cleaning}
       title={
         <>
-          <HwBadge color="fuchsia"><MemoryStick className="size-3.5 text-fuchsia-300" /></HwBadge>
+          <HwBadge color="fuchsia"><MemoryStick className="size-3.5 text-[#F59E0B]" /></HwBadge>
           RAM Optimizer
         </>
       }
@@ -255,19 +255,19 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                         "w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all relative overflow-hidden",
                         active
                           ? "border-primary/40 bg-primary/[0.06]"
-                          : "border-white/[0.06] bg-white/[0.02] hover:border-white/[0.10] hover:bg-white/[0.04]"
+                          : "border-[#2A313A] bg-[#1A1F26] hover:border-[#2A313A] hover:bg-[#21262D]"
                       )}
                       data-testid={`button-mode-${mode.id}`}
                     >
                       <div className={cn(
                         "p-1.5 rounded-lg shrink-0 mt-0.5",
-                        active ? "bg-primary/15" : "bg-white/[0.04]"
+                        active ? "bg-primary/15" : "bg-[#21262D]"
                       )}>
-                        <ModeIcon className={cn("size-3.5", active ? "text-primary" : "text-white/40")} />
+                        <ModeIcon className={cn("size-3.5", active ? "text-primary" : "text-[#6B7380]")} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={cn("text-sm font-medium", active ? "text-white" : "text-white/70")}>
+                          <span className={cn("text-sm font-medium", active ? "text-[#E6EAF0]" : "text-[#E6EAF0]")}>
                             {mode.label}
                           </span>
                           {mode.recommended && (
@@ -337,7 +337,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                 </div>
               </div>
               <div className="text-center space-y-1">
-                <p className="text-sm font-medium text-white">Optimizing memory</p>
+                <p className="text-sm font-medium text-[#E6EAF0]">Optimizing memory</p>
                 <p className="text-[10px] text-muted-foreground">
                   {selectedMode === "safe" ? "Safe mode — large consumers only" : selectedMode === "smart" ? "Smart mode — balanced optimization" : "Deep clean — maximum reclaim"}
                 </p>
@@ -376,20 +376,20 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
               </motion.div>
 
               <motion.div custom={1} variants={stagger} className="grid grid-cols-3 gap-2">
-                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
-                  <div className="text-sm font-bold text-white tabular-nums" data-testid="text-processes-trimmed">
+                <div className="p-2.5 rounded-xl bg-[#1A1F26] border border-[#2A313A] text-center">
+                  <div className="text-sm font-bold text-[#E6EAF0] tabular-nums" data-testid="text-processes-trimmed">
                     <AnimatedCounter value={result.processes_trimmed} duration={600} />
                   </div>
                   <div className="text-[9px] text-muted-foreground">Optimized</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
-                  <div className="text-sm font-bold text-white tabular-nums" data-testid="text-processes-scanned">
+                <div className="p-2.5 rounded-xl bg-[#1A1F26] border border-[#2A313A] text-center">
+                  <div className="text-sm font-bold text-[#E6EAF0] tabular-nums" data-testid="text-processes-scanned">
                     <AnimatedCounter value={result.processes_scanned} duration={600} />
                   </div>
                   <div className="text-[9px] text-muted-foreground">Scanned</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-white/[0.03] border border-white/[0.05] text-center">
-                  <div className="text-sm font-bold text-white tabular-nums">
+                <div className="p-2.5 rounded-xl bg-[#1A1F26] border border-[#2A313A] text-center">
+                  <div className="text-sm font-bold text-[#E6EAF0] tabular-nums">
                     {result.execution_ms}ms
                   </div>
                   <div className="text-[9px] text-muted-foreground">Duration</div>
@@ -400,7 +400,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                 <motion.div custom={2} variants={stagger}>
                   <button
                     onClick={() => setShowDetails(!showDetails)}
-                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-white/70 transition-colors w-full"
+                    className="flex items-center gap-1 text-[10px] text-muted-foreground hover:text-[#E6EAF0] transition-colors w-full"
                     data-testid="button-toggle-details"
                   >
                     {showDetails ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
@@ -422,9 +422,9 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                               initial={{ opacity: 0, x: -8 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: i * 0.04, type: "spring", stiffness: 400, damping: 28 }}
-                              className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] border border-white/[0.04] text-[10px]"
+                              className="flex items-center justify-between p-2 rounded-lg bg-[#1A1F26] border border-[#2A313A] text-[10px]"
                             >
-                              <span className="text-white/60 truncate max-w-[180px]">{p.name}</span>
+                              <span className="text-[#A0A8B3] truncate max-w-[180px]">{p.name}</span>
                               <span className="text-emerald-400 tabular-nums font-medium shrink-0">{p.mb_freed} MB</span>
                             </motion.div>
                           ))}
@@ -439,7 +439,7 @@ export function MemoryCleanerModal({ open, onOpenChange }: MemoryCleanerModalPro
                 <Button
                   variant="outline"
                   size="sm"
-                  className="flex-1 text-xs border-white/[0.08] hover:bg-white/[0.04] rounded-xl"
+                  className="flex-1 text-xs border-[#2A313A] hover:bg-[#21262D] rounded-xl"
                   onClick={() => { setResult(null); setShowDetails(false); }}
                   data-testid="button-clean-again"
                 >

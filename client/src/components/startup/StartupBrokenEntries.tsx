@@ -30,7 +30,7 @@ export function StartupBrokenEntries({ apps, onFixAll, visible }: Props) {
             <Bug className="size-3.5 text-red-400" />
           </div>
           <div>
-            <span className="text-sm font-medium text-white">Broken Entries</span>
+            <span className="text-sm font-medium text-[#E6EAF0]">Broken Entries</span>
             <span className="text-[10px] text-red-400/70 ml-2">{broken.length} missing {broken.length === 1 ? "executable" : "executables"}</span>
           </div>
         </div>
@@ -45,7 +45,7 @@ export function StartupBrokenEntries({ apps, onFixAll, visible }: Props) {
           </Button>
           <button
             onClick={() => setExpanded(e => !e)}
-            className="p-1 rounded hover:bg-[#21262D] text-white/40 hover:text-white/70 transition-colors"
+            className="p-1 rounded hover:bg-[#21262D] text-[#6B7380] hover:text-[#E6EAF0] transition-colors"
           >
             {expanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
           </button>
@@ -61,14 +61,14 @@ export function StartupBrokenEntries({ apps, onFixAll, visible }: Props) {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="mt-2.5 pt-2.5 border-t border-white/[0.04] space-y-1.5">
+            <div className="mt-2.5 pt-2.5 border-t border-[#2A313A] space-y-1.5">
               {broken.map(app => (
                 <div
                   key={app.entry.id}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-white/[0.02]"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-[#1A1F26]"
                 >
                   <AlertTriangle className="size-3 text-red-400/60 shrink-0" />
-                  <span className="text-xs text-white/60 truncate">{app.entry.name}</span>
+                  <span className="text-xs text-[#A0A8B3] truncate">{app.entry.name}</span>
                   <span className="text-[9px] text-muted-foreground/30 ml-auto truncate max-w-[200px]">
                     {app.entry.executablePath ?? "unknown path"}
                   </span>

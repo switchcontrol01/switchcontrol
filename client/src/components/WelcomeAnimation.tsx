@@ -212,7 +212,7 @@ export function WelcomeAnimation({
       >
         {/* Energy ring 1 — expands outward */}
         <motion.div
-          className="absolute rounded-3xl border border-violet-500/50 pointer-events-none"
+          className="absolute rounded-3xl border border-[#00D4FF] pointer-events-none"
           style={{ inset: -8 }}
           initial={{ opacity: 0.8, scale: 0.8 }}
           animate={{ opacity: [0.8, 0], scale: [0.8, 2.2] }}
@@ -220,7 +220,7 @@ export function WelcomeAnimation({
         />
         {/* Energy ring 2 */}
         <motion.div
-          className="absolute rounded-3xl border border-pink-500/40 pointer-events-none"
+          className="absolute rounded-3xl border border-[#F59E0B]/40 pointer-events-none"
           style={{ inset: -8 }}
           initial={{ opacity: 0.7, scale: 0.8 }}
           animate={{ opacity: [0.7, 0], scale: [0.8, 2.8] }}
@@ -303,7 +303,7 @@ export function WelcomeAnimation({
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1], delay: introDelay + 0.45 }}
       >
         <h1 className="text-[2.8rem] font-bold leading-none mb-3 tracking-tight">
-          <span className="text-white">Welcome</span>
+          <span className="text-[#E6EAF0]">Welcome</span>
           {userName && (
             <motion.span
               style={{
@@ -318,7 +318,7 @@ export function WelcomeAnimation({
               ,&nbsp;{userName}
             </motion.span>
           )}
-          <span className="text-white">!</span>
+          <span className="text-[#E6EAF0]">!</span>
         </h1>
 
         <motion.div

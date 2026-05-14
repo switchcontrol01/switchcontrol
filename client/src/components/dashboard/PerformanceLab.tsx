@@ -76,7 +76,7 @@ function qualityColor(q: string) {
 function confidenceColor(c: string) {
   if (c === "high")   return "text-emerald-400 border-emerald-500/25 bg-emerald-500/6";
   if (c === "medium") return "text-amber-400   border-amber-500/25   bg-amber-500/6";
-  return "text-white/40 border-[#2A313A]0 bg-white/[0.03]";
+  return "text-[#6B7380] border-[#2A313A] bg-[#1A1F26]";
 }
 
 // ── Animated counter ─────────────────────────────────────────────────────────
@@ -143,11 +143,11 @@ function StabilityArc({ score, prefersReducedMotion }: { score: number; prefersR
       aria-hidden="true"
       style={{ display: "block", background: "transparent", overflow: "visible" }}
     >
-      {/* Track arc — dark purple-tinted, no white to avoid compositor outline artifact */}
+      {/* Track arc — dark matte, no white to avoid compositor outline artifact */}
       <circle
         cx={60} cy={60} r={48}
         fill="none"
-        stroke="rgba(80,60,120,0.22)"
+        stroke="rgba(42,49,58,0.8)"
         strokeWidth={9}
         strokeLinecap="round"
         pathLength={1}
@@ -217,7 +217,7 @@ function StabilityScoreCard({ data }: { data: InstabilityData | null }) {
               <StabilityArc score={data.score} prefersReducedMotion={prefersReducedMotion} />
             ) : (
               <div className="w-full h-full rounded-full border-2 border-[#2A313A] flex items-center justify-center">
-                <div className="size-8 rounded-full border border-[#2A313A]0 bg-white/[0.03] animate-pulse" />
+                <div className="size-8 rounded-full border border-[#2A313A] bg-[#1A1F26] animate-pulse" />
               </div>
             )}
             {/* Center score */}
@@ -239,7 +239,7 @@ function StabilityScoreCard({ data }: { data: InstabilityData | null }) {
               ].map((m) => (
                 <div key={m.label} className="flex items-center justify-between" data-testid={`metric-stability-${m.label.toLowerCase()}`}>
                   <span className="text-[10px] text-muted-foreground">{m.label}</span>
-                  <span className="text-[10px] font-mono text-white/70">{m.value}</span>
+                  <span className="text-[10px] font-mono text-[#E6EAF0]">{m.value}</span>
                 </div>
               ))}
             </div>
@@ -249,7 +249,7 @@ function StabilityScoreCard({ data }: { data: InstabilityData | null }) {
         {/* Source chip */}
         {data && data.source !== "none" && (
           <motion.div
-            className="text-[10px] text-white/55 bg-white/[0.03] rounded-lg px-3 py-2 border border-white/[0.07] leading-snug"
+            className="text-[10px] text-[#A0A8B3] bg-[#1A1F26] rounded-lg px-3 py-2 border border-[#2A313A] leading-snug"
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: 0.4 }}
@@ -265,7 +265,7 @@ function StabilityScoreCard({ data }: { data: InstabilityData | null }) {
           </div>
         )}
         {!data && (
-          <div className="h-8 rounded-lg bg-white/[0.04] animate-pulse" />
+          <div className="h-8 rounded-lg bg-[#21262D] animate-pulse" />
         )}
       </div>
     </GlassCard>
@@ -297,7 +297,7 @@ function ProblemRow({ problem, index }: { problem: ActiveProblem; index: number 
       <div className="flex-1 min-w-0 space-y-0.5">
         <div className="flex items-center justify-between gap-2">
           <span className={cn("text-[11px] font-semibold", col.text)}>{problem.title}</span>
-          <span className="text-[10px] font-mono text-white/40 shrink-0">{problem.metric}</span>
+          <span className="text-[10px] font-mono text-[#6B7380] shrink-0">{problem.metric}</span>
         </div>
         <p className="text-[10px] text-muted-foreground/70 leading-snug">{problem.message}</p>
       </div>
@@ -339,7 +339,7 @@ function ActiveProblemsCard({ data }: { data: ActiveProblemsData | null }) {
           <AnimatePresence mode="popLayout">
             {!data && (
               <div className="space-y-2">
-                {[1, 2].map(i => <div key={i} className="h-14 rounded-lg bg-white/[0.04] animate-pulse" />)}
+                {[1, 2].map(i => <div key={i} className="h-14 rounded-lg bg-[#21262D] animate-pulse" />)}
               </div>
             )}
 
@@ -373,7 +373,7 @@ function ActiveProblemsCard({ data }: { data: ActiveProblemsData | null }) {
 function LatencyBar({ ms, max, color }: { ms: number; max: number; color: string }) {
   const pct = Math.min(100, (ms / max) * 100);
   return (
-    <div className="flex-1 h-1.5 rounded-full bg-white/[0.06]">
+    <div className="flex-1 h-1.5 rounded-full bg-[#21262D]">
       <motion.div
         className="h-full rounded-full"
         style={{ backgroundColor: color, boxShadow: `0 0 6px ${color}66` }}
@@ -391,7 +391,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
 
   const trendIcon = data?.trend === "rising"  ? <TrendingUp  className="size-3 text-red-400" />
                   : data?.trend === "falling" ? <TrendingDown className="size-3 text-emerald-400" />
-                  : <Minus className="size-3 text-white/40" />;
+                  : <Minus className="size-3 text-[#6B7380]" />;
 
   const barColors = ["rgba(255,255,255,0.2)", "hsl(338,70%,60%)", "hsl(200,75%,55%)", "hsl(45,80%,55%)"];
 
@@ -404,7 +404,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
             Input Latency
           </h3>
           {data && (
-            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[#2A313A]0 text-white/30">
+            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded border border-[#2A313A] text-[#6B7380]">
               Estimated
             </span>
           )}
@@ -426,7 +426,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
               </div>
             </>
           ) : (
-            <div className="h-10 w-28 rounded-lg bg-white/[0.04] animate-pulse" />
+            <div className="h-10 w-28 rounded-lg bg-[#21262D] animate-pulse" />
           )}
         </div>
 
@@ -437,7 +437,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
               <div key={b.label} className="space-y-1" data-testid={`latency-breakdown-${i}`}>
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-muted-foreground/70">{b.label}</span>
-                  <span className="text-[10px] font-mono text-white/50">{b.ms.toFixed(1)}ms</span>
+                  <span className="text-[10px] font-mono text-[#A0A8B3]">{b.ms.toFixed(1)}ms</span>
                 </div>
                 <LatencyBar ms={b.ms} max={maxMs * 0.45} color={barColors[i] ?? barColors[0]} />
               </div>
@@ -447,7 +447,7 @@ function InputLatencyCard({ data }: { data: LatencyData | null }) {
 
         {!data && (
           <div className="flex-1 space-y-2">
-            {[1, 2, 3, 4].map(i => <div key={i} className="h-6 rounded bg-white/[0.04] animate-pulse" />)}
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-6 rounded bg-[#21262D] animate-pulse" />)}
           </div>
         )}
 
@@ -467,12 +467,12 @@ function DNABar({ dimension, index, prefersReducedMotion }: { dimension: any; in
   return (
     <div className="space-y-1" data-testid={`dna-dimension-${dimension.id}`}>
       <div className="flex items-center justify-between">
-        <span className="text-[10px] text-white/60">{dimension.label}</span>
+        <span className="text-[10px] text-[#A0A8B3]">{dimension.label}</span>
         <span className="text-[10px] font-mono tabular-nums" style={{ color: dimension.color }}>
           {Math.round(dimension.score)}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06]">
+      <div className="h-1.5 rounded-full bg-[#21262D]">
         <motion.div
           className="h-full rounded-full"
           style={{
@@ -531,7 +531,7 @@ function SystemDNACard({ data }: { data: SystemDNAData | null }) {
         <div className="flex-1 space-y-2.5">
           {!data && (
             <div className="space-y-3">
-              {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-5 rounded bg-white/[0.04] animate-pulse" />)}
+              {[1, 2, 3, 4, 5, 6].map(i => <div key={i} className="h-5 rounded bg-[#21262D] animate-pulse" />)}
             </div>
           )}
           {data?.dimensions.map((dim, i) => (
@@ -584,7 +584,7 @@ function WhatCausedThatCard({
               transition={{ duration: 0.2 }}
             >
               <div className="space-y-1.5">
-                <p className="text-xs text-white/60 font-medium">Spike or stutter occurred?</p>
+                <p className="text-xs text-[#A0A8B3] font-medium">Spike or stutter occurred?</p>
                 <p className="text-[10px] text-muted-foreground/50 max-w-[200px] leading-snug">
                   Analyzes current system state to identify the most likely cause.
                 </p>
@@ -629,13 +629,13 @@ function WhatCausedThatCard({
                 const isTweakVerify = causation.primaryCause.id === "tweak-verification" || causation.primaryCause.id === "tweak-check-single";
                 const borderBg =
                   causation.noIssue   ? "border-emerald-500/20 bg-emerald-500/[0.05]"
-                  : isUncertain       ? "border-[#2A313A]0 bg-white/[0.03]"
-                  : isTweakVerify     ? "border-violet-500/20 bg-violet-500/[0.05]"
+                  : isUncertain       ? "border-[#2A313A] bg-[#1A1F26]"
+                  : isTweakVerify     ? "border-[#00D4FF] bg-[#00D4FF]/[0.05]"
                   :                     "border-amber-500/20 bg-amber-500/[0.05]";
                 const labelColor =
                   causation.noIssue   ? "text-emerald-300"
-                  : isUncertain       ? "text-white/50"
-                  : isTweakVerify     ? "text-violet-300"
+                  : isUncertain       ? "text-[#A0A8B3]"
+                  : isTweakVerify     ? "text-[#33E0FF]"
                   :                     "text-amber-200";
                 const Icon =
                   causation.noIssue   ? CheckCircle
@@ -643,8 +643,8 @@ function WhatCausedThatCard({
                   :                     AlertTriangle;
                 const iconColor =
                   causation.noIssue   ? "text-emerald-400"
-                  : isUncertain       ? "text-white/30"
-                  : isTweakVerify     ? "text-violet-400"
+                  : isUncertain       ? "text-[#6B7380]"
+                  : isTweakVerify     ? "text-[#00D4FF]"
                   :                     "text-amber-400";
                 return (
               <div className={cn("p-3 rounded-lg border space-y-2", borderBg)} data-testid="section-cause-result">
@@ -660,7 +660,7 @@ function WhatCausedThatCard({
                   {causation.primaryCause.evidence.map((e, i) => (
                     <span
                       key={i}
-                      className="text-[10px] text-white/60 px-2 py-0.5 rounded border border-white/[0.08] bg-white/[0.03]"
+                      className="text-[10px] text-[#A0A8B3] px-2 py-0.5 rounded border border-[#2A313A] bg-[#1A1F26]"
                       data-testid={`evidence-chip-${i}`}
                     >
                       {e}
@@ -675,7 +675,7 @@ function WhatCausedThatCard({
                   </span>
                   {causation.primaryCause.subsystem !== "None" && (
                     <span className="text-[10px] text-muted-foreground/50">
-                      Subsystem: <span className="text-white/60">{causation.primaryCause.subsystem}</span>
+                      Subsystem: <span className="text-[#A0A8B3]">{causation.primaryCause.subsystem}</span>
                     </span>
                   )}
                 </div>
@@ -700,7 +700,7 @@ function WhatCausedThatCard({
                   {causation.allCauses.slice(1, 3).map(c => (
                     <div key={c.id} className="flex items-center gap-2">
                       <div className="size-1.5 rounded-full bg-[#1A1F26]0 shrink-0" />
-                      <span className="text-[10px] text-white/50">{c.label}</span>
+                      <span className="text-[10px] text-[#A0A8B3]">{c.label}</span>
                       <span className={cn("text-[9px] ml-auto", confidenceColor(c.confidence))}>{c.confidence}</span>
                     </div>
                   ))}
@@ -712,7 +712,7 @@ function WhatCausedThatCard({
                 size="sm"
                 variant="outline"
                 onClick={analyzeCause}
-                className="w-full text-[11px] h-7 border-[#2A313A]0 text-white/40 hover:text-white/70"
+                className="w-full text-[11px] h-7 border-[#2A313A] text-[#6B7380] hover:text-[#E6EAF0]"
                 data-testid="button-re-analyze"
               >
                 <RefreshCw className="size-3 mr-1.5" />
@@ -879,14 +879,14 @@ function SmartRAMCard({
               <div className="text-[10px] text-muted-foreground/50">{data.usedGb} / {data.totalGb} GB</div>
             </div>
           ) : (
-            <div className="h-10 w-16 rounded-lg bg-white/[0.04] animate-pulse" />
+            <div className="h-10 w-16 rounded-lg bg-[#21262D] animate-pulse" />
           )}
         </div>
 
         {/* RAM usage bar */}
         {data ? (
           <div className="space-y-2">
-            <div className="h-2 rounded-full bg-white/[0.05] relative overflow-hidden">
+            <div className="h-2 rounded-full bg-[#21262D] relative overflow-hidden">
               <motion.div
                 className={cn("h-full rounded-full absolute left-0 top-0 transition-colors duration-500", isActive ? "bg-teal-400" : cfg.barColor)}
                 style={{ boxShadow: `0 0 10px ${isActive ? "rgba(52,211,153,0.30)" : cfg.glowColor}` }}
@@ -917,7 +917,7 @@ function SmartRAMCard({
             </div>
           </div>
         ) : (
-          <div className="h-2 rounded-full bg-white/[0.04] animate-pulse" />
+          <div className="h-2 rounded-full bg-[#21262D] animate-pulse" />
         )}
 
         {/* Clearing / Settling inline progress */}
@@ -937,7 +937,7 @@ function SmartRAMCard({
                   </span>
                   <span className="text-[10px] text-teal-400/60 font-mono">{clearProgress}%</span>
                 </div>
-                <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+                <div className="h-1 rounded-full bg-[#21262D] overflow-hidden">
                   <motion.div
                     className="h-full rounded-full bg-gradient-to-r from-teal-500/80 to-teal-400"
                     animate={{ width: `${phase === "settling" ? 100 : clearProgress}%` }}
@@ -970,13 +970,13 @@ function SmartRAMCard({
                       <p className="text-[12px] font-semibold text-emerald-300">Reclaimed {freedGb} GB</p>
                       <p className="text-[10px] text-emerald-300/50">Memory pressure reduced</p>
                     </div>
-                    <button onClick={() => { setPhase("idle"); setFreedGb(null); clearTimers(); }} className="text-white/20 hover:text-white/50 text-lg leading-none">×</button>
+                    <button onClick={() => { setPhase("idle"); setFreedGb(null); clearTimers(); }} className="text-[#6B7380]/50 hover:text-[#A0A8B3] text-lg leading-none">×</button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <CheckCircle className="size-4 text-emerald-400 shrink-0" />
                     <p className="text-[11px] text-emerald-300 flex-1">Standby cache flushed — system headroom restored.</p>
-                    <button onClick={() => { setPhase("idle"); setFreedGb(null); clearTimers(); }} className="text-white/20 hover:text-white/50 text-lg leading-none">×</button>
+                    <button onClick={() => { setPhase("idle"); setFreedGb(null); clearTimers(); }} className="text-[#6B7380]/50 hover:text-[#A0A8B3] text-lg leading-none">×</button>
                   </div>
                 )}
               </div>
@@ -986,7 +986,7 @@ function SmartRAMCard({
 
         {/* State reason */}
         {data && phase === "idle" && (
-          <p className="text-[11px] text-white/55 leading-relaxed" data-testid="text-ram-reason">{data.reason}</p>
+          <p className="text-[11px] text-[#A0A8B3] leading-relaxed" data-testid="text-ram-reason">{data.reason}</p>
         )}
 
         {/* Stats grid */}
@@ -1000,16 +1000,16 @@ function SmartRAMCard({
                 {data.reclaimableSource === "measured" ? "Reclaimable" : "Est. reclaim"}
               </div>
             </div>
-            <div className="p-2.5 rounded-lg text-center border border-white/[0.06] bg-white/[0.03]">
-              <div className="text-sm font-bold tabular-nums text-white/70">
+            <div className="p-2.5 rounded-lg text-center border border-[#2A313A] bg-[#1A1F26]">
+              <div className="text-sm font-bold tabular-nums text-[#E6EAF0]">
                 {data.availableGb !== null ? `${data.availableGb} GB` : `${data.freeGb} GB`}
               </div>
               <div className="text-[9px] text-muted-foreground/40 mt-0.5">
                 {data.availableGb !== null ? "Available" : "Free"}
               </div>
             </div>
-            <div className="p-2.5 rounded-lg text-center border border-white/[0.06] bg-white/[0.03]">
-              <div className="text-sm font-bold tabular-nums text-white/60">
+            <div className="p-2.5 rounded-lg text-center border border-[#2A313A] bg-[#1A1F26]">
+              <div className="text-sm font-bold tabular-nums text-[#A0A8B3]">
                 {data.standbyGb !== null ? `${data.standbyGb} GB` : "—"}
               </div>
               <div className="text-[9px] text-muted-foreground/40 mt-0.5">Cache</div>
@@ -1017,14 +1017,14 @@ function SmartRAMCard({
           </div>
         ) : data === null ? (
           <div className="grid grid-cols-3 gap-2.5">
-            {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-lg bg-white/[0.04] animate-pulse" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-12 rounded-lg bg-[#21262D] animate-pulse" />)}
           </div>
         ) : null}
 
         {/* Top processes — only when idle */}
         {data && phase === "idle" && data.topProcesses.length > 0 && (
           <div>
-            <p className="text-[9px] text-white/25 uppercase tracking-widest mb-2">Top Memory Consumers</p>
+            <p className="text-[9px] text-[#6B7380] uppercase tracking-widest mb-2">Top Memory Consumers</p>
             <div className="space-y-1.5">
               {data.topProcesses.slice(0, 5).map((proc, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -1036,8 +1036,8 @@ function SmartRAMCard({
                       transition={{ duration: 0.6, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }}
                     />
                   </div>
-                  <span className="text-[10px] text-white/50 w-[90px] truncate text-right">{proc.name}</span>
-                  <span className="text-[10px] text-white/30 tabular-nums w-[44px] text-right shrink-0">
+                  <span className="text-[10px] text-[#A0A8B3] w-[90px] truncate text-right">{proc.name}</span>
+                  <span className="text-[10px] text-[#6B7380] tabular-nums w-[44px] text-right shrink-0">
                     {proc.ramMb !== null ? `${proc.ramMb} MB` : "—"}
                   </span>
                 </div>
@@ -1047,7 +1047,7 @@ function SmartRAMCard({
         )}
 
         {/* Action row */}
-        <div className="flex items-center gap-3 pt-1 border-t border-white/[0.05]">
+        <div className="flex items-center gap-3 pt-1 border-t border-[#2A313A]">
           <div className="flex-1 min-w-0 space-y-0.5">
             {data && phase === "idle" && (
               <p className="text-[10px] text-muted-foreground/55 leading-snug" data-testid="text-ram-recommendation">
@@ -1056,7 +1056,7 @@ function SmartRAMCard({
             )}
             <button
               onClick={onOpenAdvanced}
-              className="text-[10px] text-white/20 hover:text-white/45 transition-colors"
+              className="text-[10px] text-[#6B7380]/50 hover:text-[#A0A8B3] transition-colors"
             >
               Advanced options…
             </button>
@@ -1115,7 +1115,7 @@ export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
         viewport={{ once: true }}
         transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       >
-        <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
+        <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0] flex items-center gap-2">
           <Cpu className="size-5 text-primary" />
           Performance Lab
         </h2>

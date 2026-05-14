@@ -120,15 +120,15 @@ function MiniStatBar({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-1.5 text-white/60">
+        <div className="flex items-center gap-1.5 text-[#A0A8B3]">
           <Icon className="size-3" />
           <span>{label}</span>
         </div>
-        <span className="text-white/80 font-medium">
+        <span className="text-[#E6EAF0] font-medium">
           {value}{unit ? ` ${unit}` : ""}
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className={cn("h-full rounded-full", color)}
           initial={{ width: "0%" }}
@@ -162,7 +162,7 @@ function StageTimeline({
               "flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-colors",
               isDone && "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
               isCurrent && "bg-primary/10 text-primary border border-primary/30 animate-pulse",
-              !isDone && !isCurrent && "bg-white/[0.03] text-white/30 border border-white/[0.06]"
+              !isDone && !isCurrent && "bg-[#1A1F26] text-[#6B7380] border border-[#2A313A]"
             )}>
               {isDone ? (
                 <CheckCircle2 className="size-2.5" />
@@ -176,7 +176,7 @@ function StageTimeline({
             {i < STAGES.length - 1 && (
               <div className={cn(
                 "w-3 h-px",
-                i < currentIndex ? "bg-emerald-500/30" : "bg-white/[0.08]"
+                i < currentIndex ? "bg-emerald-500/30" : "bg-[#21262D]"
               )} />
             )}
           </div>
@@ -275,7 +275,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.22 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#14181D]/80 backdrop-blur-md"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -294,10 +294,10 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                 <Trash2 className="size-4 text-primary" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">
+                <h3 className="text-sm font-bold text-[#E6EAF0]">
                   {state.phase === "complete" ? "Debloat Complete" : "Applying Debloat"}
                 </h3>
-                <p className="text-[11px] text-white/40">
+                <p className="text-[11px] text-[#6B7380]">
                   {state.phase === "complete"
                     ? `${state.completedCount} of ${state.totalCount} items processed`
                     : state.currentItemName
@@ -309,7 +309,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
             {state.phase === "complete" && (
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-[#2A313A] transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-all"
               >
                 <X className="size-4" />
               </button>
@@ -330,14 +330,14 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
             <div className="relative shrink-0">
               <ProgressRing pct={pct} size={110} stroke={7} color={state.phase === "complete" ? "#34d399" : "#22d3ee"} />
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-black text-white">{pct}%</span>
-                <span className="text-[10px] text-white/40">{state.completedCount}/{state.totalCount}</span>
+                <span className="text-xl font-black text-[#E6EAF0]">{pct}%</span>
+                <span className="text-[10px] text-[#6B7380]">{state.completedCount}/{state.totalCount}</span>
               </div>
             </div>
 
             <div className="flex-1 space-y-3 min-w-0">
               {/* Elapsed */}
-              <div className="flex items-center gap-2 text-[11px] text-white/50">
+              <div className="flex items-center gap-2 text-[11px] text-[#A0A8B3]">
                 <Clock className="size-3" />
                 <span>Elapsed: {formatElapsed(elapsed)}</span>
               </div>
@@ -374,13 +374,13 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
           {/* Risk meter */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between text-[11px]">
-              <div className="flex items-center gap-1.5 text-white/50">
+              <div className="flex items-center gap-1.5 text-[#A0A8B3]">
                 <ShieldAlert className="size-3" />
                 <span>Risk level</span>
               </div>
               <span className={cn("font-medium", riskLevel.color)}>{riskLevel.label}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
               <motion.div
                 className={cn("h-full rounded-full", riskLevel.bg)}
                 initial={{ width: "0%" }}
@@ -466,9 +466,9 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-white/[0.03] border border-white/[0.08]"
+                className="flex items-center justify-between px-3 py-2.5 rounded-lg bg-[#1A1F26] border border-[#2A313A]"
               >
-                <div className="flex items-center gap-2 text-[11px] text-white/50">
+                <div className="flex items-center gap-2 text-[11px] text-[#A0A8B3]">
                   <Zap className="size-3 text-primary animate-pulse" />
                   <span>
                     {state.phase === "preparing"
@@ -480,7 +480,7 @@ export function ApplyProgressOverlay({ isOpen, state, onClose, onViewResults }: 
                           : "Applying selected actions…"}
                   </span>
                 </div>
-                <span className="text-[11px] text-white/30">Please wait</span>
+                <span className="text-[11px] text-[#6B7380]">Please wait</span>
               </motion.div>
             )}
           </AnimatePresence>

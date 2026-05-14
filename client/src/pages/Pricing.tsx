@@ -294,7 +294,7 @@ function PremiumPerfGraph() {
   return (
     <div className="mt-4 mb-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-violet-400/70">Frame latency — before vs after</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00D4FF]/70">Frame latency — before vs after</span>
         <span className="text-[10px] font-bold text-emerald-400/80">−62%</span>
       </div>
       <svg width="100%" viewBox={`0 0 ${w} ${h}`} fill="none" className="overflow-visible">
@@ -333,7 +333,7 @@ function PremiumPerfGraph() {
           transition={{ duration: 0.4, delay: 2.2, ease: EASE }}
         />
       </svg>
-      <div className="flex justify-between text-[9px] text-white/20 mt-0.5">
+      <div className="flex justify-between text-[9px] text-[#6B7380]/50 mt-0.5">
         <span>Unoptimized</span>
         <span>After Premium</span>
       </div>
@@ -432,7 +432,7 @@ function ObjectionItem({ item, index }: { item: typeof OBJECTIONS[number]; index
               </span>
             </div>
             <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.28, ease: EASE_IO }}>
-              <ChevronDown className="size-4 text-white/25 shrink-0 mt-0.5" />
+              <ChevronDown className="size-4 text-[#6B7380] shrink-0 mt-0.5" />
             </motion.div>
           </div>
           <AnimatePresence initial={false}>
@@ -444,7 +444,7 @@ function ObjectionItem({ item, index }: { item: typeof OBJECTIONS[number]; index
                 transition={{ duration: 0.35, ease: EASE_IO }}
                 className="overflow-hidden"
               >
-                <div className="px-5 pb-4 pl-[5.5rem] text-[13.5px] text-white/50 leading-relaxed">
+                <div className="px-5 pb-4 pl-[5.5rem] text-[13.5px] text-[#A0A8B3] leading-relaxed">
                   {item.a}
                 </div>
               </motion.div>
@@ -553,8 +553,8 @@ export default function Pricing() {
                 border: "1px solid rgba(139,92,246,0.25)",
               }}
             >
-              <Zap className="size-3.5 text-violet-400" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-300">
+              <Zap className="size-3.5 text-[#00D4FF]" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#33E0FF]">
                 One-time purchase · Lifetime access
               </span>
             </div>
@@ -563,7 +563,7 @@ export default function Pricing() {
           {/* Headline */}
           <FadeUp delay={0.08}>
             <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight leading-[1.06] mb-6">
-              <span className="text-white">Stop guessing.</span>
+              <span className="text-[#E6EAF0]">Stop guessing.</span>
               <br />
               <span
                 style={{
@@ -580,7 +580,7 @@ export default function Pricing() {
 
           {/* Sub */}
           <FadeUp delay={0.17}>
-            <p className="text-[17px] text-white/42 max-w-lg mx-auto leading-relaxed mb-12">
+            <p className="text-[17px] text-[#E6EAF0]/42 max-w-lg mx-auto leading-relaxed mb-12">
               Every millisecond matters. SwitchControl gives you the intelligence,
               the control, and the precision to use every one of them.
             </p>
@@ -606,12 +606,12 @@ export default function Pricing() {
                   Entry Layer
                 </div>
 
-                <h3 className="text-2xl font-bold text-white mb-1" data-testid="text-plan-free">Free</h3>
+                <h3 className="text-2xl font-bold text-[#E6EAF0] mb-1" data-testid="text-plan-free">Free</h3>
                 <div className="flex items-baseline gap-1.5 mb-1">
-                  <span className="text-5xl font-extrabold text-white tracking-tight">$0</span>
-                  <span className="text-white/35 text-sm">forever</span>
+                  <span className="text-5xl font-extrabold text-[#E6EAF0] tracking-tight">$0</span>
+                  <span className="text-[#6B7380] text-sm">forever</span>
                 </div>
-                <p className="text-[13px] text-white/35 mb-6 leading-relaxed">
+                <p className="text-[13px] text-[#6B7380] mb-6 leading-relaxed">
                   A solid starting point. Real tools, real value — with room to grow.
                 </p>
 
@@ -626,8 +626,8 @@ export default function Pricing() {
                     >
                       <Check className="size-3.5 text-emerald-400/70 shrink-0 mt-[3px]" />
                       <div>
-                        <span className="text-[13px] text-white/65 font-medium">{b.text}</span>
-                        <span className="text-[11px] text-white/25 ml-1.5">{b.note}</span>
+                        <span className="text-[13px] text-[#E6EAF0]/65 font-medium">{b.text}</span>
+                        <span className="text-[11px] text-[#6B7380] ml-1.5">{b.note}</span>
                       </div>
                     </motion.li>
                   ))}
@@ -699,12 +699,12 @@ export default function Pricing() {
                     </div>
                   </div>
 
-                  <h3 className="text-2xl font-bold text-white mb-1" data-testid="text-plan-premium">Premium</h3>
+                  <h3 className="text-2xl font-bold text-[#E6EAF0] mb-1" data-testid="text-plan-premium">Premium</h3>
                   <div className="flex items-baseline gap-1.5 mb-1">
-                    <span className="text-5xl font-extrabold text-white tracking-tight">$50</span>
-                    <span className="text-white/35 text-sm">one-time</span>
+                    <span className="text-5xl font-extrabold text-[#E6EAF0] tracking-tight">$50</span>
+                    <span className="text-[#6B7380] text-sm">one-time</span>
                   </div>
-                  <p className="text-[13px] text-white/50 mb-2 leading-relaxed">
+                  <p className="text-[13px] text-[#A0A8B3] mb-2 leading-relaxed">
                     The complete SwitchControl experience. Lifetime access. No subscription, ever.
                   </p>
 
@@ -724,11 +724,11 @@ export default function Pricing() {
                           className="shrink-0 mt-[2px] size-4 rounded-md flex items-center justify-center"
                           style={{ background: "rgba(139,92,246,0.18)", border: "1px solid rgba(168,85,247,0.3)" }}
                         >
-                          <Check className="size-2.5 text-violet-300" />
+                          <Check className="size-2.5 text-[#33E0FF]" />
                         </div>
                         <div>
-                          <span className="text-[13px] text-white/80 font-medium">{b.text}</span>
-                          <span className="text-[11px] text-white/30 ml-1.5">{b.note}</span>
+                          <span className="text-[13px] text-[#E6EAF0] font-medium">{b.text}</span>
+                          <span className="text-[11px] text-[#6B7380] ml-1.5">{b.note}</span>
                         </div>
                       </motion.li>
                     ))}
@@ -753,7 +753,7 @@ export default function Pricing() {
                   </GlowButton>
 
                   {/* Footnote */}
-                  <p className="text-center text-[11px] text-white/22 mt-3">
+                  <p className="text-center text-[11px] text-[#E6EAF0]/22 mt-3">
                     One payment · Lifetime access · No recurring fees
                   </p>
                 </div>
@@ -767,8 +767,8 @@ export default function Pricing() {
               {TRUST_ITEMS.map((t) => {
                 const TIcon = t.icon;
                 return (
-                  <div key={t.label} className="flex items-center gap-1.5 text-white/30">
-                    <TIcon className="size-3.5 text-violet-400/60" />
+                  <div key={t.label} className="flex items-center gap-1.5 text-[#6B7380]">
+                    <TIcon className="size-3.5 text-[#00D4FF]/60" />
                     <span className="text-[12px] font-medium">{t.label}</span>
                   </div>
                 );
@@ -793,16 +793,16 @@ export default function Pricing() {
                 className="inline-flex items-center gap-2 px-3 py-1 rounded-full mb-5"
                 style={{ background: "rgba(139,92,246,0.08)", border: "1px solid rgba(139,92,246,0.18)" }}
               >
-                <BarChart2 className="size-3 text-violet-400" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-400">What Premium actually does</span>
+                <BarChart2 className="size-3 text-[#00D4FF]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#00D4FF]">What Premium actually does</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4">
+              <h2 className="text-3xl md:text-5xl font-extrabold text-[#E6EAF0] tracking-tight leading-tight mb-4">
                 Real outcomes,{" "}
                 <span style={{ background: "linear-gradient(90deg, #c084fc, #22d3ee)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   not feature lists.
                 </span>
               </h2>
-              <p className="text-white/38 text-[15px] max-w-xl mx-auto leading-relaxed">
+              <p className="text-[#E6EAF0]/38 text-[15px] max-w-xl mx-auto leading-relaxed">
                 Premium exists to give you precision that generic optimizers never will.
               </p>
             </div>
@@ -833,8 +833,8 @@ export default function Pricing() {
                     <MiniBarChart bars={o.bars} accent={o.accent} />
                   </div>
 
-                  <h3 className="text-[14.5px] font-bold text-white leading-snug">{o.title}</h3>
-                  <p className="text-[12.5px] text-white/42 leading-relaxed flex-1">{o.body}</p>
+                  <h3 className="text-[14.5px] font-bold text-[#E6EAF0] leading-snug">{o.title}</h3>
+                  <p className="text-[12.5px] text-[#E6EAF0]/42 leading-relaxed flex-1">{o.body}</p>
                 </div>
               </ScrollFade>
             ))}
@@ -852,13 +852,13 @@ export default function Pricing() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollFade>
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4">
+              <h2 className="text-3xl md:text-5xl font-extrabold text-[#E6EAF0] tracking-tight leading-tight mb-4">
                 Free vs{" "}
                 <span style={{ background: "linear-gradient(90deg, #c084fc, #818cf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   Premium
                 </span>
               </h2>
-              <p className="text-white/38 text-[15px] max-w-lg mx-auto">
+              <p className="text-[#E6EAF0]/38 text-[15px] max-w-lg mx-auto">
                 Exactly what you get with each plan — no vague marketing.
               </p>
             </div>
@@ -868,7 +868,7 @@ export default function Pricing() {
           <ScrollFade delay={0.1}>
             <div className="grid grid-cols-[1fr_80px_80px] md:grid-cols-[1fr_100px_100px] gap-x-3 mb-4 px-4">
               <div />
-              <div className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-white/30">Free</div>
+              <div className="text-center text-[11px] font-bold uppercase tracking-[0.14em] text-[#6B7380]">Free</div>
               <div
                 className="text-center text-[11px] font-bold uppercase tracking-[0.14em] px-2 py-1 rounded-lg"
                 style={{ background: "rgba(139,92,246,0.1)", border: "1px solid rgba(139,92,246,0.2)", color: "rgba(192,132,252,0.9)" }}
@@ -893,7 +893,7 @@ export default function Pricing() {
                     className="px-4 py-2.5"
                     style={{ borderBottom: "1px solid rgba(255,255,255,0.05)", background: "rgba(255,255,255,0.015)" }}
                   >
-                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/30">{cat.label}</span>
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#6B7380]">{cat.label}</span>
                   </div>
 
                   {cat.rows.map((row, ri) => (
@@ -908,14 +908,14 @@ export default function Pricing() {
                       <div className="flex justify-center">
                         {row.free
                           ? <Check className="size-4 text-emerald-400/70" />
-                          : <X className="size-3.5 text-white/15" />}
+                          : <X className="size-3.5 text-[#E6EAF0]/15" />}
                       </div>
                       <div className="flex justify-center">
                         <div
                           className="size-5 rounded-md flex items-center justify-center"
                           style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(168,85,247,0.25)" }}
                         >
-                          <Check className="size-3 text-violet-300" />
+                          <Check className="size-3 text-[#33E0FF]" />
                         </div>
                       </div>
                     </div>
@@ -961,9 +961,9 @@ export default function Pricing() {
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-400 pointer-events-none"
                     style={{ background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(139,92,246,0.07) 0%, transparent 70%)" }}
                   />
-                  {(() => { const TIcon = t.icon; return <TIcon className="size-4 text-violet-400/70 mx-auto mb-2" />; })()}
-                  <div className="text-[11.5px] font-bold text-white/75 leading-tight mb-0.5">{t.label}</div>
-                  <div className="text-[10px] text-white/28">{t.sub}</div>
+                  {(() => { const TIcon = t.icon; return <TIcon className="size-4 text-[#00D4FF]/70 mx-auto mb-2" />; })()}
+                  <div className="text-[11.5px] font-bold text-[#E6EAF0]/75 leading-tight mb-0.5">{t.label}</div>
+                  <div className="text-[10px] text-[#E6EAF0]/28">{t.sub}</div>
                 </motion.div>
               ))}
             </div>
@@ -981,10 +981,10 @@ export default function Pricing() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <ScrollFade>
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-4">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-[#E6EAF0] tracking-tight mb-4">
                 Before you go —
               </h2>
-              <p className="text-white/38 text-[15px]">The questions people actually ask.</p>
+              <p className="text-[#E6EAF0]/38 text-[15px]">The questions people actually ask.</p>
             </div>
           </ScrollFade>
 
@@ -1039,16 +1039,16 @@ export default function Pricing() {
                 className="inline-flex size-14 rounded-2xl items-center justify-center mb-6"
                 style={{ background: "rgba(139,92,246,0.15)", border: "1px solid rgba(168,85,247,0.3)" }}
               >
-                <Crown className="size-6 text-violet-300" />
+                <Crown className="size-6 text-[#33E0FF]" />
               </div>
 
-              <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 tracking-tight">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-[#E6EAF0] mb-4 tracking-tight">
                 Your system,{" "}
                 <span style={{ background: "linear-gradient(90deg, #c084fc, #22d3ee)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                   at full power.
                 </span>
               </h2>
-              <p className="text-white/42 text-[15px] max-w-md mx-auto leading-relaxed mb-10">
+              <p className="text-[#E6EAF0]/42 text-[15px] max-w-md mx-auto leading-relaxed mb-10">
                 One payment. Lifetime access. The complete SwitchControl
                 experience — AI, BIOS, Network, Power, and full control — forever.
               </p>
@@ -1089,8 +1089,8 @@ export default function Pricing() {
                 ].map(trust => {
                   const TIcon = trust.icon;
                   return (
-                    <div key={trust.text} className="flex items-center gap-1.5 text-[12px] text-white/28">
-                      <TIcon className="size-3.5 text-violet-400/50" />
+                    <div key={trust.text} className="flex items-center gap-1.5 text-[12px] text-[#E6EAF0]/28">
+                      <TIcon className="size-3.5 text-[#00D4FF]/50" />
                       {trust.text}
                     </div>
                   );

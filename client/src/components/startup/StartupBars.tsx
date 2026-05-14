@@ -26,7 +26,7 @@ export function StartupBars({ apps, visible }: Props) {
 
   if (!visible || !totals) {
     return (
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
+      <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-4 text-center">
         <p className="text-xs text-muted-foreground/40">Scan to see boot weight</p>
       </div>
     );
@@ -49,7 +49,7 @@ export function StartupBars({ apps, visible }: Props) {
 
   return (
     <div className="space-y-3">
-      <span className="text-xs font-medium text-white">Boot Weight</span>
+      <span className="text-xs font-medium text-[#E6EAF0]">Boot Weight</span>
       <div className="space-y-2.5">
         {bars.map((bar, i) => {
           const Icon = bar.icon;
@@ -60,7 +60,7 @@ export function StartupBars({ apps, visible }: Props) {
                 <span className="text-muted-foreground/60 flex items-center gap-1">
                   <Icon className="size-3" style={{ color: bar.color }} /> {bar.label}
                 </span>
-                <span className="text-white/60 tabular-nums">
+                <span className="text-[#A0A8B3] tabular-nums">
                   {Math.round(bar.value)}{bar.unit}
                 </span>
               </div>

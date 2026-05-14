@@ -78,7 +78,7 @@ export function CleanerRadialChart({ categories, totalBytes, visible }: Props) {
         {/* Center text */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.p
-            className="text-xl font-bold text-white"
+            className="text-xl font-bold text-[#E6EAF0]"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={hasData ? { opacity: 1, scale: 1 } : { opacity: 0.3 }}
             transition={{ duration: 0.5 }}
@@ -94,7 +94,7 @@ export function CleanerRadialChart({ categories, totalBytes, visible }: Props) {
         {segments.map((seg) => (
           <div key={seg.name} className="flex items-center gap-2 text-[11px]">
             <span className="size-2 rounded-full shrink-0" style={{ backgroundColor: seg.color }} />
-            <span className="text-white/70 truncate">{seg.name}</span>
+            <span className="text-[#E6EAF0] truncate">{seg.name}</span>
             <span className="text-muted-foreground/50 ml-auto tabular-nums">{fmtBytes(seg.bytes)}</span>
           </div>
         ))}

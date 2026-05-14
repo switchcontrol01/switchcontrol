@@ -110,9 +110,9 @@ export function CleanerSummaryCards({
       value: scanStatus === "done" && scanSummary ? fmtBytes(scanSummary.totalBytes) : "—",
       sub:   scanStatus === "done" && scanSummary ? `${scanSummary.foundCount} items detected` : "Run a scan first",
       icon:  HardDrive,
-      color: "text-purple-400",
-      bg:    "bg-purple-500/10",
-      glow:  scanSummary && scanSummary.totalBytes > 50 * 1024 * 1024 ? "border-purple-500/30" : undefined,
+      color: "text-[#00D4FF]",
+      bg:    "bg-[#00D4FF]",
+      glow:  scanSummary && scanSummary.totalBytes > 50 * 1024 * 1024 ? "border-[#00D4FF]" : undefined,
     },
     {
       label: "Selected",
@@ -152,8 +152,8 @@ export function CleanerSummaryCards({
       value: allTimeRemoved > 0 ? fmtBytes(allTimeRemoved) : "—",
       sub:   history.length > 0 ? `${history.length} clean session${history.length !== 1 ? "s" : ""}` : "no sessions yet",
       icon:  TrendingDown,
-      color: "text-violet-400",
-      bg:    "bg-violet-500/10",
+      color: "text-[#00D4FF]",
+      bg:    "bg-[#00D4FF]",
     },
   ];
 
@@ -168,7 +168,7 @@ export function CleanerSummaryCards({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.05 * i, ease: [0.22, 1, 0.36, 1] }}
           >
-            <GlassCard className={cn("p-3 border", card.glow ?? "border-white/[0.07]")}>
+            <GlassCard className={cn("p-3 border", card.glow ?? "border-[#2A313A]")}>
               <div className={cn("size-7 rounded-lg flex items-center justify-center mb-2.5", card.bg)}>
                 <Icon className={cn("size-3.5", card.color)} />
               </div>

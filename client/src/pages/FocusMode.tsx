@@ -748,14 +748,14 @@ export default function FocusMode() {
         {/* ── System telemetry strip ── */}
         {liveTel && (
           <motion.div
-            className="flex items-center gap-4 px-3.5 py-2 rounded-xl border border-white/8 bg-white/3 text-[11px] text-muted-foreground"
+            className="flex items-center gap-4 px-3.5 py-2 rounded-xl border border-[#2A313A] bg-[#1A1F26] text-[11px] text-muted-foreground"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }}
           >
             <Activity className="size-3.5 text-muted-foreground/50 shrink-0" />
             <span>CPU <span className={cn("font-mono font-semibold", liveTel.cpu.load > 75 ? "text-red-400" : "text-emerald-400")}>{liveTel.cpu.load.toFixed(0)}%</span></span>
-            <span className="w-px h-3 bg-white/12" />
+            <span className="w-px h-3 bg-[#2A313A]" />
             <span>RAM <span className={cn("font-mono font-semibold", liveTel.ram.usedPercent > 80 ? "text-red-400" : "text-cyan-400")}>{liveTel.ram.usedPercent.toFixed(0)}%</span></span>
-            <span className="w-px h-3 bg-white/12" />
+            <span className="w-px h-3 bg-[#2A313A]" />
             <span className="font-mono">{liveTel.processes.total} processes</span>
             {isActive && (
               <span className="ml-2 text-emerald-400 font-medium flex items-center gap-1.5">
@@ -877,11 +877,11 @@ export default function FocusMode() {
                     </div>
 
                     {/* Actions applied */}
-                    <div className="rounded-xl border border-white/10 bg-white/3 p-4 flex flex-col gap-2">
+                    <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-4 flex flex-col gap-2">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Actions Applied</p>
                       <div className="flex items-baseline gap-1">
                         <motion.span
-                          className="text-4xl font-black text-white tabular-nums"
+                          className="text-4xl font-black text-[#E6EAF0] tabular-nums"
                           initial={{ scale: 0.7, opacity: 0 }}
                           animate={{ scale: 1, opacity: 1 }}
                           transition={{ type: "spring", stiffness: 400, damping: 20, delay: 0.15 }}
@@ -899,12 +899,12 @@ export default function FocusMode() {
                     </div>
 
                     {/* Session ring */}
-                    <div className="rounded-xl border border-white/10 bg-white/3 p-4 flex flex-col items-center justify-center gap-1">
+                    <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-4 flex flex-col items-center justify-center gap-1">
                       <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold self-start">Session</p>
                       <SessionRing elapsed={sessionElapsed} total={durationMinutes * 60} />
                       {timeRemaining > 0 && (
                         <p className="text-[10px] text-muted-foreground">
-                          <span className="font-mono text-white">{formatTime(timeRemaining)}</span> left
+                          <span className="font-mono text-[#E6EAF0]">{formatTime(timeRemaining)}</span> left
                         </p>
                       )}
                     </div>
@@ -929,7 +929,7 @@ export default function FocusMode() {
                             )}
                           >
                             <Icon className={cn("size-3.5 shrink-0", ok ? "text-emerald-400" : "text-red-400")} />
-                            <span className="text-white/80 truncate flex-1">{t.label}</span>
+                            <span className="text-[#E6EAF0] truncate flex-1">{t.label}</span>
                             {ok
                               ? <CheckCircle className="size-3 text-emerald-400 shrink-0" />
                               : <XCircle className="size-3 text-red-400 shrink-0" />}
@@ -955,7 +955,7 @@ export default function FocusMode() {
                         <Badge variant="outline" className={cn("text-[9px]",
                           verification.verified.notificationsOff
                             ? "text-emerald-400 border-emerald-500/20"
-                            : "text-muted-foreground border-white/10"
+                            : "text-muted-foreground border-[#2A313A]"
                         )}>
                           🔕 {verification.verified.notificationsOff ? "Notifs confirmed off" : "Notifs unverified"}
                         </Badge>
@@ -999,7 +999,7 @@ export default function FocusMode() {
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   />
                   <div className="text-center">
-                    <p className="text-base font-semibold text-white">
+                    <p className="text-base font-semibold text-[#E6EAF0]">
                       {activation === "activating" ? "Applying changes…" : "Reverting changes…"}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -1042,19 +1042,19 @@ export default function FocusMode() {
                               "text-left rounded-xl border p-3.5 transition-all duration-200 relative overflow-hidden",
                               isSelected
                                 ? cn("border-2", profile.border, profile.bg)
-                                : "border-border/40 bg-card/40 hover:border-white/20 hover:bg-white/4"
+                                : "border-border/40 bg-card/40 hover:border-[#2A313A] hover:bg-[#21262D]"
                             )}
                           >
                             <div className="flex items-start gap-3">
                               <div className={cn(
                                 "size-8 rounded-lg flex items-center justify-center shrink-0",
-                                isSelected ? cn(profile.bg, "border", profile.border) : "bg-white/6"
+                                isSelected ? cn(profile.bg, "border", profile.border) : "bg-[#1A1F26]"
                               )}>
                                 <Icon className={cn("size-4", isSelected ? profile.accent : "text-muted-foreground")} />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <span className={cn("text-xs font-semibold", isSelected ? "text-white" : "text-muted-foreground")}>
+                                  <span className={cn("text-xs font-semibold", isSelected ? "text-[#E6EAF0]" : "text-muted-foreground")}>
                                     {profile.name}
                                   </span>
                                   <Badge variant="outline" className={cn("text-[8px] h-3.5 px-1 capitalize", RISK_BADGE[profile.riskLevel])}>
@@ -1092,7 +1092,7 @@ export default function FocusMode() {
                         className="flex items-center justify-between w-full mb-3"
                         onClick={() => setExpandedToggles(v => !v)}
                       >
-                        <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-[#E6EAF0]">
                           <Settings className="size-3.5 text-muted-foreground" />
                           Actions
                           <span className="text-muted-foreground font-normal">({enabledCount}/{TOGGLE_DEFS.length} enabled)</span>
@@ -1112,18 +1112,18 @@ export default function FocusMode() {
                               data-testid={`toggle-${t.key}`}
                               className={cn(
                                 "flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all",
-                                enabled ? "bg-primary/8 border-primary/20" : "bg-white/2 border-white/6"
+                                enabled ? "bg-primary/8 border-primary/20" : "bg-[#1A1F26] border-[#2A313A]"
                               )}
                             >
                               <Icon className={cn("size-4 shrink-0", enabled ? "text-primary" : "text-muted-foreground")} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs font-medium text-white">{t.label}</span>
+                                  <span className="text-xs font-medium text-[#E6EAF0]">{t.label}</span>
                                   <Badge variant="outline" className={cn("text-[8px] h-3.5 px-1 capitalize", RISK_BADGE[t.riskLevel])}>
                                     {t.riskLevel}
                                   </Badge>
                                   {!t.realAction && (
-                                    <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground border-white/10">
+                                    <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground border-[#2A313A]">
                                       marker
                                     </Badge>
                                   )}
@@ -1151,7 +1151,7 @@ export default function FocusMode() {
                   <Card className="border-border/40 bg-card/40">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-[#E6EAF0]">
                           <Zap className="size-3.5 text-muted-foreground" />
                           Auto Triggers
                         </div>
@@ -1192,10 +1192,10 @@ export default function FocusMode() {
                               className={cn(
                                 "flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all",
                                 isComingSoon
-                                  ? "border-white/6 bg-white/2 opacity-50"
+                                  ? "border-[#2A313A] bg-[#1A1F26] opacity-50"
                                   : triggerEnabled[trigger.id]
                                     ? "border-primary/20 bg-primary/5"
-                                    : "border-white/6 bg-white/2"
+                                    : "border-[#2A313A] bg-[#1A1F26]"
                               )}
                             >
                               <TrigIcon className={cn(
@@ -1204,11 +1204,11 @@ export default function FocusMode() {
                               )} />
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span className={cn("text-xs font-medium", isComingSoon ? "text-muted-foreground/50" : "text-white")}>
+                                  <span className={cn("text-xs font-medium", isComingSoon ? "text-muted-foreground/50" : "text-[#E6EAF0]")}>
                                     {trigger.name}
                                   </span>
                                   {isComingSoon && (
-                                    <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground/60 border-white/10">
+                                    <Badge variant="outline" className="text-[8px] h-3.5 px-1 text-muted-foreground/60 border-[#2A313A]">
                                       Coming soon
                                     </Badge>
                                   )}
@@ -1244,7 +1244,7 @@ export default function FocusMode() {
                   <Card className="border-border/40 bg-card/40">
                     <CardContent className="p-4">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-white">
+                        <div className="flex items-center gap-2 text-xs font-semibold text-[#E6EAF0]">
                           <Timer className="size-3.5 text-muted-foreground" />Session Duration
                         </div>
                         <div className="flex gap-1.5">
@@ -1257,7 +1257,7 @@ export default function FocusMode() {
                                 "px-2.5 py-1 rounded text-[11px] border transition-all",
                                 durationMinutes === m
                                   ? "bg-primary/15 text-primary border-primary/30"
-                                  : "bg-white/4 border-white/10 text-muted-foreground hover:text-white"
+                                  : "bg-[#21262D] border-[#2A313A] text-muted-foreground hover:text-[#E6EAF0]"
                               )}
                             >
                               {m >= 60 ? `${m / 60}h` : `${m}m`}
@@ -1273,7 +1273,7 @@ export default function FocusMode() {
                       />
                       <div className="flex justify-between text-[10px] text-muted-foreground">
                         <span>15m</span>
-                        <span className="text-white font-medium font-mono">
+                        <span className="text-[#E6EAF0] font-medium font-mono">
                           {Math.floor(durationMinutes / 60) > 0 ? `${Math.floor(durationMinutes / 60)}h ` : ""}
                           {durationMinutes % 60 > 0 ? `${durationMinutes % 60}m` : ""}
                         </span>
@@ -1296,7 +1296,7 @@ export default function FocusMode() {
                         data-testid="button-activate"
                       >
                         <motion.div
-                          className="absolute inset-0 bg-white/5 -translate-x-full"
+                          className="absolute inset-0 bg-[#21262D] -translate-x-full"
                           whileHover={{ translateX: "200%", transition: { duration: 0.5, ease: "linear" } }}
                         />
                         {isProcessing
@@ -1308,7 +1308,7 @@ export default function FocusMode() {
                       onClick={() => setPhase(phase === "history" ? "config" : "history")}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className="px-4 rounded-xl border border-white/10 bg-white/3 hover:bg-white/6 text-muted-foreground hover:text-white transition-colors"
+                      className="px-4 rounded-xl border border-[#2A313A] bg-[#1A1F26] hover:bg-[#1A1F26] text-muted-foreground hover:text-[#E6EAF0] transition-colors"
                       data-testid="button-history"
                     >
                       <History className="size-4" />
@@ -1334,12 +1334,12 @@ export default function FocusMode() {
               <Card className="border-border/40">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#E6EAF0]">
                       <History className="size-4 text-muted-foreground" />Session History
                     </div>
                     <button
                       onClick={() => setPhase("config")}
-                      className="text-xs text-muted-foreground hover:text-white transition-colors px-2 py-1 rounded hover:bg-white/5"
+                      className="text-xs text-muted-foreground hover:text-[#E6EAF0] transition-colors px-2 py-1 rounded hover:bg-[#21262D]"
                     >
                       Close
                     </button>
@@ -1364,12 +1364,12 @@ export default function FocusMode() {
                             initial={{ opacity: 0, x: -8 }}
                             animate={{ opacity: 1, x: 0 }}
                             transition={{ delay: i * 0.04 }}
-                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-white/3 border border-white/6 text-xs"
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#1A1F26] border border-[#2A313A] text-xs"
                           >
                             <Icon className={cn("size-3.5 shrink-0", profile?.accent ?? "text-muted-foreground")} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="text-white font-medium">{profile?.name ?? entry.profile_id}</span>
+                                <span className="text-[#E6EAF0] font-medium">{profile?.name ?? entry.profile_id}</span>
                                 <Badge variant="outline" className={cn("text-[8px] h-3.5 px-1",
                                   isReverted ? "text-emerald-400 border-emerald-500/20" :
                                   isActive ? "text-blue-400 border-blue-500/20" :
@@ -1406,16 +1406,16 @@ export default function FocusMode() {
           <div className="flex items-start gap-3 px-4 py-3 rounded-xl border border-emerald-500/15 bg-emerald-500/4 text-xs">
             <Shield className="size-4 text-emerald-400 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <span className="font-semibold text-white">Safety guarantees</span>
+              <span className="font-semibold text-[#E6EAF0]">Safety guarantees</span>
               <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-muted-foreground">
                 <span>No critical system processes killed</span>
-                <span className="text-white/20">·</span>
+                <span className="text-[#6B7380]/50">·</span>
                 <span>All registry changes fully reverted on exit</span>
-                <span className="text-white/20">·</span>
+                <span className="text-[#6B7380]/50">·</span>
                 <span>Power plan restored on stop</span>
-                <span className="text-white/20">·</span>
+                <span className="text-[#6B7380]/50">·</span>
                 <span>
-                  <kbd className="px-1.5 py-0.5 bg-white/10 rounded text-[10px] font-mono">Ctrl+Shift+Esc</kbd>
+                  <kbd className="px-1.5 py-0.5 bg-[#2A313A] rounded text-[10px] font-mono">Ctrl+Shift+Esc</kbd>
                   {" "}always works even with input lockdown
                 </span>
               </div>

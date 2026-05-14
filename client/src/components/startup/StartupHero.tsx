@@ -38,7 +38,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
       {/* Title row */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold text-[#E6EAF0] flex items-center gap-2.5">
             <Activity className="size-6 text-primary" />
             Startup Manager
           </h1>
@@ -57,7 +57,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
           {hasScan && (
             <Badge
               variant="outline"
-              className="border-[#2A313A]0 text-white/70"
+              className="border-[#2A313A] text-[#E6EAF0]"
               style={{ color, borderColor: `${color}40`, backgroundColor: `${color}10` }}
             >
               {label} ({score})
@@ -75,11 +75,11 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
           transition={{ duration: 0.4, delay: 0.15 }}
         >
           {[
-            { label: "Enabled", value: enabledCount, color: "text-white" },
+            { label: "Enabled", value: enabledCount, color: "text-[#E6EAF0]" },
             { label: "Disabled", value: disabledCount, color: "text-muted-foreground/60" },
             { label: "Broken", value: brokenCount, color: brokenCount > 0 ? "text-red-400" : "text-muted-foreground/40" },
           ].map(s => (
-            <div key={s.label} className="rounded-lg bg-white/[0.02] border border-white/[0.05] px-3 py-2 text-center">
+            <div key={s.label} className="rounded-lg bg-[#1A1F26] border border-[#2A313A] px-3 py-2 text-center">
               <p className={cn("text-lg font-bold tabular-nums", s.color)}>{s.value}</p>
               <p className="text-[10px] text-muted-foreground/50">{s.label}</p>
             </div>
@@ -96,7 +96,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
             "h-10 px-5 text-sm font-semibold rounded-xl transition-all",
             isScanning
               ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-              : "bg-primary hover:bg-primary/90 text-white"
+              : "bg-primary hover:bg-primary/90 text-[#E6EAF0]"
           )}
         >
           {isScanning ? (
@@ -115,7 +115,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
         {hasScan && recs.length > 0 && (
           <Button
             onClick={onOptimize}
-            className="h-10 px-5 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white"
+            className="h-10 px-5 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[#E6EAF0]"
           >
             <Zap className="size-4 mr-1.5" />
             Optimize ({recs.length} recommendations)
@@ -126,7 +126,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
           <Button
             variant="ghost"
             onClick={onReview}
-            className="h-10 px-4 text-sm rounded-xl text-white/70 hover:text-white hover:bg-[#21262D]"
+            className="h-10 px-4 text-sm rounded-xl text-[#E6EAF0] hover:text-[#E6EAF0] hover:bg-[#21262D]"
           >
             <ListFilter className="size-4 mr-1.5" />
             Review Apps

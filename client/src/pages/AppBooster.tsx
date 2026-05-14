@@ -240,14 +240,14 @@ function getIsElectron(): boolean {
 const CATEGORY_META: Record<string, { label: string; icon: React.ComponentType<{ className?: string }>; color: string }> = {
   cpu:     { label: "CPU",     icon: Cpu,       color: "text-red-400" },
   gpu:     { label: "GPU",     icon: Monitor,   color: "text-yellow-400" },
-  system:  { label: "System",  icon: Settings2, color: "text-violet-400" },
+  system:  { label: "System",  icon: Settings2, color: "text-[#00D4FF]" },
   network: { label: "Network", icon: Wifi,      color: "text-cyan-400" },
 };
 
 const CATEGORY_ACCENT: Record<string, { hex: string; glow: string; border: string; bg: string }> = {
   cpu:     { hex: "#ef4444", glow: "rgba(239,68,68,0.3)",   border: "rgba(239,68,68,0.25)",   bg: "rgba(239,68,68,0.06)"   },
   gpu:     { hex: "#f59e0b", glow: "rgba(245,158,11,0.3)",  border: "rgba(245,158,11,0.25)",  bg: "rgba(245,158,11,0.06)"  },
-  system:  { hex: "#8b5cf6", glow: "rgba(139,92,246,0.3)",  border: "rgba(139,92,246,0.25)",  bg: "rgba(139,92,246,0.06)"  },
+  system:  { hex: "#00D4FF", glow: "rgba(139,92,246,0.3)",  border: "rgba(139,92,246,0.25)",  bg: "rgba(139,92,246,0.06)"  },
   network: { hex: "#06b6d4", glow: "rgba(6,182,212,0.3)",   border: "rgba(6,182,212,0.25)",   bg: "rgba(6,182,212,0.06)"   },
 };
 
@@ -307,7 +307,7 @@ function genreGradient(genre: string): string {
   if (genre === "competitive" || genre === "battle-royale") return "from-red-600 to-orange-600";
   if (genre === "open-world")  return "from-emerald-600 to-teal-600";
   if (genre === "simulation")  return "from-blue-600 to-indigo-600";
-  if (genre === "custom")      return "from-violet-600 to-purple-600";
+  if (genre === "custom")      return "from-[#00D4FF] to-[#33E0FF]";
   return "from-primary to-cyan-600";
 }
 
@@ -315,8 +315,8 @@ function genreHex(genre: string): string {
   if (genre === "competitive" || genre === "battle-royale") return "#ef4444";
   if (genre === "open-world")  return "#10b981";
   if (genre === "simulation")  return "#3b82f6";
-  if (genre === "custom")      return "#8b5cf6";
-  return "#8b5cf6";
+  if (genre === "custom")      return "#00D4FF";
+  return "#00D4FF";
 }
 
 function nameAbbr(name: string): string {
@@ -454,7 +454,7 @@ function AppliedRing({ applied, total, color = "#22c55e", size = 52 }: { applied
     <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
       <ArcGauge pct={pct} color={color} size={size} strokeWidth={4} />
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-[10px] font-bold text-white tabular-nums">{applied}<span className="text-white/30">/{total}</span></span>
+        <span className="text-[10px] font-bold text-[#E6EAF0] tabular-nums">{applied}<span className="text-[#6B7380]">/{total}</span></span>
       </div>
     </div>
   );
@@ -509,7 +509,7 @@ function GameLogo({
   }
   return (
     <div className={cn(
-      "shrink-0 flex items-center justify-center text-white font-bold shadow-lg bg-gradient-to-br ring-1 ring-white/10",
+      "shrink-0 flex items-center justify-center text-[#E6EAF0] font-bold shadow-lg bg-gradient-to-br ring-1 ring-white/10",
       dim, genreGradient(genre), size === "lg" ? "text-xl" : "text-xs"
     )}>
       {nameAbbr(name)}
@@ -532,14 +532,14 @@ function StatTile({
     <motion.div
       whileHover={{ y: -3, scale: 1.01 }}
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-2xl border border-white/[0.08] p-4 flex items-center gap-3"
+      className="relative overflow-hidden rounded-2xl border border-[#2A313A] p-4 flex items-center gap-3"
       style={{
         background: "linear-gradient(135deg,rgba(255,255,255,0.06) 0%,rgba(255,255,255,0.02) 100%)",
         backdropFilter: "blur(16px)",
       }}
     >
       {/* Top gradient line */}
-      <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: `linear-gradient(90deg,transparent,${gauge?.hex ?? "#8b5cf6"}60,transparent)` }} />
+      <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: `linear-gradient(90deg,transparent,${gauge?.hex ?? "#00D4FF"}60,transparent)` }} />
 
       {gauge ? (
         <div className="shrink-0">
@@ -561,14 +561,14 @@ function StatTile({
             {value}
           </p>
         )}
-        <p className="text-xs text-white/45 mt-1 truncate font-medium">{label}</p>
-        {sub && <p className="text-[10px] text-white/25 mt-0.5">{sub}</p>}
+        <p className="text-xs text-[#A0A8B3] mt-1 truncate font-medium">{label}</p>
+        {sub && <p className="text-[10px] text-[#6B7380] mt-0.5">{sub}</p>}
       </div>
 
       {/* Subtle corner glow */}
       <div
         className="absolute -bottom-4 -right-4 w-16 h-16 rounded-full opacity-20 blur-xl"
-        style={{ backgroundColor: gauge?.hex ?? "#8b5cf6" }}
+        style={{ backgroundColor: gauge?.hex ?? "#00D4FF" }}
       />
     </motion.div>
   );
@@ -589,8 +589,8 @@ function GameListItem({
         className={cn(
           "w-full text-left px-3 py-2.5 rounded-xl transition-all duration-200 border overflow-hidden relative",
           selected
-            ? "border-white/12"
-            : "border-transparent hover:border-white/07 hover:bg-white/[0.03]"
+            ? "border-[#2A313A]2"
+            : "border-transparent hover:border-[#2A313A]7 hover:bg-[#1A1F26]"
         )}
         style={selected ? {
           background: `linear-gradient(135deg, ${accent}12 0%, rgba(255,255,255,0.04) 100%)`,
@@ -622,7 +622,7 @@ function GameListItem({
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               {game.kind === "manual" && (
-                <span className="text-[8px] font-bold px-1 py-px rounded-sm border bg-violet-500/15 text-violet-400 border-violet-500/25 uppercase tracking-wide">
+                <span className="text-[8px] font-bold px-1 py-px rounded-sm border bg-[#00D4FF] text-[#00D4FF] border-[#00D4FF] uppercase tracking-wide">
                   Manual
                 </span>
               )}
@@ -696,7 +696,7 @@ function CategorySectionHeader({ category, actionCount, appliedCount }: { catego
         </span>
       )}
       {appliedCount === 0 && (
-        <span className="text-[9px] text-white/25 font-mono tabular-nums">{actionCount}</span>
+        <span className="text-[9px] text-[#6B7380] font-mono tabular-nums">{actionCount}</span>
       )}
     </div>
   );
@@ -782,11 +782,11 @@ function ActionRow({ action, result }: { action: ProfileAction; result?: ActionR
           </div>
 
           {/* Description */}
-          <p className="text-xs text-white/45 leading-relaxed mb-2">{action.description}</p>
+          <p className="text-xs text-[#A0A8B3] leading-relaxed mb-2">{action.description}</p>
 
           {/* Impact bar */}
           <div className="flex items-center gap-2">
-            <span className="text-[9px] text-white/25 uppercase tracking-wider shrink-0">Impact</span>
+            <span className="text-[9px] text-[#6B7380] uppercase tracking-wider shrink-0">Impact</span>
             <div className="flex-1 max-w-[120px]">
               <ImpactBar value={impactPct} color={impactColor} />
             </div>
@@ -822,14 +822,14 @@ function OptimizationMatrix({ actions, resultMap }: { actions: ProfileAction[]; 
   if (catData.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-white/[0.07] p-4 overflow-hidden relative"
+    <div className="rounded-2xl border border-[#2A313A] p-4 overflow-hidden relative"
       style={{ background: "linear-gradient(135deg,rgba(255,255,255,0.04) 0%,rgba(0,0,0,0.3) 100%)" }}>
       {/* Top accent */}
       <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg,transparent,rgba(139,92,246,0.6),transparent)" }} />
 
       <div className="flex items-center gap-2 mb-4">
         <Activity className="w-3.5 h-3.5 text-primary" />
-        <span className="text-[10px] font-bold uppercase tracking-widest text-white/40">Optimization Coverage</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest text-[#6B7380]">Optimization Coverage</span>
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -846,7 +846,7 @@ function OptimizationMatrix({ actions, resultMap }: { actions: ProfileAction[]; 
               </div>
               <div className="text-center">
                 <p className="text-[10px] font-bold" style={{ color: accent.hex }}>{meta.label}</p>
-                <p className="text-[9px] text-white/30 tabular-nums">{applied}/{total} applied</p>
+                <p className="text-[9px] text-[#6B7380] tabular-nums">{applied}/{total} applied</p>
               </div>
             </div>
           );
@@ -885,27 +885,27 @@ function ConfirmModal({
               {item.kind === "manual" ? <Trash2 className="w-4 h-4 text-red-400" /> : <EyeOff className="w-4 h-4 text-red-400" />}
             </div>
             <div>
-              <p className="text-sm font-bold text-white">
+              <p className="text-sm font-bold text-[#E6EAF0]">
                 {item.kind === "manual" ? "Remove Game" : "Hide Game"}
               </p>
-              <p className="text-xs text-white/40 mt-0.5">
+              <p className="text-xs text-[#6B7380] mt-0.5">
                 {item.kind === "manual"
                   ? "This game will be permanently deleted from your library."
                   : "This game will be hidden. You can restore it from settings."}
               </p>
             </div>
           </div>
-          <div className="rounded-xl border border-white/8 bg-white/4 px-3 py-2.5 mb-5">
-            <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+          <div className="rounded-xl border border-[#2A313A] bg-[#21262D] px-3 py-2.5 mb-5">
+            <p className="text-sm font-semibold text-[#E6EAF0] truncate">{item.name}</p>
           </div>
           <div className="flex gap-2.5 justify-end">
             <Button variant="outline" size="sm" onClick={onCancel}
-              className="bg-white/5 border-white/10 hover:bg-white/10"
+              className="bg-[#21262D] border-[#2A313A] hover:bg-[#2A313A]"
               data-testid="button-confirm-cancel">
               Cancel
             </Button>
             <Button size="sm" onClick={onConfirm}
-              className="bg-red-500/80 hover:bg-red-500 text-white border-0"
+              className="bg-red-500/80 hover:bg-red-500 text-[#E6EAF0] border-0"
               data-testid="button-confirm-remove">
               {item.kind === "manual" ? <><Trash2 className="w-3.5 h-3.5 mr-1.5" />Remove</> : <><EyeOff className="w-3.5 h-3.5 mr-1.5" />Hide</>}
             </Button>
@@ -973,23 +973,23 @@ function ManualAddModal({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.94, y: 10 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-full max-w-md mx-4 rounded-2xl border border-white/[0.12] shadow-2xl"
+          className="relative w-full max-w-md mx-4 rounded-2xl border border-[#2A313A] shadow-2xl"
           style={{ background: "linear-gradient(135deg,rgba(255,255,255,0.1) 0%,rgba(255,255,255,0.05) 100%)", backdropFilter: "blur(32px)" }}
         >
           <div className="absolute top-0 inset-x-0 h-[1px] rounded-t-2xl" style={{ background: "linear-gradient(90deg,transparent,rgba(139,92,246,0.6),transparent)" }} />
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[#2A313A]">
             <div className="flex items-center gap-2.5">
               <div className="w-7 h-7 rounded-lg bg-primary/15 border border-primary/25 flex items-center justify-center">
                 <Plus className="w-3.5 h-3.5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-bold text-white">Add Game Manually</p>
-                <p className="text-[11px] text-white/35">Point to any game's executable file</p>
+                <p className="text-sm font-bold text-[#E6EAF0]">Add Game Manually</p>
+                <p className="text-[11px] text-[#6B7380]">Point to any game's executable file</p>
               </div>
             </div>
-            <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/10 transition-all" data-testid="button-close-manual-add">
+            <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-all" data-testid="button-close-manual-add">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -997,20 +997,20 @@ function ManualAddModal({
           {/* Body */}
           <div className="px-5 py-5 space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-white/50">Game Name <span className="text-red-400">*</span></label>
+              <label className="text-xs font-semibold text-[#A0A8B3]">Game Name <span className="text-red-400">*</span></label>
               <input type="text" value={gameName} onChange={(e) => setGameName(e.target.value)} placeholder="e.g. Cyberpunk 2077"
-                className="w-full rounded-xl border border-white/10 bg-white/5 text-sm text-white px-3 py-2.5 focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-all placeholder:text-white/20"
+                className="w-full rounded-xl border border-[#2A313A] bg-[#21262D] text-sm text-[#E6EAF0] px-3 py-2.5 focus:outline-none focus:border-primary/50 focus:bg-[#1A1F26] transition-all placeholder:text-[#6B7380]/50"
                 data-testid="input-manual-game-name" autoFocus />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-white/50">Game Executable {isElectron && <span className="text-red-400">*</span>}</label>
+              <label className="text-xs font-semibold text-[#A0A8B3]">Game Executable {isElectron && <span className="text-red-400">*</span>}</label>
               <div className="flex gap-2">
                 <input type="text" value={exePath} onChange={(e) => setExePath(e.target.value)}
                   placeholder={isElectron ? "Click Browse… to pick the .exe file" : "C:\\Games\\MyGame\\game.exe"}
-                  className="flex-1 min-w-0 rounded-xl border border-white/10 bg-white/5 text-xs text-white font-mono px-3 py-2.5 focus:outline-none focus:border-primary/50 transition-all placeholder:text-white/20 placeholder:font-sans"
+                  className="flex-1 min-w-0 rounded-xl border border-[#2A313A] bg-[#21262D] text-xs text-[#E6EAF0] font-mono px-3 py-2.5 focus:outline-none focus:border-primary/50 transition-all placeholder:text-[#6B7380]/50 placeholder:font-sans"
                   data-testid="input-manual-exe-path" />
-                <Button size="sm" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 shrink-0" onClick={handleBrowse} disabled={isBrowsing} data-testid="button-browse-executable">
+                <Button size="sm" variant="outline" className="bg-[#21262D] border-[#2A313A] hover:bg-[#2A313A] shrink-0" onClick={handleBrowse} disabled={isBrowsing} data-testid="button-browse-executable">
                   {isBrowsing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FolderOpen className="w-3.5 h-3.5" />}
                   <span className="ml-1.5">Browse…</span>
                 </Button>
@@ -1024,9 +1024,9 @@ function ManualAddModal({
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-white/50">Launcher <span className="text-white/25 font-normal">(optional)</span></label>
+              <label className="text-xs font-semibold text-[#A0A8B3]">Launcher <span className="text-[#6B7380] font-normal">(optional)</span></label>
               <select value={launcher} onChange={(e) => setLauncher(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 text-sm text-white px-3 py-2.5 focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer"
+                className="w-full rounded-xl border border-[#2A313A] bg-[#21262D] text-sm text-[#E6EAF0] px-3 py-2.5 focus:outline-none focus:border-primary/50 transition-all appearance-none cursor-pointer"
                 data-testid="select-manual-launcher" style={{ background: "rgba(255,255,255,0.05)" }}>
                 <option value="none" style={{ background: "#0d0d1a" }}>— None —</option>
                 {Object.entries(LAUNCHER_LABELS).map(([key, label]) => (
@@ -1036,15 +1036,15 @@ function ManualAddModal({
             </div>
 
             {gameName.trim().length >= 2 && (
-              <div className="rounded-xl border border-white/8 bg-white/3 px-3 py-3 flex items-center gap-3">
-                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-white text-[11px] font-bold bg-gradient-to-br flex-shrink-0", genreGradient("custom"))}>
+              <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] px-3 py-3 flex items-center gap-3">
+                <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center text-[#E6EAF0] text-[11px] font-bold bg-gradient-to-br flex-shrink-0", genreGradient("custom"))}>
                   {nameAbbr(gameName.trim())}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-white truncate">{gameName.trim()}</p>
-                  <p className="text-[10px] text-white/35 truncate font-mono mt-0.5">{exeName || "No executable selected"}</p>
+                  <p className="text-sm font-bold text-[#E6EAF0] truncate">{gameName.trim()}</p>
+                  <p className="text-[10px] text-[#6B7380] truncate font-mono mt-0.5">{exeName || "No executable selected"}</p>
                 </div>
-                <span className="text-[8px] font-bold px-1 py-px rounded border bg-violet-500/15 text-violet-400 border-violet-500/25 uppercase tracking-wide shrink-0">Manual</span>
+                <span className="text-[8px] font-bold px-1 py-px rounded border bg-[#00D4FF] text-[#00D4FF] border-[#00D4FF] uppercase tracking-wide shrink-0">Manual</span>
               </div>
             )}
 
@@ -1061,8 +1061,8 @@ function ManualAddModal({
 
           {/* Footer */}
           <div className="px-5 pb-5 flex gap-2.5 justify-end">
-            <Button variant="outline" size="sm" onClick={onClose} className="bg-white/5 border-white/10 hover:bg-white/10">Cancel</Button>
-            <Button size="sm" onClick={handleSubmit} disabled={!canAdd} className="bg-primary hover:bg-primary/90 text-white" data-testid="button-confirm-manual-add">
+            <Button variant="outline" size="sm" onClick={onClose} className="bg-[#21262D] border-[#2A313A] hover:bg-[#2A313A]">Cancel</Button>
+            <Button size="sm" onClick={handleSubmit} disabled={!canAdd} className="bg-primary hover:bg-primary/90 text-[#E6EAF0]" data-testid="button-confirm-manual-add">
               <Plus className="w-3.5 h-3.5 mr-1.5" />Add Game
             </Button>
           </div>
@@ -1489,7 +1489,7 @@ export default function AppBooster() {
 
   const hiddenCount = hiddenSlugs.size;
   const cpuLoad     = liveTel ? liveTel.cpu.load : 0;
-  const genreColor  = gameDetail ? genreHex(gameDetail.genre) : "#8b5cf6";
+  const genreColor  = gameDetail ? genreHex(gameDetail.genre) : "#00D4FF";
 
   // ── render ─────────────────────────────────────────────────────────────────
 
@@ -1515,17 +1515,17 @@ export default function AppBooster() {
                   Per-Game
                 </span>
               </div>
-              <p className="text-sm text-white/35 font-medium ml-12">Real system execution — no fake state</p>
+              <p className="text-sm text-[#6B7380] font-medium ml-12">Real system execution — no fake state</p>
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handleScan} disabled={isScanning || loadingGames}
-                className="bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/15 transition-all"
+                className="bg-[#21262D] border-[#2A313A] hover:bg-[#1A1F26] hover:border-[#2A313A]5 transition-all"
                 data-testid="button-scan-games">
                 <RefreshCw className={cn("w-4 h-4 mr-2", isScanning && "animate-spin")} />
                 {isScanning ? "Scanning…" : "Scan"}
               </Button>
               <Button variant="outline" size="sm" onClick={() => setShowHistory(v => !v)}
-                className={cn("bg-white/5 border-white/10 hover:bg-white/8 transition-all", showHistory && "border-primary/40 bg-primary/10 text-primary")}
+                className={cn("bg-[#21262D] border-[#2A313A] hover:bg-[#1A1F26] transition-all", showHistory && "border-primary/40 bg-primary/10 text-primary")}
                 data-testid="button-toggle-history">
                 <History className="w-4 h-4 mr-2" />History
               </Button>
@@ -1562,12 +1562,12 @@ export default function AppBooster() {
         {/* ── Search bar ────────────────────────────────────────────────── */}
         <Reveal delay={0.07}>
           <div className="relative max-w-sm">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/25" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7380]" />
             <Input
               placeholder="Search games…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white/[0.04] border-white/[0.08] h-10 focus:border-primary/40 focus:bg-white/[0.06] transition-all rounded-xl text-sm"
+              className="pl-10 bg-[#21262D] border-[#2A313A] h-10 focus:border-primary/40 focus:bg-[#21262D] transition-all rounded-xl text-sm"
               data-testid="input-search-games"
             />
           </div>
@@ -1596,17 +1596,17 @@ export default function AppBooster() {
 
             {/* ── Game Library Sidebar ───────────────────────────────────── */}
             <div
-              className="rounded-2xl border border-white/[0.07] overflow-hidden flex flex-col"
+              className="rounded-2xl border border-[#2A313A] overflow-hidden flex flex-col"
               style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.04) 0%,rgba(0,0,0,0.35) 100%)", backdropFilter: "blur(20px)" }}
             >
               {/* Tab switcher */}
-              <div className="px-3 pt-3 pb-2.5 border-b border-white/[0.05]">
+              <div className="px-3 pt-3 pb-2.5 border-b border-[#2A313A]">
                 <div className="flex items-center gap-0.5 p-0.5 rounded-xl" style={{ background: "rgba(255,255,255,0.04)" }}>
                   <button
                     onClick={() => setShowCatalog(false)}
                     className={cn(
                       "flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5",
-                      !showCatalog ? "text-white" : "text-white/35 hover:text-white/55"
+                      !showCatalog ? "text-[#E6EAF0]" : "text-[#6B7380] hover:text-[#A0A8B3]"
                     )}
                     style={!showCatalog ? { background: "rgba(255,255,255,0.09)", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" } : undefined}
                     data-testid="tab-installed-games"
@@ -1624,7 +1624,7 @@ export default function AppBooster() {
                     onClick={() => setShowCatalog(true)}
                     className={cn(
                       "flex-1 text-[11px] font-bold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5",
-                      showCatalog ? "text-white" : "text-white/35 hover:text-white/55"
+                      showCatalog ? "text-[#E6EAF0]" : "text-[#6B7380] hover:text-[#A0A8B3]"
                     )}
                     style={showCatalog ? { background: "rgba(255,255,255,0.09)", boxShadow: "0 1px 2px rgba(0,0,0,0.3)" } : undefined}
                     data-testid="tab-catalog-games"
@@ -1642,21 +1642,21 @@ export default function AppBooster() {
               <div className="flex-1 overflow-y-auto max-h-[580px] px-2 py-2">
                 {loadingGames ? (
                   <div className="flex flex-col items-center justify-center py-16 gap-3">
-                    <Loader2 className="w-5 h-5 animate-spin text-white/25" />
-                    <p className="text-xs text-white/30">Loading game library…</p>
+                    <Loader2 className="w-5 h-5 animate-spin text-[#6B7380]" />
+                    <p className="text-xs text-[#6B7380]">Loading game library…</p>
                   </div>
                 ) : loadError && games.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-12 text-center px-4 gap-2">
                     <AlertTriangle className="w-6 h-6 text-amber-400/50 mb-1" />
-                    <p className="text-sm font-semibold text-white/40">Could not load library</p>
-                    <p className="text-[11px] text-white/25 leading-relaxed">{loadError}</p>
+                    <p className="text-sm font-semibold text-[#6B7380]">Could not load library</p>
+                    <p className="text-[11px] text-[#6B7380] leading-relaxed">{loadError}</p>
                     <button onClick={() => loadGames()} className="text-[11px] text-primary/70 hover:text-primary transition-colors mt-1">Retry</button>
                   </div>
                 ) : showCatalog ? (
                   catalogFiltered.length === 0 ? (
                     <div className="text-center py-12">
-                      <Search className="w-8 h-8 mx-auto mb-2 text-white/10" />
-                      <p className="text-sm text-white/30">No games match "{searchQuery}"</p>
+                      <Search className="w-8 h-8 mx-auto mb-2 text-[#E6EAF0]/10" />
+                      <p className="text-sm text-[#6B7380]">No games match "{searchQuery}"</p>
                     </div>
                   ) : (
                     <motion.div className="space-y-0.5" variants={staggerContainer} initial="initial" animate="animate">
@@ -1673,17 +1673,17 @@ export default function AppBooster() {
                 ) : totalInstalled === 0 && !isScanning ? (
                   <div className="flex flex-col items-center justify-center py-10 text-center px-4 gap-4">
                     <div className="w-14 h-14 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.07)" }}>
-                      <Gamepad2 className="w-7 h-7 text-white/15" />
+                      <Gamepad2 className="w-7 h-7 text-[#E6EAF0]/15" />
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-white/40">No installs detected</p>
-                      <p className="text-[11px] text-white/20 mt-1 leading-relaxed">Scan to detect Steam, Epic, and Xbox games.</p>
+                      <p className="text-sm font-bold text-[#6B7380]">No installs detected</p>
+                      <p className="text-[11px] text-[#6B7380]/50 mt-1 leading-relaxed">Scan to detect Steam, Epic, and Xbox games.</p>
                     </div>
                     <div className="flex flex-col gap-2 w-full">
-                      <Button size="sm" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/8 text-xs" onClick={handleScan} disabled={isScanning} data-testid="button-scan-empty-state">
+                      <Button size="sm" variant="outline" className="bg-[#21262D] border-[#2A313A] hover:bg-[#1A1F26] text-xs" onClick={handleScan} disabled={isScanning} data-testid="button-scan-empty-state">
                         <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Scan for Games
                       </Button>
-                      <Button size="sm" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/8 text-xs" onClick={() => setShowManualAdd(true)} data-testid="button-add-manual-empty-state">
+                      <Button size="sm" variant="outline" className="bg-[#21262D] border-[#2A313A] hover:bg-[#1A1F26] text-xs" onClick={() => setShowManualAdd(true)} data-testid="button-add-manual-empty-state">
                         <Plus className="w-3.5 h-3.5 mr-1.5" />Add Game Manually
                       </Button>
                       {hiddenCount > 0 && (
@@ -1695,8 +1695,8 @@ export default function AppBooster() {
                   </div>
                 ) : installedGames.length === 0 ? (
                   <div className="text-center py-12">
-                    <Search className="w-8 h-8 mx-auto mb-2 text-white/10" />
-                    <p className="text-sm text-white/30">No installed games match</p>
+                    <Search className="w-8 h-8 mx-auto mb-2 text-[#E6EAF0]/10" />
+                    <p className="text-sm text-[#6B7380]">No installed games match</p>
                   </div>
                 ) : (
                   <motion.div className="space-y-0.5" variants={staggerContainer} initial="initial" animate="animate">
@@ -1711,10 +1711,10 @@ export default function AppBooster() {
                       </motion.div>
                     ))}
                     {hiddenCount > 0 && (
-                      <div className="pt-2 border-t border-white/[0.04] mt-2">
+                      <div className="pt-2 border-t border-[#2A313A] mt-2">
                         <button
                           onClick={() => setShowHidden(v => !v)}
-                          className="w-full flex items-center justify-between px-2 py-1.5 text-[11px] text-white/25 hover:text-white/45 transition-colors"
+                          className="w-full flex items-center justify-between px-2 py-1.5 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
                           data-testid="button-toggle-hidden-games"
                         >
                           <span className="flex items-center gap-1.5"><EyeOff className="w-3 h-3" />{hiddenCount} hidden</span>
@@ -1724,7 +1724,7 @@ export default function AppBooster() {
                           <div className="mt-1 space-y-0.5 opacity-50">
                             {games.filter(g => g.detected && hiddenSlugs.has(g.slug)).map(g => (
                               <div key={g.slug} className="flex items-center justify-between px-3 py-1.5 rounded-lg">
-                                <span className="text-xs text-white/40 truncate">{g.name}</span>
+                                <span className="text-xs text-[#6B7380] truncate">{g.name}</span>
                                 <button onClick={() => { const s = new Set(hiddenSlugs); s.delete(g.slug); setHiddenSlugs(s); writeHiddenSlugs(s); }}
                                   className="text-[10px] text-primary/60 hover:text-primary ml-2 shrink-0">Restore</button>
                               </div>
@@ -1738,10 +1738,10 @@ export default function AppBooster() {
               </div>
 
               {/* Add game footer */}
-              <div className="px-3 pb-3 pt-2 border-t border-white/[0.05]">
+              <div className="px-3 pb-3 pt-2 border-t border-[#2A313A]">
                 <button
                   onClick={() => setShowManualAdd(true)}
-                  className="w-full flex items-center justify-center gap-2 text-[11px] font-semibold text-white/30 hover:text-white/60 transition-all py-2 rounded-xl hover:bg-white/[0.04] border border-transparent hover:border-white/[0.06]"
+                  className="w-full flex items-center justify-center gap-2 text-[11px] font-semibold text-[#6B7380] hover:text-[#A0A8B3] transition-all py-2 rounded-xl hover:bg-[#21262D] border border-transparent hover:border-[#2A313A]"
                   data-testid="button-open-manual-add"
                 >
                   <Plus className="w-3.5 h-3.5" />Add Game Manually
@@ -1757,12 +1757,12 @@ export default function AppBooster() {
                   <motion.div
                     key="no-game"
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="flex flex-col items-center justify-center min-h-[380px] gap-5 text-center rounded-2xl border border-white/[0.06]"
+                    className="flex flex-col items-center justify-center min-h-[380px] gap-5 text-center rounded-2xl border border-[#2A313A]"
                     style={{ background: "linear-gradient(135deg,rgba(255,255,255,0.03) 0%,rgba(0,0,0,0.25) 100%)" }}
                   >
                     {/* Animated background SVG */}
                     <svg className="absolute w-64 h-64 opacity-[0.04] pointer-events-none" viewBox="0 0 256 256" aria-hidden>
-                      <circle cx="128" cy="128" r="100" fill="none" stroke="#8b5cf6" strokeWidth="1">
+                      <circle cx="128" cy="128" r="100" fill="none" stroke="#00D4FF" strokeWidth="1">
                         <animateTransform attributeName="transform" type="rotate" values="0 128 128;360 128 128" dur="20s" repeatCount="indefinite" />
                       </circle>
                       <circle cx="128" cy="128" r="70" fill="none" stroke="#06b6d4" strokeWidth="0.5" strokeDasharray="4 8">
@@ -1774,17 +1774,17 @@ export default function AppBooster() {
                       <Target className="w-9 h-9 text-primary/50" />
                     </div>
                     <div>
-                      <p className="text-base font-bold text-white/35">Select a game to view its profile</p>
-                      <p className="text-sm text-white/20 mt-1">
+                      <p className="text-base font-bold text-[#6B7380]">Select a game to view its profile</p>
+                      <p className="text-sm text-[#6B7380]/50 mt-1">
                         {totalInstalled > 0 ? "Choose from your installed games to configure optimizations." : "Scan for games or add one manually to get started."}
                       </p>
                     </div>
                     {totalInstalled === 0 && (
                       <div className="flex gap-2 mt-1">
-                        <Button size="sm" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/8 text-xs" onClick={handleScan} disabled={isScanning}>
+                        <Button size="sm" variant="outline" className="bg-[#21262D] border-[#2A313A] hover:bg-[#1A1F26] text-xs" onClick={handleScan} disabled={isScanning}>
                           <RefreshCw className="w-3.5 h-3.5 mr-1.5" />Scan
                         </Button>
-                        <Button size="sm" variant="outline" className="bg-white/5 border-white/10 hover:bg-white/8 text-xs" onClick={() => setShowManualAdd(true)}>
+                        <Button size="sm" variant="outline" className="bg-[#21262D] border-[#2A313A] hover:bg-[#1A1F26] text-xs" onClick={() => setShowManualAdd(true)}>
                           <Plus className="w-3.5 h-3.5 mr-1.5" />Add Game
                         </Button>
                       </div>
@@ -1847,10 +1847,10 @@ export default function AppBooster() {
                                 {gameDetail.name}
                               </h2>
                               <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                <span className="text-sm font-medium text-white/45">{gameDetail.publisher}</span>
+                                <span className="text-sm font-medium text-[#A0A8B3]">{gameDetail.publisher}</span>
                                 {gameDetail.launcher && <LauncherBadge launcher={gameDetail.launcher} />}
                                 {isManualSelected && (
-                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md border bg-violet-500/15 text-violet-400 border-violet-500/25 uppercase tracking-wide">Manual</span>
+                                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-md border bg-[#00D4FF] text-[#00D4FF] border-[#00D4FF] uppercase tracking-wide">Manual</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-2 mt-2.5 flex-wrap">
@@ -1867,7 +1867,7 @@ export default function AppBooster() {
                                   </span>
                                 )}
                                 {!isElectron && (
-                                  <span className="text-[11px] font-medium px-2.5 py-1 rounded-full border bg-white/5 text-white/35 border-white/10">Web Mode</span>
+                                  <span className="text-[11px] font-medium px-2.5 py-1 rounded-full border bg-[#21262D] text-[#6B7380] border-[#2A313A]">Web Mode</span>
                                 )}
                               </div>
                             </div>
@@ -1881,7 +1881,7 @@ export default function AppBooster() {
                               disabled={!canApply || isApplying || isReverting}
                               title={!hasExePath ? "Missing executable path" : undefined}
                               className={cn(
-                                "text-white font-bold h-10 px-5 rounded-xl shadow-lg",
+                                "text-[#E6EAF0] font-bold h-10 px-5 rounded-xl shadow-lg",
                                 hasExePath
                                   ? "hover:opacity-90"
                                   : "opacity-50 cursor-not-allowed"
@@ -1906,7 +1906,7 @@ export default function AppBooster() {
                                 variant="outline" size="sm"
                                 onClick={handleRevert}
                                 disabled={isReverting || isApplying}
-                                className="bg-white/5 border-white/10 hover:bg-white/8 hover:border-white/15 h-9 rounded-xl"
+                                className="bg-[#21262D] border-[#2A313A] hover:bg-[#1A1F26] hover:border-[#2A313A]5 h-9 rounded-xl"
                                 data-testid="button-revert-profile"
                               >
                                 {isReverting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <RotateCcw className="w-4 h-4 mr-2" />}
@@ -1930,7 +1930,7 @@ export default function AppBooster() {
                                   : currentStatus === "staged"  ? "bg-cyan-500/10 border-cyan-500/20 text-cyan-300"
                                   : currentStatus === "partial" ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
                                   : currentStatus === "failed"  ? "bg-red-500/10 border-red-500/20 text-red-300"
-                                  : "bg-white/5 border-white/10 text-white/40"
+                                  : "bg-[#21262D] border-[#2A313A] text-[#6B7380]"
                               )}
                             >
                               {currentStatus === "staged"   && <><Info className="w-4 h-4 shrink-0" />Profile staged — launch SwitchControl on Windows to execute.</>}
@@ -1945,7 +1945,7 @@ export default function AppBooster() {
                         {/* Exe path */}
                         {(gameDetail.installPath || (isManualSelected && manualGames.find(g => g.id === selectedSlug)?.exePath)) && (
                           <div className="mt-3">
-                            <code className="text-[11px] text-white/25 bg-black/30 border border-white/[0.05] px-3 py-1.5 rounded-lg block truncate font-mono">
+                            <code className="text-[11px] text-[#6B7380] bg-[#14181D]/80 border border-[#2A313A] px-3 py-1.5 rounded-lg block truncate font-mono">
                               {isManualSelected
                                 ? manualGames.find(g => g.id === selectedSlug)?.exePath
                                 : `${gameDetail.installPath}\\${gameDetail.executable}`}
@@ -1985,8 +1985,8 @@ export default function AppBooster() {
                           <Target className="w-4 h-4" style={{ color: genreColor }} />
                         </div>
                         <div>
-                          <p className="font-bold text-sm text-white">{gameDetail.profile.name} Profile</p>
-                          <p className="text-xs text-white/40 mt-1 leading-relaxed">{gameDetail.profile.description}</p>
+                          <p className="font-bold text-sm text-[#E6EAF0]">{gameDetail.profile.name} Profile</p>
+                          <p className="text-xs text-[#6B7380] mt-1 leading-relaxed">{gameDetail.profile.description}</p>
                         </div>
                       </div>
                     )}
@@ -1998,13 +1998,13 @@ export default function AppBooster() {
                     >
                       {/* Header */}
                       <button
-                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.02] transition-colors"
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#1A1F26] transition-colors"
                         onClick={() => setExpandActions(v => !v)}
                         data-testid="button-toggle-actions"
                       >
                         <div className="flex items-center gap-2.5">
-                          <Settings2 className="w-3.5 h-3.5 text-white/30" />
-                          <span className="text-[11px] font-black uppercase tracking-widest text-white/50">
+                          <Settings2 className="w-3.5 h-3.5 text-[#6B7380]" />
+                          <span className="text-[11px] font-black uppercase tracking-widest text-[#A0A8B3]">
                             Optimization Actions
                           </span>
                           <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold tabular-nums"
@@ -2018,7 +2018,7 @@ export default function AppBooster() {
                             </span>
                           )}
                         </div>
-                        <div className="text-white/20 hover:text-white/50 transition-colors">
+                        <div className="text-[#6B7380]/50 hover:text-[#A0A8B3] transition-colors">
                           {expandActions ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                         </div>
                       </button>
@@ -2032,7 +2032,7 @@ export default function AppBooster() {
                             transition={{ duration: 0.25, ease: "easeInOut" }}
                             className="overflow-hidden"
                           >
-                            <div className="px-4 pb-5 border-t border-white/[0.05] pt-4 space-y-6">
+                            <div className="px-4 pb-5 border-t border-[#2A313A] pt-4 space-y-6">
                               {Object.entries(groupedActions).map(([category, catActions]) => {
                                 const catApplied = catActions.filter(a => resultMap[a.id]?.status === "success").length;
                                 return (
@@ -2066,7 +2066,7 @@ export default function AppBooster() {
                         <div className="px-5 pb-4">
                           <button
                             onClick={() => setExpandActions(true)}
-                            className="text-xs text-white/25 hover:text-white/50 transition-colors flex items-center gap-1.5"
+                            className="text-xs text-[#6B7380] hover:text-[#A0A8B3] transition-colors flex items-center gap-1.5"
                             data-testid="button-expand-actions"
                           >
                             <ChevronDown className="w-3.5 h-3.5" />
@@ -2097,19 +2097,19 @@ export default function AppBooster() {
                 style={{ background: "linear-gradient(180deg,rgba(255,255,255,0.04) 0%,rgba(0,0,0,0.35) 100%)", borderColor: "rgba(255,255,255,0.07)" }}
               >
                 <div className="absolute top-0 inset-x-0 h-[1px]" style={{ background: "linear-gradient(90deg,transparent,rgba(139,92,246,0.4),transparent)" }} />
-                <div className="px-5 py-4 border-b border-white/[0.05] flex items-center justify-between">
-                  <p className="text-[11px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                <div className="px-5 py-4 border-b border-[#2A313A] flex items-center justify-between">
+                  <p className="text-[11px] font-black uppercase tracking-widest text-[#6B7380] flex items-center gap-2">
                     <History className="w-3.5 h-3.5" />Operation History
                   </p>
-                  <button onClick={loadHistory} className="text-white/25 hover:text-white/50 transition-colors" title="Refresh history">
+                  <button onClick={loadHistory} className="text-[#6B7380] hover:text-[#A0A8B3] transition-colors" title="Refresh history">
                     <RefreshCw className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 <div className="px-4 py-4">
                   {!historyAvailable ? (
-                    <p className="text-sm text-white/25 py-4 text-center">History is not stored in local app mode.</p>
+                    <p className="text-sm text-[#6B7380] py-4 text-center">History is not stored in local app mode.</p>
                   ) : history.length === 0 ? (
-                    <p className="text-sm text-white/25 py-4 text-center">No history yet. Apply a profile to see results.</p>
+                    <p className="text-sm text-[#6B7380] py-4 text-center">No history yet. Apply a profile to see results.</p>
                   ) : (
                     <motion.div className="space-y-2" variants={staggerContainer} initial="initial" animate="animate">
                       {history.map((entry) => {
@@ -2121,7 +2121,7 @@ export default function AppBooster() {
                           <motion.div
                             key={entry.id}
                             variants={staggerItem}
-                            className="flex items-center justify-between py-3 px-4 rounded-xl border transition-colors hover:bg-white/[0.02]"
+                            className="flex items-center justify-between py-3 px-4 rounded-xl border transition-colors hover:bg-[#1A1F26]"
                             style={{ borderColor: "rgba(255,255,255,0.06)", background: "rgba(255,255,255,0.02)" }}
                             data-testid={`history-entry-${entry.id}`}
                           >
@@ -2141,14 +2141,14 @@ export default function AppBooster() {
                               </div>
                               <div>
                                 <p className="text-sm font-bold leading-tight">{entry.gameName}</p>
-                                <p className="text-xs text-white/30 mt-0.5 capitalize">
+                                <p className="text-xs text-[#6B7380] mt-0.5 capitalize">
                                   {entry.operation} — {entry.status}
                                   {entry.details?.succeeded != null && ` (${entry.details.succeeded} ok, ${entry.details.failed ?? 0} failed)`}
                                 </p>
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <p className="text-xs text-white/25 flex items-center gap-1 justify-end">
+                              <p className="text-xs text-[#6B7380] flex items-center gap-1 justify-end">
                                 <Clock className="w-3 h-3" />{new Date(entry.createdAt).toLocaleString()}
                               </p>
                               {entry.details?.isElectron === false && <p className="text-[10px] text-cyan-400/60 mt-0.5">web / staged</p>}
@@ -2173,7 +2173,7 @@ export default function AppBooster() {
               </div>
               <div>
                 <p className="text-sm font-bold text-cyan-300">Web preview mode</p>
-                <p className="text-xs text-white/35 mt-1 leading-relaxed">
+                <p className="text-xs text-[#6B7380] mt-1 leading-relaxed">
                   Game detection and profile execution require the SwitchControl Windows desktop app.
                   Profiles applied here are staged and will execute when you launch the Electron app on your PC.
                 </p>

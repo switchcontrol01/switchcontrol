@@ -148,7 +148,7 @@ const PROPERTY_GROUPS: {
 
 const GROUP_COLORS: Record<string, { bg: string; text: string; border: string; dot: string }> = {
   cyan:    { bg: "bg-cyan-500/10",    text: "text-cyan-400",    border: "border-cyan-500/20",    dot: "bg-cyan-400" },
-  violet:  { bg: "bg-violet-500/10",  text: "text-violet-400",  border: "border-violet-500/20",  dot: "bg-violet-400" },
+  violet:  { bg: "bg-[#00D4FF]",  text: "text-[#00D4FF]",  border: "border-[#00D4FF]",  dot: "bg-[#00D4FF]" },
   amber:   { bg: "bg-amber-500/10",   text: "text-amber-400",   border: "border-amber-500/20",   dot: "bg-amber-400" },
   emerald: { bg: "bg-emerald-500/10", text: "text-emerald-400", border: "border-emerald-500/20", dot: "bg-emerald-400" },
   indigo:  { bg: "bg-indigo-500/10",  text: "text-indigo-400",  border: "border-indigo-500/20",  dot: "bg-indigo-400" },
@@ -209,7 +209,7 @@ function CapabilityRing({ supported, total }: { supported: number; total: number
         >
           {supported}
         </motion.span>
-        <span className="text-[10px] text-white/30 leading-none mt-0.5">/ {total}</span>
+        <span className="text-[10px] text-[#6B7380] leading-none mt-0.5">/ {total}</span>
       </div>
     </div>
   );
@@ -220,11 +220,11 @@ function BufferBar({ value, min, max, label }: { value: number; min: number; max
   const pct = max > min ? ((value - min) / (max - min)) * 100 : 0;
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-[10px] text-white/35">
+      <div className="flex justify-between text-[10px] text-[#6B7380]">
         <span>{label}</span>
         <span className="text-cyan-400 font-mono">{value}</span>
       </div>
-      <div className="relative h-1.5 rounded-full overflow-hidden bg-white/[0.06]">
+      <div className="relative h-1.5 rounded-full overflow-hidden bg-[#21262D]">
         <motion.div
           className="absolute left-0 top-0 h-full rounded-full"
           style={{ background: "linear-gradient(90deg, rgba(34,211,238,0.6), rgba(139,92,246,0.8))" }}
@@ -233,7 +233,7 @@ function BufferBar({ value, min, max, label }: { value: number; min: number; max
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         />
       </div>
-      <div className="flex justify-between text-[9px] text-white/20">
+      <div className="flex justify-between text-[9px] text-[#6B7380]/50">
         <span>{min}</span>
         <span>{max}</span>
       </div>
@@ -262,7 +262,7 @@ function FeaturePill({
       "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-medium",
       isOn  ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
       : isOff ? "bg-red-500/[0.08] border-red-500/15 text-red-400/80"
-      : "bg-white/[0.03] border-white/[0.06] text-white/25"
+      : "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]"
     )}>
       <span className={cn(
         "size-1.5 rounded-full",
@@ -297,17 +297,17 @@ function PropertyHeatmap({
             className={cn(
               "flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[10px] font-medium transition-all",
               loading
-                ? "bg-white/[0.02] border-white/[0.05] text-white/20 animate-pulse"
+                ? "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]/50 animate-pulse"
                 : supported
                 ? "bg-cyan-500/[0.08] border-cyan-500/15 text-cyan-400/80"
-                : "bg-white/[0.03] border-white/[0.05] text-white/25"
+                : "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]"
             )}
           >
             <span className={cn(
               "size-1.5 rounded-full",
               loading ? "bg-[#2A313A]"
               : supported ? "bg-cyan-400 shadow-[0_0_4px_rgba(34,211,238,0.7)]"
-              : "bg-white/15"
+              : "bg-[#2A313A]"
             )} />
             {meta.label.replace(" (EEE)", "").replace(" (RSS)", "").replace("Receive Side Scaling", "RSS")}
           </div>
@@ -390,24 +390,24 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
   return (
     <div className={cn(
       "py-3 px-3 rounded-xl border transition-all duration-300",
-      isDirty ? "bg-cyan-500/[0.03] border-cyan-500/15" : "bg-white/[0.03] border-white/[0.06]"
+      isDirty ? "bg-cyan-500/[0.03] border-cyan-500/15" : "bg-[#1A1F26] border-[#2A313A]"
     )}>
       <div className="flex items-center gap-2 flex-wrap mb-2">
-        <span className="text-xs font-medium text-white/80">{meta.label}</span>
+        <span className="text-xs font-medium text-[#E6EAF0]">{meta.label}</span>
         <RiskBadge risk={meta.risk} />
         {meta.requiresAdmin && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Admin</span>}
         {capability.supported
           ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
-          : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.08]">Unverified</span>
+          : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A]">Unverified</span>
         }
       </div>
-      <p className="text-[11px] text-white/35 mb-3 leading-relaxed">{meta.description}</p>
+      <p className="text-[11px] text-[#6B7380] mb-3 leading-relaxed">{meta.description}</p>
 
       {meta.type === "toggle" && meta.enabledValue && meta.disabledValue && (
         <div className="flex items-center gap-2">
-          <button onClick={() => setState(s => ({ ...s, pending: meta.enabledValue! }))} disabled={state.applying} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border transition-all", state.pending === meta.enabledValue ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20")}>Enabled</button>
-          <button onClick={() => setState(s => ({ ...s, pending: meta.disabledValue! }))} disabled={state.applying} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border transition-all", state.pending === meta.disabledValue ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20")}>Disabled</button>
-          <span className="text-[10px] text-white/25 ml-1">Current: <span className="text-white/40">{capability.currentValue ?? "—"}</span></span>
+          <button onClick={() => setState(s => ({ ...s, pending: meta.enabledValue! }))} disabled={state.applying} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border transition-all", state.pending === meta.enabledValue ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A]")}>Enabled</button>
+          <button onClick={() => setState(s => ({ ...s, pending: meta.disabledValue! }))} disabled={state.applying} className={cn("px-3 py-1.5 rounded-lg text-xs font-medium border transition-all", state.pending === meta.disabledValue ? "bg-red-500/15 text-red-400 border-red-500/25" : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A]")}>Disabled</button>
+          <span className="text-[10px] text-[#6B7380] ml-1">Current: <span className="text-[#6B7380]">{capability.currentValue ?? "—"}</span></span>
         </div>
       )}
 
@@ -417,24 +417,24 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
             const ok = !capability.validValues || capability.validValues.includes(preset);
             if (!ok) return null;
             return (
-              <button key={preset} onClick={() => setState(s => ({ ...s, pending: preset }))} disabled={state.applying} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium border transition-all", state.pending === preset ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20 hover:text-white/60")}>
+              <button key={preset} onClick={() => setState(s => ({ ...s, pending: preset }))} disabled={state.applying} className={cn("px-2.5 py-1 rounded-lg text-xs font-medium border transition-all", state.pending === preset ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/25" : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A] hover:text-[#A0A8B3]")}>
                 {meta.presetLabels?.[i] ?? preset}
               </button>
             );
           })}
-          <span className="text-[10px] text-white/25 ml-1">Current: <span className="text-white/40">{capability.currentValue ?? "—"}</span></span>
+          <span className="text-[10px] text-[#6B7380] ml-1">Current: <span className="text-[#6B7380]">{capability.currentValue ?? "—"}</span></span>
         </div>
       )}
 
       {meta.type === "numeric" && meta.min !== null && meta.max !== null && (
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-[11px]">
-            <span className="text-white/30">Current: <span className="text-white/60">{capability.currentValue ?? "—"}</span></span>
+            <span className="text-[#6B7380]">Current: <span className="text-[#A0A8B3]">{capability.currentValue ?? "—"}</span></span>
             {isDirty && <span className="text-cyan-400 font-medium">Pending: {state.pending}</span>}
             {meta.recommendedValue != null && <span className="text-cyan-400/50">Rec: {meta.recommendedValue}</span>}
           </div>
           <Slider min={meta.min!} max={meta.max!} step={meta.step ?? 1} value={[Number(state.pending) || meta.min!]} onValueChange={([v]) => setState(s => ({ ...s, pending: String(v) }))} disabled={state.applying} className="w-full cursor-pointer" />
-          <div className="flex justify-between text-[10px] text-white/20">
+          <div className="flex justify-between text-[10px] text-[#6B7380]/50">
             <span>{meta.min}</span>
             <span>{meta.max}</span>
           </div>
@@ -450,7 +450,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
             {(() => {
               const r = state.result;
               const isWarn = r.outcome === "write_succeeded_verify_failed";
-              const colorCls = r.ok ? isWarn ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : r.outcome === "elevation_denied" ? "border-orange-500/20 bg-orange-500/10 text-orange-300" : r.outcome === "unsupported_on_adapter" ? "border-white/10 bg-white/[0.04] text-white/40" : "border-red-500/20 bg-red-500/10 text-red-300";
+              const colorCls = r.ok ? isWarn ? "border-yellow-500/20 bg-yellow-500/10 text-yellow-300" : "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : r.outcome === "elevation_denied" ? "border-orange-500/20 bg-orange-500/10 text-orange-300" : r.outcome === "unsupported_on_adapter" ? "border-[#2A313A] bg-[#21262D] text-[#6B7380]" : "border-red-500/20 bg-red-500/10 text-red-300";
               const icon = r.ok ? isWarn ? <AlertTriangle className="size-3 shrink-0" /> : <CheckCircle2 className="size-3 shrink-0" /> : r.outcome === "unsupported_on_adapter" ? <Ban className="size-3 shrink-0" /> : <XCircle className="size-3 shrink-0" />;
               const LABELS: Record<string, string> = { write_succeeded_verified: `Verified — registry confirmed ${r.actualValue ?? ""}`, write_succeeded_verify_failed: `Written — readback pending (read: ${r.actualValue ?? "?"})`, write_failed: sanitizeNicError(r.error), invalid_value: sanitizeNicError(r.error), unsupported_on_adapter: "Property not supported on this NIC driver.", elevation_denied: "Access denied — run as administrator.", reset_verified: `Reset to default${r.actualValue ? ` — read back: ${r.actualValue}` : ""}`, reset_failed: sanitizeNicError(r.error) };
               const msg = r.outcome ? LABELS[r.outcome] : (r.ok ? `Done — ${r.actualValue ?? ""}` : sanitizeNicError(r.error));
@@ -466,11 +466,11 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       </AnimatePresence>
 
       <div className="flex items-center gap-2 mt-2.5">
-        <Button size="sm" onClick={apply} disabled={state.applying || !isDirty} className={cn("h-7 px-3 text-[11px] gap-1.5", isDirty ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30" : "bg-[#21262D] text-white/25 border border-white/[0.06]")}>
+        <Button size="sm" onClick={apply} disabled={state.applying || !isDirty} className={cn("h-7 px-3 text-[11px] gap-1.5", isDirty ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30" : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]")}>
           {state.applying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
           Apply
         </Button>
-        <Button size="sm" variant="ghost" onClick={reset} disabled={state.applying} className="h-7 px-2.5 text-[11px] gap-1.5 text-white/30 hover:text-white/60 hover:bg-[#21262D] border border-white/[0.04]">
+        <Button size="sm" variant="ghost" onClick={reset} disabled={state.applying} className="h-7 px-2.5 text-[11px] gap-1.5 text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#21262D] border border-[#2A313A]">
           <RotateCcw className="size-3" />
           Reset
         </Button>
@@ -505,21 +505,21 @@ function PropertyGroupSection({
     <GlassCard blur="sm" hoverEffect={false} className="overflow-hidden">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center gap-3 p-4 text-left hover:bg-[#1A1F26] transition-colors"
       >
         <div className={cn("size-8 rounded-xl flex items-center justify-center shrink-0 border", col.bg, col.border)}>
           <GroupIcon className={cn("size-4", col.text)} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-white/90">{group.label}</span>
+            <span className="text-sm font-semibold text-[#E6EAF0]">{group.label}</span>
             <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full border font-medium", col.bg, col.text, col.border)}>
               {supportedInGroup}/{keys.length} supported
             </span>
           </div>
-          <p className="text-[11px] text-white/35 mt-0.5">{group.subtitle}</p>
+          <p className="text-[11px] text-[#6B7380] mt-0.5">{group.subtitle}</p>
         </div>
-        <ChevronDown className={cn("size-4 text-white/30 shrink-0 transition-transform duration-200", open && "rotate-180")} />
+        <ChevronDown className={cn("size-4 text-[#6B7380] shrink-0 transition-transform duration-200", open && "rotate-180")} />
       </button>
 
       <AnimatePresence>
@@ -531,7 +531,7 @@ function PropertyGroupSection({
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2 border-t border-white/[0.05] pt-3">
+            <div className="px-4 pb-4 space-y-2 border-t border-[#2A313A] pt-3">
               {keys.map(k => (
                 <PropertyControl
                   key={k}
@@ -620,7 +620,7 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
           <div className="size-7 rounded-lg bg-cyan-500/15 flex items-center justify-center">
             <Activity className="size-3.5 text-cyan-400" />
           </div>
-          <span className="text-xs font-semibold text-white/80">Live Network Throughput</span>
+          <span className="text-xs font-semibold text-[#E6EAF0]">Live Network Throughput</span>
         </div>
         <div className="flex items-center gap-2">
           <span
@@ -633,21 +633,21 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
                 : "bg-[#1A1F26]0",
             )}
           />
-          <span className={cn("text-[10px] font-medium", connected ? "text-white/40" : "text-white/20")}>
+          <span className={cn("text-[10px] font-medium", connected ? "text-[#6B7380]" : "text-[#6B7380]/50")}>
             {connected ? (hasActivity ? "Active" : "Idle") : "Disconnected"}
           </span>
-          <Radio className="size-3 text-white/20" />
-          <span className="text-[10px] text-white/25 max-w-[160px] truncate">{adapterName}</span>
+          <Radio className="size-3 text-[#6B7380]/50" />
+          <span className="text-[10px] text-[#6B7380] max-w-[160px] truncate">{adapterName}</span>
         </div>
       </div>
 
       {/* Stats row */}
-      <div className="grid grid-cols-2 gap-px bg-white/[0.04] mx-4 rounded-xl overflow-hidden border border-white/[0.06]">
+      <div className="grid grid-cols-2 gap-px bg-[#21262D] mx-4 rounded-xl overflow-hidden border border-[#2A313A]">
         {/* Download */}
         <div className="bg-[rgba(10,12,18,0.7)] p-3.5 space-y-1">
           <div className="flex items-center gap-1.5">
             <ArrowDownToLine className="size-3 text-cyan-400" />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35">Download</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">Download</span>
           </div>
           <motion.p
             key={fmtRx}
@@ -658,33 +658,33 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
           >
             {fmtRx}
           </motion.p>
-          <p className="text-[10px] text-white/25">
-            Peak: <span className="text-white/40">{fmtPkRx}</span>
+          <p className="text-[10px] text-[#6B7380]">
+            Peak: <span className="text-[#6B7380]">{fmtPkRx}</span>
           </p>
         </div>
         {/* Upload */}
         <div className="bg-[rgba(10,12,18,0.7)] p-3.5 space-y-1">
           <div className="flex items-center gap-1.5">
-            <ArrowUpFromLine className="size-3 text-violet-400" />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-white/35">Upload</span>
+            <ArrowUpFromLine className="size-3 text-[#00D4FF]" />
+            <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">Upload</span>
           </div>
           <motion.p
             key={fmtTx}
-            className="text-2xl font-bold tabular-nums text-violet-300 leading-none tracking-tight"
+            className="text-2xl font-bold tabular-nums text-[#33E0FF] leading-none tracking-tight"
             initial={{ opacity: 0.6, y: 2 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.18 }}
           >
             {fmtTx}
           </motion.p>
-          <p className="text-[10px] text-white/25">
-            Peak: <span className="text-white/40">{fmtPkTx}</span>
+          <p className="text-[10px] text-[#6B7380]">
+            Peak: <span className="text-[#6B7380]">{fmtPkTx}</span>
           </p>
         </div>
       </div>
 
       {/* Sparkline chart */}
-      <div className="relative mx-4 mt-3 mb-4 rounded-xl overflow-hidden border border-white/[0.05]"
+      <div className="relative mx-4 mt-3 mb-4 rounded-xl overflow-hidden border border-[#2A313A]"
         style={{ background: "rgba(8,10,16,0.6)", height: H }}>
         <svg
           viewBox={`0 0 ${W} ${H}`}
@@ -744,11 +744,11 @@ function NetworkThroughputCard({ adapterName }: { adapterName: string }) {
         <div className="absolute bottom-2 right-3 flex items-center gap-3">
           <div className="flex items-center gap-1">
             <span className="w-4 h-px bg-cyan-400/80 inline-block" />
-            <span className="text-[9px] text-white/30">RX</span>
+            <span className="text-[9px] text-[#6B7380]">RX</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="w-4 h-px bg-violet-400/70 inline-block" />
-            <span className="text-[9px] text-white/30">TX</span>
+            <span className="w-4 h-px bg-[#00D4FF]/70 inline-block" />
+            <span className="text-[9px] text-[#6B7380]">TX</span>
           </div>
         </div>
       </div>
@@ -784,10 +784,10 @@ function AdapterDiagnostics({
       {/* Adapter info card */}
       <GlassCard blur="sm" hoverEffect={false} className="p-4 lg:col-span-1 space-y-3">
         <div className="flex items-center gap-2">
-          <div className={cn("size-7 rounded-lg flex items-center justify-center", isOnline ? "bg-cyan-500/15" : "bg-white/[0.06]")}>
-            <Wifi className={cn("size-3.5", isOnline ? "text-cyan-400" : "text-white/30")} />
+          <div className={cn("size-7 rounded-lg flex items-center justify-center", isOnline ? "bg-cyan-500/15" : "bg-[#21262D]")}>
+            <Wifi className={cn("size-3.5", isOnline ? "text-cyan-400" : "text-[#6B7380]")} />
           </div>
-          <span className="text-xs font-semibold text-white/80">Adapter Info</span>
+          <span className="text-xs font-semibold text-[#E6EAF0]">Adapter Info</span>
         </div>
         <div className="space-y-2">
           {[
@@ -798,16 +798,16 @@ function AdapterDiagnostics({
             { label: "MAC Address", value: adapter.macAddress || "—" },
           ].map(row => (
             <div key={row.label} className="flex justify-between gap-2">
-              <span className="text-[10px] text-white/30 shrink-0">{row.label}</span>
-              <span className="text-[11px] text-white/65 text-right font-mono truncate max-w-[60%]">{row.value}</span>
+              <span className="text-[10px] text-[#6B7380] shrink-0">{row.label}</span>
+              <span className="text-[11px] text-[#E6EAF0]/65 text-right font-mono truncate max-w-[60%]">{row.value}</span>
             </div>
           ))}
         </div>
 
         {/* Feature status pills */}
         {capabilities && (
-          <div className="space-y-1.5 pt-1 border-t border-white/[0.05]">
-            <p className="text-[10px] text-white/25 uppercase tracking-wider">Feature State</p>
+          <div className="space-y-1.5 pt-1 border-t border-[#2A313A]">
+            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Feature State</p>
             <div className="flex flex-wrap gap-1.5">
               <FeaturePill label="RSS" value={capabilities.RSS?.currentValue} onValue="1" offValue="0" />
               <FeaturePill label="Int. Mod" value={capabilities.InterruptModeration?.currentValue} onValue="1" offValue="0" />
@@ -822,25 +822,25 @@ function AdapterDiagnostics({
       {/* Capability ring + heatmap */}
       <GlassCard blur="sm" hoverEffect={false} className="p-4 lg:col-span-2 space-y-4">
         <div className="flex items-center gap-2">
-          <div className="size-7 rounded-lg bg-violet-500/15 flex items-center justify-center">
-            <Activity className="size-3.5 text-violet-400" />
+          <div className="size-7 rounded-lg bg-[#00D4FF] flex items-center justify-center">
+            <Activity className="size-3.5 text-[#00D4FF]" />
           </div>
-          <span className="text-xs font-semibold text-white/80">Property Support Intelligence</span>
+          <span className="text-xs font-semibold text-[#E6EAF0]">Property Support Intelligence</span>
         </div>
 
         <div className="flex items-center gap-6">
           {capLoading ? (
-            <div className="size-24 rounded-full border-4 border-white/[0.05] flex items-center justify-center animate-pulse">
-              <Loader2 className="size-5 text-white/20 animate-spin" />
+            <div className="size-24 rounded-full border-4 border-[#2A313A] flex items-center justify-center animate-pulse">
+              <Loader2 className="size-5 text-[#6B7380]/50 animate-spin" />
             </div>
           ) : (
             <CapabilityRing supported={supported} total={total} />
           )}
           <div className="flex-1 space-y-1.5">
-            <p className="text-sm font-medium text-white/80">
+            <p className="text-sm font-medium text-[#E6EAF0]">
               {capLoading ? "Querying adapter…" : `${supported} of ${total} properties supported`}
             </p>
-            <p className="text-[11px] text-white/35 leading-relaxed">
+            <p className="text-[11px] text-[#6B7380] leading-relaxed">
               {capLoading
                 ? "Detecting which advanced properties your NIC driver exposes…"
                 : supported >= total * 0.75
@@ -850,7 +850,7 @@ function AdapterDiagnostics({
                 : "Limited coverage — this driver exposes few tunable properties."}
             </p>
             {!capLoading && capabilities && (
-              <div className="flex gap-3 text-[10px] text-white/40 pt-1">
+              <div className="flex gap-3 text-[10px] text-[#6B7380] pt-1">
                 <span className="text-cyan-400">{supported} supported</span>
                 <span>·</span>
                 <span>{total - supported} unsupported</span>
@@ -860,15 +860,15 @@ function AdapterDiagnostics({
         </div>
 
         {/* Heatmap */}
-        <div className="space-y-2 border-t border-white/[0.05] pt-3">
-          <p className="text-[10px] text-white/25 uppercase tracking-wider">Property Coverage</p>
+        <div className="space-y-2 border-t border-[#2A313A] pt-3">
+          <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Property Coverage</p>
           <PropertyHeatmap propertyMeta={propertyMeta} capabilities={capabilities} />
         </div>
 
         {/* Buffer bars — only if both are supported + loaded */}
         {capabilities && rxCap?.supported && rxMeta?.min != null && rxMeta?.max != null && (
-          <div className="space-y-2 border-t border-white/[0.05] pt-3">
-            <p className="text-[10px] text-white/25 uppercase tracking-wider">Buffer Allocation</p>
+          <div className="space-y-2 border-t border-[#2A313A] pt-3">
+            <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Buffer Allocation</p>
             <div className="grid grid-cols-2 gap-3">
               {rxCap.supported && rxMeta && rxMeta.min != null && rxMeta.max != null && (
                 <BufferBar value={Number(rxCap.currentValue) || rxMeta.min!} min={rxMeta.min!} max={rxMeta.max!} label="Receive Buffers" />
@@ -983,7 +983,7 @@ export default function NicTuningPage() {
           transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         >
           <div
-            className="relative rounded-2xl overflow-hidden border border-white/[0.07] p-5"
+            className="relative rounded-2xl overflow-hidden border border-[#2A313A] p-5"
             style={{
               background: "linear-gradient(135deg, rgba(0,190,255,0.06) 0%, rgba(139,92,246,0.08) 50%, rgba(7,9,13,0) 100%)",
               boxShadow: "inset 0 1px 0 rgba(255,255,255,0.05)",
@@ -997,14 +997,14 @@ export default function NicTuningPage() {
 
             <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="size-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/10 border border-white/[0.08] flex items-center justify-center shrink-0">
+                <div className="size-10 rounded-xl bg-gradient-to-br from-cyan-500/20 to-indigo-500/10 border border-[#2A313A] flex items-center justify-center shrink-0">
                   <Network className="size-5 text-cyan-400" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h1 className="text-lg font-bold text-white tracking-tight">NIC Tuning</h1>
+                    <h1 className="text-lg font-bold text-[#E6EAF0] tracking-tight">NIC Tuning</h1>
                   </div>
-                  <p className="text-[12px] text-white/45 mt-0.5">
+                  <p className="text-[12px] text-[#A0A8B3] mt-0.5">
                     Advanced Network Adapter Control Center — Buffers · RSS · Interrupt Moderation · Power
                   </p>
                 </div>
@@ -1016,13 +1016,13 @@ export default function NicTuningPage() {
                   <div className="text-right hidden sm:block">
                     <div className="flex items-center gap-1.5 justify-end">
                       <span className={cn("size-1.5 rounded-full", isOnline ? "bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.9)]" : "bg-[#1A1F26]0")} />
-                      <span className={cn("text-xs font-medium", isOnline ? "text-emerald-400" : "text-white/40")}>{activeAdapter.status}</span>
+                      <span className={cn("text-xs font-medium", isOnline ? "text-emerald-400" : "text-[#6B7380]")}>{activeAdapter.status}</span>
                     </div>
-                    <p className="text-[10px] text-white/30 mt-0.5 truncate max-w-[200px]">{activeAdapter.name}</p>
+                    <p className="text-[10px] text-[#6B7380] mt-0.5 truncate max-w-[200px]">{activeAdapter.name}</p>
                   </div>
                   <div className="text-right hidden sm:block">
-                    <span className="text-xs font-mono text-white/50">{adapters.length}</span>
-                    <p className="text-[10px] text-white/25">adapter{adapters.length !== 1 ? "s" : ""}</p>
+                    <span className="text-xs font-mono text-[#A0A8B3]">{adapters.length}</span>
+                    <p className="text-[10px] text-[#6B7380]">adapter{adapters.length !== 1 ? "s" : ""}</p>
                   </div>
                 </div>
               )}
@@ -1038,10 +1038,10 @@ export default function NicTuningPage() {
             transition={{ delay: 0.15 }}
           >
             <GlassCard blur="sm" hoverEffect={false} className="p-4">
-              <div className="flex items-start gap-3 text-sm text-white/50">
+              <div className="flex items-start gap-3 text-sm text-[#A0A8B3]">
                 <Info className="size-4 shrink-0 text-cyan-400/60 mt-0.5" />
                 <div>
-                  <p className="font-medium text-white/60 mb-1">Desktop app required</p>
+                  <p className="font-medium text-[#A0A8B3] mb-1">Desktop app required</p>
                   <p className="text-xs leading-relaxed">
                     NIC adapter tuning requires the Windows desktop app to detect your adapters and query supported properties via PowerShell. All controls and diagnostics shown here are live data from the Electron app.
                   </p>
@@ -1053,7 +1053,7 @@ export default function NicTuningPage() {
 
         {/* ── Loading state ────────────────────────────────────────────────────── */}
         {loading && (
-          <div className="flex items-center gap-2.5 py-6 text-sm text-white/40">
+          <div className="flex items-center gap-2.5 py-6 text-sm text-[#6B7380]">
             <Loader2 className="size-4 animate-spin text-cyan-400/60" />
             Detecting network adapters…
           </div>
@@ -1065,7 +1065,7 @@ export default function NicTuningPage() {
             <div className="flex items-center gap-2 text-xs text-red-400">
               <XCircle className="size-4 shrink-0" />
               <span className="flex-1">{loadError}</span>
-              <button onClick={loadAdapters} className="underline hover:no-underline text-white/40 hover:text-white/60">Retry</button>
+              <button onClick={loadAdapters} className="underline hover:no-underline text-[#6B7380] hover:text-[#A0A8B3]">Retry</button>
             </div>
           </GlassCard>
         )}
@@ -1089,7 +1089,7 @@ export default function NicTuningPage() {
                     "flex items-center gap-2 px-3 py-2 rounded-xl border text-xs font-medium transition-all",
                     isSelected
                       ? "bg-cyan-500/15 border-cyan-500/30 text-cyan-300"
-                      : "bg-white/[0.03] border-white/[0.07] text-white/50 hover:bg-white/[0.06] hover:text-white/70"
+                      : "bg-[#1A1F26] border-[#2A313A] text-[#A0A8B3] hover:bg-[#21262D] hover:text-[#E6EAF0]"
                   )}
                 >
                   <span className={cn("size-1.5 rounded-full shrink-0", on ? "bg-emerald-400" : "bg-[#1A1F26]0")} />
@@ -1099,7 +1099,7 @@ export default function NicTuningPage() {
             })}
             <button
               onClick={() => { capLoadedRef.current.clear(); loadAdapters(); }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-white/[0.06] text-xs text-white/30 hover:text-white/50 hover:bg-white/[0.04] transition-all ml-auto"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#2A313A] text-xs text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#21262D] transition-all ml-auto"
             >
               <RefreshCw className="size-3" />
               Refresh
@@ -1112,7 +1112,7 @@ export default function NicTuningPage() {
           <div className="flex justify-end">
             <button
               onClick={() => { capLoadedRef.current.clear(); loadAdapters(); }}
-              className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition-colors"
+              className="flex items-center gap-1.5 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
             >
               <RefreshCw className="size-3" />
               Refresh adapter list
@@ -1123,10 +1123,10 @@ export default function NicTuningPage() {
         {/* ── No adapters found (Electron mode) ──────────────────────────────── */}
         {isElectron && !loading && adapters.length === 0 && !loadError && (
           <GlassCard blur="sm" hoverEffect={false} className="py-12 flex flex-col items-center gap-3 text-center">
-            <div className="size-10 rounded-xl bg-white/[0.05] flex items-center justify-center">
-              <Network className="size-5 text-white/20" />
+            <div className="size-10 rounded-xl bg-[#21262D] flex items-center justify-center">
+              <Network className="size-5 text-[#6B7380]/50" />
             </div>
-            <p className="text-sm text-white/30">No physical network adapters found.</p>
+            <p className="text-sm text-[#6B7380]">No physical network adapters found.</p>
             <button onClick={loadAdapters} className="text-xs text-cyan-400/60 hover:text-cyan-400 underline">Retry detection</button>
           </GlassCard>
         )}
@@ -1190,7 +1190,7 @@ export default function NicTuningPage() {
                   if (leftover.length === 0) return null;
                   return (
                     <GlassCard blur="sm" hoverEffect={false} className="p-4 space-y-3">
-                      <p className="text-xs font-semibold text-white/60">Additional Properties</p>
+                      <p className="text-xs font-semibold text-[#A0A8B3]">Additional Properties</p>
                       <div className="space-y-2">
                         {leftover.map(k => (
                           <PropertyControl
@@ -1212,7 +1212,7 @@ export default function NicTuningPage() {
             {capLoading && (
               <div className="space-y-3">
                 {[...Array(3)].map((_, i) => (
-                  <div key={i} className="h-16 rounded-2xl bg-white/[0.03] border border-white/[0.05] animate-pulse" />
+                  <div key={i} className="h-16 rounded-2xl bg-[#1A1F26] border border-[#2A313A] animate-pulse" />
                 ))}
               </div>
             )}

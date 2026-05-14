@@ -621,7 +621,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
     title: "Full System Visibility",
     description:
       "Your personal AI-powered optimization assistant. It scans your system and recommends the best tweaks for your hardware — available exclusively for Premium users.",
-    icon: <Sparkles className="w-5 h-5 text-purple-400" />,
+    icon: <Sparkles className="w-5 h-5 text-text-[#00D4FF]" />,
     targetSelector: '[data-tour="ai-advisor"]',
     route: "/dashboard",
     sidebarHighlight: "dashboard",
@@ -656,7 +656,7 @@ const PREMIUM_TOUR_STEPS: TourStep[] = [
             window.open(url, "_blank", "noopener,noreferrer");
           }
         }}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-white font-medium text-sm transition-colors w-full justify-center"
+        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#5865F2] hover:bg-[#4752C4] text-[#E6EAF0] font-medium text-sm transition-colors w-full justify-center"
         data-testid="premium-tour-join-discord"
       >
         <DiscordIcon className="w-4 h-4" />

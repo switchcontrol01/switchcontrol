@@ -14,11 +14,11 @@ const buttonVariants = cva(
         brand:
           "bg-[#00D4FF] text-[#071014] font-semibold shadow-sm hover:bg-[#33E0FF] hover:shadow-[0_0_16px_rgba(0,212,255,0.25)]",
         destructive:
-          "bg-[#EF4444] text-white shadow-sm hover:bg-[#F87171]",
+          "bg-[#EF4444] text-[#E6EAF0] shadow-sm hover:bg-[#F87171]",
         outline:
-          "border border-[#2A313A] bg-[#21262D] text-[#E6EAF0] shadow-sm hover:bg-[#2A313A] hover:border-[#3A414D] hover:text-white transition-all duration-200",
+          "border border-[#2A313A] bg-[#21262D] text-[#E6EAF0] shadow-sm hover:bg-[#2A313A] hover:border-[#3A414D] hover:text-[#E6EAF0] transition-all duration-200",
         secondary:
-          "bg-[#21262D] text-[#E6EAF0] border border-[#2A313A] shadow-sm hover:bg-[#2A313A] hover:text-white",
+          "bg-[#21262D] text-[#E6EAF0] border border-[#2A313A] shadow-sm hover:bg-[#2A313A] hover:text-[#E6EAF0]",
         ghost: "hover:bg-[#2A313A] hover:text-[#E6EAF0] text-[#A0A8B3]",
         link: "text-[#00D4FF] underline-offset-4 hover:underline",
         cyan: "bg-[#00D4FF] text-[#071014] font-semibold shadow-sm hover:bg-[#33E0FF] hover:shadow-[0_0_16px_rgba(0,212,255,0.25)]",

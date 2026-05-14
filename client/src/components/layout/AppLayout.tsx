@@ -39,7 +39,7 @@ function FocusModeBanner() {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
       transition={{ duration: 0.3 }}
-      className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-white text-xs font-medium shadow-lg"
+      className="fixed top-0 left-64 right-0 z-50 flex items-center justify-between px-4 py-1.5 bg-emerald-500/90 backdrop-blur text-[#E6EAF0] text-xs font-medium shadow-lg"
     >
       <div className="flex items-center gap-2">
         <div className="size-1.5 rounded-full bg-white animate-pulse" />
@@ -101,7 +101,7 @@ function TrialCountdownBanner() {
       <div className="flex items-center gap-3">
         <button
           onClick={() => setDismissed(true)}
-          className="text-white/30 hover:text-white/60 text-xs transition-colors ml-1"
+          className="text-[#6B7380] hover:text-[#A0A8B3] text-xs transition-colors ml-1"
           aria-label="Dismiss"
         >
           ✕
@@ -166,7 +166,7 @@ function BackendStartingBanner() {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1F26] border border-white/[0.07] text-[11px] text-[#6B7380] backdrop-blur-md shadow-lg">
+    <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#1A1F26] border border-[#2A313A] text-[11px] text-[#6B7380] backdrop-blur-md shadow-lg">
       <Loader2 className="size-3 animate-spin shrink-0 text-[#6B7380]" />
       <span>Starting backend…</span>
     </div>
@@ -221,7 +221,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         style={{
           width: "820px",
           height: "640px",
-          background: "radial-gradient(ellipse at 0% 0%, rgba(255,255,255,0.055) 0%, rgba(230,220,255,0.028) 32%, rgba(200,185,255,0.010) 58%, transparent 75%)",
+          background: "radial-gradient(ellipse at 0% 0%, rgba(0,212,255,0.03) 0%, rgba(20,24,29,0.02) 32%, rgba(20,24,29,0.01) 58%, transparent 75%)",
           transform: "translate(-8%, -10%)",
         }}
         aria-hidden="true"

@@ -46,7 +46,7 @@ function generateDeviceHash(userId: string): string {
 function InfoRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-2">
-      <span className="text-[11px] text-white/35 uppercase tracking-wider font-medium">{label}</span>
+      <span className="text-[11px] text-[#6B7380] uppercase tracking-wider font-medium">{label}</span>
       {children}
     </div>
   );
@@ -304,9 +304,9 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
     // Strict loading gate — never bypassed by stale grace store state.
     if (licenseLoading || verifiedLicense === null) {
       return (
-        <div className="relative rounded-xl border border-white/[0.08] bg-white/[0.025] flex items-center justify-center py-6 gap-2">
-          <Loader2 className="size-4 animate-spin text-white/40" />
-          <span className="text-[12px] text-white/40">Verifying license…</span>
+        <div className="relative rounded-xl border border-[#2A313A] bg-[#1A1F26] flex items-center justify-center py-6 gap-2">
+          <Loader2 className="size-4 animate-spin text-[#6B7380]" />
+          <span className="text-[12px] text-[#6B7380]">Verifying license…</span>
         </div>
       );
     }
@@ -333,7 +333,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               </div>
             </InfoRow>
             <InfoRow label="Last Verified">
-              <span className="text-[12px] text-white/55">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
+              <span className="text-[12px] text-[#A0A8B3]">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
             </InfoRow>
           </div>
         </div>
@@ -360,7 +360,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               <span className="text-[12px] text-amber-300/70">{formatGraceRemaining(verifiedLicense.graceRemainingMs)}</span>
             </InfoRow>
             <InfoRow label="Last Verified">
-              <span className="text-[12px] text-white/55">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
+              <span className="text-[12px] text-[#A0A8B3]">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
             </InfoRow>
           </div>
           <div className="px-4 pb-3 text-[11px] text-amber-400/60">
@@ -381,7 +381,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
               </div>
             </InfoRow>
             <InfoRow label="Last Verified">
-              <span className="text-[12px] text-white/55">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
+              <span className="text-[12px] text-[#A0A8B3]">{formatLastVerified(verifiedLicense.lastVerifiedAt)}</span>
             </InfoRow>
           </div>
           <div className="px-4 pb-3 text-[11px] text-red-400/70">
@@ -393,16 +393,16 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
 
     // 'free' or 'unknown' — render no-license state
     return (
-      <div className="relative rounded-xl overflow-hidden border border-white/[0.08] bg-white/[0.02]">
+      <div className="relative rounded-xl overflow-hidden border border-[#2A313A] bg-[#1A1F26]">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="px-4 py-3.5 divide-y divide-white/[0.05]">
           <InfoRow label="Plan">
-            <Badge className="bg-white/[0.06] text-white/45 border-white/[0.1] text-[10px] font-medium px-2.5 py-0.5">Free</Badge>
+            <Badge className="bg-[#21262D] text-[#A0A8B3] border-white/[0.1] text-[10px] font-medium px-2.5 py-0.5">Free</Badge>
           </InfoRow>
           <InfoRow label="Status">
             <div className="flex items-center gap-2">
               <span className="relative inline-flex rounded-full size-1.5 bg-[#1A1F26]5" />
-              <span className="text-[12px] text-white/45 font-medium">No License</span>
+              <span className="text-[12px] text-[#A0A8B3] font-medium">No License</span>
             </div>
           </InfoRow>
         </div>
@@ -415,7 +415,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-50 bg-black/65 backdrop-blur-sm pointer-events-auto"
+            className="fixed inset-0 z-50 bg-[#14181D]/80 backdrop-blur-sm pointer-events-auto"
             onClick={handleClose}
             variants={modalBackdrop}
             initial="initial"
@@ -435,21 +435,21 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
             exit="exit"
           >
             <div
-              className="relative rounded-2xl overflow-hidden glass-surface-bg backdrop-blur-2xl border border-white/[0.12] shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]"
+              className="relative rounded-2xl overflow-hidden glass-surface-bg backdrop-blur-2xl border border-[#2A313A] shadow-[0_24px_80px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="pointer-events-none absolute -top-20 -right-20 w-60 h-60 rounded-full bg-emerald-500/[0.06] blur-3xl" />
-              <div className="pointer-events-none absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-purple-500/[0.06] blur-3xl" />
+              <div className="pointer-events-none absolute -bottom-20 -left-20 w-60 h-60 rounded-full bg-[#00D4FF]/[0.06] blur-3xl" />
 
               {/* Header */}
-              <div className="relative flex items-center justify-between px-6 pt-5 pb-4 border-b border-white/[0.06]">
+              <div className="relative flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#2A313A]">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center justify-center size-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shadow-[0_0_16px_rgba(16,185,129,0.12)]">
                     <Shield className="size-4 text-emerald-400" />
                   </div>
                   <div>
-                    <h2 className="text-sm font-semibold text-white leading-tight">License Management</h2>
-                    <p className="text-[10px] text-white/35 mt-0.5">Manage your SwitchControl license</p>
+                    <h2 className="text-sm font-semibold text-[#E6EAF0] leading-tight">License Management</h2>
+                    <p className="text-[10px] text-[#6B7380] mt-0.5">Manage your SwitchControl license</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -464,7 +464,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                   </div>
                   <button
                     onClick={handleClose}
-                    className="flex items-center justify-center size-7 rounded-lg text-white/30 hover:text-white/70 hover:bg-white/[0.06] transition-all"
+                    className="flex items-center justify-center size-7 rounded-lg text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#21262D] transition-all"
                     aria-label="Close"
                   >
                     <X className="size-4" />
@@ -476,23 +476,23 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                 {statusBlock()}
 
                 {/* Device info */}
-                <div className="relative rounded-xl border border-white/[0.07] bg-white/[0.025]">
-                  <div className="px-4 pt-3.5 pb-1 flex items-center gap-2 border-b border-white/[0.05]">
-                    <Cpu className="size-3.5 text-purple-400/80" />
-                    <span className="text-[11px] font-semibold text-white/70 uppercase tracking-wider">Device</span>
+                <div className="relative rounded-xl border border-[#2A313A] bg-[#1A1F26]">
+                  <div className="px-4 pt-3.5 pb-1 flex items-center gap-2 border-b border-[#2A313A]">
+                    <Cpu className="size-3.5 text-[#00D4FF]/80" />
+                    <span className="text-[11px] font-semibold text-[#E6EAF0] uppercase tracking-wider">Device</span>
                   </div>
                   <div className="px-4 pb-3.5 divide-y divide-white/[0.05]">
                     <InfoRow label="Device ID">
                       <div className="flex items-center gap-1.5">
                         <code
-                          className="text-[11px] text-white/75 bg-white/[0.05] px-2 py-0.5 rounded-md font-mono border border-white/[0.06]"
+                          className="text-[11px] text-[#E6EAF0]/75 bg-[#21262D] px-2 py-0.5 rounded-md font-mono border border-[#2A313A]"
                           data-testid="text-device-id"
                         >
                           {deviceId}
                         </code>
                         <button
                           onClick={() => { navigator.clipboard.writeText(deviceId); toast({ title: "Copied", description: "Device ID copied." }); }}
-                          className="text-white/25 hover:text-white/60 transition-colors"
+                          className="text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
                           data-testid="button-copy-device-id"
                           aria-label="Copy device ID"
                         >
@@ -501,10 +501,10 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                       </div>
                     </InfoRow>
                     <InfoRow label="App Version">
-                      <span className="text-[12px] text-white/55 font-mono" data-testid="text-app-version">{appVersion}</span>
+                      <span className="text-[12px] text-[#A0A8B3] font-mono" data-testid="text-app-version">{appVersion}</span>
                     </InfoRow>
                     <InfoRow label="Platform">
-                      <span className="text-[12px] text-white/55" data-testid="text-platform">{platform}</span>
+                      <span className="text-[12px] text-[#A0A8B3]" data-testid="text-platform">{platform}</span>
                     </InfoRow>
                     <InfoRow label="Backend">
                       <span className={cn("text-[12px] font-medium", isBackendReachable ? "text-emerald-400/70" : "text-red-400/70")}>
@@ -534,7 +534,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                   <button
                     className={cn(
                       "w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border transition-all",
-                      "border-purple-500/20 text-purple-400/80 bg-purple-500/[0.04] hover:bg-purple-500/[0.09] hover:border-purple-500/35 hover:text-purple-300",
+                      "border-[#00D4FF] text-[#00D4FF]/80 bg-[#00D4FF]/[0.04] hover:bg-[#00D4FF]/[0.09] hover:border-[#00D4FF] hover:text-[#33E0FF]",
                       (busy || isOffline) && "opacity-40 cursor-not-allowed"
                     )}
                     onClick={handleRestorePurchase}
@@ -547,7 +547,7 @@ export function LicenseManagementModal({ open, onOpenChange, isPremium, userId }
                   </button>
 
                   <button
-                    className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border border-white/[0.07] text-white/45 bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/70 transition-all"
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-[12px] font-medium border border-[#2A313A] text-[#A0A8B3] bg-[#1A1F26] hover:bg-[#21262D] hover:border-[#2A313A] hover:text-[#E6EAF0] transition-all"
                     onClick={handleContactSupport}
                     data-testid="button-contact-support"
                   >

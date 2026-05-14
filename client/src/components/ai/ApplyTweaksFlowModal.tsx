@@ -111,22 +111,22 @@ function ImpactBar({
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-[11px]">
-        <div className="flex items-center gap-1.5 text-white/50">
+        <div className="flex items-center gap-1.5 text-[#A0A8B3]">
           <Icon className="size-3" />
           <span>{label}</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-white/30">Before {before ?? "--"}{unit}</span>
-          <ChevronRight className="size-2.5 text-white/20" />
-          <span className={cn("font-medium", improved ? "text-emerald-400" : "text-white/70")}>
+          <span className="text-[#6B7380]">Before {before ?? "--"}{unit}</span>
+          <ChevronRight className="size-2.5 text-[#6B7380]/50" />
+          <span className={cn("font-medium", improved ? "text-emerald-400" : "text-[#E6EAF0]")}>
             After {after ?? "--"}{unit}
           </span>
         </div>
       </div>
-      <div className="relative h-2 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="relative h-2 rounded-full bg-[#21262D] overflow-hidden">
         {/* Before ghost bar */}
         <div
-          className="absolute top-0 left-0 h-full rounded-full bg-white/[0.08]"
+          className="absolute top-0 left-0 h-full rounded-full bg-[#21262D]"
           style={{ width: `${beforePct}%` }}
         />
         {/* After animated bar */}
@@ -319,7 +319,7 @@ export function ApplyTweaksFlowModal({
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.22 }}
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/70 backdrop-blur-md"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-[#14181D]/80 backdrop-blur-md"
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 12 }}
@@ -340,10 +340,10 @@ export function ApplyTweaksFlowModal({
                 <Zap className="size-4 text-primary" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white">
+                <h3 className="text-sm font-bold text-[#E6EAF0]">
                   {phase === "complete" ? "Apply Complete" : "Applying Tweaks"}
                 </h3>
-                <p className="text-[11px] text-white/40">
+                <p className="text-[11px] text-[#6B7380]">
                   {phase === "complete"
                     ? `${successCount} of ${total} applied successfully`
                     : phase === "running"
@@ -355,7 +355,7 @@ export function ApplyTweaksFlowModal({
             {phase === "complete" && (
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-[#2A313A] transition-all"
+                className="w-7 h-7 rounded-lg flex items-center justify-center text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-all"
               >
                 <X className="size-4" />
               </button>
@@ -368,16 +368,16 @@ export function ApplyTweaksFlowModal({
               <div className="relative shrink-0">
                 <ProgressRing pct={Math.round(((successCount + failCount) / Math.max(total, 1)) * 100)} size={90} stroke={6} />
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-lg font-black text-white">{successCount + failCount}/{total}</span>
+                  <span className="text-lg font-black text-[#E6EAF0]">{successCount + failCount}/{total}</span>
                 </div>
               </div>
               <div className="flex-1 space-y-1 min-w-0">
-                <div className="flex items-center gap-2 text-[11px] text-white/50">
+                <div className="flex items-center gap-2 text-[11px] text-[#A0A8B3]">
                   <Clock className="size-3" />
                   <span>Elapsed: {formatElapsed(elapsed)}</span>
                 </div>
                 {phase === "running" && (
-                  <p className="text-[11px] text-white/40 truncate">
+                  <p className="text-[11px] text-[#6B7380] truncate">
                     {recommendations[currentIdx]?.tweakId
                       ? getTweak(recommendations[currentIdx].tweakId)?.title ?? "Processing…"
                       : "Processing…"}
@@ -403,7 +403,7 @@ export function ApplyTweaksFlowModal({
                       "size-4 rounded-full flex items-center justify-center shrink-0 border",
                       isDone ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400" :
                       isCurrent ? "bg-primary/15 border-primary/30 text-primary animate-pulse" :
-                      "bg-white/[0.03] border-white/[0.08] text-white/20"
+                      "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]/50"
                     )}>
                       {isDone ? <CheckCircle2 className="size-2.5" /> :
                        isCurrent ? <div className="size-1.5 rounded-full bg-primary" /> :
@@ -412,8 +412,8 @@ export function ApplyTweaksFlowModal({
                     <span className={cn(
                       "text-[11px]",
                       isDone ? "text-emerald-400/70" :
-                      isCurrent ? "text-white/80" :
-                      "text-white/25"
+                      isCurrent ? "text-[#E6EAF0]" :
+                      "text-[#6B7380]"
                     )}>{step.label}</span>
                   </div>
                 );
@@ -454,10 +454,10 @@ export function ApplyTweaksFlowModal({
 
                 {/* Impact panel */}
                 {preSnap && postSnap && (
-                  <div className="space-y-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.08]">
-                    <p className="text-[10px] uppercase tracking-wider text-white/30 font-medium">Impact</p>
+                  <div className="space-y-3 p-3 rounded-xl bg-[#1A1F26] border border-[#2A313A]">
+                    <p className="text-[10px] uppercase tracking-wider text-[#6B7380] font-medium">Impact</p>
                     <ImpactBar label="CPU Load" before={preSnap.cpuLoad} after={postSnap.cpuLoad} unit="%" color="bg-cyan-500" icon={Cpu} />
-                    <ImpactBar label="RAM Usage" before={preSnap.ramUsedPercent} after={postSnap.ramUsedPercent} unit="%" color="bg-violet-500" icon={MemoryStick} />
+                    <ImpactBar label="RAM Usage" before={preSnap.ramUsedPercent} after={postSnap.ramUsedPercent} unit="%" color="bg-[#00D4FF]" icon={MemoryStick} />
                     <ImpactBar label="Disk Active" before={preSnap.diskActiveTime} after={postSnap.diskActiveTime} unit="%" color="bg-amber-500" icon={HardDrive} />
                   </div>
                 )}
@@ -472,12 +472,12 @@ export function ApplyTweaksFlowModal({
                       return (
                         <div key={i} className="p-2.5 rounded-lg bg-red-500/5 border border-red-500/15 space-y-1">
                           <div className="flex items-center justify-between">
-                            <span className="text-[11px] text-white/70 font-medium">{t?.title ?? r.rec.tweakId}</span>
+                            <span className="text-[11px] text-[#E6EAF0] font-medium">{t?.title ?? r.rec.tweakId}</span>
                             <Badge variant="outline" className="text-[9px] h-4 border-red-500/20 text-red-400 bg-red-500/10">
                               {info.title}
                             </Badge>
                           </div>
-                          <p className="text-[10px] text-white/40">{info.hint}</p>
+                          <p className="text-[10px] text-[#6B7380]">{info.hint}</p>
                           {r.outcome.userMessage && (
                             <p className="text-[10px] text-red-400/70">{r.outcome.userMessage}</p>
                           )}

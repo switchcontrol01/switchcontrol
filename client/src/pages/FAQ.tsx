@@ -290,7 +290,7 @@ function AccordionItem({ item, index }: { item: FAQItem; index: number }) {
               transition={{ duration: 0.3, ease: EASE_IO }}
               className="shrink-0 mt-1"
             >
-              <ChevronDown className="size-4 text-white/30" />
+              <ChevronDown className="size-4 text-[#6B7380]" />
             </motion.div>
           </div>
 
@@ -309,7 +309,7 @@ function AccordionItem({ item, index }: { item: FAQItem; index: number }) {
                     className="h-px mb-4"
                     style={{ background: `linear-gradient(90deg, ${cat.color}0.2), transparent)` }}
                   />
-                  <p className="text-[14px] leading-relaxed text-white/55">
+                  <p className="text-[14px] leading-relaxed text-[#A0A8B3]">
                     {item.answer}
                   </p>
                 </div>
@@ -425,7 +425,7 @@ function InfoCard({
           <div className="text-[12px] font-bold uppercase tracking-[0.12em] mb-1" style={{ color: accentColor + "0.75)" }}>
             {title}
           </div>
-          <p className="text-[12.5px] text-white/45 leading-relaxed">{body}</p>
+          <p className="text-[12.5px] text-[#A0A8B3] leading-relaxed">{body}</p>
         </div>
       </div>
     </motion.div>
@@ -461,8 +461,8 @@ export default function FAQPage() {
               border: "1px solid rgba(139,92,246,0.22)",
             }}
           >
-            <HelpCircle className="size-3.5 text-violet-400" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-violet-300">
+            <HelpCircle className="size-3.5 text-[#00D4FF]" />
+            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#33E0FF]">
               Frequently Asked Questions
             </span>
           </motion.div>
@@ -474,7 +474,7 @@ export default function FAQPage() {
             transition={{ duration: 0.65, delay: 0.08, ease: EASE_OUT }}
             className="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.08] mb-5"
           >
-            <span className="text-white">Real answers,</span>
+            <span className="text-[#E6EAF0]">Real answers,</span>
             <br />
             <span
               style={{
@@ -493,7 +493,7 @@ export default function FAQPage() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.18, ease: EASE_OUT }}
-            className="text-[16px] text-white/45 max-w-xl mx-auto leading-relaxed mb-10"
+            className="text-[16px] text-[#A0A8B3] max-w-xl mx-auto leading-relaxed mb-10"
           >
             We answer the questions that actually matter — safety, compatibility,
             what to expect, and what makes SwitchControl worth using.
@@ -516,7 +516,7 @@ export default function FAQPage() {
                 }}
               >
                 <t.icon className="size-3" style={{ color: t.color }} />
-                <span className="text-[11.5px] font-medium text-white/55">{t.label}</span>
+                <span className="text-[11.5px] font-medium text-[#A0A8B3]">{t.label}</span>
               </div>
             ))}
           </motion.div>
@@ -559,8 +559,8 @@ export default function FAQPage() {
                 >
                   <t.icon className="size-4" style={{ color: t.color }} />
                 </div>
-                <div className="text-[13px] font-bold text-white/85 leading-tight mb-0.5">{t.label}</div>
-                <div className="text-[11px] text-white/35">{t.sub}</div>
+                <div className="text-[13px] font-bold text-[#E6EAF0]/85 leading-tight mb-0.5">{t.label}</div>
+                <div className="text-[11px] text-[#6B7380]">{t.sub}</div>
               </motion.div>
             ))}
           </div>
@@ -582,7 +582,7 @@ export default function FAQPage() {
                 }}
               >
                 <div className="px-3 pb-2 pt-1">
-                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/25">Categories</span>
+                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#6B7380]">Categories</span>
                 </div>
                 <CategoryPill
                   cat={{ id: "all" as any, label: "All Questions", icon: HelpCircle, color: "rgba(168,85,247," }}
@@ -616,9 +616,9 @@ export default function FAQPage() {
                   className="mb-6"
                 >
                   {activeCategory === "all" ? (
-                    <h2 className="text-xl font-bold text-white/80">
+                    <h2 className="text-xl font-bold text-[#E6EAF0]">
                       All Questions
-                      <span className="ml-2 text-sm font-normal text-white/25">({FAQ_ITEMS.length})</span>
+                      <span className="ml-2 text-sm font-normal text-[#6B7380]">({FAQ_ITEMS.length})</span>
                     </h2>
                   ) : (() => {
                     const cat = CATEGORIES.find(c => c.id === activeCategory)!;
@@ -630,9 +630,9 @@ export default function FAQPage() {
                         >
                           <cat.icon className="size-4" style={{ color: cat.color + "0.9)" }} />
                         </div>
-                        <h2 className="text-xl font-bold text-white/80">
+                        <h2 className="text-xl font-bold text-[#E6EAF0]">
                           {cat.label}
-                          <span className="ml-2 text-sm font-normal text-white/25">({countFor(activeCategory)})</span>
+                          <span className="ml-2 text-sm font-normal text-[#6B7380]">({countFor(activeCategory)})</span>
                         </h2>
                       </div>
                     );
@@ -739,13 +739,13 @@ export default function FAQPage() {
               className="inline-flex size-12 rounded-xl items-center justify-center mb-5"
               style={{ background: "rgba(139,92,246,0.12)", border: "1px solid rgba(139,92,246,0.22)" }}
             >
-              <MessageCircle className="size-5 text-violet-400" />
+              <MessageCircle className="size-5 text-[#00D4FF]" />
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">
+            <h2 className="text-2xl md:text-3xl font-bold text-[#E6EAF0] mb-3">
               Still have a question?
             </h2>
-            <p className="text-white/40 mb-8 leading-relaxed text-[15px] max-w-md mx-auto">
+            <p className="text-[#6B7380] mb-8 leading-relaxed text-[15px] max-w-md mx-auto">
               Join the Discord — we answer questions fast, and the community has been through most setup scenarios already.
             </p>
 
@@ -787,7 +787,7 @@ export default function FAQPage() {
                 { icon: CheckCircle2, text: "Real human support" },
                 { icon: CheckCircle2, text: "Community of 100+ users" },
               ].map(r => (
-                <div key={r.text} className="flex items-center gap-1.5 text-[12px] text-white/30">
+                <div key={r.text} className="flex items-center gap-1.5 text-[12px] text-[#6B7380]">
                   <r.icon className="size-3.5 text-emerald-500/60" />
                   {r.text}
                 </div>

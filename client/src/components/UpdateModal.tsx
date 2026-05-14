@@ -77,11 +77,11 @@ const PALETTE = {
     badgeBg:    "rgba(0,212,255,0.12)",
     badgeBorder:"rgba(0,212,255,0.30)",
     badgeText:  "rgba(196,181,253,0.95)",
-    icon:       <ArrowUpCircle className="size-5 text-violet-400" />,
+    icon:       <ArrowUpCircle className="size-5 text-[#00D4FF]" />,
     glow:       "shadow-[0_0_80px_rgba(109,40,217,0.20)]",
-    bar:        "from-violet-500 via-purple-400 to-cyan-400",
+    bar:        "from-#00D4FF via-text-[#00D4FF] to-cyan-400",
     accent:     "#33E0FF",
-    accentCls:  "text-violet-400",
+    accentCls:  "text-[#00D4FF]",
     orbitColor: "rgba(0,212,255,0.55)",
     canDismiss: true,
   },
@@ -340,7 +340,7 @@ function AvailableView({ version, urgency, onDownload, onDismiss }: AvailablePro
             whileTap={{ scale: 0.97 }}
             transition={{ type: "spring", stiffness: 360, damping: 22 }}
             data-testid="button-updater-download"
-            className="relative w-full overflow-hidden flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-semibold text-white"
+            className="relative w-full overflow-hidden flex items-center justify-center gap-2.5 py-3.5 rounded-xl text-sm font-semibold text-[#E6EAF0]"
             style={{
               background: `linear-gradient(135deg, hsl(265,70%,52%) 0%, hsl(258,72%,48%) 40%, hsl(195,80%,42%) 100%)`,
               boxShadow: `0 0 32px rgba(109,40,217,0.40), 0 4px 14px rgba(0,0,0,0.40)`,
@@ -389,24 +389,24 @@ function DownloadingView({ percent, transferred, total, bps, urgency }: Download
     <motion.div key="downloading" {...slide} className="p-8 space-y-5">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center">
-          <Download className="size-4.5 text-white/70" />
+        <div className="w-10 h-10 rounded-xl bg-[#21262D] border border-[#2A313A] flex items-center justify-center">
+          <Download className="size-4.5 text-[#E6EAF0]" />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white/90">Downloading update…</p>
-          <p className="text-xs text-white/35 mt-0.5">
+          <p className="text-sm font-semibold text-[#E6EAF0]">Downloading update…</p>
+          <p className="text-xs text-[#6B7380] mt-0.5">
             {total > 0 ? `${fmt(transferred)} / ${fmt(total)}` : "Calculating…"}
             {bps > 0 && ` · ${fmtSpeed(bps)}`}
           </p>
         </div>
-        <div className="ml-auto tabular-nums text-2xl font-bold text-white/80 leading-none">
-          {pct.toFixed(0)}<span className="text-base text-white/30">%</span>
+        <div className="ml-auto tabular-nums text-2xl font-bold text-[#E6EAF0] leading-none">
+          {pct.toFixed(0)}<span className="text-base text-[#6B7380]">%</span>
         </div>
       </div>
 
       {/* Progress track */}
       <div className="space-y-1.5">
-        <div className="relative h-2 w-full rounded-full bg-white/[0.07] overflow-hidden">
+        <div className="relative h-2 w-full rounded-full bg-[#21262D] overflow-hidden">
           <motion.div
             className={cn("absolute left-0 top-0 h-full rounded-full bg-gradient-to-r", p.bar)}
             animate={{ width: `${pct}%` }}
@@ -437,7 +437,7 @@ function DownloadingView({ percent, transferred, total, bps, urgency }: Download
         </div>
       </div>
 
-      <p className="text-[11px] text-white/25 text-center">Do not close the app during download.</p>
+      <p className="text-[11px] text-[#6B7380] text-center">Do not close the app during download.</p>
     </motion.div>
   );
 }
@@ -461,12 +461,12 @@ function InstallingView({ version, onInstall }: InstallingProps) {
           />
         </div>
         <div>
-          <p className="text-sm font-semibold text-white/90">Ready to install</p>
+          <p className="text-sm font-semibold text-[#E6EAF0]">Ready to install</p>
           <p className="text-xs text-emerald-400/80 mt-0.5">Version {version} downloaded successfully</p>
         </div>
       </div>
 
-      <p className="text-sm text-white/50 leading-relaxed">
+      <p className="text-sm text-[#A0A8B3] leading-relaxed">
         Switchcontrol will close and restart automatically to apply the update. Save any in-progress work before continuing.
       </p>
 
@@ -478,7 +478,7 @@ function InstallingView({ version, onInstall }: InstallingProps) {
         data-testid="button-updater-install"
         className={cn(
           "w-full flex items-center justify-center gap-2.5 py-3 rounded-xl",
-          "text-sm font-semibold text-white",
+          "text-sm font-semibold text-[#E6EAF0]",
           "bg-gradient-to-r from-emerald-600 to-teal-500",
           "shadow-[0_4px_24px_rgba(16,185,129,0.3)]",
           "transition-shadow hover:shadow-[0_6px_32px_rgba(16,185,129,0.45)]",
@@ -517,11 +517,11 @@ function RestartingView() {
       </div>
 
       <div className="text-center space-y-1.5">
-        <p className="text-base font-semibold text-white/90">Restarting…</p>
-        <p className="text-sm text-white/40">Applying update and restarting Switchcontrol.</p>
+        <p className="text-base font-semibold text-[#E6EAF0]">Restarting…</p>
+        <p className="text-sm text-[#6B7380]">Applying update and restarting Switchcontrol.</p>
       </div>
 
-      <div className="w-full h-0.5 rounded-full bg-white/[0.07] overflow-hidden">
+      <div className="w-full h-0.5 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"
           animate={{ x: ["-100%", "200%"] }}

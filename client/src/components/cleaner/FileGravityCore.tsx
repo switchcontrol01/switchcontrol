@@ -65,7 +65,7 @@ export function FileGravityCore({ items, trigger, onComplete, className }: Props
               return (
                 <motion.div
                   key={item.id}
-                  className="absolute px-2 py-1 rounded-md text-[10px] font-medium border border-white/[0.08] bg-white/[0.04] text-white/70 whitespace-nowrap"
+                  className="absolute px-2 py-1 rounded-md text-[10px] font-medium border border-[#2A313A] bg-[#21262D] text-[#E6EAF0] whitespace-nowrap"
                   style={{ left: `${xBase}%`, top: `${yBase}%`, transform: "translate(-50%, -50%)" }}
                   initial={{ opacity: 0, scale: 0.8, x: 0, y: 0 }}
                   animate={

@@ -33,7 +33,7 @@ export function SystemStateBar() {
   return (
     <motion.div
       data-testid="bar-system-state"
-      className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-white/[0.07] bg-white/[0.025]"
+      className="flex items-center gap-3 px-4 py-2.5 rounded-xl border border-[#2A313A] bg-white/[0.025]"
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: prefersReducedMotion ? 0 : 0.4, ease: [0.22, 1, 0.36, 1] }}
@@ -62,7 +62,7 @@ export function SystemStateBar() {
         </motion.span>
       </AnimatePresence>
 
-      <span className="text-white/20 text-xs shrink-0 select-none">·</span>
+      <span className="text-[#6B7380]/50 text-xs shrink-0 select-none">·</span>
 
       {/* Sublabel — truncated */}
       <AnimatePresence mode="wait">

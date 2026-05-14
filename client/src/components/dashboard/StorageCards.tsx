@@ -15,7 +15,7 @@ export function StorageCards({ ssds }: { ssds: SSDInfo[] }) {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
+      <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0] flex items-center gap-2">
         <HardDrive className="size-5 text-primary" />
         Storage
       </h2>
@@ -39,7 +39,7 @@ export function StorageCards({ ssds }: { ssds: SSDInfo[] }) {
                     <HardDrive className="size-4 text-primary" />
                   </div>
                   <div>
-                    <span className="text-sm font-medium text-white">{ssd.name}</span>
+                    <span className="text-sm font-medium text-[#E6EAF0]">{ssd.name}</span>
                     <span className={cn(
                       "ml-2 text-[9px] px-1.5 py-0.5 rounded uppercase font-medium",
                       ssd.status === "Active" 
@@ -58,11 +58,11 @@ export function StorageCards({ ssds }: { ssds: SSDInfo[] }) {
                 <div className="grid grid-cols-3 gap-2 text-[10px]">
                   <div>
                     <span className="text-muted-foreground block">Total</span>
-                    <span className="text-white font-mono">{ssd.totalGB} GB</span>
+                    <span className="text-[#E6EAF0] font-mono">{ssd.totalGB} GB</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Used</span>
-                    <span className="text-white font-mono">{safeFixed(usedGB, 0)} GB</span>
+                    <span className="text-[#E6EAF0] font-mono">{safeFixed(usedGB, 0)} GB</span>
                   </div>
                   <div>
                     <span className="text-muted-foreground block">Free</span>

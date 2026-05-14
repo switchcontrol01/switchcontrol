@@ -297,11 +297,11 @@ export default function DownloadPage() {
           >
             <defs>
               <linearGradient id="dlGrad1" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0" />
-                <stop offset="18%" stopColor="#8b5cf6" stopOpacity="0.28" />
+                <stop offset="0%" stopColor="#00D4FF" stopOpacity="0" />
+                <stop offset="18%" stopColor="#00D4FF" stopOpacity="0.28" />
                 <stop offset="50%" stopColor="#67e8f9" stopOpacity="0.42" />
-                <stop offset="82%" stopColor="#8b5cf6" stopOpacity="0.28" />
-                <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+                <stop offset="82%" stopColor="#00D4FF" stopOpacity="0.28" />
+                <stop offset="100%" stopColor="#00D4FF" stopOpacity="0" />
               </linearGradient>
               <linearGradient id="dlGrad2" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#6d28d9" stopOpacity="0" />
@@ -311,18 +311,18 @@ export default function DownloadPage() {
                 <stop offset="100%" stopColor="#6d28d9" stopOpacity="0" />
               </linearGradient>
               <linearGradient id="dlGrad3" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#7c3aed" stopOpacity="0" />
-                <stop offset="25%" stopColor="#7c3aed" stopOpacity="0.14" />
+                <stop offset="0%" stopColor="#00D4FF" stopOpacity="0" />
+                <stop offset="25%" stopColor="#00D4FF" stopOpacity="0.14" />
                 <stop offset="55%" stopColor="#a78bfa" stopOpacity="0.20" />
-                <stop offset="80%" stopColor="#7c3aed" stopOpacity="0.14" />
-                <stop offset="100%" stopColor="#7c3aed" stopOpacity="0" />
+                <stop offset="80%" stopColor="#00D4FF" stopOpacity="0.14" />
+                <stop offset="100%" stopColor="#00D4FF" stopOpacity="0" />
               </linearGradient>
               <linearGradient id="dlGrad4" x1="0%" y1="0%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#8b5cf6" stopOpacity="0" />
-                <stop offset="30%" stopColor="#8b5cf6" stopOpacity="0.10" />
+                <stop offset="0%" stopColor="#00D4FF" stopOpacity="0" />
+                <stop offset="30%" stopColor="#00D4FF" stopOpacity="0.10" />
                 <stop offset="60%" stopColor="#67e8f9" stopOpacity="0.16" />
-                <stop offset="85%" stopColor="#8b5cf6" stopOpacity="0.10" />
-                <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+                <stop offset="85%" stopColor="#00D4FF" stopOpacity="0.10" />
+                <stop offset="100%" stopColor="#00D4FF" stopOpacity="0" />
               </linearGradient>
             </defs>
             {/* Line at ~18% viewport height */}
@@ -673,7 +673,7 @@ export default function DownloadPage() {
                   style={{
                     width: "100%", padding: "15px 20px", borderRadius: "12px",
                     border: "none", cursor: "pointer",
-                    background: "linear-gradient(135deg,#7c3aed 0%,#6d28d9 40%,#4c1d95 100%)",
+                    background: "linear-gradient(135deg,#00D4FF 0%,#6d28d9 40%,#4c1d95 100%)",
                     boxShadow: "0 10px 34px rgba(109,40,217,0.56),inset 0 1px 0 rgba(255,255,255,0.18)",
                     display: "flex", alignItems: "center", justifyContent: "center", gap: "10px",
                     fontSize: "15px", fontWeight: 700, color: "#fff", letterSpacing: "0.01em",

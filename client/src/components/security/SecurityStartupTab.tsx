@@ -107,7 +107,7 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
     <div className={cn("rounded-xl border border-[#2A313A] overflow-hidden transition-all", item.recommendation === "disable" ? "border-red-500/20" : item.recommendation === "review" ? "border-amber-500/15" : "")}>
       {/* Main row */}
       <div
-        className="flex items-center gap-3 p-3.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="flex items-center gap-3 p-3.5 cursor-pointer hover:bg-[#1A1F26] transition-colors"
         onClick={() => setExpanded(e => !e)}
         data-testid={`startup-row-${item.name.toLowerCase().replace(/\s+/g, "-")}`}
       >
@@ -142,7 +142,7 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#2A313A] p-3.5 space-y-3 bg-white/[0.02]">
+            <div className="border-t border-[#2A313A] p-3.5 space-y-3 bg-[#1A1F26]">
               {/* Command path */}
               <div>
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Command</p>
@@ -187,11 +187,11 @@ function StartupRow({ item, hasSecurity }: { item: StartupItem; hasSecurity: boo
                     {showDelay && (
                       <motion.div
                         initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
-                        className="absolute top-full left-0 mt-1 bg-zinc-900 border border-[#2A313A]0 rounded-lg shadow-xl z-10 overflow-hidden min-w-32"
+                        className="absolute top-full left-0 mt-1 bg-zinc-900 border border-[#2A313A] rounded-lg shadow-xl z-10 overflow-hidden min-w-32"
                       >
                         {DELAY_OPTIONS.map(opt => (
                           <button key={opt.iso} onClick={() => applyDelay(opt.iso)}
-                            className="w-full px-3 py-2 text-xs text-left hover:bg-white/8 transition-colors text-muted-foreground hover:text-foreground">
+                            className="w-full px-3 py-2 text-xs text-left hover:bg-[#21262D] transition-colors text-muted-foreground hover:text-foreground">
                             {opt.label}
                           </button>
                         ))}
@@ -257,7 +257,7 @@ export function SecurityStartupTab({
           </div>
           <div className="flex items-center gap-2">
             {/* Filter buttons */}
-            <div className="flex gap-1 bg-white/[0.04] rounded-lg p-1">
+            <div className="flex gap-1 bg-[#21262D] rounded-lg p-1">
               {(["all", "review", "disable"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={cn("px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors capitalize",

@@ -5,7 +5,7 @@
  * PremiumCardOverlay. Upgraded to match the rich glass-panel design.
  *
  * Layout: crown orb + "PREMIUM FEATURE" label + feature name heading,
- * purple-gradient divider, 3 feature-aware benefit bullets, dual CTA.
+ * Cyan-accented divider, 3 feature-aware benefit bullets, dual CTA.
  * Animations are CSS @keyframes (zero framer-motion infinite loops).
  */
 
@@ -166,7 +166,7 @@ export function PremiumOverlayCard({
           >
             Premium Feature
           </p>
-          <h3 className="text-[1.2rem] font-bold text-white leading-tight">
+          <h3 className="text-[1.2rem] font-bold text-[#E6EAF0] leading-tight">
             {displayName || featureName}
           </h3>
         </div>
@@ -174,7 +174,7 @@ export function PremiumOverlayCard({
 
       {/* Optional description override */}
       {description && (
-        <p className="text-sm text-white/55 -mt-1">{description}</p>
+        <p className="text-sm text-[#A0A8B3] -mt-1">{description}</p>
       )}
 
       {/* Divider */}
@@ -193,7 +193,7 @@ export function PremiumOverlayCard({
             >
               <Check className="w-2.5 h-2.5" style={{ color: premiumColor.lighter }} />
             </span>
-            <span className="text-sm text-white/65 leading-snug">{b}</span>
+            <span className="text-sm text-[#E6EAF0]/65 leading-snug">{b}</span>
           </li>
         ))}
       </ul>
@@ -202,7 +202,7 @@ export function PremiumOverlayCard({
       <div className="flex items-center gap-2.5 pt-0.5">
         <Button
           onClick={openPricing}
-          className="flex-1 text-white font-semibold py-2.5 rounded-xl"
+          className="flex-1 text-[#E6EAF0] font-semibold py-2.5 rounded-xl"
           style={{
             background: `linear-gradient(135deg,${premiumColor.main},${premiumColor.end})`,
             boxShadow: `0 4px 22px ${premiumRgba.glow35},0 0 0 1px rgba(255,255,255,0.10) inset`,
@@ -216,7 +216,7 @@ export function PremiumOverlayCard({
         <Button
           variant="outline"
           onClick={openPricing}
-          className="text-white/55 hover:text-white/90 transition-colors rounded-xl"
+          className="text-[#A0A8B3] hover:text-[#E6EAF0] transition-colors rounded-xl"
           style={{
             background: "rgba(255,255,255,0.05)",
             borderColor: "rgba(255,255,255,0.12)",

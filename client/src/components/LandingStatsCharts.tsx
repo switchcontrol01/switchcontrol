@@ -134,14 +134,14 @@ function StatChartCard({
   const accentMap: Record<string, string> = {
     emerald: "text-emerald-400",
     cyan:    "text-[hsl(190,85%,50%)]",
-    violet:  "text-violet-400",
+    violet:  "text-[#00D4FF]",
     amber:   "text-amber-400",
   };
 
   const glowMap: Record<string, string> = {
     emerald: "from-emerald-500/[0.08]",
     cyan:    "from-sky-500/[0.08]",
-    violet:  "from-violet-500/[0.08]",
+    violet:  "from-#00D4FF/[0.08]",
     amber:   "from-amber-500/[0.08]",
   };
 
@@ -151,7 +151,7 @@ function StatChartCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.5, delay: index * 0.1, ease: [0.22, 1, 0.36, 1] }}
-      className="relative flex flex-col rounded-2xl border border-white/[0.08] overflow-hidden group"
+      className="relative flex flex-col rounded-2xl border border-[#2A313A] overflow-hidden group"
       style={{
         background: "linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.016) 100%)",
         backdropFilter: "blur(16px)",
@@ -168,7 +168,7 @@ function StatChartCard({
         <div className={cn("text-4xl md:text-5xl font-black tracking-tight leading-none mb-1", accentMap[accent])}>
           {value}
         </div>
-        <div className="text-[11px] text-white/35 uppercase tracking-widest font-medium">{label}</div>
+        <div className="text-[11px] text-[#6B7380] uppercase tracking-widest font-medium">{label}</div>
       </div>
 
       {/* Sparkline */}
@@ -178,11 +178,11 @@ function StatChartCard({
 
       {/* Legend */}
       <div className="px-4 pb-3 flex items-center gap-3">
-        <span className="flex items-center gap-1.5 text-[9px] text-white/30">
+        <span className="flex items-center gap-1.5 text-[9px] text-[#6B7380]">
           <span className="w-4 h-px rounded-full" style={{ backgroundColor: beforeColor, opacity: 0.7 }} />
           {legendBefore}
         </span>
-        <span className="flex items-center gap-1.5 text-[9px] text-white/50">
+        <span className="flex items-center gap-1.5 text-[9px] text-[#A0A8B3]">
           <span className="w-4 h-px rounded-full" style={{ backgroundColor: afterColor }} />
           {legendAfter}
         </span>

@@ -390,7 +390,7 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
             boxShadow: "-8px 0 28px rgba(168,85,247,0.24), 8px 0 28px rgba(59,130,246,0.18), 0 22px 48px rgba(0,0,0,0.58)",
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-violet-500/8 via-transparent to-blue-500/8 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-#00D4FF/8 via-transparent to-blue-500/8 pointer-events-none" />
 
           <div className="relative flex flex-col items-center gap-6 mb-8">
             {/*

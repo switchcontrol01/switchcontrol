@@ -37,9 +37,9 @@ export function CleanerProgressTimeline({ phase, currentStep, cleanProgress = 0 
       : -1;
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+    <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-4">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-medium text-white">
+        <p className="text-xs font-medium text-[#E6EAF0]">
           {isScan ? "Scanning system…" : done ? "Cleanup complete" : "Cleaning system…"}
         </p>
         {isClean && !done && (
@@ -63,7 +63,7 @@ export function CleanerProgressTimeline({ phase, currentStep, cleanProgress = 0 
                     ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                     : active
                       ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
-                      : "bg-white/[0.02] border-white/[0.05] text-white/30"
+                      : "bg-[#1A1F26] border-[#2A313A] text-[#6B7380]"
                 )}
                 animate={active ? { scale: [1, 1.02, 1] } : {}}
                 transition={{ duration: 1.2, repeat: 2 }}

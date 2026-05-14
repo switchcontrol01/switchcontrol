@@ -59,7 +59,7 @@ export function TelemetrySparkline({
   min,
   max,
   color = "#06b6d4",
-  colorStop = "#7c3aed",
+  colorStop = "#00D4FF",
   height = 64,
   showGrid = true,
   showArea = true,

@@ -63,7 +63,7 @@ export function CleanerRecommendedCard({ items, findings, onApply, onReview, sca
       transition={{ duration: 0.4, delay: 0.2 }}
       className={cn(
         "rounded-xl border p-4 transition-all duration-300",
-        "bg-white/[0.03] border-white/[0.08]",
+        "bg-[#1A1F26] border-[#2A313A]",
         "shadow-[0_0_24px_rgba(0,212,255,0.08)]"
       )}
     >
@@ -71,14 +71,14 @@ export function CleanerRecommendedCard({ items, findings, onApply, onReview, sca
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="size-4 text-primary" />
-            <span className="text-sm font-semibold text-white">Recommended Clean</span>
+            <span className="text-sm font-semibold text-[#E6EAF0]">Recommended Clean</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded border border-primary/20 bg-primary/10 text-primary">
               {recommendation.benefit}
             </span>
           </div>
           <p className="text-xs text-muted-foreground/70">
             We recommend cleaning{" "}
-            <span className="text-white font-semibold tabular-nums">{fmtBytes(recommendation.totalBytes)}</span>
+            <span className="text-[#E6EAF0] font-semibold tabular-nums">{fmtBytes(recommendation.totalBytes)}</span>
             {" "}across {recommendation.totalItems} safe items
           </p>
 
@@ -87,10 +87,10 @@ export function CleanerRecommendedCard({ items, findings, onApply, onReview, sca
             {recommendation.top3.map(item => (
               <div
                 key={item.id}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.06]"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#1A1F26] border border-[#2A313A]"
               >
                 <TrendingUp className="size-3 text-emerald-400" />
-                <span className="text-[10px] text-white/70">{item.name}</span>
+                <span className="text-[10px] text-[#E6EAF0]">{item.name}</span>
                 <span className="text-[10px] text-emerald-400 tabular-nums font-medium">{fmtBytes(item.size)}</span>
               </div>
             ))}
@@ -101,7 +101,7 @@ export function CleanerRecommendedCard({ items, findings, onApply, onReview, sca
           <Button
             onClick={onApply}
             size="sm"
-            className="h-8 px-3 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-white"
+            className="h-8 px-3 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-[#E6EAF0]"
           >
             <ShieldCheck className="size-3 mr-1" />
             Apply Recommended
@@ -110,7 +110,7 @@ export function CleanerRecommendedCard({ items, findings, onApply, onReview, sca
             onClick={onReview}
             variant="ghost"
             size="sm"
-            className="h-8 px-3 text-xs rounded-lg text-white/50 hover:text-white hover:bg-[#21262D]"
+            className="h-8 px-3 text-xs rounded-lg text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#21262D]"
           >
             Review
             <ChevronRight className="size-3 ml-0.5" />

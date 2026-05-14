@@ -30,7 +30,7 @@ export default function Tweaks() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
         >
-          <h1 className="text-3xl font-bold tracking-tight text-white flex items-center gap-3">
+          <h1 className="text-3xl font-bold tracking-tight text-[#E6EAF0] flex items-center gap-3">
             <motion.span
               initial={{ rotate: -20, scale: 0.6, opacity: 0 }}
               animate={{ rotate: 0, scale: 1, opacity: 1 }}

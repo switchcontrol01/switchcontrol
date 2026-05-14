@@ -76,12 +76,12 @@ const URGENCY_CONFIG = {
     desc: 'Includes significant improvements.',
   },
   normal: {
-    border: 'border-violet-500/20',
-    bg: 'bg-violet-500/4',
+    border: 'border-[#00D4FF]',
+    bg: 'bg-[#00D4FF]',
     glow: 'shadow-[0_0_16px_-8px_rgba(0,212,255,0.2)]',
-    accent: 'text-violet-400',
-    badge: 'bg-violet-500/15 text-violet-300 border-violet-500/25 border',
-    icon: <ArrowUpCircle className="size-4 text-violet-400" />,
+    accent: 'text-[#00D4FF]',
+    badge: 'bg-[#00D4FF] text-[#33E0FF] border-[#00D4FF] border',
+    icon: <ArrowUpCircle className="size-4 text-[#00D4FF]" />,
     label: 'Update Available',
     desc: 'Latest improvements and fixes.',
   },
@@ -121,9 +121,9 @@ export function UpdateCard() {
             <CardDescription>Keep SwitchControl up to date for the best experience.</CardDescription>
           </div>
           {/* Channel badge */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#21262D] border border-[#2A313A]">
             <Radio className="size-3 text-emerald-400" />
-            <span className="text-[11px] font-medium text-white/60 uppercase tracking-wider">
+            <span className="text-[11px] font-medium text-[#A0A8B3] uppercase tracking-wider">
               {channel}
             </span>
           </div>
@@ -134,7 +134,7 @@ export function UpdateCard() {
         {/* Current version row */}
         <div className="flex items-center justify-between text-sm">
           <span className="text-muted-foreground">Installed version</span>
-          <span className="font-mono text-white/70">{currentVersion ?? '—'}</span>
+          <span className="font-mono text-[#E6EAF0]">{currentVersion ?? '—'}</span>
         </div>
 
         {/* ── offline ── */}
@@ -144,7 +144,7 @@ export function UpdateCard() {
               <WifiOff className="size-5 text-amber-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-white/80">No internet connection</p>
+              <p className="text-sm font-medium text-[#E6EAF0]">No internet connection</p>
               <p className="text-xs text-muted-foreground mt-0.5">Update checks require internet access.</p>
             </div>
           </GlassCard>
@@ -157,7 +157,7 @@ export function UpdateCard() {
               <CheckCircle2 className="size-5 text-emerald-400" />
             </div>
             <div className="flex-1">
-              <p className="text-sm font-medium text-white/90">
+              <p className="text-sm font-medium text-[#E6EAF0]">
                 {status === 'not-available' ? "You're up to date" : 'Check for an update'}
               </p>
               {checkedAt && (
@@ -181,8 +181,8 @@ export function UpdateCard() {
         {/* ── checking ── */}
         {status === 'checking' && (
           <GlassCard className="p-4 flex items-center gap-3">
-            <Loader2 className="size-5 text-violet-400 animate-spin shrink-0" />
-            <p className="text-sm text-white/70">Checking for updates…</p>
+            <Loader2 className="size-5 text-[#00D4FF] animate-spin shrink-0" />
+            <p className="text-sm text-[#E6EAF0]">Checking for updates…</p>
           </GlassCard>
         )}
 
@@ -204,10 +204,10 @@ export function UpdateCard() {
                       {urgCfg.label}
                     </span>
                     {releaseDate && (
-                      <span className="text-xs text-white/35">{formatDate(releaseDate)}</span>
+                      <span className="text-xs text-[#6B7380]">{formatDate(releaseDate)}</span>
                     )}
                   </div>
-                  <p className="text-sm text-white/80">
+                  <p className="text-sm text-[#E6EAF0]">
                     Version <span className={`font-semibold ${urgCfg.accent}`}>{availableVersion}</span> is available.
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">{urgCfg.desc}</p>
@@ -219,7 +219,7 @@ export function UpdateCard() {
                 <div>
                   <button
                     onClick={() => setShowNotes(v => !v)}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-white/70 transition-colors"
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-[#E6EAF0] transition-colors"
                     data-testid="button-updater-toggle-notes"
                   >
                     {showNotes ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
@@ -254,19 +254,19 @@ export function UpdateCard() {
 
         {/* ── downloading ── */}
         {status === 'downloading' && (
-          <GlassCard className="p-4 space-y-3 border-violet-500/20">
+          <GlassCard className="p-4 space-y-3 border-[#00D4FF]">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
-                <Loader2 className="size-4 text-violet-400 animate-spin" />
-                <span className="text-white/80">Downloading update…</span>
+                <Loader2 className="size-4 text-[#00D4FF] animate-spin" />
+                <span className="text-[#E6EAF0]">Downloading update…</span>
               </div>
-              <span className="text-violet-400 font-semibold">{downloadPercent}%</span>
+              <span className="text-[#00D4FF] font-semibold">{downloadPercent}%</span>
             </div>
 
             {/* Progress bar */}
-            <div className="h-1.5 w-full rounded-full bg-white/8 overflow-hidden">
+            <div className="h-1.5 w-full rounded-full bg-[#21262D] overflow-hidden">
               <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400 shadow-[0_0_10px_rgba(0,212,255,0.6)]"
+                className="h-full rounded-full bg-gradient-to-r from-[#00D4FF] to-[#33E0FF] shadow-[0_0_10px_rgba(0,212,255,0.6)]"
                 animate={{ width: `${downloadPercent}%` }}
                 transition={{ ease: 'linear', duration: 0.35 }}
               />
@@ -292,7 +292,7 @@ export function UpdateCard() {
                   <CheckCircle2 className="size-5 text-emerald-400" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-white/90">Ready to install</p>
+                  <p className="text-sm font-medium text-[#E6EAF0]">Ready to install</p>
                   <p className="text-xs text-emerald-400/70 mt-0.5">
                     v{availableVersion} downloaded. Restart to apply.
                   </p>
@@ -308,7 +308,7 @@ export function UpdateCard() {
                 <RefreshCw className="size-3.5" />
                 Restart &amp; Install Now
               </Button>
-              <p className="text-[10px] text-white/30 text-center">
+              <p className="text-[10px] text-[#6B7380] text-center">
                 The app will restart and install the update automatically.
               </p>
             </GlassCard>
@@ -321,7 +321,7 @@ export function UpdateCard() {
             <div className="flex items-start gap-3">
               <AlertTriangle className="size-5 text-red-400 shrink-0 mt-0.5" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white/80">Update check failed</p>
+                <p className="text-sm font-medium text-[#E6EAF0]">Update check failed</p>
                 <p className="text-xs text-red-400/70 mt-1 break-words">
                   {humanizeError(errorMessage)}
                 </p>

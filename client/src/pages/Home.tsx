@@ -135,7 +135,7 @@ function AIAdvisorSummaryCard({ isPremium }: { isPremium: boolean }) {
               </p>
             </div>
             {insight.primary && (
-              <p className="text-[10px] text-white/60 leading-snug px-0.5" data-testid="text-advisor-insight">
+              <p className="text-[10px] text-[#A0A8B3] leading-snug px-0.5" data-testid="text-advisor-insight">
                 {insight.primary}
               </p>
             )}
@@ -582,7 +582,7 @@ export default function Home() {
                 transition={{ duration: 0.65, ease: [0.22, 1, 0.36, 1] }}
                 className="flex items-center flex-wrap gap-x-2 gap-y-1"
               >
-                <h1 className="greeting-glow text-3xl font-bold tracking-tight text-white leading-tight">
+                <h1 className="greeting-glow text-3xl font-bold tracking-tight text-[#E6EAF0] leading-tight">
                   Good {getGreeting()},
                 </h1>
 
@@ -629,7 +629,7 @@ export default function Home() {
                 data-testid="chip-system-status"
               >
                 <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-500" : "bg-red-500"}`} />
-                <span className="text-xs text-white/40 font-medium tracking-wide">
+                <span className="text-xs text-[#6B7380] font-medium tracking-wide">
                   {isOnline ? "System Active" : "No Connection"}
                 </span>
               </div>
@@ -644,7 +644,7 @@ export default function Home() {
                 View Logs
               </Button>
               <Button
-                className="gap-2 bg-primary hover:bg-primary/90 text-white font-medium border-0"
+                className="gap-2 bg-primary hover:bg-primary/90 text-[#E6EAF0] font-medium border-0"
                 data-testid="button-optimize-now"
                 onClick={() => navigate("/tweaks")}
               >
@@ -681,7 +681,7 @@ export default function Home() {
         {/* Activity Monitor Grid */}
         <Reveal className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
+            <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0] flex items-center gap-2">
               <Activity className="size-5 text-primary" />
               Activity Monitor
             </h2>
@@ -720,7 +720,7 @@ export default function Home() {
                 icon={Cpu}
                 onIconClick={() => setCpuModalOpen(true)}
                 subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
-                className="border-purple-500/20 shadow-[0_0_20px_-10px_hsl(270_100%_50%/0.1)]"
+                className="border-[#00D4FF] shadow-[0_0_20px_-10px_hsl(270_100%_50%/0.1)]"
                 loading={specStatus === "loading"}
               />
             </div>
@@ -745,12 +745,12 @@ export default function Home() {
                       <select 
                         value={selectedDiskIndex}
                         onChange={(e) => setSelectedDiskIndex(Number(e.target.value))}
-                        className="bg-transparent border border-white/20 rounded px-1.5 py-0.5 text-xs cursor-pointer hover:border-primary/50 transition-colors focus:outline-none focus:border-primary"
+                        className="bg-transparent border border-[#2A313A] rounded px-1.5 py-0.5 text-xs cursor-pointer hover:border-primary/50 transition-colors focus:outline-none focus:border-primary"
                         onClick={(e) => e.stopPropagation()}
                         data-testid="select-disk-drive"
                       >
                         {allDisks.map((disk, idx) => (
-                          <option key={disk.mount} value={idx} className="bg-zinc-900 text-white">
+                          <option key={disk.mount} value={idx} className="bg-zinc-900 text-[#E6EAF0]">
                             {disk.mount}
                           </option>
                         ))}
@@ -807,10 +807,10 @@ export default function Home() {
         {/* System Intelligence — Live Dynamic Grid */}
         {sysIntel.profile && (
           <Reveal className="space-y-4" delay={0.12}>
-            <h2 className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2">
-              <MonitorCog className="size-5 text-violet-400" />
+            <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0] flex items-center gap-2">
+              <MonitorCog className="size-5 text-[#00D4FF]" />
               System Intelligence
-              <span className="ml-auto text-[10px] font-mono text-white/30">
+              <span className="ml-auto text-[10px] font-mono text-[#6B7380]">
                 {new Date(sysIntel.profile.collectedAt).toLocaleTimeString()}
               </span>
             </h2>
@@ -823,27 +823,27 @@ export default function Home() {
                     <div className="w-6 h-6 rounded-lg bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
                       <Network className="size-3 text-blue-400" />
                     </div>
-                    <span className="text-xs font-semibold text-white/70">Network Interfaces</span>
+                    <span className="text-xs font-semibold text-[#E6EAF0]">Network Interfaces</span>
                   </div>
                   <div className="space-y-2">
                     {sysIntel.profile.network.interfaces.slice(0, 4).map((iface, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 text-xs">
                         <div className="flex items-center gap-1.5 min-w-0">
                           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${iface.operstate === "up" ? "bg-emerald-400" : "bg-[#1A1F26]0"}`} />
-                          <span className="text-white/60 truncate">{iface.name ?? "Interface"}</span>
+                          <span className="text-[#A0A8B3] truncate">{iface.name ?? "Interface"}</span>
                           <span className={`text-[10px] px-1 py-0 rounded border font-medium ${iface.wifi ? "text-blue-400 border-blue-500/20 bg-blue-500/10" : "text-emerald-400 border-emerald-500/20 bg-emerald-500/10"}`}>
                             {iface.wifi ? "Wi-Fi" : "Ethernet"}
                           </span>
                         </div>
-                        <span className="text-white/50 font-mono shrink-0">
+                        <span className="text-[#A0A8B3] font-mono shrink-0">
                           {iface.speedMbps ? `${iface.speedMbps}M` : "—"}
                         </span>
                       </div>
                     ))}
                     {sysIntel.profile.network.defaultGateway && (
-                      <div className="pt-1 border-t border-white/[0.06]">
-                        <p className="text-[10px] text-white/30">
-                          Gateway: <span className="font-mono text-white/50">{sysIntel.profile.network.defaultGateway}</span>
+                      <div className="pt-1 border-t border-[#2A313A]">
+                        <p className="text-[10px] text-[#6B7380]">
+                          Gateway: <span className="font-mono text-[#A0A8B3]">{sysIntel.profile.network.defaultGateway}</span>
                         </p>
                       </div>
                     )}
@@ -858,20 +858,20 @@ export default function Home() {
                     <div className="w-6 h-6 rounded-lg bg-orange-500/15 border border-orange-500/25 flex items-center justify-center shrink-0">
                       <Cpu className="size-3 text-orange-400" />
                     </div>
-                    <span className="text-xs font-semibold text-white/70">Top CPU Processes</span>
+                    <span className="text-xs font-semibold text-[#E6EAF0]">Top CPU Processes</span>
                   </div>
                   <div className="space-y-1.5">
                     {sysIntel.profile.processes.topCpu.slice(0, 6).map((proc, i) => (
                       <div key={i} className="flex items-center gap-2 text-xs">
-                        <span className="text-[10px] text-white/30 w-4 font-mono shrink-0">{i + 1}</span>
+                        <span className="text-[10px] text-[#6B7380] w-4 font-mono shrink-0">{i + 1}</span>
                         <div className="flex-1 min-w-0 relative">
                           <div
                             className="absolute inset-y-0 left-0 rounded bg-orange-500/10"
                             style={{ width: `${Math.min(100, (proc.cpu ?? 0) * 3)}%` }}
                           />
-                          <span className="relative text-white/70 truncate block">{proc.name}</span>
+                          <span className="relative text-[#E6EAF0] truncate block">{proc.name}</span>
                         </div>
-                        <span className={`font-mono shrink-0 ${(proc.cpu ?? 0) > 20 ? "text-red-400" : (proc.cpu ?? 0) > 10 ? "text-amber-400" : "text-white/50"}`}>
+                        <span className={`font-mono shrink-0 ${(proc.cpu ?? 0) > 20 ? "text-red-400" : (proc.cpu ?? 0) > 10 ? "text-amber-400" : "text-[#A0A8B3]"}`}>
                           {proc.cpu?.toFixed(1) ?? "–"}%
                         </span>
                       </div>
@@ -886,10 +886,10 @@ export default function Home() {
                   <div className="w-6 h-6 rounded-lg bg-teal-500/15 border border-teal-500/25 flex items-center justify-center shrink-0">
                     <Zap className="size-3 text-teal-400" />
                   </div>
-                  <span className="text-xs font-semibold text-white/70">Recent Actions</span>
+                  <span className="text-xs font-semibold text-[#E6EAF0]">Recent Actions</span>
                 </div>
                 {activityEvents.length === 0 ? (
-                  <p className="text-[11px] text-white/30 leading-snug">
+                  <p className="text-[11px] text-[#6B7380] leading-snug">
                     No optimizer actions recorded yet. Run a scan or clear RAM to see activity here.
                   </p>
                 ) : (
@@ -904,12 +904,12 @@ export default function Home() {
                             : "bg-[#1A1F26]0"
                         }`} />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] text-white/70 leading-tight truncate">{evt.label}</p>
+                          <p className="text-[11px] text-[#E6EAF0] leading-tight truncate">{evt.label}</p>
                           {evt.detail && (
-                            <p className="text-[10px] text-white/35 leading-tight truncate">{evt.detail}</p>
+                            <p className="text-[10px] text-[#6B7380] leading-tight truncate">{evt.detail}</p>
                           )}
                         </div>
-                        <span className="text-[9px] text-white/25 shrink-0 font-mono tabular-nums">
+                        <span className="text-[9px] text-[#6B7380] shrink-0 font-mono tabular-nums">
                           {new Date(evt.ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       </div>
@@ -926,8 +926,8 @@ export default function Home() {
         <Reveal className="space-y-3">
           <div className="flex items-center gap-2">
             <Activity className="size-4 text-cyan-400" />
-            <h2 className="text-lg font-semibold tracking-tight text-white/90">Telemetry Analytics</h2>
-            <span className="ml-auto text-[9px] uppercase tracking-widest text-white/20 font-semibold">Live · Rolling window</span>
+            <h2 className="text-lg font-semibold tracking-tight text-[#E6EAF0]">Telemetry Analytics</h2>
+            <span className="ml-auto text-[9px] uppercase tracking-widest text-[#6B7380]/50 font-semibold">Live · Rolling window</span>
           </div>
 
           {/* Three live graph cards */}
@@ -958,28 +958,28 @@ export default function Home() {
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-muted-foreground">Tweaks applied</span>
-                    <span className="text-white font-mono">{account.stats.tweaksApplied} / {totalTweaks}</span>
+                    <span className="text-[#E6EAF0] font-mono">{account.stats.tweaksApplied} / {totalTweaks}</span>
                   </div>
                   <Progress value={(account.stats.tweaksApplied / totalTweaks) * 100} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-muted-foreground">Services disabled</span>
-                    <span className="text-white font-mono">{account.stats.servicesDisabled} / {totalServices}</span>
+                    <span className="text-[#E6EAF0] font-mono">{account.stats.servicesDisabled} / {totalServices}</span>
                   </div>
                   <Progress value={(account.stats.servicesDisabled / totalServices) * 100} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-muted-foreground">Cleaners run</span>
-                    <span className="text-white font-mono">{account.stats.cleanersRun} / {totalCleaners}</span>
+                    <span className="text-[#E6EAF0] font-mono">{account.stats.cleanersRun} / {totalCleaners}</span>
                   </div>
                   <Progress value={(account.stats.cleanersRun / totalCleaners) * 100} className="h-1" />
                 </div>
                 <div className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
                     <span className="text-muted-foreground">Startup apps disabled</span>
-                    <span className="text-white font-mono">{account.stats.startupAppsDisabled} / {totalStartup}</span>
+                    <span className="text-[#E6EAF0] font-mono">{account.stats.startupAppsDisabled} / {totalStartup}</span>
                   </div>
                   <Progress value={(account.stats.startupAppsDisabled / totalStartup) * 100} className="h-1" />
                 </div>

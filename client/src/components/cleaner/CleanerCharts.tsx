@@ -68,7 +68,7 @@ const ITEM_LABELS: Record<string, string> = {
 function EmptyState({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center h-32 gap-2">
-      <div className="size-8 rounded-full bg-white/[0.04] flex items-center justify-center">
+      <div className="size-8 rounded-full bg-[#21262D] flex items-center justify-center">
         <span className="text-muted-foreground/30 text-lg">~</span>
       </div>
       <p className="text-[11px] text-muted-foreground/40">{label}</p>
@@ -91,7 +91,7 @@ function JunkTrendChart({ scanHistory }: { scanHistory: ScanHistoryEntry[] }) {
   return (
     <GlassCard className="p-4 space-y-3">
       <div>
-        <p className="text-xs font-semibold text-white">Junk Found Over Time</p>
+        <p className="text-xs font-semibold text-[#E6EAF0]">Junk Found Over Time</p>
         <p className="text-[10px] text-muted-foreground/50">Total MB detected per scan</p>
       </div>
       {data.length < 2 ? (
@@ -144,7 +144,7 @@ function CleanTrendChart({ cleanHistory }: { cleanHistory: HistoryEntry[] }) {
   return (
     <GlassCard className="p-4 space-y-3">
       <div>
-        <p className="text-xs font-semibold text-white">Bytes Removed Per Session</p>
+        <p className="text-xs font-semibold text-[#E6EAF0]">Bytes Removed Per Session</p>
         <p className="text-[10px] text-muted-foreground/50">MB reclaimed per clean session</p>
       </div>
       {data.length === 0 ? (
@@ -193,7 +193,7 @@ function CategoryPieChart({ categoryTotals }: { categoryTotals: Record<string, {
   return (
     <GlassCard className="p-4 space-y-3">
       <div>
-        <p className="text-xs font-semibold text-white">Category Breakdown</p>
+        <p className="text-xs font-semibold text-[#E6EAF0]">Category Breakdown</p>
         <p className="text-[10px] text-muted-foreground/50">Current scan — MB by category</p>
       </div>
       {data.length === 0 ? (
@@ -261,7 +261,7 @@ function RecurringSourcesChart({ cleanHistory }: { cleanHistory: HistoryEntry[] 
   return (
     <GlassCard className="p-4 space-y-3">
       <div>
-        <p className="text-xs font-semibold text-white">Recurring Junk Sources</p>
+        <p className="text-xs font-semibold text-[#E6EAF0]">Recurring Junk Sources</p>
         <p className="text-[10px] text-muted-foreground/50">Items cleaned most often</p>
       </div>
       {data.length === 0 ? (

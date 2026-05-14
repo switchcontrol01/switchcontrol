@@ -82,7 +82,7 @@ export function IntentModeSelector({
               "relative flex flex-col items-start gap-1.5 rounded-xl border px-3 py-3 text-left transition-colors duration-200",
               active
                 ? cn(
-                    "border-white/20 bg-white/8",
+                    "border-[#2A313A] bg-white/8",
                     mode.glow
                   )
                 : "border-[#2A313A] bg-[#1A1F26] hover:bg-[#21262D] hover:border-[#2A313A]2"

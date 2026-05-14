@@ -107,7 +107,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
         data-testid="device-lock-overlay"
       >
         {/* Matte dark overlay */}
-        <div className="absolute inset-0 bg-black/80" />
+        <div className="absolute inset-0 bg-[#14181D]" />
 
         {/* Vignette focus isolation */}
         <div
@@ -127,7 +127,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
         >
           {/* Glass blur background */}
           <div
-            className="absolute inset-0 rounded-2xl border border-white/[0.12]"
+            className="absolute inset-0 rounded-2xl border border-[#2A313A]"
             style={{
               backdropFilter: "blur(28px) saturate(1.5)",
               WebkitBackdropFilter: "blur(28px) saturate(1.5)",
@@ -144,7 +144,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
 
             {/* Title */}
             <motion.h1
-              className="mt-7 text-xl font-semibold tracking-tight text-white/95 leading-snug"
+              className="mt-7 text-xl font-semibold tracking-tight text-[#E6EAF0]/95 leading-snug"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
@@ -155,7 +155,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
 
             {/* Body */}
             <motion.p
-              className="mt-3 text-sm text-white/55 leading-relaxed max-w-[260px]"
+              className="mt-3 text-sm text-[#A0A8B3] leading-relaxed max-w-[260px]"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.38, duration: 0.4 }}
@@ -167,7 +167,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
 
             {/* Device ID display */}
             <motion.div
-              className="mt-4 px-3 py-1.5 rounded-lg text-[11px] font-mono text-white/30 border border-white/[0.07] tracking-widest"
+              className="mt-4 px-3 py-1.5 rounded-lg text-[11px] font-mono text-[#6B7380] border border-[#2A313A] tracking-widest"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5, duration: 0.4 }}
@@ -259,7 +259,7 @@ export function DeviceLockModal({ userEmail, userId, onRetry, isRetrying, onLogo
 
             {/* Footer note */}
             <motion.p
-              className="mt-6 text-[10px] text-white/20 tracking-wide"
+              className="mt-6 text-[10px] text-[#6B7380]/50 tracking-wide"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.65, duration: 0.5 }}
@@ -298,7 +298,7 @@ function LockGlowIcon() {
 
       {/* Outer ring */}
       <motion.div
-        className="absolute rounded-full border border-white/[0.12]"
+        className="absolute rounded-full border border-[#2A313A]"
         style={{ width: 68, height: 68 }}
         animate={{ scale: [1, 1.06, 1], opacity: [0.4, 0.7, 0.4] }}
         transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", delay: 0.4 }}

@@ -71,18 +71,18 @@ function SessionRow({ entry }: { entry: HistoryEntry }) {
       "rounded-xl border overflow-hidden transition-colors",
       entry.status === "cleaned" ? "border-emerald-500/15 bg-emerald-500/[0.03]" :
       entry.status === "partial" ? "border-amber-500/15 bg-amber-500/[0.03]" :
-      "border-white/[0.07] bg-white/[0.02]"
+      "border-[#2A313A] bg-[#1A1F26]"
     )} data-testid={`history-${entry.id}`}>
       {/* Main row */}
       <div
-        className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="flex items-center gap-3 px-3.5 py-2.5 cursor-pointer hover:bg-[#1A1F26] transition-colors"
         onClick={() => setExpanded(e => !e)}
       >
         <StatusIcon status={entry.status} />
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-medium text-white">
+            <span className="text-xs font-medium text-[#E6EAF0]">
               {format(parseISO(entry.ran_at), "MMM d, HH:mm")}
             </span>
             <Badge variant="outline" className={cn(
@@ -130,7 +130,7 @@ function SessionRow({ entry }: { entry: HistoryEntry }) {
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="overflow-hidden border-t border-white/[0.05]"
+            className="overflow-hidden border-t border-[#2A313A]"
           >
             <div className="px-3.5 py-3 space-y-1.5">
               {items.length === 0 ? (
@@ -188,7 +188,7 @@ export function CleanerHistoryPanel({ history, scanHistory, loading, onBack }: P
       {onBack && (
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#E6EAF0] transition-colors"
         >
           <ArrowLeft className="size-3.5" /> Back to cleaner
         </button>
@@ -197,9 +197,9 @@ export function CleanerHistoryPanel({ history, scanHistory, loading, onBack }: P
       {/* Stats strip */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: "Total Sessions",    value: history.length.toString(),     color: "text-white" },
+          { label: "Total Sessions",    value: history.length.toString(),     color: "text-[#E6EAF0]" },
           { label: "Total Removed",     value: totalAllTime > 0 ? fmtBytes(totalAllTime) : "—", color: "text-cyan-400" },
-          { label: "Scans Recorded",    value: scanHistory.length.toString(), color: "text-violet-400" },
+          { label: "Scans Recorded",    value: scanHistory.length.toString(), color: "text-[#00D4FF]" },
         ].map(s => (
           <GlassCard key={s.label} className="p-3">
             <p className={cn("text-lg font-bold tabular-nums", s.color)}>{s.value}</p>
@@ -221,7 +221,7 @@ export function CleanerHistoryPanel({ history, scanHistory, loading, onBack }: P
                 "px-2 py-0.5 rounded text-[10px] border transition-colors",
                 modeFilter === m
                   ? "bg-primary/15 text-primary border-primary/25"
-                  : "border-white/[0.07] text-muted-foreground/60 hover:text-muted-foreground"
+                  : "border-[#2A313A] text-muted-foreground/60 hover:text-muted-foreground"
               )}
             >
               {m === "all" ? "All" : m.charAt(0).toUpperCase() + m.slice(1)}
@@ -239,7 +239,7 @@ export function CleanerHistoryPanel({ history, scanHistory, loading, onBack }: P
                 "px-2 py-0.5 rounded text-[10px] border transition-colors",
                 statusFilter === s
                   ? "bg-primary/15 text-primary border-primary/25"
-                  : "border-white/[0.07] text-muted-foreground/60 hover:text-muted-foreground"
+                  : "border-[#2A313A] text-muted-foreground/60 hover:text-muted-foreground"
               )}
             >
               {s.charAt(0).toUpperCase() + s.slice(1)}

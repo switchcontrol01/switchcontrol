@@ -53,9 +53,9 @@ function StatTile({ label, value, unit, delay }: { label: string; value: string 
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, type: "spring", stiffness: 400, damping: 28 }}
-      className="p-2.5 rounded-lg bg-white/[0.06] border border-white/[0.10] text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+      className="p-2.5 rounded-lg bg-[#21262D] border border-[#2A313A] text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
     >
-      <div className="text-sm font-bold text-white tabular-nums">
+      <div className="text-sm font-bold text-[#E6EAF0] tabular-nums">
         {value}{unit && <span className="text-[10px] text-muted-foreground ml-0.5">{unit}</span>}
       </div>
       <div className="text-[9px] text-muted-foreground">{label}</div>
@@ -292,7 +292,7 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
               {usePct}%
             </p>
             <p className="text-[10px] text-muted-foreground relative z-10">Disk Usage</p>
-            <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden relative z-10 mt-1">
+            <div className="h-2 rounded-full bg-[#21262D] overflow-hidden relative z-10 mt-1">
               <motion.div
                 className={cn(
                   "h-full rounded-full",
@@ -326,12 +326,12 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
             <div className="flex items-center justify-between">
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Disk Activity</p>
               {ioAvailable === false && ioSource !== 'none' && (
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.08] text-white/30">
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#21262D] border border-[#2A313A] text-[#6B7380]">
                   {ioSource === 'warming' ? 'Warming up…' : 'Unavailable'}
                 </span>
               )}
             </div>
-            <div className="p-3 rounded-lg bg-white/[0.06] border border-white/[0.10] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="p-3 rounded-lg bg-[#21262D] border border-[#2A313A] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               {ioHistory.length > 1 ? (
                 <>
                   <DualSparkline samples={ioHistory} maxVal={ioMax} />
@@ -344,7 +344,7 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
                 </>
               ) : (
                 <div className="h-10 flex items-center justify-center">
-                  <span className="text-[10px] text-white/25">
+                  <span className="text-[10px] text-[#6B7380]">
                     {ioAvailable === null
                       ? 'Collecting data…'
                       : ioSource === 'warming'

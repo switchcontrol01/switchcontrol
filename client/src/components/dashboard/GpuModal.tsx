@@ -110,17 +110,17 @@ function GpuIcon({ className }: { className?: string }) {
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex items-center gap-1.5 mb-2">
-      <span className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">{children}</span>
-      <div className="flex-1 h-px bg-white/[0.06]" />
+      <span className="text-[10px] font-semibold text-[#6B7380] uppercase tracking-widest">{children}</span>
+      <div className="flex-1 h-px bg-[#21262D]" />
     </div>
   );
 }
 
 function InfoRow({ label, value, mono = false }: { label: string; value: React.ReactNode; mono?: boolean }) {
   return (
-    <div className="flex items-center justify-between py-1.5 border-b border-white/[0.04] last:border-0">
-      <span className="text-[11px] text-white/35 uppercase tracking-wider font-medium">{label}</span>
-      <span className={cn("text-[12px] text-white/80", mono && "font-mono")}>{value}</span>
+    <div className="flex items-center justify-between py-1.5 border-b border-[#2A313A] last:border-0">
+      <span className="text-[11px] text-[#6B7380] uppercase tracking-wider font-medium">{label}</span>
+      <span className={cn("text-[12px] text-[#E6EAF0]", mono && "font-mono")}>{value}</span>
     </div>
   );
 }
@@ -145,7 +145,7 @@ function MiniSparkline({ samples, color }: { samples: number[]; color: string })
 function LiveBar({ pct, color, criticalColor, critical }: { pct: number; color: string; criticalColor?: string; critical?: boolean }) {
   const safePct = Number.isFinite(pct) ? Math.min(Math.max(pct, 0), 100) : 0;
   return (
-    <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden mt-1">
+    <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden mt-1">
       <motion.div
         className={cn("h-full rounded-full", critical && criticalColor ? criticalColor : color)}
         initial={{ width: 0 }}
@@ -289,9 +289,9 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             transition={{ duration: 0.2 }}
             className="py-10 flex flex-col items-center justify-center gap-2 text-center"
           >
-            <GpuIcon className="size-8 text-white/20" />
-            <p className="text-[13px] text-white/40">No GPU data available</p>
-            <p className="text-[11px] text-white/25 max-w-xs">
+            <GpuIcon className="size-8 text-[#6B7380]/50" />
+            <p className="text-[13px] text-[#6B7380]">No GPU data available</p>
+            <p className="text-[11px] text-[#6B7380] max-w-xs">
               No GPU controllers were detected and no live telemetry is active.
               This is normal on headless servers or virtual machines.
             </p>
@@ -309,7 +309,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             {/* ── Section 1: GPU Identity ─────────────────────────────────── */}
             <div>
               <SectionLabel>GPU Identity</SectionLabel>
-              <div className="rounded-xl border border-white/[0.07] bg-white/[0.025] px-3.5 py-1">
+              <div className="rounded-xl border border-[#2A313A] bg-white/[0.025] px-3.5 py-1">
                 {hasStatic ? (
                   <>
                     {ctrl!.name      && <InfoRow label="Model"      value={ctrl!.name} />}
@@ -332,13 +332,13 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                       />
                     )}
                     {ctrl!.external === true && (
-                      <InfoRow label="Type" value={<span className="text-purple-300/80">External GPU (eGPU)</span>} />
+                      <InfoRow label="Type" value={<span className="text-[#33E0FF]/80">External GPU (eGPU)</span>} />
                     )}
                     {/* Multi-GPU notice when more than one controller exists */}
                     {controllers.length > 1 && (
                       <div className="pt-2 pb-1 flex items-center gap-1.5">
-                        <Info className="size-3 text-white/20 shrink-0" />
-                        <span className="text-[10px] text-white/25">
+                        <Info className="size-3 text-[#6B7380]/50 shrink-0" />
+                        <span className="text-[10px] text-[#6B7380]">
                           {controllers.length} GPU{controllers.length > 1 ? "s" : ""} detected
                           {matchType !== "first" && matchType !== "none" && ` · showing active GPU (matched by ${matchType.replace("_", " ")})`}
                         </span>
@@ -346,7 +346,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                     )}
                   </>
                 ) : (
-                  <div className="py-3 text-center text-[12px] text-white/35">
+                  <div className="py-3 text-center text-[12px] text-[#6B7380]">
                     Static GPU identity not available
                   </div>
                 )}
@@ -363,7 +363,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                   {loadPct !== null && (
                     <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/[0.04] px-4 py-3">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-white/40 uppercase tracking-wider">GPU Load</span>
+                        <span className="text-[11px] text-[#6B7380] uppercase tracking-wider">GPU Load</span>
                         <span className="text-lg font-bold tabular-nums text-cyan-400" data-testid="text-gpu-load-pct">{loadPct}%</span>
                       </div>
                       <LiveBar pct={loadPct} color="bg-gradient-to-r from-cyan-500 to-teal-400" />
@@ -380,10 +380,10 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                         : "border-cyan-500/20 bg-cyan-500/[0.025]"
                     )}>
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] text-white/40 uppercase tracking-wider">
+                        <span className="text-[11px] text-[#6B7380] uppercase tracking-wider">
                           {isSharedMemory ? "Shared Memory" : "VRAM Usage"}
                         </span>
-                        <span className={cn("text-sm font-bold tabular-nums", isVramCritical ? "text-red-400" : "text-white/80")}>
+                        <span className={cn("text-sm font-bold tabular-nums", isVramCritical ? "text-red-400" : "text-[#E6EAF0]")}>
                           {vramUsed !== null ? fmtVram(vramUsed) : "—"}
                           {vramTotal !== null ? ` / ${fmtVram(vramTotal)}` : ""}
                         </span>
@@ -413,7 +413,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.1 }}
-                          className="p-3 rounded-lg bg-white/[0.06] border border-white/[0.10] text-center"
+                          className="p-3 rounded-lg bg-[#21262D] border border-[#2A313A] text-center"
                         >
                           <div className="text-base font-bold tabular-nums text-orange-300">{fmtNum(gpu.tempC, "°C")}</div>
                           <div className="text-[9px] text-muted-foreground mt-0.5">Temperature</div>
@@ -424,9 +424,9 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                           initial={{ opacity: 0, y: 4 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.14 }}
-                          className="p-3 rounded-lg bg-white/[0.06] border border-white/[0.10] text-center"
+                          className="p-3 rounded-lg bg-[#21262D] border border-[#2A313A] text-center"
                         >
-                          <div className="text-base font-bold tabular-nums text-violet-300">{fmtNum(gpu.clockMhz, " MHz")}</div>
+                          <div className="text-base font-bold tabular-nums text-[#33E0FF]">{fmtNum(gpu.clockMhz, " MHz")}</div>
                           <div className="text-[9px] text-muted-foreground mt-0.5">Core Clock</div>
                         </motion.div>
                       )}
@@ -434,9 +434,9 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
                   )}
                 </div>
               ) : (
-                <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] px-4 py-4 text-center space-y-1">
-                  <p className="text-[12px] text-white/40">Live metrics unavailable</p>
-                  <p className="text-[11px] text-white/25">
+                <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] px-4 py-4 text-center space-y-1">
+                  <p className="text-[12px] text-[#6B7380]">Live metrics unavailable</p>
+                  <p className="text-[11px] text-[#6B7380]">
                     GPU load, VRAM usage, temperature, and clock speed require driver-level telemetry support.
                   </p>
                 </div>
@@ -444,9 +444,9 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             </div>
 
             {/* ── Section 3: Availability note ────────────────────────────── */}
-            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.05]">
-              <Info className="size-3 text-white/25 mt-0.5 shrink-0" />
-              <p className="text-[10px] text-white/30 leading-relaxed">
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-[#1A1F26] border border-[#2A313A]">
+              <Info className="size-3 text-[#6B7380] mt-0.5 shrink-0" />
+              <p className="text-[10px] text-[#6B7380] leading-relaxed">
                 Static identity is read once from the OS via <span className="font-mono">systeminformation.graphics()</span>.
                 Live metrics (load, VRAM, temperature, clock) are streamed from the telemetry pipeline and depend on driver support.
                 Fan speed, power draw, and driver version are not collected and are not shown.

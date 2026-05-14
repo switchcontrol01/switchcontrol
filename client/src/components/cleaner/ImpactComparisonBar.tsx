@@ -39,11 +39,11 @@ export function ImpactComparisonBar({
   return (
     <div
       className={cn(
-        "space-y-3 rounded-xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-4",
+        "space-y-3 rounded-xl border border-[#2A313A] bg-[#1A1F26] backdrop-blur-sm p-4",
         className
       )}
     >
-      <span className="text-[11px] font-medium text-white/50 uppercase tracking-wider block mb-1">
+      <span className="text-[11px] font-medium text-[#A0A8B3] uppercase tracking-wider block mb-1">
         Impact
       </span>
 
@@ -64,14 +64,14 @@ export function ImpactComparisonBar({
           >
             {/* Label row */}
             <div className="flex items-center justify-between text-[11px]">
-              <span className="text-white/70 font-medium">{row.label}</span>
+              <span className="text-[#E6EAF0] font-medium">{row.label}</span>
               <div className="flex items-center gap-2">
-                <span className="text-white/30 tabular-nums">
+                <span className="text-[#6B7380] tabular-nums">
                   {row.unit === "bytes"
                     ? fmtBytes(row.before)
                     : `${row.before}${row.unit ?? ""}`}
                 </span>
-                <span className="text-white/15">→</span>
+                <span className="text-[#E6EAF0]/15">→</span>
                 <motion.span
                   className="tabular-nums font-semibold"
                   style={{ color }}
@@ -87,7 +87,7 @@ export function ImpactComparisonBar({
             </div>
 
             {/* Bar track */}
-            <div className="relative h-2.5 rounded-full bg-white/[0.04] overflow-hidden">
+            <div className="relative h-2.5 rounded-full bg-[#21262D] overflow-hidden">
               {/* Before bar (full width reference) */}
               <div
                 className="absolute inset-y-0 left-0 rounded-full"

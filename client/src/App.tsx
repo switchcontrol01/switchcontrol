@@ -912,7 +912,7 @@ function ElectronAppContent() {
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           />
           <div className="relative z-10 flex flex-col items-center gap-5">
-            <div className="w-10 h-10 rounded-full border-2 border-purple-400/30 border-t-purple-400 animate-spin" />
+            <div className="w-10 h-10 rounded-full border-2 border-text-[#00D4FF]/30 border-t-text-[#00D4FF] animate-spin" />
             <p className="text-sm text-white/40 tracking-widest uppercase" style={{ letterSpacing: "0.18em" }}>Resetting…</p>
           </div>
         </div>
@@ -983,8 +983,8 @@ function ElectronAppContent() {
             <div className="flex flex-col items-center gap-5">
               <div className="relative flex items-center justify-center w-8 h-8">
                 {/* CSS animate-ping is compositor-only — no JS frames */}
-                <span className="absolute w-8 h-8 rounded-full border border-purple-400/20 animate-ping" style={{ animationDuration: "2.2s" }} />
-                <span className="w-2 h-2 rounded-full bg-purple-400/60 animate-pulse" style={{ animationDuration: "1.6s" }} />
+                <span className="absolute w-8 h-8 rounded-full border border-text-[#00D4FF]/20 animate-ping" style={{ animationDuration: "2.2s" }} />
+                <span className="w-2 h-2 rounded-full bg-text-[#00D4FF]/60 animate-pulse" style={{ animationDuration: "1.6s" }} />
               </div>
               <p className="text-[10px] text-white/20 tracking-[0.28em] uppercase animate-pulse" style={{ animationDuration: "2.4s", animationDelay: "0.3s" }}>
                 Starting

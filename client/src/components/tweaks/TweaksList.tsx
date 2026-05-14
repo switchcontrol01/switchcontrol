@@ -37,7 +37,7 @@ const CATEGORY_MAP: Record<string, TweakCategory[]> = {
 type LevelFilter = "All" | TweakLevel;
 
 const LEVEL_TABS: { id: LevelFilter; label: string; icon: typeof ShieldCheck; color: string; activeClass: string; warnOnFirstOpen?: boolean }[] = [
-  { id: "All",          label: "All",          icon: Cpu,          color: "text-white/60",    activeClass: "bg-primary text-white border-primary shadow-[0_0_15px_rgba(0,212,255,0.3)]" },
+  { id: "All",          label: "All",          icon: Cpu,          color: "text-[#A0A8B3]",    activeClass: "bg-primary text-[#E6EAF0] border-primary shadow-[0_0_15px_rgba(0,212,255,0.3)]" },
   { id: "Recommended",  label: "Recommended",  icon: ShieldCheck,  color: "text-emerald-400", activeClass: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30 shadow-[0_0_12px_rgba(52,211,153,0.2)]" },
   { id: "Advanced",     label: "Advanced",     icon: SlidersHorizontal, color: "text-blue-400", activeClass: "bg-blue-500/15 text-blue-300 border-blue-500/30 shadow-[0_0_12px_rgba(96,165,250,0.2)]", warnOnFirstOpen: true },
   { id: "Experimental", label: "Experimental", icon: FlaskConical, color: "text-amber-400",  activeClass: "bg-amber-500/15 text-amber-300 border-amber-500/30 shadow-[0_0_12px_rgba(251,191,36,0.2)]", warnOnFirstOpen: true },
@@ -317,7 +317,7 @@ export function TweaksList() {
                 className={cn(
                   "px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-300 border",
                   activeChip === chip
-                    ? "bg-primary text-white border-primary shadow-[0_0_15px_rgba(0,212,255,0.3)]"
+                    ? "bg-primary text-[#E6EAF0] border-primary shadow-[0_0_15px_rgba(0,212,255,0.3)]"
                     : "bg-[#1A1F26] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A]"
                 )}
               >
@@ -350,8 +350,8 @@ export function TweaksList() {
                     <AlertTriangle className="size-4 text-amber-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white text-base">{LEVEL_WARN[warnLevel].title}</h3>
-                    <p className="text-sm text-white/55 mt-1 leading-relaxed">{LEVEL_WARN[warnLevel].body}</p>
+                    <h3 className="font-semibold text-[#E6EAF0] text-base">{LEVEL_WARN[warnLevel].title}</h3>
+                    <p className="text-sm text-[#A0A8B3] mt-1 leading-relaxed">{LEVEL_WARN[warnLevel].body}</p>
                   </div>
                 </div>
                 <div className="flex gap-2 justify-end">

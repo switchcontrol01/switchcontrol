@@ -222,21 +222,21 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       "py-3 px-3 rounded-xl border transition-all duration-300",
       isDirty
         ? "bg-cyan-500/[0.03] border-cyan-500/15"
-        : "bg-white/[0.03] border-white/[0.06]"
+        : "bg-[#1A1F26] border-[#2A313A]"
     )}>
       <div className="flex items-center gap-2 flex-wrap mb-2">
-        <span className="text-xs font-medium text-white/80">{meta.label}</span>
+        <span className="text-xs font-medium text-[#E6EAF0]">{meta.label}</span>
         <RiskBadge risk={meta.risk} />
         {meta.requiresAdmin && (
           <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Admin</span>
         )}
         {capability.supported
           ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">Supported</span>
-          : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.08]">Unverified</span>
+          : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#21262D] text-[#6B7380] border border-[#2A313A]">Unverified</span>
         }
       </div>
 
-      <p className="text-[11px] text-white/35 mb-3 leading-relaxed">{meta.description}</p>
+      <p className="text-[11px] text-[#6B7380] mb-3 leading-relaxed">{meta.description}</p>
 
       {/* Toggle control */}
       {meta.type === 'toggle' && meta.enabledValue && meta.disabledValue && (
@@ -248,7 +248,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
               "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
               state.pending === meta.enabledValue
                 ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/25"
-                : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20"
+                : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A]"
             )}
           >
             Enabled
@@ -260,13 +260,13 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
               "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
               state.pending === meta.disabledValue
                 ? "bg-red-500/15 text-red-400 border-red-500/25"
-                : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20"
+                : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A]"
             )}
           >
             Disabled
           </button>
-          <span className="text-[10px] text-white/25 ml-1">
-            Current: <span className="text-white/40">{capability.currentValue ?? '—'}</span>
+          <span className="text-[10px] text-[#6B7380] ml-1">
+            Current: <span className="text-[#6B7380]">{capability.currentValue ?? '—'}</span>
           </span>
         </div>
       )}
@@ -286,15 +286,15 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
                   "px-2.5 py-1 rounded-lg text-xs font-medium border transition-all",
                   state.pending === preset
                     ? "bg-cyan-500/15 text-cyan-400 border-cyan-500/25"
-                    : "bg-white/[0.04] text-white/40 border-white/[0.08] hover:border-white/20 hover:text-white/60"
+                    : "bg-[#21262D] text-[#6B7380] border-[#2A313A] hover:border-[#2A313A] hover:text-[#A0A8B3]"
                 )}
               >
                 {meta.presetLabels?.[i] ?? preset}
               </button>
             );
           })}
-          <span className="text-[10px] text-white/25 ml-1">
-            Current: <span className="text-white/40">{capability.currentValue ?? '—'}</span>
+          <span className="text-[10px] text-[#6B7380] ml-1">
+            Current: <span className="text-[#6B7380]">{capability.currentValue ?? '—'}</span>
           </span>
         </div>
       )}
@@ -303,8 +303,8 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
       {meta.type === 'numeric' && meta.min !== null && meta.max !== null && (
         <div className="space-y-2">
           <div className="flex items-center gap-3 text-[11px]">
-            <span className="text-white/30">Current: <span className="text-white/60">{capability.currentValue ?? '—'}</span></span>
-            <span className={cn("font-medium", isDirty ? "text-cyan-400" : "text-white/30")}>
+            <span className="text-[#6B7380]">Current: <span className="text-[#A0A8B3]">{capability.currentValue ?? '—'}</span></span>
+            <span className={cn("font-medium", isDirty ? "text-cyan-400" : "text-[#6B7380]")}>
               {isDirty ? `Pending: ${state.pending}` : ''}
             </span>
             {meta.recommendedValue !== undefined && meta.recommendedValue !== null && (
@@ -320,7 +320,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
             disabled={state.applying}
             className="w-full cursor-pointer"
           />
-          <div className="flex justify-between text-[10px] text-white/20">
+          <div className="flex justify-between text-[10px] text-[#6B7380]/50">
             <span>{meta.min}</span>
             <span>{meta.max}</span>
           </div>
@@ -345,7 +345,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
                 : r.outcome === 'elevation_denied'
                   ? "border-orange-500/20 bg-orange-500/10 text-orange-300"
                   : r.outcome === 'unsupported_on_adapter'
-                    ? "border-[#2A313A]0 bg-white/[0.04] text-white/40"
+                    ? "border-[#2A313A] bg-[#21262D] text-[#6B7380]"
                     : "border-red-500/20 bg-red-500/10 text-red-300";
               const icon = r.ok
                 ? isWarnVerify
@@ -386,7 +386,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
             "h-7 px-3 text-[11px] gap-1.5",
             isDirty
               ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
-              : "bg-[#21262D] text-white/25 border border-white/[0.06]"
+              : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]"
           )}
         >
           {state.applying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
@@ -397,7 +397,7 @@ function PropertyControl({ adapterName, propKey, meta, capability }: PropertyCon
           variant="ghost"
           onClick={reset}
           disabled={state.applying}
-          className="h-7 px-2.5 text-[11px] gap-1.5 text-white/30 hover:text-white/60 hover:bg-[#21262D] border border-white/[0.04]"
+          className="h-7 px-2.5 text-[11px] gap-1.5 text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#21262D] border border-[#2A313A]"
         >
           <RotateCcw className="size-3" />
           Reset
@@ -471,35 +471,35 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
       {/* Header */}
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-white/[0.02] transition-colors"
+        className="w-full flex items-center gap-3 p-4 text-left hover:bg-[#1A1F26] transition-colors"
       >
         <div className={cn(
           "size-8 rounded-xl flex items-center justify-center shrink-0",
-          isOnline ? "bg-cyan-500/15 text-cyan-400" : "bg-white/[0.06] text-white/30"
+          isOnline ? "bg-cyan-500/15 text-cyan-400" : "bg-[#21262D] text-[#6B7380]"
         )}>
           <Network className="size-4" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-medium text-white/90">{adapter.name}</span>
+            <span className="text-sm font-medium text-[#E6EAF0]">{adapter.name}</span>
             <span className={cn(
               "text-[10px] px-1.5 py-0.5 rounded-full border font-medium",
               isOnline
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                : "bg-white/[0.06] text-white/30 border-white/[0.08]"
+                : "bg-[#21262D] text-[#6B7380] border-[#2A313A]"
             )}>
               {adapter.status}
             </span>
             {supportedCount !== null && (
-              <span className="text-[10px] text-white/30">
+              <span className="text-[10px] text-[#6B7380]">
                 {supportedCount}/{Object.keys(propertyMeta).length} properties supported
               </span>
             )}
           </div>
-          <p className="text-[11px] text-white/30 truncate mt-0.5">{adapter.description}</p>
+          <p className="text-[11px] text-[#6B7380] truncate mt-0.5">{adapter.description}</p>
         </div>
         <ChevronRight className={cn(
-          "size-4 text-white/30 shrink-0 transition-transform duration-200",
+          "size-4 text-[#6B7380] shrink-0 transition-transform duration-200",
           isExpanded && "rotate-90"
         )} />
       </button>
@@ -514,7 +514,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="px-4 pb-4 space-y-2 border-t border-white/[0.05] pt-3">
+            <div className="px-4 pb-4 space-y-2 border-t border-[#2A313A] pt-3">
               {loading && (
                 <div className="flex items-center gap-2 py-4 text-sm text-muted-foreground">
                   <Loader2 className="size-4 animate-spin" />
@@ -534,7 +534,7 @@ function AdapterPanel({ adapter, propertyMeta, isExpanded, onToggle }: AdapterPa
                 </div>
               )}
               {!isElectron && (
-                <div className="flex items-center gap-2 py-3 px-3 rounded-xl bg-white/[0.03] border border-white/[0.06] text-xs text-white/40">
+                <div className="flex items-center gap-2 py-3 px-3 rounded-xl bg-[#1A1F26] border border-[#2A313A] text-xs text-[#6B7380]">
                   <Info className="size-3.5 shrink-0 text-cyan-400/60" />
                   NIC property control is only available in the Windows desktop app. Capability detection requires Electron + PowerShell.
                 </div>
@@ -609,14 +609,14 @@ export function NicTuning() {
         className="w-full flex items-center gap-3 p-0 group"
       >
         <div className="flex items-center gap-3 flex-1">
-          <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 flex items-center justify-center border border-white/[0.08]">
+          <div className="size-8 rounded-xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 flex items-center justify-center border border-[#2A313A]">
             <Network className="size-4 text-indigo-400" />
           </div>
           <div className="text-left">
-            <h3 className="text-sm font-semibold text-white/90 group-hover:text-white transition-colors">
+            <h3 className="text-sm font-semibold text-[#E6EAF0] group-hover:text-[#E6EAF0] transition-colors">
               NIC Adapter Tuning
             </h3>
-            <p className="text-[11px] text-white/30">
+            <p className="text-[11px] text-[#6B7380]">
               Adapter-specific properties — Buffers, RSS, Interrupt Moderation, EEE, Flow Control
             </p>
           </div>
@@ -628,7 +628,7 @@ export function NicTuning() {
             </span>
           )}
           <ChevronDown className={cn(
-            "size-4 text-white/30 transition-transform duration-200",
+            "size-4 text-[#6B7380] transition-transform duration-200",
             sectionOpen && "rotate-180"
           )} />
         </div>
@@ -647,10 +647,10 @@ export function NicTuning() {
               {/* Non-Electron notice */}
               {!isElectron && (
                 <GlassCard blur="sm" hoverEffect={false} className="p-4">
-                  <div className="flex items-start gap-3 text-sm text-white/50">
+                  <div className="flex items-start gap-3 text-sm text-[#A0A8B3]">
                     <Info className="size-4 shrink-0 text-cyan-400/60 mt-0.5" />
                     <div>
-                      <p className="font-medium text-white/60 mb-1">Desktop app required</p>
+                      <p className="font-medium text-[#A0A8B3] mb-1">Desktop app required</p>
                       <p className="text-xs leading-relaxed">
                         NIC adapter tuning requires the Windows desktop app to detect your adapters and query supported properties via PowerShell. This section shows live data in the Electron app.
                       </p>
@@ -690,7 +690,7 @@ export function NicTuning() {
 
               {/* Adapter list */}
               {!loading && adapters.length === 0 && !loadError && isElectron && (
-                <div className="text-center py-8 text-sm text-white/30">
+                <div className="text-center py-8 text-sm text-[#6B7380]">
                   No physical network adapters found.
                 </div>
               )}
@@ -709,7 +709,7 @@ export function NicTuning() {
               {isElectron && !loading && (
                 <button
                   onClick={loadAdapters}
-                  className="flex items-center gap-1.5 text-[11px] text-white/25 hover:text-white/50 transition-colors"
+                  className="flex items-center gap-1.5 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
                 >
                   <RefreshCw className="size-3" />
                   Refresh adapter list

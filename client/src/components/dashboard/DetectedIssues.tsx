@@ -170,12 +170,12 @@ function IssueCard({
         {/* Header row */}
         <div className="flex items-start gap-3 p-3.5">
           <div className={cn("mt-0.5 rounded-md p-1.5", `${cfg.bg} border ${cfg.border}`)}>
-            <CatIcon className="size-3.5 text-white/60" />
+            <CatIcon className="size-3.5 text-[#A0A8B3]" />
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap mb-0.5">
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380]">
                 {issue.category}
               </span>
               <span className={cn("text-[10px] font-medium px-1.5 py-0.5 rounded border", cfg.badge)}>
@@ -183,18 +183,18 @@ function IssueCard({
                 {cfg.label}
               </span>
               {issue.confidence !== "confirmed" && (
-                <span className="text-[10px] text-white/30 border border-[#2A313A]0 px-1.5 py-0.5 rounded">
+                <span className="text-[10px] text-[#6B7380] border border-[#2A313A] px-1.5 py-0.5 rounded">
                   {CONFIDENCE_LABEL[issue.confidence]}
                 </span>
               )}
             </div>
-            <p className="text-sm font-medium text-white leading-snug">{issue.title}</p>
+            <p className="text-sm font-medium text-[#E6EAF0] leading-snug">{issue.title}</p>
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setExpanded(!expanded)}
-              className="p-1 rounded text-white/30 hover:text-white/70 transition-colors"
+              className="p-1 rounded text-[#6B7380] hover:text-[#E6EAF0] transition-colors"
               data-testid={`button-issue-expand-${issue.id}`}
               title={expanded ? "Collapse" : "Details"}
             >
@@ -202,7 +202,7 @@ function IssueCard({
             </button>
             <button
               onClick={() => onDismiss(issue.id)}
-              className="p-1 rounded text-white/20 hover:text-white/50 transition-colors"
+              className="p-1 rounded text-[#6B7380]/50 hover:text-[#A0A8B3] transition-colors"
               data-testid={`button-issue-dismiss-${issue.id}`}
               title="Dismiss"
             >
@@ -223,16 +223,16 @@ function IssueCard({
             >
               <div className="px-3.5 pb-3.5 space-y-2.5 border-t border-[#2A313A] pt-2.5">
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-0.5">Why it matters</p>
-                  <p className="text-xs text-white/60 leading-relaxed">{issue.reason}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380] mb-0.5">Why it matters</p>
+                  <p className="text-xs text-[#A0A8B3] leading-relaxed">{issue.reason}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-0.5">Performance impact</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380] mb-0.5">Performance impact</p>
                   <p className="text-xs text-amber-300/70 leading-relaxed">{issue.impact}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-white/30 mb-0.5">Recommended fix</p>
-                  <p className="text-xs text-white/60 leading-relaxed">{issue.recommendedAction}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-[#6B7380] mb-0.5">Recommended fix</p>
+                  <p className="text-xs text-[#A0A8B3] leading-relaxed">{issue.recommendedAction}</p>
                 </div>
 
                 {issue.autoFixAvailable && issue.linkedTweakIds && issue.linkedTweakIds.length > 0 && (
@@ -365,7 +365,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
               "size-4 transition-colors",
               highCount > 0 ? "text-red-400" : medCount > 0 ? "text-amber-400" : "text-blue-400"
             )} />
-            <span className="text-sm font-semibold text-white">
+            <span className="text-sm font-semibold text-[#E6EAF0]">
               Detected Issues
             </span>
             {!loading && visible.length > 0 && (
@@ -383,7 +383,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
               </div>
             )}
             {loading && (
-              <span className="text-[10px] text-white/30 flex items-center gap-1">
+              <span className="text-[10px] text-[#6B7380] flex items-center gap-1">
                 <span className="size-1.5 rounded-full bg-cyan-400/60 inline-block" />
                 Scanning…
               </span>
@@ -391,7 +391,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
           </div>
           {!loading && (
             <ChevronDown className={cn(
-              "size-3.5 text-white/30 transition-transform",
+              "size-3.5 text-[#6B7380] transition-transform",
               collapsed && "rotate-180"
             )} />
           )}
@@ -400,7 +400,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
         {!loading && detectedAt && (
           <button
             onClick={runDetection}
-            className="flex items-center gap-1 text-[10px] text-white/25 hover:text-white/50 transition-colors"
+            className="flex items-center gap-1 text-[10px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
             data-testid="button-rescan-issues"
             title="Re-scan"
           >
@@ -435,7 +435,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
 
         {!collapsed && !loading && visible.length === 0 && issues.length > 0 && (
           <motion.div
-            className="text-center py-4 text-xs text-white/30"
+            className="text-center py-4 text-xs text-[#6B7380]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
           >

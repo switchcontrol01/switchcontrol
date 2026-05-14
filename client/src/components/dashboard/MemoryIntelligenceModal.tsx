@@ -37,9 +37,9 @@ function ProcessBar({ proc, maxMB, index }: { proc: { name: string; pid: number;
     >
       <div className="flex items-center justify-between text-[10px]">
         <span className="text-muted-foreground font-mono truncate max-w-[200px]">{proc.name}</span>
-        <span className="text-white/80 font-bold tabular-nums shrink-0">{proc.memoryMB} MB</span>
+        <span className="text-[#E6EAF0] font-bold tabular-nums shrink-0">{proc.memoryMB} MB</span>
       </div>
-      <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-2 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className="h-full rounded-full bg-gradient-to-r from-teal-500 to-emerald-400"
           initial={{ width: 0 }}
@@ -171,7 +171,7 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
             </p>
             <p className="text-[10px] text-muted-foreground relative z-10">Memory Usage</p>
 
-            <div className="h-2 rounded-full bg-white/[0.06] overflow-hidden relative z-10 mt-1">
+            <div className="h-2 rounded-full bg-[#21262D] overflow-hidden relative z-10 mt-1">
               <motion.div
                 className={cn(
                   "h-full rounded-full",
@@ -198,9 +198,9 @@ export function MemoryIntelligenceModal({ open, onOpenChange }: MemoryIntelligen
                 initial={{ opacity: 0, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.15 + i * 0.04, type: "spring", stiffness: 400, damping: 28 }}
-                className="p-2.5 rounded-lg bg-white/[0.03] border border-border/30 text-center"
+                className="p-2.5 rounded-lg bg-[#1A1F26] border border-border/30 text-center"
               >
-                <div className="text-sm font-bold text-white tabular-nums">{item.value}</div>
+                <div className="text-sm font-bold text-[#E6EAF0] tabular-nums">{item.value}</div>
                 <div className="text-[9px] text-muted-foreground">{item.label}</div>
               </motion.div>
             ))}

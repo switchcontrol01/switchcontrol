@@ -53,7 +53,7 @@ interface Props {
 }
 
 const CAT_META: Record<string, { label: string; icon: typeof HardDrive; color: string; bg: string; border: string }> = {
-  storage:     { label: "Storage Noise",     icon: HardDrive, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
+  storage:     { label: "Storage Noise",     icon: HardDrive, color: "text-[#00D4FF]", bg: "bg-[#00D4FF]", border: "border-[#00D4FF]" },
   privacy:     { label: "Privacy Residue",   icon: Shield,    color: "text-cyan-400",    bg: "bg-cyan-500/10",    border: "border-cyan-500/20" },
   latency:     { label: "Latency Killers",   icon: Zap,       color: "text-orange-400",  bg: "bg-orange-500/10",  border: "border-orange-500/20" },
   performance: { label: "Performance Waste", icon: Gauge,     color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
@@ -95,7 +95,7 @@ const CategoryRow = memo(function CategoryRow({
         "w-full flex items-center gap-3 px-3.5 py-3 rounded-xl border transition-all duration-200",
         expanded
           ? cn(meta.bg, meta.border, "shadow-[0_0_12px_rgba(0,212,255,0.08)]")
-          : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.10]"
+          : "bg-[#1A1F26] border-[#2A313A] hover:bg-[#21262D] hover:border-[#2A313A]"
       )}
     >
       <span className={cn("size-8 rounded-lg flex items-center justify-center shrink-0", meta.bg)}>
@@ -104,13 +104,13 @@ const CategoryRow = memo(function CategoryRow({
 
       <div className="flex-1 min-w-0 text-left">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-white">{cat.label}</span>
+          <span className="text-sm font-medium text-[#E6EAF0]">{cat.label}</span>
           <span className="text-[10px] text-muted-foreground/50">{cat.items.length} items</span>
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           {hasFound ? (
             <>
-              <span className="text-xs font-semibold text-white tabular-nums">{fmtBytes(cat.totalBytes)}</span>
+              <span className="text-xs font-semibold text-[#E6EAF0] tabular-nums">{fmtBytes(cat.totalBytes)}</span>
               <span className="text-[10px] text-muted-foreground/40">{cat.totalFiles} files</span>
             </>
           ) : (
@@ -129,11 +129,11 @@ const CategoryRow = memo(function CategoryRow({
           <Checkbox
             checked={cat.allSelected}
             onCheckedChange={(v) => { v !== "indeterminate" && onSelectAll(); }}
-            className="size-4 border-white/20"
+            className="size-4 border-[#2A313A]"
             onClick={(e) => e.stopPropagation()}
           />
         )}
-        {expanded ? <ChevronUp className="size-4 text-white/40" /> : <ChevronDown className="size-4 text-white/40" />}
+        {expanded ? <ChevronUp className="size-4 text-[#6B7380]" /> : <ChevronDown className="size-4 text-[#6B7380]" />}
       </div>
     </button>
   );
@@ -168,18 +168,18 @@ const ItemRow = memo(function ItemRow({
       className={cn(
         "flex items-center gap-3 px-3 py-2.5 rounded-lg border transition-all duration-150",
         selected
-          ? "bg-white/[0.04] border-cyan-500/20 shadow-[0_0_12px_rgba(34,211,238,0.06)]"
-          : "bg-transparent border-transparent hover:bg-white/[0.02]"
+          ? "bg-[#21262D] border-cyan-500/20 shadow-[0_0_12px_rgba(34,211,238,0.06)]"
+          : "bg-transparent border-transparent hover:bg-[#1A1F26]"
       )}
     >
       <Checkbox
         checked={selected}
         onCheckedChange={onToggle}
-        className="size-4 shrink-0 border-white/20"
+        className="size-4 shrink-0 border-[#2A313A]"
       />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white/80 truncate">{item.name}</span>
+          <span className="text-xs text-[#E6EAF0] truncate">{item.name}</span>
           <RiskBadge risk={item.risk} />
           {item.requiresAdmin && (
             <span className="text-[9px] px-1 py-0.5 rounded border border-amber-500/20 bg-amber-500/10 text-amber-400">
@@ -190,7 +190,7 @@ const ItemRow = memo(function ItemRow({
         <p className="text-[10px] text-muted-foreground/50 truncate mt-0.5">{item.description}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-xs font-semibold text-white tabular-nums">{fmtBytes(size)}</p>
+        <p className="text-xs font-semibold text-[#E6EAF0] tabular-nums">{fmtBytes(size)}</p>
         <p className="text-[9px] text-muted-foreground/40 tabular-nums">{finding?.fileCount ?? 0} files</p>
       </div>
     </motion.div>

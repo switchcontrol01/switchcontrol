@@ -109,7 +109,7 @@ function SteppedSelector({
               "text-[11px] font-medium leading-tight",
               isSelected
                 ? "bg-primary/15 border-primary/40 text-primary shadow-[0_0_16px_rgba(0,212,255,0.2)]"
-                : "bg-white/[0.04] border-white/[0.08] text-white/50 hover:border-white/20 hover:text-white/70 hover:bg-white/[0.06]",
+                : "bg-[#21262D] border-[#2A313A] text-[#A0A8B3] hover:border-[#2A313A] hover:text-[#E6EAF0] hover:bg-[#21262D]",
               disabled && "opacity-50 cursor-not-allowed",
             )}
           >
@@ -121,7 +121,7 @@ function SteppedSelector({
             {(preset.isDefault || preset.isRecommended) && (
               <span className={cn(
                 "text-[9px] px-1.5 py-0.5 rounded-full",
-                preset.isRecommended ? "bg-cyan-500/15 text-cyan-400" : "bg-[#2A313A] text-white/40"
+                preset.isRecommended ? "bg-cyan-500/15 text-cyan-400" : "bg-[#2A313A] text-[#6B7380]"
               )}>
                 {preset.isRecommended ? "Recommended" : "Default"}
               </span>
@@ -181,7 +181,7 @@ function ContinuousSlider({
               style={{ left: `${((config.defaultValue - config.min) / (config.max - config.min)) * 100}%` }}
             >
               <div className="w-0.5 h-2.5 bg-[#1A1F26]5 rounded-full" />
-              <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-white/30 whitespace-nowrap">
+              <span className="absolute left-1/2 top-3 -translate-x-1/2 text-[9px] text-[#6B7380] whitespace-nowrap">
                 Default
               </span>
             </div>
@@ -202,7 +202,7 @@ function ContinuousSlider({
       </div>
 
       {/* Min / Max labels */}
-      <div className="flex justify-between text-[10px] text-white/25 select-none -mt-1">
+      <div className="flex justify-between text-[10px] text-[#6B7380] select-none -mt-1">
         <span>{config.min}{config.unit ? ` ${config.unit}` : ""}</span>
         <span>{config.max}{config.unit ? ` ${config.unit}` : ""}</span>
       </div>
@@ -258,12 +258,12 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
   if (!d && !tweak.whoShouldAvoid) return null;
 
   return (
-    <div className="mx-4 mb-4 p-3 rounded-xl bg-black/30 border border-white/[0.06] space-y-2.5">
+    <div className="mx-4 mb-4 p-3 rounded-xl bg-black/30 border border-[#2A313A] space-y-2.5">
       {d?.registryPath && (
         <div className="flex items-start gap-2">
-          <Terminal className="size-3 text-white/30 mt-0.5 shrink-0" />
+          <Terminal className="size-3 text-[#6B7380] mt-0.5 shrink-0" />
           <div className="min-w-0">
-            <div className="text-[10px] text-white/30 mb-0.5">Registry Path</div>
+            <div className="text-[10px] text-[#6B7380] mb-0.5">Registry Path</div>
             <code className="text-[10px] text-cyan-300/70 break-all leading-relaxed">{d.registryPath}</code>
             {d.registryName && (
               <code className="text-[10px] text-cyan-300/50 block">→ {d.registryName} ({d.registryType ?? "DWORD"})</code>
@@ -274,12 +274,12 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
 
       {currentValue !== null && (
         <div className="flex items-center gap-2">
-          <Info className="size-3 text-white/30 shrink-0" />
+          <Info className="size-3 text-[#6B7380] shrink-0" />
           <div>
-            <span className="text-[10px] text-white/30">Current raw value: </span>
-            <code className="text-[10px] text-white/60">{currentValue}</code>
+            <span className="text-[10px] text-[#6B7380]">Current raw value: </span>
+            <code className="text-[10px] text-[#A0A8B3]">{currentValue}</code>
             {currentValue === 4294967295 && (
-              <code className="text-[10px] text-white/40 ml-1">(0xFFFFFFFF)</code>
+              <code className="text-[10px] text-[#6B7380] ml-1">(0xFFFFFFFF)</code>
             )}
           </div>
         </div>
@@ -290,15 +290,15 @@ function AdvancedDetails({ tweak, currentValue }: { tweak: Tweak; currentValue: 
           <AlertTriangle className="size-3 text-yellow-400/60 mt-0.5 shrink-0" />
           <div>
             <div className="text-[10px] text-yellow-400/70 font-medium mb-0.5">Who should avoid this</div>
-            <p className="text-[10px] text-white/40 leading-relaxed">{tweak.whoShouldAvoid}</p>
+            <p className="text-[10px] text-[#6B7380] leading-relaxed">{tweak.whoShouldAvoid}</p>
           </div>
         </div>
       )}
 
       {d?.technicalNote && (
         <div className="flex items-start gap-2">
-          <Info className="size-3 text-white/30 mt-0.5 shrink-0" />
-          <p className="text-[10px] text-white/35 leading-relaxed">{d.technicalNote}</p>
+          <Info className="size-3 text-[#6B7380] mt-0.5 shrink-0" />
+          <p className="text-[10px] text-[#6B7380] leading-relaxed">{d.technicalNote}</p>
         </div>
       )}
     </div>
@@ -362,7 +362,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
       <div className="p-4 space-y-2">
         <div className="flex items-start gap-3 flex-wrap">
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-sm text-foreground group-hover:text-white transition-colors leading-tight">
+            <h3 className="font-medium text-sm text-foreground group-hover:text-[#E6EAF0] transition-colors leading-tight">
               {tweak.title}
             </h3>
             <div className="flex items-center gap-1.5 flex-wrap mt-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
@@ -421,30 +421,30 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
           {/* Value display row */}
           <div className="flex items-center gap-4 text-xs">
             <div className="flex-1">
-              <span className="text-white/30 block mb-0.5 text-[10px]">Current (system)</span>
-              <span className={cn("font-medium tabular-nums", isElectron ? "text-white/80" : "text-white/40")}>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Current (system)</span>
+              <span className={cn("font-medium tabular-nums", isElectron ? "text-[#E6EAF0]" : "text-[#6B7380]")}>
                 {formatValue(state.currentValue, config.unit)}
               </span>
               {state.isUsingDefault && isElectron && (
-                <span className="text-[9px] text-white/25 ml-1">(key absent, using default)</span>
+                <span className="text-[9px] text-[#6B7380] ml-1">(key absent, using default)</span>
               )}
             </div>
             <div className="flex-1">
-              <span className="text-white/30 block mb-0.5 text-[10px]">Pending</span>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Pending</span>
               <span className={cn(
                 "font-medium tabular-nums transition-colors",
-                isDirty ? "text-cyan-400" : "text-white/40"
+                isDirty ? "text-cyan-400" : "text-[#6B7380]"
               )}>
                 {isDirty ? pendingLabel : "—"}
               </span>
             </div>
             <div>
-              <span className="text-white/30 block mb-0.5 text-[10px]">Default</span>
-              <span className="text-white/35 tabular-nums">{formatValue(config.defaultValue, config.unit)}</span>
+              <span className="text-[#6B7380] block mb-0.5 text-[10px]">Default</span>
+              <span className="text-[#6B7380] tabular-nums">{formatValue(config.defaultValue, config.unit)}</span>
             </div>
             {config.recommendedValue !== undefined && (
               <div>
-                <span className="text-white/30 block mb-0.5 text-[10px]">Recommended</span>
+                <span className="text-[#6B7380] block mb-0.5 text-[10px]">Recommended</span>
                 <span className="text-cyan-400/60 tabular-nums">{formatValue(config.recommendedValue, config.unit)}</span>
               </div>
             )}
@@ -477,7 +477,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 4 }}
                 transition={{ duration: 0.18 }}
-                className="text-[11px] text-white/40 leading-relaxed"
+                className="text-[11px] text-[#6B7380] leading-relaxed"
               >
                 {pendingPreset.description}
               </motion.p>
@@ -523,7 +523,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
                 "h-8 px-4 text-xs gap-2 transition-all",
                 isDirty
                   ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
-                  : "bg-[#21262D] text-white/30 border border-[#2A313A]0"
+                  : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]"
               )}
             >
               {isApplying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
@@ -536,7 +536,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
               onClick={reset}
               disabled={disabled || state.currentValue === config.defaultValue}
               data-testid={`button-reset-slider-${tweak.id}`}
-              className="h-8 px-3 text-xs gap-2 text-white/40 hover:text-white/70 hover:bg-[#21262D] border border-white/[0.06]"
+              className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#21262D] border border-[#2A313A]"
             >
               <RotateCcw className="size-3" />
               Reset to Default
@@ -549,7 +549,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
                 onClick={revert}
                 disabled={disabled}
                 data-testid={`button-revert-slider-${tweak.id}`}
-                className="h-8 px-3 text-xs gap-2 text-white/40 hover:text-amber-300 hover:bg-amber-500/10 border border-white/[0.06]"
+                className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-amber-300 hover:bg-amber-500/10 border border-[#2A313A]"
                 title={`Revert to ${formatValue(state.previousValue, config.unit)}`}
               >
                 <CornerDownLeft className="size-3" />
@@ -570,7 +570,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
           <button
             onClick={() => setAdvancedOpen(!advancedOpen)}
             data-testid={`button-advanced-${tweak.id}`}
-            className="flex items-center gap-1.5 text-[10px] text-white/25 hover:text-white/50 transition-colors"
+            className="flex items-center gap-1.5 text-[10px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
           >
             {advancedOpen ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
             {advancedOpen ? "Hide" : "Show"} advanced details

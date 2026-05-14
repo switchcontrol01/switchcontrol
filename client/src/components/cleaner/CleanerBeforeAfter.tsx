@@ -17,7 +17,7 @@ export function CleanerBeforeAfter({ beforeBytes, afterBytes, removedBytes, visi
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+        <h3 className="text-xs font-semibold text-[#E6EAF0] flex items-center gap-1.5">
           <Sparkles className="size-3.5 text-primary" />
           Cleanup Impact
         </h3>
@@ -35,7 +35,7 @@ export function CleanerBeforeAfter({ beforeBytes, afterBytes, removedBytes, visi
             <span className="text-muted-foreground/60 flex items-center gap-1">
               <HardDrive className="size-3" /> Before
             </span>
-            <span className="text-white/70 tabular-nums">{hasData ? fmtBytes(beforeBytes) : "—"}</span>
+            <span className="text-[#E6EAF0] tabular-nums">{hasData ? fmtBytes(beforeBytes) : "—"}</span>
           </div>
           <div className="h-3 rounded-full bg-[#21262D] overflow-hidden">
             <motion.div

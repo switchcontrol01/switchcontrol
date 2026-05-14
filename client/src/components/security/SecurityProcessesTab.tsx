@@ -52,7 +52,7 @@ function ProcessRow({ process, hasSecurity }: { process: ProcessTrustItem; hasSe
       process.trustState === "suspicious" ? "border-red-500/25" : process.trustState === "review" ? "border-amber-500/15" : "border-[#2A313A]"
     )}>
       <div
-        className="flex items-center gap-3 p-3.5 cursor-pointer hover:bg-white/[0.02] transition-colors"
+        className="flex items-center gap-3 p-3.5 cursor-pointer hover:bg-[#1A1F26] transition-colors"
         onClick={() => setExpanded(e => !e)}
         data-testid={`process-row-${process.pid}`}
       >
@@ -91,7 +91,7 @@ function ProcessRow({ process, hasSecurity }: { process: ProcessTrustItem; hasSe
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-[#2A313A] p-3.5 bg-white/[0.02] space-y-3">
+            <div className="border-t border-[#2A313A] p-3.5 bg-[#1A1F26] space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Trust State</p>
@@ -194,9 +194,9 @@ export function SecurityProcessesTab({
           {[
             { label: `${suspiciousCount} suspicious`, color: "text-red-400 border-red-500/25 bg-red-500/10", active: suspiciousCount > 0 },
             { label: `${reviewCount} review`,    color: "text-amber-400 border-amber-500/25 bg-amber-500/10", active: reviewCount > 0 },
-            { label: `${processTrust.length} total`, color: "text-muted-foreground border-[#2A313A]0 bg-[#21262D]", active: false },
+            { label: `${processTrust.length} total`, color: "text-muted-foreground border-[#2A313A] bg-[#21262D]", active: false },
           ].map(c => (
-            <Badge key={c.label} variant="outline" className={cn("gap-1 text-xs", c.active ? c.color : "text-muted-foreground border-[#2A313A]0 bg-[#21262D]")}>
+            <Badge key={c.label} variant="outline" className={cn("gap-1 text-xs", c.active ? c.color : "text-muted-foreground border-[#2A313A] bg-[#21262D]")}>
               {c.label}
             </Badge>
           ))}
@@ -210,7 +210,7 @@ export function SecurityProcessesTab({
             <h3 className="font-semibold text-sm">Process Trust Analysis</h3>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex gap-1 bg-white/[0.04] rounded-lg p-1">
+            <div className="flex gap-1 bg-[#21262D] rounded-lg p-1">
               {(["all", "suspicious", "review"] as const).map(f => (
                 <button key={f} onClick={() => setFilter(f)}
                   className={cn("px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors capitalize",

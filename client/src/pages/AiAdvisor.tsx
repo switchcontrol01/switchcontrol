@@ -182,10 +182,10 @@ const QUICK_ACTIONS = [
     id: "bios",
     label: "BIOS Advice",
     icon: MonitorCog,
-    glow: "group-hover:shadow-violet-500/20",
-    border: "border-violet-500/20 hover:border-violet-500/40",
-    iconColor: "text-violet-400",
-    bgColor: "bg-violet-500/[0.07] hover:bg-violet-500/[0.12]",
+    glow: "group-hover:shadow-none",
+    border: "border-[#00D4FF] hover:border-[#00D4FF]",
+    iconColor: "text-[#00D4FF]",
+    bgColor: "bg-#00D4FF/[0.07] hover:bg-#00D4FF/[0.12]",
     prompt: "Based on my system, what BIOS settings should I check or change to improve gaming performance? What's safe to adjust?",
   },
   {
@@ -241,8 +241,8 @@ function SafeMarkdown({ text }: { text: string }) {
     <span>
       {parts.map((part, i) => {
         switch (part.type) {
-          case "bold": return <strong key={i} className="text-white font-semibold">{part.content}</strong>;
-          case "code": return <code key={i} className="px-1.5 py-0.5 rounded bg-white/[0.07] text-primary text-[11px] font-mono">{part.content}</code>;
+          case "bold": return <strong key={i} className="text-[#E6EAF0] font-semibold">{part.content}</strong>;
+          case "code": return <code key={i} className="px-1.5 py-0.5 rounded bg-[#21262D] text-primary text-[11px] font-mono">{part.content}</code>;
           case "br": return <br key={i} />;
           default: return <span key={i}>{part.content}</span>;
         }
@@ -283,7 +283,7 @@ function ThinkingStatus({ slow }: { slow?: boolean }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -3 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="text-white/40 text-[11px]"
+            className="text-[#6B7380] text-[11px]"
           >
             {THINKING_PHASES[phase]}
           </motion.span>
@@ -296,7 +296,7 @@ function ThinkingStatus({ slow }: { slow?: boolean }) {
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.3 }}
-            className="text-white/25 text-[10px] leading-tight pl-[26px] overflow-hidden"
+            className="text-[#6B7380] text-[10px] leading-tight pl-[26px] overflow-hidden"
           >
             This can take a few seconds…
           </motion.span>
@@ -320,7 +320,7 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
   const confColors: Record<"high" | "medium" | "low", string> = {
     high: "bg-emerald-500/15 text-emerald-400 border-emerald-500/20",
     medium: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-    low: "bg-white/[0.06] text-white/40 border-white/10",
+    low: "bg-[#21262D] text-[#6B7380] border-[#2A313A]",
   };
 
   return (
@@ -334,22 +334,22 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
               data-testid={`button-finding-dot-${i}`}
               className={cn(
                 "h-[3px] rounded-full transition-all duration-300",
-                i === findingIdx ? "w-6 bg-primary/60" : "w-2 bg-white/20 hover:bg-white/35"
+                i === findingIdx ? "w-6 bg-primary/60" : "w-2 bg-[#1A1F26]0 hover:bg-[#1A1F26]5"
               )}
             />
           ))}
-          <span className="text-[10px] text-white/25 ml-0.5">{findingIdx + 1}/{total}</span>
+          <span className="text-[10px] text-[#6B7380] ml-0.5">{findingIdx + 1}/{total}</span>
         </div>
       )}
 
       <div>
         <div className="flex items-center gap-2 mb-1.5">
-          <span className="text-[9px] font-semibold uppercase tracking-wider text-white/25">DIAGNOSIS</span>
+          <span className="text-[9px] font-semibold uppercase tracking-wider text-[#6B7380]">DIAGNOSIS</span>
           <span className={cn("text-[9px] px-1.5 py-0.5 rounded-full border", confColors[finding.confidence])}>
             {finding.confidence} confidence
           </span>
         </div>
-        <p className="text-[13px] text-white font-medium leading-snug" data-testid="text-diagnosis-problem">
+        <p className="text-[13px] text-[#E6EAF0] font-medium leading-snug" data-testid="text-diagnosis-problem">
           {finding.problem}
         </p>
       </div>
@@ -364,13 +364,13 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="space-y-2"
           >
-            <div className="pl-3 border-l border-white/[0.07]">
-              <p className="text-[9px] text-white/30 uppercase tracking-wider mb-0.5">ROOT CAUSE</p>
-              <p className="text-[12px] text-white/65 leading-snug">{finding.cause}</p>
+            <div className="pl-3 border-l border-[#2A313A]">
+              <p className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-0.5">ROOT CAUSE</p>
+              <p className="text-[12px] text-[#E6EAF0]/65 leading-snug">{finding.cause}</p>
             </div>
-            <div className="pl-3 border-l border-white/[0.07]">
-              <p className="text-[9px] text-white/30 uppercase tracking-wider mb-0.5">GAMING IMPACT</p>
-              <p className="text-[12px] text-white/65 leading-snug">{finding.impact}</p>
+            <div className="pl-3 border-l border-[#2A313A]">
+              <p className="text-[9px] text-[#6B7380] uppercase tracking-wider mb-0.5">GAMING IMPACT</p>
+              <p className="text-[12px] text-[#E6EAF0]/65 leading-snug">{finding.impact}</p>
             </div>
           </motion.div>
         )}
@@ -387,7 +387,7 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
           >
             <div className="p-2.5 rounded-xl bg-primary/[0.07] border border-primary/15">
               <p className="text-[9px] text-primary/50 uppercase tracking-wider mb-1">RECOMMENDED ACTION</p>
-              <p className="text-[12px] text-white/80 leading-snug">{finding.fix}</p>
+              <p className="text-[12px] text-[#E6EAF0] leading-snug">{finding.fix}</p>
               {finding.tweakId && onApply && (
                 <button
                   onClick={() => onApply([{ tweakId: finding.tweakId!, reason: finding.fix, expectedImpact: finding.impact }])}
@@ -418,13 +418,13 @@ function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; 
           <button
             onClick={() => goToFinding(findingIdx + 1)}
             data-testid="button-next-finding"
-            className="flex items-center gap-1 text-[11px] text-white/35 hover:text-white/55 transition-colors"
+            className="flex items-center gap-1 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
           >
             Next issue <ChevronRight className="w-3 h-3" />
           </button>
         )}
         {stage === 2 && findingIdx === total - 1 && (
-          <span className="text-[10px] text-white/20">Diagnosis complete</span>
+          <span className="text-[10px] text-[#6B7380]/50">Diagnosis complete</span>
         )}
       </div>
     </div>
@@ -444,7 +444,7 @@ function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
 
   return (
     <div className="space-y-2">
-      <p className="text-[13px] text-white/90 leading-relaxed font-medium">
+      <p className="text-[13px] text-[#E6EAF0] leading-relaxed font-medium">
         <SafeMarkdown text={summary} />
       </p>
       <AnimatePresence>
@@ -453,7 +453,7 @@ function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.22, ease: "easeOut" }}
-            className="text-[12.5px] text-white/70 leading-relaxed space-y-1"
+            className="text-[12.5px] text-[#E6EAF0] leading-relaxed space-y-1"
           >
             {detail.split("\n").map((line, i) => {
               const trimmed = line.trim();
@@ -476,13 +476,13 @@ function AnswerCard({ summary, detail }: { summary: string; detail?: string }) {
 function SystemSpecRow({ icon: Icon, label, value, color }: { icon: typeof Cpu; label: string; value: string; color: string }) {
   if (!value || value === "Unavailable") return null;
   return (
-    <div className="flex items-center gap-2.5 py-2 border-b border-white/[0.04] last:border-0">
+    <div className="flex items-center gap-2.5 py-2 border-b border-[#2A313A] last:border-0">
       <div className={cn("w-6 h-6 rounded-md flex items-center justify-center shrink-0", color)}>
         <Icon className="size-3" />
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-[9px] text-white/30 uppercase tracking-wider leading-none mb-0.5">{label}</p>
-        <p className="text-[11px] text-white/70 truncate leading-tight">{value}</p>
+        <p className="text-[9px] text-[#6B7380] uppercase tracking-wider leading-none mb-0.5">{label}</p>
+        <p className="text-[11px] text-[#E6EAF0] truncate leading-tight">{value}</p>
       </div>
     </div>
   );
@@ -493,12 +493,12 @@ function SystemSpecRow({ icon: Icon, label, value, color }: { icon: typeof Cpu; 
 const STATUS_COLOR = {
   available: "text-emerald-400",
   partial: "text-amber-400",
-  unavailable: "text-white/25",
+  unavailable: "text-[#6B7380]",
 };
 const STATUS_DOT = {
   available: "bg-emerald-400",
   partial: "bg-amber-400",
-  unavailable: "bg-white/15",
+  unavailable: "bg-[#2A313A]",
 };
 const STATUS_LABEL = {
   available: "Live",
@@ -510,7 +510,7 @@ function CoverageRow({ label, status, detail }: { label: string; status: "availa
   return (
     <div className="flex items-center gap-2 py-[3px]">
       <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${STATUS_DOT[status]}`} />
-      <span className="text-[10px] text-white/50 flex-1 leading-none">{label}</span>
+      <span className="text-[10px] text-[#A0A8B3] flex-1 leading-none">{label}</span>
       {detail
         ? <span className={`text-[9px] ${STATUS_COLOR[status]} max-w-[70px] truncate`}>{detail}</span>
         : <span className={`text-[9px] ${STATUS_COLOR[status]}`}>{STATUS_LABEL[status]}</span>}
@@ -543,16 +543,16 @@ function CoveragePanel({
       initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.45, delay: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 backdrop-blur-sm"
+      className="rounded-2xl bg-[#1A1F26] border border-[#2A313A] p-3.5 backdrop-blur-sm"
     >
       <div className="flex items-center gap-2 mb-2.5">
         <div className="w-5 h-5 rounded-md bg-blue-500/15 border border-blue-500/25 flex items-center justify-center shrink-0">
           <Eye className="size-2.5 text-blue-400" />
         </div>
-        <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Advisor Coverage</p>
+        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">Advisor Coverage</p>
       </div>
       {allUnavailable ? (
-        <p className="text-[10px] text-white/20 text-center py-1">Initializing data sources…</p>
+        <p className="text-[10px] text-[#6B7380]/50 text-center py-1">Initializing data sources…</p>
       ) : (
         <div>
           <CoverageRow
@@ -612,13 +612,13 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
       initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.45, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 backdrop-blur-sm"
+      className="rounded-2xl bg-[#1A1F26] border border-[#2A313A] p-3.5 backdrop-blur-sm"
     >
       <div className="flex items-center gap-2 mb-3">
         <div className="w-5 h-5 rounded-md bg-primary/15 border border-primary/25 flex items-center justify-center shrink-0">
           <Cpu className="size-2.5 text-primary" />
         </div>
-        <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">System Profile</p>
+        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">System Profile</p>
         {hasAny && (
           <span className="ml-auto flex items-center gap-1 text-[9px] text-emerald-400/80">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/70 animate-pulse" />
@@ -629,14 +629,14 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
       {hasAny ? (
         <div>
           {s?.cpu && <SystemSpecRow icon={Cpu} label="CPU" value={s.cpu} color="bg-primary/10 text-primary/70" />}
-          {s?.gpu && <SystemSpecRow icon={Eye} label="GPU" value={s.gpu} color="bg-violet-500/10 text-violet-400/70" />}
+          {s?.gpu && <SystemSpecRow icon={Eye} label="GPU" value={s.gpu} color="bg-[#00D4FF] text-[#00D4FF]/70" />}
           {s?.ram && <SystemSpecRow icon={MemoryStick} label="RAM" value={s.ram} color="bg-cyan-500/10 text-cyan-400/70" />}
           {s?.storage && <SystemSpecRow icon={HardDrive} label="Storage" value={s.storage} color="bg-emerald-500/10 text-emerald-400/70" />}
           {s?.motherboard && <SystemSpecRow icon={MonitorCog} label="Board" value={s.motherboard} color="bg-orange-500/10 text-orange-400/70" />}
           {s?.network && <SystemSpecRow icon={Wifi} label="Network" value={s.network} color="bg-blue-500/10 text-blue-400/70" />}
           {s?.display && <SystemSpecRow icon={Monitor} label="Display" value={s.display} color="bg-pink-500/10 text-pink-400/70" />}
           {!hasExtended && (
-            <p className="text-[10px] text-white/25 text-center pt-2">Loading extended system profile…</p>
+            <p className="text-[10px] text-[#6B7380] text-center pt-2">Loading extended system profile…</p>
           )}
           {import.meta.env.DEV && (
             <p className="text-[9px] text-amber-400/70 font-mono mt-2 px-0.5 truncate" title={[s?.cpu, s?.gpu, s?.ram].filter(Boolean).join(", ")}>
@@ -646,7 +646,7 @@ function SystemProfileCard({ context }: { context: SystemContext | null }) {
         </div>
       ) : (
         <>
-          <p className="text-[11px] text-white/25 text-center py-2">Specs detected when running on Windows</p>
+          <p className="text-[11px] text-[#6B7380] text-center py-2">Specs detected when running on Windows</p>
           {import.meta.env.DEV && (
             <p className="text-[9px] text-amber-400/50 font-mono text-center pb-1">AI analyzing: specs pending…</p>
           )}
@@ -666,25 +666,25 @@ function OptimizationStatusCard({ enabledCount, totalCount }: { enabledCount: nu
       initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.45, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 backdrop-blur-sm"
+      className="rounded-2xl bg-[#1A1F26] border border-[#2A313A] p-3.5 backdrop-blur-sm"
     >
       <div className="flex items-center gap-2 mb-3">
         <div className="w-5 h-5 rounded-md bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center shrink-0">
           <TrendingUp className="size-2.5 text-emerald-400" />
         </div>
-        <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Optimization</p>
+        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">Optimization</p>
       </div>
       <div className="flex items-end justify-between mb-2">
         <div>
-          <p className="text-[22px] font-bold text-white leading-none">{score}</p>
-          <p className="text-[9px] text-white/30 mt-0.5">/100</p>
+          <p className="text-[22px] font-bold text-[#E6EAF0] leading-none">{score}</p>
+          <p className="text-[9px] text-[#6B7380] mt-0.5">/100</p>
         </div>
         <div className="text-right">
-          <p className="text-[10px] font-semibold text-white/60">{statusLabel}</p>
-          <p className="text-[9px] text-white/30 mt-0.5">{enabledCount} / {totalCount} active</p>
+          <p className="text-[10px] font-semibold text-[#A0A8B3]">{statusLabel}</p>
+          <p className="text-[9px] text-[#6B7380] mt-0.5">{enabledCount} / {totalCount} active</p>
         </div>
       </div>
-      <div className="h-1 rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-1 rounded-full bg-[#21262D] overflow-hidden">
         <motion.div
           className={cn("h-full rounded-full", barColor)}
           initial={{ width: 0 }}
@@ -693,7 +693,7 @@ function OptimizationStatusCard({ enabledCount, totalCount }: { enabledCount: nu
         />
       </div>
       {totalCount - enabledCount > 0 && (
-        <p className="text-[9px] text-white/25 mt-2">{totalCount - enabledCount} improvements available</p>
+        <p className="text-[9px] text-[#6B7380] mt-2">{totalCount - enabledCount} improvements available</p>
       )}
     </motion.div>
   );
@@ -715,13 +715,13 @@ function QuickActionsPanel({
       initial={{ opacity: 0, x: -16 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.45, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className="rounded-2xl bg-white/[0.03] border border-white/[0.06] p-3.5 backdrop-blur-sm"
+      className="rounded-2xl bg-[#1A1F26] border border-[#2A313A] p-3.5 backdrop-blur-sm"
     >
       <div className="flex items-center gap-2 mb-3">
         <div className="w-5 h-5 rounded-md bg-cyan-500/15 border border-cyan-500/25 flex items-center justify-center shrink-0">
           <Zap className="size-2.5 text-cyan-400" />
         </div>
-        <p className="text-[10px] font-semibold text-white/50 uppercase tracking-wider">Quick Actions</p>
+        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-wider">Quick Actions</p>
       </div>
       <div className="flex flex-col gap-1.5">
         {QUICK_ACTIONS.map((action) => {
@@ -746,7 +746,7 @@ function QuickActionsPanel({
               data-testid={`button-quick-action-${action.id}`}
             >
               <Icon className={cn("size-3.5 shrink-0 transition-transform duration-200 group-hover:scale-110", action.iconColor)} />
-              <span className="text-[11px] text-white/60 group-hover:text-white/85 transition-colors">{action.label}</span>
+              <span className="text-[11px] text-[#A0A8B3] group-hover:text-[#E6EAF0]/85 transition-colors">{action.label}</span>
             </button>
           );
         })}
@@ -764,16 +764,16 @@ function ImageAttachmentPill({ image, onRemove }: { image: AttachedImage; onRemo
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 4, scale: 0.96 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      className="flex items-center gap-2 px-2 py-1.5 mb-2 self-start rounded-xl bg-white/[0.05] border border-white/[0.08] max-w-[200px]"
+      className="flex items-center gap-2 px-2 py-1.5 mb-2 self-start rounded-xl bg-[#21262D] border border-[#2A313A] max-w-[200px]"
     >
-      <img src={image.dataUrl} alt="attachment" className="w-8 h-8 rounded-lg object-cover shrink-0 border border-white/[0.08]" />
+      <img src={image.dataUrl} alt="attachment" className="w-8 h-8 rounded-lg object-cover shrink-0 border border-[#2A313A]" />
       <div className="flex-1 min-w-0">
-        <p className="text-[10px] text-white/60 truncate leading-tight">{image.file.name}</p>
-        <p className="text-[9px] text-white/30">{image.sizeKb} KB</p>
+        <p className="text-[10px] text-[#A0A8B3] truncate leading-tight">{image.file.name}</p>
+        <p className="text-[9px] text-[#6B7380]">{image.sizeKb} KB</p>
       </div>
       <button
         onClick={onRemove}
-        className="shrink-0 w-4 h-4 rounded-full bg-white/[0.08] hover:bg-red-500/20 hover:text-red-400 text-white/40 flex items-center justify-center transition-colors"
+        className="shrink-0 w-4 h-4 rounded-full bg-[#21262D] hover:bg-red-500/20 hover:text-red-400 text-[#6B7380] flex items-center justify-center transition-colors"
         data-testid="button-remove-image"
       >
         <X className="size-2.5" />
@@ -820,17 +820,17 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, isAdmin, isPremium, o
       <div className={cn(
         "max-w-[88%] rounded-2xl px-4 py-3 text-[13px] leading-relaxed",
         msg.role === "user"
-          ? "bg-primary/15 border border-primary/25 text-white ml-auto rounded-br-md"
+          ? "bg-primary/15 border border-primary/25 text-[#E6EAF0] ml-auto rounded-br-md"
           : msg.role === "system"
             ? "bg-red-500/5 border border-red-500/15 text-red-300/80 rounded-bl-md"
-            : "bg-white/[0.04] border border-white/[0.07] text-white/85 rounded-bl-md"
+            : "bg-[#21262D] border border-[#2A313A] text-[#E6EAF0]/85 rounded-bl-md"
       )} data-testid={`chat-message-${msg.id}`}>
         {msg.imageDataUrl && (
           <div className="mb-2">
             <img
               src={msg.imageDataUrl}
               alt="Uploaded image"
-              className="max-w-[200px] max-h-[140px] rounded-xl object-cover border border-white/[0.08]"
+              className="max-w-[200px] max-h-[140px] rounded-xl object-cover border border-[#2A313A]"
             />
           </div>
         )}
@@ -863,8 +863,8 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, isAdmin, isPremium, o
       </div>
 
       {msg.role === "user" && (
-        <div className="shrink-0 w-7 h-7 rounded-xl bg-white/[0.06] border border-white/[0.08] flex items-center justify-center mt-0.5">
-          <User className="w-3.5 h-3.5 text-white/50" />
+        <div className="shrink-0 w-7 h-7 rounded-xl bg-[#21262D] border border-[#2A313A] flex items-center justify-center mt-0.5">
+          <User className="w-3.5 h-3.5 text-[#A0A8B3]" />
         </div>
       )}
     </motion.div>
@@ -894,7 +894,7 @@ function SuggestedPrompts({ onSelect, disabled }: { onSelect: (p: string) => voi
           key={p}
           onClick={() => onSelect(p)}
           disabled={disabled}
-          className="text-[10px] px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.07] text-white/45 hover:text-white/70 hover:bg-white/[0.07] hover:border-white/[0.12] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          className="text-[10px] px-3 py-1.5 rounded-xl bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:border-[#2A313A] transition-all disabled:opacity-30 disabled:cursor-not-allowed"
           data-testid={`button-suggested-${p.slice(0, 20).replace(/\s/g, "-")}`}
         >
           {p}
@@ -1627,7 +1627,7 @@ export default function AiAdvisor() {
               <Brain className="w-5 h-5 text-primary" />
             </motion.div>
             <div>
-              <h1 className="text-lg font-bold text-white flex items-center gap-2" data-testid="text-ai-advisor-title">
+              <h1 className="text-lg font-bold text-[#E6EAF0] flex items-center gap-2" data-testid="text-ai-advisor-title">
                 AI Advisor
                 <Badge className="bg-primary/20 text-primary border-primary/30 text-[10px]">Beta</Badge>
                 <PremiumHeaderBadge isLocked={!isPremium} />
@@ -1640,7 +1640,7 @@ export default function AiAdvisor() {
               variant="ghost"
               size="sm"
               onClick={() => setShowClearConfirm(true)}
-              className="text-[11px] text-muted-foreground hover:text-white h-7 px-2"
+              className="text-[11px] text-muted-foreground hover:text-[#E6EAF0] h-7 px-2"
               data-testid="button-new-chat"
             >
               <RotateCcw className="w-3 h-3 mr-1" />
@@ -1746,7 +1746,7 @@ export default function AiAdvisor() {
               onSubmit={handleSubmit}
               onFocus={() => setInputFocused(true)}
               onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setInputFocused(false); }}
-              className="shrink-0 flex items-center gap-2 p-2 rounded-2xl bg-white/[0.04] border transition-all duration-200"
+              className="shrink-0 flex items-center gap-2 p-2 rounded-2xl bg-[#21262D] border transition-all duration-200"
               style={{
                 borderColor: inputFocused ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)',
                 boxShadow: inputFocused
@@ -1764,7 +1764,7 @@ export default function AiAdvisor() {
                   "shrink-0 w-8 h-8 rounded-xl flex items-center justify-center transition-colors",
                   attachedImage
                     ? "bg-primary/20 text-primary border border-primary/30"
-                    : "text-white/25 hover:text-white/50 hover:bg-white/[0.06]",
+                    : "text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#21262D]",
                   "disabled:opacity-30 disabled:cursor-not-allowed"
                 )}
                 data-testid="button-attach-image"
@@ -1780,7 +1780,7 @@ export default function AiAdvisor() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 placeholder={!isOnline ? "Offline — draft saved, send when connected…" : attachedImage ? "Ask about this image…" : "Ask about optimizations, tweaks, games…"}
-                className="flex-1 bg-transparent text-sm text-white placeholder:text-white/25"
+                className="flex-1 bg-transparent text-sm text-[#E6EAF0] placeholder:text-[#6B7380]"
                 style={{ outline: 'none' }}
                 disabled={isBusy}
                 data-testid="input-chat-message"
@@ -1803,9 +1803,9 @@ export default function AiAdvisor() {
               {attachedImage ? (
                 <CheckCircle2 className="w-3 h-3 text-primary/40 shrink-0" />
               ) : (
-                <AlertTriangle className="w-3 h-3 text-white/20 shrink-0" />
+                <AlertTriangle className="w-3 h-3 text-[#6B7380]/50 shrink-0" />
               )}
-              <p className="text-[10px] text-white/20" data-testid="text-ai-disclaimer">
+              <p className="text-[10px] text-[#6B7380]/50" data-testid="text-ai-disclaimer">
                 {attachedImage
                   ? `Image attached (${attachedImage.sizeKb} KB) — ready to send`
                   : "AI suggestions only. You are responsible for any system changes."}
@@ -1838,7 +1838,7 @@ export default function AiAdvisor() {
                 setShowClearConfirm(false);
                 handleReset();
               }}
-              className="bg-red-600 hover:bg-red-700 text-white"
+              className="bg-red-600 hover:bg-red-700 text-[#E6EAF0]"
               data-testid="button-clear-chat-confirm"
             >
               Clear Chat

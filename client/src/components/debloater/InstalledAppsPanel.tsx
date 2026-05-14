@@ -66,7 +66,7 @@ function getInstalledAppsAPI(): InstalledAppsAPI | undefined {
 
 const TRUST_CONFIG = {
   microsoft:      { label: "Microsoft",      cls: "bg-blue-500/15 text-blue-400 border-blue-500/25",       icon: Monitor },
-  "user-installed":{ label: "User Installed", cls: "bg-violet-500/15 text-violet-400 border-violet-500/25", icon: Package },
+  "user-installed":{ label: "User Installed", cls: "bg-[#00D4FF] text-[#00D4FF] border-[#00D4FF]", icon: Package },
   system:         { label: "System",         cls: "bg-amber-500/15 text-amber-400 border-amber-500/25",     icon: Shield },
   protected:      { label: "Protected",      cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25", icon: Lock },
   unknown:        { label: "Unknown",        cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25",        icon: AlertTriangle },
@@ -75,7 +75,7 @@ const TRUST_CONFIG = {
 const METHOD_CONFIG = {
   msi:  { label: "MSI",  cls: "bg-emerald-500/15 text-emerald-400 border-emerald-500/25" },
   exe:  { label: "EXE",  cls: "bg-blue-500/15 text-blue-400 border-blue-500/25" },
-  appx: { label: "AppX", cls: "bg-violet-500/15 text-violet-400 border-violet-500/25" },
+  appx: { label: "AppX", cls: "bg-[#00D4FF] text-[#00D4FF] border-[#00D4FF]" },
   none: { label: "None", cls: "bg-zinc-500/15 text-zinc-400 border-zinc-500/25" },
 };
 
@@ -179,7 +179,7 @@ function ConfirmDialog({
             </div>
           )}
 
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-white/[0.04] border border-white/[0.08]">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-[#21262D] border border-[#2A313A]">
             <Info className="size-3.5 text-muted-foreground/60 mt-0.5 shrink-0" />
             <p className="text-[11px] text-muted-foreground">
               This will run the app's uninstaller ({app.uninstallMethod?.toUpperCase()}).
@@ -260,12 +260,12 @@ function AppRow({
 
   return (
     <div className={cn(
-      "rounded-xl border border-white/[0.07] overflow-hidden transition-all",
+      "rounded-xl border border-[#2A313A] overflow-hidden transition-all",
       app.isProtected && "opacity-70",
       result?.kind === "failed" && "border-red-500/20 bg-red-500/[0.03]",
     )} data-testid={`app-row-${app.id}`}>
       {/* Main row */}
-      <div className="flex items-center gap-3 p-3 sm:p-3.5 hover:bg-white/[0.02] transition-colors">
+      <div className="flex items-center gap-3 p-3 sm:p-3.5 hover:bg-[#1A1F26] transition-colors">
         {/* Icon */}
         <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0 border", tCfg.cls)}>
           <TrIcon className="size-3.5" />
@@ -355,7 +355,7 @@ function AppRow({
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <div className="border-t border-white/[0.06] px-3.5 sm:px-4 py-3 bg-white/[0.015] grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
+            <div className="border-t border-[#2A313A] px-3.5 sm:px-4 py-3 bg-white/[0.015] grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
               {app.version && (
                 <div>
                   <p className="text-[10px] uppercase tracking-wide text-muted-foreground/50 mb-0.5">Version</p>
@@ -537,7 +537,7 @@ export function InstalledAppsPanel() {
   if (!isElectronAvail) {
     return (
       <GlassCard className="p-8 text-center space-y-3">
-        <div className="size-12 rounded-full bg-[#21262D] border border-[#2A313A]0 flex items-center justify-center mx-auto">
+        <div className="size-12 rounded-full bg-[#21262D] border border-[#2A313A] flex items-center justify-center mx-auto">
           <Monitor className="size-5 text-muted-foreground/50" />
         </div>
         <p className="font-medium text-sm">Installed Apps Scan</p>
@@ -581,7 +581,7 @@ export function InstalledAppsPanel() {
             <Package className="size-4 text-primary" />
             Installed Apps
             {stats.total > 0 && (
-              <Badge variant="outline" className="text-xs text-muted-foreground border-[#2A313A]0">{stats.total}</Badge>
+              <Badge variant="outline" className="text-xs text-muted-foreground border-[#2A313A]">{stats.total}</Badge>
             )}
           </h3>
           {scannedAt && (
@@ -608,7 +608,7 @@ export function InstalledAppsPanel() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "Total",         value: stats.total,         color: undefined },
-            { label: "Uninstallable", value: stats.uninstallable, color: "text-violet-400" },
+            { label: "Uninstallable", value: stats.uninstallable, color: "text-[#00D4FF]" },
             { label: "Microsoft",     value: stats.microsoft,     color: "text-blue-400" },
             { label: "Third-party",   value: stats.thirdParty,    color: "text-amber-400" },
           ].map(s => (
@@ -621,7 +621,7 @@ export function InstalledAppsPanel() {
       )}
 
       {/* ── Safety rail ──────────────────────────────────────────────────────── */}
-      <div className="flex items-start gap-2 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+      <div className="flex items-start gap-2 p-3 rounded-xl bg-[#1A1F26] border border-[#2A313A]">
         <ShieldOff className="size-3.5 text-muted-foreground/50 mt-0.5 shrink-0" />
         <p className="text-[11px] text-muted-foreground/60 leading-relaxed">
           Protected system apps (Defender, Firewall, Windows Update) are locked and cannot be removed.
@@ -638,7 +638,7 @@ export function InstalledAppsPanel() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search name, publisher, version…"
-              className="pl-9 bg-white/[0.04] border-[#2A313A]0 h-9 text-sm"
+              className="pl-9 bg-[#21262D] border-[#2A313A] h-9 text-sm"
               data-testid="input-search-apps"
             />
             {search && (
@@ -649,7 +649,7 @@ export function InstalledAppsPanel() {
             )}
           </div>
           {/* Sort dropdown (simple buttons) */}
-          <div className="flex gap-0.5 bg-white/[0.04] border border-[#2A313A]0 rounded-lg p-0.5 shrink-0">
+          <div className="flex gap-0.5 bg-[#21262D] border border-[#2A313A] rounded-lg p-0.5 shrink-0">
             <ArrowUpDown className="size-3.5 text-muted-foreground/50 m-auto ml-2 mr-1" />
             <select
               value={sort}
@@ -672,7 +672,7 @@ export function InstalledAppsPanel() {
                 "px-2.5 py-1 rounded-full text-[11px] border transition-colors",
                 filter === f.id
                   ? "bg-primary/15 border-primary/30 text-primary"
-                  : "border-white/[0.08] text-muted-foreground hover:text-foreground/80"
+                  : "border-[#2A313A] text-muted-foreground hover:text-foreground/80"
               )}
               data-testid={`filter-apps-${f.id}`}
             >

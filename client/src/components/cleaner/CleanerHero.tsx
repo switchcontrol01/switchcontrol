@@ -40,7 +40,7 @@ export function CleanerHero({
       {/* Title row */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2.5">
+          <h1 className="text-2xl font-bold text-[#E6EAF0] flex items-center gap-2.5">
             <ScanLine className="size-6 text-primary" />
             System Cleaner
           </h1>
@@ -75,7 +75,7 @@ export function CleanerHero({
             "h-10 px-5 text-sm font-semibold rounded-xl transition-all",
             isScanning
               ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-              : "bg-primary hover:bg-primary/90 text-white"
+              : "bg-primary hover:bg-primary/90 text-[#E6EAF0]"
           )}
         >
           {isScanning ? (
@@ -97,7 +97,7 @@ export function CleanerHero({
               onClick={onClean}
               disabled={selectedCount === 0}
               data-testid="button-clean-selected"
-              className="h-10 px-5 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40"
+              className="h-10 px-5 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-[#E6EAF0] disabled:opacity-40"
             >
               <Sparkles className="size-4 mr-1.5" />
               Clean {fmtBytes(selectedBytes)}
@@ -106,7 +106,7 @@ export function CleanerHero({
             <Button
               variant="ghost"
               onClick={onSelectRecommended}
-              className="h-10 px-4 text-sm rounded-xl text-white/70 hover:text-white hover:bg-[#21262D]"
+              className="h-10 px-4 text-sm rounded-xl text-[#E6EAF0] hover:text-[#E6EAF0] hover:bg-[#21262D]"
             >
               Select Recommended
             </Button>
@@ -120,7 +120,7 @@ export function CleanerHero({
             "ml-auto flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium border transition-all",
             safeOnly
               ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-              : "border-[#2A313A]0 bg-white/[0.03] text-white/50 hover:text-white/70"
+              : "border-[#2A313A] bg-[#1A1F26] text-[#A0A8B3] hover:text-[#E6EAF0]"
           )}
         >
           <ShieldCheck className="size-3.5" />

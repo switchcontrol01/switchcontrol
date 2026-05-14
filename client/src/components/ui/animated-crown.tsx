@@ -34,7 +34,7 @@ export function AnimatedCrown({
     <div
       className={cn(
         "relative flex items-center justify-center cursor-pointer rounded-md",
-        "bg-white/[0.04] border border-white/[0.06] hover:bg-white/[0.07] transition-colors duration-150",
+        "bg-[#21262D] border border-[#2A313A] hover:bg-[#21262D] transition-colors duration-150",
         className
       )}
       style={{ width: sizes.container, height: sizes.container }}
@@ -43,7 +43,7 @@ export function AnimatedCrown({
       onClick={onClick}
     >
       <Crown
-        className="text-violet-400/70"
+        className="text-[#00D4FF]/70"
         style={{ width: sizes.icon, height: sizes.icon }}
       />
 
@@ -56,8 +56,8 @@ export function AnimatedCrown({
             transition={{ duration: 0.12 }}
             className="absolute top-full mt-2 left-1/2 -translate-x-1/2 z-50"
           >
-            <div className="px-2.5 py-1 rounded-md bg-zinc-900 border border-[#2A313A]0 shadow-xl whitespace-nowrap">
-              <span className="text-xs text-white/80">{tooltipText}</span>
+            <div className="px-2.5 py-1 rounded-md bg-zinc-900 border border-[#2A313A] shadow-xl whitespace-nowrap">
+              <span className="text-xs text-[#E6EAF0]">{tooltipText}</span>
             </div>
           </motion.div>
         )}
@@ -84,7 +84,7 @@ export function PremiumBadge({
       className={cn(
         "inline-flex items-center gap-1 px-2 py-0.5 rounded",
         "text-[10px] font-semibold uppercase tracking-wide",
-        "bg-violet-500/10 border border-violet-500/20 text-violet-400/80",
+        "bg-[#00D4FF] border border-[#00D4FF] text-[#00D4FF]/80",
         className
       )}
     >

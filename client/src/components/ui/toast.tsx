@@ -28,9 +28,9 @@ const toastVariants = cva(
     variants: {
       variant: {
         default:
-          "border-purple-500/25 bg-purple-500/[0.08] text-white shadow-[0_8px_32px_rgba(168,85,247,0.15),inset_0_1px_0_rgba(255,255,255,0.08)]",
+          "border-[#00D4FF] bg-[#00D4FF]/[0.08] text-[#E6EAF0] shadow-[0_8px_32px_rgba(168,85,247,0.15),inset_0_1px_0_rgba(255,255,255,0.08)]",
         destructive:
-          "destructive group border-red-500/25 bg-red-500/[0.08] text-white shadow-[0_8px_32px_rgba(239,68,68,0.15),inset_0_1px_0_rgba(255,255,255,0.06)]",
+          "destructive group border-red-500/25 bg-red-500/[0.08] text-[#E6EAF0] shadow-[0_8px_32px_rgba(239,68,68,0.15),inset_0_1px_0_rgba(255,255,255,0.06)]",
       },
     },
     defaultVariants: {
@@ -76,7 +76,7 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-3 top-3 z-50 rounded-full p-2 text-white/80 opacity-100 transition-all duration-200 hover:text-white hover:bg-[#1A1F26]0 hover:scale-110 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-purple-400 active:scale-95 cursor-pointer pointer-events-auto",
+      "absolute right-3 top-3 z-50 rounded-full p-2 text-[#E6EAF0] opacity-100 transition-all duration-200 hover:text-[#E6EAF0] hover:bg-[#1A1F26]0 hover:scale-110 focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-[#00D4FF] active:scale-95 cursor-pointer pointer-events-auto",
       className
     )}
     {...props}
@@ -92,7 +92,7 @@ const ToastTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Title
     ref={ref}
-    className={cn("text-sm font-semibold text-white", className)}
+    className={cn("text-sm font-semibold text-[#E6EAF0]", className)}
     {...props}
   />
 ))
@@ -104,7 +104,7 @@ const ToastDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <ToastPrimitives.Description
     ref={ref}
-    className={cn("text-sm text-white/90", className)}
+    className={cn("text-sm text-[#E6EAF0]", className)}
     {...props}
   />
 ))

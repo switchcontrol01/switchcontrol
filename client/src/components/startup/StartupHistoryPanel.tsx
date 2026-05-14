@@ -40,7 +40,7 @@ export function StartupHistoryPanel({ history, loading, onBack }: Props) {
       {onBack && (
         <button
           onClick={onBack}
-          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-[#E6EAF0] transition-colors"
         >
           <ArrowLeft className="size-3.5" /> Back to startup manager
         </button>
@@ -48,7 +48,7 @@ export function StartupHistoryPanel({ history, loading, onBack }: Props) {
 
       <div className="flex items-center gap-2">
         <History className="size-4 text-muted-foreground/50" />
-        <span className="text-xs font-medium text-white">Change History</span>
+        <span className="text-xs font-medium text-[#E6EAF0]">Change History</span>
         <span className="text-[10px] text-muted-foreground/40">{history.length} changes</span>
       </div>
 
@@ -59,7 +59,7 @@ export function StartupHistoryPanel({ history, loading, onBack }: Props) {
           ))}
         </div>
       ) : history.length === 0 ? (
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 text-center">
+        <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-6 text-center">
           <p className="text-xs text-muted-foreground/40">No changes recorded yet</p>
         </div>
       ) : (
@@ -76,18 +76,18 @@ export function StartupHistoryPanel({ history, loading, onBack }: Props) {
                 {entries.map(h => (
                   <div
                     key={h.id}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/[0.04]"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-[#1A1F26] border border-[#2A313A]"
                   >
                     <span className="text-[10px] text-muted-foreground/40 font-mono w-14 shrink-0">
                       {format(parseISO(h.changed_at), "HH:mm")}
                     </span>
-                    <span className="text-xs text-white/70 truncate flex-1">{h.entry_name}</span>
+                    <span className="text-xs text-[#E6EAF0] truncate flex-1">{h.entry_name}</span>
                     {h.enabled ? (
                       <span className="flex items-center gap-1 text-[10px] text-emerald-400 shrink-0">
                         <Power className="size-3" /> Enabled
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 text-[10px] text-white/30 shrink-0">
+                      <span className="flex items-center gap-1 text-[10px] text-[#6B7380] shrink-0">
                         <PowerOff className="size-3" /> Disabled
                       </span>
                     )}

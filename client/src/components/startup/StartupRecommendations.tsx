@@ -27,7 +27,7 @@ export function StartupRecommendations({ apps, onApply, onReview, visible }: Pro
       transition={{ duration: 0.4, delay: 0.2 }}
       className={cn(
         "rounded-xl border p-4 transition-all",
-        "bg-white/[0.03] border-white/[0.08]",
+        "bg-[#1A1F26] border-[#2A313A]",
         "shadow-[0_0_24px_rgba(139,92,246,0.08)]"
       )}
     >
@@ -35,7 +35,7 @@ export function StartupRecommendations({ apps, onApply, onReview, visible }: Pro
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="size-4 text-primary" />
-            <span className="text-sm font-semibold text-white">Recommended to Disable</span>
+            <span className="text-sm font-semibold text-[#E6EAF0]">Recommended to Disable</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded border border-primary/20 bg-primary/10 text-primary">
               {recs.length} {recs.length === 1 ? "app" : "apps"}
             </span>
@@ -50,10 +50,10 @@ export function StartupRecommendations({ apps, onApply, onReview, visible }: Pro
             {recs.map(app => (
               <div
                 key={app.entry.id}
-                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.06]"
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#1A1F26] border border-[#2A313A]"
               >
                 <TrendingUp className="size-3 text-emerald-400" />
-                <span className="text-[10px] text-white/70">{app.entry.name}</span>
+                <span className="text-[10px] text-[#E6EAF0]">{app.entry.name}</span>
                 <span className="text-[10px] text-emerald-400 tabular-nums font-medium">
                   {Math.round(app.delayMs)}ms
                 </span>
@@ -72,7 +72,7 @@ export function StartupRecommendations({ apps, onApply, onReview, visible }: Pro
           <Button
             onClick={onApply}
             size="sm"
-            className="h-8 px-3 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-white"
+            className="h-8 px-3 text-xs font-semibold rounded-lg bg-primary hover:bg-primary/90 text-[#E6EAF0]"
           >
             <ShieldCheck className="size-3 mr-1" />
             Apply All
@@ -81,7 +81,7 @@ export function StartupRecommendations({ apps, onApply, onReview, visible }: Pro
             onClick={onReview}
             variant="ghost"
             size="sm"
-            className="h-8 px-3 text-xs rounded-lg text-white/50 hover:text-white hover:bg-[#21262D]"
+            className="h-8 px-3 text-xs rounded-lg text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#21262D]"
           >
             Review
             <ChevronRight className="size-3 ml-0.5" />

@@ -74,7 +74,7 @@ function RingGraph({
   max,
   size = 96,
   strokeWidth = 8,
-  color = "#a855f7",
+  color = "#00D4FF",
 }: {
   value: number;
   max: number;
@@ -143,10 +143,10 @@ function StatBar({
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-[11px]">
-        <span className="text-white/50">{label}</span>
-        <span className="font-medium text-white/70">{value}</span>
+        <span className="text-[#A0A8B3]">{label}</span>
+        <span className="font-medium text-[#E6EAF0]">{value}</span>
       </div>
-      <div className="h-1.5 w-full rounded-full bg-white/[0.06] overflow-hidden">
+      <div className="h-1.5 w-full rounded-full bg-[#21262D] overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700 ease-out"
           style={{ width: `${width}%`, backgroundColor: color, boxShadow: `0 0 8px ${color}88` }}
@@ -203,11 +203,11 @@ function StatusRow({ result, index }: { result: RevertItemResult; index: number 
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: 0.4 + index * 0.06, duration: 0.3 }}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-white/[0.07] bg-white/[0.03]"
+      className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26]"
       style={{ boxShadow: `inset 0 0 0 1px ${config.glow}` }}
     >
       <Icon className={cn("size-3.5 shrink-0", config.color)} />
-      <span className="flex-1 text-white/70 text-[11px] truncate">{result.label}</span>
+      <span className="flex-1 text-[#E6EAF0] text-[11px] truncate">{result.label}</span>
       <span className={cn("text-[10px] font-medium shrink-0", config.color)}>{config.label}</span>
     </motion.div>
   );
@@ -271,17 +271,17 @@ function PowerPlanRow({ result, delay = 0 }: { result: PowerPlanRevertResult; de
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay, duration: 0.3 }}
-      className="flex items-start gap-2.5 px-3 py-2 rounded-lg border border-white/[0.07] bg-white/[0.03]"
+      className="flex items-start gap-2.5 px-3 py-2 rounded-lg border border-[#2A313A] bg-[#1A1F26]"
       style={{ boxShadow: `inset 0 0 0 1px ${cfg.glow}` }}
     >
       <Icon className={cn("size-3.5 shrink-0 mt-0.5", cfg.color)} />
       <div className="flex-1 min-w-0">
         <div className={cn("text-[11px] font-medium truncate", cfg.color)}>{cfg.label}</div>
-        <div className="text-[10px] text-white/40 truncate mt-0.5">{cfg.detail}</div>
+        <div className="text-[10px] text-[#6B7380] truncate mt-0.5">{cfg.detail}</div>
         {(plansDeleted > 0 || verifiedClean) && (
           <div className="flex items-center gap-2 mt-1">
             {plansDeleted > 0 && (
-              <span className="text-[9px] text-white/30">
+              <span className="text-[9px] text-[#6B7380]">
                 {plansDeleted} plan{plansDeleted !== 1 ? 's' : ''} removed from Power Options
               </span>
             )}
@@ -300,7 +300,7 @@ function PowerPlanRow({ result, delay = 0 }: { result: PowerPlanRevertResult; de
 
 // ── Section header ────────────────────────────────────────────────────────────
 
-function SectionHeader({ label, count, color = "text-white/30" }: { label: string; count: number; color?: string }) {
+function SectionHeader({ label, count, color = "text-[#6B7380]" }: { label: string; count: number; color?: string }) {
   if (count === 0) return null;
   return (
     <div className={cn("text-[10px] uppercase tracking-widest font-medium px-1 pt-1", color)}>
@@ -420,7 +420,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
                 className="absolute right-3 top-3 z-20 p-1.5 rounded-lg hover:bg-[#2A313A] transition-colors"
                 data-testid="button-close-revert-modal"
               >
-                <X className="size-4 text-white/40 hover:text-white/70 transition-colors" />
+                <X className="size-4 text-[#6B7380] hover:text-[#E6EAF0] transition-colors" />
               </button>
 
               <div className="relative z-10 p-5 space-y-4">
@@ -441,7 +441,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
                         animate={{ opacity: [0.7, 1, 0.7] }}
                         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
                       >
-                        <Crown className="size-6 text-violet-400" />
+                        <Crown className="size-6 text-[#00D4FF]" />
                       </motion.div>
                     </div>
                     <div
@@ -461,7 +461,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
                       {REVERT_COPY[reason ?? "premium_removed"].title}
                     </motion.h2>
                     <motion.p
-                      className="text-[11px] text-white/45 leading-relaxed"
+                      className="text-[11px] text-[#A0A8B3] leading-relaxed"
                       initial={{ opacity: 0, y: 4 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.22, duration: 0.3 }}
@@ -482,18 +482,18 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
                   >
                     {/* Ring */}
                     <div className="relative shrink-0 flex items-center justify-center" style={{ width: 72, height: 72 }}>
-                      <RingGraph value={revertedItemCount} max={totalItemCount} size={72} strokeWidth={7} color="#a855f7" />
+                      <RingGraph value={revertedItemCount} max={totalItemCount} size={72} strokeWidth={7} color="#00D4FF" />
                       <div className="absolute inset-0 flex flex-col items-center justify-center">
-                        <span className="text-lg font-bold text-white leading-none">
+                        <span className="text-lg font-bold text-[#E6EAF0] leading-none">
                           <AnimatedNumber value={revertedItemCount} />
                         </span>
-                        <span className="text-[9px] text-white/40 uppercase tracking-wider mt-0.5">reverted</span>
+                        <span className="text-[9px] text-[#6B7380] uppercase tracking-wider mt-0.5">reverted</span>
                       </div>
                     </div>
 
                     {/* Bars */}
                     <div className="flex-1 space-y-2">
-                      <StatBar label="Restored" value={revertedItemCount} max={totalItemCount} color="#a855f7" delay={0} />
+                      <StatBar label="Restored" value={revertedItemCount} max={totalItemCount} color="#00D4FF" delay={0} />
                       {conflictCount > 0 && (
                         <StatBar label="Conflicts" value={conflictCount} max={totalItemCount} color="#f59e0b" delay={80} />
                       )}
@@ -559,7 +559,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
                     )}
 
                     {allItemRows.length > 6 && (
-                      <p className="text-[10px] text-white/30 text-center pt-1">+ {allItemRows.length - 6} more</p>
+                      <p className="text-[10px] text-[#6B7380] text-center pt-1">+ {allItemRows.length - 6} more</p>
                     )}
                   </div>
                 )}
@@ -627,22 +627,22 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
                   className="space-y-2 pt-1"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="flex-1 h-px bg-white/[0.07]" />
-                    <TrendingDown className="size-3 text-white/20" />
-                    <div className="flex-1 h-px bg-white/[0.07]" />
+                    <div className="flex-1 h-px bg-[#21262D]" />
+                    <TrendingDown className="size-3 text-[#6B7380]/50" />
+                    <div className="flex-1 h-px bg-[#21262D]" />
                   </div>
 
-                  <p className="text-[10px] text-white/30 text-center">Re-activate your optimizations instantly</p>
+                  <p className="text-[10px] text-[#6B7380] text-center">Re-activate your optimizations instantly</p>
 
                   <motion.button
                     onClick={() => { openPricing(); onClose(); }}
                     data-testid="button-revert-upgrade"
-                    className="relative w-full overflow-hidden rounded-xl px-4 py-3 text-sm font-semibold text-white"
+                    className="relative w-full overflow-hidden rounded-xl px-4 py-3 text-sm font-semibold text-[#E6EAF0]"
                     whileHover={{ scale: 1.015 }}
                     whileTap={{ scale: 0.985 }}
                     style={{
-                      background: "linear-gradient(135deg, #7c3aed, #6d28d9, #4f46e5)",
-                      boxShadow: "0 0 0 1px rgba(139,92,246,0.4), 0 8px 24px rgba(109,40,217,0.45)",
+                      background: "linear-gradient(135deg, #00D4FF, #33E0FF, #2A313A)",
+                      boxShadow: "0 0 0 1px rgba(0,212,255,0.4), 0 8px 24px rgba(0,212,255,0.25)",
                     }}
                   >
                     <motion.div
@@ -660,7 +660,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: P
                   <button
                     onClick={onClose}
                     data-testid="button-revert-dismiss"
-                    className="w-full py-2 text-[11px] text-white/30 hover:text-white/50 transition-colors"
+                    className="w-full py-2 text-[11px] text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
                   >
                     {REVERT_COPY[reason ?? "premium_removed"].dismiss}
                   </button>

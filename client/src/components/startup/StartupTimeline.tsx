@@ -39,7 +39,7 @@ export function StartupTimeline({ apps, visible }: Props) {
 
   if (!visible || segments.length === 0) {
     return (
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 text-center">
+      <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-4 text-center">
         <p className="text-xs text-muted-foreground/40">Scan to see boot timeline</p>
       </div>
     );
@@ -48,7 +48,7 @@ export function StartupTimeline({ apps, visible }: Props) {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-white">Boot Sequence</span>
+        <span className="text-xs font-medium text-[#E6EAF0]">Boot Sequence</span>
         <span className="text-[10px] text-muted-foreground/40">left = first → right = last</span>
       </div>
 
@@ -66,7 +66,7 @@ export function StartupTimeline({ apps, visible }: Props) {
           >
             {/* Tooltip on hover */}
             <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-              <div className="px-2 py-1 rounded-md bg-[#0c0c14]/90 border border-[#2A313A]0 text-[10px] text-white whitespace-nowrap shadow-xl">
+              <div className="px-2 py-1 rounded-md bg-[#0c0c14]/90 border border-[#2A313A] text-[10px] text-[#E6EAF0] whitespace-nowrap shadow-xl">
                 {seg.app.entry.name} · {Math.round(seg.app.delayMs)}ms
               </div>
             </div>
@@ -81,7 +81,7 @@ export function StartupTimeline({ apps, visible }: Props) {
           .map(([cat, color]) => (
             <div key={cat} className="flex items-center gap-1 text-[10px]">
               <span className="size-2 rounded-sm" style={{ backgroundColor: color }} />
-              <span className="text-white/50 capitalize">{cat === "userApps" ? "User Apps" : cat}</span>
+              <span className="text-[#A0A8B3] capitalize">{cat === "userApps" ? "User Apps" : cat}</span>
             </div>
           ))}
       </div>

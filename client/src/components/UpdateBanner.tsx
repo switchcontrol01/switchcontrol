@@ -35,13 +35,13 @@ const URGENCY_STYLES = {
     icon: <ArrowUpCircle className="size-4 text-amber-400" />,
   },
   normal: {
-    border: 'border-violet-500/25',
-    bg: 'bg-violet-500/5',
-    glow: 'shadow-[0_0_18px_-6px_rgba(0,212,255,0.25)]',
-    accent: 'text-violet-400',
-    badge: 'bg-violet-500/15 text-violet-300 border-violet-500/25',
+    border: 'border-[#2A313A]',
+    bg: 'bg-[#1A1F26]',
+    glow: 'shadow-none',
+    accent: 'text-[#00D4FF]',
+    badge: 'bg-[#00D4FF]/15 text-[#00D4FF] border-[#00D4FF]/25',
     badgeLabel: 'Update Available',
-    icon: <ArrowUpCircle className="size-4 text-violet-400" />,
+    icon: <ArrowUpCircle className="size-4 text-[#00D4FF]" />,
   },
 };
 
@@ -92,7 +92,7 @@ export function UpdateBanner() {
                   <span className={`text-xs font-semibold uppercase tracking-wider px-2 py-0.5 rounded border ${style.badge}`}>
                     {style.badgeLabel}
                   </span>
-                  <span className="text-sm text-white/80">
+                  <span className="text-sm text-[#E6EAF0]">
                     SwitchControl <span className={`font-semibold ${style.accent}`}>{availableVersion}</span> is ready.
                   </span>
                 </div>
@@ -101,7 +101,7 @@ export function UpdateBanner() {
                     <button
                       onClick={() => setShowNotes(v => !v)}
                       data-testid="button-banner-toggle-notes"
-                      className="flex items-center gap-1 text-xs text-white/40 hover:text-white/60 transition-colors"
+                      className="flex items-center gap-1 text-xs text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
                     >
                       {showNotes ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
                       {showNotes ? 'Hide' : 'See what\'s new'}
@@ -116,7 +116,7 @@ export function UpdateBanner() {
                           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A]0 max-h-40 overflow-y-auto">
+                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A] max-h-40 overflow-y-auto">
                             <RenderMarkdown markdown={releaseNotes!} />
                           </div>
                         </motion.div>
@@ -130,17 +130,17 @@ export function UpdateBanner() {
             {status === 'downloading' && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-white/80">
+                  <span className="text-sm text-[#E6EAF0]">
                     Downloading update… <span className={`font-semibold ${style.accent}`}>{downloadPercent}%</span>
                   </span>
-                  <span className="text-xs text-white/40">
+                  <span className="text-xs text-[#6B7380]">
                     {formatBytes(transferred)} / {formatBytes(total)} · {formatSpeed(bytesPerSecond)}
                   </span>
                 </div>
                 {/* Progress bar */}
                 <div className="h-1 w-full rounded-full bg-[#2A313A] overflow-hidden">
                   <motion.div
-                    className="h-full rounded-full bg-gradient-to-r from-violet-500 to-cyan-400"
+                    className="h-full rounded-full bg-gradient-to-r from-[#00D4FF] to-[#33E0FF]"
                     animate={{ width: `${downloadPercent}%` }}
                     transition={{ ease: 'linear', duration: 0.4 }}
                   />
@@ -152,7 +152,7 @@ export function UpdateBanner() {
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="size-4 text-emerald-400 shrink-0" />
-                  <span className="text-sm text-white/80">
+                  <span className="text-sm text-[#E6EAF0]">
                     <span className="font-semibold text-emerald-400">{availableVersion}</span> downloaded — restart to apply.
                   </span>
                 </div>
@@ -161,7 +161,7 @@ export function UpdateBanner() {
                     <button
                       onClick={() => setShowNotes(v => !v)}
                       data-testid="button-banner-toggle-notes"
-                      className="flex items-center gap-1 text-xs text-white/40 hover:text-white/60 transition-colors"
+                      className="flex items-center gap-1 text-xs text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
                     >
                       {showNotes ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
                       {showNotes ? 'Hide' : 'See what\'s new'}
@@ -176,7 +176,7 @@ export function UpdateBanner() {
                           transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
                           className="overflow-hidden"
                         >
-                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A]0 max-h-40 overflow-y-auto">
+                          <div className="mt-1.5 p-3 rounded-lg backdrop-blur-md bg-[#21262D] border border-[#2A313A] max-h-40 overflow-y-auto">
                             <RenderMarkdown markdown={releaseNotes!} />
                           </div>
                         </motion.div>
@@ -217,7 +217,7 @@ export function UpdateBanner() {
               <button
                 onClick={() => setDismissedVersion(availableVersion)}
                 data-testid="button-updater-dismiss"
-                className="size-6 rounded-md flex items-center justify-center text-white/30 hover:text-white/60 hover:bg-[#21262D] transition-colors"
+                className="size-6 rounded-md flex items-center justify-center text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#21262D] transition-colors"
                 aria-label="Dismiss update banner"
               >
                 <X className="size-3.5" />

@@ -70,14 +70,14 @@ function TweakMiniCard({
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.22 }}
-      className="rounded-xl border border-white/[0.08] bg-white/[0.03] overflow-hidden"
+      className="rounded-xl border border-[#2A313A] bg-[#1A1F26] overflow-hidden"
     >
       <div className="p-3 space-y-2">
         {/* Row 1: name + badges */}
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold text-white truncate">{tweak.title}</p>
-            <p className="text-[11px] text-white/40 mt-0.5 line-clamp-2">{rec.reason}</p>
+            <p className="text-[12px] font-semibold text-[#E6EAF0] truncate">{tweak.title}</p>
+            <p className="text-[11px] text-[#6B7380] mt-0.5 line-clamp-2">{rec.reason}</p>
           </div>
           <div className="flex flex-col items-end gap-1 shrink-0">
             <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5 border", riskCfg.cls)}>
@@ -85,7 +85,7 @@ function TweakMiniCard({
               {riskCfg.label}
             </Badge>
             {tweak.premium && (
-              <Badge variant="outline" className="text-[9px] h-4 px-1.5 border border-purple-500/20 text-purple-400 bg-purple-500/10">
+              <Badge variant="outline" className="text-[9px] h-4 px-1.5 border border-[#00D4FF] text-[#00D4FF] bg-[#00D4FF]">
                 <Lock className="size-2.5 mr-1" />Premium
               </Badge>
             )}
@@ -110,14 +110,14 @@ function TweakMiniCard({
           <div className="flex items-center gap-1.5 shrink-0">
             <button
               onClick={() => setExpanded(v => !v)}
-              className="text-[10px] text-white/30 hover:text-white/60 flex items-center gap-0.5 transition-colors"
+              className="text-[10px] text-[#6B7380] hover:text-[#A0A8B3] flex items-center gap-0.5 transition-colors"
             >
               {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
               {expanded ? "Less" : "Details"}
             </button>
 
             {isLocked ? (
-              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-purple-500/20 text-purple-400 hover:bg-purple-500/10"
+              <Button size="sm" variant="outline" className="h-7 text-[11px] gap-1 border-[#00D4FF] text-[#00D4FF] hover:bg-[#00D4FF]"
                 onClick={onOpenUpgrade}>
                 <Lock className="size-3" />Upgrade
               </Button>
@@ -145,12 +145,12 @@ function TweakMiniCard({
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="px-3 pb-3 pt-1 border-t border-white/[0.06] space-y-2">
-              <p className="text-[11px] text-white/50 leading-relaxed">{tweak.description}</p>
+            <div className="px-3 pb-3 pt-1 border-t border-[#2A313A] space-y-2">
+              <p className="text-[11px] text-[#A0A8B3] leading-relaxed">{tweak.description}</p>
               {tweak.impact.length > 0 && (
                 <ul className="space-y-0.5">
                   {tweak.impact.map((imp, i) => (
-                    <li key={i} className="text-[10px] text-white/35 flex items-start gap-1">
+                    <li key={i} className="text-[10px] text-[#6B7380] flex items-start gap-1">
                       <Info className="size-2.5 mt-0.5 shrink-0" />
                       {imp}
                     </li>
@@ -191,7 +191,7 @@ export function AiTweakRecommendationCards({
   return (
     <div className="space-y-2 mt-2">
       <div className="flex items-center justify-between">
-        <span className="text-[10px] uppercase tracking-wider text-white/30 font-medium">
+        <span className="text-[10px] uppercase tracking-wider text-[#6B7380] font-medium">
           Recommended Tweaks
         </span>
         {applicable.length > 1 && (

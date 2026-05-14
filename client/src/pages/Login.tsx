@@ -67,7 +67,7 @@ export default function Login() {
           <div className="login-card-glass rounded-2xl overflow-hidden">
 
             {/* ── Header ── */}
-            <div className="p-6 sm:p-8 text-center border-b border-white/[0.12]">
+            <div className="p-6 sm:p-8 text-center border-b border-[#2A313A]">
 
               {/* Logo — bounces in with spring */}
               <motion.div
@@ -99,7 +99,7 @@ export default function Login() {
 
               {/* Subtitle */}
               <motion.p
-                className="text-sm text-white/50 mt-1.5"
+                className="text-sm text-[#A0A8B3] mt-1.5"
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.48, duration: 0.5, ease }}
@@ -111,7 +111,7 @@ export default function Login() {
             {/* ── Body ── */}
             <div className="p-6 sm:p-8 space-y-3.5">
               <motion.p
-                className="text-sm text-center text-white/38 mb-4"
+                className="text-sm text-center text-[#E6EAF0]/38 mb-4"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.58, duration: 0.45 }}
@@ -160,10 +160,10 @@ export default function Login() {
                 transition={{ delay: 0.95, duration: 0.5 }}
                 className="pt-2"
               >
-                <p className="text-xs text-center text-white/32 mt-4">
+                <p className="text-xs text-center text-[#E6EAF0]/32 mt-4">
                   Your data is protected and never shared.
                 </p>
-                <p className="text-xs text-white/28 text-center mt-2">
+                <p className="text-xs text-[#E6EAF0]/28 text-center mt-2">
                   By continuing, you agree to our{" "}
                   <Link href="/terms" className="text-primary hover:underline">Terms of Service</Link>
                   {" "}and{" "}

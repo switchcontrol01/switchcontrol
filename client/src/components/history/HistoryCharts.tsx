@@ -19,7 +19,7 @@ export const MODULE_COLORS: Record<string, string> = {
   Cleaner:       "#f97316",
   Debloat:       "#ec4899",
   Startup:       "#06b6d4",
-  "AI Advisor":  "#d946ef",
+  "AI Advisor":  "#00D4FF",
   "BIOS Advisor":"#eab308",
   Dashboard:     "#0ea5e9",
   "App Booster": "#84cc16",
@@ -88,7 +88,7 @@ function ActionsOverTime({ items }: { items: EnrichedItem[] }) {
     <GlassCard className="p-4 sm:p-5" data-testid="card-chart-actions-time">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <p className="text-sm font-semibold">Actions Over Time</p>
-        <div className="flex gap-0.5 bg-white/[0.05] rounded-lg p-0.5">
+        <div className="flex gap-0.5 bg-[#21262D] rounded-lg p-0.5">
           {(["1d","7d","30d","all"] as Range[]).map(r => (
             <RangeBtn key={r} range={r.toUpperCase()} active={range === r} onClick={() => setRange(r)} />
           ))}
@@ -156,7 +156,7 @@ function SuccessFailureChart({ items }: { items: EnrichedItem[] }) {
     <GlassCard className="p-4 sm:p-5" data-testid="card-chart-success-fail">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <p className="text-sm font-semibold">Success vs Failure</p>
-        <div className="flex gap-0.5 bg-white/[0.05] rounded-lg p-0.5">
+        <div className="flex gap-0.5 bg-[#21262D] rounded-lg p-0.5">
           {(["7d","30d","all"] as Range[]).map(r => (
             <RangeBtn key={r} range={r.toUpperCase()} active={range === r} onClick={() => setRange(r)} />
           ))}
@@ -221,7 +221,7 @@ function ModuleUsageChart({ items }: { items: EnrichedItem[] }) {
               <span className="text-xs text-muted-foreground">{d.module}</span>
               <span className="text-xs font-mono tabular-nums" style={{ color: d.color }}>{d.count}</span>
             </div>
-            <div className="h-1.5 rounded-full bg-white/[0.06] overflow-hidden">
+            <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
               <motion.div
                 className="h-full rounded-full"
                 style={{ background: d.color }}

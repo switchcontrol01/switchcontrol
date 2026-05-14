@@ -28,7 +28,7 @@ const PRIORITY_CONFIG: Record<PriorityLabel, {
   label: string; color: string; bg: string; border: string;
 }> = {
   "clean-now":         { label: "Clean Now",          color: "text-red-400",     bg: "bg-red-500/12",     border: "border-red-500/20" },
-  "good-opportunity":  { label: "Good Opportunity",   color: "text-violet-400",  bg: "bg-violet-500/12",  border: "border-violet-500/20" },
+  "good-opportunity":  { label: "Good Opportunity",   color: "text-[#00D4FF]",  bg: "bg-[#00D4FF]",  border: "border-[#00D4FF]" },
   "rebuilds-quickly":  { label: "Rebuilds Quickly",   color: "text-amber-400",   bg: "bg-amber-500/12",   border: "border-amber-500/20" },
   "minor":             { label: "Minor",               color: "text-zinc-400",    bg: "bg-zinc-500/10",    border: "border-zinc-500/15" },
   "not-found":         { label: "Not Found",           color: "text-muted-foreground", bg: "bg-[#21262D]", border: "border-[#2A313A]" },
@@ -109,7 +109,7 @@ export function CleanerOffenders({ allItems, findings, selected, onToggle, getPr
       {/* Largest offenders */}
       <GlassCard className="p-4 space-y-3">
         <div className="flex items-center gap-2">
-          <TrendingDown className="size-4 text-purple-400" />
+          <TrendingDown className="size-4 text-[#00D4FF]" />
           <span className="text-sm font-semibold">Largest Offenders</span>
           <span className="text-[10px] text-muted-foreground/50 ml-auto">click to select</span>
         </div>
@@ -132,7 +132,7 @@ export function CleanerOffenders({ allItems, findings, selected, onToggle, getPr
                   "flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all",
                   isSel
                     ? "bg-primary/8 border-primary/25 hover:border-primary/40"
-                    : "bg-white/[0.025] border-white/[0.07] hover:bg-white/[0.04] hover:border-white/[0.12]"
+                    : "bg-white/[0.025] border-[#2A313A] hover:bg-[#21262D] hover:border-[#2A313A]"
                 )}
                 onClick={() => onToggle(item.id)}
                 data-testid={`offender-${item.id}`}
@@ -141,14 +141,14 @@ export function CleanerOffenders({ allItems, findings, selected, onToggle, getPr
                   "size-6 rounded-lg flex items-center justify-center shrink-0 text-[11px] font-bold",
                   i === 0 ? "bg-red-500/15 text-red-400" :
                   i === 1 ? "bg-orange-500/15 text-orange-400" :
-                  i === 2 ? "bg-amber-500/15 text-amber-400" : "bg-white/8 text-muted-foreground"
+                  i === 2 ? "bg-amber-500/15 text-amber-400" : "bg-[#21262D] text-muted-foreground"
                 )}>
                   {i + 1}
                 </div>
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="text-xs font-medium text-white truncate">{item.name}</span>
+                    <span className="text-xs font-medium text-[#E6EAF0] truncate">{item.name}</span>
                     <Badge variant="outline" className={cn("text-[9px] h-4 px-1.5 border shrink-0", pcfg.bg, pcfg.border, pcfg.color)}>
                       {pcfg.label}
                     </Badge>
@@ -156,7 +156,7 @@ export function CleanerOffenders({ allItems, findings, selected, onToggle, getPr
                 </div>
 
                 <div className="shrink-0 text-right">
-                  <p className="text-xs font-mono font-semibold text-white">{sizeVal}</p>
+                  <p className="text-xs font-mono font-semibold text-[#E6EAF0]">{sizeVal}</p>
                   {isSel && <CheckCircle className="size-3 text-primary ml-auto mt-0.5" />}
                 </div>
               </motion.div>
@@ -190,7 +190,7 @@ export function CleanerOffenders({ allItems, findings, selected, onToggle, getPr
                   "p-2.5 rounded-xl border cursor-pointer transition-all",
                   isSel
                     ? "bg-primary/6 border-primary/20 hover:border-primary/35"
-                    : "bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04]"
+                    : "bg-[#1A1F26] border-[#2A313A] hover:bg-[#21262D]"
                 )}
                 onClick={() => onToggle(item.id)}
                 data-testid={`recommend-${item.id}`}
@@ -199,7 +199,7 @@ export function CleanerOffenders({ allItems, findings, selected, onToggle, getPr
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
                       <ChevronRight className={cn("size-3 shrink-0", pcfg.color)} />
-                      <span className="text-xs font-medium text-white">{item.name}</span>
+                      <span className="text-xs font-medium text-[#E6EAF0]">{item.name}</span>
                     </div>
                     <p className="text-[10px] text-muted-foreground/60 mt-0.5 leading-snug">{why}</p>
                   </div>
@@ -212,7 +212,7 @@ export function CleanerOffenders({ allItems, findings, selected, onToggle, getPr
           })}
         </div>
 
-        <p className="text-[10px] text-muted-foreground/35 pt-1 border-t border-white/[0.05]">
+        <p className="text-[10px] text-muted-foreground/35 pt-1 border-t border-[#2A313A]">
           Rule-based — no fake intelligence. All recommendations from real scan data.
         </p>
       </GlassCard>

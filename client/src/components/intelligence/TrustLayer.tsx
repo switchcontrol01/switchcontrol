@@ -13,7 +13,7 @@ const IMPACT_BAR: Record<string, number> = {
 };
 
 const IMPACT_COLOR: Record<string, string> = {
-  None: "bg-white/15",
+  None: "bg-[#2A313A]",
   Low: "bg-emerald-500/60",
   Medium: "bg-amber-400/60",
   High: "bg-red-400/60",

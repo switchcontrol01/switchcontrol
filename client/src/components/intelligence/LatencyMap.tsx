@@ -27,7 +27,7 @@ const STATUS_COLOR: Record<Stage["status"], string> = {
   good: "text-emerald-400 border-emerald-500/30 bg-emerald-500/5",
   warn: "text-amber-400 border-amber-500/30 bg-amber-500/5",
   bad:  "text-red-400 border-red-500/30 bg-red-500/5",
-  idle: "text-muted-foreground border-[#2A313A]0 bg-white/[0.02]",
+  idle: "text-muted-foreground border-[#2A313A] bg-[#1A1F26]",
 };
 
 const STATUS_DOT: Record<Stage["status"], string> = {
@@ -214,7 +214,7 @@ export function LatencyMap({ className, compact = false }: LatencyMapProps) {
                   stage.status === "good" ? "text-emerald-400/60"
                   : stage.status === "warn" ? "text-amber-400/60"
                   : stage.status === "bad"  ? "text-red-400/60"
-                  : "text-white/20"
+                  : "text-[#6B7380]/50"
                 )}
                 viewBox="0 0 8 8"
                 fill="currentColor"

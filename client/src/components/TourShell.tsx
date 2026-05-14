@@ -621,7 +621,7 @@ export function TourShell({
                   {canSkip && (
                     <button
                       onClick={handleSkip}
-                      className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-lg text-white/20 hover:text-white/50 hover:bg-white/[0.06] transition-all"
+                      className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-lg text-[#6B7380]/50 hover:text-[#A0A8B3] hover:bg-[#21262D] transition-all"
                       data-testid={`${testId}-skip`}
                     >
                       <X className="w-3.5 h-3.5" />
@@ -679,7 +679,7 @@ export function TourShell({
 
                   {/* Description */}
                   <motion.p
-                    className="text-sm leading-relaxed text-white/55"
+                    className="text-sm leading-relaxed text-[#A0A8B3]"
                     initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4, delay: 0.08, ease: [0.22, 1, 0.36, 1] }}
                   >
@@ -741,12 +741,12 @@ export function TourShell({
                           whileTap={{ scale: 0.95 }}
                           data-testid={`${testId}-back`}
                         >
-                          <ChevronLeft className="w-4 h-4 text-white/45" />
+                          <ChevronLeft className="w-4 h-4 text-[#A0A8B3]" />
                         </motion.button>
                       )}
                       <motion.button
                         onClick={handleNext}
-                        className="h-9 px-5 rounded-xl flex items-center gap-1.5 text-sm font-semibold text-white"
+                        className="h-9 px-5 rounded-xl flex items-center gap-1.5 text-sm font-semibold text-[#E6EAF0]"
                         style={{ background: pal.btnBg, border: `1px solid ${pal.btnBorder}`, boxShadow: pal.btnShadow }}
                         whileHover={{ scale: 1.04, filter: 'brightness(1.15)' }}
                         whileTap={{ scale: 0.97 }}

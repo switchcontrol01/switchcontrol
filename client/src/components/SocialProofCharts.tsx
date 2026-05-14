@@ -157,7 +157,7 @@ interface MiniProps {
 function MetricMini({ label, value, accentColor, sparkData, animDelay, inView }: MiniProps) {
   return (
     <div
-      className="sp-mini-card rounded-xl border border-white/[0.07] px-4 pt-3 pb-3 flex flex-col gap-1 relative overflow-hidden"
+      className="sp-mini-card rounded-xl border border-[#2A313A] px-4 pt-3 pb-3 flex flex-col gap-1 relative overflow-hidden"
       style={{
         background: "rgba(255,255,255,0.028)",
         backdropFilter: "blur(14px)",
@@ -169,7 +169,7 @@ function MetricMini({ label, value, accentColor, sparkData, animDelay, inView }:
       <div className="absolute top-0 right-0 w-20 h-20 pointer-events-none"
         style={{ background: `radial-gradient(circle at top right, ${accentColor}18, transparent 65%)` }} />
 
-      <div className="text-[10px] text-white/25 uppercase tracking-widest font-medium">{label}</div>
+      <div className="text-[10px] text-[#6B7380] uppercase tracking-widest font-medium">{label}</div>
       <div className="text-2xl font-black tracking-tight" style={{ color: accentColor }}>{value}</div>
 
       <div style={{ height: 38 }}>
@@ -220,7 +220,7 @@ export function SocialProofCharts() {
 
       {/* ── Main timeline chart ── */}
       <div
-        className="sp-timeline-card rounded-2xl border border-white/[0.07] p-4 pb-2"
+        className="sp-timeline-card rounded-2xl border border-[#2A313A] p-4 pb-2"
         style={{
           background: "linear-gradient(160deg, rgba(255,255,255,0.042) 0%, rgba(255,255,255,0.016) 100%)",
           backdropFilter: "blur(18px)",
@@ -231,8 +231,8 @@ export function SocialProofCharts() {
         {/* Header */}
         <div className="flex items-start justify-between mb-3 px-1">
           <div>
-            <p className="text-[10px] text-white/25 uppercase tracking-widest">Performance trajectory</p>
-            <p className="text-xs text-white/50 mt-0.5">Each release pushes the ceiling higher</p>
+            <p className="text-[10px] text-[#6B7380] uppercase tracking-widest">Performance trajectory</p>
+            <p className="text-xs text-[#A0A8B3] mt-0.5">Each release pushes the ceiling higher</p>
           </div>
           <div className="flex flex-col gap-1.5 items-end">
             {[
@@ -242,7 +242,7 @@ export function SocialProofCharts() {
             ].map(({ color, label, value }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                <span className="text-[10px] text-white/30">{label}</span>
+                <span className="text-[10px] text-[#6B7380]">{label}</span>
                 <span className="text-[10px] font-bold" style={{ color }}>{value}</span>
               </div>
             ))}
@@ -300,7 +300,7 @@ export function SocialProofCharts() {
         {/* X-axis labels */}
         <div className="flex justify-between mt-1 px-1">
           {VERSIONS.map((v) => (
-            <span key={v.v} className="text-[9px] text-white/18">{v.label}</span>
+            <span key={v.v} className="text-[9px] text-[#E6EAF0]/18">{v.label}</span>
           ))}
         </div>
       </div>

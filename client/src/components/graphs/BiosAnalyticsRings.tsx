@@ -101,8 +101,8 @@ function AnimatedRing({
       </div>
 
       <div className="text-center">
-        <p className="text-[10px] font-semibold text-white/60 uppercase tracking-widest leading-none">{label}</p>
-        {sublabel && <p className="text-[9px] text-white/25 mt-0.5 leading-none">{sublabel}</p>}
+        <p className="text-[10px] font-semibold text-[#A0A8B3] uppercase tracking-widest leading-none">{label}</p>
+        {sublabel && <p className="text-[9px] text-[#6B7380] mt-0.5 leading-none">{sublabel}</p>}
       </div>
     </motion.div>
   );
@@ -267,7 +267,7 @@ export function BiosAnalyticsRings({
       label: "Firmware",
       sublabel: "Readiness",
       value: data.hasScanned ? data.firmwareScore : 0,
-      color: "#d946ef",
+      color: "#00D4FF",
       glowColor: "rgba(217,70,239,0.5)",
     },
     {
@@ -282,7 +282,7 @@ export function BiosAnalyticsRings({
   const radarAxes = [
     { label: "Latency", value: data.hasScanned ? (data.latencyScore ?? data.firmwareScore) : 0, color: "#06b6d4" },
     { label: "Memory", value: data.hasScanned ? data.memoryScore : 0, color: "#00D4FF" },
-    { label: "Security", value: data.hasScanned ? data.securityScore : 0, color: "#d946ef" },
+    { label: "Security", value: data.hasScanned ? data.securityScore : 0, color: "#00D4FF" },
     { label: "Power", value: data.hasScanned ? data.performanceScore : 0, color: "#f59e0b" },
     { label: "Stability", value: data.hasScanned ? (data.stabilityScore ?? data.firmwareScore) : 0, color: "#34d399" },
   ];
@@ -292,7 +292,7 @@ export function BiosAnalyticsRings({
       {/* Ring cluster */}
       <div>
         <motion.p
-          className="text-[9px] uppercase tracking-widest text-white/25 font-semibold mb-3"
+          className="text-[9px] uppercase tracking-widest text-[#6B7380] font-semibold mb-3"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay, duration: 0.4 }}
         >
           Firmware Dimensions
@@ -317,7 +317,7 @@ export function BiosAnalyticsRings({
       {/* Radar */}
       <div>
         <motion.p
-          className="text-[9px] uppercase tracking-widest text-white/25 font-semibold mb-2"
+          className="text-[9px] uppercase tracking-widest text-[#6B7380] font-semibold mb-2"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.4, duration: 0.4 }}
         >
           Performance Radar
@@ -329,7 +329,7 @@ export function BiosAnalyticsRings({
 
       {!data.hasScanned && (
         <motion.p
-          className="text-[10px] text-white/25 text-center italic"
+          className="text-[10px] text-[#6B7380] text-center italic"
           initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: delay + 0.5 }}
         >
           Run analysis to see firmware scores

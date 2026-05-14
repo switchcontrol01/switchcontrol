@@ -81,7 +81,7 @@ function PatchNotesSection() {
         {/* Middle — title + headline */}
         <div className="min-w-0 shrink-0 w-48">
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="text-[13px] font-semibold text-white leading-snug truncate">{notes.title}</h3>
+            <h3 className="text-[13px] font-semibold text-[#E6EAF0] leading-snug truncate">{notes.title}</h3>
             {isNew && (
               <span className="text-[8px] font-bold tracking-widest uppercase px-1.5 py-[3px] rounded-full shrink-0"
                 style={{ background: "rgba(139,92,246,0.22)", color: "rgba(192,155,255,0.95)", border: "1px solid rgba(139,92,246,0.30)" }}>
@@ -353,7 +353,7 @@ export default function Settings() {
             <CardContent className="space-y-6">
               {/* Enable App Booster */}
               <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}>
-                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
                   <div className="space-y-0.5">
                     <Label>Enable App Booster</Label>
                     <p className="text-xs text-muted-foreground">Automatically optimize priority for active games.</p>
@@ -372,7 +372,7 @@ export default function Settings() {
 
               {/* Real-time Metrics */}
               <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.11, ease: [0.22, 1, 0.36, 1] }}>
-                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
                   <div className="space-y-0.5">
                     <Label>Real-time Metrics</Label>
                     <p className="text-xs text-muted-foreground">Update dashboard stats every second.</p>
@@ -391,7 +391,7 @@ export default function Settings() {
 
               {/* Pause when minimized */}
               <motion.div initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.3, delay: 0.17, ease: [0.22, 1, 0.36, 1] }}>
-                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-white/[0.025] transition-colors">
+                <div className="flex items-center justify-between py-1 px-2 -mx-2 rounded-lg hover:bg-[#1A1F26] transition-colors">
                   <div className="space-y-0.5">
                     <Label>Pause when minimized</Label>
                     <p className="text-xs text-muted-foreground">Stop polling stats when app is in background.</p>
@@ -441,15 +441,15 @@ export default function Settings() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center justify-between bg-white/[0.03] border border-white/[0.08] p-3 rounded-md">
+                <div className="flex items-center justify-between bg-[#1A1F26] border border-[#2A313A] p-3 rounded-md">
                   <div className="space-y-0.5">
-                    <span className="text-sm font-medium text-white/60">Free Plan</span>
-                    <p className="text-xs text-white/35">Upgrade to unlock all premium features</p>
+                    <span className="text-sm font-medium text-[#A0A8B3]">Free Plan</span>
+                    <p className="text-xs text-[#6B7380]">Upgrade to unlock all premium features</p>
                   </div>
                   <Button
                     variant="outline"
                     size="sm"
-                    className="border-white/[0.1] text-white/50 hover:text-white/80 hover:bg-white/[0.05]"
+                    className="border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#21262D]"
                     onClick={() => setLicenseModalOpen(true)}
                     data-testid="button-manage-license"
                   >
@@ -485,13 +485,13 @@ export default function Settings() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-xs text-emerald-400/70 font-medium uppercase tracking-wider mb-1">Priority Email</p>
-                    <p className="text-sm text-white font-mono select-all" data-testid="text-support-email">{SUPPORT_EMAIL}</p>
+                    <p className="text-sm text-[#E6EAF0] font-mono select-all" data-testid="text-support-email">{SUPPORT_EMAIL}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 px-2 text-white/40 hover:text-white/80"
+                      className="h-8 px-2 text-[#6B7380] hover:text-[#E6EAF0]"
                       onClick={() => {
                         navigator.clipboard.writeText(SUPPORT_EMAIL);
                         toast({ title: "Copied", description: "Email address copied to clipboard." });
@@ -539,7 +539,7 @@ export default function Settings() {
                         resetData();
                         toast({ title: "Settings Reset", description: "Your preferences have been restored to defaults. You are still logged in." });
                       }}
-                      className="border-border/50 hover:bg-muted/50 text-white"
+                      className="border-border/50 hover:bg-muted/50 text-[#E6EAF0]"
                       data-testid="button-reset-settings"
                     >
                       <RotateCcw className="size-4 mr-2" />
@@ -667,7 +667,7 @@ export default function Settings() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-white group-hover:text-[#5865F2] transition-colors">Discord</span>
+                          <span className="font-medium text-[#E6EAF0] group-hover:text-[#5865F2] transition-colors">Discord</span>
                           <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-xs text-muted-foreground">Get support and share configs</p>
@@ -697,7 +697,7 @@ export default function Settings() {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-white group-hover:text-pink-500 transition-colors">TikTok</span>
+                          <span className="font-medium text-[#E6EAF0] group-hover:text-pink-500 transition-colors">TikTok</span>
                           <ExternalLink className="size-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                         </div>
                         <p className="text-xs text-muted-foreground">Tips, tricks, and tutorials</p>

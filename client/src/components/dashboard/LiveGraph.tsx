@@ -115,7 +115,7 @@ const C = {
   ram: "#06b6d4",
   disk: "#eab308",
   netRx: "#3b82f6",
-  netTx: "#8b5cf6",
+  netTx: "#00D4FF",
 } as const;
 
 // ── Visual separation helper ──────────────────────────────────────────────────
@@ -154,10 +154,10 @@ function StatPill({ color, label, value, spiking }: {
           boxShadow: spiking ? `0 0 6px ${color}, 0 0 12px ${color}55` : `0 0 3px ${color}55`,
         }}
       />
-      {label && <span className="text-white/38">{label}</span>}
+      {label && <span className="text-[#E6EAF0]/38">{label}</span>}
       <span
         key={keyRef.current}
-        className="text-white/90 font-semibold tabular-nums"
+        className="text-[#E6EAF0] font-semibold tabular-nums"
         style={{ animation: keyRef.current > 0 ? "sc-val-flash 0.4s ease-out" : undefined }}
       >
         {value}
@@ -175,7 +175,7 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasGpuLoad, hasNetRx, h
   if (!latest) return null;
   return (
     <div
-      className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 rounded-lg mb-2.5 border border-white/[0.07] text-[10px]"
+      className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 rounded-lg mb-2.5 border border-[#2A313A] text-[10px]"
       style={{ background: "rgba(255,255,255,0.03)" }}
     >
       <StatPill color={C.cpuLoad} label="CPU" value={`${safeFixed(latest.cpuLoad, 0)}%`} spiking={spikes.cpu} />
@@ -221,7 +221,7 @@ function LiveStatsBand({ latest, hasDiskData, hasDiskRW, hasGpuLoad, hasNetRx, h
 function GraphLoadingPlaceholder({ height }: { height: number }) {
   return (
     <div className="relative overflow-hidden rounded-lg" style={{ height }}>
-      <div className="absolute inset-0 bg-white/[0.02] rounded-lg" />
+      <div className="absolute inset-0 bg-[#1A1F26] rounded-lg" />
       {/* Animated baseline waves */}
       <svg width="100%" height="100%" className="absolute inset-0" preserveAspectRatio="none">
         <defs>
@@ -249,7 +249,7 @@ function GraphLoadingPlaceholder({ height }: { height: number }) {
         </rect>
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-[11px] text-white/25 flex items-center gap-2">
+        <span className="text-[11px] text-[#6B7380] flex items-center gap-2">
           <span
             className="block w-1.5 h-1.5 rounded-full bg-primary/50"
             style={{ animation: "sc-pulse 1.2s ease-in-out infinite" }}
@@ -720,7 +720,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     return (
       <GlassCard className="p-4" hoverEffect={false}>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-medium text-white flex items-center gap-2">
+          <h3 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
             <Activity className="size-4 text-primary" />
             Live System Monitor
           </h3>
@@ -784,7 +784,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-medium text-white flex items-center gap-2">
+        <h3 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
           <Activity className="size-4 text-primary" />
           Live System Monitor
           {/* Live heartbeat pulse */}
@@ -904,10 +904,10 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
                 className={cn(
                   "flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium border transition-colors duration-200",
                   isSoloed
-                    ? "border-[#2A313A]0 bg-white/15 text-white ring-1 ring-white/20"
+                    ? "border-[#2A313A] bg-[#2A313A] text-[#E6EAF0] ring-1 ring-white/20"
                     : isDimmed
-                      ? "border-white/[0.06] bg-transparent text-white/30"
-                      : "border-white/20 bg-white/[0.07] text-white/90 hover:bg-[#2A313A]"
+                      ? "border-[#2A313A] bg-transparent text-[#6B7380]"
+                      : "border-[#2A313A] bg-[#21262D] text-[#E6EAF0] hover:bg-[#2A313A]"
                 )}
               >
                 <span
@@ -922,7 +922,7 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
             <button
               onClick={resetView}
               data-testid="button-reset-view"
-              className="px-2 py-0.5 rounded text-[10px] font-medium border border-white/20 bg-[#21262D] text-white/50 hover:text-white/80 hover:bg-[#2A313A] transition-all ml-1"
+              className="px-2 py-0.5 rounded text-[10px] font-medium border border-[#2A313A] bg-[#21262D] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-all ml-1"
             >
               Reset view
             </button>

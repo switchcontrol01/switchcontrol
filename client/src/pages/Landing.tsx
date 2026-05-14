@@ -128,9 +128,9 @@ const FEATURES = [
     icon: Gauge,
     title: "Performance Monitoring",
     description: "Real-time system telemetry to track your optimization gains.",
-    accent: "from-violet-500/20 to-violet-600/5",
-    iconColor: "text-violet-400",
-    iconBg: "bg-violet-500/10 group-hover:bg-violet-500/20",
+    accent: "from-[#00D4FF]/20 to-[#00D4FF]/5",
+    iconColor: "text-[#00D4FF]",
+    iconBg: "bg-[#00D4FF] group-hover:bg-[#00D4FF]",
   },
 ];
 
@@ -248,7 +248,7 @@ function StatCard({ stat, index }: { stat: (typeof STATS)[0]; index: number }) {
         >
           <CountingNumber value={numericPart} prefix={prefix} suffix={suffix} startDelay={index * 100 + 300} />
         </div>
-        <div className="relative text-xs sm:text-sm text-white/35 group-hover:text-white/50 transition-colors tracking-wide uppercase">
+        <div className="relative text-xs sm:text-sm text-[#6B7380] group-hover:text-[#A0A8B3] transition-colors tracking-wide uppercase">
           {stat.label}
         </div>
         <div className={cn(
@@ -271,7 +271,7 @@ function AnimatedBar({ target, color, delay }: { target: number; color: string; 
   }, [target, delay]);
 
   return (
-    <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+    <div className="mt-1.5 h-1 rounded-full bg-[#21262D] overflow-hidden">
       <div
         className={cn("h-full rounded-full transition-all duration-[1200ms] ease-out", color)}
         style={{ width: `${width}%` }}
@@ -322,7 +322,7 @@ function LiveBar({ base, range, color, interval = 2500 }: { base: number; range:
     return () => { clearTimeout(t1); clearInterval(id); };
   }, [base, range, interval]);
   return (
-    <div className="mt-1.5 h-1 rounded-full bg-white/[0.06] overflow-hidden">
+    <div className="mt-1.5 h-1 rounded-full bg-[#21262D] overflow-hidden">
       <div className={cn("h-full rounded-full transition-all duration-700 ease-out", color)} style={{ width: `${width}%` }} />
     </div>
   );
@@ -440,7 +440,7 @@ function HeroAppMockup() {
     },
     {
       label: "GPU", base: 2, range: 6, barBase: 2, barRange: 6,
-      barColor: "bg-violet-500", textColor: "text-violet-400",
+      barColor: "bg-[#00D4FF]", textColor: "text-[#00D4FF]",
       accentL: "hsl(270,75%,62%)", tintBg: "rgba(0,0,0,0.32)",
       borderColor: "rgba(167,139,250,0.25)", interval: 2000,
     },
@@ -470,7 +470,7 @@ function HeroAppMockup() {
         <div className="absolute inset-0 pointer-events-none mockup-edge-glow rounded-2xl" />
 
         {/* ── Title bar ── */}
-        <div className="relative flex items-center gap-2 px-4 py-3 border-b border-white/[0.20]"
+        <div className="relative flex items-center gap-2 px-4 py-3 border-b border-[#2A313A]"
           style={{ background: "linear-gradient(to bottom, rgba(255,255,255,0.18), rgba(255,255,255,0.05))" }}>
           {/* macOS dots with depth */}
           <div className="flex gap-1.5">
@@ -483,7 +483,7 @@ function HeroAppMockup() {
             ))}
           </div>
           <div className="flex-1 text-center">
-            <span className="text-[10px] text-white/35 tracking-[0.22em] uppercase font-semibold">SwitchControl</span>
+            <span className="text-[10px] text-[#6B7380] tracking-[0.22em] uppercase font-semibold">SwitchControl</span>
           </div>
           {/* LIVE pill */}
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border"
@@ -513,13 +513,13 @@ function HeroAppMockup() {
           </div>
 
           {/* ── Active Tweaks ── */}
-          <div className="rounded-xl p-3 border border-white/[0.18]" style={{ background: "rgba(0,0,0,0.28)" }}>
+          <div className="rounded-xl p-3 border border-[#2A313A]" style={{ background: "rgba(0,0,0,0.28)" }}>
             <div className="flex items-center justify-between mb-2.5">
-              <span className="text-[8.5px] text-white/40 uppercase tracking-widest font-semibold">Active Tweaks</span>
+              <span className="text-[8.5px] text-[#6B7380] uppercase tracking-widest font-semibold">Active Tweaks</span>
               <div className="flex items-center gap-1 px-2 py-0.5 rounded-full border"
                 style={{ background: "hsl(160 70% 28% / 0.18)", borderColor: "hsl(160 70% 50% / 0.22)" }}>
                 <span className="text-[9px] font-bold text-emerald-400 transition-all duration-500">{tweakCount}</span>
-                <span className="text-[8px] text-white/30 font-medium">/ 38</span>
+                <span className="text-[8px] text-[#6B7380] font-medium">/ 38</span>
               </div>
             </div>
             <div className="flex gap-[3px]">
@@ -527,7 +527,7 @@ function HeroAppMockup() {
                 <div
                   key={i}
                   className={cn("flex-1 h-[7px] rounded-full transition-all duration-500",
-                    i < tweakCount ? "mockup-tweak-bar" : "bg-white/[0.04]")}
+                    i < tweakCount ? "mockup-tweak-bar" : "bg-[#21262D]")}
                   style={i < tweakCount ? {
                     background: `linear-gradient(90deg, hsl(${152 + i * 1.5} 75% 45%), hsl(170 75% 52%))`,
                     boxShadow: "0 0 5px hsl(160 80% 48% / 0.35)",
@@ -572,12 +572,12 @@ function HeroAppMockup() {
           </div>
 
           {/* ── Status bar ── */}
-          <div className="flex items-center gap-3 pt-1 border-t border-white/[0.05]">
+          <div className="flex items-center gap-3 pt-1 border-t border-[#2A313A]">
             <div className="flex items-center gap-1.5">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[8px] font-semibold" style={{ color: "rgba(255,255,255,0.28)" }}>Gaming Pro</span>
             </div>
-            <div className="w-px h-2.5 bg-white/[0.08]" />
+            <div className="w-px h-2.5 bg-[#2A313A]" />
             <span className="text-[8px]" style={{ color: "rgba(255,255,255,0.18)" }}>144 fps target</span>
             <div className="ml-auto">
               <span className="text-[8px] font-semibold" style={{ color: "hsl(160,70%,52%)" }}>Optimized ✓</span>
@@ -695,7 +695,7 @@ export default function Landing() {
           <div className="flex-1 flex flex-col justify-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8 md:pt-24 md:pb-12 relative">
             <div className="text-center">
               <AnimateIn delay={180}>
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/[0.04] border border-white/[0.08] text-white/50 text-xs font-medium mb-10">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] text-xs font-medium mb-10">
                   <Activity className="size-3 text-primary/70" />
                   Engineering your PC for a competitive advantage.
                 </span>
@@ -704,11 +704,11 @@ export default function Landing() {
               <AnimateIn delay={360}>
                 <div className="ws-hero-text-float">
                   <h1 className="mb-7 leading-[1.03] tracking-tight relative" style={{ transform: "translateZ(20px)" }}>
-                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow hero-text-light-catch">
-                      Your PC <span className="font-light italic text-white/70">is holding</span>
+                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-[#E6EAF0] hero-text-glow hero-text-light-catch">
+                      Your PC <span className="font-light italic text-[#E6EAF0]">is holding</span>
                     </span>
-                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-white hero-text-glow hero-text-light-catch">
-                      <span className="font-light italic text-white/70">you</span> back.{" "}
+                    <span className="block text-5xl md:text-7xl lg:text-8xl xl:text-[6.5rem] font-extrabold text-[#E6EAF0] hero-text-glow hero-text-light-catch">
+                      <span className="font-light italic text-[#E6EAF0]">you</span> back.{" "}
                       <span className="font-black hero-text-shine hero-accent-glow">
                         Fix it.
                       </span>
@@ -718,7 +718,7 @@ export default function Landing() {
               </AnimateIn>
 
               <AnimateIn delay={540}>
-                <p className="text-base md:text-lg font-medium text-white/45 mb-10 max-w-xl mx-auto leading-relaxed">
+                <p className="text-base md:text-lg font-medium text-[#A0A8B3] mb-10 max-w-xl mx-auto leading-relaxed">
                   Lower input delay, stable FPS, cleaner network.
                   One app. <DrawUnderline trigger="scroll">Real results.</DrawUnderline>
                 </p>
@@ -764,15 +764,15 @@ export default function Landing() {
               ].map((item, i) => (
                 <Reveal key={item.title} delay={0.05 + i * 0.15}>
                   <div className="flex flex-col items-center">
-                    <div className="size-10 rounded-xl bg-white/[0.04] border border-white/[0.06] flex items-center justify-center mb-4">
+                    <div className="size-10 rounded-xl bg-[#21262D] border border-[#2A313A] flex items-center justify-center mb-4">
                       {item.animated ? (
-                        <AnimatedLockIcon className="size-5 text-white/50" />
+                        <AnimatedLockIcon className="size-5 text-[#A0A8B3]" />
                       ) : (
-                        <item.icon className="size-5 text-white/50" />
+                        <item.icon className="size-5 text-[#A0A8B3]" />
                       )}
                     </div>
-                    <h3 className="font-semibold text-white text-sm mb-2">{item.title}</h3>
-                    <p className="text-white/30 text-sm leading-relaxed max-w-[220px]">{item.desc}</p>
+                    <h3 className="font-semibold text-[#E6EAF0] text-sm mb-2">{item.title}</h3>
+                    <p className="text-[#6B7380] text-sm leading-relaxed max-w-[220px]">{item.desc}</p>
                   </div>
                 </Reveal>
               ))}
@@ -781,7 +781,7 @@ export default function Landing() {
 
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-16 md:mt-20">
             <LandingStatsCharts />
-            <p className="text-center text-[11px] text-white/20 mt-6 tracking-wide">
+            <p className="text-center text-[11px] text-[#6B7380]/50 mt-6 tracking-wide">
               Based on internal testing. Results vary by hardware.
             </p>
           </div>
@@ -811,9 +811,9 @@ export default function Landing() {
             <Reveal className="text-center mb-8">
               <div className="inline-flex items-center gap-2 mb-4">
                 <Layers className="size-5 text-primary/60" />
-                <h3 className="text-2xl md:text-3xl font-extrabold text-white">Explore All Modules</h3>
+                <h3 className="text-2xl md:text-3xl font-extrabold text-[#E6EAF0]">Explore All Modules</h3>
               </div>
-              <p className="text-white/35 max-w-xl mx-auto text-sm">
+              <p className="text-[#6B7380] max-w-xl mx-auto text-sm">
                 Click on any module to see what it does.
               </p>
             </Reveal>
@@ -842,11 +842,11 @@ export default function Landing() {
 
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
               <Reveal className="space-y-6">
-                <p className="text-white/70 text-lg leading-relaxed">
+                <p className="text-[#E6EAF0] text-lg leading-relaxed">
                   Most performance tools stop at the operating system.{" "}
-                  <span className="text-white font-medium">SwitchControl goes deeper.</span>
+                  <span className="text-[#E6EAF0] font-medium">SwitchControl goes deeper.</span>
                 </p>
-                <p className="text-white/35 leading-relaxed">
+                <p className="text-[#6B7380] leading-relaxed">
                   The BIOS Advisor analyzes firmware behavior that directly impacts latency, scheduling, and frametime
                   consistency — without unsafe presets or blind toggles.
                 </p>
@@ -856,13 +856,13 @@ export default function Landing() {
                     { icon: Cpu, label: "CPU Scheduling", color: "text-amber-400" },
                     { icon: Zap, label: "Power & Voltage", color: "text-yellow-400" },
                     { icon: MemoryStick, label: "Memory & Fabric", color: "text-sky-400" },
-                    { icon: Radio, label: "Signal Integrity", color: "text-violet-400" },
+                    { icon: Radio, label: "Signal Integrity", color: "text-[#00D4FF]" },
                   ].map((item) => (
-                    <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04]">
-                      <div className="p-1.5 rounded-lg bg-white/[0.04]">
+                    <div key={item.label} className="flex items-center gap-3 p-3 rounded-xl bg-[#1A1F26] border border-[#2A313A]">
+                      <div className="p-1.5 rounded-lg bg-[#21262D]">
                         <item.icon className={cn("w-4 h-4", item.color)} />
                       </div>
-                      <span className="text-sm text-white/60">{item.label}</span>
+                      <span className="text-sm text-[#A0A8B3]">{item.label}</span>
                     </div>
                   ))}
                 </div>
@@ -920,9 +920,9 @@ export default function Landing() {
                         viewport={{ once: true }}
                         transition={{ delay: i * 0.08, duration: 0.4 }}
                       >
-                        <div className="p-4 rounded-xl bg-white/[0.025] border border-white/[0.05] hover:bg-white/[0.04] hover:border-white/[0.08] transition-all duration-300">
+                        <div className="p-4 rounded-xl bg-[#1A1F26] border border-[#2A313A] hover:bg-[#21262D] hover:border-[#2A313A] transition-all duration-300">
                           <div className="flex items-center justify-between mb-1.5">
-                            <span className="font-medium text-white text-sm">{setting.name}</span>
+                            <span className="font-medium text-[#E6EAF0] text-sm">{setting.name}</span>
                             <span
                               className={cn(
                                 "text-[10px] px-2 py-0.5 rounded-full font-medium tracking-wide",
@@ -934,9 +934,9 @@ export default function Landing() {
                               {setting.impact}
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 text-xs text-white/30">
+                          <div className="flex items-center gap-2 text-xs text-[#6B7380]">
                             <span className="text-primary/80">{setting.status}</span>
-                            <span className="text-white/10">|</span>
+                            <span className="text-[#E6EAF0]/10">|</span>
                             <span>{setting.desc}</span>
                           </div>
                         </div>
@@ -979,12 +979,12 @@ export default function Landing() {
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 60% 40% at 50% 50%, hsl(270 50% 40% / 0.03) 0%, transparent 70%)" }} />
           <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
             <Reveal className="text-center">
-              <p className="text-xs text-white/25 tracking-widest uppercase mb-6">Built for competitive players</p>
+              <p className="text-xs text-[#6B7380] tracking-widest uppercase mb-6">Built for competitive players</p>
               <h2 className="text-2xl md:text-3xl leading-snug mb-4">
-                <span className="font-medium text-white/50">New for 2026.</span>{" "}
-                <span className="font-extrabold text-white">Faster, smarter, safer.</span>
+                <span className="font-medium text-[#A0A8B3]">New for 2026.</span>{" "}
+                <span className="font-extrabold text-[#E6EAF0]">Faster, smarter, safer.</span>
               </h2>
-              <p className="text-white/30 leading-relaxed text-sm max-w-lg mx-auto">
+              <p className="text-[#6B7380] leading-relaxed text-sm max-w-lg mx-auto">
                 We're actively improving SwitchControl based on real user feedback. Every update is focused on measurable performance gains.
               </p>
             </Reveal>
@@ -1018,19 +1018,19 @@ export default function Landing() {
 
               {/* ── Free card ── */}
               <Reveal>
-                <div className="rounded-2xl border border-white/[0.07] p-8 h-full flex flex-col relative overflow-hidden group transition-all duration-500 hover:border-white/[0.12]"
+                <div className="rounded-2xl border border-[#2A313A] p-8 h-full flex flex-col relative overflow-hidden group transition-all duration-500 hover:border-[#2A313A]"
                   style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.025) 100%)", border: "1px solid rgba(255,255,255,0.08)" }}>
 
                   {/* Hover shimmer */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                  <div className="text-[10px] text-white/25 uppercase tracking-widest font-semibold mb-5">Free Plan</div>
+                  <div className="text-[10px] text-[#6B7380] uppercase tracking-widest font-semibold mb-5">Free Plan</div>
 
                   <div className="flex items-end gap-1 mb-1">
-                    <span className="text-white/40 text-xl font-medium self-start mt-2">$</span>
-                    <span className="text-6xl font-black text-white tracking-tight leading-none">0</span>
+                    <span className="text-[#6B7380] text-xl font-medium self-start mt-2">$</span>
+                    <span className="text-6xl font-black text-[#E6EAF0] tracking-tight leading-none">0</span>
                   </div>
-                  <p className="text-white/25 text-sm mb-7">forever · no card required</p>
+                  <p className="text-[#6B7380] text-sm mb-7">forever · no card required</p>
 
                   <div className="h-px bg-gradient-to-r from-transparent via-white/[0.07] to-transparent mb-7" />
 
@@ -1041,9 +1041,9 @@ export default function Landing() {
                       "Basic RAM cleanup tools",
                       "Community support",
                     ].map((f) => (
-                      <li key={f} className="flex items-center gap-3 text-sm text-white/45">
-                        <span className="flex-shrink-0 w-4 h-4 rounded-full border border-white/[0.12] flex items-center justify-center">
-                          <svg className="w-2.5 h-2.5 text-white/30" fill="none" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <li key={f} className="flex items-center gap-3 text-sm text-[#A0A8B3]">
+                        <span className="flex-shrink-0 w-4 h-4 rounded-full border border-[#2A313A] flex items-center justify-center">
+                          <svg className="w-2.5 h-2.5 text-[#6B7380]" fill="none" viewBox="0 0 10 10"><path d="M2 5l2 2 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
                         </span>
                         {f}
                       </li>
@@ -1083,13 +1083,13 @@ export default function Landing() {
                       Best Value
                     </div>
 
-                    <div className="text-[10px] text-violet-400/60 uppercase tracking-widest font-semibold mb-5">Premium Plan</div>
+                    <div className="text-[10px] text-[#00D4FF]/60 uppercase tracking-widest font-semibold mb-5">Premium Plan</div>
 
                     <div className="flex items-end gap-1 mb-1">
-                      <span className="text-violet-300/60 text-xl font-medium self-start mt-2">$</span>
-                      <span className="text-6xl font-black text-white tracking-tight leading-none">50</span>
+                      <span className="text-[#33E0FF]/60 text-xl font-medium self-start mt-2">$</span>
+                      <span className="text-6xl font-black text-[#E6EAF0] tracking-tight leading-none">50</span>
                     </div>
-                    <p className="text-white/25 text-sm mb-7">one-time · lifetime access</p>
+                    <p className="text-[#6B7380] text-sm mb-7">one-time · lifetime access</p>
 
                     <div className="h-px mb-7"
                       style={{ background: "linear-gradient(90deg, transparent, hsl(270,60%,55%,0.25), hsl(190,80%,55%,0.20), transparent)" }} />
@@ -1105,7 +1105,7 @@ export default function Landing() {
                         { text: "Competitive performance tuning", dim: false },
                         { text: "Priority support", dim: false },
                       ].map((f) => (
-                        <li key={f.text} className="flex items-center gap-3 text-sm text-white/60">
+                        <li key={f.text} className="flex items-center gap-3 text-sm text-[#A0A8B3]">
                           <span className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center"
                             style={{ background: "linear-gradient(135deg, hsl(270,70%,55%,0.3), hsl(190,90%,50%,0.2))", border: "1px solid hsl(270,60%,60%,0.35)" }}>
                             <svg className="w-2.5 h-2.5" viewBox="0 0 10 10" fill="none">
@@ -1141,8 +1141,8 @@ export default function Landing() {
                 { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>, label: "Instant access" },
                 { icon: <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0H3"/></svg>, label: "Windows 10 / 11" },
               ].map(({ icon, label }) => (
-                <div key={label} className="flex items-center gap-2 text-white/25 text-xs">
-                  <span className="text-white/20">{icon}</span>
+                <div key={label} className="flex items-center gap-2 text-[#6B7380] text-xs">
+                  <span className="text-[#6B7380]/50">{icon}</span>
                   {label}
                 </div>
               ))}
@@ -1159,10 +1159,10 @@ export default function Landing() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
             <Reveal>
               <h2 className="text-3xl md:text-4xl lg:text-5xl leading-tight mb-5">
-                <span className="font-medium text-white/50">Stop losing frames.</span>{" "}
-                <span className="font-extrabold text-white">Start winning.</span>
+                <span className="font-medium text-[#A0A8B3]">Stop losing frames.</span>{" "}
+                <span className="font-extrabold text-[#E6EAF0]">Start winning.</span>
               </h2>
-              <p className="text-white/30 mb-10 max-w-md mx-auto leading-relaxed text-sm">
+              <p className="text-[#6B7380] mb-10 max-w-md mx-auto leading-relaxed text-sm">
                 Download SwitchControl and see the difference in your next match.
               </p>
               <GlowButton

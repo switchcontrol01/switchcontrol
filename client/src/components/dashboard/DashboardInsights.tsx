@@ -59,16 +59,16 @@ function sessionAge(ms: number): string {
 const CONFIDENCE_COLORS: Record<string, string> = {
   high:   "text-emerald-400 border-emerald-500/25 bg-emerald-500/6",
   medium: "text-amber-400   border-amber-500/25   bg-amber-500/6",
-  low:    "text-white/40    border-[#2A313A]0        bg-white/[0.03]",
+  low:    "text-[#6B7380]    border-[#2A313A]        bg-[#1A1F26]",
 };
 
 const EVENT_ICONS: Record<string, ReactNode> = {
   tweak_applied:      <Zap className="size-3 text-primary" />,
-  tweak_reverted:     <Minus className="size-3 text-white/40" />,
+  tweak_reverted:     <Minus className="size-3 text-[#6B7380]" />,
   cleaner_ran:        <CheckCircle className="size-3 text-emerald-400" />,
   memory_cleaned:     <CheckCircle className="size-3 text-teal-400" />,
   ai_scan_completed:  <Activity className="size-3 text-primary" />,
-  bios_scan_completed:<TrendingUp className="size-3 text-violet-400" />,
+  bios_scan_completed:<TrendingUp className="size-3 text-[#00D4FF]" />,
   spike_detected:     <AlertTriangle className="size-3 text-amber-400" />,
   stability_restored: <CheckCircle className="size-3 text-emerald-400" />,
 };
@@ -97,7 +97,7 @@ function InterferenceMeter() {
   return (
     <div className="space-y-2" data-testid="section-interference-meter">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-medium text-white/70 flex items-center gap-1.5">
+        <span className="text-[11px] font-medium text-[#E6EAF0] flex items-center gap-1.5">
           <Gauge className="size-3 text-muted-foreground" />
           System Interference
         </span>
@@ -124,7 +124,7 @@ function InterferenceMeter() {
       </div>
 
       {/* Bar */}
-      <div className="h-1.5 rounded-full bg-white/[0.05] relative overflow-hidden">
+      <div className="h-1.5 rounded-full bg-[#21262D] relative overflow-hidden">
         <motion.div
           className={cn("h-full rounded-full", barColor)}
           style={{ boxShadow: `0 0 8px ${glowColor}` }}
@@ -194,7 +194,7 @@ function SinceLastSession() {
           className="flex items-center justify-between"
           data-testid={`delta-item-${i}`}
         >
-          <span className="text-[11px] text-white/70">{item.label}</span>
+          <span className="text-[11px] text-[#E6EAF0]">{item.label}</span>
           <span
             className={cn(
               "text-[11px] font-medium flex items-center gap-1",
@@ -244,7 +244,7 @@ function RecentEvents() {
           >
             <span className="mt-0.5 shrink-0">{EVENT_ICONS[evt.type] ?? <Activity className="size-3 text-muted-foreground" />}</span>
             <div className="min-w-0 flex-1">
-              <span className="text-[11px] text-white/80 leading-tight">{evt.label}</span>
+              <span className="text-[11px] text-[#E6EAF0] leading-tight">{evt.label}</span>
               {evt.detail && (
                 <span className="text-[10px] text-muted-foreground/60 ml-1.5">{evt.detail}</span>
               )}
@@ -294,7 +294,7 @@ function ActiveAnalysisStrip() {
       {items.map((item, i) => (
         <motion.span
           key={item}
-          className="flex items-center gap-1 text-[10px] text-white/60 px-2.5 py-1 rounded-full border border-white/[0.07] bg-white/[0.025]"
+          className="flex items-center gap-1 text-[10px] text-[#A0A8B3] px-2.5 py-1 rounded-full border border-[#2A313A] bg-white/[0.025]"
           initial={prefersReducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: prefersReducedMotion ? 0 : 0.2, delay: i * 0.05 }}
@@ -369,7 +369,7 @@ function FpsAndBottleneck() {
           "p-3.5 rounded-lg border space-y-2",
           bottleneck.hasBottleneck
             ? "border-red-500/20 bg-red-500/[0.04]"
-            : "border-white/[0.07] bg-white/[0.025]"
+            : "border-[#2A313A] bg-white/[0.025]"
         )}
         data-testid="card-bottleneck"
       >
@@ -387,7 +387,7 @@ function FpsAndBottleneck() {
             <p
               className={cn(
                 "text-xs font-medium",
-                bottleneck.hasBottleneck ? "text-red-300/90" : "text-white/50"
+                bottleneck.hasBottleneck ? "text-red-300/90" : "text-[#A0A8B3]"
               )}
               data-testid="text-bottleneck-label"
             >
@@ -430,7 +430,7 @@ function LastActionResult() {
         "flex items-start gap-3 p-3 rounded-lg border",
         isPos
           ? "border-emerald-500/20 bg-emerald-500/[0.04]"
-          : "border-white/[0.08] bg-white/[0.02]"
+          : "border-[#2A313A] bg-[#1A1F26]"
       )}
       data-testid="card-last-action"
     >
@@ -438,7 +438,7 @@ function LastActionResult() {
         className={cn("size-4 mt-0.5 shrink-0", isPos ? "text-emerald-400" : "text-muted-foreground")}
       />
       <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-medium text-white/80">{lastAction.action}</p>
+        <p className="text-[11px] font-medium text-[#E6EAF0]">{lastAction.action}</p>
         <p className="text-[11px] text-muted-foreground/70 mt-0.5">{lastAction.result}</p>
       </div>
       <span className="text-[10px] text-muted-foreground/50 shrink-0 tabular-nums mt-0.5">{age}</span>
@@ -463,7 +463,7 @@ export function DashboardInsights() {
     <div className="space-y-4" data-testid="section-dashboard-insights">
       {/* Section heading */}
       <motion.h2
-        className="text-lg font-semibold tracking-tight text-white/90 flex items-center gap-2"
+        className="text-lg font-semibold tracking-tight text-[#E6EAF0] flex items-center gap-2"
         {...reveal(0)}
       >
         <TrendingUp className="size-5 text-primary" />

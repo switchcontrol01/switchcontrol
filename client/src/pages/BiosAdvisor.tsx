@@ -69,7 +69,7 @@ const CATEGORY_COLORS: Record<BiosCategory, string> = {
   "Power & Voltage": "from-amber-500/20 to-orange-500/10 border-amber-500/30",
   "Memory & Fabric": "from-blue-500/20 to-indigo-500/10 border-blue-500/30",
   "EMI & Signal Integrity": "from-emerald-500/20 to-teal-500/10 border-emerald-500/30",
-  "Platform & Security": "from-violet-500/20 to-purple-500/10 border-violet-500/30",
+  "Platform & Security": "from-#00D4FF/20 to-#00D4FF/10 border-[#00D4FF]",
 };
 
 const LEVEL_COLORS: Record<string, string> = {
@@ -90,7 +90,7 @@ const STATUS_COLORS: Record<DetectionStatus, string> = {
   "Detected": "text-emerald-400",
   "Inferred": "text-blue-400",
   "Unknown": "text-muted-foreground",
-  "Photo Verified": "text-violet-400",
+  "Photo Verified": "text-[#00D4FF]",
   "Photo Suspected": "text-amber-400",
 };
 
@@ -140,7 +140,7 @@ function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: 
     >
       <div className="relative w-20 h-20">
         <svg className="w-full h-full transform -rotate-90">
-          <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" strokeWidth="6" className="text-white/10" />
+          <circle cx="40" cy="40" r="35" fill="none" stroke="currentColor" strokeWidth="6" className="text-[#E6EAF0]/10" />
           <motion.circle
             cx="40" cy="40" r="35" fill="none" stroke="currentColor" strokeWidth="6" strokeLinecap="round"
             className={color}
@@ -151,7 +151,7 @@ function ScoreGauge({ label, value, color, delay = 0 }: { label: string; value: 
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-xl font-bold text-white">
+          <span className="text-xl font-bold text-[#E6EAF0]">
             {displayed}
           </span>
         </div>
@@ -166,7 +166,7 @@ function ConfidenceBadge({ confidence }: { confidence: number }) {
   const color = pct >= 85 ? "text-emerald-400 border-emerald-500/25" :
                 pct >= 65 ? "text-blue-400 border-blue-500/25" :
                 pct >= 45 ? "text-amber-400 border-amber-500/25" :
-                "text-muted-foreground border-[#2A313A]0";
+                "text-muted-foreground border-[#2A313A]";
   return (
     <Badge variant="outline" className={cn("text-[9px] font-mono", color)}>
       {pct}%
@@ -220,7 +220,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold text-white text-sm truncate">{setting.name}</h3>
+                <h3 className="font-semibold text-[#E6EAF0] text-sm truncate">{setting.name}</h3>
                 <Badge variant="outline" className={cn("text-[10px] shrink-0", impactColors[setting.impact])}>
                   {setting.impact} Impact
                 </Badge>
@@ -231,11 +231,11 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                 {detection && <ConfidenceBadge confidence={detection.confidence} />}
               </div>
               {detection?.reason && (
-                <p className="text-[10px] text-white/50 mt-1 line-clamp-1">{detection.reason}</p>
+                <p className="text-[10px] text-[#A0A8B3] mt-1 line-clamp-1">{detection.reason}</p>
               )}
             </div>
             <motion.div animate={{ rotate: expanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-white transition-colors" />
+              <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-[#E6EAF0] transition-colors" />
             </motion.div>
           </div>
         </div>
@@ -249,8 +249,8 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
               transition={{ duration: 0.3 }}
               className="overflow-hidden"
             >
-              <div className="px-4 pb-4 border-t border-[#2A313A]0">
-                <div className="flex gap-1 mt-3 mb-3 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06] w-fit">
+              <div className="px-4 pb-4 border-t border-[#2A313A]">
+                <div className="flex gap-1 mt-3 mb-3 p-0.5 rounded-lg bg-[#1A1F26] border border-[#2A313A] w-fit">
                   {tabItems.map(tab => (
                     <button
                       key={tab.key}
@@ -259,7 +259,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                         "px-3 py-1.5 text-[10px] font-medium rounded-md transition-all",
                         activeTab === tab.key
                           ? "bg-primary/20 text-primary border border-primary/30"
-                          : "text-muted-foreground hover:text-white hover:bg-[#21262D] border border-transparent"
+                          : "text-muted-foreground hover:text-[#E6EAF0] hover:bg-[#21262D] border border-transparent"
                       )}
                       data-testid={`tab-${tab.key}-${setting.id}`}
                     >
@@ -280,12 +280,12 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                         <h4 className="text-xs font-medium text-cyan-400 mb-1 flex items-center gap-1">
                           <Eye className="w-3 h-3" /> Detection Detail
                         </h4>
-                        <p className="text-xs text-white/80">{detection.reason}</p>
+                        <p className="text-xs text-[#E6EAF0]">{detection.reason}</p>
                         {detection.detectedValue && (
                           <p className="text-[10px] text-cyan-300/70 mt-1">Value: {detection.detectedValue}</p>
                         )}
                         <div className="flex items-center gap-2 mt-2">
-                          <span className="text-[10px] text-white/50">Confidence:</span>
+                          <span className="text-[10px] text-[#A0A8B3]">Confidence:</span>
                           <ConfidenceBadge confidence={detection.confidence} />
                         </div>
                       </div>
@@ -293,11 +293,11 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
 
                     <div className="space-y-3">
                       <div className="space-y-2">
-                        <h4 className="text-xs font-medium text-white/50 uppercase tracking-wider">What it is</h4>
-                        <p className="text-sm text-white/80">{setting.whatItIs}</p>
+                        <h4 className="text-xs font-medium text-[#A0A8B3] uppercase tracking-wider">What it is</h4>
+                        <p className="text-sm text-[#E6EAF0]">{setting.whatItIs}</p>
                         <div className="flex flex-wrap gap-1.5">
                           {setting.affects.map((affect) => (
-                            <Badge key={affect} className="text-[10px] bg-violet-500/15 text-violet-300 border border-violet-500/25 hover:bg-violet-500/20">{affect}</Badge>
+                            <Badge key={affect} className="text-[10px] bg-[#00D4FF] text-[#33E0FF] border border-[#00D4FF] hover:bg-[#00D4FF]">{affect}</Badge>
                           ))}
                         </div>
                       </div>
@@ -307,7 +307,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                           <TrendingUp className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                           <div>
                             <h4 className="text-xs font-medium text-primary mb-1">Recommendation</h4>
-                            <p className="text-sm text-white/90">{setting.recommendation}</p>
+                            <p className="text-sm text-[#E6EAF0]">{setting.recommendation}</p>
                           </div>
                         </div>
                       </div>
@@ -330,7 +330,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                         </h4>
                         <ul className="space-y-1.5">
                           {setting.pros.map((pro, i) => (
-                            <li key={i} className="text-xs text-white/70 flex items-start gap-1.5">
+                            <li key={i} className="text-xs text-[#E6EAF0] flex items-start gap-1.5">
                               <span className="text-emerald-400/60 mt-0.5 shrink-0">+</span>
                               {pro}
                             </li>
@@ -343,7 +343,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                         </h4>
                         <ul className="space-y-1.5">
                           {setting.cons.map((con, i) => (
-                            <li key={i} className="text-xs text-white/70 flex items-start gap-1.5">
+                            <li key={i} className="text-xs text-[#E6EAF0] flex items-start gap-1.5">
                               <span className="text-amber-400/60 mt-0.5 shrink-0">-</span>
                               {con}
                             </li>
@@ -356,7 +356,7 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                       <h4 className="text-xs font-medium text-red-400 mb-1 flex items-center gap-1">
                         <Shield className="w-3 h-3" /> When NOT to change
                       </h4>
-                      <p className="text-xs text-white/70">{setting.whenNotToChange}</p>
+                      <p className="text-xs text-[#E6EAF0]">{setting.whenNotToChange}</p>
                     </div>
                   </motion.div>
                 )}
@@ -368,15 +368,15 @@ function BiosSettingCard({ setting, detection, index }: { setting: BiosSetting; 
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.2 }}
                   >
-                    <div className="p-3 rounded-lg bg-[#21262D] border border-[#2A313A]0">
-                      <h4 className="text-xs font-medium text-white/80 mb-3 flex items-center gap-1">
+                    <div className="p-3 rounded-lg bg-[#21262D] border border-[#2A313A]">
+                      <h4 className="text-xs font-medium text-[#E6EAF0] mb-3 flex items-center gap-1">
                         <ExternalLink className="w-3 h-3" /> Where to find in BIOS
                       </h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
                         {setting.motherboardPaths.map((path) => (
-                          <div key={path.brand} className="text-xs p-2 rounded bg-white/[0.03] border border-white/[0.06]">
+                          <div key={path.brand} className="text-xs p-2 rounded bg-[#1A1F26] border border-[#2A313A]">
                             <span className="text-primary font-medium">{path.brand}</span>
-                            <div className="text-white/60 mt-0.5">{path.path.join(" → ")}</div>
+                            <div className="text-[#A0A8B3] mt-0.5">{path.path.join(" → ")}</div>
                           </div>
                         ))}
                       </div>
@@ -406,7 +406,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
       <GlassCard className="p-4" data-testid={`opportunity-${setting.id}`}>
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-white text-sm mb-1">{setting.name}</h3>
+            <h3 className="font-semibold text-[#E6EAF0] text-sm mb-1">{setting.name}</h3>
             <p className="text-xs text-muted-foreground line-clamp-2">{setting.recommendation}</p>
           </div>
           <div className="text-right shrink-0">
@@ -424,7 +424,7 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
           </Badge>
           <div className="flex gap-1 ml-auto">
             {setting.affects.map(a => (
-              <span key={a} className="text-[9px] text-white/40 bg-[#21262D] px-1.5 py-0.5 rounded">{a}</span>
+              <span key={a} className="text-[9px] text-[#6B7380] bg-[#21262D] px-1.5 py-0.5 rounded">{a}</span>
             ))}
           </div>
         </div>
@@ -451,14 +451,14 @@ function OpportunityCard({ opportunity, index }: { opportunity: ReturnType<typeo
               transition={{ duration: 0.2 }}
               className="overflow-hidden"
             >
-              <div className="mt-3 pt-3 border-t border-[#2A313A]0 space-y-2">
+              <div className="mt-3 pt-3 border-t border-[#2A313A] space-y-2">
                 {setting.motherboardPaths.map((path) => (
                   <div key={path.brand} className="text-xs">
                     <span className="text-primary font-medium">{path.brand}:</span>
-                    <span className="text-white/60 ml-1">{path.path.join(" → ")}</span>
+                    <span className="text-[#A0A8B3] ml-1">{path.path.join(" → ")}</span>
                   </div>
                 ))}
-                <p className="text-xs text-white/50 italic mt-2">{setting.whatItIs}</p>
+                <p className="text-xs text-[#A0A8B3] italic mt-2">{setting.whatItIs}</p>
               </div>
             </motion.div>
           )}
@@ -773,7 +773,7 @@ export default function BiosAdvisor() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl font-bold text-white" data-testid="text-bios-title">Firmware Behavior Analyzer</h1>
+                <h1 className="text-2xl font-bold text-[#E6EAF0]" data-testid="text-bios-title">Firmware Behavior Analyzer</h1>
                 <PremiumHeaderBadge isLocked={!isPremium} />
               </div>
               <p className="text-muted-foreground text-sm">
@@ -848,40 +848,40 @@ export default function BiosAdvisor() {
           const getInferBadge = (state: "confirmed" | "likely" | "unknown") =>
             state === "confirmed" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" :
             state === "likely"    ? "bg-amber-500/15 text-amber-400 border-amber-500/30" :
-                                    "bg-[#21262D] text-white/40 border-[#2A313A]0";
+                                    "bg-[#21262D] text-[#6B7380] border-[#2A313A]";
 
           return (
             <Item>
-              <GlassCard className="p-4 bg-violet-500/5 border-violet-500/15">
+              <GlassCard className="p-4 bg-[#00D4FF] border-[#00D4FF]">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-5 h-5 rounded-md bg-violet-500/20 border border-violet-500/30 flex items-center justify-center shrink-0">
-                    <Cpu className="size-2.5 text-violet-400" />
+                  <div className="w-5 h-5 rounded-md bg-[#00D4FF] border border-[#00D4FF] flex items-center justify-center shrink-0">
+                    <Cpu className="size-2.5 text-[#00D4FF]" />
                   </div>
-                  <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">Hardware Profile</span>
-                  <span className="ml-auto text-[10px] text-white/30 font-mono">Collected {new Date(si.collectedAt).toLocaleTimeString()}</span>
+                  <span className="text-xs font-semibold text-[#33E0FF] uppercase tracking-wider">Hardware Profile</span>
+                  <span className="ml-auto text-[10px] text-[#6B7380] font-mono">Collected {new Date(si.collectedAt).toLocaleTimeString()}</span>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {mbStr && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Motherboard</p>
-                      <p className="text-xs font-medium text-white/80 leading-tight">{mbStr}</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Motherboard</p>
+                      <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{mbStr}</p>
                     </div>
                   )}
                   {biosStr && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">BIOS</p>
-                      <p className="text-xs font-medium text-white/80 leading-tight">{biosStr}</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">BIOS</p>
+                      <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{biosStr}</p>
                     </div>
                   )}
                   {ramStr !== "Unknown" && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">RAM Layout</p>
-                      <p className="text-xs font-medium text-white/80 leading-tight">{ramStr}</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">RAM Layout</p>
+                      <p className="text-xs font-medium text-[#E6EAF0] leading-tight">{ramStr}</p>
                     </div>
                   )}
                   {si.platform.secureBootEnabled !== null && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Secure Boot</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Secure Boot</p>
                       <p className={`text-xs font-medium leading-tight ${si.platform.secureBootEnabled ? "text-emerald-400" : "text-amber-400"}`}>
                         {si.platform.secureBootEnabled ? "Enabled" : "Disabled"}
                       </p>
@@ -889,7 +889,7 @@ export default function BiosAdvisor() {
                   )}
                   {si.platform.vbsEnabled !== null && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">VBS / Memory Integrity</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">VBS / Memory Integrity</p>
                       <p className={`text-xs font-medium leading-tight ${si.platform.vbsEnabled ? "text-amber-400" : "text-emerald-400"}`}>
                         {si.platform.vbsEnabled ? "Enabled (may reduce GPU perf)" : "Disabled"}
                       </p>
@@ -897,15 +897,15 @@ export default function BiosAdvisor() {
                   )}
                   {si.platform.tpmPresent !== null && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">TPM</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.tpmPresent ? "text-emerald-400" : "text-white/40"}`}>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">TPM</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.tpmPresent ? "text-emerald-400" : "text-[#6B7380]"}`}>
                         {si.platform.tpmPresent ? "Present" : "Not Detected"}
                       </p>
                     </div>
                   )}
                   {si.platform.uefiBoot !== null && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Boot Mode</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Boot Mode</p>
                       <p className={`text-xs font-medium leading-tight ${si.platform.uefiBoot ? "text-emerald-400" : "text-amber-400"}`}>
                         {si.platform.uefiBoot ? "UEFI" : "Legacy BIOS"}
                       </p>
@@ -913,8 +913,8 @@ export default function BiosAdvisor() {
                   )}
                   {si.platform.virtualizationEnabled !== null && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Virtualization</p>
-                      <p className={`text-xs font-medium leading-tight ${si.platform.virtualizationEnabled ? "text-emerald-400" : "text-white/40"}`}>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Virtualization</p>
+                      <p className={`text-xs font-medium leading-tight ${si.platform.virtualizationEnabled ? "text-emerald-400" : "text-[#6B7380]"}`}>
                         {si.platform.virtualizationEnabled ? "Enabled" : "Disabled"}
                         {si.platform.hypervisorPresent ? " (Hypervisor Active)" : ""}
                       </p>
@@ -922,28 +922,28 @@ export default function BiosAdvisor() {
                   )}
                   {si.platform.resizeBarEnabled !== null && (
                     <div className="space-y-0.5">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider">Resize BAR / SAM</p>
+                      <p className="text-[10px] text-[#6B7380] uppercase tracking-wider">Resize BAR / SAM</p>
                       <p className={`text-xs font-medium leading-tight ${si.platform.resizeBarEnabled ? "text-emerald-400" : "text-amber-400"}`}>
                         {si.platform.resizeBarEnabled ? "Active" : "Inactive"}
                       </p>
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/[0.06] flex-wrap">
-                  <span className="text-[10px] text-white/40 uppercase tracking-wider mr-1">EXPO/XMP</span>
+                <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[#2A313A] flex-wrap">
+                  <span className="text-[10px] text-[#6B7380] uppercase tracking-wider mr-1">EXPO/XMP</span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${getInferBadge(si.inference.expoOrXmp.state)}`}>
                     {si.inference.expoOrXmp.state === "confirmed" ? "Confirmed Active" :
                      si.inference.expoOrXmp.state === "likely" ? "Likely Active" : "Unknown / Off"}
                   </span>
-                  <span className="text-[10px] text-white/30 ml-1">{si.inference.expoOrXmp.reason}</span>
+                  <span className="text-[10px] text-[#6B7380] ml-1">{si.inference.expoOrXmp.reason}</span>
                 </div>
                 {si.inference.biosFreshness.state !== "confirmed" && (
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <span className="text-[10px] text-white/40 uppercase tracking-wider mr-1">BIOS Age</span>
+                    <span className="text-[10px] text-[#6B7380] uppercase tracking-wider mr-1">BIOS Age</span>
                     <span className={`text-[10px] px-2 py-0.5 rounded-full border font-medium ${getInferBadge(si.inference.biosFreshness.state)}`}>
                       {si.inference.biosFreshness.state === "likely" ? "May Need Update" : "Check Manufacturer Site"}
                     </span>
-                    <span className="text-[10px] text-white/30 ml-1">{si.inference.biosFreshness.reason}</span>
+                    <span className="text-[10px] text-[#6B7380] ml-1">{si.inference.biosFreshness.reason}</span>
                   </div>
                 )}
               </GlassCard>
@@ -953,18 +953,18 @@ export default function BiosAdvisor() {
 
         {/* ── Firmware Analytics Block ─────────────────────────────── */}
         <Item>
-          <GlassCard className="p-5 border-violet-500/10 bg-gradient-to-br from-violet-500/[0.04] to-cyan-500/[0.02] overflow-hidden relative">
+          <GlassCard className="p-5 border-[#00D4FF] bg-gradient-to-br from-#00D4FF/[0.04] to-cyan-500/[0.02] overflow-hidden relative">
             <div
               className="absolute inset-0 pointer-events-none"
               style={{ background: "radial-gradient(ellipse 70% 50% at 50% -20%, rgba(124,58,237,0.08), transparent)" }}
             />
             <div className="flex items-center gap-2 mb-5">
-              <div className="w-5 h-5 rounded-md bg-violet-500/20 border border-violet-500/30 flex items-center justify-center shrink-0">
-                <Target className="size-2.5 text-violet-400" />
+              <div className="w-5 h-5 rounded-md bg-[#00D4FF] border border-[#00D4FF] flex items-center justify-center shrink-0">
+                <Target className="size-2.5 text-[#00D4FF]" />
               </div>
-              <span className="text-xs font-semibold text-violet-300 uppercase tracking-wider">Firmware Analytics</span>
+              <span className="text-xs font-semibold text-[#33E0FF] uppercase tracking-wider">Firmware Analytics</span>
               {!hasScanned && (
-                <span className="text-[9px] text-white/20 italic ml-1">· Run analysis to populate</span>
+                <span className="text-[9px] text-[#6B7380]/50 italic ml-1">· Run analysis to populate</span>
               )}
             </div>
             <BiosAnalyticsRings
@@ -988,17 +988,17 @@ export default function BiosAdvisor() {
             <div className="flex items-center gap-2 p-3 rounded bg-red-500/10 border border-red-500/20 text-sm text-red-300">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               {photoError}
-              <Button variant="ghost" size="sm" className="ml-auto text-[10px] text-red-300 hover:text-white h-6" onClick={() => setPhotoError(null)}>Dismiss</Button>
+              <Button variant="ghost" size="sm" className="ml-auto text-[10px] text-red-300 hover:text-[#E6EAF0] h-6" onClick={() => setPhotoError(null)}>Dismiss</Button>
             </div>
           </Item>
         )}
 
         {photoDetections.length > 0 && (
           <Item>
-            <GlassCard className="p-3 bg-violet-500/5 border-violet-500/20">
+            <GlassCard className="p-3 bg-[#00D4FF] border-[#00D4FF]">
               <div className="flex items-center gap-2 text-xs">
-                <Camera className="w-3.5 h-3.5 text-violet-400" />
-                <span className="text-violet-400 font-medium">{photoDetections.length} settings derived from BIOS photo analysis</span>
+                <Camera className="w-3.5 h-3.5 text-[#00D4FF]" />
+                <span className="text-[#00D4FF] font-medium">{photoDetections.length} settings derived from BIOS photo analysis</span>
                 <span className="text-[9px] text-muted-foreground ml-auto italic">AI-interpreted — verify against your actual BIOS</span>
               </div>
             </GlassCard>
@@ -1009,7 +1009,7 @@ export default function BiosAdvisor() {
           <GlassCard className="p-6 bg-gradient-to-br from-[hsl(270,60%,55%)/0.1] to-[hsl(280,70%,65%)/0.05] border-[hsl(270,60%,55%)/0.2]">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="flex flex-col justify-center">
-                <h2 className="text-lg font-semibold text-white mb-1 flex items-center gap-2">
+                <h2 className="text-lg font-semibold text-[#E6EAF0] mb-1 flex items-center gap-2">
                   <Target className="w-5 h-5 text-[hsl(270,60%,55%)]" />
                   Firmware Score
                 </h2>
@@ -1040,13 +1040,13 @@ export default function BiosAdvisor() {
                   {Object.entries(categoryScores).map(([cat, data]) => {
                     const Icon = CATEGORY_ICONS[cat as BiosCategory];
                     return (
-                      <div key={cat} className="flex items-center gap-2 p-2 rounded-lg bg-[#21262D] border border-[#2A313A]0">
+                      <div key={cat} className="flex items-center gap-2 p-2 rounded-lg bg-[#21262D] border border-[#2A313A]">
                         {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />}
                         <div className="flex-1 min-w-0">
                           <div className="text-[10px] text-muted-foreground truncate">{cat.split(" ")[0]}</div>
                           <div className="flex items-center gap-2">
                             <Progress value={hasScanned ? data.score : 0} className="h-1 flex-1" />
-                            <span className="text-[10px] font-bold text-white w-6 text-right">{hasScanned ? data.score : "—"}</span>
+                            <span className="text-[10px] font-bold text-[#E6EAF0] w-6 text-right">{hasScanned ? data.score : "—"}</span>
                           </div>
                         </div>
                       </div>
@@ -1066,12 +1066,12 @@ export default function BiosAdvisor() {
 
         {hasScanned && (
           <Item>
-            <GlassCard className="p-4 bg-white/[0.02]">
+            <GlassCard className="p-4 bg-[#1A1F26]">
               <p className="text-[10px] text-muted-foreground mb-3" data-testid="text-detection-disclaimer">
                 {DETECTION_DISCLAIMER}
               </p>
               <div className="flex items-center gap-4 flex-wrap mb-2">
-                <h3 className="text-xs font-semibold text-white flex items-center gap-1.5">
+                <h3 className="text-xs font-semibold text-[#E6EAF0] flex items-center gap-1.5">
                   <Shield className="w-3.5 h-3.5 text-primary" />
                   Detection Summary
                 </h3>
@@ -1085,7 +1085,7 @@ export default function BiosAdvisor() {
                     {detectionSummary.inferred} Inferred
                   </span>
                   {(detectionSummary.photoVerified + detectionSummary.photoSuspected) > 0 && (
-                    <span className="flex items-center gap-1 text-violet-400">
+                    <span className="flex items-center gap-1 text-[#00D4FF]">
                       <Camera className="w-3 h-3" />
                       {detectionSummary.photoVerified + detectionSummary.photoSuspected} Photo-derived
                     </span>
@@ -1112,7 +1112,7 @@ export default function BiosAdvisor() {
                   </div>
                 )}
                 {scanChanged === false && (
-                  <div className="flex items-center gap-2 p-2 rounded bg-[#21262D] border border-[#2A313A]0 text-[11px] text-muted-foreground flex-1">
+                  <div className="flex items-center gap-2 p-2 rounded bg-[#21262D] border border-[#2A313A] text-[11px] text-muted-foreground flex-1">
                     <Info className="w-3.5 h-3.5 shrink-0" />
                     No detectable firmware-related behavior changes since last scan.
                   </div>
@@ -1150,16 +1150,16 @@ export default function BiosAdvisor() {
                   >
                     <div className="mt-3 max-h-64 overflow-y-auto space-y-1 pr-1">
                       {firmwareInputs.map((input, i) => (
-                        <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-white/[0.02] text-[10px]">
-                          <span className="text-white/70 flex-1 truncate">{input.label}</span>
-                          <span className="text-white/40 truncate max-w-[140px]">{input.value}</span>
+                        <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-[#1A1F26] text-[10px]">
+                          <span className="text-[#E6EAF0] flex-1 truncate">{input.label}</span>
+                          <span className="text-[#6B7380] truncate max-w-[140px]">{input.value}</span>
                           {input.confidence !== undefined && <ConfidenceBadge confidence={input.confidence} />}
                           <Badge variant="outline" className={cn("text-[9px] shrink-0",
                             STATUS_COLORS[input.status as DetectionStatus] || "text-muted-foreground",
                             input.status === "User Confirmed" ? "border-cyan-500/25" :
                             input.status === "Detected" ? "border-emerald-500/25" :
                             input.status === "Inferred" ? "border-blue-500/25" :
-                            "border-[#2A313A]0"
+                            "border-[#2A313A]"
                           )}>
                             {input.status}
                           </Badge>
@@ -1175,8 +1175,8 @@ export default function BiosAdvisor() {
 
         {hasScanned && (
           <Item>
-            <GlassCard className="p-5 bg-white/[0.02]">
-              <h3 className="text-xs font-semibold text-white mb-4 flex items-center gap-2">
+            <GlassCard className="p-5 bg-[#1A1F26]">
+              <h3 className="text-xs font-semibold text-[#E6EAF0] mb-4 flex items-center gap-2">
                 <Activity className="w-3.5 h-3.5 text-primary" />
                 Score Breakdown
               </h3>
@@ -1184,10 +1184,10 @@ export default function BiosAdvisor() {
                 {categoryBreakdowns.map((bd) => {
                   const Icon = CATEGORY_ICONS[bd.category];
                   return (
-                    <div key={bd.category} className="p-3 rounded-lg bg-white/[0.03] border border-white/[0.06]" data-testid={`breakdown-${bd.category.split(" ")[0].toLowerCase()}`}>
+                    <div key={bd.category} className="p-3 rounded-lg bg-[#1A1F26] border border-[#2A313A]" data-testid={`breakdown-${bd.category.split(" ")[0].toLowerCase()}`}>
                       <div className="flex items-center gap-2 mb-2">
                         {Icon && <Icon className="w-3.5 h-3.5 text-muted-foreground" />}
-                        <span className="text-[11px] font-medium text-white flex-1">{bd.category}</span>
+                        <span className="text-[11px] font-medium text-[#E6EAF0] flex-1">{bd.category}</span>
                         <span className={cn("text-xs font-bold",
                           bd.score >= 70 ? "text-emerald-400" : bd.score >= 40 ? "text-amber-400" : "text-red-400"
                         )}>{bd.score}/100</span>
@@ -1195,13 +1195,13 @@ export default function BiosAdvisor() {
                       <Progress value={bd.score} className="h-1 mb-2" />
                       <p className="text-[10px] text-muted-foreground mb-1">{bd.explanation}</p>
                       <div className="flex items-center gap-2 text-[10px]">
-                        <span className="text-white/40">{bd.settingCount} settings</span>
+                        <span className="text-[#6B7380]">{bd.settingCount} settings</span>
                         <span className="text-emerald-400/60">{bd.detectedCount} detected</span>
                       </div>
                       {bd.topOpportunity && (
                         <div className="mt-2 p-1.5 rounded bg-primary/5 border border-primary/10 text-[10px]">
                           <span className="text-primary">Top gain:</span>{" "}
-                          <span className="text-white/70">{bd.topOpportunity.name}</span>{" "}
+                          <span className="text-[#E6EAF0]">{bd.topOpportunity.name}</span>{" "}
                           <span className="text-emerald-400 font-semibold">+{bd.topOpportunity.gain} pts</span>
                         </div>
                       )}
@@ -1210,17 +1210,17 @@ export default function BiosAdvisor() {
                 })}
               </div>
               <div>
-                <h4 className="text-[11px] font-semibold text-white mb-3 flex items-center gap-1.5">
+                <h4 className="text-[11px] font-semibold text-[#E6EAF0] mb-3 flex items-center gap-1.5">
                   <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
                   Top Score Gains
                 </h4>
                 <div className="space-y-1.5">
                   {opportunities.slice(0, 6).map((opp, i) => (
-                    <div key={opp.setting.id} className="flex items-center gap-2 p-2 rounded bg-white/[0.02] text-[11px]">
+                    <div key={opp.setting.id} className="flex items-center gap-2 p-2 rounded bg-[#1A1F26] text-[11px]">
                       <span className="w-4 h-4 rounded-full bg-primary/20 text-primary text-[9px] font-bold flex items-center justify-center shrink-0">
                         {i + 1}
                       </span>
-                      <span className="text-white/80 flex-1">{opp.setting.name}</span>
+                      <span className="text-[#E6EAF0] flex-1">{opp.setting.name}</span>
                       <Badge variant="outline" className={cn("text-[9px]", DIFFICULTY_COLORS[opp.difficulty])}>
                         {opp.difficulty}
                       </Badge>
@@ -1242,7 +1242,7 @@ export default function BiosAdvisor() {
               <Sparkles className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div className="flex-1">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-semibold text-white text-sm flex items-center gap-2">
+                  <h3 className="font-semibold text-[#E6EAF0] text-sm flex items-center gap-2">
                     AI Firmware Analysis
                     <Badge className="text-[9px] bg-primary/20 text-primary border-primary/30">
                       {aiExplanation ? "AI-Powered" : "Local"}
@@ -1285,24 +1285,24 @@ export default function BiosAdvisor() {
                       <Sparkles className="w-5 h-5 text-primary/50" />
                     </div>
                     <div>
-                      <p className="text-sm text-white/50 font-medium">No analysis yet</p>
+                      <p className="text-sm text-[#A0A8B3] font-medium">No analysis yet</p>
                       <p className="text-xs text-muted-foreground mt-1">Run a scan to get your firmware analysis and AI-powered recommendations.</p>
                     </div>
                   </div>
                 ) : aiExplanation ? (
                   <div className="space-y-3">
-                    <p className="text-sm text-white/80 leading-relaxed">{aiExplanation.overview}</p>
+                    <p className="text-sm text-[#E6EAF0] leading-relaxed">{aiExplanation.overview}</p>
                     
                     {aiExplanation.settingExplanations.length > 0 && (
                       <div className="space-y-1.5">
                         {aiExplanation.settingExplanations.slice(0, 6).map((se, i) => {
-                          const impactColor = se.impact === "positive" ? "text-emerald-400" : se.impact === "negative" ? "text-red-400" : se.impact === "uncertain" ? "text-amber-400" : "text-white/60";
+                          const impactColor = se.impact === "positive" ? "text-emerald-400" : se.impact === "negative" ? "text-red-400" : se.impact === "uncertain" ? "text-amber-400" : "text-[#A0A8B3]";
                           return (
-                            <div key={i} className="flex items-start gap-2 p-2 rounded bg-white/[0.03] text-[11px]">
+                            <div key={i} className="flex items-start gap-2 p-2 rounded bg-[#1A1F26] text-[11px]">
                               <div className={cn("w-1.5 h-1.5 rounded-full mt-1.5 shrink-0", impactColor.replace("text-", "bg-"))} />
                               <div>
-                                <span className="text-white/70 font-medium">{se.settingId}:</span>{" "}
-                                <span className="text-white/60">{se.explanation}</span>
+                                <span className="text-[#E6EAF0] font-medium">{se.settingId}:</span>{" "}
+                                <span className="text-[#A0A8B3]">{se.explanation}</span>
                               </div>
                             </div>
                           );
@@ -1315,7 +1315,7 @@ export default function BiosAdvisor() {
                         <h4 className="text-[10px] font-medium text-primary mb-2">Recommendations</h4>
                         <ul className="space-y-1">
                           {aiExplanation.recommendations.map((rec, i) => (
-                            <li key={i} className="text-[11px] text-white/70 flex items-start gap-1.5">
+                            <li key={i} className="text-[11px] text-[#E6EAF0] flex items-start gap-1.5">
                               <span className="text-primary mt-0.5">•</span> {rec}
                             </li>
                           ))}
@@ -1328,7 +1328,7 @@ export default function BiosAdvisor() {
                     )}
                   </div>
                 ) : (
-                  <div className="text-sm text-white/70 leading-relaxed whitespace-pre-line" data-testid="text-ai-explanation">
+                  <div className="text-sm text-[#E6EAF0] leading-relaxed whitespace-pre-line" data-testid="text-ai-explanation">
                     {explanation}
                   </div>
                 )}
@@ -1399,8 +1399,8 @@ export default function BiosAdvisor() {
                           : "bg-card/50 border-border/50 hover:bg-[#21262D]"
                       )}
                     >
-                      <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-muted-foreground")} />
-                      <span className={cn("text-xs font-medium", isActive ? "text-white" : "text-muted-foreground")}>
+                      <Icon className={cn("w-4 h-4", isActive ? "text-[#E6EAF0]" : "text-muted-foreground")} />
+                      <span className={cn("text-xs font-medium", isActive ? "text-[#E6EAF0]" : "text-muted-foreground")}>
                         {category.split(" ")[0]}
                       </span>
                       <Badge variant="secondary" className="text-[10px] ml-auto">
@@ -1441,12 +1441,12 @@ export default function BiosAdvisor() {
             <div className="flex items-start gap-3">
               <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div>
-                <h3 className="font-medium text-white text-sm mb-2">How to Access Your BIOS</h3>
+                <h3 className="font-medium text-[#E6EAF0] text-sm mb-2">How to Access Your BIOS</h3>
                 <p className="text-xs text-muted-foreground mb-3">{BIOS_ACCESS_INSTRUCTIONS.general}</p>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
                   {Object.entries(BIOS_ACCESS_INSTRUCTIONS.brands).map(([brand, info]) => (
                     <div key={brand} className="p-2 rounded bg-[#21262D] text-center">
-                      <p className="text-xs font-medium text-white">{brand}</p>
+                      <p className="text-xs font-medium text-[#E6EAF0]">{brand}</p>
                       <p className="text-[10px] text-primary">{info.key}</p>
                     </div>
                   ))}

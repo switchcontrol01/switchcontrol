@@ -25,11 +25,11 @@ export function HwBadge({
   color?: "purple" | "cyan" | "fuchsia" | "amber" | "violet";
 }) {
   const styles: Record<string, string> = {
-    purple:  "bg-gradient-to-br from-purple-500/20  to-purple-500/5   border-purple-500/25  shadow-purple-500/20",
-    violet:  "bg-gradient-to-br from-violet-500/20  to-purple-500/5   border-violet-500/25  shadow-violet-500/20",
-    cyan:    "bg-gradient-to-br from-cyan-500/20    to-blue-500/5     border-cyan-500/25    shadow-cyan-500/20",
-    fuchsia: "bg-gradient-to-br from-fuchsia-500/20 to-purple-500/5   border-fuchsia-500/25 shadow-fuchsia-500/20",
-    amber:   "bg-gradient-to-br from-amber-500/20   to-orange-500/5   border-amber-500/25   shadow-amber-500/20",
+    purple:  "bg-[#21262D] border-[#2A313A] shadow-none",
+    violet:  "bg-[#21262D] border-[#2A313A] shadow-none",
+    cyan:    "bg-[#21262D] border-[#2A313A] shadow-none",
+    fuchsia: "bg-[#21262D] border-[#2A313A] shadow-none",
+    amber:   "bg-[#21262D] border-[#2A313A] shadow-none",
   };
   return (
     <span className={`inline-flex items-center justify-center p-1.5 rounded-lg border shadow-[0_0_10px_var(--tw-shadow-color)] shrink-0 ${styles[color]}`}>
@@ -52,7 +52,7 @@ export function GlassModalSurface({ className, children, ...props }: HTMLAttribu
   return (
     <div
       className={cn(
-        "relative bg-[#0b1020]/70 backdrop-blur-xl border border-[#2A313A]0 rounded-2xl overflow-hidden shadow-2xl",
+        "relative bg-[#0b1020]/70 backdrop-blur-xl border border-[#2A313A] rounded-2xl overflow-hidden shadow-2xl",
         className
       )}
       {...props}
@@ -127,13 +127,13 @@ export function GlassModalLayout({
           >
             {/* Single-source glass surface — no extra blur layers, no radial glow wrapper */}
             <div
-              className="relative bg-[#0b1020]/70 border border-[#2A313A]0 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl"
+              className="relative bg-[#0b1020]/70 border border-[#2A313A] rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl"
             >
               <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
 
               <div className="flex items-start justify-between p-5 pb-0 relative z-10">
                 <div className="space-y-1 min-w-0 flex-1">
-                  <h2 className="flex items-center gap-2.5 text-sm font-semibold text-white">
+                  <h2 className="flex items-center gap-2.5 text-sm font-semibold text-[#E6EAF0]">
                     {title}
                   </h2>
                   {description && (

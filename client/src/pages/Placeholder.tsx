@@ -9,7 +9,7 @@ export default function Placeholder({ title }: { title?: string }) {
           <Construction className="size-10 text-muted-foreground" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-white">{title || "Under Construction"}</h1>
+          <h1 className="text-3xl font-bold text-[#E6EAF0]">{title || "Under Construction"}</h1>
           <p className="text-muted-foreground max-w-md mx-auto">
             This page is part of the prototype roadmap. Check back in the next version update.
           </p>

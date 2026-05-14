@@ -227,7 +227,7 @@ function NavItemRow({
         className={cn(
           "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium group relative overflow-hidden text-left select-none",
           isActive || isTourHighlighted
-            ? "text-white"
+            ? "text-[#E6EAF0]"
             : "text-muted-foreground",
           isTourLocked && !isTourHighlighted && !isActive && "opacity-35",
           isTourLocked && "cursor-default pointer-events-none",
@@ -284,9 +284,9 @@ function NavItemRow({
           <item.icon
             className={cn(
               "size-4 transition-colors",
-              isActive && !isTourHighlighted ? "text-violet-300" : "",
-              isTourHighlighted ? "text-violet-300" : "",
-              !isActive && !isTourHighlighted && hovered ? "text-white/80" : "",
+              isActive && !isTourHighlighted ? "text-[#33E0FF]" : "",
+              isTourHighlighted ? "text-[#33E0FF]" : "",
+              !isActive && !isTourHighlighted && hovered ? "text-[#E6EAF0]" : "",
             )}
           />
         </motion.div>
@@ -316,7 +316,7 @@ function NavItemRow({
             transition={{ duration: 0.2 }}
           >
             <span className="crown-nav sidebar-crown-chip">
-              <Crown className="size-2.5 text-violet-400" />
+              <Crown className="size-2.5 text-[#00D4FF]" />
             </span>
           </motion.span>
         )}
@@ -479,7 +479,7 @@ export function Sidebar() {
 
             {/* User info */}
             <div className="flex flex-col flex-1 min-w-0 gap-0.5">
-              <span className="text-sm font-medium text-white truncate">{userName}</span>
+              <span className="text-sm font-medium text-[#E6EAF0] truncate">{userName}</span>
               {ent.showTrialBadge ? (
                 <motion.div
                   className="flex items-center gap-1 px-1.5 py-0.5 rounded-full w-fit"

@@ -198,14 +198,14 @@ export default function StartupApps() {
                 <>
                   <button
                     onClick={() => { setShowHistory(v => !v); if (!showHistory) fetchHistory(); }}
-                    className="text-xs text-muted-foreground hover:text-white px-2 py-1.5 rounded hover:bg-white/5 flex items-center gap-1.5 transition-colors"
+                    className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1.5 rounded hover:bg-[#21262D] flex items-center gap-1.5 transition-colors"
                   >
                     <History className="size-3.5" />History
                   </button>
                   <button
                     onClick={scan}
                     disabled={isScanning}
-                    className="text-xs text-muted-foreground hover:text-white px-2 py-1.5 rounded hover:bg-white/5 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                    className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1.5 rounded hover:bg-[#21262D] flex items-center gap-1.5 transition-colors disabled:opacity-50"
                   >
                     <RefreshCw className={cn("size-3.5", isScanning && "animate-spin")} />
                     {isScanning ? "Scanning…" : "Rescan"}
@@ -218,11 +218,11 @@ export default function StartupApps() {
 
         {/* Requires Electron banner */}
         {requiresElectron && (
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-8 text-center space-y-3">
-            <div className="size-12 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mx-auto">
+          <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-8 text-center space-y-3">
+            <div className="size-12 rounded-full bg-[#21262D] border border-[#2A313A] flex items-center justify-center mx-auto">
               <Laptop2 className="size-5 text-muted-foreground/40" />
             </div>
-            <p className="text-sm font-medium text-white/70">Desktop app required</p>
+            <p className="text-sm font-medium text-[#E6EAF0]">Desktop app required</p>
             <p className="text-xs text-muted-foreground/50 max-w-xs mx-auto">
               Startup scanning reads directly from your Windows registry and file system.
             </p>
@@ -295,10 +295,10 @@ export default function StartupApps() {
                   <div className="space-y-1.5">
                     {isScanning ? (
                       Array.from({ length: 4 }).map((_, i) => (
-                        <div key={i} className="h-14 rounded-xl bg-white/5 animate-pulse" />
+                        <div key={i} className="h-14 rounded-xl bg-[#21262D] animate-pulse" />
                       ))
                     ) : filteredApps.length === 0 && !scanError ? (
-                      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 text-center">
+                      <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-6 text-center">
                         <p className="text-xs text-muted-foreground/40">No apps in this category</p>
                       </div>
                     ) : (

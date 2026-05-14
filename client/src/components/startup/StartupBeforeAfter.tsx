@@ -17,7 +17,7 @@ export function StartupBeforeAfter({ beforeMs, afterMs, visible }: Props) {
   return (
     <div className="space-y-2.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold text-white flex items-center gap-1.5">
+        <span className="text-xs font-semibold text-[#E6EAF0] flex items-center gap-1.5">
           <Zap className="size-3.5 text-primary" />
           Boot Time Impact
         </span>
@@ -31,7 +31,7 @@ export function StartupBeforeAfter({ beforeMs, afterMs, visible }: Props) {
         <div className="flex-1 space-y-1">
           <div className="flex items-center justify-between text-[10px]">
             <span className="text-muted-foreground/50">Before</span>
-            <span className="text-white/70 tabular-nums">{hasData ? fmtBootTime(beforeMs) : "—"}</span>
+            <span className="text-[#E6EAF0] tabular-nums">{hasData ? fmtBootTime(beforeMs) : "—"}</span>
           </div>
           <div className="h-3 rounded-full bg-[#21262D] overflow-hidden">
             <motion.div

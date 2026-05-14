@@ -30,13 +30,13 @@ function DeltaChip({
   const isNeutral = value === 0;
 
   const colorClass = isNeutral
-    ? "text-white/40"
+    ? "text-[#6B7380]"
     : isGood
     ? "text-emerald-400"
     : "text-amber-400";
 
   const bgClass = isNeutral
-    ? "bg-[#21262D] border-[#2A313A]0"
+    ? "bg-[#21262D] border-[#2A313A]"
     : isGood
     ? "bg-emerald-500/10 border-emerald-500/20"
     : "bg-amber-500/10 border-amber-500/20";
@@ -77,7 +77,7 @@ export function TweakImpactResult({ result, measuring, onDismiss }: Props) {
             <Activity className="size-3.5 text-cyan-400 shrink-0" />
 
             {measuring && (
-              <span className="text-[11px] text-white/40 flex items-center gap-1.5">
+              <span className="text-[11px] text-[#6B7380] flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-cyan-400/60 animate-pulse inline-block" />
                 Measuring impact…
               </span>
@@ -85,7 +85,7 @@ export function TweakImpactResult({ result, measuring, onDismiss }: Props) {
 
             {!measuring && result && result.summary.length > 0 && (
               <>
-                <span className="text-[10px] text-white/30 shrink-0">Measured</span>
+                <span className="text-[10px] text-[#6B7380] shrink-0">Measured</span>
                 <div className="flex items-center gap-1.5 flex-wrap flex-1">
                   {result.deltas.cpuPct !== undefined && (
                     <DeltaChip value={result.deltas.cpuPct} unit="% CPU" inverse />
@@ -99,7 +99,7 @@ export function TweakImpactResult({ result, measuring, onDismiss }: Props) {
                 </div>
                 <button
                   onClick={onDismiss}
-                  className="text-white/20 hover:text-white/50 transition-colors shrink-0"
+                  className="text-[#6B7380]/50 hover:text-[#A0A8B3] transition-colors shrink-0"
                   title="Dismiss"
                 >
                   <X className="size-3" />

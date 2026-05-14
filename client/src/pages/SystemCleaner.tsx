@@ -353,7 +353,7 @@ export default function SystemCleaner() {
                 "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
                 mode === m
                   ? m === "safe" ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30" : "bg-orange-500/15 text-orange-400 border-orange-500/30"
-                  : "bg-white/3 border-white/10 text-muted-foreground hover:text-white hover:bg-white/6"
+                  : "bg-[#1A1F26] border-[#2A313A] text-muted-foreground hover:text-[#E6EAF0] hover:bg-[#1A1F26]"
               )}
             >
               {m === "safe" ? <><Shield className="size-3 mr-1 inline" />Safe</> : <><Zap className="size-3 mr-1 inline" />Advanced</>}
@@ -362,7 +362,7 @@ export default function SystemCleaner() {
           <div className="ml-auto flex items-center gap-2">
             <button
               onClick={() => setPhase("history")}
-              className="text-xs text-muted-foreground hover:text-white px-2 py-1.5 rounded hover:bg-white/5 flex items-center gap-1.5 transition-colors"
+              className="text-xs text-muted-foreground hover:text-[#E6EAF0] px-2 py-1.5 rounded hover:bg-[#21262D] flex items-center gap-1.5 transition-colors"
             >
               <History className="size-3.5" />History
             </button>
@@ -401,7 +401,7 @@ export default function SystemCleaner() {
             <CleanerProgressTimeline phase="done" cleanProgress={1} />
             <button
               onClick={() => setPhase("scan")}
-              className="text-xs text-muted-foreground hover:text-white flex items-center gap-1.5 transition-colors"
+              className="text-xs text-muted-foreground hover:text-[#E6EAF0] flex items-center gap-1.5 transition-colors"
             >
               <RefreshCw className="size-3.5" /> Back to cleaner
             </button>
@@ -489,7 +489,7 @@ export default function SystemCleaner() {
                   </>
                 )}
                 {scanStatus !== "done" && (
-                  <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-6 text-center">
+                  <div className="rounded-xl border border-[#2A313A] bg-[#1A1F26] p-6 text-center">
                     <p className="text-sm text-muted-foreground/40">Scan to see visual breakdown</p>
                   </div>
                 )}

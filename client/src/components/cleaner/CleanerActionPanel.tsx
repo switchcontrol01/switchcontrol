@@ -40,8 +40,8 @@ export function CleanerActionPanel({
         className={cn(
           "rounded-xl border p-3.5 transition-all duration-300",
           hasSelection
-            ? "bg-white/[0.04] border-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.08)]"
-            : "bg-white/[0.02] border-white/[0.06]"
+            ? "bg-[#21262D] border-cyan-500/20 shadow-[0_0_20px_rgba(34,211,238,0.08)]"
+            : "bg-[#1A1F26] border-[#2A313A]"
         )}
       >
         <div className="flex items-center justify-between gap-3">
@@ -49,7 +49,7 @@ export function CleanerActionPanel({
             <p className="text-xs text-muted-foreground/70">
               {hasSelection ? `${selectedCount} items selected` : "Nothing selected"}
             </p>
-            <p className={cn("text-lg font-bold tabular-nums", hasSelection ? "text-cyan-400" : "text-white/40")}>
+            <p className={cn("text-lg font-bold tabular-nums", hasSelection ? "text-cyan-400" : "text-[#6B7380]")}>
               {hasSelection ? fmtBytes(selectedBytes) : "—"}
             </p>
           </div>
@@ -65,7 +65,7 @@ export function CleanerActionPanel({
                 <Button
                   onClick={onClean}
                   disabled={!hasSelection}
-                  className="h-9 px-4 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-30"
+                  className="h-9 px-4 text-sm font-semibold rounded-lg bg-emerald-600 hover:bg-emerald-500 text-[#E6EAF0] disabled:opacity-30"
                 >
                   <Trash2 className="size-3.5 mr-1.5" />
                   Clean Selected
@@ -73,7 +73,7 @@ export function CleanerActionPanel({
                 <Button
                   variant="ghost"
                   onClick={onScan}
-                  className="h-9 px-3 text-sm rounded-lg text-white/50 hover:text-white hover:bg-[#21262D]"
+                  className="h-9 px-3 text-sm rounded-lg text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#21262D]"
                 >
                   <ScanLine className="size-3.5 mr-1.5" />
                   Rescan
@@ -85,7 +85,7 @@ export function CleanerActionPanel({
 
         {/* Risk meter */}
         {totalFound > 0 && (
-          <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/[0.04]">
+          <div className="flex items-center gap-3 mt-2 pt-2 border-t border-[#2A313A]">
             <div className="flex items-center gap-1 text-[10px]">
               <ShieldCheck className="size-3 text-emerald-400" />
               <span className="text-emerald-400/80">Safe: {Math.round(safePct)}%</span>
@@ -116,8 +116,8 @@ export function CleanerActionPanel({
             className={cn(
               "px-2.5 py-1 rounded-md text-[11px] font-medium border transition-all",
               filterType === f.id
-                ? "bg-[#2A313A] border-white/20 text-white"
-                : "bg-transparent border-white/[0.06] text-white/40 hover:text-white/60 hover:bg-white/[0.03]"
+                ? "bg-[#2A313A] border-[#2A313A] text-[#E6EAF0]"
+                : "bg-transparent border-[#2A313A] text-[#6B7380] hover:text-[#A0A8B3] hover:bg-[#1A1F26]"
             )}
           >
             {f.label}

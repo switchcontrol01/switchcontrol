@@ -171,7 +171,7 @@ function StatBadge({ label, rawValue, unit, prefix, color, dim, active }: {
   return (
     <div className={cn("text-center", dim && "opacity-40")}>
       <div className="text-[9px] font-semibold uppercase tracking-widest mb-0.5" style={{ color }}>{label}</div>
-      <div className="text-xl font-black text-white tracking-tight tabular-nums">
+      <div className="text-xl font-black text-[#E6EAF0] tracking-tight tabular-nums">
         {prefix}{counted}{unit}
       </div>
     </div>
@@ -197,7 +197,7 @@ function ChartCard({
 }) {
   return (
     <div
-      className="landing-chart-card group relative flex flex-col rounded-2xl border border-white/[0.08] overflow-hidden"
+      className="landing-chart-card group relative flex flex-col rounded-2xl border border-[#2A313A] overflow-hidden"
       style={{
         background: "linear-gradient(150deg, rgba(255,255,255,0.048) 0%, rgba(255,255,255,0.018) 100%)",
         backdropFilter: "blur(22px)",
@@ -216,7 +216,7 @@ function ChartCard({
       {/* Live badge */}
       <div className="absolute top-3.5 right-4 flex items-center gap-1.5">
         <span className="w-1.5 h-1.5 rounded-full chart-live-blink" style={{ backgroundColor: accentAfter }} />
-        <span className="text-[9px] text-white/20 uppercase tracking-widest">Live</span>
+        <span className="text-[9px] text-[#6B7380]/50 uppercase tracking-widest">Live</span>
       </div>
 
       {/* Header */}
@@ -225,9 +225,9 @@ function ChartCard({
           <div>
             <div className="flex items-center gap-2 mb-0.5">
               <span style={{ color: accentAfter, opacity: 0.75 }}>{icon}</span>
-              <h3 className="text-sm font-bold text-white tracking-tight">{title}</h3>
+              <h3 className="text-sm font-bold text-[#E6EAF0] tracking-tight">{title}</h3>
             </div>
-            <p className="text-[10px] text-white/30 leading-relaxed max-w-[185px]">{subtitle}</p>
+            <p className="text-[10px] text-[#6B7380] leading-relaxed max-w-[185px]">{subtitle}</p>
           </div>
         </div>
         <ImprovPill text={improvText} positive={improvPositive} />
@@ -246,8 +246,8 @@ function ChartCard({
       <div className="flex-1 px-1 pb-1" style={{ minHeight: 148 }}>{children}</div>
 
       {/* Footer */}
-      <div className="px-5 py-2.5 border-t border-white/[0.05]">
-        <p className="text-[9px] text-white/20 text-center tracking-wide">{note}</p>
+      <div className="px-5 py-2.5 border-t border-[#2A313A]">
+        <p className="text-[9px] text-[#6B7380]/50 text-center tracking-wide">{note}</p>
       </div>
     </div>
   );

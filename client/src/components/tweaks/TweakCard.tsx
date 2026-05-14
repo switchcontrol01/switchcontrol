@@ -122,7 +122,7 @@ const ExpectedChange = ({ expected }: { expected: TweakExpected }) => {
   if (active.length === 0) return null;
   return (
     <div className="space-y-2">
-      <h4 className="text-sm font-medium text-white">Expected Change</h4>
+      <h4 className="text-sm font-medium text-[#E6EAF0]">Expected Change</h4>
       <div className="flex flex-wrap gap-1.5">
         {active.map(([label, value]) => <ImpactPill key={label} label={label} value={value!} />)}
       </div>
@@ -151,7 +151,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
           {info.hint && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-white/40 hover:text-white/70 transition-colors"
+              className="text-[#6B7380] hover:text-[#E6EAF0] transition-colors"
               data-testid="button-failure-expand"
             >
               {expanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
@@ -159,7 +159,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
           )}
           <button
             onClick={onDismiss}
-            className="text-white/30 hover:text-white/60 transition-colors"
+            className="text-[#6B7380] hover:text-[#A0A8B3] transition-colors"
             data-testid="button-failure-dismiss"
           >
             <X className="size-3" />
@@ -174,7 +174,7 @@ function FailureBanner({ info, onDismiss }: { info: FailureInfo; onDismiss: () =
               transition={{ duration: 0.14 }}
               className="overflow-hidden"
             >
-              <p className="px-3 pb-2.5 text-white/50 leading-relaxed">{info.hint}</p>
+              <p className="px-3 pb-2.5 text-[#A0A8B3] leading-relaxed">{info.hint}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -316,7 +316,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
             <div className="flex items-start gap-4 flex-1 min-w-0">
               <div className="flex-1 min-w-0 space-y-2">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className={cn("font-medium text-sm transition-colors", isEnabled && !isUnsupported ? "text-primary-foreground" : "text-foreground group-hover:text-white")}>
+                  <h3 className={cn("font-medium text-sm transition-colors", isEnabled && !isUnsupported ? "text-primary-foreground" : "text-foreground group-hover:text-[#E6EAF0]")}>
                     {tweak.title}
                   </h3>
                   <div className="flex items-center gap-1.5 flex-wrap opacity-80 group-hover:opacity-100 transition-opacity">
@@ -449,12 +449,12 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   whileHover={{ scale: prefersReducedMotion ? 1.05 : 1.1 }}
                   whileTap={{ scale: prefersReducedMotion ? 0.95 : 0.9 }}
                 >
-                  <X className="h-5 w-5 text-white" />
+                  <X className="h-5 w-5 text-[#E6EAF0]" />
                   <span className="sr-only">Close</span>
                 </motion.button>
 
                 <div className="space-y-1.5 pr-8">
-                  <h2 className="text-lg font-semibold text-white flex items-center gap-2 flex-wrap">
+                  <h2 className="text-lg font-semibold text-[#E6EAF0] flex items-center gap-2 flex-wrap">
                     {tweak.title}
                     <RiskBadge level={tweak.risk} />
                     {isUnsupported && (
@@ -471,14 +471,14 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
 
                 <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-white">Description</h4>
+                    <h4 className="text-sm font-medium text-[#E6EAF0]">Description</h4>
                     <p className="text-sm text-muted-foreground">{tweak.description}</p>
                   </div>
 
                   <ExpectedChange expected={tweak.expected} />
 
                   <div className="space-y-2">
-                    <h4 className="text-sm font-medium text-white">Impact</h4>
+                    <h4 className="text-sm font-medium text-[#E6EAF0]">Impact</h4>
                     <ul className="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                       {tweak.impact.map((item, i) => (
                         <li key={i} className={item.toLowerCase().includes("risk") ? "text-yellow-400" : undefined}>
@@ -494,7 +494,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                       {(() => { const Ic = FAILURE_CONFIG[failureInfo.type]?.icon ?? AlertCircle; return <Ic className={cn("size-4 shrink-0 mt-0.5", FAILURE_CONFIG[failureInfo.type]?.color)} />; })()}
                       <div>
                         <span className={cn("font-medium", FAILURE_CONFIG[failureInfo.type]?.color)}>{failureInfo.message}</span>
-                        {failureInfo.hint && <p className="mt-1 text-white/50">{failureInfo.hint}</p>}
+                        {failureInfo.hint && <p className="mt-1 text-[#A0A8B3]">{failureInfo.hint}</p>}
                       </div>
                     </div>
                   )}
@@ -551,7 +551,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                   {/* Verification status */}
                   {isReal && !isUnsupported && isEnabled && (
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                      <h4 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
                         <Terminal className="size-4 text-cyan-400" /> Verification Status
                       </h4>
                       <div className="p-3 rounded-lg bg-cyan-500/5 border border-cyan-500/20 font-mono text-[10px] space-y-1.5">
@@ -570,7 +570,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
 
                   {isReal && !isUnsupported && !isEnabled && (
                     <div className="space-y-2">
-                      <h4 className="text-sm font-medium text-white flex items-center gap-2">
+                      <h4 className="text-sm font-medium text-[#E6EAF0] flex items-center gap-2">
                         <Terminal className="size-4 text-muted-foreground" /> Verification Status
                       </h4>
                       <div className="p-3 rounded-lg bg-zinc-500/5 border border-zinc-500/20 font-mono text-[10px] space-y-1.5">
