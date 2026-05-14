@@ -147,49 +147,81 @@ function FloatingParticles() {
 
 function LaunchButton({ onClick }: { onClick: () => void }) {
   const [launching, setLaunching] = useState(false);
+  const [showFallback, setShowFallback] = useState(false);
 
   const handleClick = useCallback(() => {
     if (launching) return;
     onClick();
     setLaunching(true);
+
+    // If the app handles the protocol, the browser window may blur or navigate.
+    // If after 2s we're still here, the app likely isn't installed.
+    const fallbackTimer = setTimeout(() => {
+      setShowFallback(true);
+    }, 2000);
+
+    // Clear fallback detection if page is hidden (app likely opened)
+    const onVisibilityChange = () => {
+      if (document.hidden) {
+        clearTimeout(fallbackTimer);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange, { once: true });
   }, [onClick, launching]);
 
   return (
-    <button
-      onClick={handleClick}
-      disabled={launching}
-      data-testid="button-open-app"
-      className="group relative w-full h-14 rounded-xl border border-[#00D4FF] bg-[#1A1F26] backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-[#00D4FF]/50 hover:bg-[#21262D] disabled:pointer-events-none"
-      style={{
-        boxShadow: launching
-          ? "0 0 40px rgba(168,132,255,0.4), inset 0 0 20px rgba(168,132,255,0.1)"
-          : "0 0 20px rgba(168,132,255,0.08), inset 0 0 10px rgba(168,132,255,0.03)",
-      }}
-    >
-      <div
-        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+    <div className="space-y-3">
+      <button
+        onClick={handleClick}
+        disabled={launching}
+        data-testid="button-open-app"
+        className="group relative w-full h-14 rounded-xl border border-[#00D4FF] bg-[#1A1F26] backdrop-blur-sm overflow-hidden transition-all duration-300 hover:border-[#00D4FF]/50 hover:bg-[#21262D] disabled:pointer-events-none"
         style={{
-          background: "linear-gradient(105deg, transparent 40%, rgba(168,132,255,0.06) 45%, rgba(168,132,255,0.12) 50%, rgba(168,132,255,0.06) 55%, transparent 60%)",
-          animation: "pShineSweep 3s ease-in-out infinite",
+          boxShadow: launching
+            ? "0 0 40px rgba(168,132,255,0.4), inset 0 0 20px rgba(168,132,255,0.1)"
+            : "0 0 20px rgba(168,132,255,0.08), inset 0 0 10px rgba(168,132,255,0.03)",
         }}
-      />
+      >
+        <div
+          className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+          style={{
+            background: "linear-gradient(105deg, transparent 40%, rgba(168,132,255,0.06) 45%, rgba(168,132,255,0.12) 50%, rgba(168,132,255,0.06) 55%, transparent 60%)",
+            animation: "pShineSweep 3s ease-in-out infinite",
+          }}
+        />
 
-      <div className="relative z-10 flex items-center justify-center gap-2.5 text-[#E6EAF0] font-medium tracking-wide">
-        {launching ? (
-          <>
-            <div className="size-4 border-2 border-[#00D4FF]/60 border-t-transparent rounded-full animate-spin" />
-            <span className="text-sm" style={{ animation: "pFadeInUp 0.2s ease-out" }}>
-              Launching desktop client…
-            </span>
-          </>
-        ) : (
-          <>
-            <ExternalLink className="size-4 text-[#33E0FF]/80 transition-transform duration-300 group-hover:translate-x-0.5" />
-            <span className="text-sm">Open SwitchControl</span>
-          </>
-        )}
-      </div>
-    </button>
+        <div className="relative z-10 flex items-center justify-center gap-2.5 text-[#E6EAF0] font-medium tracking-wide">
+          {launching ? (
+            <>
+              <div className="size-4 border-2 border-[#00D4FF]/60 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm" style={{ animation: "pFadeInUp 0.2s ease-out" }}>
+                Launching desktop client…
+              </span>
+            </>
+          ) : (
+            <>
+              <ExternalLink className="size-4 text-[#33E0FF]/80 transition-transform duration-300 group-hover:translate-x-0.5" />
+              <span className="text-sm">Open SwitchControl</span>
+            </>
+          )}
+        </div>
+      </button>
+
+      {showFallback && (
+        <div className="text-center space-y-2">
+          <p className="text-xs text-amber-400/80">
+            Couldn't detect the SwitchControl app. You may need to install it first.
+          </p>
+          <a
+            href="/download"
+            className="inline-flex items-center gap-1.5 text-xs text-[#00D4FF] hover:text-[#33E0FF] transition-colors"
+          >
+            <Download className="size-3" />
+            Download SwitchControl for Windows
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
 
