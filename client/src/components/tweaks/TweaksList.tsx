@@ -203,7 +203,7 @@ export function TweaksList() {
   const getTweakEnabled = (tweakId: string): boolean => tweaks[tweakId] ?? false;
 
   const filteredTweaks = useMemo(() => {
-    return TWEAKS_DATA.filter((t) => {
+    const items = TWEAKS_DATA.filter((t) => {
       const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
                             t.description.toLowerCase().includes(search.toLowerCase());
       let matchesChip: boolean;
@@ -217,6 +217,12 @@ export function TweaksList() {
       const matchesRisk   = showRisky ? true : t.risk !== "Risky";
       const matchesLevel  = activeLevel === "All" || t.level === activeLevel;
       return matchesSearch && matchesChip && matchesRisk && matchesLevel;
+    });
+    // Sort: toggle tweaks first, then slider tweaks at the bottom
+    return items.sort((a, b) => {
+      const aSlider = a.controlType === "slider" ? 1 : 0;
+      const bSlider = b.controlType === "slider" ? 1 : 0;
+      return aSlider - bSlider;
     });
   }, [search, activeChip, showRisky, activeLevel]);
 
