@@ -5,7 +5,7 @@ import { Switch } from "@/components/ui/switch";
 import type { BootApp } from "./startupUtils";
 import {
   ShieldCheck, ShieldAlert, AlertTriangle, Gauge, HardDrive, Cpu,
-  Microsoft, Wrench,
+  Wrench,
 } from "lucide-react";
 
 interface Props {

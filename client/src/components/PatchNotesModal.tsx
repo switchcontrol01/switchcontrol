@@ -1,4 +1,4 @@
-import { useEffect, useState, createPortal as _createPortal } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, ChevronRight, X } from "lucide-react";

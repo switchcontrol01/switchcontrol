@@ -189,8 +189,7 @@ export const useStore = create<AppState>()(
             t.risk === 'Safe' &&
             t.supported &&
             !t.requiresReboot &&
-            t.category !== 'Network' &&
-            t.category !== 'Security' &&
+            t.category !== 'Gaming and Latency' &&
             !EXCLUDED_IDS.has(t.id)
           )
           .map(t => t.id);

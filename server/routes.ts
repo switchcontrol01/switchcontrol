@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { pool } from "./db";
 import { storage } from "./storage";
 import { z } from "zod";
 import { setupGoogleAuth, requirePremium } from "./auth/google";

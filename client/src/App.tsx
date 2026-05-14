@@ -1259,6 +1259,7 @@ function WebsiteContent() {
     isPremium: !!user && (user?.isPremium ?? false),
     entitlementsVerified: !!user,
     logout: handleLogout,
+    isSigningOut: false,
     factoryReset: async () => {
       localStorage.clear();
       sessionStorage.clear();
