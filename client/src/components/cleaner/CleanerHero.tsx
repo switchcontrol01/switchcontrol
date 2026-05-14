@@ -2,7 +2,7 @@ import { motion } from "@/lib/motionTokens";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ScanLine, Sparkles, ShieldCheck, Play, CheckCircle } from "lucide-react";
+import { Sparkles, ShieldCheck, Play, CheckCircle } from "lucide-react";
 import { fmtBytes } from "@/hooks/useCountUp";
 
 interface Props {
@@ -40,11 +40,7 @@ export function CleanerHero({
       {/* Title row */}
       <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-[#E6EAF0] flex items-center gap-2.5">
-            <ScanLine className="size-6 text-primary" />
-            System Cleaner
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {hasScan
               ? `${fmtBytes(foundBytes)} of junk found across ${foundCount} items`
               : "Scan your system to find removable junk, cache, and temp files"}

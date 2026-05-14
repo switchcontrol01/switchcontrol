@@ -499,13 +499,23 @@ export function stopTelemetryPolling(): void {
 
 // ── System specs (unchanged) ──────────────────────────────────────────────────
 
+/** Race a systeminformation call against a timeout so the endpoint never hangs. */
+function siWithTimeout<T>(fn: () => Promise<T>, ms = 5_000, label = 'si call'): Promise<T> {
+  return Promise.race([
+    fn(),
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 export async function getSystemSpecs() {
   const [cpu, mem, os, gpu, disk] = await Promise.allSettled([
-    si.cpu(),
-    si.mem(),
-    si.osInfo(),
-    si.graphics(),
-    si.diskLayout(),
+    siWithTimeout(() => si.cpu(), 5_000, 'si.cpu()').catch(() => { throw new Error('cpu timeout'); }),
+    siWithTimeout(() => si.mem(), 5_000, 'si.mem()').catch(() => { throw new Error('mem timeout'); }),
+    siWithTimeout(() => si.osInfo(), 5_000, 'si.osInfo()').catch(() => { throw new Error('osInfo timeout'); }),
+    siWithTimeout(() => si.graphics(), 5_000, 'si.graphics()').catch(() => { throw new Error('graphics timeout'); }),
+    siWithTimeout(() => si.diskLayout(), 5_000, 'si.diskLayout()').catch(() => { throw new Error('diskLayout timeout'); }),
   ]);
 
   return {

@@ -424,78 +424,90 @@ export default function Home() {
   };
   
   const specsLoadedRef = useRef(false);
-  
+
+  /** Race any promise against a timeout so the UI never hangs in skeleton. */
+  const withTimeout = useCallback(<T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)),
+    ]);
+  }, []);
+
   useEffect(() => {
     if (specsLoadedRef.current) return;
     specsLoadedRef.current = true;
-    
+
+    const SPEC_TIMEOUT_MS = 8_000;
+
     const api = (window as any).electronAPI;
     if (api?.system?.getSpecs) {
-      api.system.getSpecs().then((specs: SystemSpecs | null | undefined) => {
-        if (!specs) {
-          console.warn('[SwitchControl] getSystemSpecs returned null/undefined');
+      withTimeout(api.system.getSpecs(), SPEC_TIMEOUT_MS, null)
+        .then((specs: SystemSpecs | null | undefined) => {
+          if (!specs) {
+            console.warn('[SwitchControl] getSystemSpecs returned null/undefined');
+            setSpecStatus("unavailable");
+            return;
+          }
+          if (api?.telemetry?.getGpu) {
+            api.telemetry.getGpu().then((gpuData: any) => {
+              const gpu = Array.isArray(gpuData) ? gpuData[0] : gpuData;
+              if (gpu) {
+                const hasDetail = gpu.load !== undefined || gpu.temperature !== undefined || gpu.powerDraw !== undefined || gpu.clockCore !== undefined || (gpu.memoryUsed !== undefined && gpu.vram !== undefined);
+                setGpuDetailAvailable(hasDetail);
+              } else {
+                setGpuDetailAvailable(false);
+              }
+            }).catch(() => setGpuDetailAvailable(false));
+          } else {
+            setGpuDetailAvailable(false);
+          }
+          setStats({
+            cpuName: specs.cpu?.model || 'Unavailable',
+            cpuCores: specs.cpu?.cores || 0,
+            cpuThreads: specs.cpu?.threads || 0,
+            cpuSpeed: specs.cpu?.speed || 'Unavailable',
+            gpuName: specs.gpu?.model || 'Unavailable',
+            gpuVendor: specs.gpu?.vendor || 'Unavailable',
+            vramGb: specs.gpu?.vramGB || 0,
+            totalRamGb: specs.ram?.totalGB || 0,
+            usedRamGb: specs.ram?.usedGB || 0,
+            freeRamGb: specs.ram?.freeGB || 0,
+            diskName: specs.disk?.name || 'Unavailable',
+            diskUsedGb: specs.disk?.usedGB || 0,
+            diskTotalGb: specs.disk?.totalGB || 0,
+            osName: specs.system?.os || 'Unavailable',
+            osVersion: specs.system?.osVersion || 'Unavailable',
+            osArch: specs.system?.arch || 'Unavailable',
+            hostname: specs.system?.hostname || 'Unavailable',
+          });
+          setSpecStatus("ready");
+        }).catch((err: unknown) => {
+          console.error('[SwitchControl] Failed to get system specs:', err);
           setSpecStatus("unavailable");
-          return;
-        }
-        if (api?.telemetry?.getGpu) {
-          api.telemetry.getGpu().then((gpuData: any) => {
-            const gpu = Array.isArray(gpuData) ? gpuData[0] : gpuData;
-            if (gpu) {
-              const hasDetail = gpu.load !== undefined || gpu.temperature !== undefined || gpu.powerDraw !== undefined || gpu.clockCore !== undefined || (gpu.memoryUsed !== undefined && gpu.vram !== undefined);
-              setGpuDetailAvailable(hasDetail);
-            } else {
-              setGpuDetailAvailable(false);
-            }
-          }).catch(() => setGpuDetailAvailable(false));
-        } else {
-          setGpuDetailAvailable(false);
-        }
-        setStats({
-          cpuName: specs.cpu?.model || 'Unavailable',
-          cpuCores: specs.cpu?.cores || 0,
-          cpuThreads: specs.cpu?.threads || 0,
-          cpuSpeed: specs.cpu?.speed || 'Unavailable',
-          gpuName: specs.gpu?.model || 'Unavailable',
-          gpuVendor: specs.gpu?.vendor || 'Unavailable',
-          vramGb: specs.gpu?.vramGB || 0,
-          totalRamGb: specs.ram?.totalGB || 0,
-          usedRamGb: specs.ram?.usedGB || 0,
-          freeRamGb: specs.ram?.freeGB || 0,
-          diskName: specs.disk?.name || 'Unavailable',
-          diskUsedGb: specs.disk?.usedGB || 0,
-          diskTotalGb: specs.disk?.totalGB || 0,
-          osName: specs.system?.os || 'Unavailable',
-          osVersion: specs.system?.osVersion || 'Unavailable',
-          osArch: specs.system?.arch || 'Unavailable',
-          hostname: specs.system?.hostname || 'Unavailable',
         });
-        setSpecStatus("ready");
-      }).catch((err: unknown) => {
-        console.error('[SwitchControl] Failed to get system specs:', err);
-        setSpecStatus("unavailable");
-      });
     } else if (api?.system?.getInfo) {
       setGpuDetailAvailable(false);
-      api.system.getInfo().then((info: { totalMemory?: number; freeMemory?: number; cpus?: number } | null) => {
-        if (!info) { setSpecStatus("unavailable"); return; }
-        const totalMem = info.totalMemory || 0;
-        const freeMem = info.freeMemory || 0;
-        const totalGB = totalMem / 1024 / 1024 / 1024;
-        const usedGB = (totalMem - freeMem) / 1024 / 1024 / 1024;
-        setStats({
-          totalRamGb: Math.round(totalGB),
-          usedRamGb: Number.isFinite(usedGB) ? parseFloat(usedGB.toFixed(1)) : 0,
-          cpuCores: info.cpus || 0,
-          cpuThreads: (info.cpus || 0) * 2,
-        });
-        setSpecStatus("ready");
-      }).catch(() => { setSpecStatus("unavailable"); });
+      withTimeout(api.system.getInfo(), SPEC_TIMEOUT_MS, null)
+        .then((info: { totalMemory?: number; freeMemory?: number; cpus?: number } | null) => {
+          if (!info) { setSpecStatus("unavailable"); return; }
+          const totalMem = info.totalMemory || 0;
+          const freeMem = info.freeMemory || 0;
+          const totalGB = totalMem / 1024 / 1024 / 1024;
+          const usedGB = (totalMem - freeMem) / 1024 / 1024 / 1024;
+          setStats({
+            totalRamGb: Math.round(totalGB),
+            usedRamGb: Number.isFinite(usedGB) ? parseFloat(usedGB.toFixed(1)) : 0,
+            cpuCores: info.cpus || 0,
+            cpuThreads: (info.cpus || 0) * 2,
+          });
+          setSpecStatus("ready");
+        }).catch(() => { setSpecStatus("unavailable"); });
     } else {
       setGpuDetailAvailable(false);
       // Web fallback: fetch specs from server API
-      fetch("/api/specs")
-        .then((r) => r.json())
+      withTimeout(fetch("/api/specs").then((r) => r.json()), SPEC_TIMEOUT_MS, null)
         .then((specs: any) => {
+          if (!specs) { setSpecStatus("unavailable"); return; }
           setStats({
             cpuName: specs.cpu?.model || "Unavailable",
             cpuCores: specs.cpu?.cores || 0,
@@ -519,7 +531,7 @@ export default function Home() {
         })
         .catch(() => { setSpecStatus("unavailable"); });
     }
-  }, []);
+  }, [withTimeout]);
 
   useEffect(() => {
     const api = (window as any).electronAPI;

@@ -88,21 +88,16 @@ async function buildWsUrl(): Promise<string> {
 
 // ── Connection logic ───────────────────────────────────────────────────────────
 
-let _unavailableSetOnce = false;
-
 function connect() {
   if (_unavailableTimer) {
     clearTimeout(_unavailableTimer);
     _unavailableTimer = null;
   }
-  if (!_unavailableSetOnce) {
-    _unavailableSetOnce = true;
-    _unavailableTimer = setTimeout(() => {
-      if (useTelemetryStore.getState().status !== "ready") {
-        useTelemetryStore.getState()._setStatus("unavailable");
-      }
-    }, UNAVAILABLE_TIMEOUT_MS);
-  }
+  _unavailableTimer = setTimeout(() => {
+    if (useTelemetryStore.getState().status !== "ready") {
+      useTelemetryStore.getState()._setStatus("unavailable");
+    }
+  }, UNAVAILABLE_TIMEOUT_MS);
 
   buildWsUrl()
     .then((wsUrl) => {

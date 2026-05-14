@@ -1495,6 +1495,16 @@ ipcMain.handle('system:getInfo', () => ({
   freeMemory: os.freemem()
 }));
 
+/** Race a systeminformation call against a timeout so the renderer never hangs. */
+function siWithTimeout(fn, ms = 5_000, label = 'si call') {
+  return Promise.race([
+    fn(),
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+}
+
 async function loadSystemSpecs() {
   const now = Date.now();
   if (cachedSpecs && (now - cachedSpecsTime) < SPECS_CACHE_TTL) {
@@ -1502,34 +1512,34 @@ async function loadSystemSpecs() {
   }
 
   try {
-    // Fetch all data in parallel with individual try/catch
+    // Fetch all data in parallel with individual try/catch + timeout
     let cpu = { brand: 'Unknown CPU', cores: 0, speed: 0 };
     let mem = { total: 0, available: 0 };
     let graphics = { controllers: [] };
     let fsData = [];
 
     try {
-      cpu = await si.cpu();
+      cpu = await siWithTimeout(() => si.cpu(), 5_000, 'si.cpu()');
     } catch (e) {
-      console.error('[SwitchControl] Failed to get CPU info:', e.message);
+      console.error('[SwitchControl] Failed to get CPU info:', e.message || e);
     }
 
     try {
-      mem = await si.mem();
+      mem = await siWithTimeout(() => si.mem(), 5_000, 'si.mem()');
     } catch (e) {
-      console.error('[SwitchControl] Failed to get memory info:', e.message);
+      console.error('[SwitchControl] Failed to get memory info:', e.message || e);
     }
 
     try {
-      graphics = await si.graphics();
+      graphics = await siWithTimeout(() => si.graphics(), 5_000, 'si.graphics()');
     } catch (e) {
-      console.error('[SwitchControl] Failed to get graphics info:', e.message);
+      console.error('[SwitchControl] Failed to get graphics info:', e.message || e);
     }
 
     try {
-      fsData = await si.fsSize();
+      fsData = await siWithTimeout(() => si.fsSize(), 5_000, 'si.fsSize()');
     } catch (e) {
-      console.error('[SwitchControl] Failed to get disk info:', e.message);
+      console.error('[SwitchControl] Failed to get disk info:', e.message || e);
     }
 
     const totalGB = (mem.total || 0) / 1024 / 1024 / 1024;
