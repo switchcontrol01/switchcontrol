@@ -38,11 +38,7 @@ export function StartupHero({ scanStatus, apps, onScan, onOptimize, onReview }: 
       {/* Title row */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#E6EAF0] flex items-center gap-2.5">
-            <Activity className="size-6 text-primary" />
-            Startup Manager
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground">
             {hasScan
               ? `${enabledCount} apps enabled · est. ${fmtBootTime(bootTime)} boot`
               : "Control what starts with Windows — scan to see boot impact"}
