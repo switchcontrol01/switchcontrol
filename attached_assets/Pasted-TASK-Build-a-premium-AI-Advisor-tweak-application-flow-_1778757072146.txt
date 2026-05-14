@@ -1,0 +1,106 @@
+TASK
+Build a premium AI Advisor tweak-application flow with full animations, graphs, and safe low-CPU execution.
+
+PROBLEM
+AI Advisor can recommend tweaks, but it cannot smoothly apply them from the chat experience. The current UX feels disconnected:
+- AI gives advice, then user has to manually find the tweak.
+- No polished start-to-finish flow.
+- No premium-feeling progress animation.
+- No clear verified result.
+- Must not cause CPU spikes, repeated telemetry polling, or PowerShell spam.
+
+GOAL
+Let AI Advisor recommend and apply supported tweaks directly from its answer, with a full animated flow:
+1. AI identifies recommended tweaks.
+2. User clicks “Apply with AI Advisor”.
+3. A cinematic apply modal opens.
+4. Each tweak runs one by one.
+5. Progress, verification, telemetry impact, and result are shown.
+6. UI feels premium, smooth, and alive.
+7. No heavy background loops. No CPU spike garbage.
+
+IMPLEMENTATION
+
+1. Add structured tweak actions to AI responses
+In AiAdvisor.tsx, support assistant messages containing tweak recommendations:
+- tweakId
+- title
+- reason
+- risk
+- expectedImpact
+- requiresAdmin
+- requiresReboot
+
+Render them as animated cards below the AI message.
+
+Each card should have:
+- tweak name
+- reason AI recommended it
+- expected impact badge
+- risk badge
+- “Apply” button
+- “View details” button
+
+2. Add “Apply Recommended Tweaks” flow
+Create a new component:
+
+client/src/components/ai/ApplyTweaksFlowModal.tsx
+
+The modal should:
+- Open when user clicks apply from AI Advisor
+- Show all selected tweaks in a vertical timeline
+- Animate each stage:
+  - Preparing
+  - Capturing baseline
+  - Applying tweak
+  - Verifying system state
+  - Measuring impact
+  - Complete
+
+Use framer-motion.
+Use soft glass UI.
+Use glow pulses, progress lines, status icons, and smooth height transitions.
+No harsh layout jumps.
+
+3. Execution logic
+Run tweaks sequentially, never parallel.
+
+Use existing Electron API:
+
+window.electronAPI.tweaks.execute(tweakId, action)
+
+The action should be:
+- apply when enabling
+- revert when disabling
+
+Do not create new PowerShell paths.
+Do not bypass existing tweak-executor.
+Do not run multiple tweak operations at once.
+
+Add a small delay between each visual stage only for animation timing, not fake loading.
+
+4. Performance rules
+This flow must not create CPU spikes.
+
+Rules:
+- No setInterval loops.
+- No continuous telemetry polling inside the modal.
+- Use one pre-snapshot and one post-snapshot only.
+- Use existing cached telemetry if available.
+- Do not call telemetry:getLive faster than once before and once after.
+- Do not call refreshGpuLoad unless the user explicitly opens GPU impact details.
+- No particle systems that update every frame.
+- CSS animations only for subtle glow/pulse.
+- Framer-motion animations must be transform/opacity based.
+
+5. Impact graph
+After a tweak completes, show a tiny before/after impact panel.
+
+Use lightweight UI only:
+- CPU usage before/after
+- RAM usage before/after
+- Disk active time before/after if available
+- Network RX/TX before/after if available
+
+Do not use heavy chart libraries for this modal.
+Use simple div bars with animated width.

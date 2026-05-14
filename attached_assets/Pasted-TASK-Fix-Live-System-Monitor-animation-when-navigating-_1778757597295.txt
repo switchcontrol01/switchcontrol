@@ -1,0 +1,125 @@
+TASK
+Fix Live System Monitor animation when navigating back to Dashboard.
+
+PROBLEM
+When switching from another tab back to Dashboard, the Live System Monitor graph appears with no smooth animation. It either starts empty or instantly fills with flat lines. This looks broken and low quality.
+
+GOAL
+Make the Live System Monitor feel fluid, premium, and alive without adding CPU load.
+
+IMPLEMENTATION
+
+1. Do not reset chart history on tab navigation
+Find the hook/component feeding Live System Monitor, likely:
+- client/src/hooks/useLiveTelemetry.ts
+- client/src/components/LiveGraph.tsx
+- Dashboard/Home component using LiveGraph
+
+Keep the last valid telemetry points in memory when navigating away and back.
+
+Use a module-level cache or Zustand store:
+
+const liveGraphCache = {
+  points: [],
+  lastUpdated: 0
+}
+
+When LiveGraph remounts:
+- instantly hydrate from cached points
+- do not show an empty graph if cached data exists
+- continue appending new points
+
+2. Add smooth entry animation on remount
+When Dashboard opens, the graph should:
+- fade in from opacity 0 to 1
+- lift slightly from y: 8 to y: 0
+- softly reveal the plotted lines
+- animate the latest point glow
+
+Use framer-motion only for container and small visual effects.
+Do not animate hundreds of SVG paths manually.
+
+3. Fix chart line animation
+For Recharts:
+- enable isAnimationActive only for first visible mount
+- animationDuration: 650 to 900ms
+- animationEasing: "ease-out"
+- use monotone lines
+- keep dot disabled except the latest point
+- prevent undefined cx/cy/r errors
+
+Example:
+<Line
+  type="monotone"
+  dataKey="cpu"
+  strokeWidth={2}
+  dot={false}
+  activeDot={{ r: 4 }}
+  isAnimationActive={shouldAnimate}
+  animationDuration={800}
+  animationEasing="ease-out"
+/>
+
+4. Add “live stream” feeling without CPU waste
+Add a lightweight CSS shimmer/glow at the right edge of the graph only.
+
+Rules:
+- CSS animation only
+- no JS interval for glow
+- no canvas
+- no particle loop
+- pointer-events-none
+
+5. Keep telemetry polling efficient
+Do not add new polling loops.
+
+Use existing telemetry source only.
+Do not call:
+- telemetry:getLive more often than current hook already does
+- refreshGpuLoad automatically
+- refreshDeepHardware automatically
+- PowerShell from the graph
+
+6. Stop flat-line dump effect
+When cached points are older than 20 seconds:
+- keep only the last 1 to 3 points
+- then append new points naturally
+- do not backfill fake data across the whole chart
+
+If data is fresh:
+- keep full history
+
+7. Add transition state
+When the graph has cached data but is waiting for fresh telemetry:
+Show small status:
+“Reconnecting live feed…”
+Then hide once a fresh point arrives.
+
+No big loader. No spinner spam.
+
+8. Visual polish
+Improve Live System Monitor:
+- animated border glow when live data updates
+- latest point pulse
+- smooth tooltip fade
+- empty state should look intentional, not broken
+- labels should not jump
+
+9. Performance guard
+Add console logs in dev only:
+[LiveGraph] hydrated cached points=
+[LiveGraph] fresh point appended
+[LiveGraph] stale cache trimmed
+[LiveGraph] no extra polling created
+
+CHECKLIST
+- Switching tabs back to Dashboard keeps graph data.
+- Graph animates smoothly on remount.
+- No empty dead graph unless there is genuinely no telemetry yet.
+- No new intervals inside LiveGraph.
+- No PowerShell calls from graph.
+- CPU usage does not spike.
+- Visual looks premium and fluid.
+
+FINAL OUTPUT
+Return changed files and confirm no new telemetry loops were added.

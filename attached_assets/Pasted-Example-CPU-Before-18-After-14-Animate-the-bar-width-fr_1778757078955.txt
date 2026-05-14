@@ -1,0 +1,74 @@
+Example:
+CPU
+Before: 18%
+After: 14%
+
+Animate the bar width from before to after.
+
+6. Final success screen
+After all tweaks finish, show:
+- Total tweaks applied
+- Verified count
+- Failed count
+- Restart required warning if any tweak requires reboot
+- Button: “Restart Later”
+- Button: “View Applied Tweaks”
+
+If any fail, show:
+- failure type
+- userMessage
+- hint
+- retry button for that one tweak only
+
+7. AI Advisor chat integration
+In AiAdvisor.tsx:
+- Add selected tweak action state
+- When an AI response includes tweak cards, render Apply buttons
+- Clicking apply opens ApplyTweaksFlowModal
+- After successful apply, add a small assistant follow-up message:
+  “Applied and verified. Restart required for changes marked restart.”
+
+Do not spam the chat with every internal step.
+
+8. UI style
+Make the flow feel premium:
+- glass modal
+- animated vertical timeline
+- glowing current step
+- small waveform/progress effect while applying
+- smooth checkmark draw animation on success
+- red/amber failure card on failure
+- subtle background radial glow
+- no ugly loading spinner-only experience
+
+Use existing design tokens and components where possible:
+- GlassModalSurface
+- Button
+- Badge
+- motion utilities
+- existing cn utility
+
+9. Safety
+Unsupported tweaks must not show an apply button.
+Premium-locked tweaks must open the upgrade modal.
+Admin tweaks should show an admin badge before apply.
+If UAC is cancelled, show the real failure message, not a generic error.
+
+CHECKLIST
+- AI Advisor can render tweak recommendation cards.
+- User can apply a tweak directly from AI Advisor.
+- Flow is animated from preparing to verified.
+- Tweaks run sequentially.
+- No new background intervals.
+- No repeated telemetry calls.
+- No GPU PowerShell refresh unless explicitly requested.
+- Failed tweak shows real failureType, userMessage, and hint.
+- Restart-required tweaks are clearly shown.
+- UI feels premium, smooth, and not template-like.
+
+FINAL OUTPUT
+Return:
+1. Files changed
+2. New components added
+3. How the flow works
+4. Confirmation that no new background polling or CPU-heavy loops were added

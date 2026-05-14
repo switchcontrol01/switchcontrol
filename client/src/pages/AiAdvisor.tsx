@@ -33,6 +33,10 @@ import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { useSystemIntelligence } from "@/hooks/useSystemIntelligence";
 import { PremiumPageOverlay, PremiumHeaderBadge } from "@/components/ui/premium-page-overlay";
 import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { useLocation } from "wouter";
+import { AiTweakRecommendationCards, AiTweakRecommendation } from "@/components/ai/AiTweakRecommendationCard";
+import { ApplyTweaksFlowModal } from "@/components/ai/ApplyTweaksFlowModal";
+import { isElectronWithTweaks } from "@/hooks/use-tweak-executor";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -47,7 +51,8 @@ interface DiagnosticFinding {
 
 type ChatStructured =
   | { type: "diagnostic"; findings: DiagnosticFinding[] }
-  | { type: "answer"; summary: string; detail?: string };
+  | { type: "answer"; summary: string; detail?: string }
+  | { type: "recommendations"; items: AiTweakRecommendation[] };
 
 interface ChatMessage {
   id: string;
@@ -62,6 +67,9 @@ interface ChatMessage {
 
 function structuredToText(s: ChatStructured): string {
   if (s.type === "answer") return s.detail ? `${s.summary} ${s.detail}` : s.summary;
+  if (s.type === "recommendations") {
+    return "Tweak recommendations: " + s.items.map(i => i.tweakId).join(", ");
+  }
   return s.findings
     .map((f, i) => `Issue ${i + 1}: ${f.problem} Cause: ${f.cause} Fix: ${f.fix}`)
     .join(" | ");
@@ -300,7 +308,7 @@ function ThinkingStatus({ slow }: { slow?: boolean }) {
 
 // ── Diagnostic Card (staged reveal) ──────────────────────────────────────────
 
-function DiagnosticCard({ findings }: { findings: DiagnosticFinding[] }) {
+function DiagnosticCard({ findings, onApply }: { findings: DiagnosticFinding[]; onApply?: (recs: AiTweakRecommendation[]) => void }) {
   const [findingIdx, setFindingIdx] = useState(0);
   const [stage, setStage] = useState(0);
 
@@ -380,8 +388,9 @@ function DiagnosticCard({ findings }: { findings: DiagnosticFinding[] }) {
             <div className="p-2.5 rounded-xl bg-primary/[0.07] border border-primary/15">
               <p className="text-[9px] text-primary/50 uppercase tracking-wider mb-1">RECOMMENDED ACTION</p>
               <p className="text-[12px] text-white/80 leading-snug">{finding.fix}</p>
-              {finding.tweakId && (
+              {finding.tweakId && onApply && (
                 <button
+                  onClick={() => onApply([{ tweakId: finding.tweakId!, reason: finding.fix, expectedImpact: finding.impact }])}
                   className="mt-2 flex items-center gap-1.5 text-[11px] text-primary/70 hover:text-primary transition-colors"
                   data-testid={`button-apply-tweak-${finding.tweakId}`}
                 >
@@ -775,7 +784,16 @@ function ImageAttachmentPill({ image, onRemove }: { image: AttachedImage; onRemo
 
 // ── Message Bubble ─────────────────────────────────────────────────────────────
 
-function ChatBubble({ msg, isSlow, reducedMotion }: { msg: ChatMessage; isSlow: boolean; reducedMotion: boolean }) {
+function ChatBubble({ msg, isSlow, reducedMotion, onApply, isAdmin, isPremium, onOpenUpgrade, onViewTweaks }: {
+  msg: ChatMessage;
+  isSlow: boolean;
+  reducedMotion: boolean;
+  onApply?: (recs: AiTweakRecommendation[]) => void;
+  isAdmin?: boolean;
+  isPremium?: boolean;
+  onOpenUpgrade?: () => void;
+  onViewTweaks?: () => void;
+}) {
   const anim = reducedMotion
     ? { initial: { opacity: 1 }, animate: { opacity: 1 }, transition: { duration: 0 } }
     : { initial: { opacity: 0, y: 8 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.22, ease: "easeOut" as const } };
@@ -821,8 +839,18 @@ function ChatBubble({ msg, isSlow, reducedMotion }: { msg: ChatMessage; isSlow: 
             ? <ThinkingStatus slow={isSlow} />
             : msg.structured
               ? msg.structured.type === "diagnostic"
-                ? <DiagnosticCard findings={msg.structured.findings} />
-                : <AnswerCard summary={msg.structured.summary} detail={(msg.structured as { type: "answer"; summary: string; detail?: string }).detail} />
+                ? <DiagnosticCard findings={msg.structured.findings} onApply={onApply} />
+                : msg.structured.type === "recommendations"
+                  ? <AiTweakRecommendationCards
+                      recommendations={msg.structured.items}
+                      isAdmin={isAdmin ?? false}
+                      isPremium={isPremium ?? false}
+                      onApplyOne={rec => onApply?.([rec])}
+                      onApplyAll={recs => onApply?.(recs)}
+                      onViewDetails={() => onViewTweaks?.()}
+                      onOpenUpgrade={() => onOpenUpgrade?.()}
+                    />
+                  : <AnswerCard summary={msg.structured.summary} detail={(msg.structured as { type: "answer"; summary: string; detail?: string }).detail} />
               : <>
                   <SafeMarkdown text={msg.content} />
                   {msg.isStreaming && (
@@ -907,6 +935,14 @@ export default function AiAdvisor() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [inputFocused, setInputFocused] = useState(false);
   const [advisorCtxData, setAdvisorCtxData] = useState<AdvisorContextData | null>(null);
+
+  // AI tweak-recommendation state
+  const [showApplyModal, setShowApplyModal] = useState(false);
+  const [applyModalRecs, setApplyModalRecs] = useState<AiTweakRecommendation[]>([]);
+  const [, navigate] = useLocation();
+  const auth = useAuth();
+  const isAdmin = !!auth.user?.isAdmin;
+  const isElectronApp = isElectronWithTweaks();
 
   // Fetch server-side advisor context for coverage panel
   useEffect(() => {
@@ -1514,6 +1550,35 @@ export default function AiAdvisor() {
     sendMessage(prompt);
   }, [sendMessage]);
 
+  // ── AI Tweak recommendation handlers ───────────────────────────────────────
+
+  const handleApplyAiRecommendations = useCallback((recs: AiTweakRecommendation[]) => {
+    if (!isElectronApp) {
+      setMessages(prev => [...prev, {
+        id: `not-electron-${Date.now()}`,
+        role: "system" as const,
+        content: "Tweaks can only be applied from the desktop app. Download SwitchControl for Windows to apply optimizations.",
+        timestamp: new Date(),
+      }]);
+      return;
+    }
+    setApplyModalRecs(recs);
+    setShowApplyModal(true);
+  }, [isElectronApp]);
+
+  const handleAiApplyDone = useCallback((results?: { rec: AiTweakRecommendation; outcome: { success: boolean; failureType?: string | null } }[]) => {
+    // Refresh tweak state after batch apply
+    const api = (window as any).electronAPI?.tweaks;
+    if (api?.syncAll) api.syncAll().catch(() => {});
+    const successCount = results?.filter(r => r.outcome.success).length ?? 0;
+    const failCount = results?.filter(r => !r.outcome.success).length ?? 0;
+    console.log(`[AI:APPLY] batch complete — ${successCount} applied, ${failCount} failed`);
+  }, []);
+
+  const handleViewTweakDetails = useCallback((tweakId: string) => {
+    navigate("/tweaks");
+  }, [navigate]);
+
   const handleImageUploadAction = useCallback((prompt: string) => {
     setInput(prompt);
     fileInputRef.current?.click();
@@ -1621,6 +1686,11 @@ export default function AiAdvisor() {
                     msg={msg}
                     isSlow={msg.isThinking ? isSlowRequest : false}
                     reducedMotion={prefersReducedMotion}
+                    onApply={handleApplyAiRecommendations}
+                    isAdmin={isAdmin}
+                    isPremium={isPremium}
+                    onOpenUpgrade={openUpgradeModal}
+                    onViewTweaks={handleViewTweakDetails}
                   />
                 ))}
               </AnimatePresence>
@@ -1776,6 +1846,22 @@ export default function AiAdvisor() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Batch apply modal for AI tweak recommendations */}
+      <ApplyTweaksFlowModal
+        isOpen={showApplyModal}
+        recommendations={applyModalRecs}
+        onClose={() => {
+          setShowApplyModal(false);
+          setApplyModalRecs([]);
+        }}
+        onDone={() => {
+          handleAiApplyDone();
+          setShowApplyModal(false);
+          setApplyModalRecs([]);
+        }}
+        onViewTweaks={handleViewTweakDetails}
+      />
     </AppLayout>
   );
 }
