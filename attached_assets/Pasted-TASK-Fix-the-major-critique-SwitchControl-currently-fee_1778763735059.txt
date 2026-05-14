@@ -1,0 +1,153 @@
+TASK
+Fix the major critique: SwitchControl currently feels too AI-generated, too generic, and some tweaks look untrusted or logically wrong. This patch must improve trust, tweak logic, UI hierarchy, and remove fake-feeling controls.
+
+PROBLEM
+External feedback says:
+- the app looks AI-generated
+- layout feels generic and template-like
+- too many glass cards and repeated spacing
+- some tweaks do not make sense
+- some tweak labels are wrong
+- some sliders use fake ranges
+- SystemResponsiveness/MMCSS slider going 0 to 100 is misleading
+- users may apply tweaks that hurt ping, break voice chat, or break Windows features
+- the app needs stronger product identity, not more random effects
+
+GOAL
+Make SwitchControl feel like a real, trusted Windows optimization product.
+
+Fix:
+- tweak credibility
+- risk labeling
+- fake sliders
+- Apply Recommended safety
+- UI hierarchy
+- page structure
+- generic AI-template look
+
+Do not just add more glow.
+Do not add random animations.
+Do not make the app heavier.
+Every UI change must improve clarity, trust, or feedback.
+
+IMPLEMENTATION
+
+1. Tweak credibility audit
+
+Go through all tweak metadata and backend tweak definitions.
+
+Every tweak must be classified into one of these groups:
+
+A. Safe
+Registry-only or reversible, low downside.
+
+B. Situational
+Can help some users but hurt others depending on hardware, network, or setup.
+
+C. Advanced
+Requires the user to understand the tradeoff.
+
+D. Risky
+Can break features, security, voice chat, internet, apps, Docker, WSL, or Windows behavior.
+
+E. Unsupported
+No reliable implementation, helper missing, fake tweak, or no real verification.
+
+Rules:
+- no fake tweaks
+- no placebo toggles
+- no tweak can show success unless apply + verify passes
+- no tweak can be Recommended if it has meaningful downside
+- no audio, microphone, Wi-Fi, Bluetooth, or network-risk tweak can be Safe
+- no helper-required tweak can appear as working if helper is missing
+
+2. Reclassify existing tweaks
+
+Update frontend metadata and Apply Recommended logic.
+
+Reclassify these:
+
+fax-printer:
+- rename to Disable Print Spooler
+- Risk: Risky
+- Recommended: No
+- warning: breaks printing, PDF print-to-file, XPS, and some Adobe workflows
+
+bluetooth:
+- Risk: Moderate
+- Recommended: No
+- warning: disables Bluetooth audio devices including headsets, speakers, and microphones. Can break Discord and Fortnite voice chat
+
+wifi:
+- Risk: Risky
+- Recommended: No
+- warning: can cut internet and cloud authentication
+- block apply unless active Ethernet is detected, or require hard confirmation
+
+hyper-v:
+- Risk: Risky
+- Recommended: No
+- warning: disables WSL2, Docker Desktop, Android emulators, Windows Sandbox
+
+tcp-nagle:
+- Risk: Moderate
+- Recommended: No
+- warning: can increase ping on Wi-Fi or congested networks
+
+tcp-congestion:
+- Risk: Risky
+- Recommended: No
+- warning: CTCP can hurt gaming latency. Do not include in Apply Recommended
+
+tcp-task-offload:
+- Risk: Risky
+- Recommended: No
+- warning: can increase CPU load and hurt throughput
+
+prefetch:
+- Risk: Moderate
+- Recommended: No
+- warning: can hurt startup performance on HDD systems
+
+show-file-extensions:
+- Risk: Moderate
+- Recommended: No
+- warning: restarts Explorer and may close open Explorer windows
+
+tcp-winhttp:
+- mark Unsupported or remove from working tweak list
+- reason: apply and revert currently do the same thing
+
+NIC FlowControl:
+- Risk: Moderate
+- Recommended: No
+- warning: depends on switch/router. Wrong setting can cause packet drops
+
+3. Fix fake slider logic
+
+Audit every slider.
+
+No slider may use fake 0 to 100 ranges unless the real system setting is actually 0 to 100.
+
+For SystemResponsiveness / MMCSS:
+- do not expose as a 0 to 100 generic slider
+- replace with presets
+
+Example:
+- Default Windows
+- Gaming Focus
+- Aggressive Low Latency
+- Custom Advanced
+
+Each preset must show the exact registry value it writes.
+
+SystemResponsiveness must not be explained as “more is better”.
+Explain clearly:
+- lower values reserve less CPU for background tasks
+- 0 can fully disable background reservation behavior
+- aggressive values may hurt background audio, capture, streaming, or multitasking
+
+If custom mode exists:
+- show exact numeric value
+- show warning
+- require confirmation if setting 0

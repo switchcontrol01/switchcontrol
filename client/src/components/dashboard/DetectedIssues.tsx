@@ -384,7 +384,7 @@ export function DetectedIssues({ className }: DetectedIssuesProps) {
             )}
             {loading && (
               <span className="text-[10px] text-white/30 flex items-center gap-1">
-                <span className="size-1.5 rounded-full bg-cyan-400/60 animate-pulse inline-block" />
+                <span className="size-1.5 rounded-full bg-cyan-400/60 inline-block" />
                 Scanning…
               </span>
             )}

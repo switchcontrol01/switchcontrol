@@ -1,0 +1,174 @@
+4. Glow rules
+
+
+
+Glow is only allowed on:
+
+hover
+
+selected state
+
+active toggle
+
+scan running
+
+clean success
+
+premium unlock moment
+
+warning/error pulse
+
+
+Glow is not allowed as the default card style.
+
+Default UI should look matte and structured.
+
+5. Remove default blur-heavy glass
+
+
+
+Glass blur should only be used for:
+
+modal surfaces
+
+premium overlay
+
+focused floating panels
+
+
+Normal dashboard cards should not use heavy backdrop blur.
+
+6. Add System Pressure Meter first
+
+
+
+Create a strong visual centerpiece called System Pressure.
+
+It should combine:
+
+CPU usage
+
+RAM usage
+
+disk activity
+
+background process load if available
+
+telemetry availability
+
+
+Visual:
+
+circular gauge or radial meter
+
+smooth arc fill
+
+one clean cyan arc
+
+amber warning zone
+
+red danger state only when actually high
+
+readable score from 0 to 100
+
+
+States: 0 to 35 = clean 36 to 70 = moderate 71 to 100 = overloaded
+
+Animation:
+
+score counts up smoothly
+
+arc fills smoothly
+
+no constant animation loop
+
+only animate when value changes
+
+pause when document is hidden
+
+
+7. Dashboard style update
+
+
+
+Dashboard should feel like a real control center, not an AI landing page.
+
+Use:
+
+matte cards
+
+clear section titles
+
+fewer floating glows
+
+less visual noise
+
+stronger spacing
+
+calmer buttons
+
+cyan only for active/interactive states
+
+amber only for warnings/important highlights
+
+
+8. Buttons
+
+
+
+Primary button:
+
+background #00D4FF
+
+text near-black #071014
+
+no gradient
+
+hover #33E0FF
+
+subtle shadow only on hover
+
+
+Secondary button:
+
+background #21262D
+
+border #2A313A
+
+text #E6EAF0
+
+
+Danger button:
+
+red only when actually destructive
+
+
+Warning button:
+
+amber only when user needs attention
+
+
+9. Tweaks page visual cleanup
+
+
+
+Tweaks should stop looking like a glowing switch list.
+
+Update:
+
+matte category containers
+
+cleaner risk badges
+
+less cyan everywhere
+
+warning states use amber
+
+risky states use red
+
+active toggle can use cyan
+
+unsupported state should look disabled, not decorative
+
+
+10. Cleaner page visual cleanup

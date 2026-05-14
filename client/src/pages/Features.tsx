@@ -599,11 +599,10 @@ function HeroDashboardMockup() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-[10px] text-white/40">Readiness Estimate</div>
-                <div className="text-xl font-bold text-primary font-mono">82<span className="text-xs text-white/30">/100</span></div>
+                <div className="text-xl font-bold text-primary font-mono">—<span className="text-xs text-white/30">/100</span></div>
               </div>
               <div className="text-[10px] text-right text-white/30">
-                <div className="text-green-400/80 text-[11px] font-semibold">↑ +14 this session</div>
-                <div>12 active tweaks</div>
+                <div>Run a scan for your estimate</div>
               </div>
             </div>
           </div>

@@ -276,7 +276,7 @@ export function GpuModal({ open, onOpenChange }: GpuModalProps) {
             exit={{ opacity: 0 }}
             className="py-10 flex flex-col items-center justify-center gap-2"
           >
-            <GpuIcon className="size-8 text-muted-foreground/50 animate-pulse" />
+            <GpuIcon className="size-8 text-muted-foreground/50" />
             <div className="text-sm text-muted-foreground">Loading GPU info…</div>
           </motion.div>
 

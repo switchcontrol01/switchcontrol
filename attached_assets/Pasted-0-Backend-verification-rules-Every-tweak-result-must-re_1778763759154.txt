@@ -1,0 +1,157 @@
+0. Backend verification rules
+
+Every tweak result must return:
+
+{
+  success,
+  verified,
+  failureType,
+  userMessage,
+  hint,
+  requiresReboot,
+  requiresAdmin,
+  unsupported,
+  unsupportedReason,
+  commandsRun,
+  changedPath,
+  previousValue,
+  newValue
+}
+
+Do not expose full dangerous PowerShell in normal UI, but make it available in advanced details/logs.
+
+11. Remove or hide fake/helper tweaks
+
+If a tweak needs a helper that is not bundled:
+- mark Unsupported
+- no Apply button
+- show “Helper not bundled in this build”
+
+Do this for:
+- NVIDIA profile tweaks if no helper exists
+- HDCP if no reliable driver method exists
+- preemption if no NVIDIA helper exists
+- clock policy if no NVIDIA helper exists
+- IRQ/P-state/timer resolution if no helper exists
+
+12. Ping safety pass
+
+Create a list of ping-risk tweaks.
+
+Ping-risk tweaks:
+- tcp-nagle
+- tcp-congestion
+- tcp-task-offload
+- tcp-timestamps
+- tcp-window-heuristics
+- udp-offloads
+- NIC FlowControl
+
+These must:
+- never be Safe
+- never be Recommended
+- show warning
+- mention Wi-Fi/congestion risk where relevant
+- explain that results depend on NIC/router/ISP
+
+13. Audio and mic safety pass
+
+Create a list of audio/mic-risk tweaks.
+
+Audio/mic-risk tweaks:
+- bluetooth
+- any future audio service tweak
+- any microphone privacy tweak
+- any voice clarity tweak
+- any audio enhancement tweak
+
+Rules:
+- never Recommended
+- never Safe
+- warning must mention Discord and Fortnite voice chat
+- do not add any tweak that disables microphone privacy, Windows voice clarity, or audio enhancements
+
+14. SystemResponsiveness specific fix
+
+Find any slider or tweak using:
+HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Multimedia\SystemProfile
+SystemResponsiveness
+
+Fix the UI.
+
+Do not present as:
+0 to 100 performance slider
+
+Present as:
+MMCSS Background Reservation
+
+Presets:
+- Windows Default: 20
+- Gaming Focus: 10
+- Aggressive Gaming: 0
+- Custom
+
+Add explanation:
+“Lower values reserve less CPU for background multimedia tasks. 0 is aggressive and may affect background audio, recording, capture, or multitasking.”
+
+Aggressive Gaming requires confirmation.
+
+15. Visual polish without CPU garbage
+
+Animations allowed:
+- opacity
+- transform
+- small scale
+- count-up numbers using requestAnimationFrame
+- one-shot transitions after actions
+
+Avoid:
+- constant blur animation
+- canvas particles unless paused offscreen
+- infinite heavy loops
+- layout animations on huge lists
+- filter animations on parent containers
+- animated box-shadow spam on many cards
+
+Respect prefers-reduced-motion.
+Pause decorative animation when document.hidden is true.
+
+16. Test checklist
+
+Before calling done, test:
+
+Tweak logic:
+- Apply Recommended excludes risky/network/audio/reboot/unsupported tweaks
+- bluetooth warning visible
+- Wi-Fi blocks without Ethernet
+- tcp-winhttp no longer appears as working
+- SystemResponsiveness no fake 0 to 100 slider
+- risky tweaks require confirmation
+- unsupported tweaks cannot apply
+- every apply verifies before marking active
+- revert restores baseline where possible
+
+UI:
+- Tweaks page no longer looks like repeated template cards
+- fewer badges per card
+- detail panel explains impact clearly
+- risky warnings are obvious
+- no huge toggle-spam feeling
+- no CPU spike while browsing tweaks
+
+Voice/network:
+- no tweak touches microphone privacy
+- no tweak disables Windows voice clarity
+- no tweak disables audio enhancements
+- no Safe tweak can break Discord/Fortnite voice
+- no Recommended tweak can spike ping
+
+FINAL OUTPUT
+Return:
+- changed files
+- removed/disabled tweaks
+- reclassified tweaks
+- new recommended-safe guard
+- fixed sliders
+- screenshots or summary of new Tweaks layout
+- test results

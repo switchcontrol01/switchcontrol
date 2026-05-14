@@ -856,7 +856,7 @@ function SmartRAMCard({
                   initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                   className="inline-flex items-center gap-1 mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full border text-teal-300 bg-teal-500/10 border-teal-500/20"
                 >
-                  <span className="size-1.5 rounded-full bg-teal-400 animate-pulse inline-block" />
+                  <span className="size-1.5 rounded-full bg-teal-400 inline-block" />
                   {phase === "clearing" ? "Clearing…" : "Settling…"}
                 </motion.span>
               )}
@@ -1120,7 +1120,7 @@ export function PerformanceLab({ onClearRAM }: { onClearRAM: () => void }) {
           Performance Lab
         </h2>
         <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.7)" }} />
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ boxShadow: "0 0 6px rgba(52,211,153,0.7)" }} />
           <span className="text-[11px] text-muted-foreground/60">Live intelligence</span>
         </div>
       </motion.div>

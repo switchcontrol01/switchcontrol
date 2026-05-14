@@ -43,7 +43,6 @@ export function SystemStateBar() {
         className={cn(
           "w-2 h-2 rounded-full shrink-0",
           state.dotColor,
-          !prefersReducedMotion && "animate-pulse",
         )}
         style={{ boxShadow: DOT_GLOW[state.dotColor] ?? "none" }}
       />

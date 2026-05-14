@@ -80,7 +80,7 @@ function FloatingParticle({ startX, startY, size, hue, delay, duration, dx, dy, 
       }}
       initial={{ opacity: 0 }}
       animate={{ y: -dy, x: dx, opacity: [0, alpha, alpha * 0.5, 0] }}
-      transition={{ duration, delay, repeat: Infinity, ease: "easeOut" }}
+      transition={{ duration, delay, repeat: 2, ease: "easeOut" }}
     />
   );
 }

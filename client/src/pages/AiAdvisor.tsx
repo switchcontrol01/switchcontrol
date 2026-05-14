@@ -156,7 +156,7 @@ const QUICK_ACTIONS = [
     border: "border-emerald-500/20 hover:border-emerald-500/40",
     iconColor: "text-emerald-400",
     bgColor: "bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]",
-    prompt: "I'm getting FPS instability and micro-stutters. What should I prioritize to get smoother, more consistent frame rates?",
+    prompt: "Diagnose frame pacing issues and micro-stutters. What is the root cause on this hardware, and what is the honest expected improvement from each fix?",
   },
   {
     id: "network",
@@ -166,7 +166,7 @@ const QUICK_ACTIONS = [
     border: "border-blue-500/20 hover:border-blue-500/40",
     iconColor: "text-blue-400",
     bgColor: "bg-blue-500/[0.07] hover:bg-blue-500/[0.12]",
-    prompt: "How do I get the lowest possible ping and most stable network connection for online gaming?",
+    prompt: "Diagnose network latency sources. What changes have measurable impact on ping, jitter, and stability? Be honest about diminishing returns.",
   },
   {
     id: "overhead",
@@ -1256,10 +1256,10 @@ export default function AiAdvisor() {
       } else if (disabledTweaks.length > 5) {
         welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active (${coveragePct}% coverage). Still ${disabledTweaks.length} improvements available. Ask me what to prioritize next.`;
       } else {
-        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active — your system is well-configured. Ask me anything about performance, latency, or specific games.`;
+        welcomeText = `System detected: **${specLine}**\n\n${enabledTweaks.length} tweaks active. Ask me for a system audit, latency analysis, or specific game recommendations.`;
       }
     } else {
-      welcomeText = `Ready to help with your PC. Ask me about FPS, input latency, network ping, or BIOS settings.\n\nHardware specs appear automatically when running on Windows. You can also upload a screenshot for visual analysis.`;
+      welcomeText = `Ask me about your system state, performance metrics, or configuration.\n\nHardware specs appear automatically when running on Windows. You can also upload a screenshot for visual analysis.`;
     }
 
     setMessages([{
