@@ -1,0 +1,113 @@
+TASK
+Fix incorrect “Your trial has ended” modal when an account is manually changed from premium to free.
+
+PROBLEM
+When an account is changed from premium to free by admin/manual grant removal, the app shows the trial-ended flow.
+
+Logs prove there is no active trial:
+- plan=free
+- trialEndsAt=null
+- isPremium=false
+- hasSeenTrialActivation=false
+- [PremiumExpiry] Transition detected: active → inactive
+- [TrialExpiry] trialEndingFlowActive → true
+
+The app is incorrectly treating any premium→inactive transition as trial expiry.
+
+GOAL
+Only show the trial-ended modal when a real trial expires.
+If premium is removed manually, cancelled, downgraded, or corrected by cloud truth, show a neutral premium-access-removed flow instead.
+
+IMPLEMENTATION
+
+1. Find the component/hook that logs:
+[PremiumExpiry] Transition detected: active → inactive
+[TrialExpiry] trialEndingFlowActive → true
+[PremiumExpiry] Detected premium→inactive transition — running revert sequence
+
+Likely files:
+- App.tsx
+- auth context/provider
+- premium expiry flow component
+- TrialExpiry modal component
+- PremiumExpiry handler
+
+2. Replace generic logic:
+
+if (wasPremium && !isPremium) {
+  setTrialEndingFlowActive(true);
+}
+
+with reason-aware logic.
+
+3. Add helpers:
+
+function hadRealTrial(userOrPrevState) {
+  return Boolean(
+    userOrPrevState?.plan === "trial" ||
+    userOrPrevState?.trialEndsAt ||
+    userOrPrevState?.trialStartedAt
+  );
+}
+
+function isTrialExpiryTransition(prev, current) {
+  return (
+    prev?.isPremium === true &&
+    current?.isPremium === false &&
+    prev?.plan === "trial" &&
+    current?.plan === "free" &&
+    Boolean(prev?.trialEndsAt)
+  );
+}
+
+function isPremiumRemovalTransition(prev, current) {
+  return (
+    prev?.isPremium === true &&
+    current?.isPremium === false &&
+    !isTrialExpiryTransition(prev, current)
+  );
+}
+
+4. Flow behavior:
+
+If isTrialExpiryTransition(prev, current):
+- open TrialExpiry modal
+- use copy: “Your trial has ended”
+- run premium revert sequence
+
+If isPremiumRemovalTransition(prev, current):
+- do NOT set trialEndingFlowActive
+- open PremiumRemoved modal or reuse same modal with different copy
+- use copy:
+  Title: “Premium access removed”
+  Subtitle: “Your account is now on the free plan.”
+  Body: “Premium-only optimizations have been safely restored.”
+- run the same revert sequence if premium tweaks were owned/applied
+
+5. Add logs:
+
+console.log("[PremiumExpiry] transition", {
+  prevPlan: prev?.plan,
+  currentPlan: current?.plan,
+  prevTrialEndsAt: prev?.trialEndsAt ?? null,
+  currentTrialEndsAt: current?.trialEndsAt ?? null,
+  reason: detectedReason,
+});
+
+console.log("[TrialExpiry] skipped — not a real trial expiry");
+
+console.log("[PremiumRemoved] opened — reason=admin_or_plan_change");
+
+6. Backend improvement if possible:
+
+Update /api/me to return:
+entitlementStatus
+entitlementLossReason
+
+Examples:
+- trial_expired
+- admin_downgrade
+- subscription_cancelled
+- payment_failed
+- device_denied
+- unknown

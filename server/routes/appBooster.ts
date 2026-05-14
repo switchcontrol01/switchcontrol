@@ -80,8 +80,8 @@ async function initTables() {
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_games (
-      slug          TEXT PRIMARY KEY,
       user_id       TEXT NOT NULL DEFAULT '__legacy__',
+      slug          TEXT NOT NULL,
       name          TEXT NOT NULL,
       executable    TEXT NOT NULL,
       install_path  TEXT,
@@ -90,21 +90,23 @@ async function initTables() {
       logo_url      TEXT,
       cover_url     TEXT,
       confidence    TEXT,
-      added_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      added_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, slug)
     )
   `);
 
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS app_booster_state (
-      game_slug      TEXT PRIMARY KEY,
       user_id        TEXT NOT NULL DEFAULT '__legacy__',
+      game_slug      TEXT NOT NULL,
       status         TEXT NOT NULL DEFAULT 'idle',
       profile_id     TEXT,
       applied_at     TIMESTAMPTZ,
       reverted_at    TIMESTAMPTZ,
       actions_result JSONB NOT NULL DEFAULT '[]',
       install_path   TEXT,
-      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (user_id, game_slug)
     )
   `);
 
@@ -127,12 +129,7 @@ async function initTables() {
       `ALTER TABLE app_booster_games ADD COLUMN IF NOT EXISTS ${col} TEXT`);
   }
 
-  // ── Per-user column migration (column-only, no PK changes) ──────────────────
-  // Adds user_id to pre-existing tables that were created without it.
-  // NOTE: We intentionally keep the simple single-column PKs (slug / game_slug)
-  // so that Replit's deployment migration system only sees an ADD COLUMN diff
-  // (which it handles correctly) rather than a PK-swap diff (which it generates
-  // incorrectly, causing deployment failures).
+  // ── Per-user column migration (for pre-existing tables without user_id) ────
   for (const [table, col] of [
     ['app_booster_games',   'user_id'],
     ['app_booster_state',   'user_id'],
@@ -148,17 +145,25 @@ async function initTables() {
     }
   }
 
-  // ── Composite unique indexes — required for ON CONFLICT (user_id, slug) ─────
-  // The tables have single-column PKs (slug / game_slug) for migration safety,
-  // but all upserts target (user_id, slug) / (user_id, game_slug) conflict
-  // clauses. PostgreSQL requires a matching unique index for those targets.
-  // CREATE UNIQUE INDEX IF NOT EXISTS is idempotent and safe on existing data.
-  await runStep('app_booster_games: add (user_id, slug) unique index',
-    `CREATE UNIQUE INDEX IF NOT EXISTS app_booster_games_user_slug_idx
-     ON app_booster_games (user_id, slug)`);
-  await runStep('app_booster_state: add (user_id, game_slug) unique index',
-    `CREATE UNIQUE INDEX IF NOT EXISTS app_booster_state_user_slug_idx
-     ON app_booster_state (user_id, game_slug)`);
+  // ── Migrate old single-column PKs to composite (user_id, slug) ──────────────
+  // Safe: old tables had slug/game_slug as sole PK (globally unique), and
+  // user_id was backfilled to '__legacy__' for all rows, so composite is unique.
+  // DROP + ADD is a no-op on fresh DBs (constraint recreated identically).
+  await runStep('app_booster_games: drop old PK',
+    `ALTER TABLE app_booster_games DROP CONSTRAINT IF EXISTS app_booster_games_pkey`);
+  await runStep('app_booster_games: add composite PK',
+    `ALTER TABLE app_booster_games ADD PRIMARY KEY (user_id, slug)`);
+
+  await runStep('app_booster_state: drop old PK',
+    `ALTER TABLE app_booster_state DROP CONSTRAINT IF EXISTS app_booster_state_pkey`);
+  await runStep('app_booster_state: add composite PK',
+    `ALTER TABLE app_booster_state ADD PRIMARY KEY (user_id, game_slug)`);
+
+  // ── Drop redundant unique indexes (composite PK now covers them) ───────────
+  await runStep('drop redundant unique index on app_booster_games',
+    `DROP INDEX IF EXISTS app_booster_games_user_slug_idx`);
+  await runStep('drop redundant unique index on app_booster_state',
+    `DROP INDEX IF EXISTS app_booster_state_user_slug_idx`);
 
   console.log('[AppBooster] tables ready');
 }

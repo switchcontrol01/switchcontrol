@@ -1,0 +1,129 @@
+TASK
+Fix PerformanceLab dashboard intelligence polling so the Input Latency card feels live, while reducing total API polling overhead.
+
+PROBLEM
+client/src/hooks/useDashboardIntelligence.ts currently runs 5 separate setInterval loops:
+- instability every 8s
+- system DNA every 20s
+- active problems every 15s
+- latency estimate every 12s
+- RAM analysis every 30s
+
+This causes staggered background polling and makes Input Latency feel delayed. The latency estimate should update much faster, but without increasing CPU usage or network spam.
+
+GOAL
+1. Make latency-estimate update every 2 seconds while PerformanceLab is visible.
+2. Keep RAM analysis slow because it is heavier.
+3. Replace scattered intervals with one lightweight scheduler loop.
+4. Stop all polling when the tab/app is hidden.
+5. Prevent overlapping fetches.
+6. Do not break existing UI state or returned hook shape.
+
+IMPLEMENTATION
+In client/src/hooks/useDashboardIntelligence.ts:
+
+Replace the current intervals array system inside useEffect with a single async scheduler loop.
+
+Add refs:
+- runningRef
+- inFlightRef
+- lastRunRef
+
+Use lastRunRef to track:
+- instability
+- dna
+- problems
+- latency
+- ram
+
+Use these TTLs:
+- latency: 2000
+- instability: 8000
+- problems: 15000
+- dna: 20000
+- ram: 30000
+
+Scheduler rules:
+- tick every 1000ms
+- skip if enabled is false
+- skip if document.hidden is true
+- skip if inFlightRef.current is true
+- never allow overlapping fetches
+- on first visible start, call fetchAll() once
+- after that, only fetch expired endpoints
+- cleanup must stop the loop fully on unmount
+
+CODE PATCH
+Replace the current useEffect in useDashboardIntelligence.ts with this:
+
+const runningRef = useRef(false);
+const inFlightRef = useRef(false);
+const lastRunRef = useRef({
+  instability: 0,
+  dna: 0,
+  problems: 0,
+  latency: 0,
+  ram: 0,
+});
+
+useEffect(() => {
+  if (!enabled) return;
+
+  let cancelled = false;
+  runningRef.current = true;
+
+  const TTL = {
+    latency: 2000,
+    instability: 8000,
+    problems: 15000,
+    dna: 20000,
+    ram: 30000,
+  };
+
+  async function schedulerTick() {
+    if (cancelled) return;
+    if (!runningRef.current) return;
+    if (document.hidden) return;
+    if (inFlightRef.current) return;
+
+    inFlightRef.current = true;
+
+    try {
+      const now = Date.now();
+      const tasks: Promise<void>[] = [];
+
+      if (now - lastRunRef.current.latency >= TTL.latency) {
+        lastRunRef.current.latency = now;
+        tasks.push(
+          fetchJSON<LatencyData>("/api/dashboard-intelligence/latency-estimate")
+            .then(setLatency)
+            .catch(() => {})
+        );
+      }
+
+      if (now - lastRunRef.current.instability >= TTL.instability) {
+        lastRunRef.current.instability = now;
+        tasks.push(
+          fetchJSON<InstabilityData>("/api/dashboard-intelligence/instability")
+            .then(setInstability)
+            .catch(() => {})
+        );
+      }
+
+      if (now - lastRunRef.current.problems >= TTL.problems) {
+        lastRunRef.current.problems = now;
+        tasks.push(
+          fetchJSON<ActiveProblemsData>("/api/dashboard-intelligence/active-problems")
+            .then(setProblems)
+            .catch(() => {})
+        );
+      }
+
+      if (now - lastRunRef.current.dna >= TTL.dna) {
+        lastRunRef.current.dna = now;
+        tasks.push(
+          fetchJSON<SystemDNAData>("/api/dashboard-intelligence/system-dna")
+            .then(setDna)
+            .catch(() => {})
+        );
+      }
