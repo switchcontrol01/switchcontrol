@@ -2001,7 +2001,7 @@ ipcMain.handle('telemetry:getDisk', async (event, selectedDiskMount) => {
 });
 
 // Tweak handlers
-ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
+ipcMain.handle('tweak:execute', async (event, tweakId, action, options = {}) => {
   if (typeof tweakId !== 'string' || typeof action !== 'string') {
     return { error: true, message: 'Invalid parameters' };
   }
@@ -2009,6 +2009,21 @@ ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
   if (!validActions.includes(action)) {
     return { error: true, message: 'Invalid action. Use apply or revert.' };
   }
+
+  // AudioGuard: block audio-affecting tweaks in bulk mode when devices are present
+  if (action === 'apply' && options?.context === 'bulk') {
+    const ag = await tweakExecutor.audioGuardCheck(tweakId, 'bulk');
+    if (ag && !ag.ok) {
+      console.warn(`[tweak:execute] AudioGuard blocked ${tweakId}: ${ag.reason}`);
+      return {
+        success: false, skipped: true, failureType: 'blocked_by_guard',
+        userMessage: 'Blocked by AudioGuard',
+        hint: ag.reason,
+        message: null, error: ag.reason, verified: false, requiresReboot: false, requiresAdmin: false, commandsRun: [],
+      };
+    }
+  }
+
   // Per-tweakId single-flight: prevents the same tweak running apply+revert concurrently
   // if a component remounts while a previous execute is still in flight on the main side.
   const _token = psLimiter.tryAcquire({
@@ -2024,8 +2039,37 @@ ipcMain.handle('tweak:execute', async (event, tweakId, action) => {
     };
   }
   console.log(`[PS-Exec] start file=main.js fn=tweak:execute:${tweakId} reason=tweak-${action}`);
+
+  // NetworkGuard: capture baseline ping before applying network-affecting tweaks
+  let networkBaseline = null;
+  if (action === 'apply') {
+    const ng = await tweakExecutor.networkGuardPre(tweakId);
+    if (ng) networkBaseline = ng.baselineMs ?? null;
+  }
+
   try {
-    return await tweakExecutor.executeTweakWithOwnership(tweakId, action);
+    const result = await tweakExecutor.executeTweakWithOwnership(tweakId, action);
+
+    // NetworkGuard: post-check and auto-rollback on ping regression
+    if (action === 'apply' && result.success) {
+      const ngPost = await tweakExecutor.networkGuardPost(tweakId, networkBaseline);
+      if (ngPost && !ngPost.ok && ngPost.rollbackRequired) {
+        console.warn(`[tweak:execute] NetworkGuard triggering auto-rollback for ${tweakId}: ${ngPost.reason}`);
+        const rollbackResult = await tweakExecutor.executeTweakWithOwnership(tweakId, 'revert');
+        console.log(`[TweakRollback] ${tweakId} auto-rollback result: success=${rollbackResult.success}`);
+        return {
+          ...result,
+          success: false,
+          failureType: 'rollback_triggered',
+          userMessage: 'NetworkGuard — Tweak auto-rolled back',
+          hint: `${ngPost.reason} The tweak was automatically reverted.`,
+          rollbackTriggered: true,
+          networkGuard: { baselineMs: ngPost.baselineMs, postMs: ngPost.postMs, deltaMs: ngPost.deltaMs, pctIncrease: ngPost.pctIncrease },
+        };
+      }
+    }
+
+    return result;
   } finally {
     psLimiter.release(_token);
   }

@@ -19,6 +19,8 @@ export type FailureType =
   | 'verification_failed'
   | 'not_found'
   | 'unsupported'
+  | 'blocked_by_guard'
+  | 'rollback_triggered'
   | 'unknown';
 
 // ── Result / status shapes ────────────────────────────────────────────────────
@@ -102,8 +104,37 @@ const FAILURE_TOAST: Record<FailureType, { title: string; description: string }>
   verification_failed: { title: 'Setting Could Not Be Verified',  description: 'The command ran, but the system state did not change.' },
   not_found:           { title: 'Not Supported on This System',   description: 'This registry key, service, or feature does not exist on your version.' },
   unsupported:         { title: 'Tweak Not Supported',            description: 'This tweak cannot be implemented on modern Windows.' },
+  blocked_by_guard:    { title: 'Blocked by Safety Guard',        description: 'This tweak was blocked to protect audio/network devices. Apply individually if you are sure.' },
+  rollback_triggered:  { title: 'Auto-Rolled Back for Safety',    description: 'Network ping worsened after applying, so the tweak was automatically reverted.' },
   unknown:             { title: 'Tweak Could Not Be Applied',     description: 'An unexpected error occurred. Check logs for details.' },
 };
+
+/** Bulk apply: execute multiple tweaks with safety guards active.
+ *  Passes `context: 'bulk'` so AudioGuard/NetworkGuard can block/rollback.
+ */
+export async function bulkApplyTweaks(tweakIds: string[]): Promise<Record<string, TweakResult>> {
+  if (!isElectronWithTweaks()) {
+    const empty: Record<string, TweakResult> = {};
+    for (const id of tweakIds) {
+      empty[id] = { success: true, requiresReboot: false, requiresAdmin: false, commandsRun: [], message: null, error: null };
+    }
+    return empty;
+  }
+  const api = getTweaksAPI();
+  const results: Record<string, TweakResult> = {};
+  for (const id of tweakIds) {
+    try {
+      results[id] = await api.execute(id, 'apply', { context: 'bulk' });
+    } catch (err) {
+      results[id] = {
+        success: false, requiresReboot: false, requiresAdmin: false,
+        commandsRun: [], message: null, error: err instanceof Error ? err.message : String(err),
+        failureType: 'unknown',
+      };
+    }
+  }
+  return results;
+}
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 export function useTweakExecutor() {

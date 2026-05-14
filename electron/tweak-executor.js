@@ -177,6 +177,106 @@ function checkPowerShell(command) {
   });
 }
 
+// ─── AudioGuard ──────────────────────────────────────────────────────────────────
+// Tweaks touching audio/mic services are blocked from bulk "Apply Recommended"
+// to prevent breaking Bluetooth headsets, microphones, or audio endpoints.
+//
+// Guarded services: bthserv, BthA2dp, Audiosrv, AudioEndpointBuilder
+// Guarded tweak IDs: bluetooth (bthserv + BthA2dp)
+//
+// Usage: call audioGuardCheck(tweakId, context) before applying in bulk mode.
+
+const AUDIO_SERVICE_NAMES = ['bthserv', 'BthA2dp', 'Audiosrv', 'AudioEndpointBuilder'];
+const AUDIO_GUARDED_TWEAKS = ['bluetooth'];
+
+async function audioGuardCheck(tweakId, context) {
+  if (!AUDIO_GUARDED_TWEAKS.includes(tweakId)) return { ok: true };
+  let activeDevices = null;
+  try {
+    activeDevices = await queryPowerShell(
+      "Get-PnpDevice | Where-Object { $_.FriendlyName -match 'Bluetooth|Audio|Headset|Microphone|Speaker' -and $_.Status -eq 'OK' } | Select-Object -ExpandProperty FriendlyName"
+    );
+  } catch (e) {
+    console.log(`[AudioGuard] ${tweakId} — device query failed, allowing with warning: ${e.message}`);
+    return { ok: true, warning: 'Could not enumerate active audio devices.' };
+  }
+  const hasActiveAudio = activeDevices && activeDevices.trim().length > 0;
+  console.log(`[AudioGuard] ${tweakId} — active audio devices detected: ${hasActiveAudio}`);
+  if (hasActiveAudio && context === 'bulk') {
+    return {
+      ok: false,
+      blocked: true,
+      reason: `AudioGuard blocked ${tweakId}: active Bluetooth/audio devices detected. Apply this tweak individually if you are sure.`,
+      devices: activeDevices.split('\n').map(s => s.trim()).filter(Boolean),
+    };
+  }
+  return { ok: true, warning: hasActiveAudio ? 'Active audio devices present — verify before applying.' : null };
+}
+
+// ─── NetworkGuard ───────────────────────────────────────────────────────────────
+// Pre/post ping check for network tweaks. Auto-rollback if gateway latency worsens.
+//
+// Usage: call networkGuardPre(tweakId) before applying to capture baseline ping.
+//        call networkGuardPost(tweakId, baselineMs) after applying to check for regression.
+
+const NETWORK_GUARDED_TWEAKS = [
+  'tcp-nagle', 'tcp-congestion', 'tcp-task-offload', 'tcp-timestamps',
+  'tcp-window-heuristics', 'udp-offloads', 'tcp-rto-increase', 'tcp-connection-timeout',
+  'wifi', 'bluetooth'
+];
+
+async function networkGuardPre(tweakId) {
+  if (!NETWORK_GUARDED_TWEAKS.includes(tweakId)) return { ok: true };
+  let baseline = null;
+  try {
+    const raw = await queryPowerShell(
+      "Test-Connection -ComputerName (Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Select-Object -First 1).NextHop -Count 4 -ErrorAction SilentlyContinue | Measure-Object ResponseTime -Average | Select-Object -ExpandProperty Average"
+    );
+    baseline = raw ? parseFloat(raw.trim()) : null;
+  } catch (e) {
+    console.log(`[NetworkGuard] ${tweakId} — baseline ping failed: ${e.message}`);
+  }
+  console.log(`[NetworkGuard] ${tweakId} — baseline ping: ${baseline ?? 'unavailable'} ms`);
+  return { ok: true, baselineMs: baseline };
+}
+
+async function networkGuardPost(tweakId, baselineMs) {
+  if (!NETWORK_GUARDED_TWEAKS.includes(tweakId)) return { ok: true };
+  if (typeof baselineMs !== 'number' || isNaN(baselineMs)) {
+    console.log(`[NetworkGuard] ${tweakId} — no valid baseline, skipping post-check`);
+    return { ok: true, warning: 'No baseline ping available — verify network manually.' };
+  }
+  let postMs = null;
+  try {
+    const raw = await queryPowerShell(
+      "Test-Connection -ComputerName (Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Select-Object -First 1).NextHop -Count 4 -ErrorAction SilentlyContinue | Measure-Object ResponseTime -Average | Select-Object -ExpandProperty Average"
+    );
+    postMs = raw ? parseFloat(raw.trim()) : null;
+  } catch (e) {
+    console.log(`[NetworkGuard] ${tweakId} — post ping failed: ${e.message}`);
+    return { ok: true, warning: 'Post-check ping failed — verify network manually.' };
+  }
+  console.log(`[NetworkGuard] ${tweakId} — post ping: ${postMs ?? 'unavailable'} ms (baseline ${baselineMs} ms)`);
+  if (postMs === null) {
+    return { ok: true, warning: 'Could not measure post-apply ping — verify network manually.' };
+  }
+  const delta = postMs - baselineMs;
+  const pct = baselineMs > 0 ? (delta / baselineMs) * 100 : 0;
+  if (delta > 20 || pct > 25) {
+    console.warn(`[NetworkGuard] ${tweakId} — PING REGRESSION DETECTED: ${postMs}ms vs baseline ${baselineMs}ms (+${delta.toFixed(1)}ms / +${pct.toFixed(0)}%). Auto-rollback required.`);
+    return {
+      ok: false,
+      rollbackRequired: true,
+      reason: `NetworkGuard: ping increased from ${baselineMs.toFixed(1)}ms to ${postMs.toFixed(1)}ms (+${delta.toFixed(1)}ms). Auto-rolling back ${tweakId}.`,
+      baselineMs,
+      postMs,
+      deltaMs: delta,
+      pctIncrease: pct,
+    };
+  }
+  return { ok: true, postMs, deltaMs: delta, pctIncrease: pct };
+}
+
 // ─── Admin detection (cached) ──────────────────────────────────────────────────
 let _isAdmin = null;
 async function checkIsAdmin() {
@@ -1229,4 +1329,7 @@ module.exports = {
   HKCU_TWEAKS,
   ADMIN_TWEAKS,
   UNSUPPORTED_TWEAKS,
+  audioGuardCheck,
+  networkGuardPre,
+  networkGuardPost,
 };

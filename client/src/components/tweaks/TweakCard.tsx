@@ -65,6 +65,8 @@ const FAILURE_CONFIG: Record<FailureType, {
   verification_failed: { icon: AlertTriangle, color: "text-red-300",    bg: "bg-red-500/10",    border: "border-red-500/25" },
   not_found:           { icon: HelpCircle,    color: "text-zinc-300",   bg: "bg-zinc-500/10",   border: "border-zinc-500/25" },
   unsupported:         { icon: ShieldOff,     color: "text-zinc-400",   bg: "bg-zinc-500/10",   border: "border-zinc-500/25" },
+  blocked_by_guard:    { icon: ShieldAlert,   color: "text-amber-300", bg: "bg-amber-500/10", border: "border-amber-500/25" },
+  rollback_triggered:  { icon: AlertTriangle, color: "text-red-300",    bg: "bg-red-500/10",    border: "border-red-500/25" },
   unknown:             { icon: AlertCircle,   color: "text-red-300",    bg: "bg-red-500/10",    border: "border-red-500/25" },
 };
 

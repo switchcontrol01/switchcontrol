@@ -42,10 +42,15 @@ export function useResetTweaks() {
 export function useApplyRecommended() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const recommendedIds = TWEAKS_DATA
-        .filter(t => t.level === 'Recommended' && t.risk === 'Safe')
+        .filter(t => t.level === 'Recommended' && t.risk === 'Safe' && t.supported)
         .map(t => t.id);
+      // In Electron, use the guarded bulk path to protect audio/network devices
+      if (typeof window !== 'undefined' && (window as any).electronAPI?.tweaks) {
+        const { bulkApplyTweaks } = await import('@/hooks/use-tweak-executor');
+        return bulkApplyTweaks(recommendedIds);
+      }
       return api.applyRecommended(recommendedIds);
     },
     onSuccess: () => {

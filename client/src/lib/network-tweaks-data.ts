@@ -209,14 +209,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable Nagle's Algorithm",
     category: "TCP/IP",
     summary: "Sends small packets sooner.",
-    description: "Sets TcpNoDelay=1 globally and per adapter, plus TcpAckFrequency=1 — disables Nagle so small TCP packets are not delayed waiting for aggregation.",
+    description: "Sets TcpNoDelay=1 globally and per adapter, plus TcpAckFrequency=1 — disables Nagle so small TCP packets are not delayed waiting for aggregation. This is a global change that affects all TCP traffic, not just games.",
     impact: [
       "Lower latency for TCP-based real-time apps",
-      "Slightly higher packet count"
+      "Slightly higher packet count",
+      "Can increase TCP overhead and jitter on some connections"
     ],
-    safety: "Safe",
-    level: "Recommended",
-    expected: { network: "Low", latency: "Medium", stabilityRisk: "Low" }
+    safety: "Moderate",
+    level: "Advanced",
+    expected: { network: "Low", latency: "Medium", stabilityRisk: "Medium" },
+    warning: "Affects all TCP traffic system-wide. Monitor ping after applying. May not improve UDP-based games."
   },
   {
     id: "tcp-non-sack-rto",
@@ -239,14 +241,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable Task Offload",
     category: "TCP/IP",
     summary: "Moves some NIC work back to CPU.",
-    description: "Sets DisableTaskOffload=1 in Tcpip\\Parameters — disables certain offloads that can add latency or cause driver quirks.",
+    description: "Sets DisableTaskOffload=1 in Tcpip\\Parameters — disables certain offloads that can add latency or cause driver quirks. This forces the CPU to handle work normally offloaded to the NIC, significantly increasing CPU load during network activity.",
     impact: [
       "Can improve consistency on some NIC/drivers",
-      "Can increase CPU usage"
+      "Significantly increases CPU usage",
+      "Can reduce throughput and increase latency on modern NICs"
     ],
-    safety: "Moderate",
-    level: "Advanced",
-    expected: { network: "Low", latency: "Low", stabilityRisk: "Medium" }
+    safety: "Risky",
+    level: "Experimental",
+    expected: { network: "Low", latency: "Low", stabilityRisk: "High" },
+    warning: "Forces CPU to handle network work. Can reduce throughput and increase latency on modern NICs. Not recommended for gaming."
   },
   {
     id: "tcp-timestamps",
@@ -267,14 +271,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable Window Scaling Heuristics",
     category: "TCP/IP",
     summary: "Prevents Windows from auto-limiting scaling.",
-    description: "Runs 'netsh int tcp set heuristics disabled' — disables heuristics that may reduce receive window scaling in some cases.",
+    description: "Runs 'netsh int tcp set heuristics disabled' — disables heuristics that may reduce receive window scaling in some cases. Modern Windows already has heuristics disabled by default in most configurations.",
     impact: [
       "Can improve throughput on high-latency links",
-      "Rarely affects gaming ping"
+      "Rarely affects gaming ping",
+      "Usually already disabled by default"
     ],
     safety: "Safe",
     level: "Advanced",
-    expected: { network: "Low", latency: "None", stabilityRisk: "Low" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "Low" },
+    warning: "Usually already disabled in modern Windows. Verify before applying."
   },
   {
     id: "tcp-dca",
@@ -391,7 +397,9 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     ],
     safety: "Safe",
     level: "Advanced",
-    expected: { network: "Low", latency: "None", stabilityRisk: "Low" }
+    expected: { network: "Low", latency: "None", stabilityRisk: "Low" },
+    unavailable: true,
+    unavailableReason: "TCP autotuning is already enabled by default in Windows 10/11. Manually setting it provides no benefit and is not recommended for gaming optimization."
   },
   {
     id: "tcp-rto-increase",
@@ -428,14 +436,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Optimize Network Congestion Provider",
     category: "TCP/IP",
     summary: "Selects a congestion algorithm.",
-    description: "Runs 'netsh int tcp set supplemental template=Internet congestionprovider=CTCP' — sets Compound TCP as the congestion control provider.",
+    description: "Runs 'netsh int tcp set supplemental template=Internet congestionprovider=CTCP' — sets Compound TCP as the congestion control provider. CTCP is more aggressive than Cubic (default) and can actually increase jitter on lossy or rate-limited links.",
     impact: [
       "Can change throughput and jitter characteristics",
-      "Best choice depends on ISP/path"
+      "Best choice depends on ISP/path",
+      "CTCP can worsen latency on rate-limited or lossy links"
     ],
-    safety: "Moderate",
-    level: "Advanced",
-    expected: { network: "Medium", latency: "Low", stabilityRisk: "Medium" }
+    safety: "Risky",
+    level: "Experimental",
+    expected: { network: "Medium", latency: "Low", stabilityRisk: "High" },
+    warning: "CTCP can increase jitter on lossy links. Default Cubic is optimal for most gaming. Monitor ping carefully."
   },
   {
     id: "tcp-ttl",
@@ -490,14 +500,16 @@ export const NETWORK_TWEAKS: NetworkTweak[] = [
     name: "Disable UDP Offloads",
     category: "UDP",
     summary: "Reduces offload-related jitter on some NICs.",
-    description: "Runs Disable-NetAdapterChecksumOffload on all active adapters — disables UDP IPv4 checksum offload that can cause latency spikes on certain drivers.",
+    description: "Runs Disable-NetAdapterChecksumOffload on all active adapters — disables UDP IPv4 checksum offload that can cause latency spikes on certain drivers. This forces the CPU to handle UDP checksums instead of the NIC.",
     impact: [
       "More consistent UDP behavior in some cases",
-      "Higher CPU usage possible"
+      "Higher CPU usage possible",
+      "Can reduce throughput on high-bandwidth UDP streams"
     ],
     safety: "Moderate",
     level: "Advanced",
-    expected: { network: "Low", latency: "Low", stabilityRisk: "Medium" }
+    expected: { network: "Low", latency: "Low", stabilityRisk: "Medium" },
+    warning: "Disabling UDP offloads increases CPU load. Verify with ping/latency testing before and after applying."
   },
   {
     id: "udp-fast-send",
