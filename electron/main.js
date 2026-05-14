@@ -1359,6 +1359,16 @@ ipcMain.handle("processControl:getProtectedList", () => {
   }
 });
 
+ipcMain.handle("processControl:terminate", async (_event, pid) => {
+  try {
+    const result = await processControl.terminate(pid);
+    return { success: true, data: result };
+  } catch (err) {
+    console.error("[ProcessControl] terminate error:", err.message);
+    return { success: false, error: err.message };
+  }
+});
+
 // ── Critical-logger IPC bridge ────────────────────────────────────────────────
 
 /**

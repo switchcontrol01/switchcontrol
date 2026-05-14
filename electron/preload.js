@@ -493,6 +493,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getLastResult: () => ipcRenderer.invoke('processControl:getLastResult'),
     restoreLast: () => ipcRenderer.invoke('processControl:restoreLast'),
     getProtectedList: () => ipcRenderer.invoke('processControl:getProtectedList'),
+    terminate: (pid) => ipcRenderer.invoke('processControl:terminate', pid),
   },
 });
 

@@ -579,6 +579,29 @@ async function restoreLast() {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+// ── terminate (individual process kill with protected check) ───────────────────────────────
+async function terminate(pid) {
+  // Find the process in the latest scan
+  const proc = _lastScan?.processes?.find(p => p.pid === pid);
+  if (!proc) {
+    return { ok: false, error: 'Process not found in latest scan. Run a scan first.' };
+  }
+
+  // DOUBLE-CHECK isProtected before any termination
+  if (isProtected({ ProcessName: proc.name, Company: proc.publisher, Path: proc.path })) {
+    return { ok: false, error: 'Cannot terminate protected process: ' + proc.name };
+  }
+
+  try {
+    await _runPowerShell(`Stop-Process -Id ${pid} -Force -ErrorAction Stop`, 5_000);
+    console.log(`[ProcessControl:Terminate] stopped pid=${pid} name=${proc.name}`);
+    return { ok: true, name: proc.name, pid };
+  } catch (err) {
+    console.error(`[ProcessControl:Terminate] failed pid=${pid}:`, err.message);
+    return { ok: false, error: err.message, name: proc.name, pid };
+  }
+}
+
 function getLastResult() {
   return {
     scan: _lastScan,
@@ -607,5 +630,6 @@ module.exports = {
   getLastResult,
   getProtectedList,
   isProtected,
+  terminate,
   PROTECTED_NAMES,
 };

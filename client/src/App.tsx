@@ -51,6 +51,7 @@ import AiAdvisor from "@/pages/AiAdvisor";
 import ExtremeLabs from "@/pages/ExtremeLabs";
 import Security from "@/pages/Security";
 import History from "@/pages/History";
+import ProcessManager from "@/pages/ProcessManager";
 const Landing = lazy(() => import("@/pages/Landing"));
 const Features = lazy(() => import("@/pages/Features"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
@@ -115,6 +116,7 @@ function ElectronAppRoutes() {
         <Route path="/extreme-labs" component={ExtremeLabs} />
         <Route path="/security" component={Security} />
         <Route path="/history" component={History} />
+        <Route path="/process-manager" component={ProcessManager} />
         <Route path="/settings" component={Settings} />
         <Route>
           <Home />

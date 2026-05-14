@@ -18,6 +18,7 @@ import {
   Brain,
   Clock,
   Network,
+  Layers,
 } from "lucide-react";
 import { SOCIAL_LINKS } from "@/config/socialLinks";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -63,6 +64,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Cleaner", icon: Trash2, href: "/cleaner" },
   { label: "Debloat", icon: Shield, href: "/debloat" },
   { label: "Startup", icon: List, href: "/startup" },
+  { label: "Process Manager", icon: Layers, href: "/process-manager" },
   { label: "AI Advisor", icon: Brain, href: "/ai-advisor", isPremium: true, tourId: "ai-advisor" },
   { label: "BIOS Advisor", icon: Cpu, href: "/bios-advisor", isPremium: true, tourId: "bios-advisor" },
   { label: "Extreme Labs", icon: Zap, href: "/extreme-labs", isPremium: true, tourId: "extreme-labs" },
