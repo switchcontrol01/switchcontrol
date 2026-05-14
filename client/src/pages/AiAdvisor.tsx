@@ -240,30 +240,9 @@ function SafeMarkdown({ text, onApply }: { text: string; onApply?: (tweakId: str
     if (lastIndex < line.length) parts.push({ type: "text", content: line.slice(lastIndex) });
   }
 
-  // Fallback: scan bold text for known tweak titles and auto-inject Apply buttons
-  // when no explicit <<APPLY:>> marker was already emitted for that tweak.
-  const appliedTweakIds = new Set(parts.filter(p => p.type === "apply").map(p => p.content));
-  const partsWithFallback: typeof parts = [];
-  for (const part of parts) {
-    if (part.type === "bold" && onApply) {
-      const foundTweak = TWEAKS_DATA.find(t =>
-        !appliedTweakIds.has(t.id) &&
-        (t.title.toLowerCase() === part.content.toLowerCase() ||
-         part.content.toLowerCase().includes(t.title.toLowerCase()))
-      );
-      if (foundTweak) {
-        partsWithFallback.push(part); // bold text
-        partsWithFallback.push({ type: "apply", content: foundTweak.id });
-        appliedTweakIds.add(foundTweak.id);
-        continue;
-      }
-    }
-    partsWithFallback.push(part);
-  }
-
   return (
     <span>
-      {partsWithFallback.map((part, i) => {
+      {parts.map((part, i) => {
         switch (part.type) {
           case "bold": return <strong key={i} className="text-[#E6EAF0] font-semibold">{part.content}</strong>;
           case "code": return <code key={i} className="px-1.5 py-0.5 rounded bg-[#21262D] text-primary text-[11px] font-mono">{part.content}</code>;
@@ -842,12 +821,12 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
       {msg.role !== "user" && (
         <div className={cn(
           "shrink-0 w-7 h-7 rounded-xl flex items-center justify-center mt-0.5 transition-colors",
-          msg.role === "system" ? "bg-red-500/10 border border-red-500/20" :
+          msg.role === "system" ? "bg-amber-500/10 border border-amber-500/20" :
           msg.isThinking ? "bg-primary/15 border border-primary/25 animate-pulse" :
           "bg-primary/10 border border-primary/20"
         )}>
           {msg.role === "system"
-            ? <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+            ? <Zap className="w-3.5 h-3.5 text-amber-400" />
             : <Bot className="w-3.5 h-3.5 text-primary" />}
         </div>
       )}
@@ -857,7 +836,7 @@ function ChatBubble({ msg, isSlow, reducedMotion, onApply, onApplyInline, isAdmi
         msg.role === "user"
           ? "bg-primary/15 border border-primary/25 text-[#E6EAF0] ml-auto rounded-br-md"
           : msg.role === "system"
-            ? "bg-red-500/5 border border-red-500/15 text-red-300/80 rounded-bl-md"
+            ? "bg-[#1A1D24] border border-[#3A3F4B] text-[#A0A8B3] rounded-bl-md"
             : "bg-[#21262D] border border-[#2A313A] text-[#E6EAF0]/85 rounded-bl-md"
       )} data-testid={`chat-message-${msg.id}`}>
         {msg.imageDataUrl && (
@@ -1633,8 +1612,26 @@ export default function AiAdvisor() {
       }]);
       return;
     }
+
+    // Show "Applying..." animation message in the chat
+    const applyingId = `applying-${Date.now()}`;
+    setMessages(prev => [...prev, {
+      id: applyingId,
+      role: "assistant" as const,
+      content: `Applying **${tweak.title}**...`,
+      timestamp: new Date(),
+    }]);
+
     const result = await executeTweak(tweakId, false);
+
+    // Remove the "Applying..." message and show the result
+    setMessages(prev => prev.filter(m => m.id !== applyingId));
+
     if (result.success) {
+      // Sync the applied state to the global tweak store so the Tweaks page shows it as on
+      const store = useStore.getState();
+      store.setTweak(tweakId, true);
+
       setMessages(prev => [...prev, {
         id: `applied-${Date.now()}`, role: "system" as const,
         content: `"${tweak.title}" applied successfully${result.requiresReboot ? " — restart required" : ""}.`,
@@ -1645,6 +1642,14 @@ export default function AiAdvisor() {
   }, [isElectronApp, executeTweak, checkTweakStatus]);
 
   const handleAiApplyDone = useCallback((results?: { rec: AiTweakRecommendation; outcome: { success: boolean; failureType?: string | null } }[]) => {
+    // Sync all successful batch-applied tweaks to the global store
+    const store = useStore.getState();
+    results?.forEach(r => {
+      if (r.outcome.success) {
+        store.setTweak(r.rec.tweakId, true);
+      }
+    });
+
     // Refresh tweak state after batch apply
     const api = (window as any).electronAPI?.tweaks;
     if (api?.syncAll) api.syncAll().catch(() => {});
