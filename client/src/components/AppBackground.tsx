@@ -121,13 +121,13 @@ export function AppBackground() {
           top: "-5%", left: "-5%",
           width: "65vw", height: "65vw",
           background: "radial-gradient(ellipse, rgba(139,92,246,0.14) 0%, rgba(100,50,210,0.04) 45%, transparent 68%)",
-          filter: "blur(60px)",
+          filter: "blur(40px)",
         }} />
         <div className="absolute" style={{
           bottom: "-8%", right: "-6%",
           width: "58vw", height: "58vw",
           background: "radial-gradient(ellipse, rgba(0,200,255,0.10) 0%, rgba(0,140,220,0.03) 45%, transparent 70%)",
-          filter: "blur(70px)",
+          filter: "blur(44px)",
         }} />
         <div className="absolute inset-0" style={{
           background: "radial-gradient(ellipse 85% 85% at 50% 50%, transparent 32%, rgba(7,9,13,0.90) 100%)",
@@ -150,7 +150,7 @@ export function AppBackground() {
           top: "-5%", left: "-5%",
           width: "65vw", height: "65vw",
           background: "radial-gradient(ellipse, rgba(139,92,246,0.18) 0%, rgba(100,50,210,0.06) 45%, transparent 68%)",
-          filter: "blur(60px)",
+          filter: "blur(40px)",
           willChange: "transform, opacity",
           animation: "sc-orb-a 18s ease-in-out infinite",
         }} />
@@ -158,7 +158,7 @@ export function AppBackground() {
           bottom: "-8%", right: "-6%",
           width: "58vw", height: "58vw",
           background: "radial-gradient(ellipse, rgba(0,200,255,0.14) 0%, rgba(0,140,220,0.05) 45%, transparent 70%)",
-          filter: "blur(70px)",
+          filter: "blur(44px)",
           willChange: "transform, opacity",
           animation: "sc-orb-b 20s ease-in-out 3s infinite",
         }} />
@@ -166,7 +166,7 @@ export function AppBackground() {
           top: "-2%", right: "5%",
           width: "42vw", height: "42vw",
           background: "radial-gradient(ellipse, rgba(236,72,153,0.10) 0%, transparent 65%)",
-          filter: "blur(55px)",
+          filter: "blur(36px)",
           willChange: "transform, opacity",
           animation: "sc-orb-c 22s ease-in-out 7s infinite",
         }} />
@@ -174,7 +174,7 @@ export function AppBackground() {
           bottom: "5%", left: "8%",
           width: "38vw", height: "38vw",
           background: "radial-gradient(ellipse, rgba(255,160,50,0.08) 0%, transparent 65%)",
-          filter: "blur(50px)",
+          filter: "blur(32px)",
           willChange: "transform, opacity",
           animation: "sc-orb-d 25s ease-in-out 12s infinite",
         }} />
@@ -183,7 +183,7 @@ export function AppBackground() {
           width: "40vw", height: "40vw",
           marginLeft: "-20vw", marginTop: "-20vw",
           background: "radial-gradient(ellipse, rgba(168,85,247,0.12) 0%, rgba(0,210,255,0.06) 50%, transparent 72%)",
-          filter: "blur(45px)",
+          filter: "blur(30px)",
           willChange: "transform, opacity",
           animation: "sc-orb-e 12s ease-in-out infinite",
         }} />

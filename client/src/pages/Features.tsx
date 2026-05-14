@@ -598,7 +598,7 @@ function HeroDashboardMockup() {
             {/* Optimization score */}
             <div className="flex items-center justify-between">
               <div>
-                <div className="text-[10px] text-white/40">Optimization Score</div>
+                <div className="text-[10px] text-white/40">Readiness Estimate</div>
                 <div className="text-xl font-bold text-primary font-mono">82<span className="text-xs text-white/30">/100</span></div>
               </div>
               <div className="text-[10px] text-right text-white/30">

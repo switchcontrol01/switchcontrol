@@ -251,7 +251,6 @@ interface RevealProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'childr
   children: ReactNode;
   delay?: number;
   y?: number;
-  blur?: number;
   once?: boolean;
 }
 
@@ -260,14 +259,10 @@ export function Reveal({
   className,
   delay = 0,
   y = 10,
-  blur = 5,
   once = true,
   ...rest
-}: RevealProps) {
+}: Omit<RevealProps, 'blur'>) {
   const ref = useRef<HTMLDivElement | null>(null);
-  // margin pushes the trigger point upward so elements already near the viewport
-  // edge don't require half their height visible — they reveal as soon as 8% is
-  // in view, which prevents the "snap in" that happens with tighter thresholds.
   const inView = useInView(ref, {
     once,
     margin: "0px 0px -5% 0px",
@@ -278,12 +273,8 @@ export function Reveal({
     <motion.div
       ref={ref}
       className={cn(className)}
-      initial={{ opacity: 0, y, filter: `blur(${blur}px)` }}
-      animate={
-        inView
-          ? { opacity: 1, y: 0, filter: "blur(0px)" }
-          : { opacity: 0, y, filter: `blur(${blur}px)` }
-      }
+      initial={{ opacity: 0, y }}
+      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y }}
       transition={{
         duration: 0.50,
         delay,
@@ -334,11 +325,10 @@ export function RevealItem({
     <motion.div
       className={cn(className)}
       variants={{
-        hidden: { opacity: 0, y: 10, filter: "blur(5px)" },
+        hidden: { opacity: 0, y: 10 },
         visible: {
           opacity: 1,
           y: 0,
-          filter: "blur(0px)",
           transition: {
             duration: 0.50,
             ease: [0.22, 1, 0.36, 1],

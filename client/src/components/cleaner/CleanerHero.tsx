@@ -53,7 +53,7 @@ export function CleanerHero({
 
         <div className="flex items-center gap-2 shrink-0">
           {isScanning && (
-            <Badge variant="outline" className="text-amber-400 border-amber-400/30 bg-amber-400/10 animate-pulse">
+            <Badge variant="outline" className="text-amber-400 border-amber-400/30 bg-amber-400/10">
               Scanning…
             </Badge>
           )}

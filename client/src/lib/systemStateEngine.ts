@@ -113,7 +113,7 @@ export function computeSystemState(
     return {
       state: "issues",
       label: "Issues detected",
-      sublabel: `Optimization score ${advisorScore} · review AI Advisor`,
+      sublabel: `Review AI Advisor for recommendations`,
       colorClass: "text-red-400",
       dotColor: "bg-red-500",
     };
@@ -362,8 +362,8 @@ export function getBiosStatusText(
     return "BIOS configuration not yet analyzed";
   }
 
-  if (readinessScore >= 85) return "BIOS well-configured for competitive play";
-  if (readinessScore >= 70) return "Minor BIOS optimizations available";
-  if (readinessScore >= 50) return "BIOS settings limiting performance";
-  return "BIOS configuration needs attention";
+  if (readinessScore >= 85) return "Firmware is well-configured";
+  if (readinessScore >= 70) return "Some firmware adjustments available";
+  if (readinessScore >= 50) return "Firmware settings may affect latency";
+  return "Firmware configuration needs review";
 }

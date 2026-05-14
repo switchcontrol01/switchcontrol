@@ -152,7 +152,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
           )}
         >
           {isCriticalAvg && (
-            <div className="absolute inset-0 rounded-lg animate-pulse opacity-20 bg-red-500/20" />
+            <div className="absolute inset-0 rounded-lg opacity-20 bg-red-500/20" />
           )}
           <p
             className={cn(

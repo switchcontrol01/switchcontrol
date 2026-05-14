@@ -1124,13 +1124,13 @@ export function generateBiosExplanation(scores: BiosScore, opportunities: BiosOp
   let explanation = "";
 
   if (level === "Basic") {
-    explanation = `Your firmware configuration is largely at default settings. With a readiness score of ${scores.competitiveReadiness}/100, there are significant optimization opportunities available. `;
+    explanation = `Firmware is at default settings. Readiness estimate: ${scores.competitiveReadiness}/100 — several settings can be adjusted for lower latency. `;
   } else if (level === "Good") {
-    explanation = `Your BIOS has some optimization in place, scoring ${scores.competitiveReadiness}/100. There's meaningful room for improvement. `;
+    explanation = `Some optimizations are in place. Readiness estimate: ${scores.competitiveReadiness}/100 — there is still measurable room for improvement. `;
   } else if (level === "Advanced") {
-    explanation = `Your firmware is reasonably well-tuned at ${scores.competitiveReadiness}/100. A few targeted adjustments could push you into competitive territory. `;
+    explanation = `Firmware is reasonably well-tuned. Readiness estimate: ${scores.competitiveReadiness}/100 — a few targeted adjustments may help. `;
   } else {
-    explanation = `Your BIOS configuration is highly optimized at ${scores.competitiveReadiness}/100. Only marginal gains remain through fine-tuning. `;
+    explanation = `Firmware is highly optimized. Readiness estimate: ${scores.competitiveReadiness}/100 — only marginal adjustments remain. `;
   }
 
   if (scores.latency > scores.frametime + 15) {

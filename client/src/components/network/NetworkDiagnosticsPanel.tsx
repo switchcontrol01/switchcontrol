@@ -411,9 +411,9 @@ export function NetworkDiagnosticsHero(props: DiagnosticsState) {
           {/* Status dot */}
           <div className={cn(
             "size-2 rounded-full transition-colors duration-500",
-            isLive     ? "bg-emerald-400 animate-pulse" :
-            isStarting ? "bg-blue-400 animate-pulse"   :
-            isError    ? "bg-red-400"                   :
+            isLive     ? "bg-emerald-400" :
+            isStarting ? "bg-blue-400"    :
+            isError    ? "bg-red-400"     :
                          "bg-white/20",
           )} />
 

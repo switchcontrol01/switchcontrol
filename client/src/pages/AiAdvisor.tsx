@@ -1535,7 +1535,7 @@ export default function AiAdvisor() {
         ? `System detected: **${specLine}**\n\n${disabledCount}+ optimizations are ready — use a quick action to begin diagnosis.`
         : `System detected: **${specLine}**\n\n${enabledCount} tweaks active (${coveragePct}% coverage) — ${disabledCount} more improvements available. Ask me what to prioritize.`;
     } else {
-      resetText = `Ready to diagnose — ask about FPS, latency, network, or BIOS.\n\nUpload a screenshot for visual analysis, or use the quick actions on the left.`;
+      resetText = `Ask about your system state, or use a quick action for a targeted analysis.\n\nUpload a screenshot for visual analysis.`;
     }
 
     setMessages([{

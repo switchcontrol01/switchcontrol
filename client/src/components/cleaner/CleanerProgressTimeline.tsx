@@ -62,11 +62,11 @@ export function CleanerProgressTimeline({ phase, currentStep, cleanProgress = 0 
                   completed
                     ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
                     : active
-                      ? "bg-amber-500/10 border-amber-500/30 text-amber-300 animate-pulse"
+                      ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
                       : "bg-white/[0.02] border-white/[0.05] text-white/30"
                 )}
                 animate={active ? { scale: [1, 1.02, 1] } : {}}
-                transition={{ duration: 1.2, repeat: Infinity }}
+                transition={{ duration: 1.2, repeat: 2 }}
               >
                 {active ? (
                   <Loader2 className="size-3 animate-spin" />
