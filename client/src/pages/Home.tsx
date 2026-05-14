@@ -289,12 +289,12 @@ function getTimeOfDay(): DashboardTimeOfDay {
 }
 
 function useLiveStatus(): string {
-  const [status, setStatus] = useState("Connecting to telemetry...");
+  const [status, setStatus] = useState("System active");
   const { telemetry, status: telStatus } = useLiveTelemetry();
 
   useEffect(() => {
     if (!telemetry) {
-      setStatus(telStatus === "unavailable" ? "Telemetry unavailable" : "Connecting to telemetry...");
+      setStatus(telStatus === "unavailable" ? "Telemetry unavailable" : "System active");
       return;
     }
     const cpu = telemetry.cpu?.usagePct ?? null;
@@ -317,7 +317,7 @@ function useLiveStatus(): string {
     if (parts.length > 0) {
       setStatus(parts.join(" · "));
     } else {
-      setStatus("Waiting for telemetry data...");
+      setStatus("System active");
     }
   }, [telemetry, telStatus]);
 
@@ -739,10 +739,15 @@ export default function Home() {
             <div>
               <StatCard
                 title="CPU"
-                value={stats.cpuName}
+                value={liveTel ? `${liveTel.cpu.load.toFixed(0)}%` : stats.cpuName}
                 icon={Cpu}
                 onIconClick={() => setCpuModalOpen(true)}
-                subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
+                subtext={
+                  liveTel
+                    ? `${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`
+                    : `${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`
+                }
+                progress={liveTel ? liveTel.cpu.load : undefined}
                 className="border-[#00D4FF]/40 shadow-[0_0_20px_-10px_rgba(0,212,255,0.1)]"
                 loading={specStatus === "loading"}
               />

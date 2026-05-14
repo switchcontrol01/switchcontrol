@@ -55,8 +55,8 @@ export function computeSystemState(
   if (!telemetry) {
     return {
       state: "stable",
-      label: "Awaiting telemetry",
-      sublabel: "Connecting to live data stream…",
+      label: "System active",
+      sublabel: "Real-time metrics connecting…",
       colorClass: "text-white/40",
       dotColor: "bg-white/30",
     };

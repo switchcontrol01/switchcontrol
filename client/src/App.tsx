@@ -225,8 +225,7 @@ function ElectronAppContent() {
   // entry smooth on low-end CPUs.
   useEffect(() => {
     if (phase !== 'authenticated') return;
-    const timer = setTimeout(() => telemetryManager.start(), 2000);
-    return () => clearTimeout(timer);
+    telemetryManager.start();
   }, [phase]);
 
   // React to the "Real-time Metrics" toggle.
