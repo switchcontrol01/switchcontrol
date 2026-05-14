@@ -19,6 +19,9 @@ import {
 } from "@/hooks/use-slider-tweak";
 import { isElectronWithTweaks, isAdminTweak } from "@/hooks/use-tweak-executor";
 import { isTweakPremium } from "@/lib/premium-config";
+import { useAuth } from "@/hooks/use-auth";
+import { useUpgradeModal } from "@/contexts/UpgradeModalContext";
+import { Lock } from "lucide-react";
 import { TrustLayer } from "@/components/intelligence/TrustLayer";
 
 interface TweakSliderCardProps {
@@ -312,7 +315,10 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
   const [trustOpen, setTrustOpen] = useState(false);
   const isElectron = isElectronWithTweaks();
   const needsAdmin = isAdminTweak(tweak.id);
-  const isPremium = isTweakPremium(tweak.id);
+  const isPremiumTweak = isTweakPremium(tweak.id);
+  const { isPremium } = useAuth();
+  const { openUpgradeModal } = useUpgradeModal();
+  const isLocked = isPremiumTweak && !isPremium;
 
   const config = tweak.sliderConfig!;
 
@@ -320,7 +326,7 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
 
   const isLoading   = state.status === 'loading';
   const isApplying  = state.status === 'applying' || state.status === 'resetting';
-  const disabled    = isLoading || isApplying;
+  const disabled    = isLoading || isApplying || isLocked;
 
   const pendingZone = getRangeZone(state.pendingValue, config);
 
@@ -366,7 +372,12 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
               {tweak.title}
             </h3>
             <div className="flex items-center gap-1.5 flex-wrap mt-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-              <FreeBadge />
+              {isLocked && (
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border bg-[#00D4FF]/10 text-[#00D4FF] border-[#00D4FF]/20 flex items-center gap-1">
+                  <Lock className="inline-block size-3" /> Premium
+                </span>
+              )}
+              {!isLocked && !isPremiumTweak && <FreeBadge />}
               {isElectron && needsAdmin && <AdminBadge />}
               {tweak.requiresReboot && <RestartBadge />}
               <LevelBadge level={tweak.level} />
@@ -514,47 +525,60 @@ export function TweakSliderCard({ tweak }: TweakSliderCardProps) {
 
           {/* Action buttons */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Button
-              size="sm"
-              onClick={apply}
-              disabled={disabled || !isDirty}
-              data-testid={`button-apply-slider-${tweak.id}`}
-              className={cn(
-                "h-8 px-4 text-xs gap-2 transition-all",
-                isDirty
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
-                  : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]"
-              )}
-            >
-              {isApplying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
-              Apply
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={reset}
-              disabled={disabled || state.currentValue === config.defaultValue}
-              data-testid={`button-reset-slider-${tweak.id}`}
-              className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#21262D] border border-[#2A313A]"
-            >
-              <RotateCcw className="size-3" />
-              Reset to Default
-            </Button>
-
-            {state.previousValue !== null && (
+            {isLocked ? (
               <Button
                 size="sm"
-                variant="ghost"
-                onClick={revert}
-                disabled={disabled}
-                data-testid={`button-revert-slider-${tweak.id}`}
-                className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-amber-300 hover:bg-amber-500/10 border border-[#2A313A]"
-                title={`Revert to ${formatValue(state.previousValue, config.unit)}`}
+                onClick={() => openUpgradeModal('Premium Tweak')}
+                className="h-8 px-3 text-xs text-[#00D4FF] border border-[#00D4FF]/30 bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20 gap-2"
+                data-testid={`button-unlock-slider-${tweak.id}`}
               >
-                <CornerDownLeft className="size-3" />
-                Revert
+                <Lock className="size-3" /> Unlock
               </Button>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  onClick={apply}
+                  disabled={disabled || !isDirty}
+                  data-testid={`button-apply-slider-${tweak.id}`}
+                  className={cn(
+                    "h-8 px-4 text-xs gap-2 transition-all",
+                    isDirty
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/30"
+                      : "bg-[#21262D] text-[#6B7380] border border-[#2A313A]"
+                  )}
+                >
+                  {isApplying ? <Loader2 className="size-3 animate-spin" /> : <CheckCircle2 className="size-3" />}
+                  Apply
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={reset}
+                  disabled={disabled || state.currentValue === config.defaultValue}
+                  data-testid={`button-reset-slider-${tweak.id}`}
+                  className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-[#E6EAF0] hover:bg-[#21262D] border border-[#2A313A]"
+                >
+                  <RotateCcw className="size-3" />
+                  Reset to Default
+                </Button>
+
+                {state.previousValue !== null && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={revert}
+                    disabled={disabled}
+                    data-testid={`button-revert-slider-${tweak.id}`}
+                    className="h-8 px-3 text-xs gap-2 text-[#6B7380] hover:text-amber-300 hover:bg-amber-500/10 border border-[#2A313A]"
+                    title={`Revert to ${formatValue(state.previousValue, config.unit)}`}
+                  >
+                    <CornerDownLeft className="size-3" />
+                    Revert
+                  </Button>
+                )}
+              </>
             )}
           </div>
 

@@ -16,7 +16,7 @@ export const FREE_TWEAK_LEVELS: TweakLevel[] = ["Recommended"];
 
 /**
  * Tweaks in this set are always free regardless of their level/category.
- * Used for slider-based and advanced controls that should not be gated.
+ * Common / basic / safe tweaks that every user should have access to.
  */
 export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "win32-priority-sep",
@@ -35,8 +35,60 @@ export const FREE_EXCEPTION_IDS: Set<string> = new Set([
   "show-file-extensions",
   "explorer-separate-process",
   "disable-auto-restart-apps",
-  // Specific Advanced tweaks that should be free for all users
   "disable-mpo",
+  // Expanded common tweaks
+  "hibernation",
+  "maintenance",
+  "bg-apps",
+  "notifications",
+  "mem-opt",
+  "prefetch",
+  "superfetch",
+  "storage-sense",
+  "win-search-index",
+  "telemetry",
+  "nvidia-telemetry",
+  "copilot",
+  "cortana",
+  "search-highlights",
+  "disable-delivery-opt",
+  "disable-wer",
+  "disable-activity-history",
+  "gaming-mode",
+  "tune-priority",
+  "disable-fso",
+  "usb-selective-suspend",
+  "disable-pointer-precision",
+  "bluetooth",
+  "xbox-bar",
+  "compact-explorer",
+  "recent-files",
+  "energy-logging",
+]);
+
+/**
+ * Tweaks that are always premium — risky, hardware-specific, reboot-required,
+ * network-breaking, security-sensitive, or helper-requiring.
+ */
+export const PREMIUM_EXCEPTION_IDS: Set<string> = new Set([
+  "fast-startup",
+  "core-isolation",
+  "vbs",
+  "hyper-v",
+  "p-states",
+  "pcie-link-state",
+  "large-system-cache",
+  "page-combining",
+  "irq-priority",
+  "synth-timers",
+  "timer-res",
+  "mmcss-gaming",
+  "desktop-comp",
+  "hdcp",
+  "preemption",
+  "wifi",
+  "xbox-services",
+  "fax-printer",
 ]);
 
 interface TweakTierInfo {
@@ -127,14 +179,20 @@ export const TWEAK_TIER_MAP: Record<string, TweakTierInfo> = {
 };
 
 export function isPremiumTweakById(tweakId: string): boolean {
-  // Explicit free exceptions always override level/category logic
+  // Free exceptions always override everything
   if (FREE_EXCEPTION_IDS.has(tweakId)) return false;
+
+  // Premium exceptions always override everything
+  if (PREMIUM_EXCEPTION_IDS.has(tweakId)) return true;
 
   const info = TWEAK_TIER_MAP[tweakId];
   // Unknown tweaks default to free — benefit of the doubt rather than false gating
   if (!info) return false;
-  if (PREMIUM_TWEAK_LEVELS.includes(info.level)) return true;
-  if (PREMIUM_TWEAK_CATEGORIES.includes(info.category)) return true;
+
+  // Experimental tweaks are premium unless explicitly listed as free
+  if (info.level === "Experimental") return true;
+
+  // Advanced and Recommended tweaks are free unless explicitly listed as premium
   return false;
 }
 

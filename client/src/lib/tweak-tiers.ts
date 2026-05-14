@@ -1,32 +1,28 @@
-import type { Tweak, TweakLevel, TweakCategory } from "./mock-data";
+import type { Tweak } from "./mock-data";
+import {
+  isPremiumTweakById as sharedIsPremiumTweakById,
+  isFreeTweakById as sharedIsFreeTweakById,
+  getTweakTierById as sharedGetTweakTierById,
+} from "../../../shared/tweak-tiers";
 
-// Premium tier definitions - matches server-side logic
-export const PREMIUM_TWEAK_LEVELS: TweakLevel[] = ["Advanced", "Experimental"];
-export const PREMIUM_TWEAK_CATEGORIES: TweakCategory[] = ["Network"];
-
-// Free tier - only Recommended level tweaks from non-Network categories
-export const FREE_TWEAK_LEVELS: TweakLevel[] = ["Recommended"];
+export { PREMIUM_TWEAK_LEVELS, PREMIUM_TWEAK_CATEGORIES, FREE_TWEAK_LEVELS } from "../../../shared/tweak-tiers";
 
 export function isPremiumTweak(tweak: Tweak): boolean {
-  // If level is Advanced or Experimental, it's premium
-  if (PREMIUM_TWEAK_LEVELS.includes(tweak.level)) {
-    return true;
-  }
-  // If category is Network, it's premium
-  if (PREMIUM_TWEAK_CATEGORIES.includes(tweak.category)) {
-    return true;
-  }
-  return false;
+  return sharedIsPremiumTweakById(tweak.id);
+}
+
+export function isFreeTweak(tweak: Tweak): boolean {
+  return sharedIsFreeTweakById(tweak.id);
 }
 
 export function getTweakTier(tweak: Tweak): "free" | "premium" {
-  return isPremiumTweak(tweak) ? "premium" : "free";
+  return sharedGetTweakTierById(tweak.id);
 }
 
 export function countFreeTweaks(tweaks: Tweak[]): number {
-  return tweaks.filter(t => !isPremiumTweak(t)).length;
+  return tweaks.filter((t) => !isPremiumTweak(t)).length;
 }
 
 export function countPremiumTweaks(tweaks: Tweak[]): number {
-  return tweaks.filter(t => isPremiumTweak(t)).length;
+  return tweaks.filter((t) => isPremiumTweak(t)).length;
 }
