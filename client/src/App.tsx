@@ -28,6 +28,7 @@ import { usePremiumDeviceLock } from "@/hooks/usePremiumDeviceLock";
 import { usePremiumExpiry, useBaselineScan } from "@/hooks/usePremiumExpiry";
 import { PremiumRevertModal } from "@/components/PremiumRevertModal";
 import { usePremiumGraceStore } from "@/stores/premiumGraceStore";
+import { useTrialExpiryStore } from "@/stores/trialExpiryStore";
 
 import Splash from "@/screens/Splash";
 import CameraGlow from "@/screens/CameraGlow";
@@ -1234,6 +1235,7 @@ function ElectronAppContent() {
         onClose={closeRevertModal}
         report={revertReport}
         onRetry={retryRevert}
+        reason={useTrialExpiryStore(s => s.revertReason)}
       />
 
       {/* Premium device lock — must be last (highest z-order), not dismissible */}

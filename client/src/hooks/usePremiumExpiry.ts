@@ -39,6 +39,8 @@ export function usePremiumExpiry({
   entitlementsVerified,
 }: UsePremiumExpiryOptions): UsePremiumExpiryReturn {
   const prevWasActive   = useRef<boolean | null>(null);
+  const prevPlan        = useRef<string | null>(null);
+  const prevTrialEndsAt = useRef<string | null>(null);
   const revertRunning   = useRef(false);
 
   const [modalOpen,    setModalOpen]    = useState(false);
@@ -47,17 +49,29 @@ export function usePremiumExpiry({
   // True when the user currently has active premium access
   const isCurrentlyActive = isPremium || isTrialActive(plan ?? '', trialEndsAt);
 
-  const triggerRevert = useCallback(async () => {
+  /** Determine why premium access was lost, given previous and current state. */
+  function determineRevertReason(
+    prevP: string | null,
+    prevTrialEnd: string | null,
+  ): import("@/stores/trialExpiryStore").RevertReason {
+    const wasTrial = prevP === 'trial' && Boolean(prevTrialEnd);
+    if (wasTrial) return 'trial_expired';
+    if (prevP === 'premium') return 'admin_downgrade';
+    return 'premium_removed';
+  }
+
+  const triggerRevert = useCallback(async (reason: import("@/stores/trialExpiryStore").RevertReason) => {
     if (revertRunning.current) return;
 
     // Immediately suppress all premium gates and signal App.tsx to redirect.
     // This fires synchronously before any async work so there is zero window
     // where a z-9999 premium overlay can block the revert modal.
     useTrialExpiryStore.getState().setTrialEndingFlowActive(true);
+    useTrialExpiryStore.getState().setRevertReason(reason);
 
     if (!isElectronWithTweaks()) {
-      // Non-Electron: nothing real to revert — always show the modal so the
-      // user is informed their trial ended, even if no tweaks were applied.
+      // Non-Electron: nothing real to revert — show the modal with the
+      // correct reason so the user is informed their access changed.
       setRevertReport({
         tweakResults: [],
         networkResults: [],
@@ -71,15 +85,13 @@ export function usePremiumExpiry({
     }
 
     revertRunning.current = true;
-    console.log('[PremiumExpiry] Detected premium→inactive transition — running revert sequence');
+    console.log(`[PremiumExpiry] Detected premium→inactive transition — reason=${reason} — running revert sequence`);
     try {
       const report = await runPremiumRevert();
       setRevertReport(report);
-      // Always show the modal so the user is informed their trial ended.
       setModalOpen(true);
     } catch (err) {
       console.error('[PremiumExpiry] Revert sequence threw', err);
-      // Still show modal even if revert failed — user must know trial ended
       setRevertReport({
         tweakResults: [],
         networkResults: [],
@@ -108,14 +120,12 @@ export function usePremiumExpiry({
     if (wasActive === null) {
       // First verified read — record state and handle "opened after expiry" case.
       prevWasActive.current = isCurrentlyActive;
-      console.log(`[PremiumExpiry] Initial state recorded — active=${isCurrentlyActive}`);
+      prevPlan.current = plan ?? null;
+      prevTrialEndsAt.current = trialEndsAt ?? null;
+      console.log(`[PremiumExpiry] Initial state recorded — active=${isCurrentlyActive} plan=${plan} trialEndsAt=${trialEndsAt}`);
 
       if (!isCurrentlyActive) {
         // Section 6 — Startup sanity check (belt-and-suspenders).
-        // If the user is not premium and a SC power plan is still active, force
-        // it to Windows Balanced immediately — regardless of Zustand store state.
-        // This closes the loophole where the revert previously skipped/failed the
-        // power plan step, or ownership data was cleared while the plan persisted.
         if (isElectronWithTweaks()) {
           const premiumAPI = (window as any).electronAPI?.premium;
           if (premiumAPI?.powerPlanSanityCheck) {
@@ -129,8 +139,9 @@ export function usePremiumExpiry({
         }
 
         if (hasPremiumItemsToRevert()) {
-          console.log('[PremiumExpiry] Opened post-expiry with owned items — triggering revert');
-          triggerRevert();
+          const reason = determineRevertReason(plan ?? null, trialEndsAt ?? null);
+          console.log(`[PremiumExpiry] Opened post-expiry with owned items — reason=${reason} — triggering revert`);
+          triggerRevert(reason);
         }
       }
       return;
@@ -138,11 +149,14 @@ export function usePremiumExpiry({
 
     // Detect transition: was active → is now inactive
     if (wasActive && !isCurrentlyActive) {
-      console.log('[PremiumExpiry] Transition detected: active → inactive');
-      triggerRevert();
+      const reason = determineRevertReason(prevPlan.current, prevTrialEndsAt.current);
+      console.log(`[PremiumExpiry] Transition detected: active → inactive — reason=${reason}`);
+      triggerRevert(reason);
     }
 
     prevWasActive.current = isCurrentlyActive;
+    prevPlan.current = plan ?? null;
+    prevTrialEndsAt.current = trialEndsAt ?? null;
   }, [isCurrentlyActive, isLoggedIn, entitlementsVerified, triggerRevert]);
 
   // ── Countdown timer watcher ────────────────────────────────────────────────
@@ -164,7 +178,7 @@ export function usePremiumExpiry({
       // Only fire if prevWasActive still says we were active (avoid double-trigger)
       if (prevWasActive.current !== false) {
         prevWasActive.current = false;
-        triggerRevert();
+        triggerRevert('trial_expired');
       }
     }, msUntilExpiry + 500); // +500ms buffer so the clock is definitely past end
 
@@ -173,7 +187,8 @@ export function usePremiumExpiry({
 
   const retryRevert = useCallback(async () => {
     revertRunning.current = false; // allow retry
-    await triggerRevert();
+    const reason = determineRevertReason(prevPlan.current, prevTrialEndsAt.current);
+    await triggerRevert(reason);
   }, [triggerRevert]);
 
   return {
@@ -184,6 +199,7 @@ export function usePremiumExpiry({
       // Release the gate suppression — premium overlays return to normal after user
       // has seen the revert summary and dismissed the modal.
       useTrialExpiryStore.getState().setTrialEndingFlowActive(false);
+      useTrialExpiryStore.getState().setRevertReason(null);
     },
     retryRevert,
     isActive: isCurrentlyActive,

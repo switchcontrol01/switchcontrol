@@ -17,10 +17,22 @@
 
 import { create } from 'zustand';
 
+export type RevertReason =
+  | "trial_expired"
+  | "admin_downgrade"
+  | "subscription_cancelled"
+  | "payment_failed"
+  | "device_denied"
+  | "premium_removed"
+  | null;
+
 interface TrialExpiryStore {
   /** True while the revert flow is running and the revert modal is open. */
   trialEndingFlowActive: boolean;
   setTrialEndingFlowActive: (active: boolean) => void;
+  /** Why the premium access was lost — drives modal copy. */
+  revertReason: RevertReason;
+  setRevertReason: (reason: RevertReason) => void;
 }
 
 export const useTrialExpiryStore = create<TrialExpiryStore>()((set) => ({
@@ -28,5 +40,10 @@ export const useTrialExpiryStore = create<TrialExpiryStore>()((set) => ({
   setTrialEndingFlowActive: (active) => {
     console.log(`[TrialExpiry] trialEndingFlowActive → ${active}`);
     set({ trialEndingFlowActive: active });
+  },
+  revertReason: null,
+  setRevertReason: (reason) => {
+    console.log(`[TrialExpiry] revertReason → ${reason}`);
+    set({ revertReason: reason });
   },
 }));

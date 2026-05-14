@@ -5,15 +5,53 @@ import { X, CheckCircle2, AlertTriangle, SkipForward, Crown, Zap, RefreshCw, Tre
 import { cn } from "@/lib/utils";
 import { openPricing } from "@/lib/pricing";
 import type { PremiumRevertReport, RevertItemResult, PowerPlanRevertResult } from "@/lib/premiumRevertEngine";
+import type { RevertReason } from "@/stores/trialExpiryStore";
 
 interface PremiumRevertModalProps {
   open: boolean;
   onClose: () => void;
   report: PremiumRevertReport | null;
   onRetry?: () => void;
+  /** Why premium access was lost — drives title, subtitle, and button copy. */
+  reason?: RevertReason;
 }
 
 const spring = { type: "spring" as const, stiffness: 280, damping: 26, mass: 0.9 };
+
+/* ── Copy by reason ─────────────────────────────────────────────────────────── */
+
+const REVERT_COPY: Record<NonNullable<RevertReason>, { title: string; subtitle: string; dismiss: string }> = {
+  trial_expired: {
+    title:    "Your trial has ended",
+    subtitle: "Premium optimizations have been safely reverted. Your original configuration has been restored.",
+    dismiss:  "Continue with free plan",
+  },
+  admin_downgrade: {
+    title:    "Premium access removed",
+    subtitle: "Premium optimizations have been safely reverted. Your original configuration has been restored.",
+    dismiss:  "Continue with free plan",
+  },
+  subscription_cancelled: {
+    title:    "Premium access ended",
+    subtitle: "Premium optimizations have been safely reverted. Your original configuration has been restored.",
+    dismiss:  "Continue with free plan",
+  },
+  payment_failed: {
+    title:    "Premium payment issue",
+    subtitle: "Premium optimizations have been safely reverted. Your original configuration has been restored.",
+    dismiss:  "Continue with free plan",
+  },
+  device_denied: {
+    title:    "Premium is active, but this device is not authorized",
+    subtitle: "Premium optimizations have been safely reverted. Your original configuration has been restored.",
+    dismiss:  "Continue with free plan",
+  },
+  premium_removed: {
+    title:    "Premium access removed",
+    subtitle: "Premium optimizations have been safely reverted. Your original configuration has been restored.",
+    dismiss:  "Continue with free plan",
+  },
+};
 
 // ── Animated counter ──────────────────────────────────────────────────────────
 function AnimatedNumber({ value, duration = 1.2 }: { value: number; duration?: number }) {
@@ -272,7 +310,7 @@ function SectionHeader({ label, count, color = "text-white/30" }: { label: strin
 }
 
 // ── Main modal ────────────────────────────────────────────────────────────────
-export function PremiumRevertModal({ open, onClose, report, onRetry }: PremiumRevertModalProps) {
+export function PremiumRevertModal({ open, onClose, report, onRetry, reason }: PremiumRevertModalProps) {
   const tweakResults   = report?.tweakResults   ?? [];
   const networkResults = report?.networkResults ?? [];
 
@@ -420,7 +458,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry }: PremiumRe
                       transition={{ delay: 0.15, duration: 0.35 }}
                       style={{ background: "linear-gradient(135deg, #e2d9f3, #c4b5fd, #a78bfa)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}
                     >
-                      Your trial has ended
+                      {REVERT_COPY[reason ?? "premium_removed"].title}
                     </motion.h2>
                     <motion.p
                       className="text-[11px] text-white/45 leading-relaxed"
@@ -428,7 +466,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry }: PremiumRe
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.22, duration: 0.3 }}
                     >
-                      Premium optimizations have been safely reverted. Your original configuration has been restored.
+                      {REVERT_COPY[reason ?? "premium_removed"].subtitle}
                     </motion.p>
                   </div>
                 </div>
@@ -624,7 +662,7 @@ export function PremiumRevertModal({ open, onClose, report, onRetry }: PremiumRe
                     data-testid="button-revert-dismiss"
                     className="w-full py-2 text-[11px] text-white/30 hover:text-white/50 transition-colors"
                   >
-                    Continue with free plan
+                    {REVERT_COPY[reason ?? "premium_removed"].dismiss}
                   </button>
                 </motion.div>
 
