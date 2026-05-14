@@ -25,7 +25,6 @@ import { LandingStatsCharts } from "@/components/LandingStatsCharts";
 import { SocialProofCharts } from "@/components/SocialProofCharts";
 import { HeroBackground } from "@/components/HeroBackground";
 import { ModuleShowcase } from "@/components/ModuleShowcase";
-import { WhatIsSwitchControl } from "@/components/WhatIsSwitchControl";
 import { useAuth } from "@/components/ProtectedRoute";
 import { useMomentumScroll } from "@/hooks/useMomentumScroll";
 import { WebsiteShell } from "@/components/website/WebsiteShell";
@@ -37,7 +36,6 @@ import { SectionDivider } from "@/components/website/SectionDivider";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
 import { TelemetryLineOverlay } from "@/components/website/TelemetryLineOverlay";
 import ScrollProgressRail from "@/components/website/ScrollProgressRail";
-import ScrollFocusText from "@/components/website/ScrollFocusText";
 import StickyComparison from "@/components/website/StickyComparison";
 import ReleaseStory from "@/components/website/ReleaseStory";
 import MagneticTilt from "@/components/website/MagneticTilt";
@@ -796,11 +794,6 @@ export default function Landing() {
 
         <SectionDivider glow />
 
-        {/* ──── Scroll Focus: Why Different ──── */}
-        <ScrollFocusText />
-
-        <SectionDivider />
-
         {/* ──── Features ──── */}
         <section id="features" className="py-24 md:py-32 relative ws-section-glow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1003,11 +996,6 @@ export default function Landing() {
             <SocialProofCharts />
           </div>
         </section>
-
-        {/* ──── What is SwitchControl ──── */}
-        <WhatIsSwitchControl />
-
-        <SectionDivider glow />
 
         {/* ──── Release Story ──── */}
         <ReleaseStory />

@@ -184,15 +184,6 @@ export default function ReleaseStory() {
           </div>
         </div>
 
-        {/* CTA */}
-        <Reveal className="text-center mt-16">
-          <Link href="/download">
-            <GlowButton variant="cyan" size="lg">
-              Download v1.0.8
-              <ArrowRight className="w-4 h-4" />
-            </GlowButton>
-          </Link>
-        </Reveal>
       </div>
     </section>
   );
