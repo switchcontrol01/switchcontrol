@@ -249,20 +249,16 @@ function TweakCard({
             <span className={cn("text-[10px] px-1.5 py-0.5 rounded border font-medium", getRiskBg(tweak.risk))}>
               {tweak.risk}
             </span>
-            {tweak.reviewOnly && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded border bg-blue-500/10 border-blue-500/30 text-blue-400 font-medium">
-                Review Only
+            {tweak.nicPropertyKey && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded border bg-purple-500/10 border-purple-500/30 text-purple-400 font-medium">
+                NIC
               </span>
             )}
           </div>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{tweak.description}</p>
         </div>
         <div className="shrink-0">
-          {tweak.reviewOnly ? (
-            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground/60 px-2 py-1 rounded border border-muted-foreground/10 bg-muted-foreground/5">
-              <Info className="size-3" /> Info only
-            </span>
-          ) : isApplied ? (
+          {isApplied ? (
             <div className="flex items-center gap-1.5">
               <span className="text-xs text-emerald-400 flex items-center gap-1">
                 <Check className="size-3" /> Applied
@@ -569,8 +565,8 @@ function ExtremeDashboard({
   onApplyTweak: (id: string) => void;
   onUndoTweak: (id: string) => void;
   onRevertAll: () => void;
-  activeFilter: "all" | RiskBadge | "review-only";
-  onSetFilter: (f: "all" | RiskBadge | "review-only") => void;
+  activeFilter: "all" | RiskBadge | "nic";
+  onSetFilter: (f: "all" | RiskBadge | "nic") => void;
   isApplyingId: string | null;
 }) {
   const { telemetry } = useLiveTelemetry();
@@ -578,7 +574,7 @@ function ExtremeDashboard({
 
   const filteredTweaks = useMemo(() => {
     if (activeFilter === "all") return EXTREME_TWEAKS;
-    if (activeFilter === "review-only") return EXTREME_TWEAKS.filter((t) => t.reviewOnly);
+    if (activeFilter === "nic") return EXTREME_TWEAKS.filter((t) => t.nicPropertyKey);
     return EXTREME_TWEAKS.filter((t) => t.risk === activeFilter);
   }, [activeFilter]);
 
@@ -591,9 +587,9 @@ function ExtremeDashboard({
     return map;
   }, [filteredTweaks]);
 
-  const actionableCount = EXTREME_TWEAKS.filter((t) => !t.reviewOnly).length;
+  const totalCount = EXTREME_TWEAKS.length;
   const appliedCount = appliedTweaks.size;
-  const reviewOnlyCount = EXTREME_TWEAKS.filter((t) => t.reviewOnly).length;
+  const nicCount = EXTREME_TWEAKS.filter((t) => t.nicPropertyKey).length;
 
   return (
     <div className="space-y-6">
@@ -606,13 +602,13 @@ function ExtremeDashboard({
         </UtilityCard>
         <UtilityCard className="p-4 flex flex-col items-center justify-center">
           <Activity className="size-5 text-amber-400 mb-2" />
-          <div className="text-2xl font-bold text-[#E6EAF0]">{actionableCount}</div>
-          <div className="text-xs text-muted-foreground">Actionable tweaks</div>
+          <div className="text-2xl font-bold text-[#E6EAF0]">{totalCount}</div>
+          <div className="text-xs text-muted-foreground">Total tweaks</div>
         </UtilityCard>
         <UtilityCard className="p-4 flex flex-col items-center justify-center">
-          <Info className="size-5 text-blue-400 mb-2" />
-          <div className="text-2xl font-bold text-[#E6EAF0]">{reviewOnlyCount}</div>
-          <div className="text-xs text-muted-foreground">Review-only items</div>
+          <Network className="size-5 text-purple-400 mb-2" />
+          <div className="text-2xl font-bold text-[#E6EAF0]">{nicCount}</div>
+          <div className="text-xs text-muted-foreground">NIC properties</div>
         </UtilityCard>
         <UtilityCard className="p-4 flex flex-col items-center justify-center">
           <Timer className="size-5 text-emerald-400 mb-2" />
@@ -689,7 +685,7 @@ function ExtremeDashboard({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="size-4 text-muted-foreground" />
-          {(["all", "Safe", "Moderate", "Risky", "High", "review-only"] as const).map((f) => (
+          {(["all", "Safe", "Moderate", "Risky", "High", "nic"] as const).map((f) => (
             <button
               key={f}
               onClick={() => onSetFilter(f)}
@@ -700,7 +696,7 @@ function ExtremeDashboard({
                   : "bg-transparent border-[#2A313A]/60 text-muted-foreground hover:text-[#E6EAF0]"
               )}
             >
-              {f === "review-only" ? "Review Only" : f === "all" ? "All" : f}
+              {f === "nic" ? "NIC" : f === "all" ? "All" : f}
             </button>
           ))}
         </div>
@@ -780,7 +776,7 @@ export default function ExtremeLabs() {
 
   // Applied tweaks
   const [appliedTweaks, setAppliedTweaks] = useState<Set<string>>(new Set());
-  const [activeFilter, setActiveFilter] = useState<"all" | RiskBadge | "review-only">("all");
+  const [activeFilter, setActiveFilter] = useState<"all" | RiskBadge | "nic">("all");
 
   // Check if already unlocked (localStorage)
   useEffect(() => {
@@ -858,11 +854,25 @@ export default function ExtremeLabs() {
     setIsApplying(id);
     try {
       if (isElectron && electronApi) {
-        // Revert via restore baseline then re-apply remaining — simplified
-        // In production we'd track per-tweak state and revert individually
-        const mapped = (EXTREME_TWEAKS.find((t) => t.registryTweakId) as any)?.registryTweakId;
-        if (mapped && (window as any).electronAPI?.tweaks?.execute) {
-          await (window as any).electronAPI.tweaks.execute(mapped, "revert");
+        const tweak = EXTREME_TWEAKS.find((t) => t.id === id);
+        if (!tweak) throw new Error("Tweak not found");
+        // Revert via extreme labs API (it handles all mapping internally)
+        const result = await electronApi.extremeLabs.applySelected([id]);
+        // applySelected always applies; for revert we need individual revert
+        // Fall back to direct executor revert if available
+        const mappedRegistry = tweak.registryTweakId;
+        const mappedSlider = tweak.sliderTweakId;
+        if (mappedRegistry && (window as any).electronAPI?.tweaks?.execute) {
+          await (window as any).electronAPI.tweaks.execute(mappedRegistry, "revert");
+        } else if (mappedSlider && (window as any).electronAPI?.tweaks?.resetValue) {
+          await (window as any).electronAPI.tweaks.resetValue(mappedSlider);
+        } else if (tweak.nicPropertyKey && (window as any).electronAPI?.nic?.resetProperty) {
+          // Find first physical adapter for reset
+          const adapters = await (window as any).electronAPI.nic.getAdapters();
+          const physical = adapters.find((a: any) => a.status === 'Up');
+          if (physical) {
+            await (window as any).electronAPI.nic.resetProperty(physical.name, tweak.nicPropertyKey);
+          }
         }
       }
       setAppliedTweaks((prev) => {

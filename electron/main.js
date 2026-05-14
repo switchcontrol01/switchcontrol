@@ -2381,14 +2381,14 @@ const extremeLabsStore = {
 function _extremeLabsValidateTweakIds(ids) {
   if (!Array.isArray(ids)) return { ok: false, error: 'ids must be an array' };
   const validIds = new Set([
-    'global-timer-resolution', 'dynamic-tick', 'hpet-review',
+    'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
     'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
     'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt',
     'network-throttling-index', 'tcp-no-delay', 'rss-enable',
-    'interrupt-moderation-review', 'eee-review', 'flow-control-review',
-    'windows-search-review', 'sysmain-review', 'print-spooler-review',
-    'xbox-services-review', 'bluetooth-services-review',
-    'edge-update-review', 'adobe-updater-review', 'teams-startup-review', 'vendor-helpers-review',
+    'interrupt-moderation', 'eee-disable', 'flow-control',
+    'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
+    'xbox-services-disable', 'bluetooth-disable',
+    'edge-update-disable', 'adobe-updater-disable', 'teams-startup-disable', 'vendor-updaters-disable',
   ]);
   for (const id of ids) {
     if (typeof id !== 'string' || !validIds.has(id)) {
@@ -2402,13 +2402,30 @@ function _extremeLabsValidateTweakIds(ids) {
 function _extremeLabsMapToRegistryTweak(id) {
   const map = {
     'global-timer-resolution': { type: 'tweak', tweakId: 'timer-res' },
+    'dynamic-tick': { type: 'tweak', tweakId: 'synth-timers' },
+    'hpet-disable': { type: 'tweak', tweakId: 'hpet-disable' },
     'power-throttling-extreme': { type: 'tweak', tweakId: 'power-throttling' },
     'disable-game-dvr': { type: 'tweak', tweakId: 'disable-game-dvr' },
     'disable-xbox-capture': { type: 'tweak', tweakId: 'disable-game-dvr' }, // same underlying
     'windowed-games-opt': { type: 'tweak', tweakId: 'optimize-windowed-games' },
     'win32-priority-separation': { type: 'slider', tweakId: 'win32PrioritySeparation' },
     'system-responsiveness': { type: 'slider', tweakId: 'SystemResponsiveness' },
+    'mmcss-no-lazy': { type: 'tweak', tweakId: 'mmcss-nolazymode' },
     'network-throttling-index': { type: 'slider', tweakId: 'NetworkThrottlingIndex' },
+    'tcp-no-delay': { type: 'tweak', tweakId: 'tcp-no-delay' },
+    'rss-enable': { type: 'nic', propertyKey: 'rss', enabledValue: 'Enabled' },
+    'interrupt-moderation': { type: 'nic', propertyKey: 'interruptModeration', enabledValue: 'Disabled' },
+    'eee-disable': { type: 'nic', propertyKey: 'eee', enabledValue: 'Disabled' },
+    'flow-control': { type: 'nic', propertyKey: 'flowControl', enabledValue: 'Disabled' },
+    'windows-search-disable': { type: 'tweak', tweakId: 'win-search-index' },
+    'sysmain-disable': { type: 'tweak', tweakId: 'superfetch' },
+    'print-spooler-disable': { type: 'tweak', tweakId: 'fax-printer' },
+    'xbox-services-disable': { type: 'tweak', tweakId: 'xbox-services' },
+    'bluetooth-disable': { type: 'tweak', tweakId: 'bluetooth' },
+    'edge-update-disable': { type: 'tweak', tweakId: 'edge-update' },
+    'adobe-updater-disable': { type: 'tweak', tweakId: 'adobe-updater' },
+    'teams-startup-disable': { type: 'tweak', tweakId: 'teams-startup' },
+    'vendor-updaters-disable': { type: 'tweak', tweakId: 'vendor-updaters' },
   };
   return map[id] || null;
 }
@@ -2473,6 +2490,15 @@ ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
         } else {
           results.push({ id, applied: false, reason: 'No recommended value available' });
         }
+      } else if (mapped.type === 'nic') {
+        const adapters = await nicExecutor.getNetAdapters();
+        const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
+        if (!physical) {
+          results.push({ id, applied: false, reason: 'No suitable network adapter found' });
+          continue;
+        }
+        const setResult = await nicExecutor.setNicProperty(physical.name, mapped.propertyKey, mapped.enabledValue);
+        results.push({ id, applied: setResult.ok && setResult.outcome === 'write_succeeded_verified', result: setResult });
       } else {
         const execResult = await tweakExecutor.executeTweak(mapped.tweakId, 'apply');
         results.push({ id, applied: execResult.success, result: execResult });
