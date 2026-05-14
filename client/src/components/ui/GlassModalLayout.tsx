@@ -42,18 +42,22 @@ export function HwBadge({
 // This is the single source of truth for all custom modals (TweakCard, NetworkTweaks,
 // PowerPlan, TweaksList warnings, etc.). It replaces the milky white gradient variant.
 // Use this instead of "bg-gradient-to-br from-white/[0.18]..." in any modal surface.
+//
+// RULES for single glass layer:
+//  • backdrop-blur-xl lives ONLY here — never on the backdrop, never on a wrapper
+//  • No nested glass-surface-bg + another backdrop-blur — one combo only
+//  • No radial-gradient glow wrappers with filter: blur(1px)
+//  • No bg-white/... tints that wash out the blur
 export function GlassModalSurface({ className, children, ...props }: HTMLAttributes<HTMLDivElement>) {
   return (
     <div
       className={cn(
-        "relative glass-surface-bg backdrop-blur-xl border border-white/[0.12] rounded-2xl overflow-hidden",
-        "shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(139,92,246,0.10),0_0_60px_rgba(139,92,246,0.08),inset_0_1px_0_rgba(255,255,255,0.08)]",
+        "relative bg-[#0b1020]/70 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl",
         className
       )}
       {...props}
     >
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-purple-500/[0.05] to-transparent pointer-events-none" />
       {children}
     </div>
   );
@@ -92,61 +96,63 @@ export function GlassModalLayout({
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
+  if (process.env.NODE_ENV === "development" && open) {
+    console.log("[ModalGlass] opened id=GlassModalLayout", {
+      backdrop: "no-blur",
+      surface: "single-glass-layer",
+    });
+  }
+
   return createPortal(
     <AnimatePresence>
       {open && (
         <>
+          {/* Backdrop: dim only — NO backdrop-blur, NO filter */}
           <motion.div
-            className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] bg-black/45 pointer-events-auto"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             onClick={handleClose}
           />
+          {/* Modal container */}
           <motion.div
             className={`fixed z-[101] left-1/2 top-1/2 w-[calc(100%-2rem)] ${maxWidth}`}
-            initial={{ opacity: 0, scale: 0.92, x: "-50%", y: "-50%" }}
-            animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-            exit={{ opacity: 0, scale: 0.92, x: "-50%", y: "-50%" }}
+            initial={{ opacity: 0, scale: 0.96, y: "-42%" }}
+            animate={{ opacity: 1, scale: 1, y: "-50%" }}
+            exit={{ opacity: 0, scale: 0.96, y: "-48%" }}
             transition={spring}
             data-testid={testId}
           >
-            <div className="relative">
-              <div className="absolute -inset-px rounded-2xl pointer-events-none"
-                style={{
-                  background: "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(139,92,246,0.18) 0%, rgba(34,211,238,0.08) 60%, transparent 100%)",
-                  filter: "blur(1px)",
-                }}
-              />
+            {/* Single-source glass surface — no extra blur layers, no radial glow wrapper */}
+            <div
+              className="relative bg-[#0b1020]/70 border border-white/10 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-xl"
+            >
+              <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
 
-              <div className="relative glass-surface-bg border border-white/[0.12] rounded-2xl backdrop-blur-xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.65),0_0_0_1px_rgba(139,92,246,0.10),0_0_60px_rgba(139,92,246,0.08),inset_0_1px_0_rgba(255,255,255,0.08)]">
-                <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
-                <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-purple-500/[0.05] to-transparent pointer-events-none" />
-
-                <div className="flex items-start justify-between p-5 pb-0 relative z-10">
-                  <div className="space-y-1 min-w-0 flex-1">
-                    <h2 className="flex items-center gap-2.5 text-sm font-semibold text-white">
-                      {title}
-                    </h2>
-                    {description && (
-                      <p className="text-[11px] text-muted-foreground truncate pr-6">
-                        {description}
-                      </p>
-                    )}
-                  </div>
-                  <button
-                    onClick={handleClose}
-                    className="p-1.5 -mr-1.5 -mt-0.5 rounded-md hover:bg-white/10 transition-colors shrink-0"
-                    data-testid="button-close-modal"
-                  >
-                    <X className="size-4 text-muted-foreground" />
-                  </button>
+              <div className="flex items-start justify-between p-5 pb-0 relative z-10">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <h2 className="flex items-center gap-2.5 text-sm font-semibold text-white">
+                    {title}
+                  </h2>
+                  {description && (
+                    <p className="text-[11px] text-muted-foreground truncate pr-6">
+                      {description}
+                    </p>
+                  )}
                 </div>
+                <button
+                  onClick={handleClose}
+                  className="p-1.5 -mr-1.5 -mt-0.5 rounded-md hover:bg-white/10 transition-colors shrink-0"
+                  data-testid="button-close-modal"
+                >
+                  <X className="size-4 text-muted-foreground" />
+                </button>
+              </div>
 
-                <div className="p-5 pt-3 relative z-10">
-                  {children}
-                </div>
+              <div className="p-5 pt-3 relative z-10">
+                {children}
               </div>
             </div>
           </motion.div>
