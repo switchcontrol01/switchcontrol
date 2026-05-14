@@ -970,16 +970,16 @@ export default function FocusMode() {
                     transition={{ delay: 0.2 }}
                     className="grid grid-cols-4 gap-3"
                   >
-                    <MetricSparkCard value="-12ms" label="Avg Latency Reduction" color="#22d3ee"
+                    <MetricSparkCard value="More Stable" label="Network Consistency" color="#22d3ee"
                       data={SPARK_OPT_LATENCY} compareData={SPARK_STOCK_LATENCY}
                       dataLabel="Optimized" compareDataLabel="Stock" delay={0} />
-                    <MetricSparkCard value="-8ms" label="Input Delay Improvement" color="#06b6d4"
+                    <MetricSparkCard value="Tighter" label="Input Responsiveness" color="#06b6d4"
                       data={SPARK_OPT_INPUT} compareData={SPARK_STOCK_INPUT}
                       dataLabel="Optimized" compareDataLabel="Stock" delay={60} />
-                    <MetricSparkCard value="+15%" label="FPS Stability" color="#a78bfa"
+                    <MetricSparkCard value="More Stable" label="Frame Consistency" color="#a78bfa"
                       data={SPARK_OPT_FPS} compareData={SPARK_STOCK_FPS}
                       dataLabel="Optimized" compareDataLabel="Stock" delay={120} />
-                    <MetricSparkCard value="+22%" label="1% Low FPS Gain" color="#fbbf24"
+                    <MetricSparkCard value="Less Stutter" label="Worst-Case Frames" color="#fbbf24"
                       data={SPARK_OPT_LOWS} compareData={SPARK_STOCK_LOWS}
                       dataLabel="Optimized lows" compareDataLabel="Stock lows" delay={180} />
                   </motion.div>

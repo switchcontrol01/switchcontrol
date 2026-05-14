@@ -688,13 +688,13 @@ export default function Features() {
                 transition={{ delay: 0.5, duration: 0.6 }}
               >
                 {[
-                  { label: "Optimizations", val: 46, suffix: "+" },
-                  { label: "Avg FPS Gain",  val: 23, suffix: "%" },
-                  { label: "Response Time", val: 8,  suffix: "ms faster" },
+                  { label: "Optimizations", text: "46+" },
+                  { label: "Consistency",  text: "Improved" },
+                  { label: "Response Feel", text: "Tighter" },
                 ].map(s => (
                   <div key={s.label}>
                     <div className="text-2xl font-bold text-[#E6EAF0] font-mono">
-                      <CountUp to={s.val} suffix={s.suffix} />
+                      {s.text}
                     </div>
                     <div className="text-xs text-[#6B7380] mt-0.5">{s.label}</div>
                   </div>
@@ -1112,22 +1112,20 @@ export default function Features() {
                 backdropFilter: "blur(24px)",
               }}>
                 <div className="flex items-center justify-between mb-5">
-                  <div className="text-sm font-semibold text-[#E6EAF0]">Average FPS Improvement</div>
-                  <span className="text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">vs baseline</span>
+                  <div className="text-sm font-semibold text-[#E6EAF0]">Frame Consistency</div>
+                  <span className="text-xs text-primary/70 bg-primary/10 px-2 py-1 rounded-full">illustrative</span>
                 </div>
                 <div className="space-y-4">
                   {[
-                    { game: "Warzone",          before: 112, after: 141, color: "#00D4FF" },
-                    { game: "Apex Legends",     before: 168, after: 204, color: "#38bdf8" },
-                    { game: "Valorant",         before: 280, after: 334, color: "#34d399" },
-                    { game: "Cyberpunk 2077",   before: 74,  after: 89,  color: "#f59e0b" },
+                    { game: "Warzone",          stability: "More Stable", feel: "Smoother", color: "#00D4FF" },
+                    { game: "Apex Legends",     stability: "More Stable", feel: "Smoother", color: "#38bdf8" },
+                    { game: "Valorant",         stability: "More Stable", feel: "Smoother", color: "#34d399" },
+                    { game: "Cyberpunk 2077",   stability: "More Stable", feel: "Smoother", color: "#f59e0b" },
                   ].map((g, i) => (
                     <div key={g.game} className="space-y-1.5">
                       <div className="flex justify-between text-xs text-[#A0A8B3]">
                         <span>{g.game}</span>
-                        <span style={{ color: g.color }} className="font-semibold">
-                          +{Math.round((g.after - g.before) / g.before * 100)}% · {g.after} fps
-                        </span>
+                        <span style={{ color: g.color }} className="font-semibold">{g.feel}</span>
                       </div>
                       <div className="relative h-6 rounded-lg overflow-hidden bg-[#21262D]">
                         {/* Before */}
@@ -1135,7 +1133,7 @@ export default function Features() {
                           className="absolute inset-y-1 left-1 rounded"
                           style={{ background: "rgba(255,255,255,0.1)" }}
                           initial={{ width: 0 }}
-                          whileInView={{ width: `${(g.before / 350) * 90}%` }}
+                          whileInView={{ width: "45%" }}
                           viewport={{ once: true }}
                           transition={{ duration: 0.9, delay: i * 0.1 }}
                         />
@@ -1144,7 +1142,7 @@ export default function Features() {
                           className="absolute inset-y-0.5 left-0.5 rounded-md"
                           style={{ background: `linear-gradient(90deg, ${g.color}60, ${g.color}99)`, boxShadow: `0 0 12px ${g.color}44` }}
                           initial={{ width: 0 }}
-                          whileInView={{ width: `${(g.after / 350) * 90}%` }}
+                          whileInView={{ width: "75%" }}
                           viewport={{ once: true }}
                           transition={{ duration: 1.1, delay: i * 0.1 + 0.2, ease: [0.22, 1, 0.36, 1] }}
                         />
@@ -1175,9 +1173,9 @@ export default function Features() {
 
                 <div className="grid grid-cols-3 gap-3 mt-4">
                   {[
-                    { label: "Avg Frametime",  val: "4.2ms",   sub: "↓ from 6.8ms", color: "#38bdf8" },
-                    { label: "1% Low Gain",    val: "+31%",    sub: "Smoother feel",  color: "#00D4FF" },
-                    { label: "Input Latency",  val: "−8ms",    sub: "Real response",  color: "#34d399" },
+                    { label: "Avg Frametime",  val: "Steadier",   sub: "More consistent", color: "#38bdf8" },
+                    { label: "1% Lows",    val: "Stable",    sub: "Less stutter",  color: "#00D4FF" },
+                    { label: "Input Latency",  val: "Tighter",    sub: "More responsive",  color: "#34d399" },
                   ].map(s => (
                     <div key={s.label} className="rounded-xl p-3 text-center" style={{
                       background: s.color + "0a", border: `1px solid ${s.color}22`,

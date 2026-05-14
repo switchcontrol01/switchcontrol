@@ -4,6 +4,7 @@ import { z } from "zod";
 import { storage } from "../storage";
 import { requireAdmin } from "../middleware/requireAdmin";
 import { resolveEffectivePlan } from "../lib/planUtils";
+import { getStripeClient } from "../stripeClient";
 import type { User } from "@shared/models/auth";
 
 const router = Router();
@@ -91,8 +92,10 @@ router.get("/users", requireAdmin, readLimiter, async (req, res) => {
     const offset = (page - 1) * limit;
     const search = (req.query.search as string | undefined)?.trim() || undefined;
     const plan = (req.query.plan as string | undefined) || undefined;
+    const stripeCustomerId = (req.query.stripeCustomerId as string | undefined)?.trim() || undefined;
+    const deviceId = (req.query.deviceId as string | undefined)?.trim() || undefined;
 
-    const { users, total } = await storage.listUsers({ limit, offset, search, plan });
+    const { users, total } = await storage.listUsers({ limit, offset, search, plan, stripeCustomerId, deviceId });
 
     res.json({
       users: users.map(serializeUser),
@@ -262,6 +265,7 @@ router.post("/users/:id/revoke-trial", requireAdmin, writeLimiter, async (req, r
 router.post("/users/:id/reset-trial", requireAdmin, writeLimiter, async (req, res) => {
   const admin = getAdminId(req);
   const targetId = req.params.id;
+  const { reason } = req.body || {};
 
   try {
     const existing = await storage.getUser(targetId);
@@ -270,7 +274,7 @@ router.post("/users/:id/reset-trial", requireAdmin, writeLimiter, async (req, re
     const prev = { plan: existing.plan, hasUsedTrial: existing.hasUsedTrial, trialEndsAt: existing.trialEndsAt };
     const updated = await storage.setUserPlan(targetId, { plan: "free", grantedByAdminId: admin.id, resetHasUsedTrial: true });
 
-    await auditLog(admin.id, targetId, "reset_trial", prev, { plan: "free", hasUsedTrial: false }, {});
+    await auditLog(admin.id, targetId, "reset_trial", prev, { plan: "free", hasUsedTrial: false }, { reason: reason ?? null });
     console.log(`[admin] ${admin.email} reset trial for user=${targetId}`);
     res.json({ ok: true, user: serializeUser(updated) });
   } catch (err) {
@@ -441,15 +445,21 @@ router.get("/devices/by-device-id/:deviceId", requireAdmin, readLimiter, async (
 
 // POST /api/admin/users/:id/reset-premium-device
 // Clears the premium device binding — used for legitimate hardware changes / support
+const resetDeviceSchema = z.object({
+  reason: z.string().max(500).optional(),
+});
+
 router.post("/users/:id/reset-premium-device", requireAdmin, writeLimiter, async (req, res) => {
   const admin = getAdminId(req);
   const targetId = req.params.id;
+  const { reason } = resetDeviceSchema.parse(req.body ?? {});
 
   try {
     const existing = await storage.getUser(targetId);
     if (!existing) return res.status(404).json({ error: "User not found." });
 
     const previousBound = existing.premiumBoundDeviceId;
+    const previousLastSeen = existing.premiumLastSeenDeviceId;
 
     if (!previousBound) {
       return res.json({ ok: true, message: "No device binding to reset.", previousBoundDeviceId: null });
@@ -461,16 +471,17 @@ router.post("/users/:id/reset-premium-device", requireAdmin, writeLimiter, async
       admin.id,
       targetId,
       "reset_premium_device",
-      { premiumBoundDeviceId: previousBound },
-      { premiumBoundDeviceId: null },
-      { adminEmail: admin.email }
+      { premiumBoundDeviceId: previousBound, premiumLastSeenDeviceId: previousLastSeen },
+      { premiumBoundDeviceId: null, premiumLastSeenDeviceId: null },
+      { adminEmail: admin.email, reason: reason ?? null }
     );
 
-    console.log(`[DeviceBinding] Admin reset | admin=${admin.email} | user=${targetId} | cleared=${previousBound}`);
+    console.log(`[DeviceBinding] Admin reset | admin=${admin.email} | user=${targetId} | cleared=${previousBound} | reason="${reason ?? ""}"`);
     res.json({
       ok: true,
       userId: targetId,
       previousBoundDeviceId: previousBound,
+      previousLastSeenDeviceId: previousLastSeen,
       premiumBoundDeviceId: updated.premiumBoundDeviceId,
     });
   } catch (err) {
@@ -493,6 +504,188 @@ router.get("/logs", requireAdmin, readLimiter, async (req, res) => {
   } catch (err) {
     console.error("[admin] getLogs error:", err);
     res.status(500).json({ error: "Failed to fetch logs." });
+  }
+});
+
+// ─── Admin Stats ────────────────────────────────────────────────────
+
+router.get("/stats", requireAdmin, readLimiter, async (req, res) => {
+  try {
+    const stats = await storage.getAdminStats();
+    res.json(stats);
+  } catch (err) {
+    console.error("[admin] getAdminStats error:", err);
+    res.status(500).json({ error: "Failed to fetch admin stats." });
+  }
+});
+
+// ─── Trials Expiring ──────────────────────────────────────────────
+
+router.get("/trials-expiring", requireAdmin, readLimiter, async (req, res) => {
+  const hours = Math.min(168, Math.max(1, parseInt(req.query.hours as string) || 24));
+  try {
+    const users = await storage.getTrialsExpiring(hours);
+    res.json({ users: users.map(serializeUser), hours });
+  } catch (err) {
+    console.error("[admin] getTrialsExpiring error:", err);
+    res.status(500).json({ error: "Failed to fetch expiring trials." });
+  }
+});
+
+// ─── Stripe Webhook Events ─────────────────────────────────────────
+
+router.get("/stripe-events", requireAdmin, readLimiter, async (req, res) => {
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+  const offset = Math.max(0, parseInt(req.query.offset as string) || 0);
+  try {
+    const events = await storage.getStripeWebhookEvents(limit, offset);
+    res.json({ events });
+  } catch (err) {
+    console.error("[admin] getStripeEvents error:", err);
+    res.status(500).json({ error: "Failed to fetch Stripe events." });
+  }
+});
+
+// ─── User Stripe Status (on-demand admin lookup) ──────────────────────────
+
+router.get("/users/:id/stripe-status", requireAdmin, readLimiter, async (req, res) => {
+  try {
+    const user = await storage.getUser(req.params.id);
+    if (!user) return res.status(404).json({ error: "User not found." });
+    if (!user.stripeCustomerId) {
+      return res.json({ userId: user.id, hasStripeCustomer: false, message: "No Stripe customer linked." });
+    }
+
+    const stripe = getStripeClient();
+    if (!stripe) {
+      return res.status(503).json({ error: "Stripe client not configured." });
+    }
+
+    try {
+      const customer = await stripe.customers.retrieve(user.stripeCustomerId);
+      if (customer.deleted) {
+        return res.json({ userId: user.id, customerId: user.stripeCustomerId, status: "deleted" });
+      }
+      const charges = await stripe.charges.list({ customer: user.stripeCustomerId, limit: 5 });
+      return res.json({
+        userId: user.id,
+        customerId: user.stripeCustomerId,
+        status: "active",
+        email: (customer as any).email,
+        name: (customer as any).name,
+        balance: (customer as any).balance,
+        currency: (customer as any).currency,
+        created: (customer as any).created,
+        recentCharges: charges.data.map((c) => ({
+          id: c.id,
+          amount: c.amount,
+          currency: c.currency,
+          status: c.status,
+          refunded: c.refunded,
+          created: c.created,
+        })),
+      });
+    } catch (stripeErr: any) {
+      if (stripeErr.statusCode === 404) {
+        return res.status(404).json({ error: "Stripe customer not found.", stripeError: stripeErr.message });
+      }
+      console.error("[admin] Stripe API error:", stripeErr.message);
+      return res.status(502).json({ error: "Stripe API error.", message: stripeErr.message });
+    }
+  } catch (err) {
+    console.error("[admin] getStripeStatus error:", err);
+    res.status(500).json({ error: "Failed to fetch Stripe status." });
+  }
+});
+
+// ─── Health Check ────────────────────────────────────────────────────
+
+router.get("/health", requireAdmin, readLimiter, async (req, res) => {
+  const checks: Record<string, { ok: boolean; message?: string }> = {};
+  let allOk = true;
+
+  // DB connectivity
+  try {
+    await storage.getAdminStats();
+    checks.db = { ok: true };
+  } catch (err: any) {
+    checks.db = { ok: false, message: err.message };
+    allOk = false;
+  }
+
+  // Stripe config
+  const stripe = getStripeClient();
+  checks.stripe = { ok: !!stripe, message: stripe ? "Configured" : "Stripe client not initialized" };
+  if (!stripe) allOk = false;
+
+  // Session secret
+  const sessionSecret = process.env.SESSION_SECRET;
+  checks.sessionSecret = { ok: !!sessionSecret && sessionSecret.length >= 16, message: sessionSecret ? "Set" : "Missing" };
+  if (!sessionSecret || sessionSecret.length < 16) allOk = false;
+
+  // JWT secret
+  const jwtSecret = process.env.JWT_SECRET;
+  checks.jwtSecret = { ok: !!jwtSecret && jwtSecret.length >= 16, message: jwtSecret ? "Set" : "Missing" };
+  if (!jwtSecret || jwtSecret.length < 16) allOk = false;
+
+  // Environment
+  checks.environment = { ok: true, message: process.env.NODE_ENV || "development" };
+
+  // Data consistency — no premium users without stripeCustomerId
+  try {
+    const stats = await storage.getAdminStats();
+    checks.data = { ok: true, message: `${stats.totalUsers} users, ${stats.premiumUsers} premium` };
+  } catch (err: any) {
+    checks.data = { ok: false, message: err.message };
+    allOk = false;
+  }
+
+  res.status(allOk ? 200 : 503).json({ ok: allOk, checks, timestamp: new Date().toISOString() });
+});
+
+// ─── Export Users (CSV) ────────────────────────────────────────────────
+
+router.get("/users/export", requireAdmin, readLimiter, async (req, res) => {
+  try {
+    const plan = (req.query.plan as string | undefined) || undefined;
+    const search = (req.query.search as string | undefined)?.trim() || undefined;
+    const stripeCustomerId = (req.query.stripeCustomerId as string | undefined) || undefined;
+    const deviceId = (req.query.deviceId as string | undefined) || undefined;
+
+    const { users: rows } = await storage.listUsers({ limit: 10000, offset: 0, search, plan, stripeCustomerId, deviceId });
+
+    const headers = ["ID", "Email", "First Name", "Last Name", "Provider", "Plan", "Is Premium", "Stripe Customer ID", "Trial Ends At", "Last Login", "Last Active", "Admin", "Has Installed App", "Created At"];
+    const csvRows = [
+      headers.join(","),
+      ...rows.map((u) => {
+        const planLabel = resolveEffectivePlan(u);
+        return [
+          u.id,
+          u.email ?? "",
+          u.firstName ?? "",
+          u.lastName ?? "",
+          u.provider ?? "",
+          planLabel,
+          u.isPremium ? "yes" : "no",
+          u.stripeCustomerId ?? "",
+          u.trialEndsAt ? new Date(u.trialEndsAt).toISOString() : "",
+          u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : "",
+          u.lastAppActiveAt ? new Date(u.lastAppActiveAt).toISOString() : "",
+          u.isAdmin ? "yes" : "no",
+          u.hasInstalledApp ? "yes" : "no",
+          u.createdAt ? new Date(u.createdAt).toISOString() : "",
+        ]
+          .map((cell) => `"${String(cell).replace(/"/g, '""')}"`)
+          .join(",");
+      }),
+    ];
+
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="switchcontrol-users-${new Date().toISOString().slice(0, 10)}.csv"`);
+    res.send(csvRows.join("\n"));
+  } catch (err) {
+    console.error("[admin] exportUsers error:", err);
+    res.status(500).json({ error: "Failed to export users." });
   }
 });
 

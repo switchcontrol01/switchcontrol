@@ -121,13 +121,16 @@ interface ConfirmModalProps {
   description: React.ReactNode;
   confirmLabel?: string;
   danger?: boolean;
-  onConfirm: () => void;
+  requiresReason?: boolean;
+  onConfirm: (reason?: string) => void;
   onClose: () => void;
   loading?: boolean;
   error?: string | null;
 }
 
-function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, onConfirm, onClose, loading, error }: ConfirmModalProps) {
+function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, requiresReason, onConfirm, onClose, loading, error }: ConfirmModalProps) {
+  const [reason, setReason] = useState("");
+  const canConfirm = !requiresReason || reason.trim().length > 0;
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[#14181D]/80 backdrop-blur-sm" onClick={onClose} />
@@ -136,7 +139,19 @@ function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, on
         style={{ background: "linear-gradient(145deg, rgba(255,255,255,0.07) 0%, rgba(7,9,13,0.97) 100%)" }}
       >
         <h3 className="text-base font-semibold text-[#E6EAF0] mb-2">{title}</h3>
-        <div className="text-sm text-[#A0A8B3] mb-5">{description}</div>
+        <div className="text-sm text-[#A0A8B3] mb-4">{description}</div>
+        {requiresReason && (
+          <div className="mb-4">
+            <label className="block text-xs text-[#6B7380] mb-1.5">Reason (required)</label>
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Why are you taking this action?"
+              className="w-full rounded-lg bg-[#21262D] border border-[#2A313A] px-3 py-2 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
+            />
+          </div>
+        )}
         {error && (
           <p className="text-red-400 text-xs mb-4 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">{error}</p>
         )}
@@ -145,8 +160,8 @@ function ConfirmModal({ title, description, confirmLabel = "Confirm", danger, on
             Cancel
           </button>
           <button
-            onClick={onConfirm}
-            disabled={loading}
+            onClick={() => onConfirm(reason || undefined)}
+            disabled={loading || !canConfirm}
             data-testid="button-modal-confirm"
             className={`flex-1 rounded-xl px-4 py-2.5 text-sm font-medium border transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
               danger
@@ -663,27 +678,41 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
 
   // Confirm-modal state
   const [confirm, setConfirm] = useState<null | {
-    title: string; description: React.ReactNode; action: () => Promise<void>; danger?: boolean; confirmLabel?: string;
+    title: string; description: React.ReactNode; action: (reason?: string) => Promise<void>; danger?: boolean; confirmLabel?: string; requiresReason?: boolean;
   }>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  // Stripe status (lazy-loaded)
+  const [stripeStatus, setStripeStatus] = useState<any>(null);
+  const [stripeStatusLoading, setStripeStatusLoading] = useState(false);
 
   useEffect(() => { setLocalUser(user); setLocalLogs(logs); }, [user, logs]);
 
   const update = (u: AdminUser) => { setLocalUser(u); onPlanUpdated(u); };
 
-  const runConfirmed = async () => {
+  const runConfirmed = async (reason?: string) => {
     if (!confirm) return;
     setConfirmLoading(true);
     setConfirmError(null);
     try {
-      await confirm.action();
+      await confirm.action(reason);
       setConfirm(null);
     } catch (e: any) {
       setConfirmError(e.message);
     } finally {
       setConfirmLoading(false);
     }
+  };
+
+  const loadStripeStatus = async () => {
+    if (stripeStatus) return;
+    setStripeStatusLoading(true);
+    try {
+      const r = await fetch(`/api/admin/users/${localUser.id}/stripe-status`, { headers: buildHeaders() as any });
+      if (r.ok) setStripeStatus(await r.json());
+    } catch {}
+    setStripeStatusLoading(false);
   };
 
   const postAction = async (url: string, body?: any) => {
@@ -702,7 +731,8 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     description: <>Revoke active trial for <strong className="text-[#E6EAF0]">{localUser.displayName}</strong>? They will immediately lose access.</>,
     confirmLabel: "Revoke Trial",
     danger: true,
-    action: async () => { await postAction(`/api/admin/users/${localUser.id}/revoke-trial`); },
+    requiresReason: true,
+    action: async (reason) => { await postAction(`/api/admin/users/${localUser.id}/revoke-trial`, { reason }); },
   });
 
   const resetTrial = () => setConfirm({
@@ -710,7 +740,8 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     description: <>Clear all trial data for <strong className="text-[#E6EAF0]">{localUser.displayName}</strong>? This resets hasUsedTrial and all trial timestamps.</>,
     confirmLabel: "Reset Trial",
     danger: true,
-    action: async () => { await postAction(`/api/admin/users/${localUser.id}/reset-trial`); },
+    requiresReason: true,
+    action: async (reason) => { await postAction(`/api/admin/users/${localUser.id}/reset-trial`, { reason }); },
   });
 
   const revertToFree = () => setConfirm({
@@ -718,11 +749,12 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     description: <>Set <strong className="text-[#E6EAF0]">{localUser.displayName}</strong> to Free plan? This will revoke premium and any active trial immediately.</>,
     confirmLabel: "Revert to Free",
     danger: true,
-    action: async () => {
+    requiresReason: true,
+    action: async (reason) => {
       const r = await fetch(`/api/admin/users/${localUser.id}/revert-plan`, {
         method: "POST",
         headers: buildHeaders() as any,
-        body: JSON.stringify({ plan: "free" }),
+        body: JSON.stringify({ plan: "free", reason }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
@@ -734,11 +766,12 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     title: "Upgrade to Premium",
     description: <>Grant permanent premium access to <strong className="text-[#E6EAF0]">{localUser.displayName}</strong>?</>,
     confirmLabel: "Grant Premium",
-    action: async () => {
+    requiresReason: true,
+    action: async (reason) => {
       const r = await fetch(`/api/admin/users/${localUser.id}/revert-plan`, {
         method: "POST",
         headers: buildHeaders() as any,
-        body: JSON.stringify({ plan: "premium" }),
+        body: JSON.stringify({ plan: "premium", reason }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
@@ -759,11 +792,12 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
     ),
     confirmLabel: "Clear Device Lock",
     danger: true,
-    action: async () => {
+    requiresReason: true,
+    action: async (reason) => {
       const r = await fetch(`/api/admin/users/${localUser.id}/reset-premium-device`, {
         method: "POST",
         headers: buildHeaders() as any,
-        body: JSON.stringify({}),
+        body: JSON.stringify({ reason }),
       });
       const data = await r.json();
       if (!r.ok) throw new Error(data.error || "Failed");
@@ -928,6 +962,49 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
               </div>
             </div>
 
+            {/* Stripe Status — lazy-loaded */}
+            <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider">Stripe</p>
+                {!stripeStatus && !stripeStatusLoading && (
+                  <button onClick={loadStripeStatus} className="text-xs rounded-lg px-2.5 py-1 border border-[#2A313A] bg-[#21262D] text-[#A0A8B3] hover:bg-[#2A313A] transition-all">
+                    Load
+                  </button>
+                )}
+                {stripeStatusLoading && <span className="text-xs text-[#6B7380] animate-pulse">Loading…</span>}
+              </div>
+              {!stripeStatus ? (
+                <p className="text-xs text-[#6B7380] italic">{stripeStatusLoading ? "Fetching Stripe data…" : "Click Load to fetch live Stripe customer data."}</p>
+              ) : stripeStatus.error ? (
+                <p className="text-xs text-red-400">{stripeStatus.error}</p>
+              ) : !stripeStatus.hasStripeCustomer ? (
+                <p className="text-xs text-[#6B7380]">No Stripe customer linked.</p>
+              ) : stripeStatus.status === "deleted" ? (
+                <p className="text-xs text-orange-400">Customer deleted in Stripe.</p>
+              ) : (
+                <div className="space-y-2.5 text-sm">
+                  <Row label="Customer ID" value={<span className="font-mono text-[#A0A8B3]">{stripeStatus.customerId}</span>} />
+                  <Row label="Email" value={stripeStatus.email || <span className="text-[#6B7380]">—</span>} />
+                  <Row label="Balance" value={stripeStatus.balance != null ? `${stripeStatus.balance} ${stripeStatus.currency || ""}` : <span className="text-[#6B7380]">—</span>} />
+                  {stripeStatus.recentCharges && stripeStatus.recentCharges.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-[#6B7380] mb-1.5">Recent Charges</p>
+                      <div className="space-y-1">
+                        {stripeStatus.recentCharges.map((c: any) => (
+                          <div key={c.id} className="flex items-center justify-between text-xs bg-[#21262D] rounded-lg px-2.5 py-1.5 border border-[#2A313A]">
+                            <span className="font-mono text-[#A0A8B3]">{c.id.slice(0, 12)}…</span>
+                            <span className={c.status === "succeeded" ? "text-green-400 font-medium" : "text-red-400 font-medium"}>
+                              {c.amount != null ? `$${(c.amount / 100).toFixed(2)}` : "—"} {c.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* Quick Trial Grants */}
             <div className="rounded-xl border border-[#2A313A] p-4" style={{ background: "rgba(255,255,255,0.02)" }}>
               <p className="text-xs font-semibold text-[#6B7380] uppercase tracking-wider mb-3">Quick Trial Grant</p>
@@ -1035,6 +1112,7 @@ function UserDetailPanel({ user, logs, onClose, onPlanUpdated, onDeleted }: {
           description={confirm.description}
           confirmLabel={confirm.confirmLabel}
           danger={confirm.danger}
+          requiresReason={confirm.requiresReason}
           onConfirm={runConfirmed}
           onClose={() => { setConfirm(null); setConfirmError(null); }}
           loading={confirmLoading}
@@ -1061,6 +1139,29 @@ export default function AdminPage() {
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [selectedLogs, setSelectedLogs] = useState<AdminLog[]>([]);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  // Enhanced search
+  const [stripeSearch, setStripeSearch] = useState("");
+  const [deviceSearch, setDeviceSearch] = useState("");
+
+  // Stats
+  const [stats, setStats] = useState<any>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  // Trials expiring
+  const [trialsExpiring, setTrialsExpiring] = useState<AdminUser[]>([]);
+  const [trialsExpiringHours, setTrialsExpiringHours] = useState(24);
+  const [trialsLoading, setTrialsLoading] = useState(false);
+
+  // Stripe events
+  const [stripeEvents, setStripeEvents] = useState<any[]>([]);
+  const [eventsLoading, setEventsLoading] = useState(false);
+  const [showEvents, setShowEvents] = useState(false);
+
+  // Health
+  const [health, setHealth] = useState<any>(null);
+  const [healthLoading, setHealthLoading] = useState(false);
+  const [showHealth, setShowHealth] = useState(false);
 
   // Device lock lookup
   const [deviceLookupId, setDeviceLookupId] = useState("");
@@ -1095,13 +1196,15 @@ export default function AdminPage() {
 
   useEffect(() => { checkAdmin(); }, [checkAdmin]);
 
-  const fetchUsers = useCallback(async (p: number, s: string, plan: string) => {
+  const fetchUsers = useCallback(async (p: number, s: string, plan: string, stripeCid?: string, devId?: string) => {
     setLoading(true);
     setError(null);
     try {
       const params = new URLSearchParams({ page: String(p), limit: "30" });
       if (s) params.set("search", s);
       if (plan) params.set("plan", plan);
+      if (stripeCid) params.set("stripeCustomerId", stripeCid);
+      if (devId) params.set("deviceId", devId);
       const r = await fetch(`/api/admin/users?${params}`, { headers: buildHeaders() as any });
       if (!r.ok) throw new Error("Failed to fetch users");
       const data = await r.json();
@@ -1124,6 +1227,64 @@ export default function AdminPage() {
     clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => { setPage(1); fetchUsers(1, value, planFilter); }, 350);
   };
+
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      const r = await fetch("/api/admin/stats", { headers: buildHeaders() as any });
+      if (r.ok) setStats(await r.json());
+    } catch {}
+    setStatsLoading(false);
+  }, []);
+
+  const fetchTrialsExpiring = useCallback(async (hours: number) => {
+    setTrialsLoading(true);
+    try {
+      const r = await fetch(`/api/admin/trials-expiring?hours=${hours}`, { headers: buildHeaders() as any });
+      if (r.ok) {
+        const data = await r.json();
+        setTrialsExpiring(data.users);
+      }
+    } catch {}
+    setTrialsLoading(false);
+  }, []);
+
+  const fetchStripeEvents = useCallback(async () => {
+    setEventsLoading(true);
+    try {
+      const r = await fetch("/api/admin/stripe-events", { headers: buildHeaders() as any });
+      if (r.ok) {
+        const data = await r.json();
+        setStripeEvents(data.events);
+      }
+    } catch {}
+    setEventsLoading(false);
+  }, []);
+
+  const fetchHealth = useCallback(async () => {
+    setHealthLoading(true);
+    try {
+      const r = await fetch("/api/admin/health", { headers: buildHeaders() as any });
+      if (r.ok) setHealth(await r.json());
+    } catch {}
+    setHealthLoading(false);
+  }, []);
+
+  const exportCsv = () => {
+    const params = new URLSearchParams();
+    if (search) params.set("search", search);
+    if (planFilter) params.set("plan", planFilter);
+    if (stripeSearch) params.set("stripeCustomerId", stripeSearch);
+    if (deviceSearch) params.set("deviceId", deviceSearch);
+    window.location.href = `/api/admin/users/export?${params}`;
+  };
+
+  useEffect(() => {
+    if (authorized === true) {
+      fetchStats();
+      fetchTrialsExpiring(trialsExpiringHours);
+    }
+  }, [authorized, fetchStats, fetchTrialsExpiring, trialsExpiringHours]);
 
   const openUserDetail = async (u: AdminUser) => {
     setSelectedUser(u);
@@ -1234,9 +1395,81 @@ export default function AdminPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-6">
-        {/* Search + Filter */}
-        <div className="flex gap-3 mb-6">
-          <div className="flex-1 relative">
+        {/* Stats Bar */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+          {[
+            { label: "Users", value: stats?.totalUsers ?? 0, color: "text-[#E6EAF0]" },
+            { label: "Premium", value: stats?.premiumUsers ?? 0, color: "text-[#00D4FF]" },
+            { label: "Trial", value: stats?.trialUsers ?? 0, color: "text-cyan-300" },
+            { label: "Free", value: stats?.freeUsers ?? 0, color: "text-[#6B7380]" },
+            { label: "Admins", value: stats?.adminCount ?? 0, color: "text-orange-300" },
+            { label: "Locked", value: stats?.deviceLockedUsers ?? 0, color: "text-amber-300" },
+            { label: "Stripe Events", value: stats?.totalStripeEvents ?? 0, color: "text-[#A0A8B3]" },
+          ].map((s) => (
+            <div key={s.label} className="rounded-xl border border-[#2A313A] p-3 text-center" style={{ background: "rgba(255,255,255,0.03)" }}>
+              <p className={`text-lg font-semibold ${s.color}`}>{statsLoading ? "—" : s.value}</p>
+              <p className="text-xs text-[#6B7380]">{s.label}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Trials Expiring Panel */}
+        <div className="mb-6 rounded-xl border border-cyan-500/15 p-4" style={{ background: "rgba(6,182,212,0.04)" }}>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-semibold text-cyan-300/70 uppercase tracking-wider">
+              Trials Expiring Soon ({trialsExpiring.length})
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#6B7380]">Within</span>
+              <select
+                value={trialsExpiringHours}
+                onChange={(e) => { setTrialsExpiringHours(Number(e.target.value)); fetchTrialsExpiring(Number(e.target.value)); }}
+                className="rounded-lg bg-[#21262D] border border-[#2A313A] px-2 py-1 text-xs text-[#E6EAF0] outline-none"
+              >
+                {[6, 12, 24, 48, 72, 168].map((h) => (
+                  <option key={h} value={h}>{h}h</option>
+                ))}
+              </select>
+              <button
+                onClick={() => fetchTrialsExpiring(trialsExpiringHours)}
+                className="text-xs rounded-lg px-2 py-1 border border-cyan-500/25 bg-cyan-500/10 text-cyan-300/80 hover:bg-cyan-500/20 transition-all"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+          {trialsLoading ? (
+            <div className="py-4 flex items-center justify-center">
+              <div className="w-5 h-5 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin" />
+            </div>
+          ) : trialsExpiring.length === 0 ? (
+            <p className="text-xs text-[#6B7380] italic">No trials expiring in the selected window.</p>
+          ) : (
+            <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-none">
+              {trialsExpiring.map((u) => (
+                <div key={u.id} className="flex items-center justify-between rounded-lg bg-[#21262D]/50 border border-[#2A313A] px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="text-sm text-[#E6EAF0] truncate">{u.displayName || u.email || u.id}</p>
+                    <p className="text-xs text-[#6B7380]">{u.email || "—"}</p>
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <TrialCountdown endsAt={u.trialEndsAt} />
+                    <button
+                      onClick={() => { setSelectedUser(u); setSelectedLogs([]); }}
+                      className="text-xs rounded-lg px-2 py-1 border border-cyan-500/25 bg-cyan-500/10 text-cyan-300/80 hover:bg-cyan-500/20 transition-all"
+                    >
+                      Open
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Search + Filter + Export */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7380]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -1249,24 +1482,59 @@ export default function AdminPage() {
               className="w-full rounded-xl bg-[#21262D] border border-[#2A313A] pl-9 pr-4 py-2.5 text-sm text-[#E6EAF0] placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
             />
           </div>
-          <select
-            value={planFilter}
-            onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }}
-            data-testid="select-plan-filter"
-            className="rounded-xl bg-[#21262D] border border-[#2A313A] px-4 py-2.5 text-sm text-[#E6EAF0] outline-none focus:border-[#00D4FF] cursor-pointer appearance-none pr-8"
-            style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center", backgroundSize: "20px" }}
-          >
-            {planOptions.map((o) => (
-              <option key={o.value} value={o.value} className="bg-gray-900">{o.label}</option>
-            ))}
-          </select>
-          <button
-            onClick={() => fetchUsers(page, search, planFilter)}
-            data-testid="button-refresh-users"
-            className="rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
-          >
-            Refresh
-          </button>
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7380]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Stripe Customer ID…"
+              value={stripeSearch}
+              onChange={(e) => setStripeSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && fetchUsers(1, search, planFilter, e.currentTarget.value, deviceSearch)}
+              className="w-full rounded-xl bg-[#21262D] border border-[#2A313A] pl-9 pr-4 py-2.5 text-sm text-[#E6EAF0] font-mono placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
+            />
+          </div>
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7380]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Device ID…"
+              value={deviceSearch}
+              onChange={(e) => setDeviceSearch(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && fetchUsers(1, search, planFilter, stripeSearch, e.currentTarget.value)}
+              className="w-full rounded-xl bg-[#21262D] border border-[#2A313A] pl-9 pr-4 py-2.5 text-sm text-[#E6EAF0] font-mono placeholder-[#6B7380] outline-none focus:border-[#00D4FF] transition-colors"
+            />
+          </div>
+          <div className="flex gap-2">
+            <select
+              value={planFilter}
+              onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }}
+              data-testid="select-plan-filter"
+              className="flex-1 rounded-xl bg-[#21262D] border border-[#2A313A] px-4 py-2.5 text-sm text-[#E6EAF0] outline-none focus:border-[#00D4FF] cursor-pointer appearance-none pr-8"
+              style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\")", backgroundRepeat: "no-repeat", backgroundPosition: "right 8px center", backgroundSize: "20px" }}
+            >
+              {planOptions.map((o) => (
+                <option key={o.value} value={o.value} className="bg-gray-900">{o.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => fetchUsers(page, search, planFilter, stripeSearch, deviceSearch)}
+              data-testid="button-refresh-users"
+              className="rounded-xl px-4 py-2.5 text-sm font-medium bg-[#21262D] border border-[#2A313A] text-[#A0A8B3] hover:text-[#E6EAF0] hover:bg-[#2A313A] transition-colors"
+            >
+              Search
+            </button>
+            <button
+              onClick={exportCsv}
+              className="rounded-xl px-4 py-2.5 text-sm font-medium bg-green-500/10 border border-green-500/20 text-green-400/80 hover:bg-green-500/18 transition-colors"
+              title="Export CSV with current filters"
+            >
+              Export CSV
+            </button>
+          </div>
         </div>
 
         {/* Device Lock Lookup */}
@@ -1310,6 +1578,65 @@ export default function AdminPage() {
             </div>
           )}
         </div>
+
+        {/* Collapsible Operations Panels */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => { if (!showEvents) fetchStripeEvents(); setShowEvents(!showEvents); }}
+            className={`text-xs rounded-lg px-3 py-1.5 border transition-all ${showEvents ? "border-[#00D4FF]/50 bg-[#00D4FF]/15 text-[#00D4FF]" : "border-[#2A313A] bg-[#21262D] text-[#A0A8B3] hover:text-[#E6EAF0]"}`}
+          >
+            Stripe Webhook Events
+          </button>
+          <button
+            onClick={() => { if (!showHealth) fetchHealth(); setShowHealth(!showHealth); }}
+            className={`text-xs rounded-lg px-3 py-1.5 border transition-all ${showHealth ? "border-green-500/50 bg-green-500/15 text-green-400" : "border-[#2A313A] bg-[#21262D] text-[#A0A8B3] hover:text-[#E6EAF0]"}`}
+          >
+            System Health
+          </button>
+        </div>
+
+        {showHealth && (
+          <div className="mb-6 rounded-xl border border-green-500/15 p-4" style={{ background: "rgba(74,222,128,0.04)" }}>
+            <p className="text-xs font-semibold text-green-400/70 uppercase tracking-wider mb-3">System Health</p>
+            {healthLoading ? (
+              <div className="py-4 flex items-center justify-center"><div className="w-5 h-5 rounded-full border-2 border-green-500 border-t-transparent animate-spin" /></div>
+            ) : health ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
+                {Object.entries(health.checks).map(([name, check]: [string, any]) => (
+                  <div key={name} className={`rounded-lg border px-3 py-2 text-xs ${check.ok ? "border-green-500/20 bg-green-500/5 text-green-400" : "border-red-500/20 bg-red-500/5 text-red-400"}`}>
+                    <p className="font-medium">{name}</p>
+                    <p className="opacity-70 mt-0.5">{check.message}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-[#6B7380] italic">Health data unavailable.</p>
+            )}
+          </div>
+        )}
+
+        {showEvents && (
+          <div className="mb-6 rounded-xl border border-[#00D4FF]/15 p-4" style={{ background: "rgba(0,212,255,0.04)" }}>
+            <p className="text-xs font-semibold text-[#00D4FF]/70 uppercase tracking-wider mb-3">Stripe Webhook Events</p>
+            {eventsLoading ? (
+              <div className="py-4 flex items-center justify-center"><div className="w-5 h-5 rounded-full border-2 border-[#00D4FF] border-t-transparent animate-spin" /></div>
+            ) : stripeEvents.length === 0 ? (
+              <p className="text-xs text-[#6B7380] italic">No Stripe events recorded yet.</p>
+            ) : (
+              <div className="space-y-1.5 max-h-48 overflow-y-auto scrollbar-none">
+                {stripeEvents.map((ev) => (
+                  <div key={ev.id} className="flex items-center justify-between rounded-lg bg-[#21262D]/50 border border-[#2A313A] px-3 py-2">
+                    <div>
+                      <span className="text-xs font-medium text-[#E6EAF0]">{ev.eventType}</span>
+                      <span className="text-xs text-[#6B7380] ml-2">{ev.eventId}</span>
+                    </div>
+                    <span className="text-xs text-[#6B7380]">{fmt(ev.processedAt)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {error && (
           <div className="mb-4 rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">{error}</div>

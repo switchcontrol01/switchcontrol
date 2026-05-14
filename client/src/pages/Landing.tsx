@@ -135,10 +135,10 @@ const FEATURES = [
 ];
 
 const STATS = [
-  { label: "Avg Latency Reduction", value: "-12ms", change: "ping" },
-  { label: "Input Delay Improvement", value: "-8ms", change: "input" },
-  { label: "FPS Stability", value: "+15%", change: "fps" },
-  { label: "1% Low FPS Gain", value: "+22%", change: "lows" },
+  { label: "Network Consistency", value: "Improved", change: "ping" },
+  { label: "Input Responsiveness", value: "Tighter", change: "input" },
+  { label: "Frame Consistency", value: "Smoother", change: "fps" },
+  { label: "Worst-Case Frames", value: "More Stable", change: "lows" },
 ];
 
 function CountingNumber({

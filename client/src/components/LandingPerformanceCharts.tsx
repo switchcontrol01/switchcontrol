@@ -347,11 +347,11 @@ export function LandingPerformanceCharts() {
   return (
     <div ref={ref} className="grid md:grid-cols-3 gap-5">
       <ChartCard
-        title="FPS Performance" subtitle="Frame rate stability over a 60-second session"
-        icon={<TrendingUp className="size-4" />} improvText="+45% avg FPS" improvPositive
+        title="FPS Consistency" subtitle="Frame rate stability over a 60-second session"
+        icon={<TrendingUp className="size-4" />} improvText="Smoother frame pacing" improvPositive
         beforeRaw={98} beforeUnit=" FPS" afterRaw={142} afterUnit=" FPS"
         beforeLabel="Stock Windows" afterLabel="SwitchControl"
-        note="1% Low FPS · Results based on internal testing"
+        note="1% Low FPS · Results vary by hardware"
         accentBefore="#f87171" accentAfter="#34d399"
         animDelay="0ms" inView={inView}
       >
@@ -360,10 +360,10 @@ export function LandingPerformanceCharts() {
 
       <ChartCard
         title="Input Delay" subtitle="Click-to-response latency in competitive scenarios"
-        icon={<Zap className="size-4" />} improvText="−8ms avg delay" improvPositive={false}
+        icon={<Zap className="size-4" />} improvText="More responsive input" improvPositive={false}
         beforeRaw={24} beforeUnit="ms" afterRaw={16} afterUnit="ms"
         beforeLabel="Stock Windows" afterLabel="SwitchControl"
-        note="Average input delay · Measured with hardware-level tools"
+        note="Average input delay · Results vary by hardware and game"
         accentBefore="#fb923c" accentAfter="#818cf8"
         animDelay="120ms" inView={inView}
       >
@@ -372,10 +372,10 @@ export function LandingPerformanceCharts() {
 
       <ChartCard
         title="Network Stability" subtitle="Round-trip latency jitter over a gaming session"
-        icon={<TrendingDown className="size-4" />} improvText="78% less jitter" improvPositive
+        icon={<TrendingDown className="size-4" />} improvText="Reduced jitter" improvPositive
         beforeRaw={18} beforeUnit="ms" beforePrefix="±" afterRaw={4} afterUnit="ms" afterPrefix="±"
         beforeLabel="Stock Windows" afterLabel="SwitchControl"
-        note="Jitter variance · Server-side handshake to response"
+        note="Jitter variance · Results vary by network and ISP"
         accentBefore="#f472b6" accentAfter="#22d3ee"
         animDelay="240ms" inView={inView}
       >

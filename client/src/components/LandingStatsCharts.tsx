@@ -243,8 +243,8 @@ export function LandingStatsCharts() {
         }
       />
       <StatChartCard
-        value="+15%"
-        label="FPS Stability"
+        value="More Stable"
+        label="Frame Consistency"
         accent="violet"
         beforeColor="#f472b6"
         afterColor="#818cf8"
@@ -263,8 +263,8 @@ export function LandingStatsCharts() {
         }
       />
       <StatChartCard
-        value="+22%"
-        label="1% Low FPS Gain"
+        value="Less Stutter"
+        label="Worst-Case Frames"
         accent="amber"
         beforeColor="#94a3b8"
         afterColor="#fbbf24"

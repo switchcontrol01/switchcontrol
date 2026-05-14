@@ -1,11 +1,12 @@
-import { 
-  userSettings, 
-  appliedTweaks, 
-  historyEntries, 
+import {
+  userSettings,
+  appliedTweaks,
+  historyEntries,
   aiScans,
   users,
   adminLogs,
-  type UserSettings, 
+  stripeWebhookEvents,
+  type UserSettings,
   type InsertUserSettings,
   type AppliedTweak,
   type InsertAppliedTweak,
@@ -16,6 +17,8 @@ import {
   type User,
   type AdminLog,
   type InsertAdminLog,
+  type StripeWebhookEvent,
+  type InsertStripeWebhookEvent,
 } from "@shared/schema";
 import { db, isNoDbMode } from "./db";
 import { eq, desc, and, ilike, or, count, sql as drizzleSql } from "drizzle-orm";
@@ -25,6 +28,8 @@ export interface ListUsersOpts {
   offset?: number;
   search?: string;
   plan?: string;
+  stripeCustomerId?: string;
+  deviceId?: string;
 }
 
 export interface SetPlanOpts {
@@ -78,6 +83,22 @@ export interface IStorage {
   setUserAdmin(userId: string, isAdmin: boolean): Promise<User>;
   addAdminLog(log: Omit<InsertAdminLog, "id" | "createdAt">): Promise<AdminLog>;
   getAdminLogs(opts: { targetUserId?: string; limit?: number; offset?: number }): Promise<AdminLog[]>;
+
+  // Admin stats & operations
+  getAdminStats(): Promise<{
+    totalUsers: number;
+    premiumUsers: number;
+    trialUsers: number;
+    freeUsers: number;
+    adminCount: number;
+    deviceLockedUsers: number;
+    totalStripeEvents: number;
+  }>;
+  getTrialsExpiring(hours: number): Promise<User[]>;
+
+  // Stripe webhook events
+  addStripeWebhookEvent(event: Omit<InsertStripeWebhookEvent, "id" | "processedAt">): Promise<StripeWebhookEvent>;
+  getStripeWebhookEvents(limit?: number, offset?: number): Promise<StripeWebhookEvent[]>;
 }
 
 class MockStorage implements IStorage {
@@ -282,6 +303,30 @@ class MockStorage implements IStorage {
   async getAdminLogs(opts: { targetUserId?: string; limit?: number; offset?: number }): Promise<AdminLog[]> {
     return [];
   }
+
+  async getAdminStats(): Promise<any> {
+    return {
+      totalUsers: 0,
+      premiumUsers: 0,
+      trialUsers: 0,
+      freeUsers: 0,
+      adminCount: 0,
+      deviceLockedUsers: 0,
+      totalStripeEvents: 0,
+    };
+  }
+
+  async getTrialsExpiring(_hours: number): Promise<User[]> {
+    return [];
+  }
+
+  async addStripeWebhookEvent(_event: Omit<InsertStripeWebhookEvent, "id" | "processedAt">): Promise<StripeWebhookEvent> {
+    throw new Error("Database not available in NO-DB mode");
+  }
+
+  async getStripeWebhookEvents(_limit?: number, _offset?: number): Promise<StripeWebhookEvent[]> {
+    return [];
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -477,6 +522,19 @@ export class DatabaseStorage implements IStorage {
         and(
           or(eq(users.plan, "free"), drizzleSql`${users.plan} IS NULL`),
           eq(users.isPremium, false)
+        )
+      );
+    }
+
+    if (opts.stripeCustomerId) {
+      conditions.push(eq(users.stripeCustomerId, opts.stripeCustomerId));
+    }
+
+    if (opts.deviceId) {
+      conditions.push(
+        or(
+          eq(users.premiumBoundDeviceId, opts.deviceId),
+          eq(users.premiumLastSeenDeviceId, opts.deviceId)
         )
       );
     }
@@ -700,6 +758,100 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
+  }
+
+  // ─── Admin stats & operations ─────────────────────────────────────────────
+
+  async getAdminStats(): Promise<{
+    totalUsers: number;
+    premiumUsers: number;
+    trialUsers: number;
+    freeUsers: number;
+    adminCount: number;
+    deviceLockedUsers: number;
+    totalStripeEvents: number;
+  }> {
+    const [{ totalUsers }] = await db!
+      .select({ totalUsers: count() })
+      .from(users);
+
+    const [{ premiumUsers }] = await db!
+      .select({ premiumUsers: count() })
+      .from(users)
+      .where(or(eq(users.plan, "premium"), eq(users.isPremium, true)));
+
+    const [{ trialUsers }] = await db!
+      .select({ trialUsers: count() })
+      .from(users)
+      .where(eq(users.plan, "trial"));
+
+    const [{ freeUsers }] = await db!
+      .select({ freeUsers: count() })
+      .from(users)
+      .where(
+        and(
+          or(eq(users.plan, "free"), drizzleSql`${users.plan} IS NULL`),
+          eq(users.isPremium, false)
+        )
+      );
+
+    const [{ adminCount }] = await db!
+      .select({ adminCount: count() })
+      .from(users)
+      .where(eq(users.isAdmin, true));
+
+    const [{ deviceLockedUsers }] = await db!
+      .select({ deviceLockedUsers: count() })
+      .from(users)
+      .where(drizzleSql`${users.premiumBoundDeviceId} IS NOT NULL`);
+
+    const [{ totalStripeEvents }] = await db!
+      .select({ totalStripeEvents: count() })
+      .from(stripeWebhookEvents);
+
+    return {
+      totalUsers: Number(totalUsers),
+      premiumUsers: Number(premiumUsers),
+      trialUsers: Number(trialUsers),
+      freeUsers: Number(freeUsers),
+      adminCount: Number(adminCount),
+      deviceLockedUsers: Number(deviceLockedUsers),
+      totalStripeEvents: Number(totalStripeEvents),
+    };
+  }
+
+  async getTrialsExpiring(hours: number): Promise<User[]> {
+    const cutoff = new Date(Date.now() + hours * 3600_000);
+    return db!
+      .select()
+      .from(users)
+      .where(
+        and(
+          eq(users.plan, "trial"),
+          drizzleSql`${users.trialEndsAt} <= ${cutoff}`,
+          drizzleSql`${users.trialEndsAt} > NOW()`
+        )
+      )
+      .orderBy(users.trialEndsAt);
+  }
+
+  // ─── Stripe webhook events ──────────────────────────────────────────────────
+
+  async addStripeWebhookEvent(event: Omit<InsertStripeWebhookEvent, "id" | "processedAt">): Promise<StripeWebhookEvent> {
+    const [created] = await db!
+      .insert(stripeWebhookEvents)
+      .values(event)
+      .returning();
+    return created;
+  }
+
+  async getStripeWebhookEvents(limit = 20, offset = 0): Promise<StripeWebhookEvent[]> {
+    return db!
+      .select()
+      .from(stripeWebhookEvents)
+      .orderBy(desc(stripeWebhookEvents.processedAt))
+      .limit(limit)
+      .offset(offset);
   }
 }
 

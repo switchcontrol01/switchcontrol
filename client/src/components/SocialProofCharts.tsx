@@ -133,10 +133,10 @@ function CustomTooltip({ active, payload }: any) {
         <div key={p.dataKey} className="flex items-center gap-2 py-0.5">
           <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
           <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "10px" }}>
-            {p.dataKey === "fps" ? "FPS Improvement" : p.dataKey === "latency" ? "Latency Reduction" : "Input Delay"}
+            {p.dataKey === "fps" ? "Frame Consistency" : p.dataKey === "latency" ? "Network Feel" : "Input Feel"}
           </span>
           <span className="ml-2 font-bold" style={{ color: p.color }}>
-            {p.dataKey === "fps" ? `+${p.value}%` : `-${p.value}ms`}
+            Trending
           </span>
         </div>
       ))}
@@ -213,9 +213,9 @@ export function SocialProofCharts() {
     <div ref={ref} className="mt-12">
       {/* ── Three mini sparkline cards ── */}
       <div className="grid grid-cols-3 gap-3 mb-5">
-        <MetricMini label="FPS Improvement"  value="+22%" accentColor="#34d399" sparkData={fpsSpark}   animDelay="0ms"   inView={inView} />
-        <MetricMini label="Latency Reduction" value="−12ms" accentColor="#22d3ee" sparkData={latSpark}   animDelay="80ms"  inView={inView} />
-        <MetricMini label="Input Delay"       value="−8ms"  accentColor="#818cf8" sparkData={inputSpark} animDelay="160ms" inView={inView} />
+        <MetricMini label="Smoother Frames"  value="Stable" accentColor="#34d399" sparkData={fpsSpark}   animDelay="0ms"   inView={inView} />
+        <MetricMini label="Tighter Input" value="Responsive" accentColor="#22d3ee" sparkData={latSpark}   animDelay="80ms"  inView={inView} />
+        <MetricMini label="Network Feel"       value="Consistent"  accentColor="#818cf8" sparkData={inputSpark} animDelay="160ms" inView={inView} />
       </div>
 
       {/* ── Main timeline chart ── */}
@@ -236,9 +236,9 @@ export function SocialProofCharts() {
           </div>
           <div className="flex flex-col gap-1.5 items-end">
             {[
-              { color: "#34d399", label: "FPS gain",   value: "+22%" },
-              { color: "#22d3ee", label: "Latency",    value: "−12ms" },
-              { color: "#818cf8", label: "Input delay", value: "−8ms" },
+              { color: "#34d399", label: "Frame pacing",   value: "Stable" },
+              { color: "#22d3ee", label: "Input feel",    value: "Tighter" },
+              { color: "#818cf8", label: "Network", value: "Consistent" },
             ].map(({ color, label, value }) => (
               <div key={label} className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />

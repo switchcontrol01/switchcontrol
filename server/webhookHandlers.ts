@@ -4,6 +4,7 @@ import { db } from './db';
 import { users } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import { isEventAlreadyProcessed, markEventProcessed } from './lib/stripeEventStore';
+import { storage } from './storage';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -42,6 +43,17 @@ export class WebhookHandlers {
     } else {
       event = JSON.parse(payload.toString()) as Stripe.Event;
       console.warn(`[Stripe] Webhook parsed WITHOUT signature verification: type=${event.type} id=${event.id}`);
+    }
+
+    // Persist every webhook event for admin visibility (async, non-blocking)
+    try {
+      await storage.addStripeWebhookEvent({
+        eventId: event.id,
+        eventType: event.type,
+        payload: event as any,
+      });
+    } catch (err: any) {
+      console.warn(`[Stripe] Failed to persist webhook event to DB: ${err.message}`);
     }
 
     switch (event.type) {

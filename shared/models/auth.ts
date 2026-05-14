@@ -79,7 +79,18 @@ export const adminLogs = pgTable("admin_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Stripe webhook events log — persisted for admin visibility
+export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  eventId: varchar("event_id").notNull(),
+  eventType: text("event_type").notNull(),
+  payload: jsonb("payload").notNull(),
+  processedAt: timestamp("processed_at").defaultNow(),
+});
+
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
 export type AdminLog = typeof adminLogs.$inferSelect;
 export type InsertAdminLog = typeof adminLogs.$inferInsert;
+export type StripeWebhookEvent = typeof stripeWebhookEvents.$inferSelect;
+export type InsertStripeWebhookEvent = typeof stripeWebhookEvents.$inferInsert;

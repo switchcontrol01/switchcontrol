@@ -395,7 +395,7 @@ const CONFIDENCE_POINTS = [65, 68, 72, 69, 74, 78, 76, 80, 77, 82, 80, 84, 82, 8
 
 const MESSAGES = [
   { from: 'user', text: 'How do I reduce input lag?' },
-  { from: 'ai',   text: 'Enable Game Mode + disable HPET. Expected: −3ms input latency.' },
+  { from: 'ai',   text: 'Enable Game Mode + disable HPET. These reduce hidden system delays that can make input feel less responsive.' },
 ];
 
 function AiAdvisorPreview() {
