@@ -19,7 +19,7 @@
 
 'use strict';
 
-const { exec } = require('child_process');
+const { execFile } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { APPDATA_DIR } = require('./user-data-paths');
@@ -330,7 +330,9 @@ async function scan() {
     return scanResult;
   } catch (err) {
     console.error('[ProcessControl:Scan] error:', err.message);
-    return _safeEmptyResult();
+    const empty = _safeEmptyResult();
+    empty.error = err.message;
+    return empty;
   } finally {
     _scanInFlight = false;
   }
@@ -353,9 +355,13 @@ function _safeEmptyResult() {
 
 function _runPowerShell(cmd, timeoutMs = 15_000) {
   return new Promise((resolve, reject) => {
-    const child = exec(`powershell -NoProfile -NonInteractive -Command "${cmd.replace(/"/g, '\\"')}"`, {
+    execFile('powershell', [
+      '-NoProfile', '-NonInteractive', '-WindowStyle', 'Hidden',
+      '-ExecutionPolicy', 'Bypass', '-Command', cmd,
+    ], {
       timeout: timeoutMs,
       maxBuffer: 10 * 1024 * 1024,
+      windowsHide: true,
     }, (err, stdout, stderr) => {
       if (err) return reject(err);
       resolve({ stdout: stdout.trim(), stderr: stderr.trim() });

@@ -1302,6 +1302,9 @@ ipcMain.handle('app:openLogs', async () => {
 ipcMain.handle("processControl:scan", async () => {
   try {
     const result = await processControl.scan();
+    if (result.error) {
+      return { success: false, error: result.error, data: result };
+    }
     return { success: true, data: result };
   } catch (err) {
     console.error("[ProcessControl] scan error:", err.message);

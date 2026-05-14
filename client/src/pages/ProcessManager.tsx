@@ -146,11 +146,12 @@ export default function ProcessManager() {
       const api = (window as any).electronAPI;
       if (api?.processControl?.scan) {
         const res = await api.processControl.scan();
-        if (res.success && res.data) {
+        if (res.success && res.data && !res.data.error) {
           setScanResult(res.data);
           toast({ title: `Found ${res.data.totalProcesses} processes`, variant: "default" });
         } else {
-          toast({ title: "Scan failed", description: res.error || "Unknown error", variant: "destructive" });
+          setScanResult(null);
+          toast({ title: "Scan failed", description: res.error || res.data?.error || "PowerShell execution failed — check console", variant: "destructive" });
         }
       } else {
         // Web fallback — simulated data
@@ -160,6 +161,7 @@ export default function ProcessManager() {
         toast({ title: `Found ${fake.totalProcesses} processes (simulated)`, variant: "default" });
       }
     } catch (err: any) {
+      setScanResult(null);
       toast({ title: "Scan error", description: err?.message || "Failed to scan", variant: "destructive" });
     } finally {
       setScanning(false);
