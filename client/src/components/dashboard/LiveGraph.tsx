@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "@/lib/motionTokens";
 import { GlassCard } from "@/components/ui/glass-card";
 import { Activity, Info, Maximize2, Minimize2, Zap } from "lucide-react";
 import {
@@ -10,6 +11,48 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useLiveTelemetry } from "@/hooks/useLiveTelemetry";
 import { computeGraphStability } from "@/lib/systemStateEngine";
+
+// ── Persistent cross-mount cache (survives React unmount/remount) ─────────────
+
+const CACHE_MAX_AGE_MS = 20_000;
+const CACHE_TRIM_KEEP = 3;
+
+interface LiveGraphCache {
+  points: DataPoint[];
+  latest: LatestState | null;
+  lastUpdated: number;
+  gpuDetected: boolean;
+}
+
+let liveGraphCache: LiveGraphCache = {
+  points: [],
+  latest: null,
+  lastUpdated: 0,
+  gpuDetected: false,
+};
+
+function writeCache(points: DataPoint[], latest: LatestState | null, gpuDetected: boolean) {
+  liveGraphCache = { points: [...points], latest: latest ? { ...latest } : null, lastUpdated: Date.now(), gpuDetected };
+}
+
+function readCache(): LiveGraphCache {
+  const age = Date.now() - liveGraphCache.lastUpdated;
+  if (age > CACHE_MAX_AGE_MS && liveGraphCache.points.length > CACHE_TRIM_KEEP) {
+    const trimmed = liveGraphCache.points.slice(-CACHE_TRIM_KEEP);
+    if (process.env.NODE_ENV === "development") {
+      console.log("[LiveGraph] stale cache trimmed", { from: liveGraphCache.points.length, to: trimmed.length, ageMs: age });
+    }
+    liveGraphCache = { ...liveGraphCache, points: trimmed };
+  }
+  return liveGraphCache;
+}
+
+function devLog(label: string, data?: unknown) {
+  if (process.env.NODE_ENV === "development") {
+    if (data !== undefined) console.log(`[LiveGraph] ${label}`, data);
+    else console.log(`[LiveGraph] ${label}`);
+  }
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -290,6 +333,13 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   // soloMetric: when set, other lines are dimmed — click pill to solo, click same to reset
   const [soloMetric, setSoloMetric] = useState<keyof MetricToggles | null>(null);
 
+  // ── Smooth entry animation state ───────────────────────────────────────────
+  const [hasEntered, setHasEntered] = useState(false);
+  // Reconnection indicator: true when we have cached data but no fresh point yet
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  // One-shot line animation — only on first paint with real data
+  const hasAnimatedInRef = useRef(false);
+
   function toggle(key: keyof MetricToggles) {
     setSoloMetric(prev => {
       if (prev === key) return null;
@@ -302,6 +352,8 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
     if (soloMetric == null) return 1;
     return soloMetric === key ? 1 : 0.12;
   }
+  // One-shot animation: only on first data paint after mount
+  const shouldAnimate = !hasAnimatedInRef.current && data.length > 2;
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
@@ -310,6 +362,50 @@ export function LiveGraph({ onTelemetryUpdate, selectedDiskMount }: LiveGraphPro
   onTelemetryUpdateRef.current = onTelemetryUpdate;
   const selectedDiskMountRef = useRef(selectedDiskMount);
   selectedDiskMountRef.current = selectedDiskMount;
+  const freshPointArrivedRef = useRef(false);
+
+  // ── Hydrate from cross-mount cache on first render ─────────────────────────
+  useEffect(() => {
+    const cache = readCache();
+    if (cache.points.length > 0) {
+      devLog("hydrated cached points", { count: cache.points.length, ageMs: Date.now() - cache.lastUpdated });
+      setData(cache.points);
+      if (cache.latest) setLatest(cache.latest);
+      if (cache.gpuDetected) {
+        gpuDetectedRef.current = true;
+        setGpuEverDetected(true);
+      }
+      setIsReconnecting(true);
+    }
+    // Trigger entry animation frame
+    requestAnimationFrame(() => setHasEntered(true));
+  }, []);
+
+  // Track when a fresh point arrives so we can hide "Reconnecting…"
+  useEffect(() => {
+    if (data.length > 0 && freshPointArrivedRef.current) {
+      setIsReconnecting(false);
+    }
+  }, [data]);
+
+  // Mark animated-in once data paints for the first time
+  useEffect(() => {
+    if (shouldAnimate) {
+      hasAnimatedInRef.current = true;
+    }
+  }, [shouldAnimate]);
+
+  // Write to cache whenever data or latest changes (except on the very first frame)
+  const cacheWriteLockRef = useRef(true);
+  useEffect(() => {
+    if (cacheWriteLockRef.current) {
+      cacheWriteLockRef.current = false;
+      return;
+    }
+    if (data.length > 0) {
+      writeCache(data, latest, gpuDetectedRef.current);
+    }
+  }, [data, latest]);
 
   // Low-end detection — updated every render so callbacks always see fresh value
   const isLowEndRef = useRef(false);

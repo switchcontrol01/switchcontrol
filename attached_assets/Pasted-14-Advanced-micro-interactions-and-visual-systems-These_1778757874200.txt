@@ -1,0 +1,138 @@
+14. Advanced micro-interactions and visual systems
+
+These are NOT optional polish. These are what make the cleaner feel intelligent and alive.
+
+A. Micro-interactions (global)
+Every user action must respond visually:
+- hover → lift + glow
+- click → compress + ripple
+- toggle → fluid slide + color transition
+- select item → soft glow + scale 1.01
+- deselect → fade + shrink
+
+Rules:
+- duration: 120ms–220ms
+- use transform + opacity only
+- never block input
+- no lag, no bounce spam
+
+---
+
+B. Category Weight Rings (NEW)
+
+Inside CleanerStatsGrid or CleanerRadialChart:
+
+Each category gets a mini ring showing:
+- its % of total junk
+- its selected % vs total
+
+Behavior:
+- fills after scan
+- animates smoothly (no snapping)
+- glow intensity based on size
+
+Purpose:
+User instantly sees:
+“What’s actually taking space?”
+
+---
+
+C. Risk Visualization (VERY IMPORTANT)
+
+Each item and category must have visual risk:
+
+Safe:
+- soft cyan/green glow
+Moderate:
+- amber pulse edge
+Risky:
+- subtle red edge + warning icon
+
+Also:
+Add a small risk meter in CleanerActionPanel:
+- “Safe to clean: 92%”
+- “Admin required: 8%”
+
+Purpose:
+User trusts the system without reading paragraphs.
+
+---
+
+D. System Map (NEW CORE FEATURE)
+
+Create a lightweight visual “map” of system junk:
+
+Options:
+- horizontal segmented bar OR
+- node-based cluster (simple, not heavy)
+
+Segments:
+- System
+- Temp
+- Cache
+- Logs
+- Apps
+
+Behavior:
+- fills after scan
+- clicking segment filters categories
+- hover highlights related items
+
+Rules:
+- no canvas heavy physics
+- use simple div-based layout
+
+Purpose:
+Gives spatial understanding instead of list reading.
+
+---
+
+E. Cleanup Impact Timeline (CRITICAL)
+
+Inside CleanerProgressTimeline:
+
+Show real-time progress:
+- Preparing
+- Cleaning temp
+- Cleaning cache
+- Cleaning logs
+- Verifying
+
+Each step:
+- lights up
+- progress bar advances
+- previous steps lock in
+
+After complete:
+- full bar glow
+- success state pulse
+
+Purpose:
+Feels like an actual system operation, not a button click.
+
+---
+
+F. Pressure Meter (HIGH VALUE, LOW COST)
+
+Add a simple horizontal meter:
+
+Label:
+“System Pressure”
+
+Based on:
+- total junk size
+- number of junk items
+- RAM pressure (optional)
+
+States:
+- Low (green)
+- Medium (amber)
+- High (red)
+
+Behavior:
+- animates after scan
+- drops after cleaning
+
+Purpose:
+Gives emotional feedback:
+“My system is stressed” → “now it’s clean”
