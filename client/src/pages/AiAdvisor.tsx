@@ -1551,6 +1551,7 @@ export default function AiAdvisor() {
     cancelReveal();
     clearStore();
     setLoading(false);
+    setIsStreaming(false);
     setInput("");
     setAttachedImage(null);
     setImageError(null);
