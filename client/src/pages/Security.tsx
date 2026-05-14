@@ -1045,14 +1045,20 @@ export default function Security() {
 
   const runDefenderAction = useCallback(async (type: "quickScan" | "updateSignatures") => {
     if (!hasSecurity || defenderAction?.status === "running") return;
+    console.log(`[Security] ${type === "quickScan" ? "Quick Scan" : "Update Sigs"} clicked`);
     setDefenderAction({ type, status: "running" });
     try {
       const r = await (eAPI() as any).security.runDefenderAction(type);
-      setDefenderAction({ type, status: r?.ok ? "done" : "error" });
-      if (r?.ok && type === "updateSignatures") {
+      console.log(`[Security] result:`, r);
+      const ok = r?.ok === true;
+      const restricted = r?.restricted === true;
+      setDefenderAction({ type, status: ok ? "done" : "error" });
+
+      if (ok && type === "updateSignatures") {
         setTimeout(() => refreshAdvanced(), 2000);
       }
-    } catch (_) {
+    } catch (err: any) {
+      console.error(`[Security] runDefenderAction error (${type}):`, err?.message ?? err);
       setDefenderAction({ type, status: "error" });
     }
     setTimeout(() => setDefenderAction(null), 3000);

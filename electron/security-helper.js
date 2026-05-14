@@ -7,6 +7,8 @@
 const { ipcMain, shell } = require('electron');
 const { execFile } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 
 // ---------------------------------------------------------------------------
 // PowerShell helper
@@ -805,27 +807,68 @@ ipcMain.handle('security:setDefenderOption', async (_event, option, enabled) => 
 // ---------------------------------------------------------------------------
 
 ipcMain.handle('security:runDefenderAction', async (_event, action) => {
-  if (process.platform !== 'win32') return { ok: false, reason: 'not-windows' };
+  if (process.platform !== 'win32') return { ok: false, restricted: false, message: 'Defender actions require Windows.' };
 
-  let cmd = '';
+  let cmdlet = '';
+  let friendly = '';
   switch (action) {
     case 'quickScan':
-      cmd = `Start-MpScan -ScanType QuickScan -EA SilentlyContinue; Write-Output 'ok'`;
+      cmdlet = 'Start-MpScan';
+      friendly = 'Quick Scan';
       break;
     case 'updateSignatures':
-      cmd = `Update-MpSignature -EA SilentlyContinue; Write-Output 'ok'`;
+      cmdlet = 'Update-MpSignature';
+      friendly = 'Signature Update';
       break;
     default:
-      return { ok: false, error: 'Unknown action' };
+      return { ok: false, restricted: false, message: 'Unknown action.' };
   }
 
+  // Run the cmdlet with full error capture; do NOT append Write-Output afterwards.
+  // We stream the cmdlet output to a temp file and check its success state.
+  const tmpFile = path.join(os.tmpdir(), `sc_defender_${action}_${Date.now()}.json`);
+  const psCmd = `
+    $result = @{ success = $false; restricted = $false; message = ''; error = '' }
+    try {
+      ${cmdlet} -ErrorAction Stop
+      $result.success = $true
+      $result.message = '${friendly} completed.'
+    } catch {
+      $msg = $_.Exception.Message
+      $result.error = $msg
+      $result.message = $msg
+      # "The operation is restricted" or "administrator has disabled" → policy-managed
+      if ($msg -match 'restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|No operation can be performed|0x800704ec|0x800706ba|0x80070005|Tamper') {
+        $result.restricted = $true
+        $result.message = 'Defender is restricted by policy or managed by your IT team. This action cannot be run.'
+      }
+    }
+    $result | ConvertTo-Json -Compress | Set-Content '${tmpFile.replace(/\\/g, '\\\\')}' -Encoding UTF8
+  `;
+
   try {
-    await runPowerShell(cmd, 60000);
-    console.log(`[Security] runDefenderAction action=${action} → ok`);
-    return { ok: true };
+    await runPowerShell(psCmd, 60000);
+    const raw = fs.readFileSync(tmpFile, 'utf8');
+    try { fs.unlinkSync(tmpFile); } catch (_) {}
+    const out = JSON.parse(raw);
+    console.log(`[Security] runDefenderAction action=${action} →`, out);
+    return {
+      ok: !!out.success,
+      restricted: !!out.restricted,
+      message: out.message || out.error || 'Unknown result',
+    };
   } catch (err) {
-    console.warn(`[Security] runDefenderAction ERROR: ${err?.message}`);
-    return { ok: false, error: err?.message };
+    try { fs.unlinkSync(tmpFile); } catch (_) {}
+    const msg = err?.message || String(err);
+    console.warn(`[Security] runDefenderAction ERROR action=${action}:`, msg);
+    const restricted = /restricted|disabled by your administrator|access is denied|not recognized|cannot be loaded|is not installed|does not exist|access denied|0x800704ec|0x800706ba|0x80070005|Tamper/i.test(msg);
+    return {
+      ok: false,
+      restricted,
+      message: restricted
+        ? 'Defender is restricted by policy or managed by your IT team. This action cannot be run.'
+        : msg,
+    };
   }
 });
 
