@@ -1,10 +1,31 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-const BLUR_CLASS: Record<string, string> = {
-  xl:   "backdrop-blur-xl",
-  sm:   "backdrop-blur-sm",
-  none: "backdrop-blur-none",
+/* ── SwitchControl v2 Card System ──
+   Three card types only:
+   • PrimaryCard   — main dashboard modules, most depth
+   • SecondaryCard — supporting panels, flatter
+   • UtilityCard   — small stats, labels, quick actions
+
+   Rules:
+   • No default glow
+   • No gradient backgrounds
+   • Hover lift only (translateY + subtle shadow)
+   • Backdrop blur only for modals/overlays
+*/
+
+type CardVariant = "primary" | "secondary" | "utility";
+
+const VARIANT_STYLES: Record<CardVariant, string> = {
+  primary:
+    "bg-[#21262D] border border-[#2A313A] rounded-2xl " +
+    "shadow-[0_2px_12px_rgba(0,0,0,0.20)]",
+  secondary:
+    "bg-[#1A1F26] border border-[#2A313A]/80 rounded-xl " +
+    "shadow-[0_1px_8px_rgba(0,0,0,0.15)]",
+  utility:
+    "bg-[#21262D] border border-[#2A313A]/60 rounded-lg " +
+    "shadow-[0_1px_4px_rgba(0,0,0,0.12)]",
 };
 
 const GlassCard = React.forwardRef<
@@ -12,17 +33,18 @@ const GlassCard = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement> & {
     hoverEffect?: boolean;
     blur?: "xl" | "sm" | "none";
+    variant?: CardVariant;
   }
->(({ className, hoverEffect = true, blur = "sm", ...props }, ref) => (
+>(({ className, hoverEffect = true, blur = "none", variant = "primary", ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-xl border border-white/[0.08] bg-white/[0.03] shadow-[0_4px_24px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)]",
-      BLUR_CLASS[blur],
+      VARIANT_STYLES[variant],
+      blur !== "none" && (blur === "xl" ? "backdrop-blur-xl" : "backdrop-blur-sm"),
       hoverEffect && [
-        "transition-[transform,box-shadow,border-color,background-color] duration-250 ease-out",
-        "hover:-translate-y-1 hover:shadow-[0_12px_40px_rgba(139,92,246,0.15),0_4px_16px_rgba(0,0,0,0.3),inset_0_1px_0_rgba(255,255,255,0.10)]",
-        "hover:border-white/[0.14] hover:bg-white/[0.055]",
+        "transition-[transform,box-shadow,border-color,background-color] duration-200 ease-out",
+        "hover:-translate-y-0.5 hover:shadow-[0_4px_20px_rgba(0,0,0,0.30)]",
+        "hover:border-[#3A414D] hover:bg-[#2A313A]",
       ],
       className
     )}
@@ -31,4 +53,23 @@ const GlassCard = React.forwardRef<
 ))
 GlassCard.displayName = "GlassCard"
 
-export { GlassCard }
+/* Convenience wrappers */
+const PrimaryCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { hoverEffect?: boolean }
+>((props, ref) => <GlassCard ref={ref} variant="primary" {...props} />);
+PrimaryCard.displayName = "PrimaryCard";
+
+const SecondaryCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { hoverEffect?: boolean }
+>((props, ref) => <GlassCard ref={ref} variant="secondary" {...props} />);
+SecondaryCard.displayName = "SecondaryCard";
+
+const UtilityCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { hoverEffect?: boolean }
+>((props, ref) => <GlassCard ref={ref} variant="utility" {...props} />);
+UtilityCard.displayName = "UtilityCard";
+
+export { GlassCard, PrimaryCard, SecondaryCard, UtilityCard }

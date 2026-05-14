@@ -35,7 +35,7 @@ export const StatCard = memo(function StatCard({
   loading = false,
 }: StatCardProps) {
   return (
-    <GlassCard blur="none" className={cn("relative overflow-hidden group", className)}>
+    <GlassCard blur="none" className={cn("relative overflow-hidden", className)}>
       <style>{`
         @keyframes sc-shimmer {
           0%   { background-position: -200% center; }
@@ -44,9 +44,9 @@ export const StatCard = memo(function StatCard({
         .sc-shimmer {
           background: linear-gradient(
             90deg,
-            rgba(255,255,255,0.04) 25%,
-            rgba(255,255,255,0.10) 50%,
-            rgba(255,255,255,0.04) 75%
+            rgba(255,255,255,0.03) 25%,
+            rgba(255,255,255,0.07) 50%,
+            rgba(255,255,255,0.03) 75%
           );
           background-size: 200% auto;
           border-radius: 5px;
@@ -54,9 +54,9 @@ export const StatCard = memo(function StatCard({
         }
       `}</style>
 
-      <div className="p-6">
+      <div className="p-5">
         <div className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <div className="text-sm font-medium text-muted-foreground group-hover:text-white/80 transition-colors">
+          <div className="text-sm font-medium text-[#A0A8B3]">
             {title}
           </div>
           {onIconClick ? (
@@ -68,10 +68,10 @@ export const StatCard = memo(function StatCard({
               className="cursor-pointer hover:scale-125 active:scale-95 transition-transform duration-200"
               data-testid="button-icon-click"
             >
-              <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+              <Icon className="h-4 w-4 text-[#6B7380]" />
             </div>
           ) : (
-            <Icon className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors duration-300" />
+            <Icon className="h-4 w-4 text-[#6B7380]" />
           )}
         </div>
 
@@ -85,13 +85,13 @@ export const StatCard = memo(function StatCard({
                 </>
               ) : (
                 <>
-                  <div className="text-2xl font-bold font-data tracking-tight text-white drop-shadow-sm tabular-nums">
+                  <div className="text-2xl font-bold font-data tracking-tight text-[#E6EAF0] tabular-nums">
                     {value}
-                    {unit && <span className="text-sm font-normal text-muted-foreground ml-1 tabular-nums">{unit}</span>}
-                    {total && <span className="text-sm font-normal text-muted-foreground ml-1 tabular-nums">/ {total} {unit}</span>}
+                    {unit && <span className="text-sm font-normal text-[#6B7380] ml-1 tabular-nums">{unit}</span>}
+                    {total && <span className="text-sm font-normal text-[#6B7380] ml-1 tabular-nums">/ {total} {unit}</span>}
                   </div>
                   {subtext && (
-                    <p className="text-xs text-muted-foreground font-medium truncate max-w-[140px]">
+                    <p className="text-xs text-[#6B7380] font-medium truncate max-w-[140px]">
                       {subtext}
                     </p>
                   )}
@@ -104,7 +104,7 @@ export const StatCard = memo(function StatCard({
                 variant="outline"
                 size="sm"
                 onClick={onAction}
-                className="h-7 text-xs bg-white/5 border-primary/20 hover:bg-primary/10 hover:text-primary hover:border-primary/50 transition-all duration-300 relative z-10"
+                className="h-7 text-xs relative z-10"
               >
                 {actionLabel}
               </Button>
@@ -118,9 +118,9 @@ export const StatCard = memo(function StatCard({
               ) : (
                 <>
                   <Progress value={progress} className="h-1.5" />
-                  <div className="flex justify-between text-[10px] uppercase font-medium text-muted-foreground tracking-wider">
+                  <div className="flex justify-between text-[10px] uppercase font-medium text-[#6B7380] tracking-wider">
                     <span>Usage</span>
-                    <span className={cn(progress > 90 ? "text-red-400" : "text-emerald-400")}>{Math.round(progress)}%</span>
+                    <span className={cn(progress > 90 ? "text-[#EF4444]" : progress > 70 ? "text-[#F59E0B]" : "text-[#00D4FF]")}>{Math.round(progress)}%</span>
                   </div>
                 </>
               )}
@@ -128,13 +128,6 @@ export const StatCard = memo(function StatCard({
           )}
         </div>
       </div>
-
-      {/* Decorative glow — static, no hover transition to avoid re-render churn */}
-      <div
-        className="absolute -right-12 -top-12 h-32 w-32 bg-primary/10 rounded-full pointer-events-none"
-        style={{ filter: "blur(48px)" }}
-        aria-hidden="true"
-      />
     </GlassCard>
   );
 });

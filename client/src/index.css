@@ -8,40 +8,51 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
+  /* ── SwitchControl Design System v2 — matte, structured, purposeful ── */
+  --color-sc-bg: #14181D;
+  --color-sc-bg-section: #1A1F26;
+  --color-sc-card: #21262D;
+  --color-sc-card-hover: #2A313A;
+  --color-sc-border: #2A313A;
+  --color-sc-border-soft: rgba(255,255,255,0.06);
+  --color-sc-text: #E6EAF0;
+  --color-sc-text-secondary: #A0A8B3;
+  --color-sc-text-muted: #6B7380;
+  --color-sc-cyan: #00D4FF;
+  --color-sc-cyan-hover: #33E0FF;
+  --color-sc-cyan-glow: rgba(0,212,255,0.20);
+  --color-sc-amber: #F59E0B;
+  --color-sc-amber-hover: #FBBF24;
+  --color-sc-amber-glow: rgba(245,158,11,0.20);
+  --color-sc-red: #EF4444;
+  --color-sc-red-glow: rgba(239,68,68,0.20);
+  --color-sc-green: #34D399;
+
+  /* Legacy shadcn mappings (kept for compatibility during transition) */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  
   --color-card: hsl(var(--card));
   --color-card-foreground: hsl(var(--card-foreground));
-  
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
-  
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
-  
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
-  
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
-  
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
-  
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
-  
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
-  
   --color-chart-1: hsl(var(--chart-1));
   --color-chart-2: hsl(var(--chart-2));
   --color-chart-3: hsl(var(--chart-3));
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
-  
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-primary: hsl(var(--sidebar-primary));
@@ -53,7 +64,7 @@
 
   --font-sans: 'Inter', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
-  
+
   --animate-in: animate-in 0.2s ease-out;
   --animate-out: animate-out 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -63,24 +74,24 @@
    sheets. Ensures no white frame can bleed through at any stage:
    before JS, during hydration, or if paint order is surprising. */
 html {
-  background: #07090D !important;
-  background-color: #07090D !important;
+  background: #14181D !important;
+  background-color: #14181D !important;
   width: 100%;
   margin: 0;
   padding: 0;
 }
 
 body {
-  background: #07090D !important;
-  background-color: #07090D !important;
+  background: #14181D !important;
+  background-color: #14181D !important;
   width: 100%;
   margin: 0;
   padding: 0;
 }
 
 #root {
-  background: #07090D !important;
-  background-color: #07090D !important;
+  background: #14181D !important;
+  background-color: #14181D !important;
 }
 /* ────────────────────────────────────────────────────────────── */
 
@@ -565,62 +576,62 @@ body {
 /* Force Dark Mode */
 :root {
   color-scheme: dark;
-  
-  /* Deep dark background with purple undertone */
-  --background: 260 20% 6%;
-  --foreground: 210 20% 98%;
 
-  /* Cards with subtle purple tint */
-  --card: 260 18% 10%;
-  --card-foreground: 210 20% 98%;
+  /* ── SwitchControl v2 — Matte, structured, purposeful ── */
+  --background: 215 18% 10%;      /* #14181D — main app bg */
+  --foreground: 220 20% 92%;     /* #E6EAF0 — main text */
 
-  /* Popovers */
-  --popover: 260 18% 10%;
-  --popover-foreground: 210 20% 98%;
+  /* Cards — layered matte greys */
+  --card: 215 16% 15%;             /* #21262D — primary card */
+  --card-foreground: 220 20% 92%;
 
-  /* Primary: Purple - Brand identity, premium, intelligence */
-  --primary: 270 60% 55%;
-  --primary-foreground: 210 20% 98%;
+  /* Popovers — slightly elevated */
+  --popover: 215 16% 17%;
+  --popover-foreground: 220 20% 92%;
 
-  /* Secondary: Cyan - Performance, speed, interaction */
-  --secondary: 190 90% 50%;
-  --secondary-foreground: 220 15% 6%;
+  /* Primary: Cyan — active, interactive, action */
+  --primary: 193 100% 50%;
+  --primary-foreground: 210 25% 7%;   /* near-black on cyan */
 
-  /* Muted */
-  --muted: 260 15% 20%;
-  --muted-foreground: 215 20% 65%;
+  /* Secondary: Amber — warning, attention, highlight */
+  --secondary: 38 92% 50%;
+  --secondary-foreground: 210 25% 7%;
 
-  /* Accent: Cyan for interactive elements */
-  --accent: 190 90% 50%;
-  --accent-foreground: 220 15% 6%;
+  /* Muted — section bg, subtle surfaces */
+  --muted: 215 16% 12%;            /* #1A1F26 — section bg */
+  --muted-foreground: 220 12% 55%;  /* #6B7380 — muted text */
 
-  /* Destructive */
-  --destructive: 0 62% 30%;
+  /* Accent: same as primary (cyan) */
+  --accent: 193 100% 50%;
+  --accent-foreground: 210 25% 7%;
+
+  /* Destructive: red — only for actual danger */
+  --destructive: 0 72% 51%;
   --destructive-foreground: 210 20% 98%;
 
-  /* Borders with purple tint */
-  --border: 260 15% 18%;
-  --input: 260 15% 18%;
-  --ring: 270 60% 55%;
+  /* Borders — subtle, structural */
+  --border: 215 14% 17%;           /* #2A313A */
+  --input: 215 14% 17%;
+  --ring: 193 100% 50%;
 
-  /* Charts - performance metrics use cyan */
-  --chart-1: 190 90% 50%;
-  --chart-2: 185 80% 45%;
-  --chart-3: 200 85% 55%;
-  --chart-4: 270 60% 55%;
-  --chart-5: 43 74% 66%;
+  /* Charts — cyan primary, amber secondary */
+  --chart-1: 193 100% 50%;
+  --chart-2: 38 92% 50%;
+  --chart-3: 160 60% 45%;
+  --chart-4: 0 72% 51%;
+  --chart-5: 220 12% 55%;
 
-  /* Sidebar with purple */
-  --sidebar: 260 20% 8%;
-  --sidebar-foreground: 240 5% 96%;
-  --sidebar-primary: 270 60% 55%;
-  --sidebar-primary-foreground: 210 20% 98%;
-  --sidebar-accent: 260 15% 18%;
-  --sidebar-accent-foreground: 240 5% 96%;
-  --sidebar-border: 260 15% 18%;
-  --sidebar-ring: 270 60% 55%;
+  /* Sidebar — same as app bg, matte */
+  --sidebar: 215 18% 10%;
+  --sidebar-foreground: 220 20% 92%;
+  --sidebar-primary: 193 100% 50%;
+  --sidebar-primary-foreground: 210 25% 7%;
+  --sidebar-accent: 215 16% 15%;
+  --sidebar-accent-foreground: 220 20% 92%;
+  --sidebar-border: 215 14% 17%;
+  --sidebar-ring: 193 100% 50%;
 
-  /* Brand purple - primary brand color everywhere */
+  /* Legacy brand colors — keep for gradual migration */
   --brand-purple: 270 60% 55%;
   --brand-purple-light: 270 65% 65%;
   --brand-purple-dark: 270 55% 45%;
