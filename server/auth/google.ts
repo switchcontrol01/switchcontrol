@@ -654,12 +654,23 @@ export function setupGoogleAuth(app: Express): void {
       <div class="progress-gleam"></div>
     </div>
     <p class="opening-label">Launching</p>
+
+    <!-- Manual fallback — shown if protocol redirect is blocked by browser -->
+    <a id="manual-open-btn" href="${deepLink}" style="display:none;margin-top:1.6rem;padding:0.55rem 1.25rem;font-size:0.8125rem;color:#fff;background:rgba(139,92,246,0.20);border:1px solid rgba(168,85,247,0.40);border-radius:0.5rem;text-decoration:none;align-items:center;gap:0.4rem;backdrop-filter:blur(8px);">
+      Open SwitchControl
+    </a>
   </div>
 
   <script>
     (function() {
       var deepLink = ${JSON.stringify(deepLink)};
       try { window.location.href = deepLink; } catch(e) {}
+      // If the protocol redirect doesn't fire (some browsers block it silently),
+      // reveal a manual button after a short delay so the user isn't stuck.
+      setTimeout(function() {
+        var btn = document.getElementById('manual-open-btn');
+        if (btn) btn.style.display = 'inline-flex';
+      }, 1800);
     })();
   </script>
 </body>
@@ -670,11 +681,16 @@ export function setupGoogleAuth(app: Express): void {
     const raw_next = req.query.next as string || '/';
     const next_url = isSafeRedirectUrl(raw_next) ? raw_next : '/';
     const source = req.query.source as string || 'web';
-    
+
     console.log("[AUTH] Google auth initiated - source:", source);
-    
-    // Set cookie to track source (survives OAuth redirect)
-    // path: '/' ensures cookies are sent to /api/auth/google/callback
+
+    // Encode source + next in the OAuth state parameter (RFC 6749).
+    // This is more reliable than cookies because some browsers with privacy/
+    // tracking-protection block SameSite=None cookies on cross-domain redirects.
+    // State is carried in the URL so it always arrives at the callback intact.
+    const statePayload = Buffer.from(JSON.stringify({ source, next: next_url })).toString('base64url');
+
+    // Also set cookies as a belt-and-suspenders fallback for older installs.
     const isElectronBE = process.env.ELECTRON_BACKEND === '1';
     const authCookieOpts = {
       maxAge: 5 * 60 * 1000,
@@ -685,10 +701,11 @@ export function setupGoogleAuth(app: Express): void {
     };
     res.cookie('auth_source', source, authCookieOpts);
     res.cookie('auth_next', next_url, authCookieOpts);
-    
+
     passport.authenticate("google", {
       scope: ["profile", "email"],
-    })(req, res, next);
+      state: statePayload,
+    } as any)(req, res, next);
   });
 
   app.get(
@@ -696,6 +713,21 @@ export function setupGoogleAuth(app: Express): void {
     (req, res, next) => {
       console.log("OAUTH CALLBACK HIT:", req.originalUrl);
       console.log("[AUTH] Cookies received:", req.cookies);
+
+      // Decode source/next from OAuth state parameter before passport consumes it.
+      // State is more reliable than cookies (survives privacy-mode / tracking-protection).
+      try {
+        const rawState = req.query.state as string;
+        if (rawState) {
+          const parsed = JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
+          (req as any)._stateSource = parsed.source || 'web';
+          (req as any)._stateNext = isSafeRedirectUrl(parsed.next) ? parsed.next : '/';
+          console.log("[AUTH] Google state decoded — source:", (req as any)._stateSource);
+        }
+      } catch (e) {
+        console.warn("[AUTH] Google state decode failed:", e);
+      }
+
       if (!clientId || !clientSecret) {
         return res.redirect("/?error=auth_not_configured");
       }
@@ -705,19 +737,19 @@ export function setupGoogleAuth(app: Express): void {
     },
     (req, res, next) => {
       const user = req.user as Express.User;
-      
-      // Read source from cookie
-      const source = req.cookies?.auth_source || 'web';
-      const nextUrl = req.cookies?.auth_next || '/';
-      
+
+      // Prefer state-decoded source (survives any cookie blocking), fall back to cookie.
+      const source = (req as any)._stateSource || req.cookies?.auth_source || 'web';
+      const nextUrl = (req as any)._stateNext || req.cookies?.auth_next || '/';
+
       // Clear the tracking cookies (must match path/secure/sameSite from when they were set)
       const isElectronBE = process.env.ELECTRON_BACKEND === '1';
       const clearOpts = { path: '/', secure: !isElectronBE, sameSite: (isElectronBE ? 'lax' : 'none') as 'lax' | 'none' };
       res.clearCookie('auth_source', clearOpts);
       res.clearCookie('auth_next', clearOpts);
-      
+
       console.log("[AUTH] Google callback - source:", source, "user:", user.id, "sessionID:", req.sessionID);
-      
+
       if (source === 'electron') {
         const code = generateElectronCode(user.id);
         console.log("[AUTH] ===== GOOGLE CALLBACK SUCCESS (ELECTRON) =====");

@@ -3550,6 +3550,23 @@ app.whenReady().then(async () => {
   // This prevents GPU prewarm / PowerShell cold-start from racing with first-paint animations.
   createWindow();
 
+  // ── C-bis. Cold-start deep-link catch (Windows protocol launch when app was not running) ─
+  // On Windows a protocol launch passes the URL as a command-line argument when the app
+  // starts fresh.  The second-instance handler never fires here, so we must capture the URL
+  // from process.argv ourselves.
+  if (process.platform === 'win32') {
+    const coldStartUrl = process.argv.find(arg => arg.startsWith(`${PROTOCOL_NAME}://`));
+    if (coldStartUrl) {
+      verboseLog('[DeepLink] cold-start URL detected in process.argv:', coldStartUrl);
+      // Queue it for delivery after renderer finishes loading.
+      if (isValidDeepLink(coldStartUrl)) {
+        pendingDeepLinkUrl = coldStartUrl;
+      } else {
+        verboseLog('[DeepLink] cold-start URL rejected by validation:', coldStartUrl);
+      }
+    }
+  }
+
   // ── D. Start backend safely (packaged mode only) ──────────────────────────────
   if (!isDev) {
     backendLauncher.startBackend(app).then(result => {
