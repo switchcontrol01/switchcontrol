@@ -2676,7 +2676,7 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   for (const d of drives) {
     const p = `${d}:\\XboxGames`;
     try { await fs.access(p); xboxRoots.push(p); } catch { /* not found */ }
-  }}
+  }
   // Also check user-configured Xbox install dirs from registry (best-effort)
   try {
     const { execFile } = require('child_process');
@@ -2711,7 +2711,7 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
       }
     }
     return null;
-  }}
+  }
 
   // ── Step E source: build running-process map (exeName.lower → directory) ──
   // This is the most reliable fallback: if the game exe is live in memory we
