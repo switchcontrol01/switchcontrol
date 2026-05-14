@@ -24,7 +24,7 @@ const MODULES = [
     icon: Zap,
     description: "38+ system optimizations",
     details: "Registry and system tweaks to reduce latency and improve responsiveness. Each tweak is categorized by impact and risk level.",
-    color: "from-[hsl(270,60%,55%,0.2)] to-[hsl(270,60%,55%,0.1)]",
+    color: "from-[rgba(0,212,255,0.2)] to-[rgba(0,212,255,0.1)]",
     preview: ["Disable Game DVR", "Optimize MMCSS", "Reduce USB Polling"]
   },
   {
@@ -127,8 +127,8 @@ export function ModuleShowcase() {
                 className={cn(
                   "w-full p-3 rounded-xl border transition-all duration-300 text-center group",
                   isActive 
-                    ? `bg-gradient-to-br ${module.color} border-[hsl(270,60%,55%,0.5)] shadow-lg shadow-[hsl(270,60%,55%,0.2)]`
-                    : "bg-[hsl(270,60%,55%,0.03)] border-[hsl(270,60%,55%,0.1)] hover:border-[hsl(270,60%,55%,0.3)] hover:bg-[hsl(270,60%,55%,0.08)]"
+                    ? `bg-gradient-to-br ${module.color} border-[rgba(0,212,255,0.5)] shadow-lg shadow-[rgba(0,212,255,0.2)]`
+                    : "bg-[rgba(0,212,255,0.03)] border-[rgba(0,212,255,0.1)] hover:border-[rgba(0,212,255,0.3)] hover:bg-[rgba(0,212,255,0.08)]"
                 )}
                 data-testid={`module-${module.id}`}
               >

@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 import type { BootApp, StartupCategory } from "./startupUtils";
 
 const CAT_COLORS: Record<StartupCategory, string> = {
-  system:     "#a78bfa", // purple
+  system:     "#00D4FF",
   drivers:    "#22d3ee", // cyan
   userApps:   "#f97316", // orange
   scheduled:  "#4ade80", // green

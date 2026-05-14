@@ -437,7 +437,7 @@ export default function Splash({ onComplete }: SplashProps) {
               <h1 className="text-3xl font-bold tracking-tight select-none" style={{ letterSpacing: "-0.01em" }}>
                 <span className="text-white">Switch</span>
                 <span style={{
-                  background: "linear-gradient(90deg, hsl(270,65%,72%), hsl(192,90%,65%), hsl(318,70%,73%))",
+                  background: "linear-gradient(90deg, #00D4FF, #33E0FF, #00C8F5)",
                   WebkitBackgroundClip: "text",
                   WebkitTextFillColor: "transparent",
                 }}>Control</span>

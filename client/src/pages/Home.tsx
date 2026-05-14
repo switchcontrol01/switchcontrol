@@ -188,17 +188,17 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
       "relative overflow-hidden group h-full transition-all duration-500",
       !isPremium && "opacity-60 blur-[2px]"
     )} data-testid="card-bios-score">
-      <div className="absolute -right-12 -top-12 h-36 w-36 bg-[hsl(270,60%,55%)]/8 blur-3xl rounded-full pointer-events-none group-hover:bg-[hsl(270,60%,55%)]/15 transition-colors duration-500" />
+      <div className="absolute -right-12 -top-12 h-36 w-36 bg-[#00D4FF]/8 blur-3xl rounded-full pointer-events-none group-hover:bg-[#00D4FF]/15 transition-colors duration-500" />
       <div className="absolute top-0 right-0 p-3 z-20">
         {isPremium ? (
-          <Target className="size-4 text-[hsl(270,60%,55%)]" />
+          <Target className="size-4 text-[#00D4FF]" />
         ) : (
           <AnimatedCrown size="sm" tooltipText="Premium feature" />
         )}
       </div>
       <div className="p-6 pb-3">
         <h3 className="text-base font-medium flex items-center gap-2">
-          <Target className="size-4 text-[hsl(270,60%,55%)]" />
+          <Target className="size-4 text-[#00D4FF]" />
           BIOS Score
           {!isPremium && <PremiumBadge className="ml-1" />}
         </h3>
@@ -213,8 +213,8 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
           </div>
         ) : (
           <>
-            <div className="p-3 rounded-lg border bg-[hsl(270,60%,55%)]/10 border-[hsl(270,60%,55%)]/20 text-center">
-              <div className="text-2xl font-bold tabular-nums text-[hsl(270,60%,55%)]" data-testid="text-bios-dashboard-score">
+            <div className="p-3 rounded-lg border bg-[#00D4FF]/10 border-[#00D4FF]/20 text-center">
+              <div className="text-2xl font-bold tabular-nums text-[#00D4FF]" data-testid="text-bios-dashboard-score">
                 {Number.isFinite(scores.competitiveReadiness) ? scores.competitiveReadiness : 0}
               </div>
               <p className="text-[10px] mt-0.5 text-muted-foreground">Readiness Estimate</p>
@@ -250,7 +250,7 @@ function BiosScoreSummaryCard({ isPremium }: { isPremium: boolean }) {
             </div>
           </>
         )}
-        <Button size="sm" className="w-full bg-[hsl(270,60%,55%)]/20 hover:bg-[hsl(270,60%,55%)]/30 text-[hsl(270,60%,55%)] border border-[hsl(270,60%,55%)]/20" data-testid="button-open-bios-advisor" asChild>
+        <Button size="sm" className="w-full bg-[#00D4FF]/15 hover:bg-[#00D4FF]/25 text-[#00D4FF] border border-[#00D4FF]/25 hover:border-[#00D4FF]/40" data-testid="button-open-bios-advisor" asChild>
           <Link href="/bios-advisor">
             <Target className="size-3.5 mr-1.5" />
             {hasScanned && scores ? "View BIOS Analysis" : "Open BIOS Advisor"}
@@ -720,7 +720,7 @@ export default function Home() {
                 icon={Cpu}
                 onIconClick={() => setCpuModalOpen(true)}
                 subtext={`${stats.cpuCores} Cores / ${stats.cpuThreads} Threads`}
-                className="border-[#00D4FF] shadow-[0_0_20px_-10px_hsl(270_100%_50%/0.1)]"
+                className="border-[#00D4FF]/40 shadow-[0_0_20px_-10px_rgba(0,212,255,0.1)]"
                 loading={specStatus === "loading"}
               />
             </div>

@@ -19,7 +19,7 @@ const spring = { type: "spring" as const, stiffness: 320, damping: 28, mass: 0.8
 
 export function HwBadge({
   children,
-  color = "purple",
+  color = "cyan",
 }: {
   children: ReactNode;
   color?: "purple" | "cyan" | "fuchsia" | "amber" | "violet";

@@ -130,7 +130,7 @@ export function CpuCoresModal({ open, onOpenChange, cpuName, coreCount, threadCo
       onOpenChange={onOpenChange}
       title={
         <>
-          <HwBadge color="violet"><Cpu className="size-3.5 text-[#33E0FF]" /></HwBadge>
+          <HwBadge color="cyan"><Cpu className="size-3.5 text-[#00D4FF]" /></HwBadge>
           CPU Core Monitor
         </>
       }

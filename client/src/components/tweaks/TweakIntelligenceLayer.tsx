@@ -39,7 +39,7 @@ function buildSplinePath(pts: Pt[]): string {
   return d;
 }
 
-function Sparkline({ values, color = "hsl(270,65%,65%)", id }: { values: number[]; color?: string; id: string }) {
+function Sparkline({ values, color = "#00D4FF", id }: { values: number[]; color?: string; id: string }) {
   if (values.length < 2) {
     return (
       <div className="w-full h-10 flex items-center justify-center">
@@ -172,8 +172,8 @@ function PostureRadar({ dimensions }: { dimensions: PostureDimension[] }) {
       {/* Filled data polygon — grows outward from centre */}
       <polygon
         points={dataStr}
-        fill="hsl(270,65%,60%,0.15)"
-        stroke="hsl(270,65%,65%)"
+        fill="rgba(0,212,255,0.15)"
+        stroke="#00D4FF"
         strokeWidth={1.5}
         strokeLinejoin="round"
       />
@@ -183,8 +183,8 @@ function PostureRadar({ dimensions }: { dimensions: PostureDimension[] }) {
         const v = vertexAt(i, Math.max(4, d.score) * progress);
         return (
           <circle key={i} cx={v.x} cy={v.y} r={2.5}
-            fill={d.color || "hsl(270,65%,70%)"}
-            style={{ filter: `drop-shadow(0 0 3px ${d.color || "hsl(270,65%,70%)"})` }}
+            fill={d.color || "#00D4FF"}
+            style={{ filter: `drop-shadow(0 0 3px ${d.color || "#00D4FF"})` }}
           />
         );
       })}
@@ -301,7 +301,7 @@ function CategoryBars({ rankings }: { rankings: TweakRanking[] }) {
   const CATEGORY_MAP: Record<string, { label: string; color: string }> = {
     "System and Power":      { label: "System & Power",   color: "hsl(338,75%,58%)" },
     "Memory and Storage":    { label: "Memory & Storage", color: "hsl(45,90%,55%)"  },
-    "Gaming and Latency":    { label: "Gaming & Latency", color: "hsl(270,65%,62%)" },
+    "Gaming and Latency":    { label: "Gaming & Latency", color: "#00D4FF" },
     "Debloat and Apps":      { label: "Debloat & Apps",   color: "hsl(200,80%,55%)" },
     "Privacy and Telemetry": { label: "Privacy",          color: "hsl(152,70%,50%)" },
   };
@@ -624,8 +624,8 @@ export function TweakIntelligenceLayer() {
                     <Sparkline
                       values={cpuHistory}
                       color={intel.cpuLoad >= 75 ? "hsl(0,75%,55%)" :
-                             intel.cpuLoad >= 50 ? "hsl(38,85%,55%)" :
-                             "hsl(270,65%,65%)"}
+                             intel.cpuLoad >= 50 ? "#F59E0B" :
+                             "#00D4FF"}
                       id="cpu-spark"
                     />
                   </div>

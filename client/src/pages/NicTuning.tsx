@@ -119,7 +119,7 @@ const PROPERTY_GROUPS: {
   {
     label: "CPU Distribution & RSS",
     subtitle: "Receive Side Scaling and queue allocation across cores",
-    color: "violet",
+    color: "cyan",
     icon: Server,
     keys: ["RSS", "NumRssQueues"],
   },

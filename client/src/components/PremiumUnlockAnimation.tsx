@@ -73,7 +73,7 @@ export function PremiumUnlockAnimation() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-[hsl(270,60%,15%,0.9)] via-[hsl(260,50%,10%,0.95)] to-[hsl(190,50%,10%,0.9)]" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[rgba(8,14,22,0.95)] via-[rgba(10,16,24,0.98)] to-[rgba(12,20,28,0.95)]" />
 
           <motion.div
             className="absolute inset-0"
@@ -81,11 +81,11 @@ export function PremiumUnlockAnimation() {
             animate={{
               opacity: [0, 0.3, 0.5, 0.3, 0],
               background: [
-                "radial-gradient(circle at 50% 50%, hsl(270 60% 55% / 0) 0%, transparent 50%)",
-                "radial-gradient(circle at 50% 50%, hsl(270 60% 55% / 0.4) 0%, transparent 70%)",
-                "radial-gradient(circle at 50% 50%, hsl(190 90% 50% / 0.3) 0%, transparent 80%)",
-                "radial-gradient(circle at 50% 50%, hsl(270 60% 55% / 0.2) 0%, transparent 60%)",
-                "radial-gradient(circle at 50% 50%, hsl(270 60% 55% / 0) 0%, transparent 50%)",
+                "radial-gradient(circle at 50% 50%, rgba(0,212,255,0) 0%, transparent 50%)",
+                "radial-gradient(circle at 50% 50%, rgba(0,212,255,0.4) 0%, transparent 70%)",
+                "radial-gradient(circle at 50% 50%, rgba(51,224,255,0.3) 0%, transparent 80%)",
+                "radial-gradient(circle at 50% 50%, rgba(0,212,255,0.2) 0%, transparent 60%)",
+                "radial-gradient(circle at 50% 50%, rgba(0,212,255,0) 0%, transparent 50%)",
               ]
             }}
             transition={{ duration: 3, ease: "easeInOut" }}
@@ -101,8 +101,8 @@ export function PremiumUnlockAnimation() {
             <motion.div
               className="mx-auto w-24 h-24 rounded-full flex items-center justify-center mb-6"
               style={{
-                background: "linear-gradient(135deg, hsl(270 60% 55%), hsl(190 90% 50%))",
-                boxShadow: "0 0 60px hsl(270 60% 55% / 0.5), 0 0 100px hsl(190 90% 50% / 0.3)"
+                background: "linear-gradient(135deg, #00D4FF, #33E0FF)",
+                boxShadow: "0 0 60px rgba(0,212,255,0.5), 0 0 100px rgba(51,224,255,0.3)"
               }}
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}

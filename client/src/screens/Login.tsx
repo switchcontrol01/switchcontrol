@@ -283,10 +283,10 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
         <svg className="w-full h-full" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <pattern id="loginTopo" x="0" y="0" width="200" height="150" patternUnits="userSpaceOnUse">
-              <path d="M0 50 Q50 25 100 50 T200 50" fill="none" stroke="hsl(270 50% 55%)" strokeWidth="0.8" opacity="0.6"/>
-              <path d="M0 100 Q50 75 100 100 T200 100" fill="none" stroke="hsl(280 45% 60%)" strokeWidth="0.6" opacity="0.5"/>
-              <path d="M0 25 Q50 0 100 25 T200 25" fill="none" stroke="hsl(260 55% 50%)" strokeWidth="0.5" opacity="0.4"/>
-              <path d="M0 125 Q50 100 100 125 T200 125" fill="none" stroke="hsl(270 50% 45%)" strokeWidth="0.4" opacity="0.3"/>
+              <path d="M0 50 Q50 25 100 50 T200 50" fill="none" stroke="#00D4FF" strokeWidth="0.8" opacity="0.6"/>
+              <path d="M0 100 Q50 75 100 100 T200 100" fill="none" stroke="#33E0FF" strokeWidth="0.6" opacity="0.5"/>
+              <path d="M0 25 Q50 0 100 25 T200 25" fill="none" stroke="#0099CC" strokeWidth="0.5" opacity="0.4"/>
+              <path d="M0 125 Q50 100 100 125 T200 125" fill="none" stroke="#00C8F5" strokeWidth="0.4" opacity="0.3"/>
             </pattern>
           </defs>
           <rect width="300%" height="300%" x="-100%" y="-100%" fill="url(#loginTopo)"/>

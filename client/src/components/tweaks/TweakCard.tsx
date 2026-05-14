@@ -364,7 +364,7 @@ export function TweakCard({ tweak, isEnabled, onToggle, isVerifying = false, isH
                 <Button
                   variant="ghost" size="sm"
                   onClick={() => openUpgradeModal('Premium Tweak')}
-                  className="h-8 px-3 text-[10px] text-[hsl(270,60%,70%)] border border-[hsl(270,60%,55%,0.3)] bg-[hsl(270,60%,55%,0.1)] hover:bg-[hsl(270,60%,55%,0.2)]"
+                  className="h-8 px-3 text-[10px] text-[#00D4FF] border border-[#00D4FF]/30 bg-[#00D4FF]/10 hover:bg-[#00D4FF]/20"
                   data-testid={`button-unlock-${tweak.id}`}
                 >
                   <Lock className="size-3 mr-1" /> Unlock

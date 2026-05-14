@@ -34,7 +34,7 @@ export function StartupBars({ apps, visible }: Props) {
 
   const bars = [
     {
-      label: "CPU Load", icon: Cpu, color: "#a78bfa", // purple
+      label: "CPU Load", icon: Cpu, color: "#00D4FF",
       value: totals.cpu, max: totals.maxCpu, unit: "%",
     },
     {

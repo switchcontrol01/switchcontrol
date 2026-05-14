@@ -453,6 +453,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
       return () => ipcRenderer.removeListener('updater:event', handler);
     },
   },
+
+
+  // ── Process Control ─────────────────────────────────────────────────────
+  processControl: {
+    scan:   () => ipcRenderer.invoke('processControl:scan'),
+    getPlan: (profile) => ipcRenderer.invoke('processControl:getPlan', profile),
+    applyPlan: (profile) => ipcRenderer.invoke('processControl:applyPlan', profile),
+    getLastResult: () => ipcRenderer.invoke('processControl:getLastResult'),
+    restoreLast: () => ipcRenderer.invoke('processControl:restoreLast'),
+    getProtectedList: () => ipcRenderer.invoke('processControl:getProtectedList'),
+  },
 });
 
 window.addEventListener('DOMContentLoaded', () => {

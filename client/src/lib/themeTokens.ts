@@ -13,44 +13,44 @@
  * literals in component files — always reference these tokens.
  */
 
-// ── Primary brand purple ───────────────────────────────────────────────────────
+// ── Primary brand cyan (v2 redesign) ─────────────────────────────────────────
 export const premiumColor = {
-  /** hsl(270, 60%, 55%) — main crown / CTA purple */
-  main:     "hsl(270,60%,55%)",
-  /** hsl(270, 60%, 65%) — icon / text accent */
-  light:    "hsl(270,60%,65%)",
-  /** hsl(270, 60%, 75%) — secondary text */
-  lighter:  "hsl(270,60%,75%)",
-  /** hsl(280, 70%, 65%) — gradient end */
-  end:      "hsl(280,70%,65%)",
-  /** hsl(270, 60%, 50%) — hover state for main */
-  hover:    "hsl(270,60%,50%)",
-  /** hsl(280, 70%, 60%) — hover state for end */
-  hoverEnd: "hsl(280,70%,60%)",
+  /** #00D4FF — main accent / CTA cyan */
+  main:     "#00D4FF",
+  /** #33E0FF — icon / text accent */
+  light:    "#33E0FF",
+  /** #66EBFF — secondary text */
+  lighter:  "#66EBFF",
+  /** #00C8F5 — gradient end */
+  end:      "#00C8F5",
+  /** #0099CC — hover state for main */
+  hover:    "#0099CC",
+  /** #00B8E6 — hover state for end */
+  hoverEnd: "#00B8E6",
 } as const;
 
 // ── RGBA raw values (for boxShadow / backdrop configs) ────────────────────────
 export const premiumRgba = {
-  /** rgba(168, 85, 247, …) helpers */
-  glow10:  "rgba(168,85,247,0.10)",
-  glow15:  "rgba(168,85,247,0.15)",
-  glow20:  "rgba(168,85,247,0.20)",
-  glow25:  "rgba(168,85,247,0.25)",
-  glow35:  "rgba(168,85,247,0.35)",
-  glow40:  "rgba(168,85,247,0.40)",
-  glow45:  "rgba(168,85,247,0.45)",
-  glow60:  "rgba(168,85,247,0.60)",
-  /** Violet/indigo for badge gradients */
-  badge1:  "rgba(124,58,237,0.20)",
-  badge2:  "rgba(168,85,247,0.15)",
-  border:  "rgba(168,85,247,0.30)",
+  /** rgba(0, 212, 255, …) helpers */
+  glow10:  "rgba(0,212,255,0.10)",
+  glow15:  "rgba(0,212,255,0.15)",
+  glow20:  "rgba(0,212,255,0.20)",
+  glow25:  "rgba(0,212,255,0.25)",
+  glow35:  "rgba(0,212,255,0.35)",
+  glow40:  "rgba(0,212,255,0.40)",
+  glow45:  "rgba(0,212,255,0.45)",
+  glow60:  "rgba(0,212,255,0.60)",
+  /** Badge gradients */
+  badge1:  "rgba(0,212,255,0.20)",
+  badge2:  "rgba(51,224,255,0.15)",
+  border:  "rgba(0,212,255,0.30)",
 } as const;
 
 // ── Overlay card background ────────────────────────────────────────────────────
 export const premiumOverlay = {
-  /** Glass-morphism white card with a very subtle purple tint */
-  cardBg:     `linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(210,195,255,0.08) 50%, rgba(255,255,255,0.10) 100%)`,
-  /** Crisp white border with faint lavender tint */
+  /** Glass-morphism white card with a very subtle cyan tint */
+  cardBg:     `linear-gradient(135deg, rgba(255,255,255,0.11) 0%, rgba(195,240,255,0.08) 50%, rgba(255,255,255,0.10) 100%)`,
+  /** Crisp white border with faint cyan tint */
   cardBorder: `rgba(255,255,255,0.18)`,
 } as const;
 

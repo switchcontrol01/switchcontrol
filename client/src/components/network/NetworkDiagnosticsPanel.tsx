@@ -88,8 +88,8 @@ function LiveGraph({ history, spikes }: { history: PingSample[]; spikes: SpikeEv
       >
         <defs>
           <linearGradient id="ndAreaFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="hsl(270,65%,60%)" stopOpacity="0.28" />
-            <stop offset="100%" stopColor="hsl(270,65%,60%)" stopOpacity="0" />
+            <stop offset="0%" stopColor="#00D4FF" stopOpacity="0.28" />
+            <stop offset="100%" stopColor="#00D4FF" stopOpacity="0" />
           </linearGradient>
           <filter id="ndSpikeGlow" x="-80%" y="-80%" width="260%" height="260%">
             <feGaussianBlur stdDeviation="4" result="blur" />
@@ -138,7 +138,7 @@ function LiveGraph({ history, spikes }: { history: PingSample[]; spikes: SpikeEv
             <path
               d={linePath}
               fill="none"
-              stroke="hsl(270,65%,40%)"
+              stroke="#14181D"
               strokeWidth={3}
               strokeLinecap="round"
               filter="url(#ndLineShadow)"
@@ -149,7 +149,7 @@ function LiveGraph({ history, spikes }: { history: PingSample[]; spikes: SpikeEv
             <path
               d={linePath}
               fill="none"
-              stroke="hsl(270,68%,62%)"
+              stroke="#00D4FF"
               strokeWidth={2.5}
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -169,8 +169,8 @@ function LiveGraph({ history, spikes }: { history: PingSample[]; spikes: SpikeEv
             {/* Current point pulse */}
             {lastPt && (
               <>
-                <circle cx={lastPt.x} cy={lastPt.y} r={6} fill="hsl(270,68%,62%)" opacity={0.2} className="animate-ping" style={{ transformOrigin: `${lastPt.x}px ${lastPt.y}px` }} />
-                <circle cx={lastPt.x} cy={lastPt.y} r={3.5} fill="hsl(270,80%,72%)" />
+                <circle cx={lastPt.x} cy={lastPt.y} r={6} fill="#33E0FF" opacity={0.2} className="animate-ping" style={{ transformOrigin: `${lastPt.x}px ${lastPt.y}px` }} />
+                <circle cx={lastPt.x} cy={lastPt.y} r={3.5} fill="#66EBFF" />
                 <circle cx={lastPt.x} cy={lastPt.y} r={1.5} fill="white" />
               </>
             )}

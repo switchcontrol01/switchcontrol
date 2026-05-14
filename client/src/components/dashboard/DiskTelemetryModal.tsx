@@ -245,8 +245,8 @@ export function DiskTelemetryModal({ open, onOpenChange, selectedDiskMount }: Di
       onOpenChange={onOpenChange}
       title={
         <>
-          <HwBadge color={isLowSpace ? "purple" : "amber"}>
-            <HardDrive className={cn("size-3.5", isLowSpace ? "text-red-300" : "text-amber-300")} />
+          <HwBadge color={isLowSpace ? "amber" : "cyan"}>
+            <HardDrive className={cn("size-3.5", isLowSpace ? "text-red-300" : "text-[#00D4FF]")} />
           </HwBadge>
           Disk Monitor
           {isLowSpace && (

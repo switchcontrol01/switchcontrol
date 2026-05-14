@@ -1006,20 +1006,20 @@ export default function BiosAdvisor() {
         )}
 
         <Item>
-          <GlassCard className="p-6 bg-gradient-to-br from-[hsl(270,60%,55%)/0.1] to-[hsl(280,70%,65%)/0.05] border-[hsl(270,60%,55%)/0.2]">
+          <GlassCard className="p-6 bg-gradient-to-br from-[rgba(0,212,255,0.1)] to-[rgba(0,200,245,0.05)] border-[rgba(0,212,255,0.2)]">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="flex flex-col justify-center">
                 <h2 className="text-lg font-semibold text-[#E6EAF0] mb-1 flex items-center gap-2">
-                  <Target className="w-5 h-5 text-[hsl(270,60%,55%)]" />
+                  <Target className="w-5 h-5 text-[#00D4FF]" />
                   Firmware Score
                 </h2>
                 <p className="text-sm text-muted-foreground mb-4">
                   Competitive readiness based on detected firmware behavior
                 </p>
-                
+
                 <div className="flex items-center gap-3 mb-3">
-                  <motion.div 
-                    className="text-5xl font-bold bg-gradient-to-r from-[hsl(270,60%,55%)] to-[hsl(280,70%,65%)] bg-clip-text text-transparent"
+                  <motion.div
+                    className="text-5xl font-bold bg-gradient-to-r from-[#00D4FF] to-[#00C8F5] bg-clip-text text-transparent"
                     initial={prefersReducedMotion ? {} : { opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.3, duration: 0.5 }}

@@ -69,6 +69,7 @@ const configStore    = require('./config-store');
 const updaterService = require('./updater');
 const criticalLogger = require('./critical-logger');
 const { APPDATA_DIR, TWEAK_STATE_FILE, CONFIG_FILE, DEVICE_ID_FILE } = require('./user-data-paths');
+const processControl = require('./process-control');
 
 app.setName('SwitchControl');
 const isDev = !app.isPackaged;
@@ -1259,6 +1260,69 @@ ipcMain.handle('app:openLogs', async () => {
     shell.openPath(logPath);
   } catch (err) {
     console.error('[Logs] Error opening log directory:', err);
+  }
+});
+
+
+// ── Process Control IPC bridge ────────────────────────────────────────────────────────
+
+ipcMain.handle("processControl:scan", async () => {
+  try {
+    const result = await processControl.scan();
+    return { success: true, data: result };
+  } catch (err) {
+    console.error("[ProcessControl] scan error:", err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("processControl:buildPlan", (_event, scanResult, profile) => {
+  try {
+    const plan = processControl.buildPlan(scanResult, profile);
+    return { success: true, data: plan };
+  } catch (err) {
+    console.error("[ProcessControl] buildPlan error:", err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("processControl:applyPlan", async (_event, plan) => {
+  try {
+    const result = await processControl.applyPlan(plan);
+    return { success: true, data: result };
+  } catch (err) {
+    console.error("[ProcessControl] applyPlan error:", err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("processControl:restoreLast", async () => {
+  try {
+    const result = await processControl.restoreLast();
+    return { success: true, data: result };
+  } catch (err) {
+    console.error("[ProcessControl] restoreLast error:", err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("processControl:getLastResult", () => {
+  try {
+    const result = processControl.getLastResult();
+    return { success: true, data: result };
+  } catch (err) {
+    console.error("[ProcessControl] getLastResult error:", err.message);
+    return { success: false, error: err.message };
+  }
+});
+
+ipcMain.handle("processControl:getProtectedList", () => {
+  try {
+    const list = processControl.getProtectedList();
+    return { success: true, data: list };
+  } catch (err) {
+    console.error("[ProcessControl] getProtectedList error:", err.message);
+    return { success: false, error: err.message };
   }
 });
 

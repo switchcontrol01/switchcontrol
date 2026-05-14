@@ -929,9 +929,9 @@ function NetworkTweaksContent() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
         >
-          <GlassCard className="p-4 border-[hsl(270,60%,55%,0.2)] bg-[hsl(270,60%,55%,0.05)]">
+          <GlassCard className="p-4 border-[rgba(0,212,255,0.2)] bg-[rgba(0,212,255,0.05)]">
             <div className="flex gap-3">
-              <Info className="size-5 text-[hsl(270,60%,55%)] shrink-0 mt-0.5" />
+              <Info className="size-5 text-[#00D4FF] shrink-0 mt-0.5" />
               <div className="space-y-2">
                 <h3 className="text-sm font-medium text-[#E6EAF0]">Real system changes — applied immediately</h3>
                 <ul className="text-xs text-muted-foreground space-y-1.5">
