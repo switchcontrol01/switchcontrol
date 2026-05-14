@@ -133,6 +133,7 @@ function generateFakeScan(): ScanResult {
 export default function ProcessManager() {
   const [scanResult, setScanResult] = useState<ScanResult | null>(null);
   const [scanning, setScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterTab>("all");
   const [sort, setSort] = useState<SortMode>("memory");
@@ -142,10 +143,22 @@ export default function ProcessManager() {
 
   const runScan = useCallback(async () => {
     setScanning(true);
+    setScanProgress(0);
+    setScanResult(null);
+
+    // Animate a progress bar while the real scan runs
+    let progress = 0;
+    const progressTimer = setInterval(() => {
+      progress = Math.min(progress + Math.random() * 15 + 5, 90);
+      setScanProgress(progress);
+    }, 250);
+
     try {
       const api = (window as any).electronAPI;
       if (api?.processControl?.scan) {
         const res = await api.processControl.scan();
+        clearInterval(progressTimer);
+        setScanProgress(100);
         if (res.success && res.data && !res.data.error) {
           setScanResult(res.data);
           toast({ title: `Found ${res.data.totalProcesses} processes`, variant: "default" });
@@ -154,17 +167,20 @@ export default function ProcessManager() {
           toast({ title: "Scan failed", description: res.error || res.data?.error || "PowerShell execution failed — check console", variant: "destructive" });
         }
       } else {
-        // Web fallback — simulated data
-        await new Promise(r => setTimeout(r, 800));
+        // Web fallback — simulated data with realistic delay
+        await new Promise(r => setTimeout(r, 1200));
+        clearInterval(progressTimer);
+        setScanProgress(100);
         const fake = generateFakeScan();
         setScanResult(fake);
         toast({ title: `Found ${fake.totalProcesses} processes (simulated)`, variant: "default" });
       }
     } catch (err: any) {
+      clearInterval(progressTimer);
       setScanResult(null);
       toast({ title: "Scan error", description: err?.message || "Failed to scan", variant: "destructive" });
     } finally {
-      setScanning(false);
+      setTimeout(() => setScanning(false), 400); // let the 100% bar sit for a moment
     }
   }, [toast]);
 
@@ -402,7 +418,11 @@ export default function ProcessManager() {
                           <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-5 border-red-500/20 text-red-400 bg-red-500/5">
                             Stopped
                           </Badge>
-                        ) : p.canStop ? (
+                        ) : p.isProtected ? (
+                          <span className="text-[10px] text-cyan-400/60 flex items-center gap-1">
+                            <Shield className="size-3" /> Protected
+                          </span>
+                        ) : (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -410,14 +430,8 @@ export default function ProcessManager() {
                             className="h-7 px-2 text-[10px] text-red-400 hover:text-red-300 hover:bg-red-500/10"
                             data-testid={`button-stop-${p.pid}`}
                           >
-                            <Trash2 className="size-3 mr-1" /> Stop
+                            <Trash2 className="size-3 mr-1" /> End Task
                           </Button>
-                        ) : p.isProtected ? (
-                          <span className="text-[10px] text-cyan-400/60 flex items-center gap-1">
-                            <Shield className="size-3" /> Protected
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-muted-foreground">Review only</span>
                         )}
                       </div>
                     </motion.div>
@@ -432,6 +446,96 @@ export default function ProcessManager() {
               )}
             </div>
           </>
+        )}
+
+        {/* Scanning animation state */}
+        {scanning && !scanResult && (
+          <GlassCard className="p-8 text-center relative overflow-hidden">
+            {/* Animated scan-line overlay */}
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <motion.div
+                className="absolute top-0 left-0 right-0 h-px bg-primary/30"
+                animate={{ top: ["0%", "100%", "0%"] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </div>
+
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.3 }}
+            >
+              <div className="relative inline-flex items-center justify-center mb-4">
+                <motion.div
+                  className="absolute inset-0 rounded-full border-2 border-primary/20"
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                  style={{ width: 56, height: 56, margin: -6 }}
+                />
+                <motion.div
+                  className="absolute inset-0 rounded-full border-t-2 border-primary/60"
+                  animate={{ rotate: -360 }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                  style={{ width: 56, height: 56, margin: -6 }}
+                />
+                <Cpu className="size-6 text-primary relative z-10" />
+              </div>
+
+              <h3 className="text-sm font-semibold text-[#E6EAF0] mb-1">
+                Scanning processes...
+              </h3>
+              <p className="text-xs text-muted-foreground mb-4">
+                Reading system process list and calculating impact scores
+              </p>
+
+              {/* Progress bar */}
+              <div className="max-w-xs mx-auto">
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1.5">
+                  <span>Analyzing memory &amp; CPU usage</span>
+                  <span className="font-mono text-primary">{Math.round(scanProgress)}%</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[#21262D] overflow-hidden">
+                  <motion.div
+                    className="h-full rounded-full bg-primary"
+                    initial={{ width: "0%" }}
+                    animate={{ width: `${scanProgress}%` }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                  />
+                </div>
+              </div>
+
+              {/* Staggered fake data rows to show activity */}
+              <div className="mt-5 space-y-1.5 max-w-sm mx-auto opacity-40">
+                {["Reading process tree...", "Calculating memory footprints...", "Checking safety classifications...", "Building impact scores..."].map((label, i) => (
+                  <motion.div
+                    key={label}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{
+                      opacity: scanProgress > i * 20 + 10 ? 1 : 0.2,
+                      x: scanProgress > i * 20 + 10 ? 0 : -10,
+                    }}
+                    transition={{ duration: 0.3 }}
+                    className="flex items-center gap-2 text-[11px] text-muted-foreground"
+                  >
+                    {scanProgress > i * 20 + 25 ? (
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="size-1.5 rounded-full bg-emerald-400"
+                      />
+                    ) : (
+                      <motion.div
+                        animate={{ opacity: [0.3, 1, 0.3] }}
+                        transition={{ duration: 0.8, repeat: Infinity }}
+                        className="size-1.5 rounded-full bg-primary/50"
+                      />
+                    )}
+                    {label}
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </GlassCard>
         )}
 
         {!scanResult && !scanning && (
