@@ -23,7 +23,7 @@ import { CleanerScanEnergyLine } from "@/components/cleaner/CleanerScanEnergyLin
 import { CleanerProgressTimeline } from "@/components/cleaner/CleanerProgressTimeline";
 import { CleanerCharts } from "@/components/cleaner/CleanerCharts";
 import { CleanerHistoryPanel } from "@/components/cleaner/CleanerHistoryPanel";
-import type { ScanHistoryEntry, HistoryEntry } from "@/components/cleaner/CleanerSummaryCards";
+import type { ScanHistoryEntry, HistoryEntry } from "@/components/cleaner/cleaner-types";
 import { fmtBytes } from "@/hooks/useCountUp";
 
 // ── Types ─────────────────────────────────────────────────────────────────────

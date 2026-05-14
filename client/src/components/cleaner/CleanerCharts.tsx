@@ -6,8 +6,8 @@ import {
 import { GlassCard } from "@/components/ui/glass-card";
 import { cn } from "@/lib/utils";
 import { format, parseISO } from "date-fns";
-import type { ScanHistoryEntry, HistoryEntry } from "./CleanerSummaryCards";
-import { fmtBytes } from "./CleanerSummaryCards";
+import type { ScanHistoryEntry, HistoryEntry } from "./cleaner-types";
+import { fmtBytes } from "./cleaner-types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

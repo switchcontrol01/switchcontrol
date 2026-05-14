@@ -9,8 +9,8 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { format, parseISO, isToday, isYesterday, isThisWeek } from "date-fns";
-import type { HistoryEntry, ScanHistoryEntry } from "./CleanerSummaryCards";
-import { fmtBytes } from "./CleanerSummaryCards";
+import type { HistoryEntry, ScanHistoryEntry } from "./cleaner-types";
+import { fmtBytes } from "./cleaner-types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

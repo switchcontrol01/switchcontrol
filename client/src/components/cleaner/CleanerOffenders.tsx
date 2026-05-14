@@ -7,8 +7,8 @@ import {
   TrendingDown, Zap, CheckCircle, RefreshCw, HardDrive,
   Lightbulb, AlertTriangle, ChevronRight,
 } from "lucide-react";
-import { fmtBytes } from "./CleanerSummaryCards";
-import type { ScanFinding, CleanItemDef } from "./CleanerSummaryCards";
+import { fmtBytes } from "./cleaner-types";
+import type { ScanFinding, CleanItemDef } from "./cleaner-types";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
