@@ -659,18 +659,51 @@ export function setupGoogleAuth(app: Express): void {
     <a id="manual-open-btn" href="${deepLink}" style="display:none;margin-top:1.6rem;padding:0.55rem 1.25rem;font-size:0.8125rem;color:#fff;background:rgba(139,92,246,0.20);border:1px solid rgba(168,85,247,0.40);border-radius:0.5rem;text-decoration:none;align-items:center;gap:0.4rem;backdrop-filter:blur(8px);">
       Open SwitchControl
     </a>
+
+    <!-- Copy-paste fallback — for browsers that completely block protocol links -->
+    <div id="copy-fallback" style="display:none;margin-top:1.2rem;text-align:center;max-width:320px;">
+      <p style="font-size:0.75rem;color:rgba(255,255,255,0.30);margin-bottom:0.5rem;">If the app didn't open, copy this code and paste it in the app</p>
+      <div style="display:flex;align-items:center;gap:0.5rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:0.5rem;padding:0.4rem 0.75rem;overflow:hidden;">
+        <code id="auth-code" style="font-family:monospace;font-size:0.75rem;color:rgba(255,255,255,0.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;">${code}</code>
+        <button id="copy-btn" style="font-size:0.6875rem;color:rgba(168,85,247,0.85);background:transparent;border:none;cursor:pointer;padding:0.25rem 0.5rem;white-space:nowrap;">Copy</button>
+      </div>
+    </div>
   </div>
 
   <script>
     (function() {
       var deepLink = ${JSON.stringify(deepLink)};
+      var code = ${JSON.stringify(code)};
       try { window.location.href = deepLink; } catch(e) {}
       // If the protocol redirect doesn't fire (some browsers block it silently),
-      // reveal a manual button after a short delay so the user isn't stuck.
+      // reveal fallback UI after a short delay so the user isn't stuck.
       setTimeout(function() {
         var btn = document.getElementById('manual-open-btn');
         if (btn) btn.style.display = 'inline-flex';
+        var fallback = document.getElementById('copy-fallback');
+        if (fallback) fallback.style.display = 'block';
       }, 1800);
+      // Copy button handler
+      var copyBtn = document.getElementById('copy-btn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', function() {
+          navigator.clipboard.writeText(code).then(function() {
+            copyBtn.textContent = 'Copied!';
+            setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+          }).catch(function() {
+            // Fallback for browsers without clipboard API
+            var ta = document.createElement('textarea');
+            ta.value = code;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); copyBtn.textContent = 'Copied!'; } catch(e) {}
+            document.body.removeChild(ta);
+            setTimeout(function() { copyBtn.textContent = 'Copy'; }, 2000);
+          });
+        });
+      }
     })();
   </script>
 </body>

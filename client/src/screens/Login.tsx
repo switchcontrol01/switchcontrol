@@ -14,7 +14,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/lib/auth-store";
+import { useAuthStore, exchangeToken } from "@/lib/auth-store";
 import logoImg from "@/assets/logo.webp";
 
 const AUTH_DOMAIN = "https://switchcontrol.org";
@@ -90,6 +90,8 @@ function FloatingParticle({ startX, startY, size, hue, delay, duration, dx, dy, 
 export default function Login({ succeeded = false }: { succeeded?: boolean }) {
   const [isLoading, setIsLoading] = useState<"google" | "discord" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pastedCode, setPastedCode] = useState("");
+  const [isPasting, setIsPasting] = useState(false);
   const oauthTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { electronAuthState, oauthError } = useAuthStore();
 
@@ -129,7 +131,33 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
     clearAllTimers();
     setIsLoading(null);
     setError(null);
+    setPastedCode("");
+    setIsPasting(false);
   }, [clearAllTimers]);
+
+  const handlePasteCode = useCallback(async () => {
+    if (!pastedCode.trim()) return;
+    setIsPasting(true);
+    setError(null);
+    useAuthStore.getState().setElectronAuthState('exchanging');
+    try {
+      const user = await exchangeToken(pastedCode.trim());
+      if (user) {
+        useAuthStore.getState().setToken(pastedCode.trim());
+        useAuthStore.getState().setUser(user);
+        useAuthStore.getState().setElectronAuthState('authenticated');
+      } else {
+        setError('Invalid or expired code. Please sign in via your browser again.');
+        useAuthStore.getState().setElectronAuthState('failed');
+      }
+    } catch (err) {
+      console.error('[Login] Paste code exchange failed:', err);
+      setError('Code verification failed. Please try again.');
+      useAuthStore.getState().setElectronAuthState('failed');
+    } finally {
+      setIsPasting(false);
+    }
+  }, [pastedCode]);
 
   const handleLogin = async (provider: "google" | "discord") => {
     setIsLoading(provider);
@@ -547,13 +575,42 @@ export default function Login({ succeeded = false }: { succeeded?: boolean }) {
                       Continue with Discord
                     </Button>
                   </motion.div>
+
+                  {/* Paste-code fallback — for browsers that block protocol links entirely */}
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.7 }}
+                    className="mt-4 pt-4 border-t border-white/5"
+                  >
+                    <p className="text-[11px] text-white/25 text-center mb-2">Browser blocking the app? Paste your code below</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={pastedCode}
+                        onChange={(e) => setPastedCode(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && handlePasteCode()}
+                        placeholder="Paste auth code..."
+                        className="flex-1 bg-white/[0.04] border border-white/[0.08] rounded-xl px-3 py-2 text-sm text-white/70 placeholder:text-white/25 focus:outline-none focus:border-purple-400/30 focus:bg-white/[0.06] transition-all"
+                        data-testid="input-paste-code"
+                      />
+                      <Button
+                        onClick={handlePasteCode}
+                        disabled={!pastedCode.trim() || isPasting}
+                        className="h-auto px-4 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300/80 text-xs rounded-xl border border-purple-400/20 disabled:opacity-30 disabled:cursor-not-allowed"
+                        data-testid="button-paste-verify"
+                      >
+                        {isPasting ? "Verifying..." : "Verify"}
+                      </Button>
+                    </div>
+                  </motion.div>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
           <motion.p
-            className="text-center text-xs text-muted-foreground mt-6"
+            className="text-center text-xs text-muted-foreground mt-4"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.6 }}
