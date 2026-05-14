@@ -4,6 +4,36 @@ import { useAuthStore, safeGetJwt } from "./auth-store";
 const isElectron = typeof window !== 'undefined' && !!(window as any).electronAPI?.isElectron;
 const isPackagedElectron = isElectron && typeof window !== 'undefined' && window.location.protocol === 'file:';
 
+const CLOUD_API_ORIGIN = "https://switchcontrol.org";
+const CLOUD_ONLY_API_PREFIXES = [
+  "/api/me",
+  "/api/auth",
+  "/api/premium",
+  "/api/device",
+  "/api/stripe",
+  "/api/billing",
+  "/api/admin",
+];
+
+export function isCloudOnlyApiPath(url: string): boolean {
+  try {
+    const parsed = url.startsWith("http") ? new URL(url) : null;
+    const path = parsed ? parsed.pathname : url;
+    return CLOUD_ONLY_API_PREFIXES.some(prefix =>
+      path === prefix || path.startsWith(prefix + "/")
+    );
+  } catch {
+    return CLOUD_ONLY_API_PREFIXES.some(prefix =>
+      url === prefix || url.startsWith(prefix + "/")
+    );
+  }
+}
+
+export function toCloudUrl(pathOrUrl: string): string {
+  if (pathOrUrl.startsWith("http")) return pathOrUrl;
+  return `${CLOUD_API_ORIGIN}${pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`}`;
+}
+
 if (typeof window !== 'undefined') {
   console.log(`[API] Init: electron=${isElectron}, packaged=${isPackagedElectron}, protocol=${window.location?.protocol}`);
 
@@ -235,20 +265,38 @@ if (typeof window !== 'undefined' && isElectron) {
 
     if (url.startsWith('/api/') || url === '/api') {
       try {
+        const cloudOnly = isCloudOnlyApiPath(url);
+
         if (isPackagedElectron) {
-          // ── Packaged: rewrite relative URL to absolute embedded backend URL ──
-          const base = await resolveApiBase(); // http://127.0.0.1:PORT/api
-          const suffix = url.slice('/api'.length); // e.g. "/focus/enable"
-          const absUrl = base + suffix;
-          if (typeof input === 'string' || input instanceof URL) {
-            input = absUrl;
+          if (cloudOnly) {
+            // ── Cloud-only route: send to switchcontrol.org ──────────────────
+            const cloudUrl = toCloudUrl(url);
+            console.log(`[AuthRoute] path=${url} target=cloud reason=cloud-only`);
+            if (typeof input === 'string' || input instanceof URL) {
+              input = cloudUrl;
+            } else {
+              input = new Request(cloudUrl, input as Request);
+            }
+            // Ensure cookies are sent for cross-origin cloud auth
+            if (!init?.credentials) {
+              init = { ...(init ?? {}), credentials: 'include' };
+            }
           } else {
-            input = new Request(absUrl, input as Request);
+            // ── Local route: rewrite to embedded backend ─────────────────────
+            const base = await resolveApiBase();
+            const suffix = url.slice('/api'.length);
+            const absUrl = base + suffix;
+            if (typeof input === 'string' || input instanceof URL) {
+              input = absUrl;
+            } else {
+              input = new Request(absUrl, input as Request);
+            }
+            console.log(`[AuthRoute] path=${url} target=local reason=system-route base=${base}`);
           }
         }
 
-        // ── Inject auth for string/URL inputs only ────────────────────────
-        // Covers all raw fetch("/api/...") callers. Skip if auth already set.
+        // ── Inject auth for string/URL inputs only ─────────────────────────
+        // Covers all raw fetch("/api/...") callers. Inject the RIGHT auth for the route type.
         if (isStringOrUrl) {
           const rawHeaders = init?.headers;
           const normalized: Record<string, string> = {};
@@ -262,15 +310,35 @@ if (typeof window !== 'undefined' && isElectron) {
             }
           }
 
-          if (!normalized['x-electron-uid'] && !normalized['authorization']) {
-            if (isPackagedElectron) {
-              // Packaged: use x-electron-uid — trusted by embedded backend fast-path
+          if (cloudOnly && isPackagedElectron) {
+            // Cloud routes in packaged mode: use JWT Bearer (cloud auth)
+            if (!normalized['authorization']) {
+              const jwt = safeGetJwt();
+              if (jwt) {
+                init = { ...(init ?? {}), headers: { ...normalized, 'authorization': `Bearer ${jwt}` } };
+              }
+            }
+            // Always inject x-device-id for device-lock validation on cloud routes
+            try {
+              if (isElectron && (window as any).electronAPI?.getDeviceId) {
+                const deviceId = await (window as any).electronAPI.getDeviceId();
+                if (deviceId) {
+                  const h = (init as any)?.headers ?? normalized;
+                  init = { ...(init ?? {}), headers: { ...h, 'x-device-id': deviceId } };
+                }
+              }
+            } catch {}
+          } else if (isPackagedElectron) {
+            // Local routes in packaged mode: use x-electron-uid (local fast-path)
+            if (!normalized['x-electron-uid'] && !normalized['authorization']) {
               const userId = useAuthStore.getState().user?.id;
               if (userId) {
                 init = { ...(init ?? {}), headers: { ...normalized, 'x-electron-uid': userId } };
               }
-            } else {
-              // Dev Electron: use JWT Bearer — dev Express server uses cloud JWT auth
+            }
+          } else {
+            // Dev Electron: use JWT Bearer
+            if (!normalized['authorization']) {
               const jwt = safeGetJwt();
               if (jwt) {
                 init = { ...(init ?? {}), headers: { ...normalized, 'authorization': `Bearer ${jwt}` } };
@@ -284,7 +352,7 @@ if (typeof window !== 'undefined' && isElectron) {
     }
     return _originalFetch(input, init);
   };
-  console.log(`[API] Electron fetch interceptor installed | packaged=${isPackagedElectron} (URL-rewrite=${isPackagedElectron}, auth-inject=true)`);
+  console.log(`[API] Electron fetch interceptor installed | packaged=${isPackagedElectron} (cloud-only-routes=blocked-from-local)`);
 }
 
 let _cachedCsrfToken: string | null = null;
@@ -389,8 +457,18 @@ export async function apiFetch(
   fetchOptions: ApiFetchOptions = {}
 ): Promise<Response> {
   const { withCsrf = false, signal } = fetchOptions;
-  const base = await resolveApiBase();
-  const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
+
+  // Route classification: cloud-only routes bypass the local backend entirely.
+  const cloudOnly = isCloudOnlyApiPath(path);
+  let url: string;
+
+  if (cloudOnly) {
+    url = toCloudUrl(path);
+    console.log(`[AuthRoute] apiFetch path=${path} target=cloud reason=cloud-only`);
+  } else {
+    const base = await resolveApiBase();
+    url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
+  }
 
   const headers: Record<string, string> = {};
   if (options.headers) {
@@ -400,32 +478,15 @@ export async function apiFetch(
     }
   }
 
-  // Determine whether this request is going to the local embedded Electron backend
-  // (http://127.0.0.1:PORT/api/...) or to an external/cloud destination.
-  // Cloud JWT must ONLY go to cloud endpoints — the embedded backend uses a different
-  // JWT_SECRET (or none), so attaching the cloud JWT there produces "invalid signature" spam.
-  const isLocalEmbeddedRequest =
-    isPackagedElectron &&
-    (url.startsWith('http://127.0.0.1') || url.startsWith('http://localhost'));
-
-  if (isLocalEmbeddedRequest) {
-    // For local embedded backend requests: send the user ID via a trusted local header
-    // instead of the cloud JWT. Safe because 127.0.0.1 is only reachable from this machine.
-    const uid = useAuthStore.getState().user?.id;
-    if (uid) {
-      headers['x-electron-uid'] = uid;
-    }
-  } else {
-    // For non-local requests (cloud API, web): attach the JWT as a Bearer token.
-    // Decode the payload client-side first so we never send an expired token.
+  if (cloudOnly) {
+    // Cloud routes: Bearer JWT + device-id
     const jwt = useAuthStore.getState().jwt;
     if (jwt && !headers['Authorization'] && !headers['authorization']) {
       let jwtOk = true;
       try {
         const parts = jwt.split('.');
-        if (parts.length !== 3) {
-          jwtOk = false;
-        } else {
+        if (parts.length !== 3) jwtOk = false;
+        else {
           const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
           if (payload.exp && Math.floor(Date.now() / 1000) >= payload.exp) {
             jwtOk = false;
@@ -436,7 +497,7 @@ export async function apiFetch(
                 headers['Authorization'] = `Bearer ${freshJwt}`;
                 jwtOk = true;
               } else {
-                console.warn('[API] JWT reissue failed — clearing JWT, falling back to session');
+                console.warn('[API] JWT reissue failed — clearing JWT');
                 useAuthStore.getState().setJwt(null);
               }
             } else {
@@ -453,14 +514,24 @@ export async function apiFetch(
         headers['Authorization'] = `Bearer ${jwt}`;
       }
     }
+
+    const deviceId = await getDeviceId();
+    if (deviceId) {
+      headers['x-device-id'] = deviceId;
+    }
+  } else {
+    // Local routes: embedded backend auth
+    const isLocalEmbeddedRequest =
+      isPackagedElectron &&
+      (url.startsWith('http://127.0.0.1') || url.startsWith('http://localhost'));
+
+    if (isLocalEmbeddedRequest) {
+      const uid = useAuthStore.getState().user?.id;
+      if (uid) headers['x-electron-uid'] = uid;
+    }
   }
 
-  const deviceId = await getDeviceId();
-  if (deviceId) {
-    headers['x-device-id'] = deviceId;
-  }
-
-  if (withCsrf) {
+  if (withCsrf && !cloudOnly) {
     const token = await ensureCsrfToken();
     headers['x-csrf-token'] = token;
   }

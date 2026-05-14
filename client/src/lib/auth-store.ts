@@ -338,7 +338,7 @@ export async function validateToken(token: string): Promise<AuthUser | null> {
 
 export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> {
   const store = useAuthStore.getState();
-
+  const cachedUser = store.user;
   const jwt = getStoredJwt();
 
   try {
@@ -348,30 +348,28 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
     }
 
     const url = `${AUTH_DOMAIN}/api/me`;
-    console.log(`[Entitlements] refreshEntitlements → ${url || '(same-origin)/api/me'} jwt=${jwt ? 'present' : 'missing'}`);
+    console.log(`[AuthTruth] refreshEntitlements → ${url || '(same-origin)/api/me'} jwt=${jwt ? 'present' : 'missing'}`);
     const response = await fetch(url, {
       headers,
       credentials: 'include',
     });
 
     if (!response.ok) {
-      console.error(`[PremiumFlow] /api/me status=${response.status} (HTTP error)`);
-      return { user: null };
+      console.warn(`[AuthTruth] /api/me status=${response.status} (HTTP error). Preserving cached state, not downgrading.`);
+      console.log(`[AuthTruth] source=cache userId=${cachedUser?.id ?? 'none'} isPremium=${cachedUser?.isPremium ?? false} plan=${cachedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`);
+      return { user: cachedUser };
     }
 
     const authMode = response.headers.get('X-Auth-Mode');
     const data = await response.json();
-    console.log(`[PremiumFlow] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} plan=${data.plan} trialEndsAt=${data.trialEndsAt} hasSeenTrialActivation=${data.hasSeenTrialActivation} hasSeenTrialTour=${data.hasSeenTrialTour} hasSeenPremiumUnlock=${data.hasSeenPremiumUnlock}`);
+    console.log(`[AuthTruth] /api/me status=${response.status} authMode=${authMode} loggedIn=${data.loggedIn} isPremium=${data.isPremium} plan=${data.plan}`);
 
     if (data.loggedIn === false) {
+      console.log(`[AuthTruth] source=cloud userId=${data.id} isPremium=false plan=free verified=true reason=logged-out`);
+      store.logout();
       return { user: null };
     }
 
-    // Derive isPremium defensively: trust both the boolean AND the plan field.
-    // Guards against race-condition responses where the DB read on a different
-    // connection hasn't seen the just-committed write yet, returning
-    // isPremium:false while plan:'premium'. If either signals active premium,
-    // treat the user as premium.
     const resolvedPlan: string = data.plan || (data.isPremium ? 'premium' : 'free');
     const resolvedIsPremium: boolean = !!(
       data.isPremium ||
@@ -380,7 +378,7 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
     );
 
     const newUser: AuthUser = {
-      id: data.id || store.user?.id || '',
+      id: data.id || cachedUser?.id || '',
       email: data.email || null,
       username: data.name || data.firstName || null,
       avatarUrl: data.avatar || null,
@@ -396,12 +394,15 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
     };
 
     store.setUser(newUser);
-    console.log(`[PremiumFlow] refreshEntitlements end isPremium=${newUser.isPremium} plan=${newUser.plan} trialEndsAt=${newUser.trialEndsAt} hasSeenTrialActivation=${newUser.hasSeenTrialActivation} hasSeenTrialTour=${newUser.hasSeenTrialTour} hasSeenPremiumUnlock=${newUser.hasSeenPremiumUnlock} hasSeenPremiumTour=${newUser.hasSeenPremiumTour} authMode=${authMode}`);
+    console.log(`[AuthTruth] source=cloud userId=${newUser.id} isPremium=${newUser.isPremium} plan=${newUser.plan} verified=true`);
 
     return { user: newUser };
   } catch (err) {
-    console.error('[PremiumFlow] refreshEntitlements error:', err);
-    return { user: null };
+    // Network or other error — do NOT clear cached user. Stale truth is better
+    // than falsely downgrading a premium user who just lost connectivity.
+    console.warn(`[AuthTruth] refreshEntitlements network/error — preserving cached state. Error:`, (err as Error)?.message);
+    console.log(`[AuthTruth] source=cache userId=${cachedUser?.id ?? 'none'} isPremium=${cachedUser?.isPremium ?? false} plan=${cachedUser?.plan ?? 'none'} verified=false reason=cloud-unavailable`);
+    return { user: cachedUser };
   }
 }
 

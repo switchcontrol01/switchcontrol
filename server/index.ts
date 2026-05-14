@@ -295,6 +295,22 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 (async () => {
   runJwtSelfTest();
 
+  // Hard guard: in embedded Electron backend mode, block cloud-truth routes
+  // from ever returning fake data. The packaged Electron frontend now routes
+  // these directly to switchcontrol.org. If a request still hits the local
+  // backend (e.g., old fetch without interceptor), return a clear 409 so
+  // nothing pretends to work.
+  // Must be registered BEFORE registerRoutes() so it runs before any route handler.
+  if (isElectronBackend) {
+    const cloudOnlyPaths = ["/api/me", "/api/auth", "/api/premium", "/api/device", "/api/stripe", "/api/billing", "/api/admin"];
+    app.use(cloudOnlyPaths, (req: Request, res: Response) => {
+      console.warn(`[LocalGuard] Blocked cloud-only route on local backend: ${req.path}`);
+      res.status(409).json({
+        error: "Cloud-only route. Packaged Electron must call switchcontrol.org for auth, premium, billing, and device validation.",
+      });
+    });
+  }
+
   await registerRoutes(httpServer, app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -332,7 +348,6 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   // renderer (both using 127.0.0.1) can reach it without DNS resolution.
   // Windows with "localhost" can resolve to ::1 (IPv6) instead of 127.0.0.1,
   // which breaks the health probe and leaves backendReady stuck at false.
-  const isElectronBackend = process.env.ELECTRON_BACKEND === "1";
   const host = isElectronBackend ? "127.0.0.1" : "0.0.0.0";
 
   const listenOptions: any = { port, host };

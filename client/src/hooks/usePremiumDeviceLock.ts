@@ -68,6 +68,7 @@ export function usePremiumDeviceLock(
 
     setIsChecking(true);
     try {
+      console.log(`[DeviceLock] target=cloud userId=present deviceIdPresent=true`);
       const result = await cloudApiPost<ValidateResponse>("/device/premium-validate");
       setStatus(result.status);
       setIsFirstBind(result.isFirstBind ?? false);

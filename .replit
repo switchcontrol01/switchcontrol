@@ -26,6 +26,7 @@ exposeLocalhost = true
 [[ports]]
 localPort = 9999
 externalPort = 3000
+exposeLocalhost = true
 
 [env]
 PORT = "5000"
