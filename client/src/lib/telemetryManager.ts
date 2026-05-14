@@ -62,6 +62,12 @@ function scheduleResetSpike(key: "cpu" | "ram" | "gpu") {
 
 async function buildWsUrl(): Promise<string> {
   const electronAPI = (window as any).electronAPI;
+  // Include JWT so the server can authenticate telemetry subscribers.
+  // The server rejects unauthenticated WebSocket clients (close 1008).
+  const { safeGetJwt } = await import("@/lib/auth-store");
+  const jwt = safeGetJwt();
+  const authSuffix = jwt ? `?jwt=${encodeURIComponent(jwt)}` : "";
+
   if (electronAPI?.isElectron && window.location.protocol === "file:") {
     try {
       let port: number | null = null;
@@ -73,11 +79,11 @@ async function buildWsUrl(): Promise<string> {
         await new Promise((r) => setTimeout(r, delay));
         delay = Math.min(delay * 2, 10_000);
       }
-      if (port) return `ws://127.0.0.1:${port}/ws/telemetry`;
+      if (port) return `ws://127.0.0.1:${port}/ws/telemetry${authSuffix}`;
     } catch {}
   }
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/ws/telemetry`;
+  return `${proto}//${window.location.host}/ws/telemetry${authSuffix}`;
 }
 
 // ── Connection logic ───────────────────────────────────────────────────────────

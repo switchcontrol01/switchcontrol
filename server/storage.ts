@@ -499,6 +499,12 @@ export class DatabaseStorage implements IStorage {
     return { users: rows, total: Number(total) };
   }
 
+  /**
+   * Set a user's plan. Trials are admin-granted only (via /api/admin/users/:id/plan
+   * or /api/admin/users/:id/set-trial). There is no public self-activation route.
+   * hasUsedTrial is tracked for policy/audit. Multiple admin grants are
+   * intentionally allowed unless a one-trial-per-user guard is enabled elsewhere.
+   */
   async setUserPlan(userId: string, opts: SetPlanOpts): Promise<User> {
     const now = new Date();
     let updateData: Partial<User> = { updatedAt: now };
