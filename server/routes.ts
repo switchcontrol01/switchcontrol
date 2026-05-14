@@ -466,8 +466,12 @@ export async function registerRoutes(
     }
   });
 
-  // Start background telemetry polling immediately so cache is warm before first client
-  startTelemetryPolling(1000);
+  // Start background telemetry polling only when NOT running as Electron backend.
+  // Electron has its own telemetry loop in main.js; running both would duplicate
+  // systeminformation calls and double CPU usage.
+  if (!isElectronBackend) {
+    startTelemetryPolling(1000);
+  }
   setupWebSocketServer(httpServer);
 
   app.post("/api/clear-ram", requireJwt, csrfProtection, async (req, res) => {

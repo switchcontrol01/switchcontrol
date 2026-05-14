@@ -157,6 +157,25 @@ let lastDiskSnapshot = null; // { rIO, wIO, ms, ts }
 
 // GPU telemetry cache — served from cache ONLY. Background loop does NOT poll GPU load.
 // GPU load comes from: (1) si.graphics() static on startup, (2) telemetry:refreshGpuLoad IPC (user-initiated),
+// (3) NEVER from the background poll loop.
+const GPU_POLL_TTL_MS = 15_000;
+
+// Network stats TTL — prevents slow NIC drivers from blocking the loop
+const NET_STATS_TTL_MS = 5_000;
+let _netStatsLastTs = 0;
+let _netStatsCache = null;
+
+// Telemetry safety: only pollTelemetry() may call systeminformation.
+// Violations are logged as [TelemetryViolation] for debugging.
+const ALLOWED_SI_CALLERS = new Set([
+  'pollTelemetry',
+  'loadSystemSpecs',
+  'getGpuStatic',
+  'getGpuPerfCounterLoad',
+  'telemetry:getGpu',
+  'telemetry:refreshDeepHardware',
+  'startTelemetryPolling-prime',
+]);
 // (3) cached value from previous refresh. NEVER polled automatically in loop.
 // { load: number|null, temp: number|null, memUsedMb: number|null, memTotalMb: number|null, power: number|null, clockMhz: number|null, source: string }
 let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, power: null, clockMhz: null, source: 'none' };
@@ -166,9 +185,9 @@ let gpuPollCache = { load: null, temp: null, memUsedMb: null, memTotalMb: null, 
 let _gpuCounterLastRefreshTs = 0;
 const GPU_COUNTER_REFRESH_TTL = 120_000; // ms — IPC on-demand minimum gap (2 min cache)
 
-// Background-loop GPU load poll tracker — separate from the IPC TTL.
-// GPU load is refreshed on every telemetry tick when GPU exists and system is not over-budget.
-let _gpuLoadPollLastTs = 0;
+// Background-loop GPU load poll tracker — NOT used (GPU load is on-demand only).
+// Kept for backward compatibility with any external code referencing it.
+let _gpuLoadPollLastTsDeprecated = 0;
 
 // Fast GPU existence flag — set true as soon as si.graphics() confirms a controller.
 // si.graphics() completes in ~300–600ms (no PowerShell overhead), so this is known
@@ -279,11 +298,22 @@ async function pollTelemetry() {
     // currentLoad, mem, networkStats are fast (/proc reads or OS counters).
     // Run them in parallel — they are all non-blocking and low-overhead.
     const _t0Light = Date.now();
-    const [load, mem, netStats] = await Promise.all([
+    const _shouldPollNet = (now - _netStatsLastTs) >= NET_STATS_TTL_MS;
+    const [load, mem, netStatsRaw] = await Promise.all([
       si.currentLoad().catch(e => { console.warn('[telemetry:poll] currentLoad error:', e.message); return { currentLoad: 0, cpus: [] }; }),
       si.mem().catch(e => { console.warn('[telemetry:poll] mem error:', e.message); return { total: 0, available: 0 }; }),
-      si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; }),
+      _shouldPollNet
+        ? si.networkStats().catch(e => { console.warn('[telemetry:poll] networkStats error:', e.message); return []; })
+        : Promise.resolve(null),
     ]);
+    const netStats = netStatsRaw || _netStatsCache || [];
+    if (netStatsRaw) {
+      _netStatsCache = netStatsRaw;
+      _netStatsLastTs = now;
+      verboseLog('[Telemetry] net_poll=executed items=' + netStatsRaw.length);
+    } else {
+      verboseLog('[Telemetry] net_poll=cached items=' + (_netStatsCache || []).length);
+    }
     _recordTiming('lightweight', _t0Light);
 
     // ── 3. Low-end mode detection ─────────────────────────────────────────────
@@ -412,14 +442,10 @@ async function pollTelemetry() {
     }
 
     // ── 6. GPU updates ────────────────────────────────────────────────────────
-    // VRAM only — from cached si.graphics() (60s TTL). GPU load is NEVER polled
-    // in the background loop. It only updates via telemetry:refreshGpuLoad IPC
-    // (manual user refresh) or remains as the last cached value.
-    {
-      const gpuStatic = await getGpuStatic().catch(() => null);
-      if (gpuStatic?.memUsedMb  != null) gpuPollCache.memUsedMb  = gpuStatic.memUsedMb;
-      if (gpuStatic?.memTotalMb != null) gpuPollCache.memTotalMb = gpuStatic.memTotalMb;
-    }
+      // si.graphics() REMOVED from the poll loop — it is a 300–600ms blocking call.
+      // VRAM is seeded once at startup and refreshed only via on-demand IPC.
+      // Background loop does NOT touch GPU static data.
+      verboseLog('[Telemetry] gpu_poll=skipped loop_gating');
 
     // Preserve last diskIO if this tick didn't refresh it
     const _diskResult = rawDiskIO != null
@@ -462,14 +488,15 @@ async function startTelemetryPolling() {
     if (ctrl) {
       gpuExistsOnHardware = true;
       verboseLog('[telemetry:poll] GPU presence confirmed (fast path):', ctrl.model || 'unknown');
-      // Also seed VRAM from this call so getGpuStatic() cache is warm
+      // Seed both caches so live telemetry has VRAM from frame 1
+      const memUsed  = ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null;
+      const memTotal = ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)        : null;
       if (!gpuStaticCache) {
-        gpuStaticCache = {
-          memUsedMb:  ctrl.memoryUsed != null && ctrl.memoryUsed > 0 ? safeNum(ctrl.memoryUsed) : null,
-          memTotalMb: ctrl.vram       != null && ctrl.vram       > 0 ? safeNum(ctrl.vram)        : null,
-        };
+        gpuStaticCache = { memUsedMb: memUsed, memTotalMb: memTotal };
         gpuStaticTs = Date.now();
       }
+      gpuPollCache.memUsedMb  = gpuPollCache.memUsedMb  ?? memUsed;
+      gpuPollCache.memTotalMb = gpuPollCache.memTotalMb ?? memTotal;
     }
   }).catch(() => {});
 
@@ -980,9 +1007,14 @@ let lastGpuEngineBreakdown = {};
 async function getGpuPerfCounterLoad() {
   if (process.platform !== 'win32') return null;
   if (gpuPerfCounterFailCount >= GPU_PERF_COUNTER_MAX_FAILS) return null;
+  // TTL gate — prevent rapid PowerShell re-spawns within 15s
+  if (Date.now() - _gpuCounterLastRefreshTs < GPU_POLL_TTL_MS) {
+    verboseLog('[Telemetry] gpu_poll=ttl_blocked ttl=' + GPU_POLL_TTL_MS);
+    return gpuPollCache.load ?? null;
+  }
   const _token = psLimiter.tryAcquire({ file: 'main.js', fn: 'getGpuPerfCounterLoad', reason: 'gpu-counter' });
   if (!_token) {
-    verboseLog('[GPU:perf] skipped — limiter refused (another run in flight)');
+    verboseLog('[Telemetry] gpu_poll=skipped limiter_busy');
     return gpuPollCache.load ?? null;
   }
 
@@ -1473,79 +1505,44 @@ ipcMain.handle('system:loadSpecs', async () => {
 
 // Telemetry handlers
 ipcMain.handle('telemetry:getBasic', async () => {
-  try {
-    const [load, mem, temps] = await Promise.all([
-      si.currentLoad().catch(() => ({ currentLoad: 0 })),
-      si.mem().catch(() => ({ total: 0, available: 0 })),
-      si.cpuTemperature().catch(() => ({ main: 0 }))
-    ]);
-
-    const cpuTemp = safeNum(temps.main || 0);
-    const ramTotal = Math.round((mem.total || 0) / (1024 * 1024 * 1024));
-    const ramUsed = Math.round((((mem.total || 0) - (mem.available || 0)) / (mem.total || 1)) * 100);
-
-    return {
-      cpuUsage: safeNum(load.currentLoad || 0),
-      ramUsage: ramUsed,
-      cpuTemp: cpuTemp > 0 ? cpuTemp : null,
-      showCpuTemp: cpuTemp > 0,
-      ramTotal: ramTotal,
-      showGpu: false,
-      showMobo: false,
-      timestamp: Date.now()
-    };
-  } catch (e) {
-    return {
-      cpuUsage: 0,
-      ramUsage: 0,
-      cpuTemp: null,
-      showCpuTemp: false,
-      ramTotal: 0,
-      showGpu: false,
-      showMobo: false,
-      timestamp: Date.now()
-    };
+  if (!liveTelemetryCache) {
+    console.warn('[TelemetryViolation] source=ipc handler=telemetry:getBasic called before cache ready');
+    return { cpuUsage: 0, ramUsage: 0, cpuTemp: null, showCpuTemp: false, ramTotal: 0, showGpu: false, showMobo: false, timestamp: Date.now() };
   }
+  const { load, mem, temps } = liveTelemetryCache;
+  const cpuTemp = safeNum(temps?.main || 0);
+  const ramTotal = Math.round((mem?.total || 0) / (1024 * 1024 * 1024));
+  const ramUsed = Math.round((((mem?.total || 0) - (mem?.available || 0)) / (mem?.total || 1)) * 100);
+  console.log('[Telemetry] cache_used=true handler=telemetry:getBasic');
+  return {
+    cpuUsage: safeNum(load?.currentLoad || 0),
+    ramUsage: ramUsed,
+    cpuTemp: cpuTemp > 0 ? cpuTemp : null,
+    showCpuTemp: cpuTemp > 0,
+    ramTotal,
+    showGpu: false,
+    showMobo: false,
+    timestamp: Date.now()
+  };
 });
 
 ipcMain.handle('telemetry:getEnhanced', async () => {
-  try {
-    const [load, mem, temps] = await Promise.all([
-      si.currentLoad().catch(() => ({ currentLoad: 0, cpus: [] })),
-      si.mem().catch(() => ({ total: 0, available: 0 })),
-      si.cpuTemperature().catch(() => ({ main: 0 }))
-    ]);
-
-    const cpuTemp = safeNum(temps.main || 0);
-    
-    // Only fetch GPU temp if NVIDIA GPU is detected
-    let gpuTemp = null;
-    if (cachedSpecs?.gpu?.isNvidia) {
-      try {
-        gpuTemp = await getNvidiaGpuTemp();
-      } catch (e) {
-        // GPU temp not available
-      }
-    }
-
-    return {
-      cpuUsage: safeNum(load.currentLoad || 0),
-      cpuCores: (load.cpus || []).map(c => safeNum(c.load || 0)),
-      ramUsage: safeNum(((mem.total - mem.available) / mem.total) * 100 || 0),
-      cpuTemp: Number.isFinite(cpuTemp) && cpuTemp > 0 ? cpuTemp : null,
-      gpuTemp: gpuTemp,
-      timestamp: Date.now()
-    };
-  } catch (e) {
-    return {
-      cpuUsage: 0,
-      cpuCores: [],
-      ramUsage: 0,
-      cpuTemp: null,
-      gpuTemp: null,
-      timestamp: Date.now()
-    };
+  if (!liveTelemetryCache) {
+    console.warn('[TelemetryViolation] source=ipc handler=telemetry:getEnhanced called before cache ready');
+    return { cpuUsage: 0, cpuCores: [], ramUsage: 0, cpuTemp: null, gpuTemp: null, timestamp: Date.now() };
   }
+  const { load, mem, temps } = liveTelemetryCache;
+  const cpuTemp = safeNum(temps?.main || 0);
+  const gpuTemp = gpuPollCache.temp;
+  console.log('[Telemetry] cache_used=true handler=telemetry:getEnhanced');
+  return {
+    cpuUsage: safeNum(load?.currentLoad || 0),
+    cpuCores: (load?.cpus || []).map(c => safeNum(c.load || 0)),
+    ramUsage: safeNum(((mem?.total || 0) - (mem?.available || 0)) / (mem?.total || 1) * 100),
+    cpuTemp: Number.isFinite(cpuTemp) && cpuTemp > 0 ? cpuTemp : null,
+    gpuTemp: gpuTemp,
+    timestamp: Date.now()
+  };
 });
 
 ipcMain.handle('telemetry:getHardwareTelemetry', async () => {

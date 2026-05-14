@@ -215,12 +215,14 @@ function ElectronAppContent() {
 
   const { realtimeMetricsEnabled, pauseWhenMinimized } = useStore();
 
-  // Start the telemetry WebSocket as soon as the user is authenticated.
-  // This warms up the connection before the Dashboard even mounts, so history
-  // is already accumulating when they first visit (and never resets on tab switches).
+  // Start the telemetry WebSocket ~2s after the user is authenticated.
+  // The short delay prevents the WebSocket connect + first data burst from
+  // competing with startup animations and initial render, keeping the app
+  // entry smooth on low-end CPUs.
   useEffect(() => {
     if (phase !== 'authenticated') return;
-    telemetryManager.start();
+    const timer = setTimeout(() => telemetryManager.start(), 2000);
+    return () => clearTimeout(timer);
   }, [phase]);
 
   // React to the "Real-time Metrics" toggle.
