@@ -649,8 +649,8 @@ function ElectronAppContent() {
             if (premiumActivated) {
               console.log('[PremiumFlow] Exchange + premiumActivated — retrying entitlements...');
               const premResult = await retryRefreshEntitlements({
-                attempts: 30,
-                delayMs: 1000,
+                attempts: 8,
+                delayMs: 500,
                 initialDelayMs: 300,
               });
               if (premResult.ok && premResult.user?.isPremium) {

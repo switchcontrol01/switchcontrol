@@ -48,6 +48,12 @@ export class WebhookHandlers {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event);
         break;
+      case 'charge.refunded':
+        await handleChargeRefunded(event);
+        break;
+      case 'charge.dispute.created':
+        await handleChargeDisputeCreated(event);
+        break;
       default:
         console.log(`[Stripe] Unhandled event type: ${event.type} id=${event.id}`);
     }
@@ -129,7 +135,15 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
   if (resolvedUserId && db) {
     const result = await db
       .update(users)
-      .set({ isPremium: true, plan: 'premium', premiumActivatedAt: now, updatedAt: now })
+      .set({
+        isPremium: true,
+        plan: 'premium',
+        premiumActivatedAt: now,
+        // Reset animation flags so the premium unlock/tour replay on re-purchase.
+        hasSeenPremiumUnlock: false,
+        hasSeenPremiumTour: false,
+        updatedAt: now,
+      })
       .where(eq(users.id, resolvedUserId))
       .returning();
 
@@ -144,7 +158,14 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
   if (!granted && customerId && db) {
     const result = await db
       .update(users)
-      .set({ isPremium: true, plan: 'premium', premiumActivatedAt: now, updatedAt: now })
+      .set({
+        isPremium: true,
+        plan: 'premium',
+        premiumActivatedAt: now,
+        hasSeenPremiumUnlock: false,
+        hasSeenPremiumTour: false,
+        updatedAt: now,
+      })
       .where(eq(users.stripeCustomerId, customerId))
       .returning();
 
@@ -161,4 +182,120 @@ async function handleCheckoutCompleted(event: Stripe.Event): Promise<void> {
   // ── 6. Mark event processed ───────────────────────────────────────────────
   await markEventProcessed(eventId);
   console.log(`[Stripe] Event marked processed: id=${eventId} granted=${granted}`);
+}
+
+// ── Refund handler: revoke premium on full refund ───────────────────────────
+async function handleChargeRefunded(event: Stripe.Event): Promise<void> {
+  const eventId = event.id;
+  const charge = event.data.object as Stripe.Charge;
+
+  console.log(`[Stripe] Processing charge.refunded: event=${eventId} charge=${charge.id} refunded=${charge.refunded} amount_refunded=${charge.amount_refunded}`);
+
+  // Only act on full refunds (amount_refunded === amount)
+  if (!charge.refunded || charge.amount_refunded !== charge.amount) {
+    console.log(`[Stripe] Partial or non-refund charge — skipping premium revocation. charge=${charge.id}`);
+    return;
+  }
+
+  const customerId = charge.customer as string | undefined;
+  if (!customerId) {
+    console.log(`[Stripe] No customer on charge ${charge.id} — cannot revoke premium.`);
+    return;
+  }
+
+  if (!db) {
+    console.warn(`[Stripe] DB unavailable — cannot revoke premium for customer ${customerId}`);
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.stripeCustomerId, customerId))
+    .limit(1);
+
+  if (!user) {
+    console.log(`[Stripe] No user found for customer ${customerId} — nothing to revoke.`);
+    return;
+  }
+
+  if (!user.isPremium && user.plan !== 'premium') {
+    console.log(`[Stripe] User ${user.id} is not premium — nothing to revoke.`);
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({
+      isPremium: false,
+      plan: 'free',
+      premiumActivatedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  console.log(`[Stripe] Premium REVOKED for user ${user.id} due to full refund on charge ${charge.id} (event=${eventId})`);
+}
+
+// ── Dispute handler: revoke premium when a dispute is opened ────────────────
+async function handleChargeDisputeCreated(event: Stripe.Event): Promise<void> {
+  const eventId = event.id;
+  const dispute = event.data.object as Stripe.Dispute;
+
+  console.log(`[Stripe] Processing charge.dispute.created: event=${eventId} dispute=${dispute.id} charge=${dispute.charge}`);
+
+  const chargeId = typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id;
+  if (!chargeId) {
+    console.log(`[Stripe] No charge ID on dispute ${dispute.id} — cannot revoke premium.`);
+    return;
+  }
+
+  if (!db) {
+    console.warn(`[Stripe] DB unavailable — cannot revoke premium for dispute ${dispute.id}`);
+    return;
+  }
+
+  // We need the charge to find the customer; fetch it via Stripe API
+  const stripe = getStripeClient();
+  let customerId: string | undefined;
+  try {
+    const charge = await stripe.charges.retrieve(chargeId);
+    customerId = charge.customer as string | undefined;
+  } catch (err: any) {
+    console.error(`[Stripe] Failed to retrieve charge ${chargeId} for dispute: ${err.message}`);
+    return;
+  }
+
+  if (!customerId) {
+    console.log(`[Stripe] No customer on charge ${chargeId} — cannot revoke premium.`);
+    return;
+  }
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.stripeCustomerId, customerId))
+    .limit(1);
+
+  if (!user) {
+    console.log(`[Stripe] No user found for customer ${customerId} — nothing to revoke.`);
+    return;
+  }
+
+  if (!user.isPremium && user.plan !== 'premium') {
+    console.log(`[Stripe] User ${user.id} is not premium — nothing to revoke.`);
+    return;
+  }
+
+  await db
+    .update(users)
+    .set({
+      isPremium: false,
+      plan: 'free',
+      premiumActivatedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+
+  console.log(`[Stripe] Premium REVOKED for user ${user.id} due to dispute ${dispute.id} on charge ${chargeId} (event=${eventId})`);
 }
