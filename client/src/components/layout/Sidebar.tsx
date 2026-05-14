@@ -113,23 +113,6 @@ function SidebarAmbientGlow() {
         }}
         transition={{ duration: 28, repeat: Infinity, ease: "easeInOut", delay: 4 }}
       />
-      {/* Bottom ambient orb — muted */}
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 180,
-          height: 180,
-          background: "radial-gradient(circle, rgba(20,24,29,0.06) 0%, transparent 70%)",
-          bottom: 80,
-          left: -30,
-        }}
-        animate={{
-          x: [0, 14, -6, 0],
-          y: [0, -14, 8, 0],
-          opacity: [0.5, 0.9, 0.6, 0.5],
-        }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 8 }}
-      />
     </div>
   );
 }
