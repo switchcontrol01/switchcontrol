@@ -545,30 +545,56 @@ if (process.defaultApp) {
 }
 verboseLog(`[Protocol] registered: ${protocolRegistered} | isDefault: ${app.isDefaultProtocolClient(PROTOCOL_NAME)} | isDev: ${isDev}`);
 
+// Whitelist of allowed deep-link paths. Anything else is silently dropped.
+const ALLOWED_DEEP_LINK_PATHS = new Set([
+  '/auth/callback',
+]);
+
+function isValidDeepLink(url) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'switchcontrol:') return false;
+    if (!ALLOWED_DEEP_LINK_PATHS.has(parsed.pathname)) return false;
+    // Only allow alphanumeric, underscore, hyphen query params (no shell escapes, no HTML)
+    for (const [key, val] of parsed.searchParams) {
+      if (!/^[a-zA-Z0-9_-]+$/.test(key)) return false;
+      if (!/^[a-zA-Z0-9_:-]+$/.test(val)) return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Helper: deliver deep link to renderer
 function deliverDeepLink(url) {
   verboseLog('[DeepLink] deliverDeepLink() called');
-  
+
+  if (!isValidDeepLink(url)) {
+    verboseLog(`[DeepLink] ✗ rejected invalid URL: ${url}`);
+    return;
+  }
+
   if (!mainWindow) {
     verboseLog('[DeepLink] ✗ mainWindow=null, queueing URL');
     pendingDeepLinkUrl = url;
     return;
   }
-  
+
   // Restore window if minimized, but do NOT call .focus()
   // Focus triggers window-focus event → resetUIState → cancels active auth
   if (mainWindow.isMinimized()) {
     mainWindow.restore();
   }
   mainWindow.show();
-  
+
   if (!rendererReady) {
     verboseLog('[DeepLink] ⏳ rendererReady=false, queueing URL for delivery after load');
     pendingDeepLinkUrl = url;
     return;
   }
-  
-  verboseLog('[DeepLink] ✓ sending auth-callback IPC to renderer');
+
+  verboseLog(`[DeepLink] ✓ sending auth-callback IPC to renderer | path=${new URL(url).pathname}`);
   mainWindow.webContents.send('auth-callback', url);
 }
 
@@ -815,8 +841,12 @@ function createWindow() {
     }
 
     if (pendingDeepLinkUrl) {
-      verboseLog('[DeepLink] Delivering queued deep link:', pendingDeepLinkUrl);
-      mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
+      if (isValidDeepLink(pendingDeepLinkUrl)) {
+        verboseLog(`[DeepLink] ✓ delivering queued validated link | path=${new URL(pendingDeepLinkUrl).pathname}`);
+        mainWindow.webContents.send('auth-callback', pendingDeepLinkUrl);
+      } else {
+        verboseLog(`[DeepLink] ✗ dropped queued invalid link: ${pendingDeepLinkUrl}`);
+      }
       pendingDeepLinkUrl = null;
     }
   });

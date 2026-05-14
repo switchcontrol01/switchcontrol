@@ -9,6 +9,7 @@ import { isPremiumTweakById } from "../shared/tweak-tiers";
 import { getTierFromTweakCount, getRandomMessage, getSmartRecommendations, type SystemContext } from "./lib/aiMessages";
 import { csrfProtection, generateCsrfToken } from "./middleware/csrf";
 import { requireJwt, requireCloudPremium } from "./middleware/requireCloudAuth";
+import rateLimit from "express-rate-limit";
 import { resolveEffectivePlan } from "./lib/planUtils";
 import aiRouter from "./routes/ai";
 import biosRouter from "./routes/bios";
@@ -607,7 +608,18 @@ export async function registerRoutes(
 
   // Read-only payment status check — used by the success page to show the correct state.
   // This route NEVER grants premium. Premium is exclusively granted by the Stripe webhook.
-  app.post("/api/stripe/confirm", requireJwt, async (req, res) => {
+  // Rate limited: max 10 per minute per authenticated user to prevent session probing.
+  const stripeConfirmLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+    keyGenerator: (req: any) => req.cloudUser?.id || req.ip || 'unknown',
+    message: { error: "Too many verification attempts. Please wait a minute." },
+  });
+
+  app.post("/api/stripe/confirm", requireJwt, stripeConfirmLimiter, async (req, res) => {
     try {
       const { session_id } = req.body;
       if (!session_id || typeof session_id !== 'string') {
@@ -659,27 +671,13 @@ export async function registerRoutes(
       // protection so a late-arriving webhook will be a no-op.
       console.log(`[Stripe] /confirm — session ${session_id} paid but webhook not yet received for userId=${checkoutUserId}. Writing premium directly as fallback.`);
 
-      await storage.setUserPlan(checkoutUserId, 'premium');
+      await storage.setUserPlan(checkoutUserId, { plan: 'premium' });
       console.log(`[Stripe] /confirm — premium activated (fallback) for userId=${checkoutUserId}`);
 
       res.json({ ok: true, isPremium: true, waitingForWebhook: false, userId: checkoutUserId });
     } catch (error: any) {
       console.error("[Stripe] /confirm error:", error.message);
       res.status(500).json({ ok: false, error: "Failed to check payment status." });
-    }
-  });
-
-  app.get("/api/user/premium-status", async (req, res) => {
-    try {
-      const user = (req as any).user;
-      if (!user) {
-        return res.json({ isPremium: false, authenticated: false });
-      }
-
-      const dbUser = await storage.getUser(user.id);
-      res.json({ isPremium: dbUser?.isPremium || false, authenticated: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get premium status" });
     }
   });
 

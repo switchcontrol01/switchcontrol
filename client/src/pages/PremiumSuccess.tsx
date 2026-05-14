@@ -228,16 +228,21 @@ export default function PremiumSuccess() {
         const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
         setTimeout(() => {
           if (data.payment_status === "paid") {
+            // eslint-disable-next-line no-console
+            console.log(`[PremiumSuccess] payment_verified session=${sessionId}`);
             setStatus("success");
-            queryClient.invalidateQueries({ queryKey: ["/api/user/premium-status"] });
             queryClient.invalidateQueries({ queryKey: ["/api/me"] });
           } else {
+            // eslint-disable-next-line no-console
+            console.warn(`[PremiumSuccess] payment_not_completed session=${sessionId} status=${data.payment_status}`);
             setStatus("error");
             setError("Payment not completed");
           }
         }, remaining);
       })
-      .catch(() => {
+      .catch((err) => {
+        // eslint-disable-next-line no-console
+        console.error(`[PremiumSuccess] verify_failed session=${sessionId}:`, err?.message || err);
         const elapsed = Date.now() - startTime;
         const remaining = Math.max(0, MIN_LOADING_MS - elapsed);
         setTimeout(() => {

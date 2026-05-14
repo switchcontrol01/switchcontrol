@@ -602,11 +602,19 @@ export async function refreshEntitlements(): Promise<{ user: AuthUser | null }> 
   }
 }
 
+// Singleton guard: prevents multiple components/deep-link handlers from stacking /api/me calls
+let _retryRefreshInFlight: Promise<{ ok: boolean; user: AuthUser | null; reason?: string }> | null = null;
+
 export async function retryRefreshEntitlements(opts?: {
   attempts?: number;
   delayMs?: number;
   initialDelayMs?: number;
 }): Promise<{ ok: boolean; user: AuthUser | null; reason?: string }> {
+  if (_retryRefreshInFlight) {
+    if (isDebug) { console.log('[Entitlements] retry_deduped — returning in-flight promise'); }
+    return _retryRefreshInFlight;
+  }
+
   const { attempts = 6, delayMs = 500, initialDelayMs = 300 } = opts || {};
 
   if (isDebug) { console.log(`[PremiumFlow] retryRefreshEntitlements starting — initialDelay=${initialDelayMs}ms, attempts=${attempts}, delay=${delayMs}ms`); }
@@ -615,25 +623,33 @@ export async function retryRefreshEntitlements(opts?: {
     await new Promise(r => setTimeout(r, initialDelayMs));
   }
 
-  for (let i = 0; i < attempts; i++) {
-    if (i > 0) {
-      if (isDebug) { console.log(`[PremiumFlow] /api/me retry wait ${delayMs}ms...`); }
-      await new Promise(r => setTimeout(r, delayMs));
+  _retryRefreshInFlight = (async () => {
+    for (let i = 0; i < attempts; i++) {
+      if (i > 0) {
+        if (isDebug) { console.log(`[PremiumFlow] /api/me retry wait ${delayMs}ms...`); }
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+
+      if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts}`); }
+      const result = await refreshEntitlements();
+
+      if (result.user && result.user.loggedIn) {
+        if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=true isPremium=${result.user.isPremium} hasSeenPremiumUnlock=${result.user.hasSeenPremiumUnlock}`); }
+        return { ok: true, user: result.user };
+      }
+
+      if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=false, retrying...`); }
     }
 
-    if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts}`); }
-    const result = await refreshEntitlements();
+    if (isDebug) { console.warn(`[PremiumFlow] /api/me still loggedIn=false after ${attempts} attempts`); }
+    return { ok: false, user: null, reason: 'not_logged_in_after_retries' };
+  })();
 
-    if (result.user && result.user.loggedIn) {
-      if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=true isPremium=${result.user.isPremium} hasSeenPremiumUnlock=${result.user.hasSeenPremiumUnlock}`); }
-      return { ok: true, user: result.user };
-    }
-
-    if (isDebug) { console.log(`[PremiumFlow] /api/me attempt ${i + 1}/${attempts} — loggedIn=false, retrying...`); }
+  try {
+    return await _retryRefreshInFlight;
+  } finally {
+    _retryRefreshInFlight = null;
   }
-
-  if (isDebug) { console.warn(`[PremiumFlow] /api/me still loggedIn=false after ${attempts} attempts`); }
-  return { ok: false, user: null, reason: 'not_logged_in_after_retries' };
 }
 
 export async function postUnlockSeen(): Promise<boolean> {
