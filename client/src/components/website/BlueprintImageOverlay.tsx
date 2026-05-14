@@ -28,7 +28,6 @@ export function BlueprintImageOverlay() {
           maxWidth: "520px",
           opacity: 0.14 * mobileOpacityScale,
           filter: "blur(2px)",
-          mixBlendMode: "screen",
           willChange: "transform",
         }}
       >
@@ -52,7 +51,6 @@ export function BlueprintImageOverlay() {
             height: "45%",
             background: "linear-gradient(140deg, rgba(255,255,255,0.18) 0%, rgba(180,210,255,0.12) 20%, rgba(140,180,255,0.06) 40%, transparent 60%)",
             filter: "blur(14px)",
-            mixBlendMode: "screen",
             opacity: 1,
             pointerEvents: "none",
           }}
@@ -70,7 +68,6 @@ export function BlueprintImageOverlay() {
           maxWidth: "720px",
           opacity: 0.11 * mobileOpacityScale,
           filter: "blur(3px)",
-          mixBlendMode: "screen",
           willChange: "transform",
         }}
       >
@@ -94,7 +91,6 @@ export function BlueprintImageOverlay() {
             height: "40%",
             background: "linear-gradient(220deg, rgba(255,255,255,0.16) 0%, rgba(160,200,255,0.10) 20%, rgba(120,160,255,0.05) 40%, transparent 60%)",
             filter: "blur(14px)",
-            mixBlendMode: "screen",
             opacity: 1,
             pointerEvents: "none",
           }}
@@ -112,7 +108,6 @@ export function BlueprintImageOverlay() {
           maxWidth: "700px",
           opacity: 0.07 * mobileOpacityScale,
           filter: "blur(3px)",
-          mixBlendMode: "screen",
           willChange: "transform",
         }}
       >
@@ -136,7 +131,6 @@ export function BlueprintImageOverlay() {
             height: "35%",
             background: "linear-gradient(160deg, rgba(200,220,255,0.10) 0%, rgba(255,255,255,0.08) 30%, transparent 55%)",
             filter: "blur(20px)",
-            mixBlendMode: "screen",
             opacity: 1,
             pointerEvents: "none",
           }}
@@ -154,7 +148,6 @@ export function BlueprintImageOverlay() {
               height: "60%",
               background: "linear-gradient(135deg, rgba(200,220,255,0.10) 0%, rgba(160,140,255,0.06) 30%, transparent 55%)",
               filter: "blur(40px)",
-              mixBlendMode: "screen",
               opacity: 1,
               pointerEvents: "none",
             }}
@@ -168,7 +161,6 @@ export function BlueprintImageOverlay() {
               height: "50%",
               background: "linear-gradient(315deg, rgba(255,255,255,0.08) 0%, rgba(140,180,255,0.05) 25%, transparent 50%)",
               filter: "blur(40px)",
-              mixBlendMode: "screen",
               opacity: 1,
               pointerEvents: "none",
             }}

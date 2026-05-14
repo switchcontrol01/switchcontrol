@@ -9,28 +9,30 @@ interface ParticleConfig {
 }
 
 const defaultParticleConfig: ParticleConfig = {
-  count: 25,
+  count: 2,
   speed: 0.3,
   opacity: 0.08,
   size: 2,
 };
 
-export const PremiumParticles = memo(function PremiumParticles({ 
-  config = defaultParticleConfig 
-}: { 
-  config?: Partial<ParticleConfig> 
+export const PremiumParticles = memo(function PremiumParticles({
+  config = defaultParticleConfig,
+}: {
+  config?: Partial<ParticleConfig>;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const { prefersReducedMotion } = useMotion();
   const animationRef = useRef<number | null>(null);
-  const particlesRef = useRef<Array<{
-    x: number;
-    y: number;
-    vx: number;
-    vy: number;
-    size: number;
-    opacity: number;
-  }>>([]);
+  const particlesRef = useRef<
+    Array<{
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      opacity: number;
+    }>
+  >([]);
 
   const finalConfig = { ...defaultParticleConfig, ...config };
 
@@ -61,17 +63,34 @@ export const PremiumParticles = memo(function PremiumParticles({
     }));
 
     let isVisible = true;
+    let frameSkip = 0;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    let mouseActive = false;
 
     const handleVisibilityChange = () => {
-      isVisible = document.visibilityState === 'visible';
+      isVisible = document.visibilityState === "visible";
       if (isVisible && !animationRef.current) {
         animationRef.current = requestAnimationFrame(animate);
       }
     };
 
+    const onMouseMove = () => {
+      mouseActive = true;
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        mouseActive = false;
+      }, 2000);
+    };
+
     const animate = () => {
       if (!isVisible) {
         animationRef.current = null;
+        return;
+      }
+
+      frameSkip++;
+      if (!mouseActive && frameSkip % 3 !== 0) {
+        animationRef.current = requestAnimationFrame(animate);
         return;
       }
 
@@ -95,12 +114,15 @@ export const PremiumParticles = memo(function PremiumParticles({
       animationRef.current = requestAnimationFrame(animate);
     };
 
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
     animate();
 
     return () => {
       window.removeEventListener("resize", resizeCanvas);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("mousemove", onMouseMove);
+      if (idleTimer) clearTimeout(idleTimer);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
       }
@@ -130,41 +152,47 @@ export const TopographicBackground = memo(function TopographicBackground() {
 
     let mouseX = 0;
     let mouseY = 0;
-    let currentX = 0;
-    let currentY = 0;
-    let animationId: number;
+    let rafId: number;
     let isVisible = true;
+    let running = false;
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
 
     const handleMouseMove = (e: MouseEvent) => {
       mouseX = (e.clientX / window.innerWidth - 0.5) * 20;
       mouseY = (e.clientY / window.innerHeight - 0.5) * 20;
+
+      if (idleTimer) clearTimeout(idleTimer);
+      if (!running) {
+        running = true;
+        rafId = requestAnimationFrame(animate);
+      }
+      idleTimer = setTimeout(() => {
+        running = false;
+      }, 2000);
     };
 
     const handleVisibilityChange = () => {
-      isVisible = document.visibilityState === 'visible';
-      if (isVisible) {
-        animationId = requestAnimationFrame(animate);
-      }
+      isVisible = document.visibilityState === "visible";
     };
 
     const animate = () => {
-      if (!isVisible) return;
-
-      currentX += (mouseX - currentX) * 0.05;
-      currentY += (mouseY - currentY) * 0.05;
-
-      container.style.transform = `translate(${currentX}px, ${currentY}px)`;
-      animationId = requestAnimationFrame(animate);
+      if (!running || !isVisible) {
+        rafId = 0;
+        return;
+      }
+      container.style.transform = `translate(${mouseX.toFixed(1)}px, ${mouseY.toFixed(1)}px)`;
+      rafId = requestAnimationFrame(animate);
     };
 
     window.addEventListener("mousemove", handleMouseMove);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    animationId = requestAnimationFrame(animate);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      cancelAnimationFrame(animationId);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (idleTimer) clearTimeout(idleTimer);
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [prefersReducedMotion]);
 
@@ -172,102 +200,12 @@ export const TopographicBackground = memo(function TopographicBackground() {
     <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
       <div
         ref={containerRef}
-        className="absolute inset-[-50px] transition-transform duration-1000 ease-out"
+        className="absolute inset-[-50px]"
         style={{
           backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Cpath d='M0 50 Q25 30 50 50 T100 50' stroke='rgba(139,92,246,0.04)' fill='none' stroke-width='0.5'/%3E%3Cpath d='M0 60 Q25 40 50 60 T100 60' stroke='rgba(139,92,246,0.03)' fill='none' stroke-width='0.5'/%3E%3Cpath d='M0 40 Q25 20 50 40 T100 40' stroke='rgba(139,92,246,0.03)' fill='none' stroke-width='0.5'/%3E%3Cpath d='M0 70 Q25 50 50 70 T100 70' stroke='rgba(139,92,246,0.02)' fill='none' stroke-width='0.5'/%3E%3Cpath d='M0 30 Q25 10 50 30 T100 30' stroke='rgba(139,92,246,0.02)' fill='none' stroke-width='0.5'/%3E%3C/svg%3E")`,
           backgroundSize: "200px 200px",
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
     </div>
-  );
-});
-
-export const PremiumSheen = memo(function PremiumSheen({ 
-  className = "",
-  duration = 3000,
-}: { 
-  className?: string;
-  duration?: number;
-}) {
-  const { prefersReducedMotion } = useMotion();
-  const sheenRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-
-    const sheen = sheenRef.current;
-    if (!sheen) return;
-
-    const animate = () => {
-      sheen.style.animation = `sheen ${duration}ms ease-in-out`;
-      sheen.addEventListener("animationend", () => {
-        sheen.style.animation = "none";
-        setTimeout(animate, duration * 2);
-      }, { once: true });
-    };
-
-    const timeout = setTimeout(animate, 1000);
-    return () => clearTimeout(timeout);
-  }, [prefersReducedMotion, duration]);
-
-  if (prefersReducedMotion) return null;
-
-  return (
-    <>
-      <style>{`
-        @keyframes sheen {
-          0% { transform: translateX(-100%) skewX(-15deg); opacity: 0; }
-          10% { opacity: 0.5; }
-          90% { opacity: 0.5; }
-          100% { transform: translateX(200%) skewX(-15deg); opacity: 0; }
-        }
-      `}</style>
-      <div
-        ref={sheenRef}
-        className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
-      >
-        <div
-          className="absolute inset-0 w-1/3"
-          style={{
-            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent)",
-            transform: "translateX(-100%) skewX(-15deg)",
-          }}
-        />
-      </div>
-    </>
-  );
-});
-
-export const GlowOrb = memo(function GlowOrb({
-  color = "rgba(139, 92, 246, 0.15)",
-  size = 300,
-  x = "50%",
-  y = "50%",
-  blur = 100,
-}: {
-  color?: string;
-  size?: number;
-  x?: string;
-  y?: string;
-  blur?: number;
-}) {
-  const { prefersReducedMotion } = useMotion();
-
-  return (
-    <div
-      className="absolute pointer-events-none transition-all duration-1000"
-      style={{
-        left: x,
-        top: y,
-        width: size,
-        height: size,
-        background: color,
-        borderRadius: "50%",
-        filter: `blur(${blur}px)`,
-        transform: "translate(-50%, -50%)",
-        animation: prefersReducedMotion ? "none" : "pulse-glow 8s ease-in-out infinite",
-      }}
-    />
   );
 });

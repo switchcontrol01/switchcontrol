@@ -91,18 +91,25 @@ function useStreamSpark(
   active: boolean,
 ) {
   const [data, setData] = useState(initial);
+  const [streaming, setStreaming] = useState(false);
   const rRef = useRef(rng(rngSeed + 500));
   const dRef = useRef(initial);
   useEffect(() => {
     if (!active) return;
+    const td = setTimeout(() => setStreaming(true), 1800);
+    return () => clearTimeout(td);
+  }, [active]);
+  useEffect(() => {
+    if (!streaming) return;
     const id = setInterval(() => {
       const next = nextSparkPoint(dRef.current, base, growth, noise, rRef.current);
       const updated = [...dRef.current.slice(dRef.current.length >= 22 ? 1 : 0), next];
       dRef.current = updated;
       setData([...updated]);
     }, 500);
-    return () => clearInterval(id);
-  }, [active, base, growth, noise]);
+    const killTimer = setTimeout(() => setStreaming(false), 4000);
+    return () => { clearInterval(id); clearTimeout(killTimer); };
+  }, [streaming, base, growth, noise]);
   return data;
 }
 

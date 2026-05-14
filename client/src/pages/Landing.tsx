@@ -84,7 +84,6 @@ function HeroTiltContainer({ children }: { children: React.ReactNode }) {
         transformStyle: "preserve-3d",
         perspective: "1200px",
         perspectiveOrigin: "50% 100%",
-        willChange: "opacity, filter, transform",
         transition: "opacity 0.08s linear, filter 0.08s linear",
       }}
     >
@@ -450,10 +449,10 @@ function HeroAppMockup() {
   return (
     <div className="ws-hero-mockup relative animate-mockup-float">
       {/* Ambient bloom */}
-      <div className="absolute -inset-16 rounded-3xl blur-[70px] pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at 50% 55%, hsl(270 55% 48% / 0.22), hsl(190 75% 48% / 0.10), transparent 68%)" }} />
+      <div className="absolute -inset-16 rounded-3xl blur-[40px] pointer-events-none"
+        style={{ background: "radial-gradient(ellipse at 50% 55%, hsl(270 55% 48% / 0.18), hsl(190 75% 48% / 0.08), transparent 68%)" }} />
       <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-[85%] h-16 rounded-full pointer-events-none"
-        style={{ background: "radial-gradient(ellipse at center, hsl(190 90% 50% / 0.55), transparent 70%)", filter: "blur(60px)" }} />
+        style={{ background: "radial-gradient(ellipse at center, hsl(190 90% 50% / 0.45), transparent 70%)", filter: "blur(30px)" }} />
 
       {/* Window — faked glass (gradient top-edge + white glow, no backdrop-filter) */}
       <div className="relative rounded-2xl overflow-hidden"
@@ -658,17 +657,15 @@ export default function Landing() {
               transformOrigin: "left top",
               transform: "rotate(32deg) translateY(-280px)",
               background: "linear-gradient(90deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
-              filter: "blur(55px)",
-              mixBlendMode: "screen",
+              filter: "blur(30px)",
             }} />
             <div style={{
               position: "absolute", left: "-5%", top: "-5%",
               width: "36%", height: "150px",
               transformOrigin: "left top",
               transform: "rotate(32deg) translateY(-75px)",
-              background: "linear-gradient(90deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
-              filter: "blur(18px)",
-              mixBlendMode: "screen",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.18) 30%, rgba(255,255,255,0.03) 65%, transparent 100%)",
+              filter: "blur(12px)",
             }} />
           </div>
 
@@ -679,18 +676,16 @@ export default function Landing() {
               width: "44%", height: "560px",
               transformOrigin: "left top",
               transform: "rotate(32deg) translateY(-280px)",
-              background: "linear-gradient(90deg, rgba(255,255,255,0.42) 0%, rgba(255,255,255,0.24) 25%, rgba(230,215,255,0.08) 60%, transparent 100%)",
-              filter: "blur(55px)",
-              mixBlendMode: "screen",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.14) 25%, rgba(230,215,255,0.04) 60%, transparent 100%)",
+              filter: "blur(30px)",
             }} />
             <div style={{
               position: "absolute", left: "-5%", top: "-5%",
               width: "36%", height: "150px",
               transformOrigin: "left top",
               transform: "rotate(32deg) translateY(-75px)",
-              background: "linear-gradient(90deg, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0.30) 30%, rgba(255,255,255,0.06) 65%, transparent 100%)",
-              filter: "blur(18px)",
-              mixBlendMode: "screen",
+              background: "linear-gradient(90deg, rgba(255,255,255,0.38) 0%, rgba(255,255,255,0.18) 30%, rgba(255,255,255,0.03) 65%, transparent 100%)",
+              filter: "blur(12px)",
             }} />
           </div>
 
@@ -833,8 +828,8 @@ export default function Landing() {
         <section className="py-24 md:py-32 relative overflow-hidden">
           <SectionGlow color="mixed" intensity="strong" />
           <div className="absolute inset-0 pointer-events-none" style={{ background: "radial-gradient(ellipse 50% 35% at 60% 40%, hsl(270 55% 45% / 0.04) 0%, transparent 70%)" }} />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] rounded-full bg-primary/[0.05] blur-[180px] pointer-events-none" />
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] rounded-full bg-[hsl(190,80%,40%,0.04)] blur-[120px] pointer-events-none" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/[0.04] blur-[60px] pointer-events-none" />
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] rounded-full bg-[hsl(190,80%,40%,0.03)] blur-[40px] pointer-events-none" />
 
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <SectionHeader
@@ -1024,7 +1019,7 @@ export default function Landing() {
               {/* ── Free card ── */}
               <Reveal>
                 <div className="rounded-2xl border border-white/[0.07] p-8 h-full flex flex-col relative overflow-hidden group transition-all duration-500 hover:border-white/[0.12]"
-                  style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.045) 0%, rgba(255,255,255,0.015) 100%)", backdropFilter: "blur(24px)" }}>
+                  style={{ background: "linear-gradient(160deg, rgba(255,255,255,0.055) 0%, rgba(255,255,255,0.025) 100%)", border: "1px solid rgba(255,255,255,0.08)" }}>
 
                   {/* Hover shimmer */}
                   <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
@@ -1072,7 +1067,7 @@ export default function Landing() {
 
                   {/* Card body */}
                   <div className="relative rounded-[17px] p-8 h-full flex flex-col overflow-hidden"
-                    style={{ background: "rgba(255,255,255,0.042)", backdropFilter: "blur(36px)" }}>
+                    style={{ background: "rgba(255,255,255,0.055)", border: "1px solid rgba(255,255,255,0.10)" }}>
 
                     {/* Animated aurora gradient */}
                     <div className="pricing-aurora absolute inset-0 pointer-events-none rounded-[17px]" />

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { useMotion } from '@/lib/motion';
 
 export function SpotlightCursor() {
@@ -9,6 +9,8 @@ export function SpotlightCursor() {
   const cur = useRef({ x: 0, y: 0 });
   const targ = useRef({ x: 0, y: 0 });
   const visibleRef = useRef(false);
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const running = useRef(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -23,7 +25,6 @@ export function SpotlightCursor() {
     const el = spotRef.current;
     if (!el) return;
 
-    let running = true;
     const smoothness = prefersReducedMotion ? 0.15 : 0.08;
 
     const handleMouseMove = (e: MouseEvent) => {
@@ -34,15 +35,24 @@ export function SpotlightCursor() {
         visibleRef.current = true;
         el.style.opacity = '1';
       }
-    };
 
-    const handleMouseLeave = () => {
-      visibleRef.current = false;
-      el.style.opacity = '0';
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      if (!running.current) {
+        running.current = true;
+        rafRef.current = requestAnimationFrame(tick);
+      }
+      idleTimer.current = setTimeout(() => {
+        running.current = false;
+        visibleRef.current = false;
+        el.style.opacity = '0';
+      }, 2000);
     };
 
     const tick = () => {
-      if (!running) return;
+      if (!running.current) {
+        rafRef.current = undefined;
+        return;
+      }
       if (!isMobileRef.current) {
         cur.current.x += (targ.current.x - cur.current.x) * smoothness;
         cur.current.y += (targ.current.y - cur.current.y) * smoothness;
@@ -52,13 +62,13 @@ export function SpotlightCursor() {
     };
 
     window.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseleave', handleMouseLeave);
     rafRef.current = requestAnimationFrame(tick);
+    running.current = true;
 
     return () => {
-      running = false;
+      running.current = false;
+      if (idleTimer.current) clearTimeout(idleTimer.current);
       window.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseleave', handleMouseLeave);
       if (rafRef.current !== undefined) cancelAnimationFrame(rafRef.current);
     };
   }, [prefersReducedMotion]);

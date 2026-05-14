@@ -40,8 +40,8 @@ export const GlassPanel = forwardRef<HTMLDivElement, GlassPanelProps>(
     );
 
     const variants = {
-      default: "bg-white/[0.03] backdrop-blur-xl border border-white/[0.07] rounded-2xl",
-      elevated: "bg-white/[0.05] backdrop-blur-2xl border border-white/[0.1] rounded-2xl shadow-2xl shadow-black/30",
+      default: "bg-white/[0.03] backdrop-blur-sm border border-white/[0.07] rounded-2xl",
+      elevated: "bg-white/[0.05] backdrop-blur-md border border-white/[0.1] rounded-2xl shadow-2xl shadow-black/30",
       matte: "bg-[hsl(260,18%,9%)] border border-white/[0.06] rounded-2xl",
     };
 

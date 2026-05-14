@@ -122,7 +122,14 @@ function useStreamData(
       dataRef.current = updated;
       setData([...updated]);
     }, 440);
-    return () => clearInterval(id);
+    // Kill streaming after 4 seconds to prevent idle GPU drain
+    const killTimer = setTimeout(() => {
+      setStreaming(false);
+    }, 4000);
+    return () => {
+      clearInterval(id);
+      clearTimeout(killTimer);
+    };
   }, [streaming, nextFn]);
 
   return { data, streaming };

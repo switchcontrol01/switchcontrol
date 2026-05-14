@@ -138,9 +138,7 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
       { Component: FrametimeWave, opacity: 0.06, drift: "ws-drift-3", position: "absolute bottom-[20%] inset-x-0 h-[200px]" },
     ],
     glowHotspots: [
-      { color: "hsl(270 55% 55%)", size: "600px", position: "top-[3%] left-[3%]", opacity: 0.18 },
-      { color: "hsl(280 50% 50%)", size: "450px", position: "top-[45%] right-[-5%]", opacity: 0.12 },
-      { color: "hsl(260 60% 50%)", size: "500px", position: "top-[20%] right-[10%]", opacity: 0.14 },
+      { color: "hsl(270 55% 55%)", size: "600px", position: "top-[3%] left-[3%]", opacity: 0.10 },
     ],
     silhouettes: true,
     bgImages: [
@@ -245,14 +243,10 @@ const VARIANT_CONFIG: Record<BackgroundVariant, {
   },
 };
 
-/* GPU-OPTIMIZED: reduced from 18 to 6 particles, no blur, only transform+opacity */
+/* GPU: static particles only — no CSS animation loop */
 const PARTICLE_POSITIONS = [
-  { x: "12%", y: "18%", size: 2, delay: 0, speed: 22 },
-  { x: "72%", y: "12%", size: 2, delay: 4, speed: 28 },
-  { x: "25%", y: "68%", size: 1.5, delay: 2, speed: 20 },
-  { x: "85%", y: "55%", size: 1.5, delay: 6, speed: 24 },
-  { x: "50%", y: "42%", size: 1, delay: 1, speed: 18 },
-  { x: "45%", y: "88%", size: 1.5, delay: 5, speed: 26 },
+  { x: "12%", y: "18%", size: 2 },
+  { x: "72%", y: "12%", size: 1.5 },
 ];
 
 export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProps) {
@@ -497,15 +491,13 @@ export function WebsiteBackground({ variant = "landing" }: WebsiteBackgroundProp
           {PARTICLE_POSITIONS.map((p, i) => (
             <div
               key={i}
-              className="absolute rounded-full ws-particle"
+              className="absolute rounded-full"
               style={{
                 left: p.x,
                 top: p.y,
                 width: `${p.size}px`,
                 height: `${p.size}px`,
-                background: i % 3 === 0 ? "rgba(180,140,255,0.20)" : i % 3 === 1 ? "rgba(140,200,255,0.16)" : "rgba(255,255,255,0.12)",
-                animationDelay: `${p.delay}s`,
-                ["--particle-speed" as string]: `${p.speed}s`,
+                background: i === 0 ? "rgba(180,140,255,0.12)" : "rgba(140,200,255,0.10)",
               }}
             />
           ))}
