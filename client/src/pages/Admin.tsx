@@ -79,7 +79,7 @@ function trialMsRemaining(endsAt: string | null): number {
 
 function PlanBadge({ plan }: { plan: string }) {
   const styles: Record<string, string> = {
-    premium: "bg-[#00D4FF] text-[#33E0FF] border-[#00D4FF]",
+    premium: "bg-[#00D4FF] text-[#0A0E14] border-[#00D4FF]",
     trial: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
     trial_expired: "bg-orange-500/20 text-orange-300 border-orange-500/30",
     free: "bg-[#21262D] text-[#6B7380] border-[#2A313A]",
