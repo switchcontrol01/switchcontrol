@@ -294,8 +294,8 @@ function PremiumPerfGraph() {
   return (
     <div className="mt-4 mb-2">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00D4FF]/70">Frame latency — before vs after</span>
-        <span className="text-[10px] font-bold text-emerald-400/80">−62%</span>
+        <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#00D4FF]/70">System latency — demo illustration</span>
+        <span className="text-[10px] font-bold text-emerald-400/40">Demo only</span>
       </div>
       <svg width="100%" viewBox={`0 0 ${w} ${h}`} fill="none" className="overflow-visible">
         <defs>

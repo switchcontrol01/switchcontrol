@@ -288,30 +288,26 @@ function getTimeOfDay(): DashboardTimeOfDay {
   return "evening";
 }
 
-const LIVE_STATUSES = [
-  "Memory pressure stable",
-  "Telemetry active",
-  "GPU ready",
-  "System balanced",
-  "CPU threads aligned",
-  "Latency optimized",
-  "Network calibrated",
-  "All systems nominal",
-  "Performance envelope prepared",
-  "Runtime services initialized",
-];
-
 function useLiveStatus(): string {
-  const [idx, setIdx] = useState(() => Math.floor(Math.random() * LIVE_STATUSES.length));
+  const [status, setStatus] = useState("Connecting to telemetry...");
+  const { telemetry } = useLiveTelemetry();
+
   useEffect(() => {
-    // Advance status text every 3.5s but only when tab is visible — skip when hidden
-    const id = setInterval(() => {
-      if (document.hidden) return;
-      setIdx(prev => (prev + 1) % LIVE_STATUSES.length);
-    }, 3500);
-    return () => clearInterval(id);
-  }, []);
-  return LIVE_STATUSES[idx];
+    if (!telemetry) {
+      setStatus("Connecting to telemetry...");
+      return;
+    }
+    const cpu = telemetry.cpu?.usagePct ?? null;
+    const ramUsed = telemetry.ram?.usedGb ?? null;
+    const ramTotal = telemetry.ram?.totalGb ?? null;
+    if (cpu !== null && ramUsed !== null && ramTotal !== null) {
+      setStatus(`CPU ${cpu.toFixed(0)}% · ${ramUsed.toFixed(1)}/${ramTotal.toFixed(1)}GB RAM`);
+    } else {
+      setStatus("Telemetry active · waiting for data");
+    }
+  }, [telemetry]);
+
+  return status;
 }
 
 export default function Home() {

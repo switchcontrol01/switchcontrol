@@ -24,19 +24,13 @@ function GlassPanel({ children, className = "" }: { children: ReactNode; classNa
 }
 
 // ── Preview: Welcome to Premium ───────────────────────────────────────────────
-const WELCOME_METRICS = [
-  { label: "FPS",        before: 84,   after: 127,  color: "rgba(251,191,36,",   unit: "" },
-  { label: "Input Lag",  before: 12,   after: 4,    color: "rgba(0,210,255,",    unit: "ms", lower: true },
-  { label: "Ping",       before: 24,   after: 11,   color: "rgba(52,211,153,",   unit: "ms", lower: true },
+const PREMIUM_FEATURES = [
+  { label: "Advanced tweaks",   detail: "Deeper system access",      color: "rgba(251,191,36," },
+  { label: "Automation",        detail: "Structured, tested changes", color: "rgba(0,210,255," },
+  { label: "Full reversibility", detail: "Undo any change instantly", color: "rgba(52,211,153," },
 ];
 
 function WelcomePremiumPreview() {
-  const [phase, setPhase] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setPhase(p => (p + 1) % 2), 2200);
-    return () => clearInterval(id);
-  }, []);
-
   return (
     <GlassPanel>
       <div className="p-3 space-y-3">
@@ -56,69 +50,28 @@ function WelcomePremiumPreview() {
         </div>
 
         <div className="space-y-2">
-          {WELCOME_METRICS.map((m, i) => {
-            const val   = phase === 0 ? m.before : m.after;
-            const isGood = m.lower ? val < m.before : val > m.before;
-            const pct   = phase === 0
-              ? (m.lower ? 60 : 40)
-              : (m.lower ? 30 : 75);
-
-            return (
-              <div key={m.label}>
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-[9px] font-medium" style={{ color: `${m.color}0.5)` }}>{m.label}</span>
-                  <motion.span
-                    key={`${m.label}-${phase}`}
-                    className="text-[10px] font-mono font-semibold tabular-nums"
-                    style={{ color: `${m.color}0.9)` }}
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.35 }}
-                  >
-                    {val}{m.unit}
-                    {phase === 1 && (
-                      <span className="text-[8px] ml-1" style={{ color: "rgba(52,211,153,0.7)" }}>
-                        {m.lower ? "↓" : "↑"}
-                      </span>
-                    )}
-                  </motion.span>
-                </div>
-                <div className="h-[3px] rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{
-                      background: `linear-gradient(90deg, ${m.color}0.85), ${m.color}0.55))`,
-                      boxShadow: `0 0 8px ${m.color}0.4)`,
-                    }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-                  />
-                </div>
+          {PREMIUM_FEATURES.map((f, i) => (
+            <div key={f.label}>
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-[9px] font-medium" style={{ color: `${f.color}0.5)` }}>{f.label}</span>
+                <span className="text-[9px] font-mono" style={{ color: `${f.color}0.7)` }}>{f.detail}</span>
               </div>
-            );
-          })}
-        </div>
-
-        <div className="flex gap-2 pt-0.5">
-          {[
-            { label: "Before", color: "rgba(255,255,255,0.3)" },
-            { label: "After",  color: "rgba(251,191,36,0.8)" },
-          ].map(tag => (
-            <motion.div
-              key={tag.label}
-              onClick={() => setPhase(tag.label === "Before" ? 0 : 1)}
-              className="flex-1 py-1 rounded-lg text-center cursor-pointer"
-              style={{
-                background: `${tag.color.replace("0.3)", "0.07)").replace("0.8)", "0.07)")}`,
-                border: `1px solid ${tag.color.replace("0.3)", "0.18)").replace("0.8)", "0.18)")}`,
-              }}
-              whileHover={{ opacity: 0.85 }}
-              whileTap={{ scale: 0.97 }}
-            >
-              <span className="text-[9px] font-semibold" style={{ color: tag.color }}>{tag.label}</span>
-            </motion.div>
+              <div className="h-[2px] rounded-full" style={{ background: "rgba(255,255,255,0.06)" }}>
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: "100%",
+                    background: `linear-gradient(90deg, ${f.color}0.5), ${f.color}0.2))`,
+                  }}
+                />
+              </div>
+            </div>
           ))}
         </div>
+
+        <p className="text-[9px] text-white/30 pt-1">
+          No fake boosts. Just removing what slows your system down.
+        </p>
       </div>
     </GlassPanel>
   );

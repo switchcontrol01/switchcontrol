@@ -206,36 +206,23 @@ function TweaksPreview() {
           ))}
         </div>
 
-        {/* Before/after FPS graph */}
+        {/* System consistency demo */}
         <div className="rounded-lg p-2" style={{ background: 'rgba(0,0,0,0.2)' }}>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>FPS Comparison</span>
-            <motion.span
-              className="text-[9px] font-bold"
-              style={{ color: 'rgba(52,211,153,0.9)' }}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.9 }}
-            >
-              Demo illustration
-            </motion.span>
+            <span className="text-[8px] uppercase tracking-wider" style={{ color: 'rgba(255,255,255,0.2)' }}>System Interference — Demo</span>
+            <span className="text-[9px] font-bold" style={{ color: 'rgba(52,211,153,0.6)' }}>Illustration only</span>
           </div>
-          <div className="relative" style={{ height: 36 }}>
-            <TourLineGraph points={BEFORE_FPS} color="rgba(255,255,255," height={36} delay={0.2} />
-            <div className="absolute inset-0">
-              <TourLineGraph points={AFTER_FPS} color="rgba(168,85,247," height={36} delay={0.55} />
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-white/30" />
+              <span className="text-[9px] text-white/30">Background processes creating noise</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-400/50" />
+              <span className="text-[9px] text-white/30">After removing interference → more stable</span>
             </div>
           </div>
-          <div className="flex gap-3 mt-1">
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-[2px] rounded" style={{ background: 'rgba(255,255,255,0.4)' }} />
-              <span className="text-[8px]" style={{ color: 'rgba(255,255,255,0.3)' }}>Before</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-[2px] rounded" style={{ background: 'rgba(168,85,247,0.8)' }} />
-              <span className="text-[8px]" style={{ color: 'rgba(168,85,247,0.7)' }}>After</span>
-            </div>
-          </div>
+          <p className="text-[8px] text-white/15 mt-1.5">Does not increase FPS. Removes hidden delays.</p>
         </div>
       </div>
     </GlassPanel>

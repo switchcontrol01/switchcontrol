@@ -809,7 +809,7 @@ export default function ExtremeLabs() {
 
       let p = 0;
       const interval = setInterval(() => {
-        p += Math.random() * 20 + 10;
+        p += 18;
         if (p >= 100) {
           p = 100;
           clearInterval(interval);

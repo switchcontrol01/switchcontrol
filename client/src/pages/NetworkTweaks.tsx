@@ -884,7 +884,7 @@ function NetworkTweaksContent() {
         >
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">
-              Network Tweaks
+              Network Optimization (Latency & Stability)
             </h1>
             <PremiumHeaderBadge isLocked={!isPremium} />
             {enabledCount > 0 && (
@@ -899,8 +899,16 @@ function NetworkTweaksContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.45, delay: 0.2 }}
           >
-            Optimize latency, throughput, and stability. Every toggle applies a real system change.
+            These tweaks don't increase FPS. They reduce delay and inconsistency between your PC and game servers.
           </motion.p>
+          <div className="flex flex-wrap gap-2 pt-1">
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">reduces packet delay variation</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">removes Windows network limits</span>
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-white/50 border border-white/[0.08]">reduces background interference</span>
+          </div>
+          <p className="text-[10px] text-white/30 mt-1">
+            If your connection is already stable, the effect may be minimal. Impact depends on adapter, driver, router, and game server.
+          </p>
         </motion.div>
 
         {/* Live system pipeline */}
