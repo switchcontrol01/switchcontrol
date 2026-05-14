@@ -33,6 +33,8 @@ export interface InstalledApp {
   canUninstall:     boolean;
   uninstallMethod:  "msi" | "exe" | "appx" | "none";
   trustLabel:       "microsoft" | "user-installed" | "system" | "protected" | "unknown";
+  displayIcon:      string;
+  iconDataUrl?:     string;
 }
 
 type UninstallResult = {
@@ -56,6 +58,7 @@ type SortType   = "name" | "size-desc" | "publisher" | "uninstallable-first";
 // ── Electron accessor helpers ─────────────────────────────────────────────────
 type InstalledAppsAPI = {
   scan:      () => Promise<{ ok: boolean; apps: InstalledApp[]; scannedAt: string; error?: string }>;
+  icon:      (appId: string) => Promise<string | null>;
   uninstall: (app: InstalledApp) => Promise<UninstallResult>;
 };
 function getInstalledAppsAPI(): InstalledAppsAPI | undefined {
@@ -267,9 +270,18 @@ function AppRow({
       {/* Main row */}
       <div className="flex items-center gap-3 p-3 sm:p-3.5 hover:bg-[#1A1F26] transition-colors">
         {/* Icon */}
-        <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0 border", tCfg.cls)}>
-          <TrIcon className="size-3.5" />
-        </div>
+        {app.iconDataUrl ? (
+          <img
+            src={app.iconDataUrl}
+            alt=""
+            className="size-8 rounded-lg shrink-0 object-contain bg-[#1A1F26] border border-[#2A313A]"
+            data-testid={`app-icon-${app.id}`}
+          />
+        ) : (
+          <div className={cn("size-8 rounded-lg flex items-center justify-center shrink-0 border", tCfg.cls)}>
+            <TrIcon className="size-3.5" />
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 min-w-0">
@@ -445,6 +457,16 @@ export function InstalledAppsPanel() {
       if (res.ok) {
         setApps(res.apps);
         setScannedAt(res.scannedAt);
+        // Lazy-load icons after scan
+        if (api.icon) {
+          for (const app of res.apps) {
+            api.icon(app.id).then(dataUrl => {
+              if (dataUrl) {
+                setApps(prev => prev.map(a => a.id === app.id ? { ...a, iconDataUrl: dataUrl } : a));
+              }
+            }).catch(() => {});
+          }
+        }
       } else {
         setScanError(res.error ?? "Scan failed");
       }

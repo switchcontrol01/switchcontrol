@@ -398,6 +398,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   installedApps: {
     scan: () => ipcRenderer.invoke('installedApps:scan'),
+    icon: (appId) => ipcRenderer.invoke('installedApps:icon', appId),
     uninstall: (app) => {
       if (!app || typeof app !== 'object') throw new Error('Invalid app payload');
       return ipcRenderer.invoke('installedApps:uninstall', app);

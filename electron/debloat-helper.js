@@ -12,9 +12,62 @@
  *  - Rich structured result with methodUsed, executable, exitCode, errorDetail
  */
 
-const { ipcMain } = require('electron');
+const { ipcMain, shell } = require('electron');
 const { execFile, spawn } = require('child_process');
 const fs = require('fs');
+const path = require('path');
+const os = require('os');
+
+// ── Icon cache ────────────────────────────────────────────────────────────────
+const ICON_CACHE_DIR = path.join(os.tmpdir(), 'switchcontrol-icons');
+let _lastScanApps = new Map(); // id -> app (for lazy icon resolution)
+
+function ensureIconCache() {
+  if (!fs.existsSync(ICON_CACHE_DIR)) fs.mkdirSync(ICON_CACHE_DIR, { recursive: true });
+}
+
+function resolveIconPath(app) {
+  // 1. DisplayIcon from registry (strip ,0 suffix)
+  let raw = (app.displayIcon || '').split(',')[0].trim();
+  if (raw && fs.existsSync(raw)) return raw;
+
+  // 2. Try to find exe in InstallLocation
+  const loc = app.installLocation;
+  if (loc && fs.existsSync(loc)) {
+    try {
+      const files = fs.readdirSync(loc);
+      const exe = files.find(f => f.toLowerCase().endsWith('.exe'));
+      if (exe) { const p = path.join(loc, exe); if (fs.existsSync(p)) return p; }
+    } catch {}
+  }
+
+  // 3. Extract exe path from uninstall string
+  const unStr = app.uninstallString || '';
+  const m = unStr.match(/"([^"]+\.exe)"/i) || unStr.match(/^([^\s]+\.exe)/i);
+  if (m && fs.existsSync(m[1])) return m[1];
+
+  return null;
+}
+
+async function getAppIconDataUrl(appId, app) {
+  ensureIconCache();
+  const cacheFile = path.join(ICON_CACHE_DIR, `${appId}.png`);
+  if (fs.existsSync(cacheFile)) {
+    return `data:image/png;base64,${fs.readFileSync(cacheFile).toString('base64')}`;
+  }
+  const iconPath = resolveIconPath(app);
+  if (!iconPath) return null;
+  try {
+    const img = await shell.getFileIcon(iconPath, { size: 'normal' });
+    if (!img || img.isEmpty()) return null;
+    const buf = img.toPNG();
+    fs.writeFileSync(cacheFile, buf);
+    return `data:image/png;base64,${buf.toString('base64')}`;
+  } catch (e) {
+    console.warn('[InstalledApps] getFileIcon failed for', iconPath, e.message);
+    return null;
+  }
+}
 
 // ── Input validation helpers ─────────────────────────────────────────────────
 
@@ -563,6 +616,7 @@ foreach ($hive in $hives) {
       WI = $p.WindowsInstaller
       KP = $key.Name
       SR = $hive.Src
+      DI = $p.DisplayIcon
     })
   }
 }
@@ -635,14 +689,25 @@ $apps | ConvertTo-Json -Compress -Depth 1
           canUninstall,
           uninstallMethod: method,
           trustLabel,
+          displayIcon:     String(a.DI || '').trim(),
         };
       });
+
+    // Store for lazy icon resolution
+    _lastScanApps = new Map(apps.map(a => [a.id, a]));
 
     return { ok: true, apps, scannedAt: new Date().toISOString() };
   } catch (err) {
     console.warn('[InstalledApps] scan error:', err.message);
     return { ok: false, error: err.message, apps: [] };
   }
+});
+
+ipcMain.handle('installedApps:icon', async (_event, appId) => {
+  if (process.platform !== 'win32') return null;
+  const app = _lastScanApps.get(appId);
+  if (!app) return null;
+  return await getAppIconDataUrl(appId, app);
 });
 
 // ── IPC: installedApps:uninstall ──────────────────────────────────────────────
