@@ -122,39 +122,51 @@ async function findOrCreateUser(profile: {
   };
 }
 
-const electronAuthCodes = new Map<string, { userId: string; createdAt: number }>();
-const ELECTRON_CODE_TTL = 120_000; // 2 minutes
-const MAX_PENDING_CODES = 1000;
+import crypto from "crypto";
 
+const ELECTRON_CODE_TTL = 120_000; // 2 minutes
+const HMAC_SECRET = (process.env.JWT_SECRET || process.env.SESSION_SECRET || "").trim();
+
+/** Build a self-verifying code: userId + timestamp + HMAC signature.
+ *  No server state needed — the code survives server restarts because it
+ *  carries its own proof-of-authenticity inside the payload. */
 export function generateElectronCode(userId: string): string {
-  const code = Buffer.from(JSON.stringify({
-    id: userId,
-    ts: Date.now(),
-    r: Math.random().toString(36).slice(2),
-  })).toString('base64url');
-  // Cap storage: evict oldest if at limit
-  if (electronAuthCodes.size >= MAX_PENDING_CODES) {
-    const oldest = electronAuthCodes.entries().next().value;
-    if (oldest) electronAuthCodes.delete(oldest[0]);
-  }
-  electronAuthCodes.set(code, { userId, createdAt: Date.now() });
-  return code;
+  const ts = Date.now().toString();
+  const payload = `${userId}.${ts}`;
+  const sig = crypto
+    .createHmac("sha256", HMAC_SECRET || "switchcontrol-default-hmac")
+    .update(payload)
+    .digest("hex")
+    .slice(0, 16);
+  return `${payload}.${sig}`;
 }
 
-// Global periodic cleanup of expired codes (5 min interval)
-setInterval(() => {
-  const cutoff = Date.now() - ELECTRON_CODE_TTL;
-  for (const [key, val] of electronAuthCodes) {
-    if (val.createdAt < cutoff) electronAuthCodes.delete(key);
-  }
-}, 5 * 60 * 1000);
-
+/** Verify a self-signed code: split out userId + timestamp, recompute HMAC,
+ *  and check timestamp is within TTL.  Returns userId on success, null otherwise. */
 function consumeElectronCode(code: string): string | null {
-  const entry = electronAuthCodes.get(code);
-  if (!entry) return null;
-  electronAuthCodes.delete(code); // single use
-  if (Date.now() - entry.createdAt > ELECTRON_CODE_TTL) return null;
-  return entry.userId;
+  const parts = code.split(".");
+  if (parts.length !== 3) return null;
+  const [userId, tsStr, sig] = parts;
+  const ts = parseInt(tsStr, 10);
+  if (!userId || isNaN(ts)) return null;
+  if (Date.now() - ts > ELECTRON_CODE_TTL) return null;
+
+  const payload = `${userId}.${tsStr}`;
+  const expected = crypto
+    .createHmac("sha256", HMAC_SECRET || "switchcontrol-default-hmac")
+    .update(payload)
+    .digest("hex")
+    .slice(0, 16);
+
+  // Constant-time comparison to avoid timing side-channels
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(sig, "hex"), Buffer.from(expected, "hex"))) {
+      return null;
+    }
+  } catch {
+    return null;
+  }
+  return userId;
 }
 
 function isSafeRedirectUrl(url: string): boolean {
