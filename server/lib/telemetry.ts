@@ -305,20 +305,18 @@ async function tick(): Promise<void> {
   const usedGB = memRes ? memRes.used / 1073741824 : 0;
   const usedPercent = totalGB > 0 ? (usedGB / totalGB) * 100 : 0;
 
-  // Network delta
+  // Network — systeminformation already computes differential rx_sec / tx_sec
   let rx_sec = 0;
   let tx_sec = 0;
   if (netRes && netRes.length > 0) {
-    const iface = netRes[0];
-    const ts = Date.now();
-    if (lastNetStats) {
-      const dt = (ts - lastNetStats.ts) / 1000;
-      if (dt > 0) {
-        rx_sec = Math.max(0, (iface.rx_bytes - lastNetStats.rx) / dt);
-        tx_sec = Math.max(0, (iface.tx_bytes - lastNetStats.tx) / dt);
-      }
-    }
-    lastNetStats = { rx: iface.rx_bytes, tx: iface.tx_bytes, ts };
+    // Pick best physical interface: skip loopback/virtual, prefer highest traffic
+    const iface = netRes
+      .filter((n: any) => !/loopback|lo|tun|vpn|veth|docker|vmware|hyper-v/i.test(n.iface || ''))
+      .sort((a: any, b: any) => (b.rx_bytes + b.tx_bytes) - (a.rx_bytes + a.tx_bytes))[0]
+      ?? netRes[0];
+    // Use systeminformation's pre-computed per-second rates (they work from first call)
+    rx_sec = Math.max(0, iface.rx_sec ?? 0);
+    tx_sec = Math.max(0, iface.tx_sec ?? 0);
   }
 
   // ── 3. Heavy task rotation — ONE at a time, ONE per tick ─────────────────
