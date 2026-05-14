@@ -1,13 +1,18 @@
 {
-  "version": "1.0.7",
-  "title": "SwitchControl 1.0.7 — Smoother Launch",
-  "headline": "The app now opens with a clean, stutter-free animation every time. Logo loads before the window appears and heavy background tasks wait until you're in the app.",
-  "date": "2026-04-24",
+  "version": "1.0.8",
+  "title": "SwitchControl 1.0.8 — Official Release",
+  "headline": "Pre-launch credibility hardening: honest telemetry display, strengthened auth, crash-proof startup, and security guardrails across the stack.",
+  "date": "2026-05-14",
   "changes": [
-    "Fixed launch visual race — logo and background are now fully rendered before the window becomes visible",
-    "GPU performance data collection now starts 2 seconds after launch instead of competing with the opening animation",
-    "Eliminated stutter during the splash screen caused by PowerShell cold-start running at the same moment as first paint",
-    "Developer tools no longer auto-open during normal launches, removing hidden overhead on startup"
+    "JWT startup no longer crashes on missing secrets — graceful skip with clear logging",
+    "Removed all hardcoded fake demo values from UI (FPS claims, service counts, rotating taglines)",
+    "WebSocket telemetry now requires authenticated upgrades with reconnect storm protection",
+    "System intelligence refresh rate-limited to 1 per 5 minutes per user",
+    "Stripe event cleanup runs automatically (30-day retention)",
+    "Health endpoint reports DB status, version, and uptime",
+    "Electron installer builds cleanly even without optional Rust memory cleaner",
+    "Fixed stray syntax errors in main.js that blocked app launch",
+    "Apply Safe guard expanded with strict deny-list and category filters"
   ],
-  "type": "patch"
+  "type": "release"
 }
