@@ -1129,22 +1129,25 @@ async function getGpuStatic() {
 }
 
 // Persistent Device ID — generated once, stored forever in userData
+const DEVICE_ID_REGEX = /^[A-F0-9]{16}$/;
+
 function getOrCreateDeviceId() {
   const fs = require('fs');
   const crypto = require('crypto');
   const deviceIdPath = DEVICE_ID_FILE;
-  
+
   try {
     if (fs.existsSync(deviceIdPath)) {
       const data = JSON.parse(fs.readFileSync(deviceIdPath, 'utf-8'));
-      if (data.deviceId && typeof data.deviceId === 'string') {
+      if (data.deviceId && typeof data.deviceId === 'string' && DEVICE_ID_REGEX.test(data.deviceId)) {
         return data.deviceId;
       }
+      console.warn('[DeviceID] Stored device ID is malformed — regenerating');
     }
   } catch (e) {
     console.warn('[DeviceID] Failed to read existing device ID:', e.message);
   }
-  
+
   const deviceId = crypto.randomUUID().replace(/-/g, '').slice(0, 16).toUpperCase();
   try {
     fs.writeFileSync(deviceIdPath, JSON.stringify({ deviceId, createdAt: new Date().toISOString() }), 'utf-8');
@@ -2611,7 +2614,7 @@ ipcMain.handle('powerPlans:activateByGuid', async (event, guid) => {
 
 ipcMain.handle('appBooster:scanGames', async (event, games) => {
   verboseLog('[AppBooster] scanGames start —', games?.length, 'games');
-  const fs   = require('fs');
+  const fs   = require('fs').promises;
   const path = require('path');
   const os   = require('os');
 
@@ -2626,18 +2629,17 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   ];
   for (const steamRoot of steamRootCandidates) {
     const vdfPath = path.join(steamRoot, 'steamapps', 'libraryfolders.vdf');
-    if (fs.existsSync(vdfPath)) {
-      try {
-        const vdf = fs.readFileSync(vdfPath, 'utf8');
-        for (const m of [...vdf.matchAll(/"path"\s+"([^"]+)"/g)]) {
-          const lib = m[1].replace(/\\\\/g, '\\');
-          const common = path.join(lib, 'steamapps', 'common');
-          if (!steamCommonPaths.includes(common)) steamCommonPaths.push(common);
-        }
-      } catch (e) { console.log('[AppBooster] vdf parse error', vdfPath, e.message); }
+    try {
+      await fs.access(vdfPath);
+      const vdf = await fs.readFile(vdfPath, 'utf8');
+      for (const m of [...vdf.matchAll(/"path"\s+"([^"]+)"/g)]) {
+        const lib = m[1].replace(/\\\\/g, '\\');
+        const common = path.join(lib, 'steamapps', 'common');
+        if (!steamCommonPaths.includes(common)) steamCommonPaths.push(common);
+      }
       const def = path.join(steamRoot, 'steamapps', 'common');
       if (!steamCommonPaths.includes(def)) steamCommonPaths.push(def);
-    }
+    } catch { /* vdf not found or unreadable */ }
   }
   verboseLog('[AppBooster] Steam library paths found:', steamCommonPaths.length);
 
@@ -2648,15 +2650,16 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
     path.join(process.env.PROGRAMDATA || 'C:\\ProgramData', 'Epic', 'EpicGamesLauncher', 'Data', 'Manifests'),
   ];
   for (const manifestDir of epicManifestDirs) {
-    if (!fs.existsSync(manifestDir)) continue;
     let items;
-    try { items = fs.readdirSync(manifestDir).filter(f => f.endsWith('.item')); } catch { continue; }
+    try {
+      items = (await fs.readdir(manifestDir)).filter(f => f.endsWith('.item'));
+    } catch { continue; }
     for (const itemFile of items) {
       try {
-        const raw = fs.readFileSync(path.join(manifestDir, itemFile), 'utf8');
+        const raw = await fs.readFile(path.join(manifestDir, itemFile), 'utf8');
         const manifest = JSON.parse(raw);
         const installLoc  = manifest.InstallLocation;
-        const launchExe   = manifest.LaunchExecutable; // e.g. "FortniteGame/Binaries/Win64/FortniteClient-Win64-Shipping.exe"
+        const launchExe   = manifest.LaunchExecutable;
         if (installLoc && launchExe) {
           const exeBasename = path.basename(launchExe).toLowerCase();
           const exeDir      = path.join(installLoc, path.dirname(launchExe));
@@ -2672,8 +2675,8 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   const drives = ['C', 'D', 'E', 'F', 'G'];
   for (const d of drives) {
     const p = `${d}:\\XboxGames`;
-    if (fs.existsSync(p)) xboxRoots.push(p);
-  }
+    try { await fs.access(p); xboxRoots.push(p); } catch { /* not found */ }
+  }}
   // Also check user-configured Xbox install dirs from registry (best-effort)
   try {
     const { execFile } = require('child_process');
@@ -2694,21 +2697,21 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
   if (isDebug) verboseLog('[AppBooster] Xbox roots found:', xboxRoots.length, xboxRoots);
 
   // ── helper: find exe inside a root directory (up to 3 levels deep) ─────────
-  function findExeIn(rootDir, exeName, maxDepth = 3) {
-    if (maxDepth < 0 || !fs.existsSync(rootDir)) return null;
+  async function findExeIn(rootDir, exeName, maxDepth = 3) {
+    if (maxDepth < 0) return null;
     let entries;
-    try { entries = fs.readdirSync(rootDir, { withFileTypes: true }); } catch { return null; }
+    try { entries = await fs.readdir(rootDir, { withFileTypes: true }); } catch { return null; }
     for (const entry of entries) {
       const fullPath = path.join(rootDir, entry.name);
       if (!entry.isDirectory()) {
         if (entry.name.toLowerCase() === exeName.toLowerCase()) return rootDir;
       } else {
-        const found = findExeIn(fullPath, exeName, maxDepth - 1);
+        const found = await findExeIn(fullPath, exeName, maxDepth - 1);
         if (found) return found;
       }
     }
     return null;
-  }
+  }}
 
   // ── Step E source: build running-process map (exeName.lower → directory) ──
   // This is the most reliable fallback: if the game exe is live in memory we
@@ -2752,18 +2755,20 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
     // Step A: Epic manifest lookup (exact exe match)
     if (!detected && epicInstalls[exeLower]) {
       const p = epicInstalls[exeLower];
-      if (fs.existsSync(path.join(p, g.executable))) {
+      try {
+        await fs.access(path.join(p, g.executable));
         detected = true; installPath = p;
         console.log(`[AppBooster]   ${g.slug}: found via Epic manifest → ${p}`);
-      }
+      } catch { /* not found */ }
     }
 
     // Step B: hardcoded knownPaths
     if (!detected) {
       for (const p of (g.knownPaths || [])) {
-        if (fs.existsSync(path.join(p, g.executable))) {
+        try {
+          await fs.access(path.join(p, g.executable));
           detected = true; installPath = p; break;
-        }
+        } catch { /* not found */ }
       }
     }
 
@@ -2772,10 +2777,10 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
       for (const xboxRoot of xboxRoots) {
         if (detected) break;
         let xboxDirs;
-        try { xboxDirs = fs.readdirSync(xboxRoot); } catch { continue; }
+        try { xboxDirs = await fs.readdir(xboxRoot); } catch { continue; }
         for (const dir of xboxDirs) {
           if (detected) break;
-          const found = findExeIn(path.join(xboxRoot, dir), g.executable, 3);
+          const found = await findExeIn(path.join(xboxRoot, dir), g.executable, 3);
           if (found) { detected = true; installPath = found; }
         }
       }
@@ -2785,27 +2790,28 @@ ipcMain.handle('appBooster:scanGames', async (event, games) => {
     if (!detected) {
       for (const commonDir of steamCommonPaths) {
         if (detected) break;
-        if (!fs.existsSync(commonDir)) continue;
         let gameDirs;
-        try { gameDirs = fs.readdirSync(commonDir); } catch { continue; }
+        try { gameDirs = await fs.readdir(commonDir); } catch { continue; }
         for (const dir of gameDirs) {
           if (detected) break;
           const gameDir = path.join(commonDir, dir);
-          if (fs.existsSync(path.join(gameDir, g.executable))) {
+          try {
+            await fs.access(path.join(gameDir, g.executable));
             detected = true; installPath = gameDir; break;
-          }
-          let subDirs;
-          try { subDirs = fs.readdirSync(gameDir); } catch { continue; }
-          for (const sub of subDirs) {
-            const subDir = path.join(gameDir, sub);
-            if (fs.existsSync(path.join(subDir, g.executable))) {
-              detected = true; installPath = subDir; break;
+          } catch {
+            let subDirs;
+            try { subDirs = await fs.readdir(gameDir); } catch { continue; }
+            for (const sub of subDirs) {
+              const subDir = path.join(gameDir, sub);
+              try {
+                await fs.access(path.join(subDir, g.executable));
+                detected = true; installPath = subDir; break;
+              } catch { /* not found */ }
             }
           }
         }
       }
     }
-
     // Step E: running-process fallback — catches games that are live but
     // installed to an unexpected path (e.g. custom drive, non-standard Epic dir)
     if (!detected && runningProcMap[exeLower]) {

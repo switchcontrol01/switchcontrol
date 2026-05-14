@@ -176,8 +176,26 @@ contextBridge.exposeInMainWorld('electronAPI', {
     getTopProcesses:      () => ipcRenderer.invoke('security:getTopProcesses'),
     getAdvancedProtection: () => ipcRenderer.invoke('security:getAdvancedProtection'),
     getAdvancedAudit:     () => ipcRenderer.invoke('security:getAdvancedAudit'),
-    setDefenderOption:    (option, enabled) => ipcRenderer.invoke('security:setDefenderOption', option, enabled),
-    runDefenderAction:    (action) => ipcRenderer.invoke('security:runDefenderAction', action),
+    setDefenderOption:    (option, enabled) => {
+      const ALLOWED_DEFENDER_OPTIONS = new Set([
+        'cloudProtection', 'puaProtection', 'controlledFolderAccess',
+        'sampleSubmission', 'smartScreen'
+      ]);
+      if (!ALLOWED_DEFENDER_OPTIONS.has(option)) {
+        throw new TypeError(`Invalid Defender option: ${option}`);
+      }
+      if (typeof enabled !== 'boolean') {
+        throw new TypeError('enabled must be a boolean');
+      }
+      return ipcRenderer.invoke('security:setDefenderOption', option, enabled);
+    },
+    runDefenderAction:    (action) => {
+      const ALLOWED_DEFENDER_ACTIONS = new Set(['quickScan', 'updateSignatures']);
+      if (!ALLOWED_DEFENDER_ACTIONS.has(action)) {
+        throw new TypeError(`Invalid Defender action: ${action}`);
+      }
+      return ipcRenderer.invoke('security:runDefenderAction', action);
+    },
     getProcessDetails:    () => ipcRenderer.invoke('security:getProcessDetails'),
     getScheduledTasks:    () => ipcRenderer.invoke('security:getScheduledTasks'),
     getServices:          () => ipcRenderer.invoke('security:getServices'),

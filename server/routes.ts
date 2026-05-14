@@ -495,7 +495,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/metrics/snapshot", csrfProtection, async (req, res) => {
+  app.post("/api/metrics/snapshot", requireJwt, csrfProtection, async (req, res) => {
     try {
       const snap = await getSnapshot();
       res.json(snap);
@@ -516,24 +516,24 @@ export async function registerRoutes(
     try {
       const userId = req.cloudUser!.id;
       const settings = await storage.getOrCreateSettings(userId);
-      const currentRam = settings.usedRamGb || 9.5;
-      const freedAmount = Math.random() * 2 + 1;
-      const newRam = Math.max(3.0, currentRam - freedAmount);
-      
-      await storage.updateSettings(settings.id, { 
-        usedRamGb: parseFloat(newRam.toFixed(1)),
+
+      // This endpoint records that the user triggered the RAM cleaner.
+      // Real memory clearing only happens in the Electron desktop app via
+      // the System Cleaner IPC path. The web dashboard shows a simulated
+      // result for UI feedback but does not claim fabricated freed amounts.
+      await storage.updateSettings(settings.id, {
         cleanersRun: (settings.cleanersRun || 0) + 1,
         lastScan: new Date()
       });
-      
+
       await storage.addHistory({
         settingsId: settings.id,
         action: 'Clear RAM',
         page: 'Dashboard',
-        result: `Freed ${freedAmount.toFixed(1)} GB`,
+        result: 'Cleaner triggered',
       });
-      
-      res.json({ usedRamGb: parseFloat(newRam.toFixed(1)), freed: freedAmount.toFixed(1) });
+
+      res.json({ ok: true, cleanersRun: (settings.cleanersRun || 0) + 1 });
     } catch (error) {
       res.status(500).json({ error: "Failed to clear RAM" });
     }
@@ -548,9 +548,21 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/stripe/create-checkout-session", async (req, res) => {
+  // Rate limited: max 5 checkout session creations per user per hour.
+  // This prevents checkout spam and reduces Stripe API load.
+  const stripeCheckoutLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000,
+    max: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: { xForwardedForHeader: false, keyGeneratorIpFallback: false },
+    keyGenerator: (req: any) => req.cloudUser?.id || req.user?.id || req.ip || 'unknown',
+    message: { error: "Checkout rate limit reached. Please try again later." },
+  });
+
+  app.post("/api/stripe/create-checkout-session", requireJwt, stripeCheckoutLimiter, async (req, res) => {
     try {
-      const user = (req as any).user;
+      const user = req.cloudUser || (req as any).user;
       if (!user) {
         return res.status(401).json({ error: "Authentication required" });
       }

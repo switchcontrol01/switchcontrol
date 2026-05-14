@@ -763,8 +763,19 @@ ipcMain.handle('security:openStartupLocation', async (event, command) => {
 //         'sampleSubmission' | 'smartScreen'
 // ---------------------------------------------------------------------------
 
+const ALLOWED_DEFENDER_OPTIONS = new Set([
+  'cloudProtection', 'puaProtection', 'controlledFolderAccess',
+  'sampleSubmission', 'smartScreen'
+]);
+
 ipcMain.handle('security:setDefenderOption', async (_event, option, enabled) => {
   if (process.platform !== 'win32') return { ok: false, reason: 'not-windows' };
+  if (!ALLOWED_DEFENDER_OPTIONS.has(option)) {
+    return { ok: false, error: `Unknown option: ${option}` };
+  }
+  if (typeof enabled !== 'boolean') {
+    return { ok: false, error: 'enabled must be a boolean' };
+  }
 
   let cmd = '';
   switch (option) {
@@ -806,8 +817,13 @@ ipcMain.handle('security:setDefenderOption', async (_event, option, enabled) => 
 // action: 'quickScan' | 'updateSignatures'
 // ---------------------------------------------------------------------------
 
+const ALLOWED_DEFENDER_ACTIONS = new Set(['quickScan', 'updateSignatures']);
+
 ipcMain.handle('security:runDefenderAction', async (_event, action) => {
   if (process.platform !== 'win32') return { ok: false, restricted: false, message: 'Defender actions require Windows.' };
+  if (!ALLOWED_DEFENDER_ACTIONS.has(action)) {
+    return { ok: false, restricted: false, message: `Unknown action: ${action}` };
+  }
 
   let cmdlet = '';
   let friendly = '';
