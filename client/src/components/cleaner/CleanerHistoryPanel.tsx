@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   History, ChevronDown, ChevronUp, Clock, Trash2, FolderSearch,
   CheckCircle, AlertTriangle, X, RefreshCw, Filter, Calendar,
+  ArrowLeft,
 } from "lucide-react";
 import { format, parseISO, isToday, isYesterday, isThisWeek } from "date-fns";
 import type { HistoryEntry, ScanHistoryEntry } from "./CleanerSummaryCards";
@@ -17,6 +18,7 @@ interface Props {
   history:     HistoryEntry[];
   scanHistory: ScanHistoryEntry[];
   loading:     boolean;
+  onBack?:     () => void;
 }
 
 type FilterMode   = "all" | "safe" | "advanced";
@@ -154,7 +156,7 @@ function SessionRow({ entry }: { entry: HistoryEntry }) {
 
 // ── Main panel ────────────────────────────────────────────────────────────────
 
-export function CleanerHistoryPanel({ history, scanHistory, loading }: Props) {
+export function CleanerHistoryPanel({ history, scanHistory, loading, onBack }: Props) {
   const [modeFilter,   setModeFilter]   = useState<FilterMode>("all");
   const [statusFilter, setStatusFilter] = useState<FilterStatus>("all");
 
@@ -181,6 +183,16 @@ export function CleanerHistoryPanel({ history, scanHistory, loading }: Props) {
 
   return (
     <div className="space-y-4">
+
+      {/* Back button */}
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-white transition-colors"
+        >
+          <ArrowLeft className="size-3.5" /> Back to cleaner
+        </button>
+      )}
 
       {/* Stats strip */}
       <div className="grid grid-cols-3 gap-3">

@@ -1,0 +1,148 @@
+9. Category Map
+
+Group apps into:
+- System
+- Drivers
+- User Apps
+- Scheduled
+- Broken
+
+Display as:
+- segmented bar OR tabs
+
+Each shows:
+- count
+- total impact
+
+---
+
+10. Smart Recommendations Card
+
+Above everything:
+
+Shows:
+- top 3 apps to disable
+- estimated time saved
+
+Buttons:
+- Apply Recommended
+- Review
+
+Must use real data only
+
+---
+
+11. Enable/Disable Animation
+
+When toggling:
+
+Disable:
+- card compresses slightly
+- fades color
+- moves to disabled state
+
+Enable:
+- returns with glow
+
+Rules:
+- 120–180ms
+- transform + opacity only
+
+---
+
+12. Before / After Boot Comparison
+
+After applying changes:
+
+Show:
+- old boot time
+- new estimated time
+
+Animate transition
+
+---
+
+13. Boot Pulse Indicator
+
+Top subtle animation:
+- glowing line moving across
+
+Rules:
+- CSS only
+- pause when tab hidden
+
+---
+
+14. Reduce Scrolling
+
+Replace long list with:
+
+- category sections
+- compact rows
+- summary always visible
+- quick filters:
+  - safe only
+  - high impact
+  - enabled only
+
+---
+
+15. Component Structure
+
+Create:
+
+- StartupHero.tsx
+- StartupScore.tsx
+- StartupTimeline.tsx
+- StartupBars.tsx
+- StartupGravity.tsx
+- StartupCategories.tsx
+- StartupRecommendations.tsx
+- StartupBrokenEntries.tsx
+
+---
+
+16. Performance Rules
+
+- no continuous loops
+- no canvas rendering
+- no heavy blur animations
+- use transform + opacity only
+- batch state updates
+- memoize scan results
+- do not re-scan on UI change
+- pause animations when tab hidden
+
+---
+
+17. UX Requirements
+
+User must instantly understand:
+
+- what slows startup
+- what is safe to disable
+- what saves the most time
+- what changed after optimizing
+
+---
+
+CHECKLIST
+
+- main UI shows only valid apps
+- broken entries isolated
+- timeline works and updates live
+- score reflects changes
+- recommendations usable in 1 click
+- minimal scrolling
+- no lag or CPU spikes
+- animations feel smooth and intentional
+
+---
+
+FINAL OUTPUT
+
+Return:
+- updated scan filtering logic
+- new component files
+- updated Startup page layout
+- explanation of how timeline, score, and recommendations work together

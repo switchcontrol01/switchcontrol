@@ -1,0 +1,154 @@
+TASK
+Redesign Startup Manager into a premium, visual, low-click startup control center.
+
+PROBLEM
+Startup Manager feels like a raw registry dump:
+- shows broken/missing entries in main UI
+- too much scrolling and clicking
+- no graphs or visual hierarchy
+- no understanding of startup impact
+- no guidance on what to disable
+- boring, static, no feedback
+
+GOAL
+Transform Startup Manager into a visual boot intelligence system:
+- show only real startup apps in main UI
+- isolate broken entries into a repair section
+- add timeline, graphs, and impact visuals
+- reduce scrolling and clicks
+- make decisions obvious
+- animate everything without causing CPU spikes
+
+IMPLEMENTATION
+
+1. Scan Logic Fix (CRITICAL)
+Only include VALID startup entries in main UI:
+
+Sources:
+- HKCU Run
+- HKLM Run
+- Startup folders
+- Task Scheduler (valid executable only)
+
+Validation:
+- file path must exist
+- executable must resolve
+
+If NOT valid:
+→ move to “Broken Entries” group
+→ DO NOT show in main list
+
+Broken Entries section:
+- show count only
+- button: “Fix All”
+- expandable if needed
+
+---
+
+2. New Layout Structure
+
+TOP SECTION (Hero)
+- “Startup Manager” header
+- Startup Score (0–100)
+- Estimated boot time
+- apps enabled / disabled
+- primary CTA: Optimize Startup
+- secondary CTA: Review Apps
+
+---
+
+3. Startup Impact Timeline (CORE GRAPH)
+
+Horizontal timeline:
+- represents boot sequence
+- each app = segment
+
+Rules:
+- width = delay impact
+- animate left → right after scan
+- disabling app shrinks timeline live
+
+Purpose:
+Instantly shows what slows boot
+
+---
+
+4. Boot Weight Graph
+
+3 bars:
+- CPU load
+- Disk usage
+- Delay time
+
+Each app contributes to bars
+
+Behavior:
+- animate fill after scan
+- updates live on toggle
+
+---
+
+5. Startup Gravity Field (Signature UI)
+
+Apps shown as floating nodes:
+- heavier apps = bigger + closer center
+- lighter apps = smaller + further
+
+When disabling:
+- node drifts away and fades
+
+Rules:
+- no physics engine
+- simple transform animations only
+
+---
+
+6. Risk Visualization
+
+Each app gets a risk indicator:
+
+Safe:
+- green/cyan glow
+
+Moderate:
+- amber edge
+
+Critical/System:
+- red edge + icon
+
+Also show:
+- Microsoft signed
+- driver
+- user app
+
+---
+
+7. Startup Score Meter
+
+Score based on:
+- number of apps
+- total delay
+- resource usage
+
+Ranges:
+- 90–100 clean
+- 60–89 moderate
+- <60 heavy
+
+Behavior:
+- animates after scan
+- increases when disabling apps
+
+---
+
+8. Boot Savings Preview
+
+Live preview when toggling:
+
+Show:
+- “You will save X seconds”
+- “Reduce CPU spike by X%”
+
+Updates instantly
+
+---
