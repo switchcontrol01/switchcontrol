@@ -1,4 +1,4 @@
-import { useState, useMemo, memo } from "react";
+import { useState, useMemo, memo, useEffect } from "react";
 import { motion, AnimatePresence } from "@/lib/motionTokens";
 import { cn } from "@/lib/utils";
 import { fmtBytes } from "@/hooks/useCountUp";
@@ -203,6 +203,13 @@ export function CleanerCategoryAccordion({
 }: Props) {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
+  // Auto-expand safe category when filter changes to safe
+  useEffect(() => {
+    if (filterType === "safe") {
+      setExpanded(prev => new Set([...Array.from(prev), "storage", "privacy", "performance", "latency"]));
+    }
+  }, [filterType]);
+
   const categoryData = useMemo(() => {
     const result: CategoryData[] = [];
     for (const [key, items] of Object.entries(categories)) {
@@ -259,7 +266,7 @@ export function CleanerCategoryAccordion({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid="cleaner-accordion">
       {categoryData.map(cat => (
         <div key={cat.key} className="space-y-1">
           <CategoryRow

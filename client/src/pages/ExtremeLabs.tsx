@@ -856,10 +856,6 @@ export default function ExtremeLabs() {
       if (isElectron && electronApi) {
         const tweak = EXTREME_TWEAKS.find((t) => t.id === id);
         if (!tweak) throw new Error("Tweak not found");
-        // Revert via extreme labs API (it handles all mapping internally)
-        const result = await electronApi.extremeLabs.applySelected([id]);
-        // applySelected always applies; for revert we need individual revert
-        // Fall back to direct executor revert if available
         const mappedRegistry = tweak.registryTweakId;
         const mappedSlider = tweak.sliderTweakId;
         if (mappedRegistry && (window as any).electronAPI?.tweaks?.execute) {
@@ -867,7 +863,6 @@ export default function ExtremeLabs() {
         } else if (mappedSlider && (window as any).electronAPI?.tweaks?.resetValue) {
           await (window as any).electronAPI.tweaks.resetValue(mappedSlider);
         } else if (tweak.nicPropertyKey && (window as any).electronAPI?.nic?.resetProperty) {
-          // Find first physical adapter for reset
           const adapters = await (window as any).electronAPI.nic.getAdapters();
           const physical = adapters.find((a: any) => a.status === 'Up');
           if (physical) {

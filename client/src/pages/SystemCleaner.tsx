@@ -237,10 +237,25 @@ export default function SystemCleaner() {
   const selectAllSafe = () => setSelected(new Set(allItems.filter(i => i.risk === "safe").map(i => i.id)));
   const clearAll = () => setSelected(new Set());
 
-  const applyRecommended = () => {
+  const applyRecommended = useCallback(() => {
     const recs = allItems.filter(i => i.risk === "safe" && findings[i.id]?.found).map(i => i.id);
     setSelected(new Set(recs));
-  };
+    toast({ title: `${recs.length} items selected`, description: "Cleaning now..." });
+    // Auto-clean after a brief delay so state updates first
+    setTimeout(() => {
+      fireGravity();
+      runClean();
+    }, 150);
+  }, [allItems, findings, toast, fireGravity, runClean]);
+
+  const reviewRecommended = useCallback(() => {
+    setFilterType("safe");
+    // Scroll to the accordion after a short delay for filter to apply
+    setTimeout(() => {
+      const accordion = document.querySelector('[data-testid="cleaner-accordion"]');
+      if (accordion) accordion.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 100);
+  }, []);
 
   // ── Derived stats ─────────────────────────────────────────────────────────
   const selectedItems   = allItems.filter(i => selected.has(i.id));
@@ -428,7 +443,7 @@ export default function SystemCleaner() {
                 items={allItems}
                 findings={findings}
                 onApply={applyRecommended}
-                onReview={() => setFilterType("safe")}
+                onReview={reviewRecommended}
                 scanStatus={scanStatus}
               />
             )}

@@ -2516,8 +2516,40 @@ ipcMain.handle('extremeLabs:applySelected', async (event, ids) => {
 
 ipcMain.handle('extremeLabs:restoreBaseline', async () => {
   try {
+    const results = [];
+    const allIds = [
+      'global-timer-resolution', 'dynamic-tick', 'hpet-disable',
+      'win32-priority-separation', 'system-responsiveness', 'mmcss-no-lazy', 'power-throttling-extreme',
+      'disable-game-dvr', 'disable-xbox-capture', 'windowed-games-opt',
+      'network-throttling-index', 'tcp-no-delay', 'rss-enable',
+      'interrupt-moderation', 'eee-disable', 'flow-control',
+      'windows-search-disable', 'sysmain-disable', 'print-spooler-disable',
+      'xbox-services-disable', 'bluetooth-disable',
+      'edge-update-disable', 'adobe-updater-disable', 'teams-startup-disable', 'vendor-updaters-disable',
+    ];
+    for (const id of allIds) {
+      try {
+        const mapped = _extremeLabsMapToRegistryTweak(id);
+        if (!mapped) { results.push({ id, reverted: false, reason: 'No mapping' }); continue; }
+        if (mapped.type === 'slider') {
+          const resetResult = await sliderTweakExecutor.resetSliderValue(mapped.tweakId);
+          results.push({ id, reverted: resetResult.success, error: resetResult.error });
+        } else if (mapped.type === 'nic') {
+          const adapters = await nicExecutor.getNetAdapters();
+          const physical = adapters.find(a => a.status === 'Up' && !/loopback|bluetooth|hyper|virtual|tunnel|vpn/i.test(a.name));
+          if (!physical) { results.push({ id, reverted: false, reason: 'No adapter' }); continue; }
+          const resetResult = await nicExecutor.resetNicProperty(physical.name, mapped.propertyKey);
+          results.push({ id, reverted: resetResult.ok, error: resetResult.error });
+        } else {
+          const execResult = await tweakExecutor.executeTweak(mapped.tweakId, 'revert');
+          results.push({ id, reverted: execResult.success, error: execResult.error });
+        }
+      } catch (e) {
+        results.push({ id, reverted: false, error: e.message });
+      }
+    }
     extremeLabsStore.currentSession = null;
-    return { ok: true, message: 'All Extreme Labs tweaks reverted to baseline' };
+    return { ok: true, results };
   } catch (e) {
     return { ok: false, error: e.message };
   }
