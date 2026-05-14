@@ -36,6 +36,13 @@ import { SectionHeader } from "@/components/website/SectionHeader";
 import { SectionDivider } from "@/components/website/SectionDivider";
 import { SectionGlow } from "@/components/website/WebsiteBackground";
 import { TelemetryLineOverlay } from "@/components/website/TelemetryLineOverlay";
+import ScrollProgressRail from "@/components/website/ScrollProgressRail";
+import ScrollFocusText from "@/components/website/ScrollFocusText";
+import StickyComparison from "@/components/website/StickyComparison";
+import ReleaseStory from "@/components/website/ReleaseStory";
+import MagneticTilt from "@/components/website/MagneticTilt";
+import DepthFeatureCards from "@/components/website/DepthFeatureCards";
+import DrawUnderline from "@/components/website/DrawUnderline";
 
 function HeroTiltContainer({ children }: { children: React.ReactNode }) {
   const rafRef = useRef<number | null>(null);
@@ -639,6 +646,7 @@ export default function Landing() {
 
   return (
     <WebsiteShell variant="full" bgVariant="landing" showFooter>
+      <ScrollProgressRail />
       <main>
         {/* ──── Hero ──── */}
         <section className="relative overflow-hidden min-h-[90vh] flex flex-col">
@@ -719,7 +727,7 @@ export default function Landing() {
               <AnimateIn delay={540}>
                 <p className="text-base md:text-lg font-medium text-white/45 mb-10 max-w-xl mx-auto leading-relaxed">
                   Lower input delay, stable FPS, cleaner network.
-                  One app. Real results.
+                  One app. <DrawUnderline trigger="scroll">Real results.</DrawUnderline>
                 </p>
               </AnimateIn>
 
@@ -741,9 +749,9 @@ export default function Landing() {
               </AnimateIn>
 
               <AnimateIn delay={900}>
-                <div className="max-w-2xl mx-auto" style={{ transform: "translateZ(40px)" }}>
+                <MagneticTilt className="max-w-2xl mx-auto" maxTilt={2.5}>
                   <HeroAppMockup />
-                </div>
+                </MagneticTilt>
               </AnimateIn>
             </div>
           </div>
@@ -788,6 +796,11 @@ export default function Landing() {
 
         <SectionDivider glow />
 
+        {/* ──── Scroll Focus: Why Different ──── */}
+        <ScrollFocusText />
+
+        <SectionDivider />
+
         {/* ──── Features ──── */}
         <section id="features" className="py-24 md:py-32 relative ws-section-glow">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -797,30 +810,15 @@ export default function Landing() {
               subtitle="Comprehensive optimization tools designed for competitive gamers who demand the best performance."
             />
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-20">
-              {FEATURES.map((feature, i) => (
-                <Reveal key={feature.title} delay={i * 0.11}>
-                  <div className="group relative h-full">
-                    <div className={cn(
-                      "absolute inset-0 rounded-2xl bg-gradient-to-b opacity-0 group-hover:opacity-100 transition-opacity duration-500",
-                      feature.accent
-                    )} />
-                    <GlassPanel hover className="p-6 h-full relative">
-                      <div className={cn(
-                        "size-11 rounded-xl flex items-center justify-center mb-5 transition-all duration-300",
-                        feature.iconBg
-                      )}>
-                        <feature.icon className={cn("size-5", feature.iconColor)} />
-                      </div>
-                      <h3 className="font-semibold text-white mb-2 text-[15px]">{feature.title}</h3>
-                      <p className="text-sm text-white/35 group-hover:text-white/50 transition-colors leading-relaxed">
-                        {feature.description}
-                      </p>
-                    </GlassPanel>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
+            <DepthFeatureCards
+              features={FEATURES.map((f) => ({
+                ...f,
+                entrance: (["slideUp", "clipIn", "scaleReveal", "fadeIn"] as const)[
+                  FEATURES.indexOf(f) % 4
+                ],
+              }))}
+              className="mb-20"
+            />
 
             <Reveal className="text-center mb-8">
               <div className="inline-flex items-center gap-2 mb-4">
@@ -982,6 +980,11 @@ export default function Landing() {
 
         <SectionDivider />
 
+        {/* ──── Sticky Comparison ──── */}
+        <StickyComparison />
+
+        <SectionDivider glow />
+
         {/* ──── Social Proof ──── */}
         <section className="py-20 relative">
           <SectionGlow color="purple" intensity="strong" />
@@ -1005,6 +1008,11 @@ export default function Landing() {
         <WhatIsSwitchControl />
 
         <SectionDivider glow />
+
+        {/* ──── Release Story ──── */}
+        <ReleaseStory />
+
+        <SectionDivider />
 
         {/* ──── Pricing Preview ──── */}
         <section id="pricing" className="py-28 md:py-36 relative ws-section-glow">

@@ -1,0 +1,233 @@
+Feature steps:
+
+- Latency Fingerprint
+- AI Advisor
+- BIOS Advisor
+- Tweak Verification
+- Revert Timeline
+- Telemetry Dashboard
+- Network Checks
+- Premium Device Lock
+
+Rules:
+
+- visuals must use real product screenshots or product-style UI mockups
+- no fake performance claims
+- no fake before/after numbers
+- mobile version should become stacked cards, not broken sticky layout
+
+EFFECT 3: SVG PARALLAX HERO SCENE
+Create one cinematic hero scene.
+
+Behavior:
+
+- layered product scene
+- background grid moves slower
+- foreground app panels move slightly faster
+- telemetry graph draws in
+- app window floats into place
+- large SwitchControl title locks in
+- CTA appears after scene settles
+
+Use for homepage hero only.
+
+Design direction:
+
+- dark matte background
+- electric cyan/ice accent
+- layered app UI panels
+- subtle grid depth
+- no random mountains/clouds
+- no stock-photo looking assets
+- must feel like a Windows performance control room
+
+Rules:
+
+- max 3 to 5 parallax layers
+- disable heavy parallax on low-end/mobile
+- no full-screen blur animation
+- text must stay readable
+- CTA must stay clickable immediately
+
+EFFECT 4: CRISP PRODUCT REVEAL LOADER
+Create a refined product reveal intro.
+
+Behavior:
+
+- SwitchControl logo appears
+- app screenshots stack or slide into place
+- panels scale and mask-reveal
+- final hero locks into normal layout
+- smooth but short
+
+Use only on:
+
+- homepage first load
+- v1.0.8 launch section
+- download page hero
+
+Rules:
+
+- must not delay the user too long
+- skip if returning visitor or reduced motion
+- max 1.2 seconds
+- no fake loading progress
+- do not block download CTA
+
+EFFECT 5: DYNAMIC SVG UNDERLINE ACCENT
+Create reusable animated underline component.
+
+Behavior:
+
+- hand-drawn style underline
+- but sharper, more technical, not playful
+- cyan/ice blue accent
+- slight glow
+- draws on hover, focus, or scroll reveal
+
+Use on:
+
+- key words
+- feature headings
+- CTA text
+- “Verified”
+- “Rollback”
+- “AI Advisor”
+- “Latency Fingerprint”
+- “No fake claims”
+
+Rules:
+
+- lightweight SVG
+- accessible
+- no layout shift
+- reusable component
+
+EFFECT 6: ADVANCED PARALLAX IMAGE LAYERS
+Create a premium layered hero/feature image effect.
+
+Behavior:
+
+- layered depth
+- foreground/background separation
+- slow cinematic movement
+- large typography integrated into scene
+- product UI panels floating in depth
+
+Use only once or twice max.
+
+Best use:
+
+- homepage hero
+- major product feature banner
+
+Rules:
+
+- 3 layers max on mobile
+- 5 layers max on desktop
+- no huge image files
+- use optimized WebP/AVIF
+- parallax should be subtle, not dizzy
+- must not tank mobile FPS
+
+EXTRA ADVANCED UI EFFECTS TO ADD
+
+1. Scroll progress rail
+   Add a subtle vertical or horizontal progress rail that shows where the user is in the product story.
+
+Should feel like:
+
+- mission timeline
+- system boot sequence
+- progress through feature story
+
+2. Telemetry line draw
+   Graphs should draw in when they enter viewport.
+
+Use:
+
+- SVG path draw
+- stroke-dasharray animation
+- no fake numbers
+- labels should be real or purely decorative
+
+3. App window magnetic tilt
+   Hero product screenshot can slightly react to mouse movement on desktop.
+
+Rules:
+
+- desktop only
+- disabled on mobile
+- tiny movement only
+- no constant animation
+- reset smoothly when mouse leaves
+
+4. Feature cards with depth states
+   Cards should not all fade in the same way.
+
+Use:
+
+- one feature slides up
+- another clips in
+- another line-draws
+- another reveals with mask
+- avoid repeated generic card animation
+
+5. Sticky comparison section
+   Create a section comparing:
+
+Normal tweak apps:
+
+- no verification
+- no rollback
+- fake FPS claims
+- unsafe apply all
+- copied scripts
+
+SwitchControl:
+
+- verifies state
+- tracks ownership
+- reverts safely
+- labels risk
+- uses real telemetry
+
+Use scroll to move from bad side to good side.
+
+6. Release 1.0.8 story section
+   Create a cinematic section explaining the rebuild.
+
+Steps:
+
+- backend routes hardened
+- fake data removed
+- Apply Safe rebuilt
+- telemetry optimized
+- UI rebuilt
+- premium flow fixed
+- new systems added
+
+This section should feel like a launch reveal.
+
+7. Reduced motion mode
+   If user has prefers-reduced-motion:
+
+- no parallax
+- no long scroll animations
+- use simple fades
+- keep all content visible
+- no broken layout
+
+MOBILE REQUIREMENTS
+Mobile must be first-class.
+
+On mobile:
+
+- sticky sections should become stacked cards if needed
+- parallax should be reduced or disabled
+- text must be readable
+- CTA buttons must stay easy to tap
+- no horizontal overflow
+- no scroll hijacking
+- no broken viewport height issues
+- no animations that fight finger scrolling

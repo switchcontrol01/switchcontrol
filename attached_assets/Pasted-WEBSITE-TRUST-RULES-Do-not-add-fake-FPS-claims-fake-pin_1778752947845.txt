@@ -1,0 +1,104 @@
+WEBSITE TRUST RULES
+Do not add:
+
+- fake FPS claims
+- fake ping claims
+- fake latency numbers
+- fake user counters
+- fake benchmark graphs
+- fake loading bars
+- fake “boost percentage”
+
+Use wording like:
+
+- verified system changes
+- reversible optimization
+- real telemetry
+- measured locally
+- risk-aware tweaks
+- built for serious Windows tuning
+
+ASSET RULES
+Use:
+
+- real SwitchControl screenshots where possible
+- product UI mockups based on real screens
+- compressed WebP or AVIF
+- responsive image sizes
+- lazy loading below fold
+
+Do not use:
+
+- random mountains
+- stock people
+- unrelated device photos
+- giant raw PNGs
+- blurry screenshots
+
+IMPLEMENTATION PLAN
+
+1. Audit current website routes and components.
+2. Identify homepage, download page, and v1.0.8/release sections.
+3. Add animation utility hooks:
+   - useReducedMotion
+   - useGSAPScrollSection
+   - useInView
+   - useKillScrollTriggersOnUnmount
+4. Add reusable components:
+   - ScrollFocusText
+   - ScrollFeatureReel
+   - ParallaxHeroScene
+   - ProductRevealLoader
+   - DrawUnderline
+   - ScrollProgressRail
+   - TelemetryLineDraw
+   - StickyComparison
+5. Apply effects only to marketing website pages.
+6. Test desktop and mobile.
+7. Confirm no console errors.
+8. Confirm no broken routes.
+9. Confirm animations clean up on route change.
+
+DO NOT
+
+- rewrite backend
+- touch auth logic
+- touch payment logic
+- change desktop app UI
+- copy CodePen code blindly
+- add animation to every element
+- add fake data
+- ship if mobile scroll is bad
+
+CHECKLIST
+
+- GSAP installed only if needed
+- ScrollTrigger registered safely
+- Lenis only added if it does not break mobile
+- effects 1 to 6 implemented or partially implemented
+- homepage hero upgraded
+- feature storytelling upgraded
+- v1.0.8 story section added or improved
+- dynamic underline component added
+- scroll progress rail added
+- mobile fallback works
+- reduced motion works
+- no heavy animations offscreen
+- no fake claims added
+- no routes broken
+- no download links broken
+- no auth/payment files changed
+- no desktop app files changed
+
+FINAL OUTPUT
+Return:
+
+- changed files
+- packages installed
+- components created
+- pages updated
+- which effects were implemented
+- which effects were simplified for mobile
+- performance safeguards added
+- testing steps
+- anything skipped and why
