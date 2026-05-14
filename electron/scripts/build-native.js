@@ -40,7 +40,7 @@ if (hasCargo()) {
   const sizeKB = Math.round(stats.size / 1024);
   console.log(`[build-native] Cargo not found — using existing bin/sc_memory.exe (${sizeKB} KB)`);
 } else {
-  console.error('[build-native] FATAL: sc_memory.exe is missing and Cargo is not installed.');
-  console.error('[build-native] Memory cleaner is a required feature. Install Rust from https://rustup.rs and rebuild.');
-  process.exit(1);
+  console.warn('[build-native] sc_memory.exe is missing and Cargo is not installed.');
+  console.warn('[build-native] Memory cleaner will be unavailable. The app still builds and all other features work.');
+  console.warn('[build-native] To add memory cleaner later, install Rust from https://rustup.rs and rebuild.');
 }
