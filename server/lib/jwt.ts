@@ -1,5 +1,14 @@
 import jwt from "jsonwebtoken";
 
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.SESSION_SECRET) {
+    throw new Error("SESSION_SECRET required in production");
+  }
+  if (!process.env.JWT_SECRET) {
+    throw new Error("JWT_SECRET required in production");
+  }
+}
+
 const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET;
 
 if (!JWT_SECRET) {

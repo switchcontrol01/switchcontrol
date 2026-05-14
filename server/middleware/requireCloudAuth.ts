@@ -56,7 +56,10 @@ export const requireJwt: RequestHandler = async (req, res, next) => {
   // the authenticated user's ID via x-electron-uid (safe: 127.0.0.1 only).
   if (isElectronBackend) {
     const electronUid = req.headers['x-electron-uid'];
-    if (typeof electronUid === 'string' && electronUid.length > 0) {
+    if (
+      typeof electronUid === 'string' &&
+      /^[a-zA-Z0-9_-]{8,64}$/.test(electronUid)
+    ) {
       req.cloudUser = {
         id: electronUid,
         isPremium: false,

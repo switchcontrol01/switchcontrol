@@ -591,8 +591,8 @@ function ElectronAppContent() {
           console.log('[PremiumFlow] Premium purchase return — user already logged in, refreshing entitlements...');
 
           const result = await retryRefreshEntitlements({
-            attempts: 30,
-            delayMs: 1000,
+            attempts: 8,
+            delayMs: 500,
             initialDelayMs: 500,
           });
 
@@ -601,7 +601,7 @@ function ElectronAppContent() {
             console.log('[Premium] Updated user:', result.user.plan);
             setEntitlementsOk(true);
             setEntitlementsVerified(true);
-            triggerFlowReset();
+            setTimeout(() => triggerFlowReset(), 0);
             useAuthStore.getState().setElectronAuthState('authenticated');
             return;
           }

@@ -124,6 +124,7 @@ async function findOrCreateUser(profile: {
 
 const electronAuthCodes = new Map<string, { userId: string; createdAt: number }>();
 const ELECTRON_CODE_TTL = 120_000; // 2 minutes
+const MAX_PENDING_CODES = 1000;
 
 export function generateElectronCode(userId: string): string {
   const code = Buffer.from(JSON.stringify({
@@ -131,15 +132,22 @@ export function generateElectronCode(userId: string): string {
     ts: Date.now(),
     r: Math.random().toString(36).slice(2),
   })).toString('base64url');
-  electronAuthCodes.set(code, { userId, createdAt: Date.now() });
-  // Clean up expired codes periodically
-  for (const [key, val] of electronAuthCodes) {
-    if (Date.now() - val.createdAt > ELECTRON_CODE_TTL) {
-      electronAuthCodes.delete(key);
-    }
+  // Cap storage: evict oldest if at limit
+  if (electronAuthCodes.size >= MAX_PENDING_CODES) {
+    const oldest = electronAuthCodes.entries().next().value;
+    if (oldest) electronAuthCodes.delete(oldest[0]);
   }
+  electronAuthCodes.set(code, { userId, createdAt: Date.now() });
   return code;
 }
+
+// Global periodic cleanup of expired codes (5 min interval)
+setInterval(() => {
+  const cutoff = Date.now() - ELECTRON_CODE_TTL;
+  for (const [key, val] of electronAuthCodes) {
+    if (val.createdAt < cutoff) electronAuthCodes.delete(key);
+  }
+}, 5 * 60 * 1000);
 
 function consumeElectronCode(code: string): string | null {
   const entry = electronAuthCodes.get(code);
@@ -650,7 +658,7 @@ export function setupGoogleAuth(app: Express): void {
 
   <script>
     (function() {
-      var deepLink = "${deepLink}";
+      var deepLink = ${JSON.stringify(deepLink)};
       try { window.location.href = deepLink; } catch(e) {}
     })();
   </script>
@@ -1102,8 +1110,31 @@ export function setupGoogleAuth(app: Express): void {
     return res.json({ authMode: 'none', loggedIn: false, userId: null });
   });
 
+  // ── Simple per-IP rate limiter for /api/auth/exchange ────────────────────────
+  const _exchangeAttempts = new Map<string, { count: number; resetAt: number }>();
+
+  function rateLimitExchange(ip: string): { ok: boolean; remaining?: number } {
+    const now = Date.now();
+    const record = _exchangeAttempts.get(ip);
+    if (record && now < record.resetAt) {
+      if (record.count >= 10) {
+        return { ok: false, remaining: 0 };
+      }
+      record.count++;
+      return { ok: true, remaining: 10 - record.count };
+    }
+    _exchangeAttempts.set(ip, { count: 1, resetAt: now + 60000 });
+    return { ok: true, remaining: 9 };
+  }
+
   app.post("/api/auth/exchange", async (req, res) => {
     try {
+      const ip = req.ip || 'unknown';
+      const limitCheck = rateLimitExchange(ip);
+      if (!limitCheck.ok) {
+        return res.status(429).json({ success: false, error: 'Too many attempts' });
+      }
+
       const authHeader = req.headers.authorization;
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ success: false, error: 'Missing or invalid authorization header' });
